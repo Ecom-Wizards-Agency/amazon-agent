@@ -139,7 +139,7 @@ Use client-first paths for new artifacts:
 - `evidence/{client-or-brand}-{workflow}-{YYYY-MM-DD}/`
 - `downloads/{client-or-brand}/{YYYY-MM-DD}-{source}/`
 
-For review management, use `output/{client-or-brand}/{YYYY-MM-DD}-review-management/` for dated work or `output/{client-or-brand}/review-management/` for ongoing state. Keep support drafts/evidence under `output/{client-or-brand}/{YYYY-MM-DD}-support-prep/` and `evidence/{client-or-brand}-support-prep-{YYYY-MM-DD}/`; use Notion for live support-case tracking.
+Review management is ongoing, not a dated workflow. Keep it in `output/{client-or-brand}/review-management/` and update the same client folder over time. Keep support drafts/evidence under `output/{client-or-brand}/{YYYY-MM-DD}-support-prep/` and `evidence/{client-or-brand}-support-prep-{YYYY-MM-DD}/`; use Notion for live support-case tracking.
 
 Controlled workflow names:
 
@@ -149,7 +149,6 @@ Controlled workflow names:
 - `reporting`
 - `inventory`
 - `catalog`
-- `review-management`
 - `account-check`
 - `support-prep`
 
@@ -198,7 +197,7 @@ For Seller Central promotion workflows, verify current Amazon promotion/price ru
 For negative review outreach with courtesy refunds:
 
 1. Filter for the requested star ratings, usually `1 Stars` and `2 Stars`.
-2. Save the original review data locally under `output/{client-or-brand}/{YYYY-MM-DD}-review-management/` before outreach. Capture date, reviewer name/location, Amazon profile link, review link, original review count, original review text, `Changes` set to `NO`, and an empty `New review` field.
+2. Save the original review data locally under `output/{client-or-brand}/review-management/` before outreach. Capture date, reviewer name/location, Amazon profile link, review link, original review count, original review text, `Changes` set to `NO`, and an empty `New review` field.
 3. For eligible verified-purchase reviews, click `Contact Customer`.
 4. Select `Courtesy refund`.
 5. Review Amazon's standard courtesy-refund template, then click `Send` only when Victor has approved that specific courtesy-refund action.

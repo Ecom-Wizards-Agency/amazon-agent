@@ -101,8 +101,7 @@ Controlled workflow names:
 - `reporting`
 - `inventory`
 - `catalog`
-- `review-management`
 - `account-check`
 - `support-prep`
 
-Use `output/` for generated analysis and deliverables, `evidence/` for screenshots/UI proof, and `downloads/` for raw Amazon exports before processing. Put review management work under `output/{client-or-brand}/{YYYY-MM-DD}-review-management/` or `output/{client-or-brand}/review-management/`. `review-tracking/` remains ignored only as a legacy local folder for old files. If a workflow needs local context, put a `README.md` or `operator-note.md` inside that dated folder. Use Notion for ongoing team status.
+Use `output/` for generated analysis and deliverables, `evidence/` for screenshots/UI proof, and `downloads/` for raw Amazon exports before processing. Review management is ongoing, so keep it under `output/{client-or-brand}/review-management/` and update the same client folder over time. `review-tracking/` remains ignored only as a legacy local folder for old files. If a workflow needs local context, put a `README.md` or `operator-note.md` inside that dated folder. Use Notion for ongoing team status.
