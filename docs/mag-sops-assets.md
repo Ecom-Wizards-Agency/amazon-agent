@@ -1,19 +1,17 @@
 # MAG SOP Visual Archive
 
-The GitHub repo keeps the MAG SOP markdown searchable and lightweight. The full visual SOP archive is stored outside GitHub because it contains thousands of screenshots and GIFs.
+The GitHub/runtime project keeps the MAG SOP markdown searchable and lightweight. The full visual SOP archive is stored outside GitHub because it contains thousands of screenshots and GIFs.
 
 ## Canonical Visual Archive
 
-- Archive name: `mag-sops-final-build-2026-05-12.zip`
-- Local source: `/Users/victoruhl/Codex Projects/Amazon Agent/MAG SOPs/.final-build`
-- Expected contents: 535 markdown files and 3,621 image/GIF files
-- pCloud folder: `/Users/victoruhl/pCloud Drive/Account shares/Amazon Wizards/2_Company/2.7_Tools/Amazon Agent`
-- Public pCloud link: https://e.pcloud.link/publink/show?code=kZmRLrZOvTC6MrCoWLu2NvkBFm8wSWhM3Vy
+- Local pCloud folder: `/Users/victoruhl/Documents/pCloud/Amazon Agent/MAG SOPs`
+- Expected contents: 535 Markdown files and 3,621 assets in `assets/`
+- Expected missing local image references: 0
 
 ## Usage Rule
 
-Use the GitHub markdown first for search, routing, and AI operation. Use the pCloud visual archive when a workflow depends on screenshots, GIFs, module layouts, or visual confirmation.
+Search local/GitHub markdown SOPs first. When visual confirmation, screenshots, GIFs, or layout references are needed, use the pCloud visual archive path.
 
 ## Do Not Commit
 
-Do not commit `.final-build`, image assets, generated evidence, downloads, or client work output to GitHub. Keep those in pCloud or local output folders.
+Do not commit `.final-build`, image assets, zip files, generated evidence, downloads, review tracking, or client work output to GitHub. Keep those in pCloud or local-only output folders.

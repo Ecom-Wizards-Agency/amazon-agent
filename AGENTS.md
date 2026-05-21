@@ -38,9 +38,28 @@ python3 "skills/amazon-operator-routing/scripts/search_amazon_libraries.py" "acc
 python3 "skills/amazon-operator-routing/scripts/search_amazon_libraries.py" "send to amazon shipment" --library all --limit 8
 ```
 
+## MAG SOP Visual Archive
+
+The runtime `MAG SOPs/` folder is the markdown-only version. Search local/GitHub markdown SOPs first. When visual confirmation, screenshots, GIFs, or layout references are needed, use the local pCloud visual archive:
+
+`/Users/victoruhl/Documents/pCloud/Amazon Agent/MAG SOPs`
+
+Expected pCloud visual archive check:
+
+- 535 Markdown files
+- 3,621 assets in `assets/`
+- 0 missing local image references
+
 ## Specialist Skill Model
 
 This project uses one main Amazon operator with specialist skills. Specialist skills are not permanent separate agents; they are focused playbooks the main operator loads when the request matches. Use temporary subagents only for larger tasks where parallel research or QA saves time.
+
+Terminology:
+
+- Codex agent: the main operator doing the work.
+- Specialist skill: a focused playbook/toolkit the main operator opens for a workflow.
+- Temporary subagent: a delegated helper used only when parallel research, independent QA, or a large split task is useful.
+- Project: the shared workspace where the Amazon libraries, skills, local outputs, and safety rules live.
 
 Default routing:
 
@@ -54,11 +73,20 @@ Default routing:
 - `amazon-logistics`: Send to Amazon, FBA shipments, removals, AWD, inventory operations.
 - `amazon-communications`: support cases, buyer messages, creator replies, courtesy-refund follow-ups.
 
+Inventory planning trigger phrases:
+
+- `Weekly FBA Inventory Overview`
+- `reshipment planning`
+- `FBA inventory planning`
+- `inventory overview`
+
+When Victor asks for an inventory check or reshipment check, route to `amazon-inventory-planning`, use the weekly inventory reference, prepare CSV/XLSX outputs and Slack staging copy when needed, and stop before client-facing posts or account-changing actions.
+
 Source priority:
 
 1. For current Amazon rules, UI behavior, policies, eligibility, error text, report definitions, and requirements, use first-party Amazon docs first.
 2. For Ecom Wizards methodology, generated workbooks, SEO writing, analytics logic, and client-specific playbooks, use the knowledge-base skill references first, then verify against current Amazon rules.
-3. Use MAG SOPs for agency procedure, practical UI steps, screenshots, and workaround patterns.
+3. Use MAG SOPs for agency procedure and practical UI steps. Use the pCloud visual archive when screenshots, GIFs, module layouts, or visual confirmation are needed.
 4. If sources conflict, prefer first-party Amazon docs for rules/current UI and MAG/internal notes for operating procedure.
 
 ## Local Output Storage
@@ -69,7 +97,8 @@ Use separate local output folders at the workspace root instead, such as:
 
 - `review-tracking/` for customer review logs and before/after review tracking.
 - `evidence/` for screenshots and browser evidence.
-- `output/` for generated reports, spreadsheets, bulk files, and other deliverables.
+- `Output/` or `output/` for generated reports, spreadsheets, bulk files, and other deliverables.
+- `_local-output/` for local staging, visual builds, and preserved cleanup artifacts that should not be committed.
 
 When creating a new tracker or evidence set, create a dated subfolder with the client, brand, product, or workflow in the path.
 
@@ -144,7 +173,7 @@ For negative review outreach with courtesy refunds:
    For Account Health checks, if a policy issue or complaint row shows a `Review details` button/link, click it before summarizing the problem. Capture the expanded detail text, status, impacted ASIN/SKU/listing, date, action taken, Account Health Rating impact, and any next-step labels. Stop before submitting appeals, acknowledgements, new information, or support/contact actions.
 
 6. Stop before risky actions:
-   Ask Victor before sending messages, submitting support cases, creating or confirming shipments, changing bids/budgets/campaigns, uploading bulk files, acknowledging account-health actions, changing account/payment/settings, or deleting data.
+   Unless Victor explicitly instructs otherwise for the specific action, do not send messages, submit Seller Support cases, create or confirm shipments, change campaigns/budgets/bids, upload bulk files, acknowledge account-health actions, change account/payment/permission/settings details, or delete data.
 
 7. Finish with a short operator note:
    Include what was checked, source docs used, final screen, evidence captured, what was prepared, and what still needs confirmation.
@@ -175,7 +204,7 @@ For troubleshooting:
 
 ## Current Known Libraries
 
-- MAG SOPs: complete captured SOP library with markdown and images.
+- MAG SOPs: markdown-only runtime copy in this project; complete visual version in the pCloud archive.
 - Amazon Seller Help: complete captured Seller Help library.
 - Amazon Ads Help: Amazon Ads API/docs library.
 - Advertising Help After Login: Amazon Ads Support Center and logged-in support docs, including Creator Connections context.

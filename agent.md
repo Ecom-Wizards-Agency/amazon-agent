@@ -22,12 +22,12 @@ Use the Codex Chrome extension/plugin when navigating, inspecting pages, clickin
 
 ## Local Libraries
 
-Search these folders before answering or operating:
+Search narrowly before answering or operating. Use indexes and the routing search helper first; do not crawl whole SOP/help folders by default.
 
-- `MAG SOPs`
 - `Amazon Seller Help`
 - `Amazon Ads Help`
 - `Advertising Help After Login`
+- `MAG SOPs`
 - `skills/amazon-operator-routing`
 
 Use the routing skill and its search helper when available:
@@ -37,6 +37,72 @@ python3 "skills/amazon-operator-routing/scripts/search_amazon_libraries.py" "cre
 python3 "skills/amazon-operator-routing/scripts/search_amazon_libraries.py" "account health violation" --library seller --limit 8
 python3 "skills/amazon-operator-routing/scripts/search_amazon_libraries.py" "send to amazon shipment" --library all --limit 8
 ```
+
+## MAG SOP Visual Archive
+
+The GitHub/runtime project keeps the MAG SOP markdown searchable and lightweight. Heavy images, GIFs, screenshots, zip files, generated evidence, outputs, and client work artifacts do not belong in the runtime source tree.
+
+Search local/GitHub markdown SOPs first. When visual confirmation, screenshots, GIFs, or layout references are needed, use the local pCloud visual archive:
+
+`/Users/victoruhl/Documents/pCloud/Amazon Agent/MAG SOPs`
+
+Expected pCloud visual archive check:
+
+- 535 Markdown files
+- 3,621 assets in `assets/`
+- 0 missing local image references
+
+## Specialist Skill Model
+
+This project uses one main Amazon operator with specialist skills. Specialist skills are not permanent separate agents; they are focused playbooks the main operator loads when the request matches. Use temporary subagents only for larger tasks where parallel research or QA saves time.
+
+Terminology:
+
+- Codex agent: the main operator doing the work.
+- Specialist skill: a focused playbook/toolkit the main operator opens for a workflow.
+- Temporary subagent: a delegated helper used only when parallel research, independent QA, or a large split task is useful.
+- Project: the shared workspace where the Amazon libraries, skills, local outputs, and safety rules live.
+
+Default routing:
+
+- `amazon-operator-routing`: dispatcher, source ladder, browser checkpoints, stop-before-risk rules.
+- `amazon-troubleshooting`: errors, suppressed listings, warnings, Account Health, blocked workflows.
+- `amazon-seo`: keyword research, listing SEO, Ranking Juice, Rufus/semantic optimization, SEO audits.
+- `amazon-catalog`: variations, parentage, flat files, listing edits, catalog conflicts.
+- `amazon-ads`: Ads Console, PPC, Creator Connections, bidding, budgets, targeting.
+- `amazon-reporting`: Seller/Ads reports, SQP, business reports, analytics workbooks.
+- `amazon-inventory-planning`: weekly FBA inventory overview, reshipment planning, pCloud outputs, Slack staging.
+- `amazon-logistics`: Send to Amazon, FBA shipments, removals, AWD, inventory operations.
+- `amazon-communications`: support cases, buyer messages, creator replies, courtesy-refund follow-ups.
+
+Inventory planning trigger phrases:
+
+- `Weekly FBA Inventory Overview`
+- `reshipment planning`
+- `FBA inventory planning`
+- `inventory overview`
+
+When Victor asks for an inventory check or reshipment check, route to `amazon-inventory-planning`, use the weekly inventory reference, prepare CSV/XLSX outputs and Slack staging copy when needed, and stop before client-facing posts or account-changing actions.
+
+Source priority:
+
+1. For current Amazon rules, UI behavior, policies, eligibility, error text, report definitions, and requirements, use first-party Amazon docs first.
+2. For Ecom Wizards methodology, generated workbooks, SEO writing, analytics logic, and client-specific playbooks, use the knowledge-base skill references first, then verify against current Amazon rules.
+3. Use MAG SOPs for agency procedure and practical UI steps. Use the pCloud visual archive when screenshots, GIFs, module layouts, or visual confirmation are needed.
+4. If sources conflict, prefer first-party Amazon docs for rules/current UI and MAG/internal notes for operating procedure.
+
+## Local Output Storage
+
+Never save generated files, exports, evidence, screenshots, review trackers, working notes, or client-specific output inside SOP or help-library folders. SOP folders should contain SOP/source documentation only.
+
+Use separate local output folders at the workspace root instead, such as:
+
+- `review-tracking/` for customer review logs and before/after review tracking.
+- `evidence/` for screenshots and browser evidence.
+- `Output/` or `output/` for generated reports, spreadsheets, bulk files, and other deliverables.
+- `_local-output/` for local staging, visual builds, and preserved cleanup artifacts that should not be committed.
+
+When creating a new tracker or evidence set, create a dated subfolder with the client, brand, product, or workflow in the path.
 
 ## Amazon Ads Account Selection
 
@@ -57,6 +123,38 @@ Creator Connections route:
 
 Do not use ~~`https://advertising.amazon.com/choose-account?destination=/bi`~~ as the starting route. It can show only a partial account list and may hide accounts that are visible from Campaign Manager.
 
+## Seller Central Customer Reviews
+
+For Brand Customer Reviews workflows, use this route:
+
+1. Open `https://sellercentral.amazon.com/brand-customer-reviews/ref=xx_crvws_dnav_xx`.
+2. Verify the selected seller account, marketplace, page title, and visible review count.
+3. Use the `Star rating`, `Order Type`, `Contact Status`, and `Time Period` filters as needed.
+4. Stop before sending messages or issuing refunds unless Victor has explicitly approved the specific action.
+
+Do not use ~~`https://sellercentral.amazon.com/brands/customer-reviews`~~ as the starting route. It can redirect to Customer Experience Metrics and show an unrelated `Access Required` page.
+
+## Seller Central Promotions and Sale Discounts
+
+For Seller Central promotion workflows, verify current Amazon promotion/price rules first, then use MAG SOPs for the practical path:
+
+1. Open Seller Central and go to `Advertising` > `Promotions`.
+2. Choose the promotion type from the page: `Social Media Promo Code`, `Percentage Off`, or `Buy One Get One`.
+3. Check existing running or scheduled promotions, coupons, deals, sale prices, or business discounts for overlap before creating a new promotion.
+4. For a single-unit sales discount, consider whether the workflow should be a limited-time `Sale Price` instead of a percentage-off promotion.
+5. Stop at the final review/submit step unless Victor has explicitly approved submitting the exact promotion or price change.
+
+For negative review outreach with courtesy refunds:
+
+1. Filter for the requested star ratings, usually `1 Stars` and `2 Stars`.
+2. Save the original review data locally under `review-tracking/` before outreach. Capture date, reviewer name/location, Amazon profile link, review link, original review count, original review text, `Changes` set to `NO`, and an empty `New review` field.
+3. For eligible verified-purchase reviews, click `Contact Customer`.
+4. Select `Courtesy refund`.
+5. Review Amazon's standard courtesy-refund template, then click `Send` only when Victor has approved that specific courtesy-refund action.
+6. After the courtesy refund is sent, the same review should display `View Messages`. Open that link to reach the Buyer-Seller Messaging thread.
+7. Create the first custom follow-up message in that message thread using Victor's provided template, replacing variables with the actual customer name, brand/company, product, and sender name.
+8. Stop before sending the custom message unless Victor explicitly confirms the exact send action.
+
 ## Workflow
 
 1. Classify the request:
@@ -74,8 +172,10 @@ Do not use ~~`https://advertising.amazon.com/choose-account?destination=/bi`~~ a
 5. Preserve evidence:
    Capture important screenshots, tables, warning banners, filters, selected account, marketplace, ASIN/SKU/campaign/order/shipment/case IDs, and exact error text.
 
+   For Account Health checks, if a policy issue or complaint row shows a `Review details` button/link, click it before summarizing the problem. Capture the expanded detail text, status, impacted ASIN/SKU/listing, date, action taken, Account Health Rating impact, and any next-step labels. Stop before submitting appeals, acknowledgements, new information, or support/contact actions.
+
 6. Stop before risky actions:
-   Ask Victor before sending messages, submitting support cases, creating or confirming shipments, changing bids/budgets/campaigns, uploading bulk files, acknowledging account-health actions, changing account/payment/settings, or deleting data.
+   Unless Victor explicitly instructs otherwise for the specific action, do not send messages, submit Seller Support cases, create or confirm shipments, change campaigns/budgets/bids, upload bulk files, acknowledge account-health actions, change account/payment/permission/settings details, or delete data.
 
 7. Finish with a short operator note:
    Include what was checked, source docs used, final screen, evidence captured, what was prepared, and what still needs confirmation.
@@ -106,7 +206,7 @@ For troubleshooting:
 
 ## Current Known Libraries
 
-- MAG SOPs: complete captured SOP library with markdown and images.
+- MAG SOPs: markdown-only runtime copy in this project; complete visual version in the pCloud archive.
 - Amazon Seller Help: complete captured Seller Help library.
 - Amazon Ads Help: Amazon Ads API/docs library.
 - Advertising Help After Login: Amazon Ads Support Center and logged-in support docs, including Creator Connections context.
@@ -125,5 +225,4 @@ Amazon Ads Creator Connections:
 
 - Correct access path is Campaign Manager account selector, then Brand content > Creator connections.
 - SwissKlip Creator Connections messages had multiple unread/open conversations visible on 2026-05-13.
-- The newest visible unread SwissKlip thread opened was `King’s Gems`, with a May 12, 2026 message.
-
+- The newest visible unread SwissKlip thread opened was `King's Gems`, with a May 12, 2026 message.

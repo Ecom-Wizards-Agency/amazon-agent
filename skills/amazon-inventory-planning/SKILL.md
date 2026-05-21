@@ -15,6 +15,8 @@ Use this skill for recurring or ad hoc FBA inventory overview and reshipment pla
 - Excess inventory / plan-sales identification.
 - FBA Inventory, Restock, Inventory Report, and Business Report collection for planning.
 
+Trigger phrases include `Weekly FBA Inventory Overview`, `reshipment planning`, `FBA inventory planning`, `inventory overview`, and plain requests for an inventory check or reshipment check.
+
 ## Required Reference
 
 Read `references/weekly-fba-inventory-overview.md` before running the weekly workflow or recreating its instructions.
@@ -36,6 +38,7 @@ Important planner files:
 - Restock sold30 is fallback/supporting signal only where the planner uses it.
 - Save final deliverables outside SOP/help folders.
 - Stop before client-facing Slack sends, destructive Downloads cleanup, or any account-changing Seller Central action.
+- The former automation does not need to be reactivated to run this workflow; use this skill and reference file as the source of truth.
 
 ## Output
 

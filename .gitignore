@@ -1,0 +1,24 @@
+.DS_Store
+
+# Local visual builds and heavy assets
+.final-build/
+assets/
+*.zip
+
+# Local outputs and evidence
+Output/
+output/
+evidence/
+review-tracking/
+_local-output/
+downloads/
+Downloads/
+screenshots/
+Screenshots/
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.swp
+~$*
