@@ -12,6 +12,11 @@ Downloads/
 screenshots/
 Screenshots/
 
+# Local user preferences and standing permissions
+!_local/
+_local/*
+!_local/.gitkeep
+
 # Keep base artifact folders in GitHub, but ignore their contents.
 !output/
 output/*

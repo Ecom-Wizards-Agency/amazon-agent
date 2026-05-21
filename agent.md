@@ -182,6 +182,16 @@ Controlled workflow names:
 
 Do not create a separate global overview tracker by default. If a workflow needs local context, put `README.md` or `operator-note.md` inside the relevant workflow folder. Use Notion for ongoing team status.
 
+## Local Permission Memory
+
+Standing permission changes such as "do not ask me again for this action" are user-specific consent records. The shared GitHub instructions define the mechanism, but actual standing permissions must stay local to each operator.
+
+Store actual standing permissions only in `_local/local-permissions.md`. This file is ignored by Git and must not be committed, copied into tracked docs, or generalized into team-wide behavior. Do not store secrets, passwords, tokens, payment details, tax details, or private keys in this file.
+
+Before any risky or externally visible action, check `_local/local-permissions.md` when it exists. A matching local permission must specify the allowed action, the applicable account/client/scope, and any limits. Generic examples of scope include a named client account, a specific support workflow, a specific marketplace, a specific message type, or a defined date range.
+
+If a matching local permission exists, the agent may proceed only within that permission's scope and should mention in the operator note that a local standing permission was used. If no matching local permission exists, follow the normal stop-before-risk rules and ask for confirmation in the current chat.
+
 ## Amazon Ads Account Selection
 
 For Amazon Ads workflows, do not start from the direct account chooser for Creator Connections.
@@ -253,7 +263,7 @@ For negative review outreach with courtesy refunds:
    For Account Health checks, if a policy issue or complaint row shows a `Review details` button/link, click it before summarizing the problem. Capture the expanded detail text, status, impacted ASIN/SKU/listing, date, action taken, Account Health Rating impact, and any next-step labels. Stop before submitting appeals, acknowledgements, new information, or support/contact actions.
 
 6. Stop before risky actions:
-   Unless Victor explicitly instructs otherwise for the specific action, do not send messages, submit Seller Support cases, create or confirm shipments, change campaigns/budgets/bids, upload bulk files, acknowledge account-health actions, change account/payment/permission/settings details, or delete data.
+   Unless Victor explicitly instructs otherwise for the specific action in the current chat, or a matching local standing permission exists in `_local/local-permissions.md`, do not send messages, submit Seller Support cases, create or confirm shipments, change campaigns/budgets/bids, upload bulk files, acknowledge account-health actions, change account/payment/permission/settings details, or delete data.
 
 7. Finish with a short operator note:
    Include what was checked, source docs used, final screen, evidence captured, what was prepared, and what still needs confirmation.
