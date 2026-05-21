@@ -12,7 +12,7 @@ Filename format:
 YYYY-MM-DD_{short-topic}.md
 ```
 
-Local working drafts, bug reports, and screenshots belong in ignored local folders:
+New SOP drafts belong in `sop-drafts/`. Local screenshots and working evidence belong in ignored local folders:
 
 ```text
 output/{client-or-brand-or-general}/sop-maintenance/

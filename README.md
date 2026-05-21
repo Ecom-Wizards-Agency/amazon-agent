@@ -19,7 +19,7 @@ For inventory/reshipment work, useful trigger phrases are `Weekly FBA Inventory 
 
 For Product Opportunity Explorer work, useful trigger phrases are `Product Opportunity Explorer`, `Opportunity Explorer`, `OEI`, `POE`, `Niche Scout`, `amazon-image-strategy`, and `oei-product-strategy`.
 
-For SOP maintenance, use `/bug` to create a local report for outdated, broken, unclear, or risky SOP guidance. Use `/create-sop` to create a local SOP draft from a task, browser workflow, or notes. Use `/fix-sop` for a verified correction that updates a tracked source file and creates a synced change note in `sop-updates/`. Local drafts and evidence stay under ignored `output/{client-or-brand-or-general}/sop-maintenance/` and `evidence/{client-or-brand-or-general}/sop-maintenance/`.
+For SOP maintenance, use `/create-sop` to create a new tracked SOP draft in `sop-drafts/`. Use `/fix-sop` for a verified correction that updates a tracked source file and creates a synced change note in `sop-updates/`. Local evidence stays under ignored `output/{client-or-brand-or-general}/sop-maintenance/` and `evidence/{client-or-brand-or-general}/sop-maintenance/`.
 
 The routing helper can search the local Amazon libraries:
 
@@ -90,6 +90,12 @@ Keep those in pCloud or ignored local-only folders. New work should use lowercas
 Verified SOP corrections should create one markdown change note in `sop-updates/`. This folder is synced to GitHub as the audit trail for source SOP updates.
 
 Do not store screenshots, GIFs, exports, or heavy evidence in `sop-updates/`. Keep those in pCloud or ignored local evidence folders and link or summarize them in the change note.
+
+## SOP Drafts
+
+New SOPs should start as markdown drafts in `sop-drafts/`. Promote a draft into `MAG SOPs/` or another source library only when Victor explicitly asks.
+
+Create or update a SOP when documenting a human/team Amazon process, checklist, browser workflow, or operating procedure. Create or update a skill only when changing how Codex behaves, routes work, uses tools/scripts, or applies repeatable AI workflow instructions.
 
 ## Local Artifact Folders
 

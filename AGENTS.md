@@ -75,7 +75,7 @@ Default routing:
 - `amazon-reporting`: Seller/Ads reports, SQP, business reports, analytics workbooks.
 - `amazon-inventory-planning`: weekly FBA inventory overview, reshipment planning, pCloud outputs, Slack staging.
 - `amazon-opportunity-explorer`: Product Opportunity Explorer/OEI/POE exports, image strategy, product strategy, Alexa/Rufus semantic insights.
-- `amazon-sop-maintenance`: `/bug`, `/create-sop`, `/fix-sop`, outdated/broken SOP reports, verified SOP corrections, and new SOP drafts.
+- `amazon-sop-maintenance`: `/create-sop`, `/fix-sop`, verified SOP corrections, new SOP drafts, and SOP-vs-skill routing.
 - `amazon-logistics`: Send to Amazon, FBA shipments, removals, AWD, inventory operations.
 - `amazon-communications`: support cases, buyer messages, creator replies, courtesy-refund follow-ups.
 
@@ -113,7 +113,6 @@ Naming note: Victor noted that Amazon's Rufus AI naming is moving/has moved towa
 
 SOP maintenance trigger phrases:
 
-- `/bug`
 - `/create-sop`
 - `/fix-sop`
 - `outdated SOP`
@@ -121,7 +120,9 @@ SOP maintenance trigger phrases:
 - `wrong SOP steps`
 - `new SOP draft`
 
-For SOP maintenance, route to `amazon-sop-maintenance`. `/bug` creates a local SOP bug report only. `/create-sop` creates a local SOP draft only. `/fix-sop` verifies the issue, updates the local tracked source file, and creates a synced change note in `sop-updates/`. Stop before pushing unless Victor explicitly asks to push.
+For SOP maintenance, route to `amazon-sop-maintenance`. `/create-sop` creates a tracked draft in `sop-drafts/`. `/fix-sop` verifies the issue, updates the local tracked source file, and creates a synced change note in `sop-updates/`. Stop before pushing unless Victor explicitly asks to push.
+
+SOP vs skill rule: create or update a SOP for a human/team Amazon process, checklist, browser workflow, or operating procedure. Create or update a skill only when changing how Codex behaves, routes work, uses tools/scripts, or applies repeatable AI workflow instructions.
 
 Source priority:
 
