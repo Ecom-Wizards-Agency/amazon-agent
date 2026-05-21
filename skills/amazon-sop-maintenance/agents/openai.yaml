@@ -1,0 +1,3 @@
+display_name: Amazon SOP Maintenance
+short_description: Create local SOP bug reports and new SOP drafts without editing source files.
+default_prompt: Use this skill for /bug, /create-sop, outdated SOPs, broken SOP links, wrong SOP steps, questionable SOP guidance, and new SOP drafts.

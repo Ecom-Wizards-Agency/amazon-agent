@@ -19,6 +19,8 @@ For inventory/reshipment work, useful trigger phrases are `Weekly FBA Inventory 
 
 For Product Opportunity Explorer work, useful trigger phrases are `Product Opportunity Explorer`, `Opportunity Explorer`, `OEI`, `POE`, `Niche Scout`, `amazon-image-strategy`, and `oei-product-strategy`.
 
+For SOP maintenance, use `/bug` to create a local report for outdated, broken, unclear, or risky SOP guidance. Use `/create-sop` to create a local SOP draft from a task, browser workflow, or notes. These commands write local ignored artifacts under `output/{client-or-brand-or-general}/sop-maintenance/` and evidence under `evidence/{client-or-brand-or-general}/sop-maintenance/`; they do not edit source SOP/help/GitHub files unless Victor explicitly asks for that exact source edit.
+
 The routing helper can search the local Amazon libraries:
 
 ```bash
@@ -117,5 +119,6 @@ Controlled workflow names:
 - `catalog`
 - `account-check`
 - `support-prep`
+- `sop-maintenance`
 
 Use `output/` for generated analysis and deliverables, `evidence/` for screenshots/UI proof, and `downloads/` for raw Amazon exports before processing. Review management is ongoing and client-specific, so update the same client folder over time. `review-tracking/` remains ignored only as a legacy local folder for old files. If a workflow needs local context, put `README.md` or `operator-note.md` inside the relevant workflow folder. Use Notion for ongoing team status.

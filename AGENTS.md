@@ -75,6 +75,7 @@ Default routing:
 - `amazon-reporting`: Seller/Ads reports, SQP, business reports, analytics workbooks.
 - `amazon-inventory-planning`: weekly FBA inventory overview, reshipment planning, pCloud outputs, Slack staging.
 - `amazon-opportunity-explorer`: Product Opportunity Explorer/OEI/POE exports, image strategy, product strategy, Alexa/Rufus semantic insights.
+- `amazon-sop-maintenance`: `/bug`, `/create-sop`, outdated/broken SOP reports, and new SOP drafts.
 - `amazon-logistics`: Send to Amazon, FBA shipments, removals, AWD, inventory operations.
 - `amazon-communications`: support cases, buyer messages, creator replies, courtesy-refund follow-ups.
 
@@ -109,6 +110,17 @@ Original Chrome extension/source backup, as a local placeholder path:
 Victor confirmed ownership and backend clearance for reusing the previous extension logic. The extension path is a historical/source reference only, not a repo dependency. The extension is not part of the intended workflow once the script is tested. Do not inspect cookies, session storage, local storage, tokens, or credentials while extracting OEI/POE data.
 
 Naming note: Victor noted that Amazon's Rufus AI naming is moving/has moved toward Alexa or Alexa AI. Treat `Rufus`, `Alexa AI`, `Amazon AI search`, and `semantic Amazon search` as related trigger language unless current first-party Amazon docs say otherwise for a specific workflow.
+
+SOP maintenance trigger phrases:
+
+- `/bug`
+- `/create-sop`
+- `outdated SOP`
+- `broken SOP link`
+- `wrong SOP steps`
+- `new SOP draft`
+
+For SOP maintenance, route to `amazon-sop-maintenance`. `/bug` creates a local SOP bug report only. `/create-sop` creates a local SOP draft only. Do not edit source SOP/help/GitHub files unless Victor explicitly asks for that exact source edit.
 
 Source priority:
 
@@ -150,6 +162,7 @@ Controlled workflow names:
 - `catalog`
 - `account-check`
 - `support-prep`
+- `sop-maintenance`
 
 Do not create a separate global overview tracker by default. If a workflow needs local context, put `README.md` or `operator-note.md` inside the relevant workflow folder. Use Notion for ongoing team status.
 
