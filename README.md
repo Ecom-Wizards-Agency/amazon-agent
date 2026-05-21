@@ -44,7 +44,7 @@ The local project should stay aligned with the GitHub repo's lightweight runtime
 
 ## Visual MAG SOP Archive
 
-The complete visual MAG SOP archive lives outside the GitHub/runtime project:
+The complete visual MAG SOP archive lives outside the GitHub/runtime project. Victor's current local placeholder path is:
 
 `/Users/victoruhl/Documents/pCloud/Amazon Agent/MAG SOPs`
 
@@ -56,7 +56,7 @@ Expected pCloud visual archive check:
 - 3,621 assets in `assets/`
 - 0 missing local image references
 
-The pCloud folder must be locally available when visual SOPs are needed.
+The pCloud folder must be locally available when visual SOPs are needed. This path is user-specific: each team member should download or sync the shared pCloud archive locally and point their setup to their own local path. Do not commit the archive or any personal sync folder into GitHub.
 
 ## Opportunity Explorer Extraction
 
@@ -67,7 +67,7 @@ The Product Opportunity Explorer workflow uses repo-native scripts instead of a 
 
 The scripts scrape the visible Product Opportunity Explorer page in the logged-in Chrome session and save structured JSON plus Markdown for image strategy, product strategy, SEO, and Rufus/Alexa AI workflows.
 
-The original Chrome extension remains in pCloud only as historical/source reference during transition. Once the script is tested, it is not needed.
+The original Chrome extension remains in pCloud only as historical/source reference during transition. Once the script is tested, it is not needed as part of the runtime workflow.
 
 ## What Does Not Belong In GitHub
 
@@ -81,4 +81,28 @@ Do not commit heavy or local work artifacts to the GitHub repo, including:
 - Review tracking files
 - Downloads and temporary files
 
-Keep those in pCloud or local-only folders such as `Output/`, `output/`, `evidence/`, `review-tracking/`, or `_local-output/`.
+Keep those in pCloud or ignored local-only folders. New work should use lowercase `output/`; uppercase `Output/` remains ignored only as a legacy alias.
+
+## Local Artifact Folders
+
+Use a client-first structure for generated work:
+
+```text
+output/{client-or-brand}/{YYYY-MM-DD}-{workflow}/
+evidence/{client-or-brand}-{workflow}-{YYYY-MM-DD}/
+downloads/{client-or-brand}/{YYYY-MM-DD}-{source}/
+```
+
+Controlled workflow names:
+
+- `seo`
+- `opportunity-data`
+- `ads`
+- `reporting`
+- `inventory`
+- `catalog`
+- `review-management`
+- `account-check`
+- `support-prep`
+
+Use `output/` for generated analysis and deliverables, `evidence/` for screenshots/UI proof, and `downloads/` for raw Amazon exports before processing. Put review management work under `output/{client-or-brand}/{YYYY-MM-DD}-review-management/` or `output/{client-or-brand}/review-management/`. `review-tracking/` remains ignored only as a legacy local folder for old files. If a workflow needs local context, put a `README.md` or `operator-note.md` inside that dated folder. Use Notion for ongoing team status.

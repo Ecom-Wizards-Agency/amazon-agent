@@ -4,9 +4,11 @@ The GitHub/runtime project keeps the MAG SOP markdown searchable and lightweight
 
 ## Canonical Visual Archive
 
-- Local pCloud folder: `/Users/victoruhl/Documents/pCloud/Amazon Agent/MAG SOPs`
+- Victor's current local placeholder path: `/Users/victoruhl/Documents/pCloud/Amazon Agent/MAG SOPs`
 - Expected contents: 535 Markdown files and 3,621 assets in `assets/`
 - Expected missing local image references: 0
+
+This path is user-specific. Each team member should download or sync the shared pCloud visual archive locally and point their setup to their own path.
 
 ## Usage Rule
 
@@ -14,4 +16,4 @@ Search local/GitHub markdown SOPs first. When visual confirmation, screenshots, 
 
 ## Do Not Commit
 
-Do not commit `.final-build`, image assets, zip files, generated evidence, downloads, review tracking, or client work output to GitHub. Keep those in pCloud or local-only output folders.
+Do not commit `.final-build`, image assets, zip files, generated evidence, downloads, review tracking, or client work output to GitHub. Keep those in pCloud or ignored local-only artifact folders.

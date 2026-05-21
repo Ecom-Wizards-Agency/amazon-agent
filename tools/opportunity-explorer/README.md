@@ -18,14 +18,14 @@ Default model: script-first. Codex should run the browser-side extractor in the 
 5. Format it:
 
 ```bash
-node tools/opportunity-explorer/format-opportunity-explorer-export.mjs /path/to/export.json output/opportunity-explorer
+node tools/opportunity-explorer/format-opportunity-explorer-export.mjs /path/to/export.json output/{client-or-brand}/{YYYY-MM-DD}-opportunity-data
 ```
 
 6. Use the Markdown/JSON export with `amazon-opportunity-explorer`, `amazon-image-strategy`, `oei-product-strategy`, `amazon-seo`, and Rufus/Alexa AI strategy workflows.
 
 ## Historical Reference
 
-The old pCloud Chrome extension can be used as source reference during transition, but it is not part of the intended workflow once this script is tested:
+The old pCloud Chrome extension can be used as source reference during transition, but it is not part of the intended workflow once this script is tested. This is Victor's current local placeholder path, not a repo dependency:
 
 `/Users/victoruhl/pCloud Drive/Account shares/Amazon Wizards/2_Company/2.7_Tools/Chrome Extension-Opportunity Explorer Downloader`
 

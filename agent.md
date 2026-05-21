@@ -42,9 +42,13 @@ python3 "skills/amazon-operator-routing/scripts/search_amazon_libraries.py" "sen
 
 The GitHub/runtime project keeps the MAG SOP markdown searchable and lightweight. Heavy images, GIFs, screenshots, zip files, generated evidence, outputs, and client work artifacts do not belong in the runtime source tree.
 
-Search local/GitHub markdown SOPs first. When visual confirmation, screenshots, GIFs, or layout references are needed, use the local pCloud visual archive:
+Search local/GitHub markdown SOPs first. When visual confirmation, screenshots, GIFs, or layout references are needed, use the local pCloud visual archive.
+
+Victor's current local placeholder path is:
 
 `/Users/victoruhl/Documents/pCloud/Amazon Agent/MAG SOPs`
+
+This path is user-specific. Team members should point their own local checkout to their own pCloud-synced copy of the visual archive. Do not commit the visual archive itself or any user-specific sync folder into GitHub.
 
 Expected pCloud visual archive check:
 
@@ -100,11 +104,11 @@ For Product Opportunity Explorer work, route to `amazon-opportunity-explorer`. U
 - `tools/opportunity-explorer/extract-opportunity-explorer.js`
 - `tools/opportunity-explorer/format-opportunity-explorer-export.mjs`
 
-Original Chrome extension/source backup:
+Original Chrome extension/source backup, as a local placeholder path:
 
 `/Users/victoruhl/pCloud Drive/Account shares/Amazon Wizards/2_Company/2.7_Tools/Chrome Extension-Opportunity Explorer Downloader`
 
-Victor confirmed ownership and backend clearance for reusing the previous extension logic. The extension is not part of the intended workflow once the script is tested. Do not inspect cookies, session storage, local storage, tokens, or credentials while extracting OEI/POE data.
+Victor confirmed ownership and backend clearance for reusing the previous extension logic. The extension path is a historical/source reference only, not a repo dependency. The extension is not part of the intended workflow once the script is tested. Do not inspect cookies, session storage, local storage, tokens, or credentials while extracting OEI/POE data.
 
 Naming note: Victor noted that Amazon's Rufus AI naming is moving/has moved toward Alexa or Alexa AI. Treat `Rufus`, `Alexa AI`, `Amazon AI search`, and `semantic Amazon search` as related trigger language unless current first-party Amazon docs say otherwise for a specific workflow.
 
@@ -119,14 +123,37 @@ Source priority:
 
 Never save generated files, exports, evidence, screenshots, review trackers, working notes, or client-specific output inside SOP or help-library folders. SOP folders should contain SOP/source documentation only.
 
-Use separate local output folders at the workspace root instead, such as:
+Use ignored local artifact folders at the workspace root. New generated work should use lowercase `output/`; uppercase `Output/` is only a legacy ignored alias.
 
-- `review-tracking/` for customer review logs and before/after review tracking.
-- `evidence/` for screenshots and browser evidence.
-- `Output/` or `output/` for generated reports, spreadsheets, bulk files, and other deliverables.
-- `_local-output/` for local staging, visual builds, and preserved cleanup artifacts that should not be committed.
+Top-level folder roles:
 
-When creating a new tracker or evidence set, create a dated subfolder with the client, brand, product, or workflow in the path.
+- `output/`: generated work and analysis, such as SEO, opportunity data, ads files, reporting, inventory outputs, and catalog drafts.
+- `evidence/`: screenshots, UI proof, warning captures, visible tables, and operator notes.
+- `downloads/`: temporary raw Amazon exports before processing.
+- `_local-output/`: one-off local staging or migration scratch space.
+- `review-tracking/`: legacy ignored folder only. Keep existing local files there if they already exist, but do not create new review-management work there by default.
+
+Use client-first paths for new artifacts:
+
+- `output/{client-or-brand}/{YYYY-MM-DD}-{workflow}/`
+- `evidence/{client-or-brand}-{workflow}-{YYYY-MM-DD}/`
+- `downloads/{client-or-brand}/{YYYY-MM-DD}-{source}/`
+
+For review management, use `output/{client-or-brand}/{YYYY-MM-DD}-review-management/` for dated work or `output/{client-or-brand}/review-management/` for ongoing state. Keep support drafts/evidence under `output/{client-or-brand}/{YYYY-MM-DD}-support-prep/` and `evidence/{client-or-brand}-support-prep-{YYYY-MM-DD}/`; use Notion for live support-case tracking.
+
+Controlled workflow names:
+
+- `seo`
+- `opportunity-data`
+- `ads`
+- `reporting`
+- `inventory`
+- `catalog`
+- `review-management`
+- `account-check`
+- `support-prep`
+
+Do not create a separate global overview tracker by default. If a workflow needs local context, put `README.md` or `operator-note.md` inside that dated folder. Use Notion for ongoing team status.
 
 ## Amazon Ads Account Selection
 
@@ -171,7 +198,7 @@ For Seller Central promotion workflows, verify current Amazon promotion/price ru
 For negative review outreach with courtesy refunds:
 
 1. Filter for the requested star ratings, usually `1 Stars` and `2 Stars`.
-2. Save the original review data locally under `review-tracking/` before outreach. Capture date, reviewer name/location, Amazon profile link, review link, original review count, original review text, `Changes` set to `NO`, and an empty `New review` field.
+2. Save the original review data locally under `output/{client-or-brand}/{YYYY-MM-DD}-review-management/` before outreach. Capture date, reviewer name/location, Amazon profile link, review link, original review count, original review text, `Changes` set to `NO`, and an empty `New review` field.
 3. For eligible verified-purchase reviews, click `Contact Customer`.
 4. Select `Courtesy refund`.
 5. Review Amazon's standard courtesy-refund template, then click `Send` only when Victor has approved that specific courtesy-refund action.

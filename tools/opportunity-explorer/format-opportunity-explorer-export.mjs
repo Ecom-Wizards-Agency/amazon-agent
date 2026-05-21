@@ -91,7 +91,6 @@ function toMarkdown(data) {
 }
 
 const inputPath = process.argv[2]
-const outputDir = process.argv[3] || "output/opportunity-explorer"
 
 if (!inputPath) {
   console.error("Usage: node tools/opportunity-explorer/format-opportunity-explorer-export.mjs <input.json> [output-dir]")
@@ -99,9 +98,10 @@ if (!inputPath) {
 }
 
 const data = JSON.parse(fs.readFileSync(inputPath, "utf8"))
+const date = new Date().toISOString().slice(0, 10)
+const outputDir = process.argv[3] || path.join("output", "unknown", `${date}-opportunity-data`)
 fs.mkdirSync(outputDir, { recursive: true })
 
-const date = new Date().toISOString().slice(0, 10)
 const slug = slugify(data.nicheTitle || data.pageTitle || path.basename(inputPath, ".json"))
 const jsonPath = path.join(outputDir, `${date}_${slug}.json`)
 const markdownPath = path.join(outputDir, `${date}_${slug}.md`)
