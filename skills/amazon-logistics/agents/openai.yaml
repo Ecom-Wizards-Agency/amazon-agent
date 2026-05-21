@@ -1,0 +1,3 @@
+display_name: Amazon Logistics
+short_description: Handle FBA shipments, Send to Amazon, removals, AWD, and inventory operations.
+default_prompt: Use this skill for Amazon FBA logistics, Send to Amazon, shipment reconciliation, removal orders, AWD, inventory health, and seller-fulfilled shipping settings.

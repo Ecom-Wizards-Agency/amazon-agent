@@ -1,0 +1,147 @@
+Switch accounts
+New Seller Central
+EN
+Help
+Account settings
+Manage inventory
+Policies, agreements, and guidelines
+Listing quality guidelines
+Manage orders
+Payments
+Seller-fulfilled returns, refunds, cancellations, and claims
+Monitor feedback and performance
+Get started with Fulfillment by Amazon (FBA)
+Amazon Lending
+Increase sales
+Amazon Global Selling
+Amazon Handmade
+Private Brands safety and compliance
+Amazon Custom
+Data exchange through XML, API, and third-party apps
+Amazon Business (B2B)
+Amazon Pay help
+Manage service orders
+Delivery with Services
+Amazon Services Provider program
+Amazon Brand Registry
+Amazon Brand Registry help topics
+Manage co-brand relationships
+Brand Registry glossary
+Country-specific trademark information
+Brand Registry application process
+Brand Registry application step-by-step guide
+Manage Brand Registry application issues
+About Brand Registry facial data verification
+Brand Registry identity verification process
+Brand Registry identity verification FAQ
+Brand Registry protection roles
+Brand Registry selling roles
+Brand Registry FAQ
+Register products to your brand
+Report intellectual property infringements
+Report alleged trademark infringements via common law
+Report a Violation: Search for ASINs in bulk
+Report a Violation: Submission history FAQ
+Amazon Patent Evaluation Express
+Add additional trademarks to your brand
+Project Zero FAQ
+Project Zero: Guidelines and training
+Protect your brand with Transparency
+Brand Registry error messages
+Enrollment error messages
+Role assignment error messages
+Report a Violation error messages
+Abusive conduct error messages
+Spotlight communication features
+Manage all inventory: Brand Health page
+Brands that require a Product ID: UPC, EAN, JAN, and ISBN
+Create a Brand Name
+Small Business products FAQ
+Manage your Brands
+Brand acquisition best practices
+Merch Collab
+All articles
+Recently viewed
+Need more help?
+Visit Seller Forums
+Visit Seller University
+Get Support
+Abusive conduct error messages
+
+These are the most common error messages related abusive conduct and how to solve them.
+
+Enrolling a brand
+
+Error message	What it means and next steps
+
+
+Due to your current account status, you are not eligible to enroll a new brand in Amazon Brand Registry at this time.
+
+If you are appealing an action taken on your account, please submit your appeal by clicking the Reactivate your account button in the Account Health section of Seller Central. If you want to submit additional information, click on the View appeal button and submit additional information as requested. Alternatively, you can restore the account status by following the instruction shared in your notification email.
+
+	
+
+We reserve the right to decline brand application requests where we have identified that the requester account was involved in abusive conduct on our websites.
+
+To appeal an action taken on your account, go to Account Health in Seller Central, and click Reactivate your account to submit your appeal.
+
+If you asked to submit additional information, click View appeal on the error message to submit that information.
+
+You can also restore your account status by following the instructions included in the notification email.
+
+
+You have problems with your seller account. You cannot register an Amazon Brand Registry account with these credentials. Please go to Seller Central or contact seller support to update your seller account. After your seller account is active, you will be able to register for Amazon Brand Registry.	
+
+To update your seller account, sign in to Seller Central or contact seller support. After your seller account is active, you’ll be able to register for Amazon Brand Registry.
+
+To appeal an action taken on your account, go to Account Health in Seller Central, and click Reactivate your account to submit your appeal:
+
+Adding a role
+
+Error message	What it means and next steps
+Your request to add the user [email] to the brand [brand name] is declined. We reserve the right to decline requests where we have identified that your account has either been involved in abusive conduct on our website, or you are related to an account that was used for such abusive conduct. If you want to appeal this action, please submit your appeal here.	
+
+We have identified that your account has been involved in abusive conduct on our websites, or it is related to an account that was used for abusive conduct. We reserve the right to decline such role assignments.
+
+If you believe we’ve made a mistake and would like us to reevaluate the request, you can assign the role again, and you’ll have the option to appeal. You’ll either receive instructions on how to appeal, or instructions on how the user you want to add can initiate an appeal.
+
+
+Account is not eligible right now. We reserve the right to decline user permission requests where we have identified that the user account has been involved in abusive conduct on Brand Registry, or where we have identified that you are related to an account that has been used for abusive conduct. To appeal this action, please share this appeal link with the user and have them submit an appeal.
+
+
+Their request to assign a new user protection role was declined while mentioning any of the following:
+
+We believe your account is engaging in conduct that violates Brand Registry’s policies, such as, but not limited to, invalid notice submissions through our notice submission channels or tampering with the catalog;
+We believe your account is related to other Amazon accounts or brands that have violated Amazon or Brand Registry’s policies; or
+You have a selling account that is de-activated.
+	
+
+Enrollment in Amazon Brand Registry is at our sole discretion. Any misuse of our Brand Protection tools or suspected misconduct in the acquisition or maintenance of your intellectual property rights may lead to restrictions or removal from Brand Registry.
+
+Once you have resolved all relevant account-related issues mentioned in the error, or, if you believe that we made this decision in error, you can assign the role again for an additional review.
+
+To learn more about other error messages not listed above, go to Brand Registry error messages.
+
+If your error still cannot be solved, contact us and select Technical issue.
+
+Was this article helpful?
+	
+FEEDBACK
+Help Program Policies 
+English
+中文(简体)
+Deutsch
+Español
+Français
+Italiano
+日本語
+한국어
+ไทย
+Tiếng Việt
+हिंदी
+தமிழ்
+Português
+中文(繁體)
+ 
+Download the Amazon Seller mobile app
+© 1999-2026, Amazon.com, Inc. or its affiliates

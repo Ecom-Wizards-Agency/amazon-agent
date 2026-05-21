@@ -1,0 +1,1923 @@
+{
+  "downloaded_at": "2026-05-12",
+  "source": "Amazon Seller Central Help",
+  "hub_url": "https://sellercentral.amazon.com/help/hub/reference/external/G2?mons_sel_locale=en_US&pageName=US%3ASC%3ATrim-help%2Fhub%2Freference%2Fexternal%2FGZ4ZQ4HZQM2R4B2X",
+  "discovered_count": 239,
+  "captured_count": 239,
+  "missing_count": 0,
+  "pages": [
+    {
+      "title": "Account settings",
+      "path": "/help/hub/reference/G181",
+      "id": "G181",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G181",
+      "file": "articles/001-account-settings-G181.md",
+      "bytes": 893
+    },
+    {
+      "title": "Manage inventory",
+      "path": "/help/hub/reference/G41",
+      "id": "G41",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G41",
+      "file": "articles/002-manage-inventory-G41.md",
+      "bytes": 2155
+    },
+    {
+      "title": "Policies, agreements, and guidelines",
+      "path": "/help/hub/reference/GSNV3657R94YP9DZ",
+      "id": "GSNV3657R94YP9DZ",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GSNV3657R94YP9DZ",
+      "file": "articles/003-policies-agreements-and-guidelines-GSNV3657R94YP9DZ.md",
+      "bytes": 591
+    },
+    {
+      "title": "Listing quality guidelines",
+      "path": "/help/hub/reference/GC3QAQ8CCXUG5RE4",
+      "id": "GC3QAQ8CCXUG5RE4",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GC3QAQ8CCXUG5RE4",
+      "file": "articles/004-listing-quality-guidelines-GC3QAQ8CCXUG5RE4.md",
+      "bytes": 2472
+    },
+    {
+      "title": "Manage orders",
+      "path": "/help/hub/reference/G28141",
+      "id": "G28141",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G28141",
+      "file": "articles/005-manage-orders-G28141.md",
+      "bytes": 3701
+    },
+    {
+      "title": "Payments",
+      "path": "/help/hub/reference/G211",
+      "id": "G211",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G211",
+      "file": "articles/006-payments-G211.md",
+      "bytes": 1434
+    },
+    {
+      "title": "Seller-fulfilled returns, refunds, cancellations, and claims",
+      "path": "/help/hub/reference/G69126",
+      "id": "G69126",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G69126",
+      "file": "articles/007-seller-fulfilled-returns-refunds-cancellations-and-claims-G69126.md",
+      "bytes": 4612
+    },
+    {
+      "title": "Monitor feedback and performance",
+      "path": "/help/hub/reference/G171",
+      "id": "G171",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G171",
+      "file": "articles/008-monitor-feedback-and-performance-G171.md",
+      "bytes": 2019
+    },
+    {
+      "title": "Get started with Fulfillment by Amazon (FBA)",
+      "path": "/help/hub/reference/G53921",
+      "id": "G53921",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G53921",
+      "file": "articles/009-get-started-with-fulfillment-by-amazon-fba-G53921.md",
+      "bytes": 3917
+    },
+    {
+      "title": "Amazon Lending",
+      "path": "/help/hub/reference/G5FQ5KR6FTQ4DGG2",
+      "id": "G5FQ5KR6FTQ4DGG2",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G5FQ5KR6FTQ4DGG2",
+      "file": "articles/010-amazon-lending-G5FQ5KR6FTQ4DGG2.md",
+      "bytes": 5956
+    },
+    {
+      "title": "Increase sales",
+      "path": "/help/hub/reference/G43381",
+      "id": "G43381",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G43381",
+      "file": "articles/011-increase-sales-G43381.md",
+      "bytes": 6516
+    },
+    {
+      "title": "Amazon Global Selling",
+      "path": "/help/hub/reference/G201062890",
+      "id": "G201062890",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G201062890",
+      "file": "articles/012-amazon-global-selling-G201062890.md",
+      "bytes": 2823
+    },
+    {
+      "title": "Amazon Handmade",
+      "path": "/help/hub/reference/G201817090",
+      "id": "G201817090",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G201817090",
+      "file": "articles/013-amazon-handmade-G201817090.md",
+      "bytes": 8938
+    },
+    {
+      "title": "Private Brands safety and compliance",
+      "path": "/help/hub/reference/GFZ4GKGVGPHP5XL6",
+      "id": "GFZ4GKGVGPHP5XL6",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GFZ4GKGVGPHP5XL6",
+      "file": "articles/014-private-brands-safety-and-compliance-GFZ4GKGVGPHP5XL6.md",
+      "bytes": 1078
+    },
+    {
+      "title": "Amazon Custom",
+      "path": "/help/hub/reference/G201757520",
+      "id": "G201757520",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G201757520",
+      "file": "articles/015-amazon-custom-G201757520.md",
+      "bytes": 7409
+    },
+    {
+      "title": "Data exchange through XML, API, and third-party apps",
+      "path": "/help/hub/reference/G221",
+      "id": "G221",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G221",
+      "file": "articles/016-data-exchange-through-xml-api-and-third-party-apps-G221.md",
+      "bytes": 314
+    },
+    {
+      "title": "Amazon Business (B2B)",
+      "path": "/help/hub/reference/G201542150",
+      "id": "G201542150",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G201542150",
+      "file": "articles/017-amazon-business-b2b-G201542150.md",
+      "bytes": 2562
+    },
+    {
+      "title": "Amazon Pay help",
+      "path": "/help/hub/reference/G201064080",
+      "id": "G201064080",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G201064080",
+      "file": "articles/018-amazon-pay-help-G201064080.md",
+      "bytes": 215
+    },
+    {
+      "title": "Manage service orders",
+      "path": "/help/hub/reference/G201484490",
+      "id": "G201484490",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G201484490",
+      "file": "articles/019-manage-service-orders-G201484490.md",
+      "bytes": 261
+    },
+    {
+      "title": "Delivery with Services",
+      "path": "/help/hub/reference/G202159960",
+      "id": "G202159960",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G202159960",
+      "file": "articles/020-delivery-with-services-G202159960.md",
+      "bytes": 557
+    },
+    {
+      "title": "Amazon Services Provider program",
+      "path": "/help/hub/reference/G201955140",
+      "id": "G201955140",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G201955140",
+      "file": "articles/021-amazon-services-provider-program-G201955140.md",
+      "bytes": 1367
+    },
+    {
+      "title": "Amazon Brand Registry",
+      "path": "/help/hub/reference/G202130410",
+      "id": "G202130410",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G202130410",
+      "file": "articles/022-amazon-brand-registry-G202130410.md",
+      "bytes": 555
+    },
+    {
+      "title": "Merch Collab",
+      "path": "/help/hub/reference/GE9SDJX2QH6ZSLSV",
+      "id": "GE9SDJX2QH6ZSLSV",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GE9SDJX2QH6ZSLSV",
+      "file": "articles/023-merch-collab-GE9SDJX2QH6ZSLSV.md",
+      "bytes": 586
+    },
+    {
+      "title": "Selling on Amazon",
+      "path": "/help/hub/reference/G200421970",
+      "id": "G200421970",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G200421970",
+      "file": "articles/024-selling-on-amazon-G200421970.md",
+      "bytes": 8249
+    },
+    {
+      "title": "Get Started with Selling Services",
+      "path": "/help/hub/reference/G201484560",
+      "id": "G201484560",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G201484560",
+      "file": "articles/025-get-started-with-selling-services-G201484560.md",
+      "bytes": 579
+    },
+    {
+      "title": "Global seller identity, address, and business verification",
+      "path": "/help/hub/reference/GQRP483PDN88Q3M9",
+      "id": "GQRP483PDN88Q3M9",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GQRP483PDN88Q3M9",
+      "file": "articles/026-global-seller-identity-address-and-business-verification-GQRP483PDN88Q3M9.md",
+      "bytes": 14817
+    },
+    {
+      "title": "Two-Step Verification",
+      "path": "/help/hub/reference/G202110760",
+      "id": "G202110760",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G202110760",
+      "file": "articles/027-two-step-verification-G202110760.md",
+      "bytes": 8257
+    },
+    {
+      "title": "Manage account settings",
+      "path": "/help/hub/reference/G69035",
+      "id": "G69035",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G69035",
+      "file": "articles/028-manage-account-settings-G69035.md",
+      "bytes": 1226
+    },
+    {
+      "title": "Seller-fulfilled shipping",
+      "path": "/help/hub/reference/G200342080",
+      "id": "G200342080",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G200342080",
+      "file": "articles/029-seller-fulfilled-shipping-G200342080.md",
+      "bytes": 829
+    },
+    {
+      "title": "Selling on Amazon video tutorials",
+      "path": "/help/hub/reference/G201813650",
+      "id": "G201813650",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G201813650",
+      "file": "articles/030-selling-on-amazon-video-tutorials-G201813650.md",
+      "bytes": 579
+    },
+    {
+      "title": "Bank account and credit or debit card information for your seller account",
+      "path": "/help/hub/reference/G19791",
+      "id": "G19791",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G19791",
+      "file": "articles/031-bank-account-and-credit-or-debit-card-information-for-your-seller-account-G19791.md",
+      "bytes": 3017
+    },
+    {
+      "title": "Selling on Amazon reference",
+      "path": "/help/hub/reference/G69036",
+      "id": "G69036",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G69036",
+      "file": "articles/032-selling-on-amazon-reference-G69036.md",
+      "bytes": 607
+    },
+    {
+      "title": "Next Gen Selling (NGS)",
+      "path": "/help/hub/reference/G78FETD7HXHVNCKG",
+      "id": "G78FETD7HXHVNCKG",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G78FETD7HXHVNCKG",
+      "file": "articles/033-next-gen-selling-ngs-G78FETD7HXHVNCKG.md",
+      "bytes": 3433
+    },
+    {
+      "title": "Amazon Services Business Solutions Agreement",
+      "path": "/help/hub/reference/G1791",
+      "id": "G1791",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G1791",
+      "file": "articles/034-amazon-services-business-solutions-agreement-G1791.md",
+      "bytes": 112980
+    },
+    {
+      "title": "Changes to the Amazon Services Business Solutions Agreement",
+      "path": "/help/hub/reference/G47071",
+      "id": "G47071",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G47071",
+      "file": "articles/035-changes-to-the-amazon-services-business-solutions-agreement-G47071.md",
+      "bytes": 2166
+    },
+    {
+      "title": "Agent Policy",
+      "path": "/help/hub/reference/GS83KH2MA7HM69PH",
+      "id": "GS83KH2MA7HM69PH",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GS83KH2MA7HM69PH",
+      "file": "articles/036-agent-policy-GS83KH2MA7HM69PH.md",
+      "bytes": 1361
+    },
+    {
+      "title": "Canada Digital Tax Reporting",
+      "path": "/help/hub/reference/G6JPYHKCN4YG943H",
+      "id": "G6JPYHKCN4YG943H",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G6JPYHKCN4YG943H",
+      "file": "articles/037-canada-digital-tax-reporting-G6JPYHKCN4YG943H.md",
+      "bytes": 575
+    },
+    {
+      "title": "Program Policies",
+      "path": "/help/hub/reference/G521",
+      "id": "G521",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G521",
+      "file": "articles/038-program-policies-G521.md",
+      "bytes": 539
+    },
+    {
+      "title": "Amazon Autos",
+      "path": "/help/hub/reference/GLAQ5ETRLQ4T9D7W",
+      "id": "GLAQ5ETRLQ4T9D7W",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GLAQ5ETRLQ4T9D7W",
+      "file": "articles/039-amazon-autos-GLAQ5ETRLQ4T9D7W.md",
+      "bytes": 543
+    },
+    {
+      "title": "FBM Order Reports",
+      "path": "/help/hub/reference/G651",
+      "id": "G651",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G651",
+      "file": "articles/040-fbm-order-reports-G651.md",
+      "bytes": 1837
+    },
+    {
+      "title": "The order process",
+      "path": "/help/hub/reference/G200200040",
+      "id": "G200200040",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G200200040",
+      "file": "articles/041-the-order-process-G200200040.md",
+      "bytes": 547
+    },
+    {
+      "title": "Search Orders",
+      "path": "/help/hub/reference/G28151",
+      "id": "G28151",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G28151",
+      "file": "articles/042-search-orders-G28151.md",
+      "bytes": 5302
+    },
+    {
+      "title": "Communicate with buyers using Buyer-Seller messages",
+      "path": "/help/hub/reference/G200389080",
+      "id": "G200389080",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G200389080",
+      "file": "articles/043-communicate-with-buyers-using-buyer-seller-messages-G200389080.md",
+      "bytes": 1310
+    },
+    {
+      "title": "Options for managing orders",
+      "path": "/help/hub/reference/G200198170",
+      "id": "G200198170",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G200198170",
+      "file": "articles/044-options-for-managing-orders-G200198170.md",
+      "bytes": 841
+    },
+    {
+      "title": "Your orders list",
+      "path": "/help/hub/reference/G201724060",
+      "id": "G201724060",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G201724060",
+      "file": "articles/045-your-orders-list-G201724060.md",
+      "bytes": 2162
+    },
+    {
+      "title": "View your orders",
+      "path": "/help/hub/reference/G201724070",
+      "id": "G201724070",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G201724070",
+      "file": "articles/046-view-your-orders-G201724070.md",
+      "bytes": 545
+    },
+    {
+      "title": "Pending Orders",
+      "path": "/help/hub/reference/G40571",
+      "id": "G40571",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G40571",
+      "file": "articles/047-pending-orders-G40571.md",
+      "bytes": 4434
+    },
+    {
+      "title": "Change Your Seller Order ID",
+      "path": "/help/hub/reference/G200198130",
+      "id": "G200198130",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G200198130",
+      "file": "articles/048-change-your-seller-order-id-G200198130.md",
+      "bytes": 978
+    },
+    {
+      "title": "Manage Orders FAQ",
+      "path": "/help/hub/reference/G69124",
+      "id": "G69124",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G69124",
+      "file": "articles/049-manage-orders-faq-G69124.md",
+      "bytes": 543
+    },
+    {
+      "title": "Seller Messaging Assistant Overview",
+      "path": "/help/hub/reference/GC5SGGCDDP3ZDNZM",
+      "id": "GC5SGGCDDP3ZDNZM",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GC5SGGCDDP3ZDNZM",
+      "file": "articles/050-seller-messaging-assistant-overview-GC5SGGCDDP3ZDNZM.md",
+      "bytes": 3225
+    },
+    {
+      "title": "Error code explanations",
+      "path": "/help/hub/reference/GMSXZGCDG6ZVPSFV",
+      "id": "GMSXZGCDG6ZVPSFV",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GMSXZGCDG6ZVPSFV",
+      "file": "articles/051-error-code-explanations-GMSXZGCDG6ZVPSFV.md",
+      "bytes": 565
+    },
+    {
+      "title": "Manage seller-fulfilled returns",
+      "path": "/help/hub/reference/G200708210",
+      "id": "G200708210",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G200708210",
+      "file": "articles/052-manage-seller-fulfilled-returns-G200708210.md",
+      "bytes": 6380
+    },
+    {
+      "title": "Issue refunds and concessions for seller-fulfilled orders",
+      "path": "/help/hub/reference/GU7K5N5GUP67M4X9",
+      "id": "GU7K5N5GUP67M4X9",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GU7K5N5GUP67M4X9",
+      "file": "articles/053-issue-refunds-and-concessions-for-seller-fulfilled-orders-GU7K5N5GUP67M4X9.md",
+      "bytes": 1880
+    },
+    {
+      "title": "Cancellations",
+      "path": "/help/hub/reference/GBN4AZVWUS29ZUJX",
+      "id": "GBN4AZVWUS29ZUJX",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GBN4AZVWUS29ZUJX",
+      "file": "articles/054-cancellations-GBN4AZVWUS29ZUJX.md",
+      "bytes": 1149
+    },
+    {
+      "title": "Amazon\u2019s A-to-z Guarantee claims",
+      "path": "/help/hub/reference/G27951",
+      "id": "G27951",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G27951",
+      "file": "articles/055-amazon-s-a-to-z-guarantee-claims-G27951.md",
+      "bytes": 10659
+    },
+    {
+      "title": "Amazon Product Support",
+      "path": "/help/hub/reference/GK4MGCBF7LJYKGQM",
+      "id": "GK4MGCBF7LJYKGQM",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GK4MGCBF7LJYKGQM",
+      "file": "articles/056-amazon-product-support-GK4MGCBF7LJYKGQM.md",
+      "bytes": 6458
+    },
+    {
+      "title": "Frequently-returned item badge",
+      "path": "/help/hub/reference/GTRP6DXEA983DPD6",
+      "id": "GTRP6DXEA983DPD6",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GTRP6DXEA983DPD6",
+      "file": "articles/057-frequently-returned-item-badge-GTRP6DXEA983DPD6.md",
+      "bytes": 579
+    },
+    {
+      "title": "Commercial liability insurance best practices for sellers based in mainland China",
+      "path": "/help/hub/reference/GSACR66DCGPA3FZK",
+      "id": "GSACR66DCGPA3FZK",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GSACR66DCGPA3FZK",
+      "file": "articles/058-commercial-liability-insurance-best-practices-for-sellers-based-in-mainland-china-GSACR66DCGPA3FZK.md",
+      "bytes": 7060
+    },
+    {
+      "title": "Prime Day readiness playbook",
+      "path": "/help/hub/reference/GM2ADTH3XH3A5N57",
+      "id": "GM2ADTH3XH3A5N57",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GM2ADTH3XH3A5N57",
+      "file": "articles/059-prime-day-readiness-playbook-GM2ADTH3XH3A5N57.md",
+      "bytes": 23288
+    },
+    {
+      "title": "FBA Global Selling",
+      "path": "/help/hub/reference/G5KV5DGG6UMQAKL4",
+      "id": "G5KV5DGG6UMQAKL4",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G5KV5DGG6UMQAKL4",
+      "file": "articles/060-fba-global-selling-G5KV5DGG6UMQAKL4.md",
+      "bytes": 208
+    },
+    {
+      "title": "Ship products to Amazon",
+      "path": "/help/hub/reference/G200141420",
+      "id": "G200141420",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G200141420",
+      "file": "articles/061-ship-products-to-amazon-G200141420.md",
+      "bytes": 559
+    },
+    {
+      "title": "FBA policies and requirements",
+      "path": "/help/hub/reference/G201030350",
+      "id": "G201030350",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G201030350",
+      "file": "articles/062-fba-policies-and-requirements-G201030350.md",
+      "bytes": 1765
+    },
+    {
+      "title": "FBA features, services, and fees",
+      "path": "/help/hub/reference/G201074400",
+      "id": "G201074400",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G201074400",
+      "file": "articles/063-fba-features-services-and-fees-G201074400.md",
+      "bytes": 6430
+    },
+    {
+      "title": "FBA peak readiness playbook",
+      "path": "/help/hub/reference/G4QH4XCRWUXRJBLY",
+      "id": "G4QH4XCRWUXRJBLY",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G4QH4XCRWUXRJBLY",
+      "file": "articles/064-fba-peak-readiness-playbook-G4QH4XCRWUXRJBLY.md",
+      "bytes": 573
+    },
+    {
+      "title": "FBA inventory",
+      "path": "/help/hub/reference/G201074410",
+      "id": "G201074410",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G201074410",
+      "file": "articles/065-fba-inventory-G201074410.md",
+      "bytes": 5802
+    },
+    {
+      "title": "Amazon Warehousing and Distribution (AWD)",
+      "path": "/help/hub/reference/GF6ZC8VEBM7HCEGV",
+      "id": "GF6ZC8VEBM7HCEGV",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GF6ZC8VEBM7HCEGV",
+      "file": "articles/066-amazon-warehousing-and-distribution-awd-GF6ZC8VEBM7HCEGV.md",
+      "bytes": 601
+    },
+    {
+      "title": "Maximizing Delivery Speed",
+      "path": "/help/hub/reference/GA8NP4NDZZ3EJRU5",
+      "id": "GA8NP4NDZZ3EJRU5",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GA8NP4NDZZ3EJRU5",
+      "file": "articles/067-maximizing-delivery-speed-GA8NP4NDZZ3EJRU5.md",
+      "bytes": 6939
+    },
+    {
+      "title": "Start selling",
+      "path": "/help/hub/reference/G69064",
+      "id": "G69064",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G69064",
+      "file": "articles/068-start-selling-G69064.md",
+      "bytes": 391
+    },
+    {
+      "title": "Amazon promotions",
+      "path": "/help/hub/reference/G60951",
+      "id": "G60951",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G60951",
+      "file": "articles/069-amazon-promotions-G60951.md",
+      "bytes": 2586
+    },
+    {
+      "title": "Seller Fulfilled Prime",
+      "path": "/help/hub/reference/G201812230",
+      "id": "G201812230",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G201812230",
+      "file": "articles/070-seller-fulfilled-prime-G201812230.md",
+      "bytes": 678
+    },
+    {
+      "title": "Amazon Ads account and campaigns",
+      "path": "/help/hub/reference/G200663330",
+      "id": "G200663330",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G200663330",
+      "file": "articles/071-amazon-ads-account-and-campaigns-G200663330.md",
+      "bytes": 577
+    },
+    {
+      "title": "Amazon deals",
+      "path": "/help/hub/reference/G202043110",
+      "id": "G202043110",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G202043110",
+      "file": "articles/072-amazon-deals-G202043110.md",
+      "bytes": 379
+    },
+    {
+      "title": "Coupons",
+      "path": "/help/hub/reference/G3QLEV6W2QK84C57",
+      "id": "G3QLEV6W2QK84C57",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G3QLEV6W2QK84C57",
+      "file": "articles/073-coupons-G3QLEV6W2QK84C57.md",
+      "bytes": 852
+    },
+    {
+      "title": "Amazon Outlet",
+      "path": "/help/hub/reference/GHLYT4TPVCY2MJE3",
+      "id": "GHLYT4TPVCY2MJE3",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GHLYT4TPVCY2MJE3",
+      "file": "articles/074-amazon-outlet-GHLYT4TPVCY2MJE3.md",
+      "bytes": 12835
+    },
+    {
+      "title": "Manage Your Experiments",
+      "path": "/help/hub/reference/GVP453K5XRBJS7Y9",
+      "id": "GVP453K5XRBJS7Y9",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GVP453K5XRBJS7Y9",
+      "file": "articles/075-manage-your-experiments-GVP453K5XRBJS7Y9.md",
+      "bytes": 3712
+    },
+    {
+      "title": "A+ content",
+      "path": "/help/hub/reference/G202102930",
+      "id": "G202102930",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G202102930",
+      "file": "articles/076-a-content-G202102930.md",
+      "bytes": 10611
+    },
+    {
+      "title": "Amazon Vine",
+      "path": "/help/hub/reference/G92T8UV339NZ98TN",
+      "id": "G92T8UV339NZ98TN",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G92T8UV339NZ98TN",
+      "file": "articles/077-amazon-vine-G92T8UV339NZ98TN.md",
+      "bytes": 2603
+    },
+    {
+      "title": "Brand Referral Bonus",
+      "path": "/help/hub/reference/GL9HPJ34VBFP76HX",
+      "id": "GL9HPJ34VBFP76HX",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GL9HPJ34VBFP76HX",
+      "file": "articles/078-brand-referral-bonus-GL9HPJ34VBFP76HX.md",
+      "bytes": 15400
+    },
+    {
+      "title": "Product Opportunity Explorer",
+      "path": "/help/hub/reference/GNJ4YRTXWLMBY38U",
+      "id": "GNJ4YRTXWLMBY38U",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GNJ4YRTXWLMBY38U",
+      "file": "articles/079-product-opportunity-explorer-GNJ4YRTXWLMBY38U.md",
+      "bytes": 10480
+    },
+    {
+      "title": "FBA Enrollment Opportunities",
+      "path": "/help/hub/reference/GLVZKY7AM8CKEBU6",
+      "id": "GLVZKY7AM8CKEBU6",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GLVZKY7AM8CKEBU6",
+      "file": "articles/080-fba-enrollment-opportunities-GLVZKY7AM8CKEBU6.md",
+      "bytes": 8045
+    },
+    {
+      "title": "Flexible Customer Financing",
+      "path": "/help/hub/reference/GTS9WQG3YNFVEXM2",
+      "id": "GTS9WQG3YNFVEXM2",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GTS9WQG3YNFVEXM2",
+      "file": "articles/081-flexible-customer-financing-GTS9WQG3YNFVEXM2.md",
+      "bytes": 261
+    },
+    {
+      "title": "Business planner overview",
+      "path": "/help/hub/reference/GEANBS97BNTWSBJB",
+      "id": "GEANBS97BNTWSBJB",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GEANBS97BNTWSBJB",
+      "file": "articles/082-business-planner-overview-GEANBS97BNTWSBJB.md",
+      "bytes": 4064
+    },
+    {
+      "title": "Business goal creation",
+      "path": "/help/hub/reference/GRG94ATAYVWUZ5L4",
+      "id": "GRG94ATAYVWUZ5L4",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GRG94ATAYVWUZ5L4",
+      "file": "articles/083-business-goal-creation-GRG94ATAYVWUZ5L4.md",
+      "bytes": 563
+    },
+    {
+      "title": "New Seller Incentives",
+      "path": "/help/hub/reference/GXMJ38VA95GUN5XU",
+      "id": "GXMJ38VA95GUN5XU",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GXMJ38VA95GUN5XU",
+      "file": "articles/084-new-seller-incentives-GXMJ38VA95GUN5XU.md",
+      "bytes": 12559
+    },
+    {
+      "title": "Additional tips for increasing sales",
+      "path": "/help/hub/reference/G69065",
+      "id": "G69065",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G69065",
+      "file": "articles/085-additional-tips-for-increasing-sales-G69065.md",
+      "bytes": 1012
+    },
+    {
+      "title": "Additional resources for increasing sales",
+      "path": "/help/hub/reference/G69066",
+      "id": "G69066",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G69066",
+      "file": "articles/086-additional-resources-for-increasing-sales-G69066.md",
+      "bytes": 359
+    },
+    {
+      "title": "The New Seller Guide program and benefits",
+      "path": "/help/hub/reference/GFG4VRQK7CQLGRTM",
+      "id": "GFG4VRQK7CQLGRTM",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GFG4VRQK7CQLGRTM",
+      "file": "articles/087-the-new-seller-guide-program-and-benefits-GFG4VRQK7CQLGRTM.md",
+      "bytes": 601
+    },
+    {
+      "title": "Optimize your business",
+      "path": "/help/hub/reference/GWU5WMK8UR8XHHC2",
+      "id": "GWU5WMK8UR8XHHC2",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GWU5WMK8UR8XHHC2",
+      "file": "articles/088-optimize-your-business-GWU5WMK8UR8XHHC2.md",
+      "bytes": 463
+    },
+    {
+      "title": "Potential Sales Lift",
+      "path": "/help/hub/reference/GMJFAN8FZ6T4EYUY",
+      "id": "GMJFAN8FZ6T4EYUY",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GMJFAN8FZ6T4EYUY",
+      "file": "articles/089-potential-sales-lift-GMJFAN8FZ6T4EYUY.md",
+      "bytes": 5730
+    },
+    {
+      "title": "Price discounts",
+      "path": "/help/hub/reference/G7F8CQ4EJ5YA4272",
+      "id": "G7F8CQ4EJ5YA4272",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G7F8CQ4EJ5YA4272",
+      "file": "articles/090-price-discounts-G7F8CQ4EJ5YA4272.md",
+      "bytes": 549
+    },
+    {
+      "title": "Rufus, our AI-powered conversational shopping assistant",
+      "path": "/help/hub/reference/GYYH9SLHSTHKT3CZ",
+      "id": "GYYH9SLHSTHKT3CZ",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GYYH9SLHSTHKT3CZ",
+      "file": "articles/091-rufus-our-ai-powered-conversational-shopping-assistant-GYYH9SLHSTHKT3CZ.md",
+      "bytes": 3641
+    },
+    {
+      "title": "Subscribe & Save for sellers",
+      "path": "/help/hub/reference/G201620110",
+      "id": "G201620110",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G201620110",
+      "file": "articles/092-subscribe-and-save-for-sellers-G201620110.md",
+      "bytes": 541
+    },
+    {
+      "title": "Unlock marketing opportunities",
+      "path": "/help/hub/reference/GFJTFMCXPRQ5GHUK",
+      "id": "GFJTFMCXPRQ5GHUK",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GFJTFMCXPRQ5GHUK",
+      "file": "articles/093-unlock-marketing-opportunities-GFJTFMCXPRQ5GHUK.md",
+      "bytes": 3869
+    },
+    {
+      "title": "Set up Buy with Prime",
+      "path": "/help/hub/reference/GNVVBDJCTV3RSY3D",
+      "id": "GNVVBDJCTV3RSY3D",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GNVVBDJCTV3RSY3D",
+      "file": "articles/094-set-up-buy-with-prime-GNVVBDJCTV3RSY3D.md",
+      "bytes": 792
+    },
+    {
+      "title": "Amazon Haul",
+      "path": "/help/hub/reference/GMULTR2SMZ6WWX57",
+      "id": "GMULTR2SMZ6WWX57",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GMULTR2SMZ6WWX57",
+      "file": "articles/095-amazon-haul-GMULTR2SMZ6WWX57.md",
+      "bytes": 2521
+    },
+    {
+      "title": "Get started with Amazon Handmade",
+      "path": "/help/hub/reference/G2NVGK9X3Y4XRT9H",
+      "id": "G2NVGK9X3Y4XRT9H",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G2NVGK9X3Y4XRT9H",
+      "file": "articles/096-get-started-with-amazon-handmade-G2NVGK9X3Y4XRT9H.md",
+      "bytes": 9935
+    },
+    {
+      "title": "Amazon Handmade terms and conditions",
+      "path": "/help/hub/reference/G201817290",
+      "id": "G201817290",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G201817290",
+      "file": "articles/097-amazon-handmade-terms-and-conditions-G201817290.md",
+      "bytes": 4480
+    },
+    {
+      "title": "Maker profile for Handmade",
+      "path": "/help/hub/reference/G201817720",
+      "id": "G201817720",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G201817720",
+      "file": "articles/098-maker-profile-for-handmade-G201817720.md",
+      "bytes": 5805
+    },
+    {
+      "title": "Common reasons you cannot find your Handmade listings",
+      "path": "/help/hub/reference/GRCWJ4KHBNQ3SNTB",
+      "id": "GRCWJ4KHBNQ3SNTB",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GRCWJ4KHBNQ3SNTB",
+      "file": "articles/099-common-reasons-you-cannot-find-your-handmade-listings-GRCWJ4KHBNQ3SNTB.md",
+      "bytes": 4513
+    },
+    {
+      "title": "Relisting \u2018Inactive\u2019 Handmade listings",
+      "path": "/help/hub/reference/G2YC8BRR324G39TY",
+      "id": "G2YC8BRR324G39TY",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G2YC8BRR324G39TY",
+      "file": "articles/100-relisting-inactive-handmade-listings-G2YC8BRR324G39TY.md",
+      "bytes": 603
+    },
+    {
+      "title": "Policies for Amazon Handmade returns, refunds, restocking fees, and cancellations",
+      "path": "/help/hub/reference/G201817830",
+      "id": "G201817830",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G201817830",
+      "file": "articles/101-policies-for-amazon-handmade-returns-refunds-restocking-fees-and-cancellations-G201817830.md",
+      "bytes": 10184
+    },
+    {
+      "title": "Cancel your Amazon Handmade account",
+      "path": "/help/hub/reference/G201816790",
+      "id": "G201816790",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G201816790",
+      "file": "articles/102-cancel-your-amazon-handmade-account-G201816790.md",
+      "bytes": 583
+    },
+    {
+      "title": "Amazon Handmade catalog reclassification project",
+      "path": "/help/hub/reference/G897CPXT2RGBG3HV",
+      "id": "G897CPXT2RGBG3HV",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G897CPXT2RGBG3HV",
+      "file": "articles/103-amazon-handmade-catalog-reclassification-project-G897CPXT2RGBG3HV.md",
+      "bytes": 615
+    },
+    {
+      "title": "Amazon Custom returns policies",
+      "path": "/help/hub/reference/G37HSKLMSZXZNWGS",
+      "id": "G37HSKLMSZXZNWGS",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G37HSKLMSZXZNWGS",
+      "file": "articles/104-amazon-custom-returns-policies-G37HSKLMSZXZNWGS.md",
+      "bytes": 1084
+    },
+    {
+      "title": "List customized products with Amazon Custom",
+      "path": "/help/hub/reference/G201822780",
+      "id": "G201822780",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G201822780",
+      "file": "articles/105-list-customized-products-with-amazon-custom-G201822780.md",
+      "bytes": 3805
+    },
+    {
+      "title": "Fulfill Amazon Custom orders",
+      "path": "/help/hub/reference/G201822830",
+      "id": "G201822830",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G201822830",
+      "file": "articles/106-fulfill-amazon-custom-orders-G201822830.md",
+      "bytes": 7780
+    },
+    {
+      "title": "Enable bulk customizations",
+      "path": "/help/hub/reference/GQMSBWT4DK5ARMXL",
+      "id": "GQMSBWT4DK5ARMXL",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GQMSBWT4DK5ARMXL",
+      "file": "articles/107-enable-bulk-customizations-GQMSBWT4DK5ARMXL.md",
+      "bytes": 10399
+    },
+    {
+      "title": "Amazon Business terms",
+      "path": "/help/hub/reference/G202087450",
+      "id": "G202087450",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G202087450",
+      "file": "articles/108-amazon-business-terms-G202087450.md",
+      "bytes": 2424
+    },
+    {
+      "title": "Amazon Business FAQ",
+      "path": "/help/hub/reference/G201750810",
+      "id": "G201750810",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G201750810",
+      "file": "articles/109-amazon-business-faq-G201750810.md",
+      "bytes": 6490
+    },
+    {
+      "title": "B2B Central",
+      "path": "/help/hub/reference/G202161480",
+      "id": "G202161480",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G202161480",
+      "file": "articles/110-b2b-central-G202161480.md",
+      "bytes": 535
+    },
+    {
+      "title": "Amazon Business features",
+      "path": "/help/hub/reference/G201741830",
+      "id": "G201741830",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G201741830",
+      "file": "articles/111-amazon-business-features-G201741830.md",
+      "bytes": 610
+    },
+    {
+      "title": "Amazon Business glossary",
+      "path": "/help/hub/reference/G201760900",
+      "id": "G201760900",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G201760900",
+      "file": "articles/112-amazon-business-glossary-G201760900.md",
+      "bytes": 19941
+    },
+    {
+      "title": "Amazon Business FBA multi-unit fulfillment fee discount",
+      "path": "/help/hub/reference/GMZ5WFTZHCM4Q4C5",
+      "id": "GMZ5WFTZHCM4Q4C5",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GMZ5WFTZHCM4Q4C5",
+      "file": "articles/113-amazon-business-fba-multi-unit-fulfillment-fee-discount-GMZ5WFTZHCM4Q4C5.md",
+      "bytes": 3936
+    },
+    {
+      "title": "Amazon Business bulk order fee discount",
+      "path": "/help/hub/reference/G2G7KPB963EMPEYD",
+      "id": "G2G7KPB963EMPEYD",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G2G7KPB963EMPEYD",
+      "file": "articles/114-amazon-business-bulk-order-fee-discount-G2G7KPB963EMPEYD.md",
+      "bytes": 6042
+    },
+    {
+      "title": "Amazon Business Metrics",
+      "path": "/help/hub/reference/G202141920",
+      "id": "G202141920",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G202141920",
+      "file": "articles/115-amazon-business-metrics-G202141920.md",
+      "bytes": 559
+    },
+    {
+      "title": "Amazon Business Professional Healthcare program",
+      "path": "/help/hub/reference/GFFRHXRJSRGPZ9UL",
+      "id": "GFFRHXRJSRGPZ9UL",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GFFRHXRJSRGPZ9UL",
+      "file": "articles/116-amazon-business-professional-healthcare-program-GFFRHXRJSRGPZ9UL.md",
+      "bytes": 789
+    },
+    {
+      "title": "COVID-19 infection control and recovery",
+      "path": "/help/hub/reference/GGLKLPJ5DCN6CMLW",
+      "id": "GGLKLPJ5DCN6CMLW",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GGLKLPJ5DCN6CMLW",
+      "file": "articles/117-covid-19-infection-control-and-recovery-GGLKLPJ5DCN6CMLW.md",
+      "bytes": 2554
+    },
+    {
+      "title": "Service order best practices",
+      "path": "/help/hub/reference/GTP5RCSXC62A7SUG",
+      "id": "GTP5RCSXC62A7SUG",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GTP5RCSXC62A7SUG",
+      "file": "articles/118-service-order-best-practices-GTP5RCSXC62A7SUG.md",
+      "bytes": 2294
+    },
+    {
+      "title": "Buyer contact guidelines",
+      "path": "/help/hub/reference/GQT33PDCBBKZTH9U",
+      "id": "GQT33PDCBBKZTH9U",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GQT33PDCBBKZTH9U",
+      "file": "articles/119-buyer-contact-guidelines-GQT33PDCBBKZTH9U.md",
+      "bytes": 539
+    },
+    {
+      "title": "Preferred Provider model",
+      "path": "/help/hub/reference/GG5UCUP98QXA942F",
+      "id": "GG5UCUP98QXA942F",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GG5UCUP98QXA942F",
+      "file": "articles/120-preferred-provider-model-GG5UCUP98QXA942F.md",
+      "bytes": 1841
+    },
+    {
+      "title": "Happiness Guarantee policy",
+      "path": "/help/hub/reference/GRS6ZVRSVYBJ99N3",
+      "id": "GRS6ZVRSVYBJ99N3",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GRS6ZVRSVYBJ99N3",
+      "file": "articles/121-happiness-guarantee-policy-GRS6ZVRSVYBJ99N3.md",
+      "bytes": 571
+    },
+    {
+      "title": "Service Safe-T claims",
+      "path": "/help/hub/reference/GPCE7EEUM5GJ5GD8",
+      "id": "GPCE7EEUM5GJ5GD8",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GPCE7EEUM5GJ5GD8",
+      "file": "articles/122-service-safe-t-claims-GPCE7EEUM5GJ5GD8.md",
+      "bytes": 4673
+    },
+    {
+      "title": "Service Order Types",
+      "path": "/help/hub/reference/G202079670",
+      "id": "G202079670",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G202079670",
+      "file": "articles/123-service-order-types-G202079670.md",
+      "bytes": 2510
+    },
+    {
+      "title": "Account Management",
+      "path": "/help/hub/reference/G202083910",
+      "id": "G202083910",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G202083910",
+      "file": "articles/124-account-management-G202083910.md",
+      "bytes": 549
+    },
+    {
+      "title": "Charges and Credits",
+      "path": "/help/hub/reference/G202124970",
+      "id": "G202124970",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G202124970",
+      "file": "articles/125-charges-and-credits-G202124970.md",
+      "bytes": 5881
+    },
+    {
+      "title": "Service Provider Credential Program",
+      "path": "/help/hub/reference/GA3KV5CWJ2AHHCT5",
+      "id": "GA3KV5CWJ2AHHCT5",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GA3KV5CWJ2AHHCT5",
+      "file": "articles/126-service-provider-credential-program-GA3KV5CWJ2AHHCT5.md",
+      "bytes": 589
+    },
+    {
+      "title": "Amazon Home Services FAQ",
+      "path": "/help/hub/reference/GR6GG4G6MGRJ3TC7",
+      "id": "GR6GG4G6MGRJ3TC7",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GR6GG4G6MGRJ3TC7",
+      "file": "articles/127-amazon-home-services-faq-GR6GG4G6MGRJ3TC7.md",
+      "bytes": 2557
+    },
+    {
+      "title": "Using social media for your products in Merch Collab",
+      "path": "/help/hub/reference/GJ5KXBWSM96N8QDE",
+      "id": "GJ5KXBWSM96N8QDE",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GJ5KXBWSM96N8QDE",
+      "file": "articles/128-using-social-media-for-your-products-in-merch-collab-GJ5KXBWSM96N8QDE.md",
+      "bytes": 757
+    },
+    {
+      "title": "Instructions to set up your store page",
+      "path": "/help/hub/reference/GWNX58G4XPLWMUFA",
+      "id": "GWNX58G4XPLWMUFA",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GWNX58G4XPLWMUFA",
+      "file": "articles/129-instructions-to-set-up-your-store-page-GWNX58G4XPLWMUFA.md",
+      "bytes": 855
+    },
+    {
+      "title": "How to use the Collab tool",
+      "path": "/help/hub/reference/GQC8LT9W52P48PDC",
+      "id": "GQC8LT9W52P48PDC",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GQC8LT9W52P48PDC",
+      "file": "articles/130-how-to-use-the-collab-tool-GQC8LT9W52P48PDC.md",
+      "bytes": 2804
+    },
+    {
+      "title": "Merch Collab fees and royalties",
+      "path": "/help/hub/reference/GVD6A7JWY484GRYF",
+      "id": "GVD6A7JWY484GRYF",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GVD6A7JWY484GRYF",
+      "file": "articles/131-merch-collab-fees-and-royalties-GVD6A7JWY484GRYF.md",
+      "bytes": 1917
+    },
+    {
+      "title": "Best practices for Merch Collab brand profile",
+      "path": "/help/hub/reference/G67EVQTQQE3XZAF3",
+      "id": "G67EVQTQQE3XZAF3",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G67EVQTQQE3XZAF3",
+      "file": "articles/132-best-practices-for-merch-collab-brand-profile-G67EVQTQQE3XZAF3.md",
+      "bytes": 581
+    },
+    {
+      "title": "Launch Readiness Checklist for Collab Brands",
+      "path": "/help/hub/reference/GLT5TSQ8UQU8XV67",
+      "id": "GLT5TSQ8UQU8XV67",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GLT5TSQ8UQU8XV67",
+      "file": "articles/133-launch-readiness-checklist-for-collab-brands-GLT5TSQ8UQU8XV67.md",
+      "bytes": 607
+    },
+    {
+      "title": "Listings APIs",
+      "path": "/help/hub/reference/GD76M4FUWL4NEU32",
+      "id": "GD76M4FUWL4NEU32",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GD76M4FUWL4NEU32",
+      "file": "articles/134-listings-apis-GD76M4FUWL4NEU32.md",
+      "bytes": 11758
+    },
+    {
+      "title": "Multi-Location Inventory (MLI)",
+      "path": "/help/hub/reference/GJTDKPYEPQCXNS6M",
+      "id": "GJTDKPYEPQCXNS6M",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GJTDKPYEPQCXNS6M",
+      "file": "articles/135-multi-location-inventory-mli-GJTDKPYEPQCXNS6M.md",
+      "bytes": 2373
+    },
+    {
+      "title": "Get started with Multi-Location Inventory",
+      "path": "/help/hub/reference/GYCAQ9XRL273EVDX",
+      "id": "GYCAQ9XRL273EVDX",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GYCAQ9XRL273EVDX",
+      "file": "articles/136-get-started-with-multi-location-inventory-GYCAQ9XRL273EVDX.md",
+      "bytes": 3815
+    },
+    {
+      "title": "Featured Offer",
+      "path": "/help/hub/reference/G37911",
+      "id": "G37911",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G37911",
+      "file": "articles/137-featured-offer-G37911.md",
+      "bytes": 1201
+    },
+    {
+      "title": "Business Blue Savings Badge",
+      "path": "/help/hub/reference/GZK9RLHFV3K442KH",
+      "id": "GZK9RLHFV3K442KH",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GZK9RLHFV3K442KH",
+      "file": "articles/138-business-blue-savings-badge-GZK9RLHFV3K442KH.md",
+      "bytes": 5669
+    },
+    {
+      "title": "Create and manage offers",
+      "path": "/help/hub/reference/GFQ8J5JPKERTHQPP",
+      "id": "GFQ8J5JPKERTHQPP",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GFQ8J5JPKERTHQPP",
+      "file": "articles/139-create-and-manage-offers-GFQ8J5JPKERTHQPP.md",
+      "bytes": 962
+    },
+    {
+      "title": "Manage your offers one at a time",
+      "path": "/help/hub/reference/G201186860",
+      "id": "G201186860",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G201186860",
+      "file": "articles/140-manage-your-offers-one-at-a-time-G201186860.md",
+      "bytes": 1736
+    },
+    {
+      "title": "Manage your offers in bulk",
+      "path": "/help/hub/reference/G9DZLGS87GVDT94B",
+      "id": "G9DZLGS87GVDT94B",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G9DZLGS87GVDT94B",
+      "file": "articles/141-manage-your-offers-in-bulk-G9DZLGS87GVDT94B.md",
+      "bytes": 656
+    },
+    {
+      "title": "Price your item",
+      "path": "/help/hub/reference/G62551",
+      "id": "G62551",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G62551",
+      "file": "articles/142-price-your-item-G62551.md",
+      "bytes": 1701
+    },
+    {
+      "title": "Product detail page rules",
+      "path": "/help/hub/reference/G200390640",
+      "id": "G200390640",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G200390640",
+      "file": "articles/143-product-detail-page-rules-G200390640.md",
+      "bytes": 10058
+    },
+    {
+      "title": "Product variations",
+      "path": "/help/hub/reference/GF4VNS6ZQQPYYGGP",
+      "id": "GF4VNS6ZQQPYYGGP",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GF4VNS6ZQQPYYGGP",
+      "file": "articles/144-product-variations-GF4VNS6ZQQPYYGGP.md",
+      "bytes": 365
+    },
+    {
+      "title": "Catalog and drafts",
+      "path": "/help/hub/reference/G202078860",
+      "id": "G202078860",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G202078860",
+      "file": "articles/145-catalog-and-drafts-G202078860.md",
+      "bytes": 2571
+    },
+    {
+      "title": "Custom Report Builder",
+      "path": "/help/hub/reference/GEQ8JEWH5KJC5QCG",
+      "id": "GEQ8JEWH5KJC5QCG",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GEQ8JEWH5KJC5QCG",
+      "file": "articles/146-custom-report-builder-GEQ8JEWH5KJC5QCG.md",
+      "bytes": 561
+    },
+    {
+      "title": "Large and Oversize",
+      "path": "/help/hub/reference/G63ZD2BUDXF28WEC",
+      "id": "G63ZD2BUDXF28WEC",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G63ZD2BUDXF28WEC",
+      "file": "articles/147-large-and-oversize-G63ZD2BUDXF28WEC.md",
+      "bytes": 7346
+    },
+    {
+      "title": "Restock recommendation",
+      "path": "/help/hub/reference/GRG6KMB257N2XXNQ",
+      "id": "GRG6KMB257N2XXNQ",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GRG6KMB257N2XXNQ",
+      "file": "articles/148-restock-recommendation-GRG6KMB257N2XXNQ.md",
+      "bytes": 3973
+    },
+    {
+      "title": "Enhance Listings",
+      "path": "/help/hub/reference/G88AQCL62ED7WDGA",
+      "id": "G88AQCL62ED7WDGA",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G88AQCL62ED7WDGA",
+      "file": "articles/149-enhance-listings-G88AQCL62ED7WDGA.md",
+      "bytes": 5343
+    },
+    {
+      "title": "Product title requirements and guidelines",
+      "path": "/help/hub/reference/GYTR6SYGFA5E3EQC",
+      "id": "GYTR6SYGFA5E3EQC",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GYTR6SYGFA5E3EQC",
+      "file": "articles/150-product-title-requirements-and-guidelines-GYTR6SYGFA5E3EQC.md",
+      "bytes": 573
+    },
+    {
+      "title": "Product bullet point requirements",
+      "path": "/help/hub/reference/GX5L8BF8GLMML6CX",
+      "id": "GX5L8BF8GLMML6CX",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GX5L8BF8GLMML6CX",
+      "file": "articles/151-product-bullet-point-requirements-GX5L8BF8GLMML6CX.md",
+      "bytes": 3238
+    },
+    {
+      "title": "Attributes guide",
+      "path": "/help/hub/reference/GBWHYLJ7NNQMXBAQ",
+      "id": "GBWHYLJ7NNQMXBAQ",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GBWHYLJ7NNQMXBAQ",
+      "file": "articles/152-attributes-guide-GBWHYLJ7NNQMXBAQ.md",
+      "bytes": 4630
+    },
+    {
+      "title": "Product image guide",
+      "path": "/help/hub/reference/G1881",
+      "id": "G1881",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G1881",
+      "file": "articles/153-product-image-guide-G1881.md",
+      "bytes": 7819
+    },
+    {
+      "title": "Shoppable video guide",
+      "path": "/help/hub/reference/GUZBYWTTVULY6C9Y",
+      "id": "GUZBYWTTVULY6C9Y",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GUZBYWTTVULY6C9Y",
+      "file": "articles/154-shoppable-video-guide-GUZBYWTTVULY6C9Y.md",
+      "bytes": 10757
+    },
+    {
+      "title": "Search optimization",
+      "path": "/help/hub/reference/GNYWHX2TP7C8GXHK",
+      "id": "GNYWHX2TP7C8GXHK",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GNYWHX2TP7C8GXHK",
+      "file": "articles/155-search-optimization-GNYWHX2TP7C8GXHK.md",
+      "bytes": 10399
+    },
+    {
+      "title": "A+ Content guide",
+      "path": "/help/hub/reference/GLG4RQK2Y2RJADU4",
+      "id": "GLG4RQK2Y2RJADU4",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GLG4RQK2Y2RJADU4",
+      "file": "articles/156-a-content-guide-GLG4RQK2Y2RJADU4.md",
+      "bytes": 8637
+    },
+    {
+      "title": "Payments FAQ",
+      "path": "/help/hub/reference/G69122",
+      "id": "G69122",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G69122",
+      "file": "articles/157-payments-faq-G69122.md",
+      "bytes": 1212
+    },
+    {
+      "title": "Payments tasks and tools",
+      "path": "/help/hub/reference/G69038",
+      "id": "G69038",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G69038",
+      "file": "articles/158-payments-tasks-and-tools-G69038.md",
+      "bytes": 493
+    },
+    {
+      "title": "Payments reference",
+      "path": "/help/hub/reference/G69039",
+      "id": "G69039",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G69039",
+      "file": "articles/159-payments-reference-G69039.md",
+      "bytes": 249
+    },
+    {
+      "title": "Seller Lending program",
+      "path": "/help/hub/reference/GZN5DX64LP2QYZ69",
+      "id": "GZN5DX64LP2QYZ69",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GZN5DX64LP2QYZ69",
+      "file": "articles/160-seller-lending-program-GZN5DX64LP2QYZ69.md",
+      "bytes": 7487
+    },
+    {
+      "title": "Acceptable bank accounts and payment service providers",
+      "path": "/help/hub/reference/GKLETRP8MLF7CVFX",
+      "id": "GKLETRP8MLF7CVFX",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GKLETRP8MLF7CVFX",
+      "file": "articles/161-acceptable-bank-accounts-and-payment-service-providers-GKLETRP8MLF7CVFX.md",
+      "bytes": 623
+    },
+    {
+      "title": "Payment Service Provider FAQ",
+      "path": "/help/hub/reference/GY8JTVAWBPQT2XFC",
+      "id": "GY8JTVAWBPQT2XFC",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GY8JTVAWBPQT2XFC",
+      "file": "articles/162-payment-service-provider-faq-GY8JTVAWBPQT2XFC.md",
+      "bytes": 6095
+    },
+    {
+      "title": "Payment Service Provider updates",
+      "path": "/help/hub/reference/GHP8M87Z5W6XTSTL",
+      "id": "GHP8M87Z5W6XTSTL",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GHP8M87Z5W6XTSTL",
+      "file": "articles/163-payment-service-provider-updates-GHP8M87Z5W6XTSTL.md",
+      "bytes": 1934
+    },
+    {
+      "title": "Seller Wallet",
+      "path": "/help/hub/reference/GW57DZACAZGNREVQ",
+      "id": "GW57DZACAZGNREVQ",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GW57DZACAZGNREVQ",
+      "file": "articles/164-seller-wallet-GW57DZACAZGNREVQ.md",
+      "bytes": 6378
+    },
+    {
+      "title": "Express Payout frequently asked questions",
+      "path": "/help/hub/reference/GA24UN79VBPKXZXX",
+      "id": "GA24UN79VBPKXZXX",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GA24UN79VBPKXZXX",
+      "file": "articles/165-express-payout-frequently-asked-questions-GA24UN79VBPKXZXX.md",
+      "bytes": 15700
+    },
+    {
+      "title": "Express Payout Bank Account and Debit Card Policies",
+      "path": "/help/hub/reference/GHRCBB7RE3HSLGHC",
+      "id": "GHRCBB7RE3HSLGHC",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GHRCBB7RE3HSLGHC",
+      "file": "articles/166-express-payout-bank-account-and-debit-card-policies-GHRCBB7RE3HSLGHC.md",
+      "bytes": 617
+    },
+    {
+      "title": "Micro deposit verification FAQ",
+      "path": "/help/hub/reference/G3VMLXD2ZL3V47JC",
+      "id": "G3VMLXD2ZL3V47JC",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G3VMLXD2ZL3V47JC",
+      "file": "articles/167-micro-deposit-verification-faq-G3VMLXD2ZL3V47JC.md",
+      "bytes": 3431
+    },
+    {
+      "title": "Express Payout (UK Visa Debit Card) policy",
+      "path": "/help/hub/reference/GVRVXQVEDY8CLA47",
+      "id": "GVRVXQVEDY8CLA47",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GVRVXQVEDY8CLA47",
+      "file": "articles/168-express-payout-uk-visa-debit-card-policy-GVRVXQVEDY8CLA47.md",
+      "bytes": 599
+    },
+    {
+      "title": "Express Payout (UK Visa Debit Card) service terms and conditions",
+      "path": "/help/hub/reference/G6HWWWCJWX3VACGT",
+      "id": "G6HWWWCJWX3VACGT",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G6HWWWCJWX3VACGT",
+      "file": "articles/169-express-payout-uk-visa-debit-card-service-terms-and-conditions-G6HWWWCJWX3VACGT.md",
+      "bytes": 7477
+    },
+    {
+      "title": "Funds disbursement eligibility policy",
+      "path": "/help/hub/reference/G9RA9LYBJ3QP27M6",
+      "id": "G9RA9LYBJ3QP27M6",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G9RA9LYBJ3QP27M6",
+      "file": "articles/170-funds-disbursement-eligibility-policy-G9RA9LYBJ3QP27M6.md",
+      "bytes": 2603
+    },
+    {
+      "title": "Disburse on Demand",
+      "path": "/help/hub/reference/GSCWUZNYQRY4LEZH",
+      "id": "GSCWUZNYQRY4LEZH",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GSCWUZNYQRY4LEZH",
+      "file": "articles/171-disburse-on-demand-GSCWUZNYQRY4LEZH.md",
+      "bytes": 1391
+    },
+    {
+      "title": "Getting Started",
+      "path": "/help/hub/reference/G69031",
+      "id": "G69031",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G69031",
+      "file": "articles/172-getting-started-G69031.md",
+      "bytes": 535
+    },
+    {
+      "title": "Tasks & tools",
+      "path": "/help/hub/reference/G69032",
+      "id": "G69032",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G69032",
+      "file": "articles/173-tasks-and-tools-G69032.md",
+      "bytes": 480
+    },
+    {
+      "title": "Reference",
+      "path": "/help/hub/reference/G69033",
+      "id": "G69033",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G69033",
+      "file": "articles/174-reference-G69033.md",
+      "bytes": 523
+    },
+    {
+      "title": "E-Learning Tutorials",
+      "path": "/help/hub/reference/G200289490",
+      "id": "G200289490",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G200289490",
+      "file": "articles/175-e-learning-tutorials-G200289490.md",
+      "bytes": 549
+    },
+    {
+      "title": "Frequently Asked Questions",
+      "path": "/help/hub/reference/G69120",
+      "id": "G69120",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G69120",
+      "file": "articles/176-frequently-asked-questions-G69120.md",
+      "bytes": 327
+    },
+    {
+      "title": "Prepare for the Holiday Season",
+      "path": "/help/hub/reference/G8ZDWEJB9Z9YPFQ8",
+      "id": "G8ZDWEJB9Z9YPFQ8",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G8ZDWEJB9Z9YPFQ8",
+      "file": "articles/177-prepare-for-the-holiday-season-G8ZDWEJB9Z9YPFQ8.md",
+      "bytes": 5194
+    },
+    {
+      "title": "Customer Service Quality Insights on Feedback Manager",
+      "path": "/help/hub/reference/GEGVWH65EDJLWHQD",
+      "id": "GEGVWH65EDJLWHQD",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GEGVWH65EDJLWHQD",
+      "file": "articles/178-customer-service-quality-insights-on-feedback-manager-GEGVWH65EDJLWHQD.md",
+      "bytes": 3163
+    },
+    {
+      "title": "Customer Service Quality Insights frequently asked questions",
+      "path": "/help/hub/reference/GFAK2DGMB6JWDZUX",
+      "id": "GFAK2DGMB6JWDZUX",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GFAK2DGMB6JWDZUX",
+      "file": "articles/179-customer-service-quality-insights-frequently-asked-questions-GFAK2DGMB6JWDZUX.md",
+      "bytes": 635
+    },
+    {
+      "title": "Amazon Lending Automated Repayment terms",
+      "path": "/help/hub/reference/G200716850",
+      "id": "G200716850",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G200716850",
+      "file": "articles/180-amazon-lending-automated-repayment-terms-G200716850.md",
+      "bytes": 8095
+    },
+    {
+      "title": "Third-party financing providers for Amazon Lending",
+      "path": "/help/hub/reference/GPQQ2VAVEHREQYGL",
+      "id": "GPQQ2VAVEHREQYGL",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GPQQ2VAVEHREQYGL",
+      "file": "articles/181-third-party-financing-providers-for-amazon-lending-GPQQ2VAVEHREQYGL.md",
+      "bytes": 7505
+    },
+    {
+      "title": "Merge accounts",
+      "path": "/help/hub/reference/G201841950",
+      "id": "G201841950",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G201841950",
+      "file": "articles/182-merge-accounts-G201841950.md",
+      "bytes": 537
+    },
+    {
+      "title": "Setting up your Amazon Global Selling Account",
+      "path": "/help/hub/reference/G201468450",
+      "id": "G201468450",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G201468450",
+      "file": "articles/183-setting-up-your-amazon-global-selling-account-G201468450.md",
+      "bytes": 1871
+    },
+    {
+      "title": "Registration requirements by store",
+      "path": "/help/hub/reference/G201468460",
+      "id": "G201468460",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G201468460",
+      "file": "articles/184-registration-requirements-by-store-G201468460.md",
+      "bytes": 13264
+    },
+    {
+      "title": "Listing Creation for Global Accounts",
+      "path": "/help/hub/reference/G201468480",
+      "id": "G201468480",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G201468480",
+      "file": "articles/185-listing-creation-for-global-accounts-G201468480.md",
+      "bytes": 581
+    },
+    {
+      "title": "Payments for global accounts",
+      "path": "/help/hub/reference/G201468470",
+      "id": "G201468470",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G201468470",
+      "file": "articles/186-payments-for-global-accounts-G201468470.md",
+      "bytes": 565
+    },
+    {
+      "title": "Global registration",
+      "path": "/help/hub/reference/GKMK7CM7F9Q8FKUG",
+      "id": "GKMK7CM7F9Q8FKUG",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GKMK7CM7F9Q8FKUG",
+      "file": "articles/187-global-registration-GKMK7CM7F9Q8FKUG.md",
+      "bytes": 5725
+    },
+    {
+      "title": "Where and what to sell with Amazon Global Selling",
+      "path": "/help/hub/reference/G201468340",
+      "id": "G201468340",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G201468340",
+      "file": "articles/188-where-and-what-to-sell-with-amazon-global-selling-G201468340.md",
+      "bytes": 3638
+    },
+    {
+      "title": "Amazon North American and Brazil stores",
+      "path": "/help/hub/reference/G201394090",
+      "id": "G201394090",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G201394090",
+      "file": "articles/189-amazon-north-american-and-brazil-stores-G201394090.md",
+      "bytes": 5500
+    },
+    {
+      "title": "Amazon EU and UK stores",
+      "path": "/help/hub/reference/G200671260",
+      "id": "G200671260",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G200671260",
+      "file": "articles/190-amazon-eu-and-uk-stores-G200671260.md",
+      "bytes": 2213
+    },
+    {
+      "title": "Build International Listings",
+      "path": "/help/hub/reference/G202121570",
+      "id": "G202121570",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G202121570",
+      "file": "articles/191-build-international-listings-G202121570.md",
+      "bytes": 565
+    },
+    {
+      "title": "Ship and fulfill with Amazon Global Selling",
+      "path": "/help/hub/reference/G201468490",
+      "id": "G201468490",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G201468490",
+      "file": "articles/192-ship-and-fulfill-with-amazon-global-selling-G201468490.md",
+      "bytes": 882
+    },
+    {
+      "title": "Taxes and regulations for Amazon Global Selling",
+      "path": "/help/hub/reference/G201468380",
+      "id": "G201468380",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G201468380",
+      "file": "articles/193-taxes-and-regulations-for-amazon-global-selling-G201468380.md",
+      "bytes": 1710
+    },
+    {
+      "title": "Customer support and returns for international sales",
+      "path": "/help/hub/reference/G201468530",
+      "id": "G201468530",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G201468530",
+      "file": "articles/194-customer-support-and-returns-for-international-sales-G201468530.md",
+      "bytes": 972
+    },
+    {
+      "title": "Find help from external solution providers with Selling Partner Appstore",
+      "path": "/help/hub/reference/G201687890",
+      "id": "G201687890",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G201687890",
+      "file": "articles/195-find-help-from-external-solution-providers-with-selling-partner-appstore-G201687890.md",
+      "bytes": 2411
+    },
+    {
+      "title": "Customer Service by Amazon program",
+      "path": "/help/hub/reference/GYGMNGX67ZJZMZNP",
+      "id": "GYGMNGX67ZJZMZNP",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GYGMNGX67ZJZMZNP",
+      "file": "articles/196-customer-service-by-amazon-program-GYGMNGX67ZJZMZNP.md",
+      "bytes": 940
+    },
+    {
+      "title": "Unify global accounts",
+      "path": "/help/hub/reference/GJZJNMG4UX3DXSGV",
+      "id": "GJZJNMG4UX3DXSGV",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GJZJNMG4UX3DXSGV",
+      "file": "articles/197-unify-global-accounts-GJZJNMG4UX3DXSGV.md",
+      "bytes": 776
+    },
+    {
+      "title": "Guide for selling partners from out of Brazil",
+      "path": "/help/hub/reference/GME4JXYQ8QC3T2QV",
+      "id": "GME4JXYQ8QC3T2QV",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GME4JXYQ8QC3T2QV",
+      "file": "articles/198-guide-for-selling-partners-from-out-of-brazil-GME4JXYQ8QC3T2QV.md",
+      "bytes": 1332
+    },
+    {
+      "title": "Sell Globally experience",
+      "path": "/help/hub/reference/GDYZBUHVDD66VHVR",
+      "id": "GDYZBUHVDD66VHVR",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GDYZBUHVDD66VHVR",
+      "file": "articles/199-sell-globally-experience-GDYZBUHVDD66VHVR.md",
+      "bytes": 14365
+    },
+    {
+      "title": "Sell Globally experience FAQ",
+      "path": "/help/hub/reference/GNFDSYQP7TR7SPUW",
+      "id": "GNFDSYQP7TR7SPUW",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GNFDSYQP7TR7SPUW",
+      "file": "articles/200-sell-globally-experience-faq-GNFDSYQP7TR7SPUW.md",
+      "bytes": 10478
+    },
+    {
+      "title": "Compliance Services Store",
+      "path": "/help/hub/reference/G5XSKWYY7BWDMS4V",
+      "id": "G5XSKWYY7BWDMS4V",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G5XSKWYY7BWDMS4V",
+      "file": "articles/201-compliance-services-store-G5XSKWYY7BWDMS4V.md",
+      "bytes": 10685
+    },
+    {
+      "title": "Expand to Canada with PanAmericas",
+      "path": "/help/hub/reference/GL29MXM9KNN7WLJV",
+      "id": "GL29MXM9KNN7WLJV",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GL29MXM9KNN7WLJV",
+      "file": "articles/202-expand-to-canada-with-panamericas-GL29MXM9KNN7WLJV.md",
+      "bytes": 8042
+    },
+    {
+      "title": "Safety and compliance verification for Private Brands products",
+      "path": "/help/hub/reference/GZR95BWRLUAD37C5",
+      "id": "GZR95BWRLUAD37C5",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GZR95BWRLUAD37C5",
+      "file": "articles/203-safety-and-compliance-verification-for-private-brands-products-GZR95BWRLUAD37C5.md",
+      "bytes": 2975
+    },
+    {
+      "title": "Get started with data exchange",
+      "path": "/help/hub/reference/G69040",
+      "id": "G69040",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G69040",
+      "file": "articles/204-get-started-with-data-exchange-G69040.md",
+      "bytes": 565
+    },
+    {
+      "title": "XML tasks and tools",
+      "path": "/help/hub/reference/G69041",
+      "id": "G69041",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G69041",
+      "file": "articles/205-xml-tasks-and-tools-G69041.md",
+      "bytes": 299
+    },
+    {
+      "title": "What is Amazon Pay?",
+      "path": "/help/hub/reference/G201186400",
+      "id": "G201186400",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G201186400",
+      "file": "articles/206-what-is-amazon-pay-G201186400.md",
+      "bytes": 547
+    },
+    {
+      "title": "Delivery with Services - FAQ",
+      "path": "/help/hub/reference/GG693BAJ9NUV8F6N",
+      "id": "GG693BAJ9NUV8F6N",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GG693BAJ9NUV8F6N",
+      "file": "articles/207-delivery-with-services-faq-GG693BAJ9NUV8F6N.md",
+      "bytes": 845
+    },
+    {
+      "title": "Delivery with Services - Customers",
+      "path": "/help/hub/reference/G4979EVYE6RQ6A7H",
+      "id": "G4979EVYE6RQ6A7H",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G4979EVYE6RQ6A7H",
+      "file": "articles/208-delivery-with-services-customers-G4979EVYE6RQ6A7H.md",
+      "bytes": 583
+    },
+    {
+      "title": "Delivery with Services - Orders",
+      "path": "/help/hub/reference/GB5PYDG7MC7FHSRZ",
+      "id": "GB5PYDG7MC7FHSRZ",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GB5PYDG7MC7FHSRZ",
+      "file": "articles/209-delivery-with-services-orders-GB5PYDG7MC7FHSRZ.md",
+      "bytes": 368
+    },
+    {
+      "title": "Amazon Brand Registry help topics",
+      "path": "/help/hub/reference/G5S7CQF3NUULNCY8",
+      "id": "G5S7CQF3NUULNCY8",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G5S7CQF3NUULNCY8",
+      "file": "articles/210-amazon-brand-registry-help-topics-G5S7CQF3NUULNCY8.md",
+      "bytes": 581
+    },
+    {
+      "title": "Manage co-brand relationships",
+      "path": "/help/hub/reference/GHQ2EX7F4PZT92QC",
+      "id": "GHQ2EX7F4PZT92QC",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GHQ2EX7F4PZT92QC",
+      "file": "articles/211-manage-co-brand-relationships-GHQ2EX7F4PZT92QC.md",
+      "bytes": 13952
+    },
+    {
+      "title": "Brand Registry glossary",
+      "path": "/help/hub/reference/GBR82EG272SZJDFS",
+      "id": "GBR82EG272SZJDFS",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GBR82EG272SZJDFS",
+      "file": "articles/212-brand-registry-glossary-GBR82EG272SZJDFS.md",
+      "bytes": 12036
+    },
+    {
+      "title": "Country-specific trademark information",
+      "path": "/help/hub/reference/GHUDSVJLN4U9WY8Z",
+      "id": "GHUDSVJLN4U9WY8Z",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GHUDSVJLN4U9WY8Z",
+      "file": "articles/213-country-specific-trademark-information-GHUDSVJLN4U9WY8Z.md",
+      "bytes": 1670
+    },
+    {
+      "title": "Brand Registry application process",
+      "path": "/help/hub/reference/GN2GYQVPR7R4VMPB",
+      "id": "GN2GYQVPR7R4VMPB",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GN2GYQVPR7R4VMPB",
+      "file": "articles/214-brand-registry-application-process-GN2GYQVPR7R4VMPB.md",
+      "bytes": 6950
+    },
+    {
+      "title": "Brand Registry application step-by-step guide",
+      "path": "/help/hub/reference/GRWHD3TXWAVKUT86",
+      "id": "GRWHD3TXWAVKUT86",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GRWHD3TXWAVKUT86",
+      "file": "articles/215-brand-registry-application-step-by-step-guide-GRWHD3TXWAVKUT86.md",
+      "bytes": 6637
+    },
+    {
+      "title": "Manage Brand Registry application issues",
+      "path": "/help/hub/reference/GJPGY8BRDAQUQV4V",
+      "id": "GJPGY8BRDAQUQV4V",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GJPGY8BRDAQUQV4V",
+      "file": "articles/216-manage-brand-registry-application-issues-GJPGY8BRDAQUQV4V.md",
+      "bytes": 4521
+    },
+    {
+      "title": "About Brand Registry facial data verification",
+      "path": "/help/hub/reference/GSJL26WNCBGHTGL4",
+      "id": "GSJL26WNCBGHTGL4",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GSJL26WNCBGHTGL4",
+      "file": "articles/217-about-brand-registry-facial-data-verification-GSJL26WNCBGHTGL4.md",
+      "bytes": 4349
+    },
+    {
+      "title": "Brand Registry identity verification process",
+      "path": "/help/hub/reference/GYRZRWX6NG36F4GH",
+      "id": "GYRZRWX6NG36F4GH",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GYRZRWX6NG36F4GH",
+      "file": "articles/218-brand-registry-identity-verification-process-GYRZRWX6NG36F4GH.md",
+      "bytes": 9587
+    },
+    {
+      "title": "Brand Registry identity verification FAQ",
+      "path": "/help/hub/reference/G3UY9ZFTXGRJUSQ2",
+      "id": "G3UY9ZFTXGRJUSQ2",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G3UY9ZFTXGRJUSQ2",
+      "file": "articles/219-brand-registry-identity-verification-faq-G3UY9ZFTXGRJUSQ2.md",
+      "bytes": 4524
+    },
+    {
+      "title": "Brand Registry protection roles",
+      "path": "/help/hub/reference/GCF9UE9VGKGA2W5F",
+      "id": "GCF9UE9VGKGA2W5F",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GCF9UE9VGKGA2W5F",
+      "file": "articles/220-brand-registry-protection-roles-GCF9UE9VGKGA2W5F.md",
+      "bytes": 577
+    },
+    {
+      "title": "Brand Registry selling roles",
+      "path": "/help/hub/reference/GJ84K745AL3R5N3Q",
+      "id": "GJ84K745AL3R5N3Q",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GJ84K745AL3R5N3Q",
+      "file": "articles/221-brand-registry-selling-roles-GJ84K745AL3R5N3Q.md",
+      "bytes": 10869
+    },
+    {
+      "title": "Brand Registry FAQ",
+      "path": "/help/hub/reference/G7XU99JWVLB645MU",
+      "id": "G7XU99JWVLB645MU",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G7XU99JWVLB645MU",
+      "file": "articles/222-brand-registry-faq-G7XU99JWVLB645MU.md",
+      "bytes": 208
+    },
+    {
+      "title": "Register products to your brand",
+      "path": "/help/hub/reference/G6DU75NSM86VXKZC",
+      "id": "G6DU75NSM86VXKZC",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G6DU75NSM86VXKZC",
+      "file": "articles/223-register-products-to-your-brand-G6DU75NSM86VXKZC.md",
+      "bytes": 3972
+    },
+    {
+      "title": "Report intellectual property infringements",
+      "path": "/help/hub/reference/G202132860",
+      "id": "G202132860",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G202132860",
+      "file": "articles/224-report-intellectual-property-infringements-G202132860.md",
+      "bytes": 6548
+    },
+    {
+      "title": "Report alleged trademark infringements via common law",
+      "path": "/help/hub/reference/GS45XXXQDNDP9MJU",
+      "id": "GS45XXXQDNDP9MJU",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GS45XXXQDNDP9MJU",
+      "file": "articles/225-report-alleged-trademark-infringements-via-common-law-GS45XXXQDNDP9MJU.md",
+      "bytes": 3348
+    },
+    {
+      "title": "Amazon Patent Evaluation Express",
+      "path": "/help/hub/reference/GEALWAHER4GDYZXV",
+      "id": "GEALWAHER4GDYZXV",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GEALWAHER4GDYZXV",
+      "file": "articles/226-amazon-patent-evaluation-express-GEALWAHER4GDYZXV.md",
+      "bytes": 7814
+    },
+    {
+      "title": "Add additional trademarks to your brand",
+      "path": "/help/hub/reference/GQCYJTBSFZK8HGN6",
+      "id": "GQCYJTBSFZK8HGN6",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GQCYJTBSFZK8HGN6",
+      "file": "articles/227-add-additional-trademarks-to-your-brand-GQCYJTBSFZK8HGN6.md",
+      "bytes": 593
+    },
+    {
+      "title": "Project Zero FAQ",
+      "path": "/help/hub/reference/G8Y5LL28EX2GDE6D",
+      "id": "G8Y5LL28EX2GDE6D",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G8Y5LL28EX2GDE6D",
+      "file": "articles/228-project-zero-faq-G8Y5LL28EX2GDE6D.md",
+      "bytes": 7868
+    },
+    {
+      "title": "Protect your brand with Transparency",
+      "path": "/help/hub/reference/GSB2AVC33KWCAYSA",
+      "id": "GSB2AVC33KWCAYSA",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GSB2AVC33KWCAYSA",
+      "file": "articles/229-protect-your-brand-with-transparency-GSB2AVC33KWCAYSA.md",
+      "bytes": 587
+    },
+    {
+      "title": "Brand Registry error messages",
+      "path": "/help/hub/reference/G34GHEG4ZWXQTNAU",
+      "id": "G34GHEG4ZWXQTNAU",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G34GHEG4ZWXQTNAU",
+      "file": "articles/230-brand-registry-error-messages-G34GHEG4ZWXQTNAU.md",
+      "bytes": 573
+    },
+    {
+      "title": "Enrollment error messages",
+      "path": "/help/hub/reference/G5UAL3T9ZQWULEKF",
+      "id": "G5UAL3T9ZQWULEKF",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G5UAL3T9ZQWULEKF",
+      "file": "articles/231-enrollment-error-messages-G5UAL3T9ZQWULEKF.md",
+      "bytes": 4997
+    },
+    {
+      "title": "Role assignment error messages",
+      "path": "/help/hub/reference/GPQTLD2Z4EYAVGX5",
+      "id": "GPQTLD2Z4EYAVGX5",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GPQTLD2Z4EYAVGX5",
+      "file": "articles/232-role-assignment-error-messages-GPQTLD2Z4EYAVGX5.md",
+      "bytes": 4392
+    },
+    {
+      "title": "Report a Violation error messages",
+      "path": "/help/hub/reference/GMSR9C4BP3GYR673",
+      "id": "GMSR9C4BP3GYR673",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GMSR9C4BP3GYR673",
+      "file": "articles/233-report-a-violation-error-messages-GMSR9C4BP3GYR673.md",
+      "bytes": 5415
+    },
+    {
+      "title": "Abusive conduct error messages",
+      "path": "/help/hub/reference/G2M4ASKCSYMDL7KZ",
+      "id": "G2M4ASKCSYMDL7KZ",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G2M4ASKCSYMDL7KZ",
+      "file": "articles/239-abusive-conduct-error-messages-G2M4ASKCSYMDL7KZ.md",
+      "bytes": 4887
+    },
+    {
+      "title": "Spotlight communication features",
+      "path": "/help/hub/reference/GFGQSTY7A97VAVJ3",
+      "id": "GFGQSTY7A97VAVJ3",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GFGQSTY7A97VAVJ3",
+      "file": "articles/235-spotlight-communication-features-GFGQSTY7A97VAVJ3.md",
+      "bytes": 1582
+    },
+    {
+      "title": "Create a Brand Name",
+      "path": "/help/hub/reference/GTTTDEQTT9GFW9X2",
+      "id": "GTTTDEQTT9GFW9X2",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GTTTDEQTT9GFW9X2",
+      "file": "articles/236-create-a-brand-name-GTTTDEQTT9GFW9X2.md",
+      "bytes": 1721
+    },
+    {
+      "title": "Small Business products FAQ",
+      "path": "/help/hub/reference/GKSCZ5A9SEBFVQHG",
+      "id": "GKSCZ5A9SEBFVQHG",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GKSCZ5A9SEBFVQHG",
+      "file": "articles/237-small-business-products-faq-GKSCZ5A9SEBFVQHG.md",
+      "bytes": 8985
+    },
+    {
+      "title": "Manage your Brands",
+      "path": "/help/hub/reference/GF79K5R2ZLCWCPJT",
+      "id": "GF79K5R2ZLCWCPJT",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GF79K5R2ZLCWCPJT",
+      "file": "articles/238-manage-your-brands-GF79K5R2ZLCWCPJT.md",
+      "bytes": 15247
+    },
+    {
+      "title": "Brand acquisition best practices",
+      "path": "/help/hub/reference/GXBVXFNXWZ65HYT7",
+      "id": "GXBVXFNXWZ65HYT7",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/GXBVXFNXWZ65HYT7",
+      "file": "articles/239-brand-acquisition-best-practices-GXBVXFNXWZ65HYT7.md",
+      "bytes": 1832
+    }
+  ],
+  "missing": []
+}

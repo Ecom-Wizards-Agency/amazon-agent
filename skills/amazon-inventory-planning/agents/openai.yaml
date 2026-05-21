@@ -1,0 +1,3 @@
+display_name: Amazon Inventory Planning
+short_description: Run FBA inventory overview and reshipment planning workflows.
+default_prompt: Use this skill for the Weekly FBA Inventory Overview, FBA reshipment planning, inventory overview CSV/XLSX outputs, pCloud raw report organization, and Slack staging summaries.

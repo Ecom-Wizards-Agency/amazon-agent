@@ -1,0 +1,82 @@
+- link "Skip to main content":
+  - /url: "#AACApplicationBody"
+- link "Amazon Advertising Console":
+  - /url: /mn
+  - img "Amazon Advertising Console"
+- navigation
+- navigation:
+  - button "Support Center"
+  - paragraph
+- button "Laboratoires ILAPHARM Sponsored ads, United States" [disabled]:
+  - paragraph: Laboratoires ILAPHARM
+  - paragraph: Sponsored ads, United States
+- button "See my notifications":
+  - generic: See my notifications
+- button "Your preferences":
+  - generic: Your preferences
+- heading "How can we help you?" [level=1]
+- generic: Search
+- searchbox "Search"
+- paragraph:
+  - text: "Explore our streamlined, user-friendly ad policy pages:"
+  - link "Policies and guidelines":
+    - /url: https://advertising.amazon.com/help/G26M9XTK78AMR8TP
+- radio "Before you begin Start here to learn the basics and prepare for advertising."
+- paragraph: Before you begin
+- paragraph: Start here to learn the basics and prepare for advertising.
+- radio "Account management Learn how to manage account settings and user permissions."
+- paragraph: Account management
+- paragraph: Learn how to manage account settings and user permissions.
+- radio "Billing and payments Help with billing, payment methods, and taxes."
+- paragraph: Billing and payments
+- paragraph: Help with billing, payment methods, and taxes.
+- radio "Building campaigns Learn how to set up an Amazon Ads campaign."
+- paragraph: Building campaigns
+- paragraph: Learn how to set up an Amazon Ads campaign.
+- radio "Bidding and budget Understand when your ads appear to customers."
+- paragraph: Bidding and budget
+- paragraph: Understand when your ads appear to customers.
+- radio "Audiences and targeting Use targeting to reach your desired audience."
+- paragraph: Audiences and targeting
+- paragraph: Use targeting to reach your desired audience.
+- radio "Measure results Understand and evaluate campaign performance."
+- paragraph: Measure results
+- paragraph: Understand and evaluate campaign performance.
+- radio "Troubleshooting Resolve common account and campaign issues."
+- paragraph: Troubleshooting
+- paragraph: Resolve common account and campaign issues.
+- radio "Policies and guidelines Ad policies, guidance, and brand rules."
+- paragraph: Policies and guidelines
+- paragraph: Ad policies, guidance, and brand rules.
+- heading "More ways to learn" [level=5]
+- paragraph: Check out our library of videos and e-learning material to expand your Amazon Ads knowledge.
+- switch "Videos" [checked]
+- switch "Courses"
+- generic: 03:13
+- text: Find Your Advertising Campaigns
+- generic: 01:44
+- text: Resolving payment failure
+- generic: 02:48
+- text: How to use a manager account
+- generic: 01:27
+- text: Understanding Keywords
+- generic: 04:26
+- text: How to optimize your budget
+- generic: 00:31
+- text: How to add sub-pages to your Store
+- generic: 00:36
+- text: Adjusting Sponsored Products Keyword Bids
+- generic: 02:15
+- text: Easily launch ads in multiple countries
+- separator
+- heading "View your cases" [level=3]
+- generic: Case log
+- generic: © 2026 Amazon.com, Inc. or its affiliates.
+- link "Conditions of use":
+  - /url: https://www.amazon.com/gp/help/customer/display.html?nodeId=508088
+- link "Privacy notice":
+  - /url: https://www.amazon.com/gp/help/customer/display.html?nodeId=468496
+- link "Amazon Advertising Agreement":
+  - /url: https://advertising.amazon.com/terms
+- link "Status":
+  - /url: https://status.ads.amazon.com

@@ -1,0 +1,605 @@
+{
+  "downloaded_at": "2026-05-13",
+  "source": "Amazon Ads Support Center",
+  "source_url": "https://advertising.amazon.com/help",
+  "status": "chrome_index_capture_complete_safe_mode",
+  "notes": [
+    "Safe mode active: no Chrome/Node resets, no process inspection, no process killing.",
+    "Firecrawl can scrape pages with Markdown tables; local shell curl cannot access the site in this environment.",
+    "Full corpus is over 300 pages. Current local capture completed the 109 Chrome-indexed pages.",
+    "Sensitive billing/payment details were summarized; private payment identifiers, credentials, tokens, and secret values are not stored."
+  ],
+  "chrome_snapshot_discovered_count": 109,
+  "pages": [
+    {
+      "title": "Understand bidding",
+      "url": "https://advertising.amazon.com/help/GDS2E64R9GQ35768",
+      "discovered_from": "category-bidding-and-budget.txt"
+    },
+    {
+      "title": "Understand Amazon Ads auctions",
+      "url": "https://advertising.amazon.com/help/GEXGZNBBWPZZK7P8",
+      "discovered_from": "category-bidding-and-budget.txt"
+    },
+    {
+      "title": "Bidding rules for Sponsored Products",
+      "url": "https://advertising.amazon.com/help/GDLQ5D2BNFCAU3TW",
+      "discovered_from": "category-bidding-and-budget.txt"
+    },
+    {
+      "title": "Bidding strategies for Sponsored Products",
+      "url": "https://advertising.amazon.com/help/GCU2BUWJH2W3A8Z7",
+      "discovered_from": "category-bidding-and-budget.txt"
+    },
+    {
+      "title": "Apply Schedule bid rules for Sponsored Products",
+      "url": "https://advertising.amazon.com/help/G7JFAU9C7PHA3Q68",
+      "discovered_from": "category-bidding-and-budget.txt"
+    },
+    {
+      "title": "Set bids in a Sponsored Products campaign",
+      "url": "https://advertising.amazon.com/help/GTMXQWASBRZTHLF2",
+      "discovered_from": "category-bidding-and-budget.txt"
+    },
+    {
+      "title": "Understand bid adjustments in Sponsored ads",
+      "url": "https://advertising.amazon.com/help/GQ4R4FR4H56JL6V8",
+      "discovered_from": "category-bidding-and-budget.txt"
+    },
+    {
+      "title": "Sponsored Brands bids by placement and audiences",
+      "url": "https://advertising.amazon.com/help/GC8K522SMNCPH99Z",
+      "discovered_from": "category-bidding-and-budget.txt"
+    },
+    {
+      "title": "Adjust Sponsored Products bids",
+      "url": "https://advertising.amazon.com/help/GYYZVM7LGSRYGWV5",
+      "discovered_from": "category-bidding-and-budget.txt"
+    },
+    {
+      "title": "Understand budgets",
+      "url": "https://advertising.amazon.com/help/GTGPQGUXNCTHE2DS",
+      "discovered_from": "category-bidding-and-budget.txt"
+    },
+    {
+      "title": "Understand budget rules",
+      "url": "https://advertising.amazon.com/help/GNSMLANWNF344YBE",
+      "discovered_from": "category-bidding-and-budget.txt"
+    },
+    {
+      "title": "Understand Cost controls for sponsored ads",
+      "url": "https://advertising.amazon.com/help/GNJDAT6AEYD3XJA8",
+      "discovered_from": "category-bidding-and-budget.txt"
+    },
+    {
+      "title": "Create budget rules for sponsored ads campaigns",
+      "url": "https://advertising.amazon.com/help/G3HZWVWYE23DBR2V",
+      "discovered_from": "category-bidding-and-budget.txt"
+    },
+    {
+      "title": "Edit your budget",
+      "url": "https://advertising.amazon.com/help/GVYUKBJQFPH7ZQ2L",
+      "discovered_from": "category-bidding-and-budget.txt"
+    },
+    {
+      "title": "Sponsored ads",
+      "url": "https://advertising.amazon.com/help/G3ADZF348LBLYK22",
+      "discovered_from": "category-building-campaigns.txt"
+    },
+    {
+      "title": "Video and display",
+      "url": "https://advertising.amazon.com/help/GG3F5TQA5UXGVX4E",
+      "discovered_from": "category-building-campaigns.txt"
+    },
+    {
+      "title": "Brand shopping",
+      "url": "https://advertising.amazon.com/help/GT8P52VD3YWU6YP7",
+      "discovered_from": "category-building-campaigns.txt"
+    },
+    {
+      "title": "Bulk management",
+      "url": "https://advertising.amazon.com/help/GP5GZAXST3AF4M46",
+      "discovered_from": "category-building-campaigns.txt"
+    },
+    {
+      "title": "Copy a campaign",
+      "url": "https://advertising.amazon.com/help/GPFGH67KMNLQ5TKU",
+      "discovered_from": "category-building-campaigns.txt"
+    },
+    {
+      "title": "Edit a campaign",
+      "url": "https://advertising.amazon.com/help/GW73Q54RZZCMPYYV",
+      "discovered_from": "category-building-campaigns.txt"
+    },
+    {
+      "title": "Monitor product performance",
+      "url": "https://advertising.amazon.com/help/GSGEG5FWNRFXC4KT",
+      "discovered_from": "category-building-campaigns.txt"
+    },
+    {
+      "title": "Optimize your campaign",
+      "url": "https://advertising.amazon.com/help/GJHF6GB7WZUMPYJ6",
+      "discovered_from": "category-building-campaigns.txt"
+    },
+    {
+      "title": "Portfolios",
+      "url": "https://advertising.amazon.com/help/GXEM4K9PD2QH8GBJ",
+      "discovered_from": "category-building-campaigns.txt"
+    },
+    {
+      "title": "Use smart searches to manage campaigns",
+      "url": "https://advertising.amazon.com/help/GGZ5H8F9X4YRFBGY",
+      "discovered_from": "category-building-campaigns.txt"
+    },
+    {
+      "title": "Understand Creative Studio",
+      "url": "https://advertising.amazon.com/help/G37KKZ72NM5AFB46",
+      "discovered_from": "category-building-campaigns.txt"
+    },
+    {
+      "title": "Book a creative service",
+      "url": "https://advertising.amazon.com/help/G9EDYA544GKJFHMQ",
+      "discovered_from": "category-building-campaigns.txt"
+    },
+    {
+      "title": "Create and manage ads in Creative Studio",
+      "url": "https://advertising.amazon.com/help/G55KXDLSKCKVG3TJ",
+      "discovered_from": "category-building-campaigns.txt"
+    },
+    {
+      "title": "Create and manage creative assets",
+      "url": "https://advertising.amazon.com/help/GHACCZ3SEF3E6ZHX",
+      "discovered_from": "category-building-campaigns.txt"
+    },
+    {
+      "title": "Third-party ad tools",
+      "url": "https://advertising.amazon.com/help/GAMAH7L8X3HR7QFR",
+      "discovered_from": "category-building-campaigns.txt"
+    },
+    {
+      "title": "Amazon Leads Manager",
+      "url": "https://advertising.amazon.com/help/G5EG5LS7LEKGQ7QC",
+      "discovered_from": "category-building-campaigns.txt"
+    },
+    {
+      "title": "Sponsored ads translation",
+      "url": "https://advertising.amazon.com/help/GJ67QHHYCKMEJGG9",
+      "discovered_from": "category-building-campaigns.txt"
+    },
+    {
+      "title": "Get started with sponsored ads",
+      "url": "https://advertising.amazon.com/help/G4HZVWT2A83JR624",
+      "discovered_from": "ads-support-before-you-begin-dom.txt"
+    },
+    {
+      "title": "Optimize products for advertising",
+      "url": "https://advertising.amazon.com/help/GXAMM4S99TTG2Y57",
+      "discovered_from": "ads-support-before-you-begin-dom.txt"
+    },
+    {
+      "title": "Display",
+      "url": "https://advertising.amazon.com/help/GHYXY6HJRDM5VCCY",
+      "discovered_from": "ads-support-before-you-begin-dom.txt"
+    },
+    {
+      "title": "Sponsored Brands",
+      "url": "https://advertising.amazon.com/help/GGWFYHL27MFXLHS6",
+      "discovered_from": "ads-support-before-you-begin-dom.txt"
+    },
+    {
+      "title": "Sponsored Products",
+      "url": "https://advertising.amazon.com/help/GJUCNANNV3GQVXJZ",
+      "discovered_from": "ads-support-before-you-begin-dom.txt"
+    },
+    {
+      "title": "Streaming TV",
+      "url": "https://advertising.amazon.com/help/GXFV9PSQ4356SNUF",
+      "discovered_from": "ads-support-before-you-begin-dom.txt"
+    },
+    {
+      "title": "Promoted Skills",
+      "url": "https://advertising.amazon.com/help/G7RDY7RJ5DGV2CH7",
+      "discovered_from": "ads-support-before-you-begin-dom.txt"
+    },
+    {
+      "title": "Understand Ads planner",
+      "url": "https://advertising.amazon.com/help/GCE7SFM36F7D6U66",
+      "discovered_from": "ads-support-before-you-begin-dom.txt"
+    },
+    {
+      "title": "Build a media plan with Ads planner",
+      "url": "https://advertising.amazon.com/help/GZ3RC8VB2BJPLM9Y",
+      "discovered_from": "ads-support-before-you-begin-dom.txt"
+    },
+    {
+      "title": "Plan your budget with Ads Planner",
+      "url": "https://advertising.amazon.com/help/G3QY49XXEF93NQ52",
+      "discovered_from": "ads-support-before-you-begin-dom.txt"
+    },
+    {
+      "title": "Understand brands on Amazon Ads",
+      "url": "https://advertising.amazon.com/help/GYD2WUGJKAMM6UNU",
+      "discovered_from": "ads-support-before-you-begin-dom.txt"
+    },
+    {
+      "title": "Understand Brand profiles",
+      "url": "https://advertising.amazon.com/help/GWQVDAN3XYCGVP24",
+      "discovered_from": "ads-support-before-you-begin-dom.txt"
+    },
+    {
+      "title": "Create a brand profile",
+      "url": "https://advertising.amazon.com/help/G3SKBFCNXYFKLZ3D",
+      "discovered_from": "ads-support-before-you-begin-dom.txt"
+    },
+    {
+      "title": "Amazon Attribution",
+      "url": "https://advertising.amazon.com/help/GUK77L9456RQ6EJD",
+      "discovered_from": "ads-support-before-you-begin-dom.txt"
+    },
+    {
+      "title": "Get started with Partner Network",
+      "url": "https://advertising.amazon.com/help/GYGUHLUNQLJTCT2U",
+      "discovered_from": "ads-support-before-you-begin-dom.txt"
+    },
+    {
+      "title": "Learn about Amazon Marketing Cloud",
+      "url": "https://advertising.amazon.com/help/G8MQTW9W32CJFA5V",
+      "discovered_from": "ads-support-before-you-begin-dom.txt"
+    },
+    {
+      "title": "Ads content moderation",
+      "url": "https://advertising.amazon.com/help/GXZXZ78UXL2AEBQ9",
+      "discovered_from": "ads-support-before-you-begin-dom.txt"
+    },
+    {
+      "title": "Understand Ads Agent",
+      "url": "https://advertising.amazon.com/help/GKT6KLCX98F5LWKM",
+      "discovered_from": "ads-support-before-you-begin-dom.txt"
+    },
+    {
+      "title": "Sponsored ads studies",
+      "url": "https://advertising.amazon.com/help/GQGYZPBE7AVK6FPS",
+      "discovered_from": "ads-support-before-you-begin-dom.txt"
+    },
+    {
+      "title": "Amazon Ads consent signals",
+      "url": "https://advertising.amazon.com/help/GJ9NZYG2UT4DZ9JR",
+      "discovered_from": "ads-support-before-you-begin-dom.txt"
+    },
+    {
+      "title": "Understand targeting in Display campaigns",
+      "url": "https://advertising.amazon.com/help/GPKPWTLW6B8T683N",
+      "discovered_from": "category-audiences-and-targeting.txt"
+    },
+    {
+      "title": "Understand contextual targeting in Display",
+      "url": "https://advertising.amazon.com/help/GNTK7LTYZS3KSTAN",
+      "discovered_from": "category-audiences-and-targeting.txt"
+    },
+    {
+      "title": "Understand remarketing audience segments",
+      "url": "https://advertising.amazon.com/help/G82GQS569JWSVNRB",
+      "discovered_from": "category-audiences-and-targeting.txt"
+    },
+    {
+      "title": "Understand targeting",
+      "url": "https://advertising.amazon.com/help/G3XAU5G7C2JTNQTM",
+      "discovered_from": "category-audiences-and-targeting.txt"
+    },
+    {
+      "title": "Understand keyword match types",
+      "url": "https://advertising.amazon.com/help/GHTRFDZRJPW6764R",
+      "discovered_from": "category-audiences-and-targeting.txt"
+    },
+    {
+      "title": "Set up keyword targeting",
+      "url": "https://advertising.amazon.com/help/GK3MNACNTXG659J9",
+      "discovered_from": "category-audiences-and-targeting.txt"
+    },
+    {
+      "title": "Set up product targeting",
+      "url": "https://advertising.amazon.com/help/GB2JECV9CJK6R6AL",
+      "discovered_from": "category-audiences-and-targeting.txt"
+    },
+    {
+      "title": "Add negative keywords or negative products",
+      "url": "https://advertising.amazon.com/help/GTEHPEG5BXY9UX5W",
+      "discovered_from": "category-audiences-and-targeting.txt"
+    },
+    {
+      "title": "Branded keyword guidelines and keyword suspension",
+      "url": "https://advertising.amazon.com/help/G2QZJUGUT4RGLJ6N",
+      "discovered_from": "category-audiences-and-targeting.txt"
+    },
+    {
+      "title": "Keyword translation",
+      "url": "https://advertising.amazon.com/help/GHPTCVTGNFZ2KTSP",
+      "discovered_from": "category-audiences-and-targeting.txt"
+    },
+    {
+      "title": "Reserve keywords in a Sponsored Brands campaign",
+      "url": "https://advertising.amazon.com/help/G86SD7HK6NHHRB9B",
+      "discovered_from": "category-audiences-and-targeting.txt"
+    },
+    {
+      "title": "Understand audiences on Amazon",
+      "url": "https://advertising.amazon.com/help/GKSQZKMHW95GJDB7",
+      "discovered_from": "category-audiences-and-targeting.txt"
+    },
+    {
+      "title": "Amazon Marketing Cloud",
+      "url": "https://advertising.amazon.com/help/G9H78BXVT5NCEGUM",
+      "discovered_from": "category-audiences-and-targeting.txt"
+    },
+    {
+      "title": "Create a custom audience using first-party data",
+      "url": "https://advertising.amazon.com/help/GS2PEGTHL288GM9Y",
+      "discovered_from": "category-audiences-and-targeting.txt"
+    },
+    {
+      "title": "Create a custom audience using third-party data",
+      "url": "https://advertising.amazon.com/help/GWU447PKLV5MHGYF",
+      "discovered_from": "category-audiences-and-targeting.txt"
+    },
+    {
+      "title": "Advertiser audience agreement",
+      "url": "https://advertising.amazon.com/help/GFP898677TAJMLRS",
+      "discovered_from": "category-audiences-and-targeting.txt"
+    },
+    {
+      "title": "Understand account permissions",
+      "url": "https://advertising.amazon.com/help/GM4EFDQQPG9LGL3F",
+      "discovered_from": "category-account-management.txt"
+    },
+    {
+      "title": "Understand Advertiser Accounts",
+      "url": "https://advertising.amazon.com/help/GXKXR56ZCMJ3WCS4",
+      "discovered_from": "category-account-management.txt"
+    },
+    {
+      "title": "Add or remove users from your account",
+      "url": "https://advertising.amazon.com/help/GDQVHVQMY9F88PCA",
+      "discovered_from": "category-account-management.txt"
+    },
+    {
+      "title": "Cancel your Amazon Ads account",
+      "url": "https://advertising.amazon.com/help/GSN22CWKEMVYVPFE",
+      "discovered_from": "category-account-management.txt"
+    },
+    {
+      "title": "Create a new Advertiser Account",
+      "url": "https://advertising.amazon.com/help/G6XZXAHEYC7NYAQ5",
+      "discovered_from": "category-account-management.txt"
+    },
+    {
+      "title": "Permissions definitions for the Ads API",
+      "url": "https://advertising.amazon.com/help/GR9KP77YZUD3UEZD",
+      "discovered_from": "category-account-management.txt"
+    },
+    {
+      "title": "Set your preferred language",
+      "url": "https://advertising.amazon.com/help/GNLARJLY29TKA2WB",
+      "discovered_from": "category-account-management.txt"
+    },
+    {
+      "title": "Understand manager accounts",
+      "url": "https://advertising.amazon.com/help/GU3YDB26FR7XT3C8",
+      "discovered_from": "category-account-management.txt"
+    },
+    {
+      "title": "Account Transparency Log (ATL)",
+      "url": "https://advertising.amazon.com/help/GA8QKH28BHRYUX5L",
+      "discovered_from": "category-account-management.txt"
+    },
+    {
+      "title": "Add accounts to your Manager account",
+      "url": "https://advertising.amazon.com/help/G23QYEJNEX3FJFH5",
+      "discovered_from": "category-account-management.txt"
+    },
+    {
+      "title": "Create a manager account",
+      "url": "https://advertising.amazon.com/help/G69CDSR9MNSWJH95",
+      "discovered_from": "category-account-management.txt"
+    },
+    {
+      "title": "Manage users in a Manager account",
+      "url": "https://advertising.amazon.com/help/G4M4JGKGV2VAY9JC",
+      "discovered_from": "category-account-management.txt"
+    },
+    {
+      "title": "Manage your brand and products",
+      "url": "https://advertising.amazon.com/help/GVEZ2EQ2CQZC7WUL",
+      "discovered_from": "category-account-management.txt"
+    },
+    {
+      "title": "Manage deny lists",
+      "url": "https://advertising.amazon.com/help/GFDAZEU76AZZ8K3A",
+      "discovered_from": "category-account-management.txt"
+    },
+    {
+      "title": "Manage your Partner Network account",
+      "url": "https://advertising.amazon.com/help/GS4JJ5FNTCY28SJZ",
+      "discovered_from": "category-account-management.txt"
+    },
+    {
+      "title": "Partner directory",
+      "url": "https://advertising.amazon.com/help/GCS9YY4KSFKDCJ35",
+      "discovered_from": "category-account-management.txt"
+    },
+    {
+      "title": "Understand Amazon Ads billing cycles",
+      "url": "https://advertising.amazon.com/help/GY3YNTWRZYVPLADL",
+      "discovered_from": "category-billing-and-payments.txt"
+    },
+    {
+      "title": "Understand campaign spend",
+      "url": "https://advertising.amazon.com/help/GUJY2CG5DTCPDCVQ",
+      "discovered_from": "category-billing-and-payments.txt"
+    },
+    {
+      "title": "Understand your invoice",
+      "url": "https://advertising.amazon.com/help/GDWV9R4RA7FCHSTE",
+      "discovered_from": "category-billing-and-payments.txt"
+    },
+    {
+      "title": "Payment methods (Sponsored ads)",
+      "url": "https://advertising.amazon.com/help/GMELNQQNEEVLX456",
+      "discovered_from": "category-billing-and-payments.txt"
+    },
+    {
+      "title": "Postpaid billing",
+      "url": "https://advertising.amazon.com/help/GSPZAPMBNFHU5T9D",
+      "discovered_from": "category-billing-and-payments.txt"
+    },
+    {
+      "title": "Supported currencies",
+      "url": "https://advertising.amazon.com/help/GPSLAPLGE94Z2778",
+      "discovered_from": "category-billing-and-payments.txt"
+    },
+    {
+      "title": "Understand billing and payment profiles",
+      "url": "https://advertising.amazon.com/help/GUSV4U4L49UGCLNX",
+      "discovered_from": "category-billing-and-payments.txt"
+    },
+    {
+      "title": "Add a backup payment method",
+      "url": "https://advertising.amazon.com/help/GPGZ28EK9WM4LZ2E",
+      "discovered_from": "category-billing-and-payments.txt"
+    },
+    {
+      "title": "Add a billing profile",
+      "url": "https://advertising.amazon.com/help/G2PQM7W2AK3DDXNH",
+      "discovered_from": "category-billing-and-payments.txt"
+    },
+    {
+      "title": "Update billing details",
+      "url": "https://advertising.amazon.com/help/GH9WLA7VXX3UR92L",
+      "discovered_from": "category-billing-and-payments.txt"
+    },
+    {
+      "title": "Update your payment method",
+      "url": "https://advertising.amazon.com/help/G2D9ZAAB4BUBDFY8",
+      "discovered_from": "category-billing-and-payments.txt"
+    },
+    {
+      "title": "Update regarding payment methods",
+      "url": "https://advertising.amazon.com/help/GF2FM96W5SE8HYK6",
+      "discovered_from": "category-billing-and-payments.txt"
+    },
+    {
+      "title": "Add a purchase order or booking reference to your invoice",
+      "url": "https://advertising.amazon.com/help/GLP2PMYPQMEBE9BJ",
+      "discovered_from": "category-billing-and-payments.txt"
+    },
+    {
+      "title": "How to pay by invoice",
+      "url": "https://advertising.amazon.com/help/GZ5GNKLJVZDFUU4L",
+      "discovered_from": "category-billing-and-payments.txt"
+    },
+    {
+      "title": "Pay for ads in your card currency",
+      "url": "https://advertising.amazon.com/help/GWUL24U4AVZEN8D6",
+      "discovered_from": "category-billing-and-payments.txt"
+    },
+    {
+      "title": "Resolve a payment failure",
+      "url": "https://advertising.amazon.com/help/G2SQRLBPB8TY587E",
+      "discovered_from": "category-billing-and-payments.txt"
+    },
+    {
+      "title": "Troubleshoot invoice issues",
+      "url": "https://advertising.amazon.com/help/GKLYSJEH7WQPVFFC",
+      "discovered_from": "category-billing-and-payments.txt"
+    },
+    {
+      "title": "View and download an advertising invoice",
+      "url": "https://advertising.amazon.com/help/GKEZS9J2K2FCPEAX",
+      "discovered_from": "category-billing-and-payments.txt"
+    },
+    {
+      "title": "Understand advertising promotions",
+      "url": "https://advertising.amazon.com/help/GFAN744AATXXDQBB",
+      "discovered_from": "category-billing-and-payments.txt"
+    },
+    {
+      "title": "View your advertising promotions",
+      "url": "https://advertising.amazon.com/help/G6XB4TSLQ6URGXWA",
+      "discovered_from": "category-billing-and-payments.txt"
+    },
+    {
+      "title": "Countries that collect tax on Electronically Supplied Services",
+      "url": "https://advertising.amazon.com/help/GR7XTRH2DH33V7XX",
+      "discovered_from": "category-billing-and-payments.txt"
+    },
+    {
+      "title": "Register your Tax ID",
+      "url": "https://advertising.amazon.com/help/GLAUMVFR2HJ8XHZA",
+      "discovered_from": "category-billing-and-payments.txt"
+    },
+    {
+      "title": "Tax refunds",
+      "url": "https://advertising.amazon.com/help/GBM34HJ5MUHACVJM",
+      "discovered_from": "category-billing-and-payments.txt"
+    },
+    {
+      "title": "Value Added Tax (VAT) on Electronically Supplied Services (ESS)",
+      "url": "https://advertising.amazon.com/help/G82MMTCZWAMK4ZB4",
+      "discovered_from": "category-billing-and-payments.txt"
+    },
+    {
+      "title": "Washington State Sales Tax Requirements for Amazon Ads",
+      "url": "https://advertising.amazon.com/help/GTGDTE29W9277878",
+      "discovered_from": "category-billing-and-payments.txt"
+    },
+    {
+      "title": "Policies and guidelines",
+      "url": "https://advertising.amazon.com/help/G26M9XTK78AMR8TP",
+      "discovered_from": "ads-support-home-dom.txt"
+    }
+  ],
+  "captured_count": 109,
+  "captured_pages": [
+    {
+      "title": "Understand bidding",
+      "url": "https://advertising.amazon.com/help/GDS2E64R9GQ35768",
+      "file": "articles/001-understand-bidding-GDS2E64R9GQ35768.md",
+      "bytes": 5487
+    },
+    {
+      "title": "Understand Amazon Ads auctions",
+      "url": "https://advertising.amazon.com/help/GEXGZNBBWPZZK7P8",
+      "file": "articles/002-understand-amazon-ads-auctions-GEXGZNBBWPZZK7P8.md",
+      "bytes": 4570
+    },
+    {
+      "title": "Bidding rules for Sponsored Products",
+      "url": "https://advertising.amazon.com/help/GDLQ5D2BNFCAU3TW",
+      "file": "articles/003-bidding-rules-for-sponsored-products-GDLQ5D2BNFCAU3TW.md",
+      "bytes": 5294
+    },
+    {
+      "title": "Bidding strategies for Sponsored Products",
+      "url": "https://advertising.amazon.com/help/GCU2BUWJH2W3A8Z7",
+      "file": "articles/004-bidding-strategies-for-sponsored-products-GCU2BUWJH2W3A8Z7.md",
+      "bytes": 4003
+    },
+    {
+      "title": "Apply Schedule bid rules for Sponsored Products",
+      "url": "https://advertising.amazon.com/help/G7JFAU9C7PHA3Q68",
+      "file": "articles/005-apply-schedule-bid-rules-for-sponsored-products-G7JFAU9C7PHA3Q68.md",
+      "bytes": 2177
+    },
+    {
+      "title": "Set bids in a Sponsored Products campaign",
+      "url": "https://advertising.amazon.com/help/GTMXQWASBRZTHLF2",
+      "file": "articles/006-set-bids-in-a-sponsored-products-campaign-GTMXQWASBRZTHLF2.md",
+      "bytes": 4589
+    },
+    {
+      "title": "Understand bid adjustments in Sponsored ads",
+      "url": "https://advertising.amazon.com/help/GQ4R4FR4H56JL6V8",
+      "file": "articles/007-understand-bid-adjustments-in-sponsored-ads-GQ4R4FR4H56JL6V8.md",
+      "bytes": 4449
+    }
+  ]
+}

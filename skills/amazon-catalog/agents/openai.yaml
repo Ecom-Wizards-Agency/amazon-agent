@@ -1,0 +1,3 @@
+display_name: Amazon Catalog
+short_description: Handle listing, variation, parentage, flat-file, and catalog conflict workflows.
+default_prompt: Use this skill for Amazon catalog management, including variations, parentage, feed errors, listing edits, Brand Registry conflicts, flat files, and suppressed or inactive listings.
