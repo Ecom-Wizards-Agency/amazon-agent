@@ -1,15 +1,15 @@
 ---
 name: amazon-sop-maintenance
-description: Use for Amazon SOP maintenance commands and requests, including /bug, /create-sop, outdated SOPs, broken SOP links, wrong SOP steps, questionable MAG SOP guidance, and new SOP drafts. Creates local review-safe SOP bug reports or SOP drafts without editing source SOP/help/GitHub files unless Victor explicitly asks for that exact source edit.
+description: Use for Amazon SOP maintenance commands and requests, including /bug, /create-sop, /fix-sop, outdated SOPs, broken SOP links, wrong SOP steps, questionable MAG SOP guidance, verified SOP corrections, synced SOP update notes, and new SOP drafts.
 ---
 
 # Amazon SOP Maintenance
 
-Use this skill when Victor asks to report, review, fix, or draft an SOP, especially with `/bug`, `/create-sop`, `outdated SOP`, `broken SOP link`, `wrong SOP steps`, `SOP bug`, or `new SOP draft`.
+Use this skill when Victor asks to report, review, fix, or draft an SOP, especially with `/bug`, `/create-sop`, `/fix-sop`, `outdated SOP`, `broken SOP link`, `wrong SOP steps`, `SOP bug`, `SOP correction`, or `new SOP draft`.
 
 ## Storage
 
-Default to ignored local artifacts, not GitHub source edits:
+Use ignored local artifacts for working drafts, bug reports, screenshots, and notes:
 
 - `output/general/sop-maintenance/`
 - `output/{client-or-brand}/sop-maintenance/`
@@ -23,6 +23,12 @@ Dates belong in filenames:
 
 Use `general` when no client or brand is involved.
 
+Use the GitHub-synced `sop-updates/` folder only for final change notes after a SOP correction has been verified and applied to a tracked source file:
+
+- `sop-updates/YYYY-MM-DD_{short-topic}.md`
+
+Do not store screenshots, GIFs, exports, zip files, or heavy artifacts in `sop-updates/`. Link to or summarize local/pCloud evidence instead.
+
 ## Source Safety
 
 During `/bug` or `/create-sop`, do not edit:
@@ -34,6 +40,8 @@ During `/bug` or `/create-sop`, do not edit:
 - `agent.md`, `AGENTS.md`, `README.md`, `docs/`, `skills/`, or other GitHub source files
 
 Only edit source files when Victor explicitly asks for that exact source update. A SOP maintenance report may recommend a source edit, but it must stop before making that edit.
+
+During `/fix-sop`, source edits are allowed only after the issue has been verified against current Amazon docs, browser UI, pCloud visual archive, or user-provided evidence. Stop before pushing unless Victor explicitly asks to push.
 
 ## `/bug` Workflow
 
@@ -51,6 +59,27 @@ Capture:
 - Whether a source SOP edit is recommended.
 
 Stop after creating the bug report unless Victor explicitly asks to update the source SOP or GitHub docs.
+
+## `/fix-sop` Workflow
+
+Use `/fix-sop` for the full correction loop.
+
+1. Identify the affected SOP title, path, and source link.
+2. Verify the correct version using current Amazon docs, current browser UI, pCloud visual archive, or user-provided evidence.
+3. Update the relevant tracked SOP/source file locally.
+4. Create one synced change note in `sop-updates/YYYY-MM-DD_{short-topic}.md` using `sop-updates/TEMPLATE.md`.
+5. Run checks, normally `git diff --check` and any relevant search/helper check.
+6. Stop before pushing unless Victor explicitly asks to push.
+
+The change note should include:
+
+- Problem.
+- Verification.
+- Change made.
+- Files changed.
+- Checks run.
+- Evidence summary or links.
+- Follow-up.
 
 ## `/create-sop` Workflow
 

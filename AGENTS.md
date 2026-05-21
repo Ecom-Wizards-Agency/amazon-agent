@@ -75,7 +75,7 @@ Default routing:
 - `amazon-reporting`: Seller/Ads reports, SQP, business reports, analytics workbooks.
 - `amazon-inventory-planning`: weekly FBA inventory overview, reshipment planning, pCloud outputs, Slack staging.
 - `amazon-opportunity-explorer`: Product Opportunity Explorer/OEI/POE exports, image strategy, product strategy, Alexa/Rufus semantic insights.
-- `amazon-sop-maintenance`: `/bug`, `/create-sop`, outdated/broken SOP reports, and new SOP drafts.
+- `amazon-sop-maintenance`: `/bug`, `/create-sop`, `/fix-sop`, outdated/broken SOP reports, verified SOP corrections, and new SOP drafts.
 - `amazon-logistics`: Send to Amazon, FBA shipments, removals, AWD, inventory operations.
 - `amazon-communications`: support cases, buyer messages, creator replies, courtesy-refund follow-ups.
 
@@ -115,12 +115,13 @@ SOP maintenance trigger phrases:
 
 - `/bug`
 - `/create-sop`
+- `/fix-sop`
 - `outdated SOP`
 - `broken SOP link`
 - `wrong SOP steps`
 - `new SOP draft`
 
-For SOP maintenance, route to `amazon-sop-maintenance`. `/bug` creates a local SOP bug report only. `/create-sop` creates a local SOP draft only. Do not edit source SOP/help/GitHub files unless Victor explicitly asks for that exact source edit.
+For SOP maintenance, route to `amazon-sop-maintenance`. `/bug` creates a local SOP bug report only. `/create-sop` creates a local SOP draft only. `/fix-sop` verifies the issue, updates the local tracked source file, and creates a synced change note in `sop-updates/`. Stop before pushing unless Victor explicitly asks to push.
 
 Source priority:
 
