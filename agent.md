@@ -140,7 +140,7 @@ Use ongoing client-first paths for new artifacts:
 - `evidence/{client-or-brand}/{workflow}/`
 - `output/{client-or-brand}/review-management/`
 
-Dates belong in filenames, not folder names. Review management is ongoing, not a dated workflow; update the same client folder over time. The operator who starts a review-management workflow should update that same folder until the workflow is closed, including a current tracker and an `operator-note.md` when useful. Keep support drafts under `output/{client-or-brand}/support-prep/` and support evidence under `evidence/{client-or-brand}/support-prep/`; use Notion for live support-case tracking.
+Dates belong in filenames, not folder names. Review management is ongoing and client-specific; update the same client folder over time. Keep support drafts under `output/{client-or-brand}/support-prep/` and support evidence under `evidence/{client-or-brand}/support-prep/`; use Notion for live support-case tracking.
 
 Controlled workflow names:
 
