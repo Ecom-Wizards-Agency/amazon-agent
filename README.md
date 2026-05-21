@@ -13,9 +13,11 @@ For most work:
 3. Use Google Chrome with the logged-in Amazon session when browser operation is needed.
 4. Stop before externally visible or risky actions unless Victor explicitly approves the specific action.
 
-This project uses one main Codex operator with specialist skills, not separate permanent specialist agents. The dispatcher skill routes work into playbooks like `amazon-seo`, `amazon-catalog`, `amazon-ads`, `amazon-inventory-planning`, and `amazon-communications`.
+This project uses one main Codex operator with specialist skills, not separate permanent specialist agents. The dispatcher skill routes work into playbooks like `amazon-seo`, `amazon-catalog`, `amazon-ads`, `amazon-inventory-planning`, `amazon-opportunity-explorer`, and `amazon-communications`.
 
 For inventory/reshipment work, useful trigger phrases are `Weekly FBA Inventory Overview`, `reshipment planning`, `FBA inventory planning`, and `inventory overview`.
+
+For Product Opportunity Explorer work, useful trigger phrases are `Product Opportunity Explorer`, `Opportunity Explorer`, `OEI`, `POE`, `Niche Scout`, `amazon-image-strategy`, and `oei-product-strategy`.
 
 The routing helper can search the local Amazon libraries:
 
@@ -55,6 +57,17 @@ Expected pCloud visual archive check:
 - 0 missing local image references
 
 The pCloud folder must be locally available when visual SOPs are needed.
+
+## Opportunity Explorer Extraction
+
+The Product Opportunity Explorer workflow uses repo-native scripts instead of a Chrome extension:
+
+- `tools/opportunity-explorer/extract-opportunity-explorer.js`
+- `tools/opportunity-explorer/format-opportunity-explorer-export.mjs`
+
+The scripts scrape the visible Product Opportunity Explorer page in the logged-in Chrome session and save structured JSON plus Markdown for image strategy, product strategy, SEO, and Rufus/Alexa AI workflows.
+
+The original Chrome extension remains in pCloud only as historical/source reference during transition. Once the script is tested, it is not needed.
 
 ## What Does Not Belong In GitHub
 

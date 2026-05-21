@@ -9,7 +9,7 @@ description: Route Amazon Seller Central, Amazon Ads, Amazon Creator Connections
 
 Search the local Amazon libraries before answering or touching Chrome. Use the search results to decide the workflow, then navigate Chrome with explicit checkpoints and stop before risky actions.
 
-Use this skill as the dispatcher. After classifying the request, load the relevant specialist skill when the task matches: `amazon-troubleshooting`, `amazon-seo`, `amazon-catalog`, `amazon-ads`, `amazon-reporting`, `amazon-inventory-planning`, `amazon-logistics`, or `amazon-communications`.
+Use this skill as the dispatcher. After classifying the request, load the relevant specialist skill when the task matches: `amazon-troubleshooting`, `amazon-seo`, `amazon-catalog`, `amazon-ads`, `amazon-reporting`, `amazon-inventory-planning`, `amazon-opportunity-explorer`, `amazon-logistics`, or `amazon-communications`.
 
 ## Browser Standard
 
@@ -63,6 +63,8 @@ python3 "/Users/victoruhl/Codex Projects/Amazon Agent/skills/amazon-operator-rou
    - account health: `account health`, `violation`, `policy`, `appeal`, `performance`
    - creators: `creator`, `creator connections`, `campaign`, `message`
    - ads: `campaign`, `bidding`, `budget`, `targeting`, `bulk`, `Sponsored Products`, `Sponsored Brands`, `DSP`
+   - opportunity explorer: `Product Opportunity Explorer`, `Opportunity Explorer`, `OEI`, `POE`, `Niche Scout`, `image strategy`, `product strategy`
+   - Amazon AI search: `Rufus`, `Alexa AI`, `Amazon AI search`, `semantic search`
 
    If the request may involve both agency procedure and current Amazon UI behavior, search one first-party library and MAG before deciding.
 

@@ -1,11 +1,13 @@
 ---
 name: amazon-seo
-description: Use for Amazon SEO and listing optimization work: keyword research workbooks, Never Ever classification, Master Keyword Lists, Ranking Juice, title/bullets/description/backend search terms, Rufus/semantic optimization, SEO audits, compliance checks, and listing copy intended for Seller Central or flat files.
+description: Use for Amazon SEO and listing optimization work: keyword research workbooks, Never Ever classification, Master Keyword Lists, Ranking Juice, title/bullets/description/backend search terms, Rufus/Alexa AI semantic optimization, SEO audits, compliance checks, and listing copy intended for Seller Central or flat files.
 ---
 
 # Amazon SEO
 
 Use this as the Amazon SEO specialist skill. It coordinates existing Ecom Wizards SEO skill references from the GitHub knowledge library with current Amazon first-party rules.
+
+Naming note: Victor noted that Amazon's Rufus AI naming is moving/has moved toward Alexa or Alexa AI. Treat `Rufus`, `Alexa AI`, `Amazon AI search`, and `semantic Amazon search` as related trigger language unless current first-party Amazon docs say otherwise for a specific workflow.
 
 ## Source Order
 
@@ -13,6 +15,7 @@ Use this as the Amazon SEO specialist skill. It coordinates existing Ecom Wizard
    - `/Users/victoruhl/Code/knowledge-base/Skills/keyword-classifier-and-filter.md`
    - `/Users/victoruhl/Code/knowledge-base/Skills/amazon-seo-writer.md`
    - `/Users/victoruhl/Code/knowledge-base/Skills/rufus-optimization.md`
+   - `/Users/victoruhl/Code/knowledge-base/Skills/amazon-image-strategy.md` when OEI/POE image strategy or visual search context matters
    - `/Users/victoruhl/Code/knowledge-base/Skills/direct-response-copywriter.md` when persuasion/voice matters
    - relevant client/project notes under `/Users/victoruhl/Code/knowledge-base/Projects/Clients/`
 2. Amazon Seller Help for current title, bullet, description, image, search-term, prohibited-claim, and category rules.

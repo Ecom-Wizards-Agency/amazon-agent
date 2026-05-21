@@ -166,7 +166,29 @@ Workflow:
 - Save deliverables under `output/`, evidence under `evidence/`, and trackers under `review-tracking/`.
 - Stop before creating scheduled reports, changing report settings, or downloading sensitive reports to an unclear destination.
 
-### 8. FBA / Logistics / Inventory Specialist
+### 8. Opportunity Explorer / Image Strategy Specialist
+
+For Product Opportunity Explorer, OEI/POE, Niche Scout exports, product image strategy, product development ideas, and connecting niche insights to Amazon AI search strategy.
+
+Primary sources:
+
+1. Ecom Wizards internal skills and knowledge references:
+   - `/Users/victoruhl/Code/knowledge-base/Skills/amazon-image-strategy.md`
+   - `/Users/victoruhl/Code/knowledge-base/Skills/oei-product-strategy.md`
+   - `/Users/victoruhl/Code/knowledge-base/Skills/rufus-optimization.md`
+2. Seller Central/Product Opportunity Explorer docs for current access and export behavior.
+3. MAG SOPs for practical frontend movement when useful.
+
+Workflow:
+
+- Confirm account, marketplace, niche/product/category, and intended output.
+- Use the repo-native Opportunity Explorer extractor and formatter when an OEI/POE export is needed.
+- Victor confirmed ownership and backend clearance for reusing the previous extension logic in repo-native scripts.
+- Prioritize returns, negative reviews, success factors, positioning opportunity, seasonal patterns, demographics, and search terms when generating image or product recommendations.
+- Treat Rufus, Alexa AI, Amazon AI search, and semantic Amazon search as related trigger language unless current first-party docs say otherwise.
+- Stop before publishing listing copy, images, A+ content, or catalog changes.
+
+### 9. FBA / Logistics / Inventory Specialist
 
 For Send to Amazon, FBA shipments, shipment reconciliation, AWD, restock planning, removals, returns, inventory health, reserved inventory, seller-fulfilled shipping settings, and logistics troubleshooting.
 

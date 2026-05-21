@@ -70,6 +70,7 @@ Default routing:
 - `amazon-ads`: Ads Console, PPC, Creator Connections, bidding, budgets, targeting.
 - `amazon-reporting`: Seller/Ads reports, SQP, business reports, analytics workbooks.
 - `amazon-inventory-planning`: weekly FBA inventory overview, reshipment planning, pCloud outputs, Slack staging.
+- `amazon-opportunity-explorer`: Product Opportunity Explorer/OEI/POE exports, image strategy, product strategy, Alexa/Rufus semantic insights.
 - `amazon-logistics`: Send to Amazon, FBA shipments, removals, AWD, inventory operations.
 - `amazon-communications`: support cases, buyer messages, creator replies, courtesy-refund follow-ups.
 
@@ -81,6 +82,29 @@ Inventory planning trigger phrases:
 - `inventory overview`
 
 When Victor asks for an inventory check or reshipment check, route to `amazon-inventory-planning`, use the weekly inventory reference, prepare CSV/XLSX outputs and Slack staging copy when needed, and stop before client-facing posts or account-changing actions.
+
+Opportunity Explorer trigger phrases:
+
+- `Product Opportunity Explorer`
+- `Opportunity Explorer`
+- `OEI`
+- `POE`
+- `Niche Scout`
+- `amazon-image-strategy`
+- `oei-product-strategy`
+
+For Product Opportunity Explorer work, route to `amazon-opportunity-explorer`. Use the repo-native script-first extraction workflow when an export is needed:
+
+- `tools/opportunity-explorer/extract-opportunity-explorer.js`
+- `tools/opportunity-explorer/format-opportunity-explorer-export.mjs`
+
+Original Chrome extension/source backup:
+
+`/Users/victoruhl/pCloud Drive/Account shares/Amazon Wizards/2_Company/2.7_Tools/Chrome Extension-Opportunity Explorer Downloader`
+
+Victor confirmed ownership and backend clearance for reusing the previous extension logic. The extension is not part of the intended workflow once the script is tested. Do not inspect cookies, session storage, local storage, tokens, or credentials while extracting OEI/POE data.
+
+Naming note: Victor noted that Amazon's Rufus AI naming is moving/has moved toward Alexa or Alexa AI. Treat `Rufus`, `Alexa AI`, `Amazon AI search`, and `semantic Amazon search` as related trigger language unless current first-party Amazon docs say otherwise for a specific workflow.
 
 Source priority:
 
