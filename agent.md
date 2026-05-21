@@ -100,6 +100,18 @@ Opportunity Explorer trigger phrases:
 - `amazon-image-strategy`
 - `oei-product-strategy`
 
+DataDive trigger phrases:
+
+- `DataDive`
+- `DataDive MCP`
+- `niche`
+- `master keyword list`
+- `ranking juice`
+- `Rank Radar`
+- `competitor ASINs`
+
+For DataDive research, use the local `datadive` MCP server when available. It runs `@datadive-tools/mcp` locally over stdio and is read-only. Use it for DataDive-owned niche, keyword, competitor, Ranking Juice, and Rank Radar data before falling back to manual exports. Do not save the DataDive API key in this project, commit it to GitHub, paste it into SOPs, or repeat it in operator notes. Store the key only in local MCP/client secret storage. DataDive output can inform Amazon SEO, image strategy, opportunity-data, and catalog research, but current Amazon rules and UI behavior still come from first-party Amazon docs.
+
 For Product Opportunity Explorer work, route to `amazon-opportunity-explorer`. Use the repo-native script-first extraction workflow when an export is needed:
 
 - `tools/opportunity-explorer/extract-opportunity-explorer.js`
