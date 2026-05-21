@@ -23,11 +23,11 @@ Post only in the internal Slack `#amazon` staging channel for review:
 
 ## Browser And Login Rules
 
-For this workflow, use Brave Browser with Victor's existing Seller Central session unless Victor says otherwise. If desktop-control tools are available, use them to operate Brave. If not, use Brave AppleScript only when JavaScript from Apple Events is enabled.
+For this workflow, use the teammate's preferred connected browser with an existing Seller Central session unless Victor says otherwise. If desktop-control tools are available, use them to operate the connected browser. If browser automation is unavailable, pause and ask which connected browser/session to use.
 
 Never interact with 1Password, password managers, credential vaults, passkeys, OTP/2FA fields, CAPTCHA, or credential autofill prompts. If login, password, passkey, OTP, CAPTCHA, or 1Password action is required, pause and ask Victor to complete it manually.
 
-Keep Brave set to auto-download into Downloads. Do not rename files inside browser Save dialogs. Let files land in Downloads, classify each download by headers/content, and do final file management after reports are downloaded, calculations are done, and Slack text is ready.
+Keep the connected browser set to auto-download into Downloads. Do not rename files inside browser Save dialogs. Let files land in Downloads, classify each download by headers/content, and do final file management after reports are downloaded, calculations are done, and Slack text is ready.
 
 ## Planner Source Of Truth
 
@@ -76,7 +76,7 @@ Gather:
 - Inventory Report: `/listing/reports/ref=xx_invreport_favb_xx` or `/listing/api/status/inventory-reports`
 - Business Report: `/business-reports/ref=xx_sitemetric_dnav_xx#/report?id=102:DetailSalesTrafficByChildItem`, last 30 days
 
-If Amazon blocks programmatic Business Report download, pause and ask Victor to click Download, then use the newest `BusinessReport-MM-DD-YY.csv` or completed temporary Brave CSV from Downloads for the current account.
+If Amazon blocks programmatic Business Report download, pause and ask Victor or the teammate to click Download, then use the newest `BusinessReport-MM-DD-YY.csv` or completed temporary browser CSV from Downloads for the current account.
 
 ## Deliverables
 

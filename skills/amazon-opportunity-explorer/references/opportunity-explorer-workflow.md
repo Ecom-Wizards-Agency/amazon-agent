@@ -21,7 +21,7 @@ The normal workflow should not require a Chrome extension or manual extension cl
 
 Codex should:
 
-1. Open the logged-in Chrome Seller Central page.
+1. Open the logged-in connected browser Seller Central page.
 2. Navigate to the relevant Product Opportunity Explorer niche/page.
 3. Run the extractor JavaScript in that page context.
 4. Save the returned data as JSON.
@@ -31,11 +31,11 @@ Keep the original Chrome extension only as historical/source reference during tr
 
 ## Setup Note For Team Members
 
-Team members should clone the GitHub `amazon-agent` repo. No Chrome extension install is required for the AI workflow.
+Team members should clone the GitHub `amazon-agent` repo. No browser extension install is required for the AI workflow.
 
 When an OEI/POE export is needed, Codex should:
 
-1. Open Product Opportunity Explorer in Chrome.
+1. Open Product Opportunity Explorer in the connected browser.
 2. Run `tools/opportunity-explorer/extract-opportunity-explorer.js` in the page context.
 3. Save the returned object as JSON.
 4. Run `tools/opportunity-explorer/format-opportunity-explorer-export.mjs` to create the final JSON and Markdown files.

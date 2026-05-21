@@ -4,13 +4,13 @@ Amazon Agent is Victor's local runtime workspace for operating Amazon workflows 
 
 ## How To Use
 
-Start with `agent.md`. It is the source of truth for assistant behavior, routing, library search order, Chrome browser checkpoints, evidence capture, and stop-before-risk rules.
+Start with `agent.md`. It is the source of truth for assistant behavior, routing, library search order, connected-browser checkpoints, evidence capture, and stop-before-risk rules.
 
 For most work:
 
 1. Classify the workflow: Seller Central, Amazon Ads, Creator Connections, MAG SOP procedure, reporting, logistics, catalog, inventory, or troubleshooting.
 2. Search the local markdown/runtime libraries first.
-3. Use Google Chrome with the logged-in Amazon session when browser operation is needed.
+3. Use the connected Codex browser with the logged-in Amazon session when browser operation is needed. Common choices are Chrome or Brave.
 4. Stop before externally visible or risky actions unless Victor explicitly approves the specific action.
 
 This project uses one main Codex operator with specialist skills, not separate permanent specialist agents. The dispatcher skill routes work into playbooks like `amazon-seo`, `amazon-catalog`, `amazon-ads`, `amazon-inventory-planning`, `amazon-opportunity-explorer`, and `amazon-communications`.
@@ -67,9 +67,15 @@ The Product Opportunity Explorer workflow uses repo-native scripts instead of a 
 - `tools/opportunity-explorer/extract-opportunity-explorer.js`
 - `tools/opportunity-explorer/format-opportunity-explorer-export.mjs`
 
-The scripts scrape the visible Product Opportunity Explorer page in the logged-in Chrome session and save structured JSON plus Markdown for image strategy, product strategy, SEO, and Rufus/Alexa AI workflows.
+The scripts scrape the visible Product Opportunity Explorer page in the logged-in connected browser session and save structured JSON plus Markdown for image strategy, product strategy, SEO, and Rufus/Alexa AI workflows.
 
 The original Chrome extension remains in pCloud only as historical/source reference during transition. Once the script is tested, it is not needed as part of the runtime workflow.
+
+## Local Browser Preference
+
+GitHub stores browser-neutral defaults. Each teammate can optionally create an ignored local `local-browser-preference.md` file from `docs/local-browser-preference.example.md`.
+
+The agent should read that local preference when present. If no local preference exists, use the connected Codex browser/session available in the current chat. Browser choice never overrides account/marketplace verification or stop-before-risk rules.
 
 ## What Does Not Belong In GitHub
 

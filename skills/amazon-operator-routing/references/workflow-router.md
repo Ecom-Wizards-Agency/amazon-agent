@@ -20,7 +20,7 @@ Use this table to map user requests to local search and browser workflows.
 | Campaign troubleshooting | Advertising Help After Login, MAG SOPs | symptom text, `impressions`, `campaign status`, `ad status`, `budget`, `eligibility` | Amazon Ads > Campaign/ad details | Changing campaign settings |
 | Ads reports | Advertising Help After Login, Amazon Ads Help, MAG SOPs | report name, `measurement`, `reports`, `download`, `sponsored products report`, `search term` | Amazon Ads > Measurement & reporting / Reports | Creating scheduled reports, changing reporting settings |
 | Ads billing/payment support | Advertising Help After Login | `billing`, `invoice`, `payment failure`, `receipt`, exact warning text | Amazon Ads > Billing and payments | Changing payment method, submitting payment details |
-| Ads API/SP API question | Amazon Ads Help, Seller Help | endpoint name, `API`, `reporting`, `bulk`, `Sponsored Products API` | Usually no Chrome action unless user asks | Creating credentials/API keys |
+| Ads API/SP API question | Amazon Ads Help, Seller Help | endpoint name, `API`, `reporting`, `bulk`, `Sponsored Products API` | Usually no browser action unless user asks | Creating credentials/API keys |
 
 ## Troubleshooting Pattern
 

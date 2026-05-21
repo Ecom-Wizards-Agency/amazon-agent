@@ -25,7 +25,7 @@ Use the repo-native extraction workflow:
 - Browser-side extractor: `tools/opportunity-explorer/extract-opportunity-explorer.js`
 - JSON/Markdown formatter: `tools/opportunity-explorer/format-opportunity-explorer-export.mjs`
 
-Default model: script-first. Codex should run the browser-side extractor in the already logged-in Chrome Seller Central page, then save structured JSON plus Markdown. This avoids manual extension-panel clicking while preserving the useful scraping logic.
+Default model: script-first. Codex should run the browser-side extractor in the already logged-in connected browser Seller Central page, then save structured JSON plus Markdown. This avoids manual extension-panel clicking while preserving the useful scraping logic.
 
 The Chrome extension package is not part of the intended workflow once the script is tested. Keep the pCloud extension only as historical/source reference during transition.
 
@@ -33,13 +33,13 @@ Original extension/source backup remains available in pCloud if needed. This is 
 
 `/Users/victoruhl/pCloud Drive/Account shares/Amazon Wizards/2_Company/2.7_Tools/Chrome Extension-Opportunity Explorer Downloader`
 
-Victor confirmed ownership and backend clearance for reusing the previous extension logic. Use the extractor only through the logged-in Chrome Seller Central session. Do not inspect cookies, session storage, local storage, tokens, or credentials.
+Victor confirmed ownership and backend clearance for reusing the previous extension logic. Use the extractor only through the logged-in connected browser Seller Central session. Do not inspect cookies, session storage, local storage, tokens, or credentials.
 
 ## Workflow
 
 1. Confirm account, marketplace, product/niche/category, and intended output: image strategy, product strategy, SEO/Alexa AI strategy, or combined opportunity brief.
 2. Search local Amazon docs and MAG SOPs for the current Product Opportunity Explorer path if browser navigation is needed.
-3. In Chrome, navigate Seller Central to Product Opportunity Explorer / Opportunity Explorer and verify the selected account and marketplace.
+3. In the connected browser, navigate Seller Central to Product Opportunity Explorer / Opportunity Explorer and verify the selected account and marketplace.
 4. Run `tools/opportunity-explorer/extract-opportunity-explorer.js` in the page context on the relevant Opportunity Explorer niche/page. Do not require the user to open or click a Chrome extension unless script execution is unavailable.
 5. Save the raw extractor output as JSON, then run the formatter to create JSON and Markdown under `output/{client-or-brand}/opportunity-data/` with dates in filenames, or another Victor-approved local/pCloud destination.
 6. Load only the relevant knowledge-base reference:

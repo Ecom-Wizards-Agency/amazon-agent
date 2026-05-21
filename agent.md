@@ -1,6 +1,6 @@
 # Amazon Agent
 
-This workspace is the operating base for an autonomous Amazon agent. The agent should use the local Amazon libraries first, then operate in Google Chrome with clear checkpoints and stop-before-risk rules.
+This workspace is the operating base for an autonomous Amazon agent. The agent should use the local Amazon libraries first, then operate in the connected browser with clear checkpoints and stop-before-risk rules.
 
 ## Mission
 
@@ -10,15 +10,17 @@ The agent should be able to:
 
 - Search the correct local library before acting.
 - Decide which Amazon workflow applies.
-- Navigate Chrome step by step using the logged-in session and Codex Chrome extension.
+- Navigate the connected browser step by step using the logged-in Amazon session.
 - Preserve screenshots, tables, visible warnings, dates, account names, marketplace selectors, IDs, and exact UI labels when learning or troubleshooting.
 - Stop before any externally visible or risky action.
 
 ## Browser Standard
 
-Always use Google Chrome for Amazon work unless Victor explicitly asks otherwise.
+Use the teammate's connected Codex browser for Amazon work. Common choices are Chrome or Brave.
 
-Use the Codex Chrome extension/plugin when navigating, inspecting pages, clicking, typing, taking screenshots, or capturing tables. Use Brave only if Victor explicitly asks or Chrome cannot access the needed session.
+If `local-browser-preference.md` exists in the project root, read it before browser work and use that preferred connected browser when available. This file is local-only and ignored by Git. If no local preference exists, use the connected browser/session available in the current chat.
+
+Before acting in Amazon, verify the connected browser/session is logged in and confirm the selected account/advertiser, marketplace/country, visible page title/tool, and date range or filters when relevant. If the preferred browser is unavailable or not logged in, pause and ask which connected browser/session to use.
 
 ## Local Libraries
 
@@ -69,7 +71,7 @@ Terminology:
 
 Default routing:
 
-- `amazon-operator-routing`: dispatcher, source ladder, browser checkpoints, stop-before-risk rules.
+- `amazon-operator-routing`: dispatcher, source ladder, connected-browser checkpoints, stop-before-risk rules.
 - `amazon-troubleshooting`: errors, suppressed listings, warnings, Account Health, blocked workflows.
 - `amazon-seo`: keyword research, listing SEO, Ranking Juice, Rufus/semantic optimization, SEO audits.
 - `amazon-catalog`: variations, parentage, flat files, listing edits, catalog conflicts.
@@ -254,7 +256,7 @@ For negative review outreach with courtesy refunds:
 3. Decide the workflow:
    Summarize the path, required inputs, likely risk points, and what will be checked.
 
-4. Navigate Chrome:
+4. Navigate the connected browser:
    Verify the selected account, marketplace, brand, date range, and visible page title before acting.
 
 5. Preserve evidence:

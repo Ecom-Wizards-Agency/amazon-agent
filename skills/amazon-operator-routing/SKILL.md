@@ -7,15 +7,17 @@ description: Route Amazon Seller Central, Amazon Ads, Amazon Creator Connections
 
 ## Core Rule
 
-Search the local Amazon libraries before answering or touching Chrome. Use the search results to decide the workflow, then navigate Chrome with explicit checkpoints and stop before risky actions.
+Search the local Amazon libraries before answering or touching the connected browser. Use the search results to decide the workflow, then navigate the connected browser with explicit checkpoints and stop before risky actions.
 
 Use this skill as the dispatcher. After classifying the request, load the relevant specialist skill when the task matches: `amazon-troubleshooting`, `amazon-seo`, `amazon-catalog`, `amazon-ads`, `amazon-reporting`, `amazon-inventory-planning`, `amazon-opportunity-explorer`, `amazon-sop-maintenance`, `amazon-logistics`, or `amazon-communications`.
 
 ## Browser Standard
 
-Use Google Chrome for Amazon Seller Central, Amazon Ads, MAG SOP, and logged-in Amazon help workflows. Prefer the Codex Chrome plugin/extension for browser navigation, page inspection, clicking, screenshots, and table capture because it is more reliable than visual-only navigation.
+Use the teammate's connected Codex browser for Amazon Seller Central, Amazon Ads, MAG SOP, and logged-in Amazon help workflows. Common choices are Chrome or Brave.
 
-Use Brave only if Victor explicitly asks for Brave or Chrome cannot access the needed logged-in session/account.
+If `local-browser-preference.md` exists in the project root, read it before browser work and use that preferred connected browser when available. If no local preference exists, use the connected browser/session available in the current chat.
+
+Before acting in Amazon, verify the connected browser/session is logged in and confirm the selected account/advertiser, marketplace/country, visible page title/tool, and date range or filters when relevant. If the preferred browser is unavailable or not logged in, pause and ask which connected browser/session to use.
 
 ## Amazon Ads Account Selection
 
@@ -77,7 +79,7 @@ python3 "/Users/victoruhl/Codex Projects/Amazon Agent/skills/amazon-operator-rou
 5. **Prepare before browser action.**
    Summarize the intended path and required inputs. Identify risky steps before they happen.
 
-6. **Navigate Chrome step-by-step.**
+6. **Navigate the connected browser step-by-step.**
    Follow `references/chrome-checkpoints.md`. Capture/inspect visible state at each major screen. Preserve tables, visible warnings, values, dates, report filters, selected accounts, marketplaces, and IDs.
 
 7. **Stop before risky actions.**

@@ -2,7 +2,7 @@
 
 This folder replaces the old Chrome-extension-first approach with an AI-friendly extraction workflow.
 
-Default model: script-first. Codex should run the browser-side extractor in the already logged-in Chrome Seller Central page, then save JSON and Markdown. The user should not need to install, open, or click a Chrome extension.
+Default model: script-first. Codex should run the browser-side extractor in the already logged-in connected browser Seller Central page, then save JSON and Markdown. The user should not need to install, open, or click a browser extension.
 
 ## Files
 
@@ -11,7 +11,7 @@ Default model: script-first. Codex should run the browser-side extractor in the 
 
 ## Workflow
 
-1. Open the target Amazon Seller Central Product Opportunity Explorer page in Chrome.
+1. Open the target Amazon Seller Central Product Opportunity Explorer page in the connected browser.
 2. Verify account, marketplace, and niche/page title.
 3. Run `extract-opportunity-explorer.js` in the page context using the available browser automation tool.
 4. Save the returned object as a temporary `.json` file.

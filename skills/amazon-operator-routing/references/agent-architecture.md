@@ -2,7 +2,7 @@
 
 Status: Accepted operating structure  
 Date: 2026-05-19  
-Scope: Amazon Agent workspace, local Amazon libraries, Chrome operating workflow
+Scope: Amazon Agent workspace, local Amazon libraries, connected-browser operating workflow
 
 ## Goal
 
@@ -15,7 +15,7 @@ The Amazon Agent should behave like a small operator team:
 1. A main agent classifies the request, chooses the source ladder, and owns the final answer.
 2. A specialist mode handles the deep reasoning for the selected workflow.
 3. Local sources are searched narrowly through indexes and search helpers before any browser action.
-4. Chrome is used for Amazon work after the workflow is clear.
+4. The connected browser is used for Amazon work after the workflow is clear.
 5. The agent stops before sending, submitting, uploading, confirming, changing live settings, or deleting anything.
 
 This does not require every task to spawn actual parallel subagents. For many tasks, the main agent can adopt the specialist mode internally. Actual subagents should be reserved for parallel research, independent checks, or larger work where the context split saves time.
