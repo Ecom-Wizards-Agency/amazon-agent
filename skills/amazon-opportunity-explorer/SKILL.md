@@ -41,7 +41,7 @@ Victor confirmed ownership and backend clearance for reusing the previous extens
 2. Search local Amazon docs and MAG SOPs for the current Product Opportunity Explorer path if browser navigation is needed.
 3. In Chrome, navigate Seller Central to Product Opportunity Explorer / Opportunity Explorer and verify the selected account and marketplace.
 4. Run `tools/opportunity-explorer/extract-opportunity-explorer.js` in the page context on the relevant Opportunity Explorer niche/page. Do not require the user to open or click a Chrome extension unless script execution is unavailable.
-5. Save the raw extractor output as JSON, then run the formatter to create JSON and Markdown under `output/{client-or-brand}/{YYYY-MM-DD}-opportunity-data/` or another Victor-approved local/pCloud destination.
+5. Save the raw extractor output as JSON, then run the formatter to create JSON and Markdown under `output/{client-or-brand}/opportunity-data/` with dates in filenames, or another Victor-approved local/pCloud destination.
 6. Load only the relevant knowledge-base reference:
    - `amazon-image-strategy` for image set recommendations and creative direction.
    - `oei-product-strategy` for product development, differentiation, and market entry.

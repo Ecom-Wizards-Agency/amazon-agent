@@ -85,12 +85,26 @@ Keep those in pCloud or ignored local-only folders. New work should use lowercas
 
 ## Local Artifact Folders
 
-Use a client-first structure for generated work:
+The base local artifact folders are present after clone through `.gitkeep` files, but real files inside them are ignored and must not sync to GitHub.
+
+Use an ongoing client-first structure for generated work:
 
 ```text
-output/{client-or-brand}/{YYYY-MM-DD}-{workflow}/
-evidence/{client-or-brand}-{workflow}-{YYYY-MM-DD}/
-downloads/{client-or-brand}/{YYYY-MM-DD}-{source}/
+output/{client-or-brand}/{workflow}/
+downloads/{client-or-brand}/{source}/
+evidence/{client-or-brand}/{workflow}/
+output/{client-or-brand}/review-management/
+```
+
+Dates belong in filenames, not folder names.
+
+Examples:
+
+```text
+output/swissker/seo/2026-05-21_keyword-research.md
+downloads/swissker/business-reports/2026-05-21_sales-traffic.csv
+evidence/swissker/account-check/2026-05-21_account-health.png
+output/swissker/review-management/reviews.csv
 ```
 
 Controlled workflow names:
@@ -104,4 +118,4 @@ Controlled workflow names:
 - `account-check`
 - `support-prep`
 
-Use `output/` for generated analysis and deliverables, `evidence/` for screenshots/UI proof, and `downloads/` for raw Amazon exports before processing. Review management is ongoing, so keep it under `output/{client-or-brand}/review-management/` and update the same client folder over time. `review-tracking/` remains ignored only as a legacy local folder for old files. If a workflow needs local context, put a `README.md` or `operator-note.md` inside that dated folder. Use Notion for ongoing team status.
+Use `output/` for generated analysis and deliverables, `evidence/` for screenshots/UI proof, and `downloads/` for raw Amazon exports before processing. Review management is ongoing, so the operator who starts it should update the same client folder until the workflow is closed. `review-tracking/` remains ignored only as a legacy local folder for old files. If a workflow needs local context, put `README.md` or `operator-note.md` inside the relevant workflow folder. Use Notion for ongoing team status.

@@ -7,14 +7,24 @@ assets/
 
 # Local outputs and evidence
 Output/
-output/
-evidence/
 review-tracking/
-_local-output/
-downloads/
 Downloads/
 screenshots/
 Screenshots/
+
+# Keep base artifact folders in GitHub, but ignore their contents.
+!output/
+output/*
+!output/.gitkeep
+!evidence/
+evidence/*
+!evidence/.gitkeep
+!downloads/
+downloads/*
+!downloads/.gitkeep
+!_local-output/
+_local-output/*
+!_local-output/.gitkeep
 
 # Temporary files
 *.tmp

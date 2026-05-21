@@ -95,9 +95,9 @@ Save in the account's pCloud Inventory Planning folder.
 
 ## Raw Download Cleanup
 
-After CSV/XLSX files are generated and Slack text is ready, move raw report downloads for each run out of Downloads into:
+After CSV/XLSX files are generated and Slack text is ready, move raw report downloads for each run out of Downloads into the account's raw report folder:
 
-`Inventory Planning/Raw Reports/YYYY-MM-DD/`
+`Inventory Planning/Raw Reports/`
 
 Rename raw files in the final file-management batch:
 

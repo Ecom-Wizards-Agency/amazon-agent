@@ -18,7 +18,7 @@ Default model: script-first. Codex should run the browser-side extractor in the 
 5. Format it:
 
 ```bash
-node tools/opportunity-explorer/format-opportunity-explorer-export.mjs /path/to/export.json output/{client-or-brand}/{YYYY-MM-DD}-opportunity-data
+node tools/opportunity-explorer/format-opportunity-explorer-export.mjs /path/to/export.json output/{client-or-brand}/opportunity-data
 ```
 
 6. Use the Markdown/JSON export with `amazon-opportunity-explorer`, `amazon-image-strategy`, `oei-product-strategy`, `amazon-seo`, and Rufus/Alexa AI strategy workflows.

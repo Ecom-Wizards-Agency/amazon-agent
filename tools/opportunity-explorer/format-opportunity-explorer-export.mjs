@@ -99,7 +99,7 @@ if (!inputPath) {
 
 const data = JSON.parse(fs.readFileSync(inputPath, "utf8"))
 const date = new Date().toISOString().slice(0, 10)
-const outputDir = process.argv[3] || path.join("output", "unknown", `${date}-opportunity-data`)
+const outputDir = process.argv[3] || path.join("output", "unknown", "opportunity-data")
 fs.mkdirSync(outputDir, { recursive: true })
 
 const slug = slugify(data.nicheTitle || data.pageTitle || path.basename(inputPath, ".json"))

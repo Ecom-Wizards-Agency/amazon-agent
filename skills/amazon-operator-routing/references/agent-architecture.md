@@ -163,7 +163,7 @@ Workflow:
 - Confirm report type, account, marketplace, date range, entity level, and destination folder.
 - Search official docs for report definitions and current UI.
 - Use internal analytics skill logic for workbook generation and interpretation.
-- Save deliverables under `output/{client-or-brand}/{YYYY-MM-DD}-reporting/` and evidence under `evidence/{client-or-brand}-reporting-{YYYY-MM-DD}/`. Save ongoing review management work under `output/{client-or-brand}/review-management/`.
+- Save deliverables under `output/{client-or-brand}/reporting/` and evidence under `evidence/{client-or-brand}/reporting/`, with dates in filenames. Save ongoing review management work under `output/{client-or-brand}/review-management/`.
 - Stop before creating scheduled reports, changing report settings, or downloading sensitive reports to an unclear destination.
 
 ### 8. Opportunity Explorer / Image Strategy Specialist

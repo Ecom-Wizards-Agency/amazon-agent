@@ -18,5 +18,5 @@ description: Use for Amazon reporting and analytics: Seller Central reports, Ama
 1. Confirm account, marketplace, report type, date range, entity level, and destination folder.
 2. Search official docs for report definitions/current UI.
 3. Use internal analytics references for workbook generation and interpretation.
-4. Save deliverables under `output/{client-or-brand}/{YYYY-MM-DD}-reporting/` unless the user specifies pCloud/Drive.
+4. Save deliverables under `output/{client-or-brand}/reporting/` with dates in filenames unless the user specifies pCloud/Drive.
 5. Stop before creating scheduled reports, changing report settings, or downloading sensitive reports to an unclear destination.
