@@ -203,7 +203,45 @@ If a creator sends proof of eligibility:
 - Do not store credentials or sensitive private account data.
 - Stop before promising shipment unless sample approval is confirmed.
 
-### 7. Post-Launch Monitoring
+### 7. Track Creators
+
+Track creators from the first visible thread or campaign interaction. For now, a markdown table in the operator note is acceptable. Long term, move the same fields into an Excel workbook or Google Sheet so the team can filter by status, owner, next follow-up date, sample decision, and outcome.
+
+Use one tracker per brand/campaign. For local working files, save drafts under:
+
+```text
+output/{client-or-brand}/ads/
+```
+
+Suggested AI table:
+
+| Creator | Profile/thread link | Status | Last message date | Sample requested | Qualification proof | Claimed 30-day shipped revenue | Shipping info received | Product/ASIN | Next action | Owner | Follow-up date | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| [Creator name] | [Amazon thread/profile link] | New / Qualified / Waiting for proof / Sample approved / Sample declined / Active / No response / Closed | YYYY-MM-DD | Yes/No | Link or `Not requested` | USD amount or `Unknown` | Yes/No | ASIN or product nickname | Draft reply / Send qualification message / Approve sample / Monitor | [Name] | YYYY-MM-DD | Short context |
+
+Recommended status values:
+
+- `New`
+- `Waiting for proof`
+- `Qualified`
+- `Sample approved`
+- `Sample declined`
+- `Active`
+- `Needs reply`
+- `No response`
+- `Closed`
+
+Future spreadsheet tabs:
+
+- `Creators`: one row per creator/thread.
+- `Campaign Settings`: brand, marketplace, campaign name, budget, commission, dates, products, offer, and disclosure notes.
+- `Message Log`: date, creator, message direction, message type, summary, send status, and approval note.
+- `Samples`: creator, product, approval status, shipping info received, shipment date, tracking number, and cost.
+- `Performance`: creator, content/live status, attributed sales or revenue where available, commission, notes, and follow-up decision.
+
+Do not store passwords, login details, tokens, private account screenshots, payment details, or unrelated personal data in the tracker. If using Google Sheets, keep access limited to the operating team and client-approved stakeholders.
+
+### 8. Post-Launch Monitoring
 
 After launch, monitor:
 
@@ -212,6 +250,7 @@ After launch, monitor:
 - Commission pool remaining
 - Creator applications or participation
 - Creator messages
+- Creator tracker status and follow-up dates
 - Video/content volume
 - Sales/revenue attributed to the campaign where available
 - Any warnings, paused states, billing issues, or policy notices
@@ -238,4 +277,3 @@ Stop and ask for confirmation before:
 - Approving or promising samples
 - Uploading files or screenshots containing sensitive information
 - Making billing, payment, permission, or account-setting changes
-
