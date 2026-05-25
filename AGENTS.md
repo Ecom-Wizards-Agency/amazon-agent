@@ -90,6 +90,8 @@ Inventory planning trigger phrases:
 
 When Victor asks for an inventory check or reshipment check, route to `amazon-inventory-planning`, use the weekly inventory reference, prepare CSV/XLSX outputs and Slack staging copy when needed, and stop before client-facing posts or account-changing actions.
 
+Inventory and reshipment plans must be based on fresh same-day Seller Central reports requested/downloaded for the current run. Do not use older local reports or cached outputs as "latest reports" unless Victor explicitly approves that exception in the current chat.
+
 Opportunity Explorer trigger phrases:
 
 - `Product Opportunity Explorer`

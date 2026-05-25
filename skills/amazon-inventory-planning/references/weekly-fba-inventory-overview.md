@@ -69,6 +69,13 @@ Use unless Victor gives account-specific overrides:
 
 For each account, switch Seller Central account via `/account-switcher/default/merchantMarketplace` and select the correct account/container and marketplace.
 
+Fresh-report requirement:
+
+- Start every run by requesting/downloading new reports for the selected account and marketplace. Do not use archived local reports, cached planner outputs, previous Downloads files, or any older "latest available" report as the basis for a new reshipment plan unless Victor explicitly approves that exception in the current chat.
+- Treat "latest reports" as same-day reports from the current run. Match the report requested/generated date to the run date and verify the browser header account/marketplace before downloading and before calculation.
+- If Seller Central shows only older reports, request a new report in the UI and wait until it is ready. If Amazon cannot generate a same-day report, pause and summarize the blocker for that account instead of substituting older data.
+- For US/EU timezone differences, use the Seller Central visible requested/generated date plus the local download timestamp as evidence. If the marketplace date appears one day behind because of Amazon timezone behavior, note that explicitly in the operator summary and keep the newly requested/downloaded file isolated from older files.
+
 Gather:
 
 - FBA Inventory: `/reportcentral/MANAGE_INVENTORY_HEALTH/1`, reportId `19600`
