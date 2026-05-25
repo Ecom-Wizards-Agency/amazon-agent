@@ -112,6 +112,9 @@ Browser stop points:
 
 - Do not send creator messages without confirmation.
 - Do not submit Seller Support cases without confirmation.
+- For Seller Support follow-ups or escalations, reply inside the existing case when one exists. Do not open a duplicate case for the same issue unless Victor explicitly asks for a new case or Seller Central blocks replies.
+- Before live Seller Support chat, support-case submission, or email-style case replies, check `_local/local-permissions.md` for the locally configured operator full name. Use that full name for traceability when Amazon asks for a sender name or when signing a message. If no full name is stored locally, pause and ask Victor before sending. Never commit the actual local identity to GitHub.
+- In Seller Support chat, wait for the associate's first message before sending substantive details. Send one focused message at a time and wait for the next associate reply. If the associate says they are still checking, reply politely that the named operator is still waiting.
 - Do not create or confirm shipments without confirmation.
 - Do not upload bulk files without confirmation.
 - Do not change bids, budgets, campaigns, account settings, permissions, or payment details without confirmation.

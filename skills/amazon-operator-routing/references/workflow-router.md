@@ -50,8 +50,13 @@ Before drafting a support case, gather:
 - What already happened
 - Business impact
 - Clear request to Amazon
+- Locally configured operator full name from `_local/local-permissions.md`, when the message or chat needs a sender identity
 
 Do not submit without confirmation.
+
+When a case already exists, follow up in that case instead of opening a duplicate. Keep messages short, ask for the specific evidence Amazon controls, and distinguish cleanup instructions from the root-cause question. For live chat, wait for the associate's first message, send one focused message at a time, and use the locally configured full operator name for traceability.
+
+For inbound shipment defects where Amazon says photos or examples require a dispute, use the shipment summary path: `Problems` > product-level defect > `Resolve` > `Submit dispute`. Choose `Submit dispute` when the goal is evidence or root-cause review; do not acknowledge the defect unless the operator intends to accept Amazon's defect finding.
 
 ## Creator Connections Navigation Note
 
