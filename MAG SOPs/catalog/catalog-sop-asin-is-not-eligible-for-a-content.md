@@ -23,7 +23,9 @@ Source: https://sop.myamazonguy.com/books/catalog/page/catalog-sop-asin-is-not-e
 
 **How to access the A+ content page (Check the ASIN):**
 
-- Go to Advertising > A + content Manager> Start Creating A+ Content > Create Basic> Provide Content Name (Test)> Put the ASIN in the Bulk Upload Bar
+- Go to Advertising > A+ Content Manager > Start Creating A+ Content > Create Premium A+ when Premium is available > Provide Content Name (Test) > Put the ASIN in the Bulk Upload Bar.
+- Direct Seller Central link: <https://sellercentral.amazon.com/enhanced-content/content-manager>
+- Use Basic A+ only if Premium A+ is unavailable in the account or Victor explicitly asks for Basic. Premium A+ has separate desktop and mobile image placements, so confirm both asset sizes when building real content.
 
 Step 1
 

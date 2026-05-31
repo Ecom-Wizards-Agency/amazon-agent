@@ -45,9 +45,13 @@ Review the assets provided on the task by the Account POC
 
 **Logging into Seller Central**
 
-When logging into SC, be sure to confirm the client name matches the task project
+When logging into SC, be sure to confirm the client name matches the task project.
 
 - **Go to Advertising > A+ Content Manager**
+- Direct Seller Central link: <https://sellercentral.amazon.com/enhanced-content/content-manager>
+- Default to **Premium A+** whenever it is available. We no longer use Basic A+ by default.
+- Premium A+ requires separate assets for desktop and mobile placements. Prepare and upload both sizes when the design provides them.
+- Use Basic A+ only if Premium A+ is unavailable in the account or Victor explicitly asks for Basic.
 
 ![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-FZ5QOWK5.png)
 
@@ -61,7 +65,7 @@ In the top right corner of the A+ Content Manager > Click**“Start creating A+ 
 
 ![image.png](https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/H8Himage.png)
 
-Select “**Create Basic**” for A+(EBC)
+Select “**Create Premium A+**” for A+(EBC) whenever the account has Premium access. Select “**Create Basic**” only if Premium is unavailable or the task explicitly asks for Basic.
 
 ![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-F55ROOAF.png)
 
