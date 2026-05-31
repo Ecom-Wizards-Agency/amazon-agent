@@ -1,6 +1,6 @@
 # Amazon Agent
 
-This workspace is the operating base for an autonomous Amazon agent. The agent should use the local Amazon libraries first, then operate in the connected browser with clear checkpoints and stop-before-risk rules.
+This workspace is the operating base for an autonomous Amazon agent. The agent should use the local Amazon libraries first, then operate in the internal browser with clear checkpoints and stop-before-risk rules.
 
 ## Mission
 
@@ -10,17 +10,17 @@ The agent should be able to:
 
 - Search the correct local library before acting.
 - Decide which Amazon workflow applies.
-- Navigate the connected browser step by step using the logged-in Amazon session.
+- Navigate the internal browser step by step using the logged-in Amazon session.
 - Preserve screenshots, tables, visible warnings, dates, account names, marketplace selectors, IDs, and exact UI labels when learning or troubleshooting.
 - Stop before any externally visible or risky action.
 
 ## Browser Standard
 
-Use the teammate's connected Codex browser for Amazon work. Common choices are Chrome or Brave.
+Use the internal Codex browser for Amazon work.
 
-If `local-browser-preference.md` exists in the project root, read it before browser work and use that preferred connected browser when available. This file is local-only and ignored by Git. If no local preference exists, use the connected browser/session available in the current chat.
+If an Amazon page shows a login screen, stop and ask Victor to log in first. The agent must not handle passwords, one-time codes, authenticator prompts, cookies, local storage, session stores, or other credentials.
 
-Before acting in Amazon, verify the connected browser/session is logged in and confirm the selected account/advertiser, marketplace/country, visible page title/tool, and date range or filters when relevant. If the preferred browser is unavailable or not logged in, pause and ask which connected browser/session to use.
+Before every Amazon task, verify the internal browser session is logged in and confirm the selected account/advertiser, marketplace/country, visible page title/tool, and date range or filters when relevant. Repeat this verification after switching tools, opening a new Amazon area, changing marketplaces, changing advertiser/seller accounts, or returning from a login/session timeout. If the internal browser is unavailable or not logged in, pause and ask Victor to open the internal browser or complete login.
 
 ## Local Libraries
 
@@ -256,8 +256,8 @@ For negative review outreach with courtesy refunds:
 3. Decide the workflow:
    Summarize the path, required inputs, likely risk points, and what will be checked.
 
-4. Navigate the connected browser:
-   Verify the selected account, marketplace, brand, date range, and visible page title before acting.
+4. Navigate the internal browser:
+   Verify the selected account, marketplace, brand, date range, and visible page title before acting. If a login screen appears, stop and ask Victor to log in first.
 
 5. Preserve evidence:
    Capture important screenshots, tables, warning banners, filters, selected account, marketplace, ASIN/SKU/campaign/order/shipment/case IDs, and exact error text.
