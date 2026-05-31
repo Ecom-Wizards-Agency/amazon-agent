@@ -15,7 +15,7 @@ Create a repeatable workflow for Seller Central support cases so operators gathe
 - The operator is using the preferred connected browser/session for the account.
 - The operator has checked whether an existing support case, case log thread, shipment defect, or dispute path already exists.
 - `_local/local-permissions.md` has been checked for standing permissions and the locally configured operator full name.
-- If no full operator name is stored locally and a sender identity is needed, pause and ask Victor which full name to use before sending.
+- If no full operator name is stored locally and a sender identity is needed, pause and ask the requester/current operator which full name to use before sending.
 - Local evidence folders exist or can be created under `evidence/{client-or-brand}/support-prep/`.
 
 ## Required Inputs
@@ -38,7 +38,7 @@ Create a repeatable workflow for Seller Central support cases so operators gathe
    - state what was checked,
    - explain why the previous answer is incomplete if escalating,
    - ask for the exact evidence or root-cause information needed.
-6. Use the locally configured full operator name for traceability when Amazon asks for a sender name or when signing a support message. Do not put the actual local name in GitHub docs.
+6. Use the locally configured operator signature for traceability when Amazon asks for a sender name or when signing a support message. Do not put the actual local name in GitHub docs.
 7. Prefer email communication when Seller Central allows it, but use chat when Victor approves chat or speed matters.
 8. In live chat:
    - wait for the support associate's first message before sending substantive details,
@@ -61,6 +61,29 @@ Use this path when a defect row exists and Amazon indicates photos or examples r
 7. Ask Amazon to review fulfillment-center receiving evidence and provide photos/examples of affected labels or units.
 8. Ask Amazon to identify the specific failure reason, such as print quality, label placement, missing label, wrong barcode/FNSKU, inaccessible barcode, or another issue.
 9. Save the submitted message and confirmation locally. If Amazon says a case ID will be created later, add a follow-up reminder in the live tracker.
+
+## Seller Support Message Writing Pattern
+
+Use this pattern for support replies and case submissions:
+
+1. Address Amazon briefly, usually `Dear Amazon Support,` for formal submissions or `Hello Amazon team,` for short active-case follow-ups.
+2. Acknowledge Amazon's previous answer only if it helps establish context.
+3. State the unresolved issue in one or two sentences.
+4. Include the minimum necessary identifiers, such as ASIN, FNSKU, SKU, shipment ID, order ID, or previous case ID.
+5. Reference attached evidence when relevant.
+6. Ask for one clear outcome or a short list of concrete checks Amazon should perform.
+7. Close with the current operator name from `_local/local-permissions.md` or the current user context. Do not send the literal placeholder `CURRENT USERNAME`.
+
+Signature patterns:
+
+- Short active-case follow-ups:
+  `Best,`
+  `CURRENT USERNAME`
+- Formal case submissions or appeals:
+  `Best regards,`
+  `CURRENT USERNAME`
+
+Avoid generic filler, long background, and vague asks. For example, say what Amazon still needs to check: missing Buy Box, title not updated after delete/relist, missing photo evidence, label mismatch, relabeling quantity, or unresolved compliance claim.
 
 ## Stop-Before-Risk Points
 
