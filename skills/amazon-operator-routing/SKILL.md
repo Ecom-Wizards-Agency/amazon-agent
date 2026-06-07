@@ -9,7 +9,7 @@ description: Route Amazon Seller Central, Amazon Ads, Amazon Creator Connections
 
 Search the local Amazon libraries before answering or touching the connected browser. Use the search results to decide the workflow, then navigate the connected browser with explicit checkpoints and stop before risky actions.
 
-Use this skill as the dispatcher. After classifying the request, load the relevant specialist skill when the task matches: `amazon-troubleshooting`, `amazon-seo`, `amazon-catalog`, `amazon-ads`, `amazon-reporting`, `amazon-inventory-planning`, `amazon-opportunity-explorer`, `amazon-sop-maintenance`, `amazon-logistics`, or `amazon-communications`.
+Use this skill as the dispatcher. After classifying the request, load the relevant specialist skill when the task matches: `amazon-troubleshooting`, `amazon-account-health-check`, `amazon-seo`, `amazon-catalog`, `amazon-ads`, `amazon-reporting`, `amazon-inventory-planning`, `amazon-opportunity-explorer`, `amazon-sop-maintenance`, `amazon-logistics`, or `amazon-communications`.
 
 ## Browser Standard
 
