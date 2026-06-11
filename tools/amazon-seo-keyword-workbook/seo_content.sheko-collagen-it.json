@@ -1,0 +1,100 @@
+{
+  "_comment": "SEO rewrite for SHEKO Premium Hydrolyzed Collagen (collagene idrolizzato in polvere) 450g, amazon.it, niche mJWqLITXJa, anchor ASIN B0F2HZVJMB (canonical variation B0GGCBQLND; family also incl. B0D1G28XR5). Native Italian, EU health-claim cautious. COLLAGEN HAS NO AUTHORIZED EU HEALTH CLAIM (Reg. 1924/2006) — the live listing's 'proven effect on joints, hair, skin, nails, muscles, ligaments, tendons' is an UNAUTHORIZED claim and is REMOVED. Only factual attributes + true nutrition claims kept. ACCURACY: Sheko is BOVINE peptide collagen (VERISOL/TENDOFORTE/FORTIGEL, type 1/2/3), PURE — NOT marine, and has NO added hyaluronic acid / vitamin C / zinc, so those high-volume combo terms are excluded. Ranking Juice is real (DataDive MCP, research 2026-06-09).",
+  "ranking_juice_snapshot": {
+    "source": "DataDive MCP get_ranking_juice",
+    "niche_id": "mJWqLITXJa",
+    "research_date": "2026-06-11",
+    "sheko_asin": "B0H4M4DFFC",
+    "marketplace": "it",
+    "total": {"sheko_current": 469566, "optimized_target": 788465},
+    "title": {"sheko_current": 151268, "optimized_target": 209090},
+    "bullets": {"sheko_current": 7881, "optimized_target": 57746},
+    "description": {"sheko_current": 0, "optimized_target": 45703},
+    "note": "v2 anchor B0H4M4DFFC (the Italian listing), from its tracked-competitor row (DataDive MCP get_ranking_juice, research 2026-06-11). Already competitive: 469,566 of a 788,465 niche ceiling (top-3). Biggest gaps: BULLETS 7,881 -> 57,746 and DESCRIPTION 0 -> 45,703; title near-saturated (151,268 -> 209,090). OPTIMIZATION, not a rebuild. Same Sheko family as B0F2HZVJMB (near-identical RJ)."
+  },
+  "header": [
+    "Section",
+    "Current Listing Text",
+    "New Semantic SEO Direction (IT)",
+    "Compliance / Health Claim Note",
+    "DataDive Ranking Juice (current -> optimized target)"
+  ],
+  "rows": [
+    {
+      "section": "Title",
+      "current": "SHEKO Premium Hydrolyzed Collagen 3x 450g - Natural Bioactive Collagen Powder - Peptides Type 1, 2, 3 - Collagen Powder - Pure Quality - Optimal Solubility - Protein Powder (live page in EN; listing currently unavailable)",
+      "new": "SHEKO Collagene Idrolizzato in Polvere 450g - Peptidi di Collagene Tipo 1, 2 e 3 con VERISOL, TENDOFORTE e FORTIGEL - Gusto Neutro e Alta Solubilita, Senza Lattosio - Made in Germany",
+      "compliance": "~180 chars. Leads with the hero cluster (collagene / idrolizzato / in polvere / peptidi tipo 1 2 3) + brand (high Sheko brand demand) + factual attributes. VERISOL is a factual branded raw material (2,047 SV). NO effect/benefit terms. Not 'marino' (Sheko is bovine).",
+      "rj": "Title 151,268 -> 209,090 (near-saturated; refined, not rebuilt)."
+    },
+    {
+      "section": "Bullet 1",
+      "current": "PATENTED RAW MATERIALS. VERISOL, TENDOFORTE & FORTIGEL cover type I, II and III collagen have a proven effect on joints, hair, skin, nails, muscles, ligaments and tendons",
+      "new": "COLLAGENE IDROLIZZATO PURO - Peptidi di collagene di tipo 1, 2 e 3 da materie prime brevettate VERISOL, TENDOFORTE e FORTIGEL. Polvere di collagene di qualita premium, senza coloranti, aromi artificiali, edulcoranti ne conservanti.",
+      "compliance": "REMOVED the unauthorized health claim 'proven effect on joints, hair, skin, nails, muscles, ligaments and tendons' (collagen has NO authorized EU health claim). Kept factual: peptide type, patented raw-material names, purity/free-from attributes.",
+      "rj": "Bullets 7,881 -> 57,746 - very large gap; full rebuild of the bullet block."
+    },
+    {
+      "section": "Bullet 2",
+      "current": "ULTRA THIN SIZE PEPTIDES Thanks to a special enzyme hydrolysis process, the drinking collagen peptides are very small in size (2-3 kDa), ensuring easy absorption",
+      "new": "PEPTIDI A BASSO PESO MOLECOLARE - Grazie a un processo di idrolisi enzimatica i peptidi di collagene sono molto piccoli (2-3 kDa). Polvere finissima e collagene da bere che si scioglie rapidamente, senza grumi.",
+      "compliance": "Kept factual peptide size (2-3 kDa) + hydrolysis process + solubility. REMOVED 'ensuring easy absorption' (implied bioavailability benefit, not a factual attribute). 'collagene da bere' = accurate usage term (4,916 SV).",
+      "rj": "(part of the bullets block - see Bullet 1)"
+    },
+    {
+      "section": "Bullet 3",
+      "current": "Rapid solubility. In a smoothie, coffee or yogurt, hydrolyzed collagen dissolves quickly in hot and cold drinks. In addition, it can be easily mixed without lumps",
+      "new": "SI SCIOGLIE RAPIDAMENTE - In acqua, caffe, frullati o yogurt, sia in bevande calde sia fredde. Si miscela facilmente senza grumi, per un uso comodo ogni giorno.",
+      "compliance": "Factual solubility/usage. Review-informed: 'facilita da bere' / ease-of-use is a top satisfaction theme. No health claim.",
+      "rj": "(part of the bullets block - see Bullet 1)"
+    },
+    {
+      "section": "Bullet 4",
+      "current": "Naturally pure Pure collagen has 100% bioactive peptides of 3 types. It is neutral in taste, free from preservatives, dyes, artificial flavors, sweeteners and lactose",
+      "new": "GUSTO NEUTRO, SENZA LATTOSIO - Collagene in polvere insapore che non altera il sapore delle bevande. Confezione da 450 g, dal buon rapporto qualita-prezzo.",
+      "compliance": "Factual taste + lactose-free + format. Review-informed: neutral taste and value-for-money are top satisfaction themes. Dropped '100% bioactive' superlative phrasing; kept neutral-taste + free-from facts.",
+      "rj": "(part of the bullets block - see Bullet 1)"
+    },
+    {
+      "section": "Bullet 5",
+      "current": "Made in Germany: manufactured under strict quality controls and the highest standards in a modern German factory and subject to regular independent controls.",
+      "new": "QUALITA SHEKO, MADE IN GERMANY - Prodotto in Germania sotto severi controlli di qualita e sottoposto a controlli indipendenti regolari. Conservare in luogo fresco e asciutto; leggere sempre l'etichetta prima dell'uso.",
+      "compliance": "Origin + quality-control facts + statutory label reminder. Dropped 'highest standards' superlative. No health claim.",
+      "rj": "(part of the bullets block - see Bullet 1)"
+    },
+    {
+      "section": "Description",
+      "current": "(Ranking Juice 0 - description untapped)",
+      "new": "SHEKO Collagene Idrolizzato in Polvere e un integratore di collagene in qualita premium, con peptidi di collagene di tipo 1, 2 e 3 ottenuti dalle materie prime brevettate VERISOL, TENDOFORTE e FORTIGEL. Grazie a un processo di idrolisi enzimatica i peptidi hanno un basso peso molecolare (2-3 kDa) e la polvere finissima si scioglie rapidamente, senza grumi, in acqua, caffe, frullati o yogurt, sia in bevande calde sia fredde. Il gusto e neutro e non altera il sapore delle tue bevande. La formula e senza lattosio e senza coloranti, aromi artificiali, edulcoranti ne conservanti. Confezione da 450 g. Prodotto in Germania sotto severi controlli di qualita e sottoposto a controlli indipendenti regolari. Conservare in luogo fresco e asciutto, fuori dalla portata dei bambini. Leggere sempre l'etichetta, le avvertenze e le indicazioni prima dell'uso.",
+      "compliance": "Mirrors the bullets; factual only. NO joint/skin/hair/nail/muscle/anti-age effect claims (excluded despite being frequent niche review topics). Confirm exact serving/dose + that VERISOL/TENDOFORTE/FORTIGEL are all present in the IT variation before publishing.",
+      "rj": "Description 0 -> 45,703 - untapped; the biggest single-section opportunity."
+    },
+    {
+      "section": "Backend Search Terms Direction",
+      "current": "",
+      "new": "collagene idrolizzato peptidi di collagene collagene in polvere collagen powder hydrolyzed collagen verisol tendoforte fortigel collagene da bere insapore solubile senza lattosio integratore di collagene tipo 1 2 3 made in germany",
+      "compliance": "~230 bytes. Accurate collagen synonyms + IT/EN + branded raw materials. EXCLUDES 'marino', 'acido ialuronico', 'vitamina c', 'zinco' (Sheko is bovine + pure - inaccurate), competitor brands, and condition/effect terms (articolazioni, pelle, capelli, unghie).",
+      "rj": "Not RJ-scored separately."
+    },
+    {
+      "section": "Semantic / Alexa AI Direction",
+      "current": "",
+      "new": "Answer accurate collagene intent: hydrolyzed BOVINE collagen peptides type 1/2/3 from patented raw materials (VERISOL/TENDOFORTE/FORTIGEL), low molecular weight (2-3 kDa), dissolves fast in hot and cold drinks, neutral taste, lactose-free, 450 g, Made in Germany, good value. (Review-driven compliant themes: overall quality, value for money, easy to drink, taste.) Do NOT position as marine collagen, as a hyaluronic-acid/vitamin-C combo, or as a joint/skin/hair/anti-age remedy.",
+      "compliance": "Keep natural; no health/effect claims in visible copy.",
+      "rj": ""
+    },
+    {
+      "section": "Health Claim Guardrail (IT/EU)",
+      "current": "",
+      "new": "Allowed: factual attributes (peptidi di collagene idrolizzato, tipo 1/2/3, VERISOL/TENDOFORTE/FORTIGEL, 2-3 kDa, insapore, alta solubilita, senza lattosio, 450 g, Made in Germany) + any qualifying nutrition claim (e.g. 'fonte di proteine' ONLY if the per-serving protein threshold is met - verify on label). PROHIBITED: articolazioni, cartilagine, ossa, pelle, rughe, antirughe, anti-eta, capelli, unghie, muscoli, tendini, legamenti, elasticita, 'effetto comprovato' - collagen has NO authorized EU health claim.",
+      "compliance": "The live listing's 'proven effect on joints/hair/skin/nails/muscles/ligaments/tendons' was unauthorized and is removed. Final publication still needs category compliance review + label verification (peptide source, dose, protein %)."
+    },
+    {
+      "section": "DataDive Ranking Juice",
+      "current": "",
+      "new": "Anchor B0H4M4DFFC total 469,566 -> 788,465 niche ceiling (already top-3). Priority: strengthen BULLETS (7,881 -> 57,746) and write the DESCRIPTION (0 -> 45,703) around the accurate collagene cluster; title is near-saturated.",
+      "compliance": "Directional benchmark, not a publishing claim.",
+      "rj": "Source: DataDive MCP get_ranking_juice, niche mJWqLITXJa, research 2026-06-11."
+    }
+  ]
+}

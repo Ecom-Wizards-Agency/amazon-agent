@@ -1,0 +1,101 @@
+{
+  "_comment": "SEO rewrite for Sheko Fibre alimentari in polvere (Ballastpulver), amazon.it, niche 8cN8b7h9F5, ASIN B0GXZRCHQM. Native Italian, EU health-claim cautious. Product = soluble fibre blend (NOT psyllium): fibre di mais solubili + fibra di acacia/carruba + pectina da agrumi; 8 g fibre / 22 kcal per 30-g... per porzione (300 g / 30 porzioni). Ranking Juice snapshot is real (DataDive MCP get_ranking_juice 2026-06-08).",
+  "ranking_juice_snapshot": {
+    "source": "DataDive MCP get_ranking_juice",
+    "niche_id": "8cN8b7h9F5",
+    "research_date": "2026-06-08",
+    "sheko_asin": "B0GXZRCHQM",
+    "marketplace": "it",
+    "total": {"sheko_current": 4497, "optimized_target": 182860},
+    "title": {"sheko_current": 1499, "optimized_target": 50510},
+    "bullets": {"sheko_current": 0, "optimized_target": 11318},
+    "description": {"sheko_current": 0, "optimized_target": 8694},
+    "note": "Near-empty/offline listing — whole listing is the opportunity. NOTE: niche demand is dominated by 'psillio/psyllium', a DIFFERENT ingredient Sheko does not contain; target the accurate generic fibre cluster instead (fibre, fibra, fibre solubili, integratore di fibre)."
+  },
+  "header": [
+    "Section",
+    "Current Listing Text",
+    "New Semantic SEO Direction (IT)",
+    "Compliance / Health Claim Note",
+    "DataDive Ranking Juice (current → optimized target)"
+  ],
+  "rows": [
+    {
+      "section": "Title",
+      "current": "SHEKO Fibre alimentari in polvere 300g (30 porzioni) - Fibre ad Alto Dosaggio per la Digestione e la Salute Intestinale – Saziante, Vegano e Senza Lattosio – Polvere di Fibra Solubile per Dieta, Dimag…",
+      "new": "SHEKO Fibre Alimentari in Polvere 300g (30 porzioni) – Integratore di Fibre Solubili, Alto Contenuto di Fibre (8g per porzione) – Fibra di Mais e Pectina, Gusto Neutro, Vegano e Senza Lattosio",
+      "compliance": "192 chars. REMOVED unauthorized health/weight claims from the live title ('per la Digestione e la Salute Intestinale', 'Saziante', 'per Dieta, Dimagrimento'). Kept the authorized NUTRITION claim 'Alto Contenuto di Fibre' (Reg. 1924/2006 — product is high-fibre). Targets accurate generic fibre terms, NOT psyllium (different ingredient).",
+      "rj": "Title 1,499 → 50,510 — large gap; whole title rebuilt."
+    },
+    {
+      "section": "Bullet 1",
+      "current": "🌿 DELICATO SUPPORTO ALLA DIGESTIONE Favorisce la digestione in modo naturale e supporta una sana funzione intestinale…",
+      "new": "ALTO CONTENUTO DI FIBRE – 8 g di fibre per porzione con sole 22 kcal. Polvere di fibre alimentari ad alto dosaggio per integrare facilmente l'apporto quotidiano di fibre.",
+      "compliance": "REMOVED 'favorisce la digestione / sana funzione intestinale' (no authorized health claim applies to this soluble corn fibre / acacia / pectin blend at this dose). 'Alto contenuto di fibre' is an authorized nutrition claim; '8 g / 22 kcal' are factual.",
+      "rj": "Bullets 0 → 11,318 — currently empty; full opportunity."
+    },
+    {
+      "section": "Bullet 2",
+      "current": "💨 MENO GONFIORE ADDOMINALE E SENSO DI PIENEZZA Riduce efficacemente i fastidiosi gas intestinali e il senso di pesantezza…",
+      "new": "FIBRE SOLUBILI VEGETALI – Miscela di fibre di mais solubili e pectina naturale da agrumi. Polvere di fibre vegetali, senza aromi e senza coloranti.",
+      "compliance": "REMOVED bloating/gas claims (unauthorized health claims). Factual composition only. NOTE: the live page shows BOTH 'fibra di carruba' and 'fibra di acacia' in different sections — confirm the third fibre against the physical label before publishing; copy here stays on the constant ingredients (fibre di mais solubili, pectina).",
+      "rj": "(part of the bullets block — see Bullet 1)"
+    },
+    {
+      "section": "Bullet 3",
+      "current": "⏳ SAZIETÀ PROLUNGATA E MENO ATTACCHI DI FAME … ideale come supporto per la perdita di peso e le diete.",
+      "new": "GUSTO NEUTRO E VERSATILE – Polvere insapore che si scioglie facilmente in acqua, shake e bevande e si usa anche in cucina: ideale in pane, pancake, muffin e impasti da forno.",
+      "compliance": "REMOVED satiety + weight-loss claims. REVIEW-INFORMED: customers praise the neutral/delicate taste ('insapore', 'sapore molto delicato') and the baking use ('pane, pancake, muffin', 'panificati senza glutine') — added as a USE CASE, not a gluten-free product claim.",
+      "rj": "(part of the bullets block — see Bullet 1; baking angle from POE Customer Review Insights)"
+    },
+    {
+      "section": "Bullet 4",
+      "current": "💪 8G DI FIBRE PER PORZIONE Alto contenuto di fibre con sole 22 kcal…",
+      "new": "VEGANO E SENZA LATTOSIO – Formula adatta a un'alimentazione vegana e senza lattosio. Confezione da 300 g per 30 porzioni.",
+      "compliance": "Factual product attributes. Did NOT add 'senza glutine' (not evidenced on the captured page — confirm before claiming).",
+      "rj": "(part of the bullets block — see Bullet 1)"
+    },
+    {
+      "section": "Bullet 5",
+      "current": "🥤 GUSTO NEUTRO E VERSATILE Si scioglie perfettamente in shake, smoothie o altre bevande…",
+      "new": "QUALITÀ SHEKO – Prodotto da SHEKO GmbH. Conservare in luogo fresco e asciutto. Leggi sempre l'etichetta e le indicazioni prima dell'uso.",
+      "compliance": "Origin + storage + statutory label reminder. No health claim.",
+      "rj": "(part of the bullets block — see Bullet 1)"
+    },
+    {
+      "section": "Description",
+      "current": "(live description was just 'From the brand — Scopri i nostri frullati SHEKO Balance Shakes' — Ranking Juice 0)",
+      "new": "SHEKO Fibre Alimentari in Polvere è un integratore di fibre solubili pensato per aumentare facilmente l'apporto di fibre nell'alimentazione di tutti i giorni. Ogni porzione fornisce 8 g di fibre con sole 22 kcal. La miscela contiene fibre di mais solubili e pectina naturale da agrumi, in una polvere dal gusto neutro e delicato che si scioglie rapidamente in acqua, shake, smoothie o altre bevande, senza alterarne il sapore. Si presta anche all'uso in cucina, ad esempio per arricchire pane, pancake, muffin e impasti da forno. Vegano e senza lattosio. Confezione da 300 g per 30 porzioni. Leggi sempre l'etichetta, le avvertenze e le indicazioni prima dell'uso. Conservare in luogo fresco e asciutto, fuori dalla portata dei bambini.",
+      "compliance": "Mirrors the bullets; no digestion/intestinal/satiety/weight-loss claims (excluded despite being frequent review topics). Review-informed additions: neutral/delicate taste + baking use case. 'Alto contenuto di fibre' nutrition claim only. Confirm acacia vs carruba on the label.",
+      "rj": "Description 0 → 8,694 — untapped."
+    },
+    {
+      "section": "Backend Search Terms Direction",
+      "current": "",
+      "new": "fibra solubile integratore fibre vegetali pectina agrumi mais solubile polvere di fibre fiber powder dietary fibre alimentazione vegana senza lattosio 30 porzioni alto dosaggio",
+      "compliance": "~175 bytes. Accurate fibre synonyms + IT/EN + variants only. EXCLUDES 'psillio/psyllium' on purpose — Sheko's product contains no psyllium, so those (highest-volume) terms would be inaccurate/non-compliant. No competitor brands, no medical-condition terms.",
+      "rj": "Not RJ-scored separately."
+    },
+    {
+      "section": "Semantic / Alexa AI Direction",
+      "current": "",
+      "new": "Answer accurate fibre intent: high-fibre powder, soluble plant fibres (corn fibre + citrus pectin), neutral/delicate taste, dissolves in drinks AND usable in baking (bread/pancakes/muffins, incl. gluten-free recipes), good value, vegan, lactose-free, 8 g fibre per serving. (Review-driven: taste, value, vegan/bio and baking are the top satisfaction themes.) Do NOT position as psyllium or as a digestion/weight-loss remedy.",
+      "compliance": "Keep natural; no health/weight claims in visible copy.",
+      "rj": ""
+    },
+    {
+      "section": "Health Claim Guardrail (IT/EU)",
+      "current": "",
+      "new": "Allowed: nutrition claims 'fonte di fibre' / 'alto contenuto di fibre' (Reg. 1924/2006), factual composition, taste, solubility, vegan/lactose-free, format. AVOID: digestione, salute/regolarità/funzione intestinale, gonfiore, sazietà, perdita di peso/dimagrante, detox — no authorized health claim covers this fibre blend at this dose. Pectin cholesterol claim needs 6 g pectin/day (not met).",
+      "compliance": "Final publication still needs category compliance review + label verification (acacia vs carruba; gluten-free).",
+      "rj": ""
+    },
+    {
+      "section": "DataDive Ranking Juice",
+      "current": "",
+      "new": "Total listing 4,497 → 182,860 optimized target. Sheko IT is near-empty/offline; build title + bullets + description from scratch around the accurate generic fibre cluster.",
+      "compliance": "Directional benchmark, not a publishing claim.",
+      "rj": "Source: DataDive MCP get_ranking_juice, niche 8cN8b7h9F5, research 2026-06-08."
+    }
+  ]
+}

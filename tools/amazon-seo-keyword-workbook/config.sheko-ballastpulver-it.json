@@ -1,0 +1,242 @@
+{
+  "_comment": "Reusable config for Sheko Ballastpulver (fiber powder) on amazon.it, DataDive niche 8cN8b7h9F5. Uses Core MKL at 30% and Expanded MKL at 1% for Never Ever discovery.",
+
+  "product_anchor": {
+    "client": "Sheko",
+    "amazon_account": "Allmedica Germany",
+    "marketplace": "Italy",
+    "product": "Sheko Ballastpulver (fibra in polvere)",
+    "asin": "B0GXZRCHQM",
+    "asin_note": "B0GXZRCHQM is the DataDive-tracked fibre anchor. B0D1G28XR5 resolved to Sheko collagen on amazon.it during 2026-06-10 capture and must not be used for this fibre workbook.",
+    "main_pack_asin_1pack": "B0D1G28XR5",
+    "datadive_niche": "8cN8b7h9F5",
+    "poe_niche": "fibra",
+    "listing_status": "Currently unavailable on amazon.it at capture",
+    "pack_size": "300g / 30 porzioni"
+  },
+
+  "datadive_exports": {
+    "core_mkl": {
+      "source": "DataDive UI CSV",
+      "min_relevancy": "30%",
+      "min_sv": "",
+      "max_sv": "",
+      "visible_keyword_count": "TO_RECORD_FROM_DATADIVE_UI",
+      "visible_search_volume": "TO_RECORD_FROM_DATADIVE_UI",
+      "export_timestamp": "TO_RECORD_AT_EXPORT",
+      "niche_id": "8cN8b7h9F5",
+      "marketplace": "Italy",
+      "hero_keyword": "fibra"
+    },
+    "expanded_mkl": {
+      "source": "DataDive UI CSV",
+      "min_relevancy": "1%",
+      "min_sv": "",
+      "max_sv": "",
+      "visible_keyword_count": "TO_RECORD_FROM_DATADIVE_UI",
+      "visible_search_volume": "TO_RECORD_FROM_DATADIVE_UI",
+      "export_timestamp": "TO_RECORD_AT_EXPORT",
+      "niche_id": "8cN8b7h9F5",
+      "marketplace": "Italy",
+      "hero_keyword": "fibra"
+    }
+  },
+
+  "asin_roles": {
+    "sheko": "B0GXZRCHQM",
+    "comment": "All other ASIN columns in the master/competitors CSVs are competitors for triage."
+  },
+
+  "related_niche_filter": {
+    "_comment": "Keep-list = the actual relevant POE related niches for the IT 'fibre' niche (dietary fibre only). The IT 'fibra' niche drifts hard into fiber-OPTIC internet (modem/router/wifi), cosmetics (mascara fibres, toppik) and junk (mosquito net, LED, Christmas tree) — all dropped.",
+    "keep": [
+      "psyllogel fibra",
+      "fibre",
+      "psillio",
+      "psyllogel",
+      "inulina"
+    ],
+    "exclude_examples": [
+      "modem fibra",
+      "router wifi 6",
+      "access point",
+      "access point wifi 6",
+      "modem tim",
+      "wifi 7",
+      "rete zanzariera",
+      "led auto",
+      "albero di natale con luci incorporate",
+      "mascara con fibre allunganti",
+      "toppik",
+      "fibra di cocco"
+    ]
+  },
+
+  "triage": {
+    "_comment": "SEED tokens. brand_tokens come from the DataDive competitors for 8cN8b7h9F5. form_tokens exclude non-powder forms. claim_tokens: NOTE — unlike collagen (no authorized EU claims), some fibers (e.g. psyllium/psillio) DO have authorized EU health claims under Reg. 432/2012 (intestinal transit, cholesterol). Verify per actual ingredient before excluding a claim term; keep this list conservative.",
+    "match": "word",
+    "categories_order": [
+      "Competitor/brand term",
+      "Wrong product form",
+      "Unsupported claim/health-risk",
+      "Negative candidate",
+      "Semantic opportunity",
+      "Ignore"
+    ],
+    "brand_tokens": [
+      "naturalebio", "naturale bio", "onligol", "amoseeds", "benefibra",
+      "bene fibra", "weightworld", "weight world", "equilibra", "food bites",
+      "foodbites", "psyllogel", "nature diet", "naturediet", "movicol",
+      "zymerex", "kijimea", "farmalax"
+    ],
+    "form_tokens": [
+      "capsule", "capsula", "compresse", "compressa", "opercoli", "perle",
+      "gommose", "caramelle", "barretta", "barrette", "liquido", "bevanda",
+      "sciroppo", "bustine monodose"
+    ],
+    "claim_tokens": [
+      "dimagrante", "dimagrire", "brucia grassi", "perdita di peso",
+      "diabete", "glicemia", "colesterolo alto", "detox", "depurativo"
+    ],
+    "negative_tokens": [
+      "cane", "gatto", "animali", "bambini", "neonato", "giocattolo",
+      "candela", "lampada", "deco", "auto"
+    ],
+    "semantic_opportunity": {
+      "_comment": "When no token rule fires, flag as opportunity if relevant AND Sheko under-ranks vs competitors. Otherwise Ignore.",
+      "min_relevancy": 0.5,
+      "min_search_volume": 200,
+      "sheko_rank_worse_than_best_competitor_by": 5,
+      "include_if_sheko_not_ranking": true
+    }
+  },
+
+  "never_ever": {
+    "_comment": "Generated from the Expanded MKL 1% file. Only one-word rows classified as Never Ever are written to the final 2 Never KWs tab.",
+    "min_frequency": 2,
+    "max_relevancy_for_auto_negative": 0.3,
+    "stop_words": [
+      "e", "di", "da", "del", "della", "delle", "per", "con", "senza",
+      "the", "and", "for", "in", "of", "a", "to"
+    ],
+    "relevant_words": [
+      "fibra", "fibre", "fiber", "solubili", "integratore", "polvere",
+      "mais", "acacia", "carruba", "pectina", "agrumi", "vegano",
+      "vegan", "lattosio", "glutine", "insapore", "neutro", "naturale"
+    ],
+    "misspell_or_variant_words": [
+      "fibra", "fibre", "fiber"
+    ],
+    "explicit_never_words": [
+      "modem", "router", "wifi", "zanzariera", "led", "auto", "mascara",
+      "toppik", "cocco", "tim", "access", "point"
+    ]
+  },
+
+  "final_action": {
+    "_comment": "Same allowed enum + mapping as the DE config. Tunable.",
+    "allowed": ["Use in copy", "Backend only", "A+ only", "PPC only", "Negative", "Ignore"],
+    "by_classification": {
+      "Semantic opportunity": "Use in copy",
+      "Competitor/brand term": "PPC only",
+      "Wrong product form": "Negative",
+      "Unsupported claim/health-risk": "Ignore",
+      "Negative candidate": "Negative",
+      "Ignore": "Ignore"
+    }
+  },
+
+  "tabs": {
+    "_comment": "Same production model as DE. For the test, the curated carry_forward tabs come from whichever template .xlsx is passed via --template (collagen v3 used as a style base = curated tabs are placeholders to replace).",
+    "exact_paste": {
+      "1. Root Keywords": "roots_csv",
+      "3.1. Master List DataDive": "master_csv",
+      "3.2. Expanded MKL 1%": "expanded_mkl_csv",
+      "POE Raw - Products": "poe_products_csv",
+      "POE Raw - Search Terms": "poe_search_terms_csv"
+    },
+    "rebuild": [
+      "ASINs",
+      "2 Never KWs",
+      "POE Raw - Related Niches",
+      "Outlier - Opportunity KWs",
+      "4.1 SEO Text",
+      "4.2 Competitors",
+      "POE Raw - Reviews",
+      "POE Raw - Returns",
+      "POE Semantic Insights"
+    ],
+    "carry_forward": [
+      "3.2. Root Long-Tails DataDive",
+      "5. Campaign Structure"
+    ],
+    "_carry_forward_clear_comment": "No product-specific tab should be carried from the template. Rebuild from current sources or generate blank/skipped rows.",
+    "carry_forward_clear": [],
+    "generated_blank": {
+      "5. Campaign Structure": "PPC was not requested for this SEO workbook run."
+    }
+  },
+
+  "inputs": {
+    "_comment": "Input contract — the builder reads these paths so they aren't recited on the CLI (CLI flags still override). ~ and repo-relative paths are resolved.",
+    "template": "output/sheko/seo/Sheko DE Kollagen Powder Keyword Research 2026-06-10 v3.xlsx",
+    "seo_content": "tools/amazon-seo-keyword-workbook/seo_content.sheko-ballastpulver-it.json",
+    "roots_csv": "~/Downloads/niche-8cN8b7h9F5-niche-analysis-roots.csv",
+    "master_csv": "~/Downloads/master list-niche-8cN8b7h9F5-keywords.csv",
+    "expanded_mkl_csv": "~/Downloads/master list-niche-8cN8b7h9F5-keywords-1pct.csv",
+    "competitors_csv": "~/Downloads/niche-8cN8b7h9F5-competitors.csv",
+    "poe_products_csv": "~/Downloads/2026-06-10_it-fibre_NicheDetailsProductsTab.csv",
+    "poe_search_terms_csv": "~/Downloads/2026-06-10_it-fibre_NicheDetailsSearchTermsTab.csv",
+    "related_niches_json": "output/sheko/opportunity-data/2026-06-10_poe_it-fibre_related-niches.json",
+    "poe_reviews_json": "output/sheko/opportunity-data/2026-06-10_poe_it-fibre_customer-review-insights.json",
+    "poe_returns_json": "output/sheko/opportunity-data/2026-06-10_poe_it-fibre_returns.json",
+    "poe_structured_json": "output/sheko/opportunity-data/2026-06-10_poe_it-fibre_visible-structured.json",
+    "listing_reference_json": "evidence/sheko/opportunity-data/2026-06-10_sheko-it-variation_listing.json",
+    "out": "output/sheko/seo/Sheko IT Ballastpulver Keyword Research 2026-06-10 v3.xlsx",
+    "manifest": "output/sheko/seo/2026-06-10_sheko_it_ballastpulver_v3_summary.json",
+    "handoff_note": "/Users/victoruhl/Obsidian/Victors Second Brain/Projects/Clients/sheko/2026-06-10-ballastpulver-it-keyword-workbook-v3-handoff.md"
+  },
+
+  "required_current_tabs": [
+    "POE Raw - Reviews",
+    "POE Raw - Returns",
+    "POE Semantic Insights"
+  ],
+
+  "stale_data_guard": {
+    "_comment": "Regression guard for the bug where the Italian fibre workbook inherited German collagen POE review/semantic topics from the style template.",
+    "tabs": [
+      "POE Raw - Reviews",
+      "POE Raw - Returns",
+      "POE Semantic Insights"
+    ],
+    "forbidden_terms": [
+      "Gelenkschmerzen",
+      "Kalzium",
+      "Hautgesundheit",
+      "Kollagen",
+      "Löslichkeit",
+      "collagen",
+      "kollagen",
+      "glow 25"
+    ]
+  },
+
+  "tab_order": [
+    "ASINs",
+    "1. Root Keywords",
+    "2 Never KWs",
+    "3.1. Master List DataDive",
+    "3.2. Expanded MKL 1%",
+    "4.1 SEO Text",
+    "4.2 Competitors",
+    "POE Raw - Products",
+    "POE Raw - Search Terms",
+    "POE Raw - Reviews",
+    "POE Raw - Returns",
+    "POE Raw - Related Niches",
+    "POE Semantic Insights",
+    "Outlier - Opportunity KWs",
+    "5. Campaign Structure"
+  ]
+}

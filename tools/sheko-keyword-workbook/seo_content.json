@@ -1,0 +1,90 @@
+{
+  "_comment": "Curated SEO rewrite for the 4.1 SEO Text tab. Edited by hand; the builder applies it deterministically so re-runs don't lose it. Ranking Juice figures are a snapshot from the DataDive MCP (get_ranking_juice, niche m6202AaAgV) on the research date below — the builder cannot call the MCP, so refresh these numbers here when DataDive re-researches the niche.",
+  "ranking_juice_snapshot": {
+    "source": "DataDive MCP get_ranking_juice",
+    "niche_id": "m6202AaAgV",
+    "research_date": "2026-06-06",
+    "sheko_asin": "B0D1G28XR5",
+    "indexing_alerts_de": 0,
+    "total": {"sheko_current": 975807, "optimized_target": 1436282},
+    "title": {"sheko_current": 323693, "optimized_target": 408489},
+    "bullets": {"sheko_current": 2364, "optimized_target": 62874, "competitor_high": 185737},
+    "description": {"sheko_current": 0, "optimized_target": 85067}
+  },
+  "header": [
+    "Section",
+    "Current Listing Text",
+    "New Semantic SEO Direction",
+    "Compliance / Health Claim Note",
+    "DataDive Ranking Juice (current → optimized target)"
+  ],
+  "rows": [
+    {
+      "section": "Title",
+      "new": "SHEKO Premium Kollagen Pulver 450g – Collagen Pulver hochdosiert, Kollagen Peptide Typ I, II & III – Kollagenhydrolysat geschmacksneutral & löslich – Eiweißpulver / Proteinpulver – Made in Germany",
+      "compliance": "196 chars (≤200). Factual terms only; no health/disease claims. Front-loads kollagen pulver / collagen pulver / kollagen / peptide / typ 1 2 3 / hochdosiert.",
+      "rj": "Title 323,693 → 408,489 — already strong (ahead of most competitors). Keep DNA, refine keywords."
+    },
+    {
+      "section": "Bullet 1",
+      "new": "PATENTIERTE KOLLAGEN-PEPTIDE – Mit den Marken-Rohstoffen VERISOL, TENDOFORTE & FORTIGEL: bioaktive Kollagen Peptide Typ I, II & III in jeder Portion Collagen Pulver.",
+      "compliance": "REMOVED the unauthorized EU health claim from the live listing ('unterstützen nachweislich Gelenke, Haut, Haare, Nägel...'). EU Reg. 1924/2006: no authorized health claims for collagen. Ingredient + peptide-type facts only.",
+      "rj": "Bullets (all 5) 2,364 → 62,874 — BIGGEST gap; competitors Wehle 185,737 / Glow25 95,276. This rewrite targets it."
+    },
+    {
+      "section": "Bullet 2",
+      "new": "MIKROFEIN & LÖSLICH – Enzymatisch hydrolysiertes Kollagenhydrolysat mit besonders kleiner Peptidgröße löst sich schnell und klumpenfrei – geschmacksneutrales Kollagenpulver.",
+      "compliance": "Factual: hydrolysis, peptide size, solubility, neutral taste. No absorption/bioavailability efficacy claim.",
+      "rj": "(part of the bullets block — see Bullet 1)"
+    },
+    {
+      "section": "Bullet 3",
+      "new": "FÜR JEDEN TAG – Das geschmacksneutrale Kollagen Pulver lässt sich einfach in Kaffee, Wasser, Shakes oder Joghurt einrühren und passt in deine tägliche Routine.",
+      "compliance": "Usage / preparation only.",
+      "rj": "(part of the bullets block — see Bullet 1)"
+    },
+    {
+      "section": "Bullet 4",
+      "new": "REINE & HOCHDOSIERTE FORMEL – 450 g Eiweißpulver aus 100 % bioaktiven Kollagenpeptiden – ohne Aroma, Süßungsmittel, Farbstoffe, Konservierungsstoffe oder Laktose.",
+      "compliance": "Composition / exclusions only. 'hochdosiert' is a dosage descriptor, not a health claim.",
+      "rj": "(part of the bullets block — see Bullet 1)"
+    },
+    {
+      "section": "Bullet 5",
+      "new": "MADE IN GERMANY – Hergestellt in Deutschland unter strengen Qualitätskontrollen und regelmäßig laborgeprüft (Zertifikate/Analysewerte nur mit aktuellem Nachweis final nutzen).",
+      "compliance": "Origin + testing. Reference specific certifications/lab values only with current documented proof before upload.",
+      "rj": "(part of the bullets block — see Bullet 1)"
+    },
+    {
+      "section": "Description",
+      "current": "(No description maintained on the live listing — Ranking Juice 0.)",
+      "new": "SHEKO Premium Kollagen Pulver liefert hochwertige Kollagen Peptide Typ I, II und III aus den Marken-Rohstoffen VERISOL, TENDOFORTE und FORTIGEL. Das enzymatisch hydrolysierte Kollagenhydrolysat hat eine besonders kleine Peptidgröße, ist geschmacksneutral und löst sich schnell und klumpenfrei in Kaffee, Wasser, Shakes oder Joghurt. Als hochdosiertes Eiweißpulver / Proteinpulver enthält jede 450-g-Dose 100 % bioaktive Kollagenpeptide – ohne Aroma, Süßungsmittel, Farbstoffe, Konservierungsstoffe oder Laktose. Hergestellt in Deutschland unter strengen Qualitätskontrollen. So lässt sich Collagen Pulver einfach in die tägliche Routine integrieren.",
+      "compliance": "Mirrors the bullets; no body-function or disease claims. Fills the empty-description gap.",
+      "rj": "Description 0 → 85,067 — untapped (all competitors also 0). New description added to capture it."
+    },
+    {
+      "section": "Backend Search Terms Direction",
+      "new": "kolagen colagen kollagenpulver kolagenpulver collagen powder collagen peptide kollagen hydrolysat eiweisspulver protein pulver rind weidehaltung nachfuellpack marine geschmacksneutral hochdosiert",
+      "compliance": "~195 bytes (≤250). No competitor brands, no medical/condition terms, no words already in the title. Misspellings + EN + synonyms only.",
+      "rj": "Not RJ-scored separately; supports indexation of misspellings/EN/synonyms."
+    },
+    {
+      "section": "Semantic / Alexa AI Direction",
+      "new": "Answer entity intent around: hydrolyzed collagen peptides (Typ I/II/III), neutral taste, fast solubility, daily use in coffee/shakes, hochdosiertes Eiweißpulver, German production, branded raw materials (Verisol/Tendoforte/Fortigel). Keep copy natural — do not stuff every high-volume term.",
+      "compliance": "Natural semantic coverage; avoid keyword stuffing in visible copy.",
+      "rj": ""
+    },
+    {
+      "section": "Health Claim Guardrail",
+      "new": "Stay factual: ingredient, peptide type, form, dosage, taste, solubility, origin, exclusions. AVOID cure/treatment, pain relief, joints/skin/hair function, anti-aging, guaranteed effect, disease, or before/after claims (EU Reg. 1924/2006).",
+      "compliance": "Final publication still needs Amazon/category compliance review before upload.",
+      "rj": ""
+    },
+    {
+      "section": "DataDive Ranking Juice",
+      "new": "Total listing 975,807 → 1,436,282 optimized target (≈ 32% headroom). Priority order: bullets (largest gap) > description (currently 0) > title (already strong).",
+      "compliance": "Directional benchmark, not a publishing claim.",
+      "rj": "Source: DataDive MCP get_ranking_juice, niche m6202AaAgV, research 2026-06-06. 0 indexing-issue alerts on amazon.de."
+    }
+  ]
+}

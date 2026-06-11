@@ -30,6 +30,7 @@ Search narrowly before answering or operating. Use indexes and the routing searc
 - `Amazon Ads Help`
 - `Advertising Help After Login`
 - `MAG SOPs`
+- `sop-drafts`
 - `skills/amazon-operator-routing`
 
 Use the routing skill and its search helper when available:
@@ -40,9 +41,15 @@ python3 "skills/amazon-operator-routing/scripts/search_amazon_libraries.py" "acc
 python3 "skills/amazon-operator-routing/scripts/search_amazon_libraries.py" "send to amazon shipment" --library all --limit 8
 ```
 
-## MAG SOP Visual Archive
+## SOP Drafts And MAG SOP Visual Archive
 
-The runtime `MAG SOPs/` folder is the markdown-only version. Search local/GitHub markdown SOPs first. When visual confirmation, screenshots, GIFs, or layout references are needed, use the local pCloud visual archive.
+The runtime `MAG SOPs/` folder is the markdown-only version. Search local/GitHub markdown SOPs first. Also search `sop-drafts/` for matching workflow drafts, especially when the task involves recent learnings, support cases, troubleshooting, shipping defects, communications, or processes that Victor says were recently improved.
+
+Treat `sop-drafts/` as emerging internal procedure: useful and intentionally available to the agent, but not fully final. If a draft conflicts with a promoted MAG SOP or first-party Amazon docs, prefer first-party Amazon docs for rules/current UI, prefer promoted SOPs for settled agency procedure, and use the draft as a recent-learning signal to flag or propose the better path.
+
+When using a draft SOP, mention in the operator note that a draft SOP informed the workflow. Do not promote, rewrite, or treat a draft as final unless Victor explicitly asks.
+
+When visual confirmation, screenshots, GIFs, or layout references are needed, use the local pCloud visual archive.
 
 Victor's current local placeholder path is:
 
@@ -127,6 +134,19 @@ Victor confirmed ownership and backend clearance for reusing the previous extens
 
 Naming note: Victor noted that Amazon's Rufus AI naming is moving/has moved toward Alexa or Alexa AI. Treat `Rufus`, `Alexa AI`, `Amazon AI search`, and `semantic Amazon search` as related trigger language unless current first-party Amazon docs say otherwise for a specific workflow.
 
+## Data Source Routing: DataDive vs POE
+
+Keyword and opportunity research draws on two complementary sources with different access models:
+
+- DataDive (MCP, read-only): niche analysis, master keyword lists, competitor ASINs, Ranking Juice, Rank Radar, indexing-issue alerts. Use the local `datadive` MCP server first when available; no browser/login needed. Niche data is addressed by `nicheId` (find it with `list_niches`).
+- Product Opportunity Explorer (POE/OEI): Products, Search Terms, Customer Review Insights, Returns, and Related Niches. This lives behind the Seller Central login and has NO MCP — it is always internal/connected browser work. Use the script-first extractor (`tools/opportunity-explorer/extract-opportunity-explorer.js`) and the per-niche export checklist (`skills/amazon-opportunity-explorer/references/poe-niche-export-checklist.md`).
+
+The two are complementary: DataDive gives ranking/keyword intelligence; POE gives Amazon-native demand, review/return voice-of-customer, and related-niche structure. Save exports under the controlled folders (`downloads/{client}/opportunity-data/`, `output/{client}/opportunity-data/`, `evidence/{client}/opportunity-data/`).
+
+Reusable assembly (client-agnostic): `tools/amazon-seo-keyword-workbook/` turns these raw exports into a styled, validated keyword workbook — Core 30% + Expanded 1% MKL, strict related-niche filter, Never-Ever generation, outlier triage + final-action fields, POE Reviews/Returns/Semantic rebuilt from JSON, SEO-text tab with a DataDive Ranking Juice column, validation + evidence manifest. It is driven entirely by a per-client config (copy `config.TEMPLATE.json`; see `NEW-CLIENT.md` and `WORKFLOW.md`) — nothing is product-specific. For the full end-to-end run, route to the `amazon-seo-keyword-workflow` skill. Deliver the `.xlsx`; convert to a native Google Sheet with one click if a shareable link is needed. (The older `tools/sheko-keyword-workbook/` is superseded — see its `SUPERSEDED.md`.)
+
+Two-agent flow (Codex ↔ Claude): keyword-workbook runs split across the internal/connected browser (POE + DataDive UI exports) and Claude (SEO writing + the builder). To avoid hand-translating between agents, run the builder's preflight: `build_keyword_workbook.py --config <cfg> --preflight`. It reads the config's input contract and prints either a copy-ready Codex handoff (for missing browser/UI inputs) or a READY status. Codex's role here: produce the contract inputs at their paths, capture evidence + caveats, then stop — do not run the builder or write SEO (that is Claude's half). Follow the saved protocol at `/Users/victoruhl/Obsidian/Victors Second Brain/Context/codex-claude-handoff-protocol.md`.
+
 SOP maintenance trigger phrases:
 
 - `/create-sop`
@@ -144,7 +164,7 @@ Source priority:
 
 1. For current Amazon rules, UI behavior, policies, eligibility, error text, report definitions, and requirements, use first-party Amazon docs first.
 2. For Ecom Wizards methodology, generated workbooks, SEO writing, analytics logic, and client-specific playbooks, use the knowledge-base skill references first, then verify against current Amazon rules.
-3. Use MAG SOPs for agency procedure and practical UI steps. Use the pCloud visual archive when screenshots, GIFs, module layouts, or visual confirmation are needed.
+3. Use MAG SOPs for agency procedure and practical UI steps; also check `sop-drafts/` for recent, still-improving workflow learnings. Use the pCloud visual archive when screenshots, GIFs, module layouts, or visual confirmation are needed.
 4. If sources conflict, prefer first-party Amazon docs for rules/current UI and MAG/internal notes for operating procedure.
 
 ## Local Output Storage
@@ -183,6 +203,27 @@ Controlled workflow names:
 - `sop-maintenance`
 
 Do not create a separate global overview tracker by default. If a workflow needs local context, put `README.md` or `operator-note.md` inside the relevant workflow folder. Use Notion for ongoing team status.
+
+## Client Profile Memory
+
+Shared operational client context lives in Notion, with a local ignored cache for fast lookup.
+
+Notion source of truth:
+
+- Database: `Amazon Agent Ops Profiles`
+- URL: `https://www.notion.so/b42e52380b874dd5be7c0fba6c0d017e`
+- Data source: `collection://8e2f0901-3b8e-44ac-8fd6-464f834bd824`
+- Linked brand source: Partner Success, `collection://b450df49-a4a8-82c3-a8f0-077f73bac0bf`
+
+Local cache path:
+
+- `_local/client-profiles/profiles.json`
+
+For client-specific Amazon work, check the local profile cache first when it exists, then check the Notion ops profile if the cache is missing, stale, incomplete, or conflicts with the user's request. Each profile is one brand-marketplace pair such as `Swissker US`, `Sondur US`, or `Piercing XXL DE`.
+
+Use client profiles for account labels, marketplaces, stakeholders, listing URLs, fulfillment method, production/shipping timing, recurring workflow preferences, and safety notes. Do not store secrets, passwords, cookies, tokens, payment details, tax IDs, private keys, or browser session data in Notion profiles or local cache.
+
+The agent must not silently change shared client facts. If a profile needs correction, draft the proposed update with evidence and wait for approval before changing Notion. Refresh the local cache after approved Notion updates.
 
 ## Local Permission Memory
 
@@ -251,7 +292,7 @@ For negative review outreach with courtesy refunds:
    Seller Central, Amazon Ads UI, Amazon Ads API/docs, Creator Connections, MAG SOP procedure, or cross-functional.
 
 2. Search local libraries:
-   Prefer first-party Amazon docs for current UI/rules, MAG SOPs for agency workflow, and user-provided account context for account-specific decisions.
+   Prefer first-party Amazon docs for current UI/rules, MAG SOPs for settled agency workflow, `sop-drafts/` for recent but not-final workflow learnings, and user-provided account context for account-specific decisions.
 
 3. Decide the workflow:
    Summarize the path, required inputs, likely risk points, and what will be checked.
@@ -297,6 +338,7 @@ For troubleshooting:
 ## Current Known Libraries
 
 - MAG SOPs: markdown-only runtime copy in this project; complete visual version in the pCloud archive.
+- SOP drafts: tracked workflow drafts in `sop-drafts/`; useful for recent learnings but not final until promoted.
 - Amazon Seller Help: complete captured Seller Help library.
 - Amazon Ads Help: Amazon Ads API/docs library.
 - Advertising Help After Login: Amazon Ads Support Center and logged-in support docs, including Creator Connections context.

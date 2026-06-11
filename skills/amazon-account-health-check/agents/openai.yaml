@@ -1,0 +1,3 @@
+display_name: Amazon Account Health Check
+short_description: Run daily SellerSonar + Seller Central checks and create Slack/Notion follow-ups.
+default_prompt: Run the daily Amazon account health check for the selected accounts, post the #amazon parent thread and account comments when requested, and create Notion troubleshooting tasks for actionable issues.

@@ -11,6 +11,22 @@ At the start of a new chat in this project:
    `tools/opportunity-explorer/extract-opportunity-explorer.js`
    `tools/opportunity-explorer/format-opportunity-explorer-export.mjs`
 
+## Cross-Agent Handoff
+
+When a task is likely to continue in Codex or another assistant, finish with a copy-ready handoff prompt and save it in the relevant client/project note. Do not make Victor translate between agents.
+
+The handoff must include:
+- objective and explicit non-goals
+- source files and exact paths
+- account, marketplace, ASINs, niche IDs, and date range
+- what was already verified
+- caveats, blockers, and risky actions to avoid
+- the next exact action for the other agent
+
+Saved protocol + templates: `/Users/victoruhl/Obsidian/Victors Second Brain/Context/codex-claude-handoff-protocol.md` and the Sheko template under `Projects/Clients/sheko/cross-agent-handoff-template.md`.
+
+For keyword-workbook runs the handoff is auto-generated — run `tools/amazon-seo-keyword-workbook/build_keyword_workbook.py --config <cfg> --preflight` to emit a copy-ready Codex task for missing inputs (or a READY status). The builder is client-agnostic (copy `config.TEMPLATE.json` for a new client; see `NEW-CLIENT.md`). Claude's role: write the SEO content and run the build. Codex's role: gather the browser/POE + DataDive-UI inputs to the contract paths, then stop. See `tools/amazon-seo-keyword-workbook/WORKFLOW.md` and the `amazon-seo-keyword-workflow` skill.
+
 The pCloud path is user-specific. Team members should point their own setup to their own local pCloud-synced visual archive; do not commit the archive or personal sync folders to GitHub.
 
 Do not duplicate large sections from `agent.md` here. Keep this file as a lightweight entrypoint.
