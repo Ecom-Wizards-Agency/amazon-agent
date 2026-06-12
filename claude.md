@@ -10,6 +10,7 @@ At the start of a new chat in this project:
 4. Use the repo-native Opportunity Explorer extraction scripts only when OEI/POE exports are needed:
    `tools/opportunity-explorer/extract-opportunity-explorer.js`
    `tools/opportunity-explorer/format-opportunity-explorer-export.mjs`
+5. Use the `amazon-listing-capture` skill + `tools/listing-capture/extract-amazon-listing-copy.js` (connected browser) to capture live listing copy (title/bullets/link) for anchor + competitors into the listing-reference JSON; it feeds the keyword-workbook ASINs tab and replaces the legacy ZeroWork scrape.
 
 ## Cross-Agent Handoff
 
@@ -26,6 +27,8 @@ The handoff must include:
 Saved protocol + templates: `/Users/victoruhl/Obsidian/Victors Second Brain/Context/codex-claude-handoff-protocol.md` and the Sheko template under `Projects/Clients/sheko/cross-agent-handoff-template.md`.
 
 For keyword-workbook runs the handoff is auto-generated — run `tools/amazon-seo-keyword-workbook/build_keyword_workbook.py --config <cfg> --preflight` to emit a copy-ready Codex task for missing inputs (or a READY status). The builder is client-agnostic (copy `config.TEMPLATE.json` for a new client; see `NEW-CLIENT.md`). Claude's role: write the SEO content and run the build. Codex's role: gather the browser/POE + DataDive-UI inputs to the contract paths, then stop. See `tools/amazon-seo-keyword-workbook/WORKFLOW.md` and the `amazon-seo-keyword-workflow` skill.
+
+For keyword-research workbook delivery, use Google Drive only. Do not copy final keyword-research workbooks to pCloud. Target folder pattern: `Geteilte Ablagen/Ecom Wizards/01_Client Sheets/<Client>/<Run Folder>/`.
 
 The pCloud path is user-specific. Team members should point their own setup to their own local pCloud-synced visual archive; do not commit the archive or personal sync folders to GitHub.
 

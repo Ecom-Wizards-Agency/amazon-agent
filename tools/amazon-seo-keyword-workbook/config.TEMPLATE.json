@@ -63,6 +63,12 @@
     }
   },
 
+  "root_importance": {
+    "_comment": "OPTIONAL. '1. Root Keywords' is written as: Important | Root Keyword | Frequency | Broad Search Volume | Root Score (the score is the roots CSV's unnamed trailing 0-1 relevance column). Roots with score >= min_score get the marker in 'Important'. Omit this block entirely for the defaults shown here.",
+    "min_score": 0.10,
+    "marker": "⭐"
+  },
+
   "never_ever": {
     "_comment": "Generated from the Expanded MKL 1% file. Only one-word rows classified Never Ever are written. relevant_words protect real product intent from being auto-negated; explicit_never_words force-negate known junk.",
     "min_frequency": 2,
@@ -86,7 +92,7 @@
   },
 
   "tabs": {
-    "_comment": "Production model. The template .xlsx is STYLE ONLY — no product-specific tab is carried forward. exact_paste = 1:1 CSV; rebuild = generated from current sources; generated_blank = explicit skipped row.",
+    "_comment": "Production model. The template .xlsx is STYLE ONLY — no product-specific tab is carried forward. exact_paste = 1:1 CSV (exception: the roots CSV gets a header-cleanup transform — see root_importance); rebuild = generated from current sources; generated_blank = explicit skipped row.",
     "exact_paste": {
       "1. Root Keywords": "roots_csv",
       "3.1. Master List DataDive": "master_csv",
@@ -100,10 +106,9 @@
       "POE Semantic Insights"
     ],
     "carry_forward": ["3.2. Root Long-Tails DataDive", "5. Campaign Structure"],
+    "_carry_forward_comment": "5. Campaign Structure is carried forward as the empty PPC scaffold from template_keyword_workbook.xlsx (Rank/Shield SKW waves, Long-Tails, Discovery, PAT) so keywords can be filled in later. Do NOT add it to generated_blank — that would wipe the scaffold. Leave generated_blank empty unless a tab genuinely needs an explicit skipped row.",
     "carry_forward_clear": [],
-    "generated_blank": {
-      "5. Campaign Structure": "PPC not requested for this run."
-    }
+    "generated_blank": {}
   },
 
   "inputs": {

@@ -84,6 +84,7 @@ Default routing:
 - `amazon-reporting`: Seller/Ads reports, SQP, business reports, analytics workbooks.
 - `amazon-inventory-planning`: weekly FBA inventory overview, reshipment planning, pCloud outputs, Slack staging.
 - `amazon-opportunity-explorer`: Product Opportunity Explorer/OEI/POE exports, image strategy, product strategy, Alexa/Rufus semantic insights.
+- `amazon-listing-capture`: capture live listing copy (title/bullets/link) for anchor + competitors via the connected-browser extractor; feeds the keyword-workbook ASINs tab; replaces the legacy ZeroWork scrape.
 - `amazon-sop-maintenance`: `/create-sop`, `/fix-sop`, verified SOP corrections, new SOP drafts, and SOP-vs-skill routing.
 - `amazon-logistics`: Send to Amazon, FBA shipments, removals, AWD, inventory operations.
 - `amazon-communications`: support cases, buyer messages, creator replies, courtesy-refund follow-ups.
@@ -140,12 +141,17 @@ Keyword and opportunity research draws on two complementary sources with differe
 
 - DataDive (MCP, read-only): niche analysis, master keyword lists, competitor ASINs, Ranking Juice, Rank Radar, indexing-issue alerts. Use the local `datadive` MCP server first when available; no browser/login needed. Niche data is addressed by `nicheId` (find it with `list_niches`).
 - Product Opportunity Explorer (POE/OEI): Products, Search Terms, Customer Review Insights, Returns, and Related Niches. This lives behind the Seller Central login and has NO MCP — it is always internal/connected browser work. Use the script-first extractor (`tools/opportunity-explorer/extract-opportunity-explorer.js`) and the per-niche export checklist (`skills/amazon-opportunity-explorer/references/poe-niche-export-checklist.md`).
+- Listing copy (title/bullets/link) for the anchor + competitors: not in DataDive or POE — capture it from the live product pages via the `amazon-listing-capture` skill / `tools/listing-capture/extract-amazon-listing-copy.js` (connected browser; deterministic ASIN; bullets primary `#feature-bullets ul` then fallback `#productFactsDesktopExpander > div:first-child ul`). Output one `listing-reference` JSON per `tools/listing-capture/listing-reference.schema.v1.json`; the builder fills the workbook ASINs tab from it. Replaces the legacy ZeroWork scrape (`tools/listing-capture/zerowork-45716-workflow-spec.md`).
 
 The two are complementary: DataDive gives ranking/keyword intelligence; POE gives Amazon-native demand, review/return voice-of-customer, and related-niche structure. Save exports under the controlled folders (`downloads/{client}/opportunity-data/`, `output/{client}/opportunity-data/`, `evidence/{client}/opportunity-data/`).
 
 Reusable assembly (client-agnostic): `tools/amazon-seo-keyword-workbook/` turns these raw exports into a styled, validated keyword workbook — Core 30% + Expanded 1% MKL, strict related-niche filter, Never-Ever generation, outlier triage + final-action fields, POE Reviews/Returns/Semantic rebuilt from JSON, SEO-text tab with a DataDive Ranking Juice column, validation + evidence manifest. It is driven entirely by a per-client config (copy `config.TEMPLATE.json`; see `NEW-CLIENT.md` and `WORKFLOW.md`) — nothing is product-specific. For the full end-to-end run, route to the `amazon-seo-keyword-workflow` skill. Deliver the `.xlsx`; convert to a native Google Sheet with one click if a shareable link is needed. (The older `tools/sheko-keyword-workbook/` is superseded — see its `SUPERSEDED.md`.)
 
+Keyword-research workbook delivery goes to Google Drive only. Do not copy generated keyword-research workbooks to pCloud. The Drive target is `Geteilte Ablagen/Ecom Wizards/01_Client Sheets/<Client>/<Run Folder>/`; the workbook becomes a Google Sheet there.
+
 Two-agent flow (Codex ↔ Claude): keyword-workbook runs split across the internal/connected browser (POE + DataDive UI exports) and Claude (SEO writing + the builder). To avoid hand-translating between agents, run the builder's preflight: `build_keyword_workbook.py --config <cfg> --preflight`. It reads the config's input contract and prints either a copy-ready Codex handoff (for missing browser/UI inputs) or a READY status. Codex's role here: produce the contract inputs at their paths, capture evidence + caveats, then stop — do not run the builder or write SEO (that is Claude's half). Follow the saved protocol at `/Users/victoruhl/Obsidian/Victors Second Brain/Context/codex-claude-handoff-protocol.md`.
+
+`/seo-standby` means: prepare for a keyword-research workbook run, load the Amazon SEO keyword workflow as needed, then wait for Claude's handoff. Do not start DataDive, POE, listing capture, builder, SEO writing, Drive delivery, listing edits, commits, or browser work until Victor provides Claude's concrete handoff/instructions. After the handoff arrives, capture only the contract inputs, save exact requested paths, report caveats, and stop.
 
 SOP maintenance trigger phrases:
 

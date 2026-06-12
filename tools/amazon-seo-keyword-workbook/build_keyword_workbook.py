@@ -13,12 +13,14 @@ Design
 * Exact-paste tabs (DataDive roots/core MKL/expanded MKL, POE products/search terms) are
   cleared and re-pasted 1:1 from their source CSVs. They are NEVER transformed.
 * Rebuilt tabs:
-    - "ASINs", "2.2 Never KWs", "4.2 Competitors", "POE Raw - Reviews",
+    - "ASINs", "2.2 Never KWs", "3.2 Outlier KWs", "POE Raw - Reviews",
       "POE Raw - Returns", "POE Semantic Insights", and blank/skipped tabs are
-      generated from the current run.
+      generated from the current run. ("4.2 Competitors" is legacy/optional —
+      built only if a config lists it; the current template carries competitor
+      copy in the ASINs tab instead.)
     - "POE Raw - Related Niches": rebuilt from the related-niches JSON with a
       configurable keep-list relevance filter.
-    - "Outlier - Opportunity KWs": rule-based triage over the master keyword
+    - "3.2 Outlier KWs": rule-based triage over the master keyword
       list, plus a Final Action column.
 * The template is a style source only. No product-specific tab is carried forward.
 * All rules live in config JSON so the workflow is auditable and reusable.
@@ -209,6 +211,39 @@ def ensure_sheet(wb, title: str, after: Any = None) -> Worksheet:
 # --------------------------------------------------------------------------- #
 # Tab builders
 # --------------------------------------------------------------------------- #
+def transform_roots(rows: list[list[str]], cfg: dict) -> list[list[Any]]:
+    """Clean up the DataDive roots CSV for the '1. Root Keywords' tab.
+
+    The raw export is `(empty) | Normalized Root | Frequency | Broad Search
+    Volume | (unnamed 0-1 relevance score)`. Output columns: `Important | Root
+    Keyword | Frequency | Broad Search Volume | Root Score`, where Important is
+    auto-marked from the score (config block `root_importance`, defaults:
+    min_score 0.10, marker '⭐'). Keeps exactly one output row per input row so
+    the roots row-count QA gate is unaffected.
+    """
+    if not rows:
+        return rows
+    imp = cfg.get("root_importance") or {}
+    try:
+        min_score = float(imp.get("min_score", 0.10))
+    except (TypeError, ValueError):
+        min_score = 0.10
+    marker = imp.get("marker", "⭐")
+
+    out: list[list[Any]] = [["Important", "Root Keyword", "Frequency", "Broad Search Volume", "Root Score"]]
+    for r in rows[1:]:
+        root = r[1] if len(r) > 1 else ""
+        freq = r[2] if len(r) > 2 else ""
+        sv = r[3] if len(r) > 3 else ""
+        raw_score = r[4] if len(r) > 4 else ""
+        score = to_float(raw_score)
+        if score is None:
+            out.append(["", root, freq, sv, raw_score])
+        else:
+            out.append([marker if score >= min_score else "", root, freq, sv, round(score, 2)])
+    return out
+
+
 def build_exact_paste(ws: Worksheet, csv_rows: list[list[str]], warnings: list[str]) -> int:
     """Clear a tab and paste CSV rows 1:1 with preserved styling."""
     snap = snapshot_styles(ws, upto_row=8)
@@ -220,6 +255,22 @@ def build_exact_paste(ws: Worksheet, csv_rows: list[list[str]], warnings: list[s
 def competitor_map(competitors_rows: list[list[str]]) -> dict[str, dict[str, Any]]:
     if not competitors_rows:
         return {}
+    raw_header = [str(h).strip() for h in competitors_rows[0]]
+    # The genuine DataDive UI export (Niche Tracker > Export Competitors) is
+    # TRANSPOSED: attribute names in rows ('Brand', 'ASIN', 'Strength', ...)
+    # and one column per competitor ASIN. Detect ASIN column headers and pivot.
+    asin_cols = {i: h.upper() for i, h in enumerate(raw_header) if re.match(r"^B0[A-Z0-9]{8}$", h, re.I)}
+    if asin_cols:
+        label_idx = next((i for i, h in enumerate(raw_header) if norm(h) == "competitors"), 1)
+        out_t: dict[str, dict[str, Any]] = {a: {"asin": a} for a in asin_cols.values()}
+        for row in competitors_rows[1:]:
+            label = norm(row[label_idx]) if label_idx < len(row) else ""
+            if not label:
+                continue
+            for i, a in asin_cols.items():
+                out_t[a].setdefault(label, row[i] if i < len(row) else "")
+        return out_t
+    # Row-per-competitor shape (MCP-derived fallback exports).
     header = [norm(h) for h in competitors_rows[0]]
     out: dict[str, dict[str, Any]] = {}
     for row in competitors_rows[1:]:
@@ -297,9 +348,25 @@ def build_asins(
         brand = "" if isinstance(child, str) else child.get("brand", "")
         fb_title = "" if isinstance(child, str) else child.get("title", "")
         rows.append([ca, "Child", mkt, brand, title_for(ca, fb_title), bullets_for(ca), link_for(ca), "listing_reference_json"])
+
+    # Same-brand non-anchor ASINs are siblings, not competitors. Detect by an
+    # explicit config list (asin_roles.siblings) or by brand matching the anchor.
+    sibling_set = {str(a).strip().upper() for a in (cfg.get("asin_roles", {}).get("siblings") or [])}
+    client_n = norm(client)
+
+    def comp_role(asin: str, brand: str) -> str:
+        if str(asin).strip().upper() in sibling_set:
+            return "Sibling"
+        if client_n and norm(brand) == client_n:
+            return "Sibling"
+        return "Competitor"
+
+    anchor_u = str(anchor).strip().upper()
     for asin, comp in comp_by_asin.items():
+        if str(asin).strip().upper() == anchor_u:
+            continue  # anchor already written as the Anchor row; don't re-add it
         rows.append([
-            asin, "Competitor", mkt, comp.get("brand", ""),
+            asin, comp_role(asin, comp.get("brand", "")), mkt, comp.get("brand", ""),
             title_for(asin), bullets_for(asin), link_for(asin), "competitors_csv",
         ])
 
@@ -474,6 +541,7 @@ def build_related_niches(
     #  (a) tables[0] = {headers, rows} (chrome table scrape; the scraper
     #      mis-labels the first niche row as `headers`, so real rows = headers + rows)
     #  (b) relatedNiches = [{cells, niche, href}, ...] (visible-structured capture)
+    #  (c) relatedNiches = [{niche, href}, ...] (amazon-agent.poe-related-niches.v1)
     niche_rows: list = []
     tables = data.get("tables") or []
     if tables and isinstance(tables[0], dict) and (tables[0].get("rows") or tables[0].get("headers")):
@@ -483,9 +551,14 @@ def build_related_niches(
         niche_rows.extend(table.get("rows", []))
     elif isinstance(data.get("relatedNiches"), list):
         for item in data["relatedNiches"]:
-            cells = item.get("cells") if isinstance(item, dict) else None
+            if not isinstance(item, dict):
+                continue
+            cells = item.get("cells")
             if isinstance(cells, list):
                 niche_rows.append(cells)
+            elif item.get("niche"):
+                # {niche, href} shape: synthesize a row keyed on the niche name.
+                niche_rows.append([item.get("niche"), item.get("href", "")])
 
     if not niche_rows:
         warnings.append(f"Related niches: no usable rows in {related_json_path}; tab left as-is.")
@@ -658,7 +731,15 @@ def build_outlier(
         anchor_idx = None
     else:
         anchor_idx = asin_cols[anchor_asin]
-    comp_idxs = [i for a, i in asin_cols.items() if a != anchor_asin]
+    # Same-brand non-anchor ASINs are siblings, not competitors. Excluding them
+    # from the competitor set keeps "Best Competitor Rank" honest — a sibling
+    # ranking well must not suppress a genuine opportunity (see config
+    # asin_roles.siblings).
+    sibling_set = {str(a).strip().upper() for a in (cfg.get("asin_roles", {}).get("siblings") or [])}
+    comp_idxs = [
+        i for a, i in asin_cols.items()
+        if a != anchor_asin and str(a).strip().upper() not in sibling_set
+    ]
 
     out_header = [
         "Keyword", "Search Volume", "DataDive Relevancy", f"{anchor_label} Rank",
@@ -766,10 +847,11 @@ def build_seo_text(ws: Worksheet, seo_path: str, result: dict, warnings: list[st
     seo = json.load(open(seo_path, encoding="utf-8"))
 
     snap = snapshot_styles(ws, upto_row=12)
-    # Template's '4. SEO Text' columns: Old Listing | New Listing | Session ID.
-    # Section label is embedded in the Old Listing cell so per-section context is
-    # not lost; compliance + Ranking Juice notes are folded into New Listing.
-    rows: list[list[Any]] = [["Old Listing", "New Listing", "Session ID"]]
+    # Columns: Old Listing | New Listing | Notes / Compliance. The section label
+    # is embedded in the Old Listing cell so per-section context is not lost.
+    # New Listing holds ONLY the publishable copy — compliance + Ranking Juice
+    # notes go to their own column so the brand-token QA gate can scan pure copy.
+    rows: list[list[Any]] = [["Old Listing", "New Listing", "Notes / Compliance"]]
     for item in seo["rows"]:
         section = item.get("section", "")
         cur = item.get("current") or ""
@@ -780,9 +862,7 @@ def build_seo_text(ws: Worksheet, seo_path: str, result: dict, warnings: list[st
             notes.append(f"Compliance: {item['compliance']}")
         if item.get("rj"):
             notes.append(f"Ranking Juice: {item['rj']}")
-        if notes:
-            new_cell = (new_cell + "\n\n" + "\n".join(notes)).strip()
-        rows.append([old_cell, new_cell, ""])
+        rows.append([old_cell, new_cell, "\n".join(notes)])
 
     clear_rows(ws)
     write_matrix(ws, rows, snap)
@@ -791,7 +871,7 @@ def build_seo_text(ws: Worksheet, seo_path: str, result: dict, warnings: list[st
 
     ws.column_dimensions["A"].width = 60
     ws.column_dimensions["B"].width = 60
-    ws.column_dimensions["C"].width = 16
+    ws.column_dimensions["C"].width = 50
     for r in range(2, len(rows) + 1):
         for c in range(1, 4):
             ws.cell(r, c).alignment = Alignment(wrap_text=True, vertical="top")
@@ -918,12 +998,21 @@ def _extract_returns_rows(data: dict, source: str) -> list[list[Any]]:
     if not text or "Returns" not in text or "Customer Review Insights" in text and "Return" not in text.split("Customer Review Insights")[-1]:
         return []
     section = re.sub(r"\s+", " ", text).strip()
-    pattern = re.compile(
-        r"(?P<topic>[A-ZÀ-Ýa-zà-ÿ0-9][^\"%]{2,90}?)\s+"
-        r"(?P<pct>\d+(?:\.\d+)%)\s+"
-        r"(?P<detail>[^%]{0,180})(?=(?:[A-ZÀ-Ýa-zà-ÿ0-9][^\"%]{2,90}?\s+\d+(?:\.\d+)%|$))"
-    )
-    return [[m.group("topic").strip(), m.group("pct"), m.group("detail").strip(), "POE Returns", source] for m in pattern.finditer(section)]
+    # Bound to the topic table: starts after the 'Topic %Mentions' header inside
+    # 'Product Returns Insights', ends before the 'Topic Returns Trend' chart
+    # (whose axis ticks like '0% 20% 40%' would otherwise parse as topics).
+    if "Product Returns Insights" in section:
+        section = section.split("Product Returns Insights", 1)[1]
+    if "Topic Returns Trend" in section:
+        section = section.split("Topic Returns Trend", 1)[0]
+    if "%Mentions" in section:
+        section = section.split("%Mentions", 1)[1]
+    pattern = re.compile(r"(?P<topic>[^%]+?)\s+(?P<pct>\d{1,3}(?:[.,]\d+)?%)")
+    return [
+        [m.group("topic").strip(), m.group("pct"), "", "POE Returns", source]
+        for m in pattern.finditer(section)
+        if m.group("topic").strip()
+    ]
 
 
 def build_poe_returns(ws: Worksheet, path: str, result: dict, warnings: list[str]) -> dict:
@@ -1071,6 +1160,14 @@ def run_validations(wb, cfg, counts, related_result, paths, warnings) -> list[di
 
     anchor = cfg["product_anchor"]["asin"]
 
+    # Sheet titles for the exact-paste DataDive MKL tabs come from the config
+    # (source of truth via tabs.exact_paste), not hardcoded — so validation stays
+    # aligned with whatever the config names them (e.g. '3.1. Master List DataDive').
+    exact_paste = cfg["tabs"]["exact_paste"]
+    sheet_for = {src: sheet for sheet, src in exact_paste.items()}
+    master_sheet = sheet_for.get("master_csv", "")
+    expanded_sheet = sheet_for.get("expanded_mkl_csv", "")
+
     # 1. Product anchor is the configured ASIN and present as a master-list
     #    column (authoritative — it's a DataDive ASIN column). The ASINs tab is
     #    a curated carry-forward tab; if the anchor isn't in it, that tab is a
@@ -1103,14 +1200,14 @@ def run_validations(wb, cfg, counts, related_result, paths, warnings) -> list[di
     )
     add(
         "Master List rows == master CSV rows",
-        counts["3. MKL DataDive 30%"] == counts["_master_csv"],
-        f"sheet={counts['3. MKL DataDive 30%']} csv={counts['_master_csv']}",
+        counts.get(master_sheet) == counts["_master_csv"],
+        f"sheet={counts.get(master_sheet)} csv={counts['_master_csv']}",
     )
-    if "2.1 MKL DataDive 1%" in wb.sheetnames:
+    if expanded_sheet in wb.sheetnames:
         add(
             "Expanded MKL rows == 1% CSV rows",
-            counts.get("2.1 MKL DataDive 1%") == counts.get("_expanded_mkl_csv"),
-            f"sheet={counts.get('2.1 MKL DataDive 1%')} csv={counts.get('_expanded_mkl_csv')}",
+            counts.get(expanded_sheet) == counts.get("_expanded_mkl_csv"),
+            f"sheet={counts.get(expanded_sheet)} csv={counts.get('_expanded_mkl_csv')}",
         )
     add(
         "Core and Expanded MKL source paths are distinct",
@@ -1177,16 +1274,32 @@ def run_validations(wb, cfg, counts, related_result, paths, warnings) -> list[di
     # Every row is a Never-Ever negative by construction; verify the phrase (col C)
     # is a single word.
     never_bad = []
-    if "2.2 Never KWs" in wb.sheetnames:
-        ws = wb["2.2 Never KWs"]
+    never_sheet = next((s for s in ("2 Never KWs", "2.2 Never KWs") if s in wb.sheetnames), None)
+    never_rows = 0
+    if never_sheet:
+        ws = wb[never_sheet]
         for row in ws.iter_rows(min_row=2, values_only=True):
             phrase = norm(row[2] if row and len(row) > 2 else "")
-            if phrase and len(phrase.split()) != 1:
-                never_bad.append(f"multiword:{phrase}")
+            if phrase:
+                never_rows += 1
+                if len(phrase.split()) != 1:
+                    never_bad.append(f"multiword:{phrase}")
     add(
         "Never Ever tab contains one-word Never Ever rows only",
-        not never_bad,
-        f"bad={never_bad[:12]} total={len(never_bad)}",
+        bool(never_sheet) and not never_bad,
+        f"sheet={never_sheet!r} rows={never_rows} bad={never_bad[:12]} total={len(never_bad)}",
+    )
+
+    # Defensive: every tab declared in tabs.rebuild must have actually been rebuilt
+    # this run (i.e. have a counts entry). Catches sheet-name mismatches that would
+    # otherwise silently leave the style-template product's content in place
+    # (the collagen-SEO-in-a-fibre-workbook class of bug).
+    rebuild_tabs = cfg["tabs"].get("rebuild", [])
+    not_rebuilt = [t for t in rebuild_tabs if t not in counts]
+    add(
+        "All configured rebuild tabs were rebuilt",
+        not not_rebuilt,
+        f"not_rebuilt={not_rebuilt}",
     )
 
     guard = cfg.get("stale_data_guard") or {}
@@ -1219,6 +1332,36 @@ def run_validations(wb, cfg, counts, related_result, paths, warnings) -> list[di
             "Required current-source tabs populated",
             not missing_current,
             f"missing_or_warning_only={missing_current}",
+        )
+
+    # Competitor brand names must never reach publishable SEO copy (title,
+    # bullets, description, backend). Scans the New Listing column of the SEO
+    # Text tab for triage.brand_tokens; the own brand and the Notes/annotation
+    # rows (Guardrail, Ranking Juice, Semantic direction) are exempt.
+    brand_tokens = [
+        t for t in (cfg.get("triage", {}).get("brand_tokens") or [])
+        if norm(t) and norm(t) != norm(cfg["product_anchor"].get("client", ""))
+    ]
+    seo_tab = next((s for s in ("4.1 SEO Text", "4. SEO Text") if s in wb.sheetnames), None)
+    if brand_tokens and seo_tab:
+        copy_hits: list[str] = []
+        for row in wb[seo_tab].iter_rows(min_row=2, values_only=True):
+            m = re.match(r"\[(.+?)\]", str(row[0] or ""))
+            section = norm(m.group(1)) if m else ""
+            is_copy = (
+                section in {"title", "description", "backend search terms direction"}
+                or section.startswith("bullet")
+            )
+            if not is_copy:
+                continue
+            new_copy = norm(row[1] if len(row) > 1 and row[1] is not None else "")
+            for tok in brand_tokens:
+                if _token_hit(new_copy, [tok], "word"):
+                    copy_hits.append(f"{section}: {tok}")
+        add(
+            "No competitor brand tokens in SEO copy",
+            not copy_hits,
+            f"sheet={seo_tab!r} hits={copy_hits[:8]} tokens_checked={len(brand_tokens)}",
         )
 
     return checks
@@ -1295,6 +1438,8 @@ def write_handoff_note(path: str, cfg: dict, args: dict, manifest: dict) -> str:
         "",
     ]
     for key, value in (cfg.get("datadive_exports") or {}).items():
+        if not isinstance(value, dict):
+            continue
         lines.append(f"- `{key}`: min relevancy `{value.get('min_relevancy','')}`, visible keywords `{value.get('visible_keyword_count','')}`, visible SV `{value.get('visible_search_volume','')}`, exported `{value.get('export_timestamp','')}`")
     lines += [
         "",
@@ -1347,10 +1492,14 @@ SETUP_INPUT_KEYS = ["template", "seo_content"]
 
 def _codex_handoff_block(cfg: dict, args: dict, missing: list[str]) -> str:
     pa = cfg["product_anchor"]
+    client = (pa.get("client") or "").strip()
+    product = (pa.get("product") or "").strip()
+    # Avoid "Sheko Sheko Collagene" when the product name already starts with the client.
+    subject = product if product.lower().startswith(client.lower()) and client else f"{client} {product}".strip()
     lines = [
         "TASK: Gather the missing keyword-workbook inputs for the connected/internal browser + DataDive UI.",
         "",
-        f"Objective: produce the inputs below for {pa.get('client')} {pa.get('product')} "
+        f"Objective: produce the inputs below for {subject} "
         f"({pa.get('marketplace')}), DataDive niche {pa.get('datadive_niche')}, anchor ASIN {pa.get('asin')}.",
         "",
         "Do NOT: run the builder, write SEO, edit listings, commit/push, or inspect cookies/session/credentials.",
@@ -1368,19 +1517,43 @@ def _codex_handoff_block(cfg: dict, args: dict, missing: list[str]) -> str:
         "poe_reviews_json": "POE — Customer Review Insights capture JSON",
         "poe_returns_json": "POE — Returns route/table capture JSON",
         "poe_structured_json": "POE — structured overview capture JSON",
+        "listing_reference_json": (
+            "Listing copy for the ANCHOR + COMPETITORS — use the `amazon-listing-capture` skill "
+            "/ `tools/listing-capture/extract-amazon-listing-copy.js` (local language; title #productTitle; "
+            "bullets #feature-bullets ul, fallback #productFactsDesktopExpander > div:first-child ul; "
+            "deterministic ASIN). Output ONE file per `tools/listing-capture/listing-reference.schema.v1.json` "
+            "(listings:[{asin,title,bullets[],link,status}])"
+        ),
     }
     for k in missing:
         lines.append(f"  [ ] {label.get(k, k)}\n        -> {args[k]}")
     lines += [
         "",
-        "Also capture (evidence): an online variation listing JSON (title/bullets/description/ingredients), "
-        "review-insights + returns JSON, screenshots → evidence/{client}/opportunity-data/.",
+        "Listing capture covers the anchor + the niche's competitor ASINs (input = the ASINs tab `link` "
+        "column once built, or the DataDive competitor set). Keep a row even when title/bullets fail (set status).",
         "Caveats to confirm: Seller Central account + marketplace; any ASIN that resolves to the wrong product "
-        "family; ingredient/health-claim risks.",
+        "family; ingredient/health-claim risks (flag joint/skin/hair/nail/anti-age claims in the live copy).",
+        "",
+        "Known capture quirks (from prior runs):",
+        "- DataDive export buttons may emit NO detectable download event. If exports don't land, ask Victor to "
+        "click them manually, then map the files in ~/Downloads by filename/timestamp/rows/headers "
+        "(Core 30% includes a 'Sugg. bid & range' column; the Expanded 1% file has many more rows). Report the "
+        "row counts + headers per file so Claude can cross-check them against the DataDive MCP niche statistics.",
+        "- POE: direct tab URLs may render only the tab header — click the in-page tab to load the actual "
+        "Products/Search Terms/Reviews/Returns content before capturing.",
+        "- POE Download clicks DO work even when the browser download event times out — check ~/Downloads for "
+        "the new file and rename it to the contract path.",
+        "- Amazon listing pages may render in English despite locale URL params — switch the Amazon site "
+        "language preference to the marketplace language (e.g. 'italiano - IT'), then re-run the capture.",
+        "- After Claude confirms the canonical files, delete duplicate/raw intermediate downloads "
+        "(NEVER the canonical contract paths).",
         "",
         "Stop and report: the exact saved paths + the caveats above, then hand back to Claude.",
         "",
-        "Protocol: /Users/victoruhl/Obsidian/Victors Second Brain/Context/codex-claude-handoff-protocol.md",
+        # Per-run protocol lives in the client's own Obsidian folder (config.inputs.handoff_note),
+        # so each client/run is self-contained rather than appended to one shared file. Falls back
+        # to the reusable Context protocol only when a run-specific note isn't configured.
+        f"Protocol: {(args.get('handoff_note') or '').strip() or '/Users/victoruhl/Obsidian/Victors Second Brain/Context/codex-claude-handoff-protocol.md'}",
     ]
     return "\n".join(lines)
 
@@ -1499,11 +1672,10 @@ def main() -> int:
     counts["_poe_search_terms_csv"] = len(poe_search)
     counts["_master_header"] = master[0] if master else []
 
-    # Template's '1. Root Keywords' leads with a manual 'Switch' toggle column;
-    # keep the labelled column (blank cells) and paste roots into the rest.
-    roots_disp = (
-        [["Switch"] + roots[0]] + [[""] + r for r in roots[1:]] if roots else roots
-    )
+    # The DataDive roots CSV ships a leading empty column and an unnamed
+    # trailing 0–1 relevance score; transform_roots() renames the columns and
+    # auto-marks important roots from that score (config: root_importance).
+    roots_disp = transform_roots(roots, cfg)
 
     exact = cfg["tabs"]["exact_paste"]
     src_for = {
@@ -1531,6 +1703,9 @@ def main() -> int:
         print(f"  rebuilt 'ASINs': {asins_result.get('rows_written', 0)} rows")
 
     competitors_result: dict = {}
+    # Legacy/optional: the current template drops "4.2 Competitors" (competitor
+    # copy lives in the ASINs tab). This stays dormant unless a config/template
+    # reintroduces the tab — then it rebuilds it from competitors_csv.
     if "4.2 Competitors" in wb.sheetnames or "4.2 Competitors" in cfg["tabs"].get("rebuild", []):
         ws = ensure_sheet(wb, "4.2 Competitors")
         build_competitors(ws, competitors, competitors_result, warnings)
@@ -1538,12 +1713,19 @@ def main() -> int:
         print(f"  rebuilt '4.2 Competitors': {competitors_result.get('rows_written', 0)} rows")
 
     never_result: dict = {}
-    if "2.2 Never KWs" in wb.sheetnames or "2.2 Never KWs" in cfg["tabs"].get("rebuild", []):
-        ws = ensure_sheet(wb, "2.2 Never KWs")
+    # Tab is '2 Never KWs' in the current template (legacy name '2.2 Never KWs');
+    # resolve whichever exists so the negatives actually rebuild instead of leaving
+    # stale carried-forward template rows.
+    never_sheet = next(
+        (s for s in ("2 Never KWs", "2.2 Never KWs") if s in wb.sheetnames),
+        None,
+    )
+    if never_sheet:
+        ws = ensure_sheet(wb, never_sheet)
         poe_terms = load_poe_terms(args["poe_search_terms_csv"])
         build_never_keywords(ws, expanded_mkl, master, poe_terms, args, cfg, never_result, warnings)
-        counts["2.2 Never KWs"] = never_result.get("rows_written", 0)
-        print(f"  rebuilt '2.2 Never KWs': {never_result.get('never_ever_words', 0)} one-word negatives")
+        counts[never_sheet] = never_result.get("rows_written", 0)
+        print(f"  rebuilt {never_sheet!r}: {never_result.get('never_ever_words', 0)} one-word negatives")
 
     # --- Related niches (strict filter) ------------------------------------ #
     related_result: dict = {}
@@ -1560,28 +1742,44 @@ def main() -> int:
         warnings.append("'POE Raw - Related Niches' not in template; skipped.")
 
     # --- Outlier triage ----------------------------------------------------- #
+    # The opportunity-KW tab is named 'Outlier - Opportunity KWs' in the current
+    # template (legacy name was '3.2 Outlier KWs'); resolve whichever exists so the
+    # triage actually rebuilds instead of silently leaving stale carried-forward rows.
     outlier_result: dict = {}
-    if "Outlier - Opportunity KWs" in wb.sheetnames:
+    outlier_sheet = next(
+        (s for s in ("Outlier - Opportunity KWs", "3.2 Outlier KWs") if s in wb.sheetnames),
+        None,
+    )
+    if outlier_sheet:
         poe_terms = load_poe_terms(args["poe_search_terms_csv"])
         build_outlier(
-            wb["Outlier - Opportunity KWs"], master, expanded_mkl, poe_terms, cfg, outlier_result, warnings
+            wb[outlier_sheet], master, expanded_mkl, poe_terms, cfg, outlier_result, warnings
         )
-        counts["Outlier - Opportunity KWs"] = outlier_result.get("rows_written", 0)
+        counts[outlier_sheet] = outlier_result.get("rows_written", 0)
         counts["_invalid_actions"] = outlier_result.get("invalid_actions", [])
         print(
-            f"  rebuilt 'Outlier - Opportunity KWs': {outlier_result.get('outlier_keywords', 0)} "
+            f"  rebuilt {outlier_sheet!r}: {outlier_result.get('outlier_keywords', 0)} "
             f"triaged keywords"
         )
     else:
-        warnings.append("'Outlier - Opportunity KWs' not in template; skipped.")
+        warnings.append("Outlier opportunity-KW tab not in template; skipped.")
 
     # --- SEO Text rewrite (curated, + Ranking Juice column) ----------------- #
+    # Tab is '4.1 SEO Text' in the current template (legacy name '4. SEO Text');
+    # resolve whichever exists so the SEO copy actually rebuilds instead of leaving
+    # the style-template product's (e.g. collagen) SEO text in place.
     seo_result: dict = {}
-    if "4. SEO Text" in wb.sheetnames:
-        build_seo_text(wb["4. SEO Text"], args["seo_content"], seo_result, warnings)
-        counts["4. SEO Text"] = seo_result.get("rows_written", 0)
+    seo_sheet = next(
+        (s for s in ("4.1 SEO Text", "4. SEO Text") if s in wb.sheetnames),
+        None,
+    )
+    if seo_sheet:
+        build_seo_text(wb[seo_sheet], args["seo_content"], seo_result, warnings)
+        counts[seo_sheet] = seo_result.get("rows_written", 0)
         if not seo_result.get("skipped"):
-            print(f"  rebuilt '4. SEO Text': {seo_result.get('rows_written', 0)} rows (+ Ranking Juice column)")
+            print(f"  rebuilt {seo_sheet!r}: {seo_result.get('rows_written', 0)} rows (+ Ranking Juice column)")
+    else:
+        warnings.append("SEO Text tab not in template; skipped.")
 
     # --- Curated tabs (real POE-sourced content, e.g. Reviews) -------------- #
     curated_result: dict = {}
