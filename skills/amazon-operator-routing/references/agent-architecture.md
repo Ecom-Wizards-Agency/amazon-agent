@@ -69,9 +69,9 @@ For keyword research, listing copy, titles, bullets, descriptions, backend searc
 Primary sources:
 
 1. Ecom Wizards internal skills and knowledge references:
-   - `/Users/victoruhl/Code/knowledge-base/Skills/amazon-seo-writer.md`
-   - `/Users/victoruhl/Code/knowledge-base/Skills/keyword-classifier-and-filter.md`
-   - `/Users/victoruhl/Code/knowledge-base/Skills/rufus-optimization.md`
+   - `/Users/<your-username>/Code/knowledge-base/Skills/amazon-seo-writer.md`
+   - `/Users/<your-username>/Code/knowledge-base/Skills/keyword-classifier-and-filter.md`
+   - `/Users/<your-username>/Code/knowledge-base/Skills/rufus-optimization.md`
    - related client/project notes when relevant
 2. Amazon Seller Help for current Amazon rules, requirements, prohibited claims, title/bullet/image/search-term limits, and compliance.
 3. MAG SEO SOPs for practical process, Helium 10/DataDive flow, screenshots, and agency execution patterns.
@@ -137,7 +137,7 @@ Workflow:
 - Confirm exact account, marketplace, brand, recipient/thread/case, and visible message context.
 - Draft the message first.
 - Record any Amazon-provided template text or policy warning.
-- Stop before clicking `Send`, submitting a support case, replying to a case, or issuing/referring to a refund unless Victor explicitly confirms the exact action.
+- Stop before clicking `Send`, submitting a support case, replying to a case, or issuing/referring to a refund unless the operator explicitly confirms the exact action.
 
 Creator Connections route:
 
@@ -153,8 +153,8 @@ For Seller Central reports, Amazon Ads reports, SQP, business reports, search te
 Primary sources:
 
 1. Internal Ecom Wizards analytics skills when generating analysis or workbooks:
-   - `/Users/victoruhl/Code/knowledge-base/Skills/amazon-sqp-intelligence-suite.md`
-   - `/Users/victoruhl/Code/knowledge-base/Skills/amazon-yoy-analysis.md`
+   - `/Users/<your-username>/Code/knowledge-base/Skills/amazon-sqp-intelligence-suite.md`
+   - `/Users/<your-username>/Code/knowledge-base/Skills/amazon-yoy-analysis.md`
 2. Amazon Seller Help or Advertising Help for current report definitions, locations, filters, and download behavior.
 3. MAG SOPs for step-by-step report generation where useful.
 
@@ -173,9 +173,9 @@ For Product Opportunity Explorer, OEI/POE, Niche Scout exports, product image st
 Primary sources:
 
 1. Ecom Wizards internal skills and knowledge references:
-   - `/Users/victoruhl/Code/knowledge-base/Skills/amazon-image-strategy.md`
-   - `/Users/victoruhl/Code/knowledge-base/Skills/oei-product-strategy.md`
-   - `/Users/victoruhl/Code/knowledge-base/Skills/rufus-optimization.md`
+   - `/Users/<your-username>/Code/knowledge-base/Skills/amazon-image-strategy.md`
+   - `/Users/<your-username>/Code/knowledge-base/Skills/oei-product-strategy.md`
+   - `/Users/<your-username>/Code/knowledge-base/Skills/rufus-optimization.md`
 2. Seller Central/Product Opportunity Explorer docs for current access and export behavior.
 3. MAG SOPs for practical frontend movement when useful.
 
@@ -183,7 +183,7 @@ Workflow:
 
 - Confirm account, marketplace, niche/product/category, and intended output.
 - Use the repo-native Opportunity Explorer extractor and formatter when an OEI/POE export is needed.
-- Victor confirmed ownership and backend clearance for reusing the previous extension logic in repo-native scripts.
+- The operator confirmed ownership and backend clearance for reusing the previous extension logic in repo-native scripts.
 - Prioritize returns, negative reviews, success factors, positioning opportunity, seasonal patterns, demographics, and search terms when generating image or product recommendations.
 - Treat Rufus, Alexa AI, Amazon AI search, and semantic Amazon search as related trigger language unless current first-party docs say otherwise.
 - Stop before publishing listing copy, images, A+ content, or catalog changes.
@@ -338,6 +338,6 @@ Keep the main agent responsible for:
 
 ## Open Decisions
 
-- Whether the routing manifest should live in this workspace only, or whether a work-level copy should also live in `/Users/victoruhl/Code/knowledge-base`.
+- Whether the routing manifest should live in this workspace only, or whether a work-level copy should also live in `/Users/<your-username>/Code/knowledge-base`.
 - Whether internal skills should be included in the search helper directly, or kept separate through the global knowledge-base search.
 - Whether real subagents should be used frequently, or only when there is a clear parallelism benefit.

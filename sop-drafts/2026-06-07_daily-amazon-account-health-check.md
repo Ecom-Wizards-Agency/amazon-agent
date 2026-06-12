@@ -12,10 +12,10 @@ Create a fast daily routine for checking each Amazon account, using `#sellersona
 ## Preconditions
 
 - The operator has access to the internal Codex browser and the relevant Seller Central sessions.
-- If a Seller Central page shows a login screen, the operator stops and asks Victor to log in. The operator must not handle passwords, one-time codes, authenticator prompts, cookies, local storage, session stores, or other credentials.
+- If a Seller Central page shows a login screen, the operator stops and asks the operator to log in. The operator must not handle passwords, one-time codes, authenticator prompts, cookies, local storage, session stores, or other credentials.
 - The account list for the day is known from the current task, Notion ops profiles, or `_local/client-profiles/profiles.json`.
 - The operator can read the Slack channel `#sellersonar`.
-- The operator knows where to record the daily result. Default is a concise operator note in the current chat unless Victor names a Slack, Notion, or other destination.
+- The operator knows where to record the daily result. Default is a concise operator note in the current chat unless the operator names a Slack, Notion, or other destination.
 - Local evidence and output folders exist or can be created under:
   - `evidence/{client-or-brand}/account-check/`
   - `output/{client-or-brand}/account-check/`
@@ -165,7 +165,7 @@ Stop points remaining: {appeal/support/send/change action needing approval}
 - Stop before submitting appeals, acknowledgements, documents, support cases, support replies, chat messages, listing edits, shipment changes, bulk uploads, pricing changes, account setting changes, or any externally visible action.
 - Stop if the browser shows a login screen, session timeout, account selector mismatch, marketplace mismatch, or page that asks for credentials or verification.
 - Stop before downloading sensitive reports into an unclear folder.
-- Stop before posting client-facing updates to Slack or Notion unless Victor explicitly requested that destination in the current chat or a matching local standing permission exists.
+- Stop before posting client-facing updates to Slack or Notion unless the operator explicitly requested that destination in the current chat or a matching local standing permission exists.
 
 ## Evidence And Screenshots Needed
 
@@ -195,7 +195,7 @@ Stop points remaining: {appeal/support/send/change action needing approval}
 - `#sellersonar` is the fastest first pass for alert discovery.
 - SellerSonar dashboard is a drill-down tool and is not mandatory for every clean account.
 - `#sellersonar-now` is intentionally out of scope.
-- Daily output defaults to the current chat/operator note unless Victor names a Slack, Notion, or other destination.
+- Daily output defaults to the current chat/operator note unless the operator names a Slack, Notion, or other destination.
 - Client-specific owner, recurring schedule, and live follow-up status should live in Notion or the active task system, not in this SOP draft.
 
 ## Promotion Notes

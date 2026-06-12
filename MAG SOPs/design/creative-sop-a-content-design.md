@@ -51,7 +51,7 @@ When logging into SC, be sure to confirm the client name matches the task projec
 - Direct Seller Central link: <https://sellercentral.amazon.com/enhanced-content/content-manager>
 - Default to **Premium A+** whenever it is available. We no longer use Basic A+ by default.
 - Premium A+ requires separate assets for desktop and mobile placements. Prepare and upload both sizes when the design provides them.
-- Use Basic A+ only if Premium A+ is unavailable in the account or Victor explicitly asks for Basic.
+- Use Basic A+ only if Premium A+ is unavailable in the account or the operator explicitly asks for Basic.
 
 ![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-FZ5QOWK5.png)
 

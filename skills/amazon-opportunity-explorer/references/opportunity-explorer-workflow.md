@@ -9,11 +9,11 @@ Repo-native extraction workflow:
 - `tools/opportunity-explorer/extract-opportunity-explorer.js`
 - `tools/opportunity-explorer/format-opportunity-explorer-export.mjs`
 
-Original Chrome extension/source backup, as Victor's current local placeholder path:
+Original Chrome extension/source backup, as The operator's current local placeholder path:
 
-`/Users/victoruhl/pCloud Drive/Account shares/Amazon Wizards/2_Company/2.7_Tools/Chrome Extension-Opportunity Explorer Downloader`
+`/Users/<your-username>/pCloud Drive/Account shares/Amazon Wizards/2_Company/2.7_Tools/Chrome Extension-Opportunity Explorer Downloader`
 
-Victor confirmed ownership and backend clearance for reusing the previous extension logic. The path is a historical/source reference only, not a repo dependency. The repo workflow is to run the browser-side extractor on the visible Product Opportunity Explorer page and save JSON/Markdown.
+The operator confirmed ownership and backend clearance for reusing the previous extension logic. The path is a historical/source reference only, not a repo dependency. The repo workflow is to run the browser-side extractor on the visible Product Opportunity Explorer page and save JSON/Markdown.
 
 ## Script-First Operating Model
 
@@ -75,5 +75,5 @@ Stop before:
 - Saving or publishing live listing changes.
 - Uploading product images or A+ content.
 - Changing catalog data.
-- Sharing client-facing recommendations without Victor approval when the analysis is speculative.
-- Modifying the extractor scripts unless Victor explicitly approves that work for the specific change.
+- Sharing client-facing recommendations without the operator's approval when the analysis is speculative.
+- Modifying the extractor scripts unless the operator explicitly approves that work for the specific change.

@@ -28,7 +28,7 @@ Amazon A+ Content is the tool that enables brand owners to describe product feat
 
   Direct Seller Central link: <https://sellercentral.amazon.com/enhanced-content/content-manager>
 
-  Default to Premium A+ whenever it is available. Premium A+ uses separate desktop and mobile image placements; verify both asset sets before recreating or editing content. Use Basic A+ only if Premium is unavailable or Victor explicitly asks for Basic.
+  Default to Premium A+ whenever it is available. Premium A+ uses separate desktop and mobile image placements; verify both asset sets before recreating or editing content. Use Basic A+ only if Premium is unavailable or the operator explicitly asks for Basic.
 
   ![image.png](https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/g33image.png)
 - On the A+ Content Manager page click the box “Show auto-created content” then choose the A+ content which you need to work on.![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/Catalog-SOP-Duplicating-A-Content-to-Another-Marketplace-1.png)

@@ -5,11 +5,11 @@ description: Use for end-to-end Amazon SEO keyword workbook workflows from DataD
 
 # Amazon SEO Keyword Workflow
 
-Use this when Victor asks for a full Amazon SEO keyword workbook, not only listing copy.
+Use this when the operator asks for a full Amazon SEO keyword workbook, not only listing copy.
 
 ## Standby Command
 
-`/seo-standby` means Victor is starting a keyword-research workbook flow but the actionable instructions are expected from Claude. Acknowledge standby, load this workflow if needed, and wait. Do not open DataDive, Seller Central, Amazon listings, run the builder, write SEO, create Drive outputs, edit listings, commit/push, or inspect browser credentials/session data until Victor provides Claude's concrete handoff.
+`/seo-standby` means the operator is starting a keyword-research workbook flow but the actionable instructions are expected from Claude. Acknowledge standby, load this workflow if needed, and wait. Do not open DataDive, Seller Central, Amazon listings, run the builder, write SEO, create Drive outputs, edit listings, commit/push, or inspect browser credentials/session data until the operator provides Claude's concrete handoff.
 
 When Claude's handoff arrives, Codex's job is to gather the requested browser/UI inputs, save the exact contract paths, report saved paths plus caveats, and stop.
 
@@ -41,7 +41,7 @@ DataDive UI export locations (so Codex doesn't hunt for them):
 - **Competitors CSV** — **Niche Tracker > Export Competitors**. Prefer the real UI export over MCP fallback. NOTE: the genuine UI export is TRANSPOSED (attribute rows, one column per ASIN) — the builder handles both shapes.
 - Core/Expanded MKL — always record Min Rel, visible keyword count, visible search volume, and export timestamp at export time.
 - Before fallback or rank injection, confirm the Core MKL has the exact anchor ASIN as a real DataDive column.
-- **DataDive export buttons may emit no detectable download event for Codex** (confirmed 2026-06-12). Fallback: Victor clicks the exports manually; Codex maps the files in `~/Downloads` by filename/timestamp/rows/headers (Core 30% includes a `Sugg. bid & range` column; Expanded 1% has far more rows) and reports row counts + headers. Claude then cross-checks the counts against the DataDive MCP niche statistics (`get_niche_competitors` → numVisibleKeywords/totalSvOfVisibleKeywords for 30%, numKeywords/totalSvOfKeywords for 1%) before accepting.
+- **DataDive export buttons may emit no detectable download event for Codex** (confirmed 2026-06-12). Fallback: the operator clicks the exports manually; Codex maps the files in `~/Downloads` by filename/timestamp/rows/headers (Core 30% includes a `Sugg. bid & range` column; Expanded 1% has far more rows) and reports row counts + headers. Claude then cross-checks the counts against the DataDive MCP niche statistics (`get_niche_competitors` → numVisibleKeywords/totalSvOfVisibleKeywords for 30%, numKeywords/totalSvOfKeywords for 1%) before accepting.
 - POE Products is the Niche Details route **`/product`**; POE Search Terms is **`/search-queries`**. Capture visible context: Seller Central account, account country, niche marketplace, niche name, and last-updated date.
 - POE quirks: direct tab URLs may render only the tab header — click the in-page tab to load real content. The POE **Download** click works even when the browser download event times out — look for the new file in `~/Downloads` and rename to the contract path. The repo POE script is for JSON/visible-page captures; native CSVs come from the Download button.
 - After Claude accepts the canonical inputs, Codex deletes duplicate/raw intermediate downloads (never the canonical contract paths).
@@ -65,7 +65,7 @@ Keyword-research workbooks are delivered to Google Drive only. Do not copy the f
 - Use `2.1 MKL DataDive 1%` for the Expanded `1%` MKL.
 - Use the Expanded `1%` MKL to generate `2.2 Never KWs`.
 - Keep misspellings/grammar variants out of Never Ever when they still represent relevant product intent.
-- Keep competitor/brand terms as PPC/context unless Victor explicitly approves another use.
+- Keep competitor/brand terms as PPC/context unless the operator explicitly approves another use.
 - Treat disease, cure, laxative, diagnosis, weight-loss, and unsupported health terms as compliance-risk by default.
 - Carry `5. Campaign Structure` forward as the empty PPC scaffold from the canonical template (Rank/Shield SKW waves, Long-Tails, Discovery, PAT Stronger/Weaker, Sum formulas, intent legend) so keywords can be filled in there. Do NOT add it to `generated_blank` — that wipes the scaffold. Only populate the campaigns when PPC is explicitly requested.
 

@@ -10,11 +10,11 @@ Use this specialist skill when the task involves Amazon Product Opportunity Expl
 ## Source Order
 
 1. Knowledge-base skill references for Ecom Wizards methodology:
-   - `/Users/victoruhl/Code/knowledge-base/Skills/amazon-image-strategy.md`
-   - `/Users/victoruhl/Code/knowledge-base/Skills/oei-product-strategy.md`
-   - `/Users/victoruhl/Code/knowledge-base/Skills/rufus-optimization.md`
-   - `/Users/victoruhl/Code/knowledge-base/Skills/amazon-seo-writer.md`
-   - `/Users/victoruhl/Code/knowledge-base/Skills/direct-response-copywriter.md` when image text or persuasive angles matter
+   - `/Users/<your-username>/Code/knowledge-base/Skills/amazon-image-strategy.md`
+   - `/Users/<your-username>/Code/knowledge-base/Skills/oei-product-strategy.md`
+   - `/Users/<your-username>/Code/knowledge-base/Skills/rufus-optimization.md`
+   - `/Users/<your-username>/Code/knowledge-base/Skills/amazon-seo-writer.md`
+   - `/Users/<your-username>/Code/knowledge-base/Skills/direct-response-copywriter.md` when image text or persuasive angles matter
 2. Amazon Seller Help for current Product Opportunity Explorer access, report/export behavior, and Seller Central constraints.
 3. MAG SOPs for practical Seller Central navigation and screenshots when useful.
 
@@ -29,11 +29,11 @@ Default model: script-first. Codex should run the browser-side extractor in the 
 
 The Chrome extension package is not part of the intended workflow once the script is tested. Keep the pCloud extension only as historical/source reference during transition.
 
-Original extension/source backup remains available in pCloud if needed. This is Victor's current local placeholder path, not a repo dependency:
+Original extension/source backup remains available in pCloud if needed. This is The operator's current local placeholder path, not a repo dependency:
 
-`/Users/victoruhl/pCloud Drive/Account shares/Amazon Wizards/2_Company/2.7_Tools/Chrome Extension-Opportunity Explorer Downloader`
+`/Users/<your-username>/pCloud Drive/Account shares/Amazon Wizards/2_Company/2.7_Tools/Chrome Extension-Opportunity Explorer Downloader`
 
-Victor confirmed ownership and backend clearance for reusing the previous extension logic. Use the extractor only through the logged-in connected browser Seller Central session. Do not inspect cookies, session storage, local storage, tokens, or credentials.
+The operator confirmed ownership and backend clearance for reusing the previous extension logic. Use the extractor only through the logged-in connected browser Seller Central session. Do not inspect cookies, session storage, local storage, tokens, or credentials.
 
 ## Workflow
 
@@ -41,7 +41,7 @@ Victor confirmed ownership and backend clearance for reusing the previous extens
 2. Search local Amazon docs and MAG SOPs for the current Product Opportunity Explorer path if browser navigation is needed.
 3. In the connected browser, navigate Seller Central to Product Opportunity Explorer / Opportunity Explorer and verify the selected account and marketplace.
 4. Run `tools/opportunity-explorer/extract-opportunity-explorer.js` in the page context on the relevant Opportunity Explorer niche/page. Do not require the user to open or click a Chrome extension unless script execution is unavailable.
-5. Save the raw extractor output as JSON, then run the formatter to create JSON and Markdown under `output/{client-or-brand}/opportunity-data/` with dates in filenames, or another Victor-approved local/pCloud destination.
+5. Save the raw extractor output as JSON, then run the formatter to create JSON and Markdown under `output/{client-or-brand}/opportunity-data/` with dates in filenames, or another operator-approved local/pCloud destination.
 6. Load only the relevant knowledge-base reference:
    - `amazon-image-strategy` for image set recommendations and creative direction.
    - `oei-product-strategy` for product development, differentiation, and market entry.
@@ -51,7 +51,7 @@ Victor confirmed ownership and backend clearance for reusing the previous extens
 
 ## Rufus / Alexa AI Naming
 
-Victor noted that Amazon's Rufus AI naming is moving/has moved toward Alexa or Alexa AI. Treat `Rufus`, `Alexa AI`, `Amazon AI search`, and `semantic Amazon search` as related trigger language unless current first-party Amazon docs say otherwise for a specific workflow.
+The operator noted that Amazon's Rufus AI naming is moving/has moved toward Alexa or Alexa AI. Treat `Rufus`, `Alexa AI`, `Amazon AI search`, and `semantic Amazon search` as related trigger language unless current first-party Amazon docs say otherwise for a specific workflow.
 
 ## Outputs
 

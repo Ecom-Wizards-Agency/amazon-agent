@@ -4,7 +4,7 @@ The GitHub/runtime project keeps the MAG SOP markdown searchable and lightweight
 
 ## Canonical Visual Archive
 
-- Victor's current local placeholder path: `/Users/victoruhl/Documents/pCloud/Amazon Agent/MAG SOPs`
+- The operator's current local placeholder path: `/Users/<your-username>/Documents/pCloud/Amazon Agent/MAG SOPs`
 - Expected contents: 535 Markdown files and 3,621 assets in `assets/`
 - Expected missing local image references: 0
 

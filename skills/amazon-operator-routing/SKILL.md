@@ -36,18 +36,18 @@ Do not start Creator Connections from ~~`https://advertising.amazon.com/choose-a
 
 Read `references/library-map.md` and `references/specialist-routing.md` when choosing where to search. Main folders:
 
-- `/Users/victoruhl/Codex Projects/Amazon Agent/MAG SOPs`
-- `/Users/victoruhl/Codex Projects/Amazon Agent/sop-drafts`
-- `/Users/victoruhl/Codex Projects/Amazon Agent/Amazon Seller Help`
-- `/Users/victoruhl/Codex Projects/Amazon Agent/Amazon Ads Help`
-- `/Users/victoruhl/Codex Projects/Amazon Agent/Advertising Help After Login`
+- `/Users/<your-username>/Codex Projects/Amazon Agent/MAG SOPs`
+- `/Users/<your-username>/Codex Projects/Amazon Agent/sop-drafts`
+- `/Users/<your-username>/Codex Projects/Amazon Agent/Amazon Seller Help`
+- `/Users/<your-username>/Codex Projects/Amazon Agent/Amazon Ads Help`
+- `/Users/<your-username>/Codex Projects/Amazon Agent/Advertising Help After Login`
 
 Use `scripts/search_amazon_libraries.py` for quick local search:
 
 ```bash
-python3 "/Users/victoruhl/Codex Projects/Amazon Agent/skills/amazon-operator-routing/scripts/search_amazon_libraries.py" "create shipment"
-python3 "/Users/victoruhl/Codex Projects/Amazon Agent/skills/amazon-operator-routing/scripts/search_amazon_libraries.py" "bid adjustment" --library ads --limit 8
-python3 "/Users/victoruhl/Codex Projects/Amazon Agent/skills/amazon-operator-routing/scripts/search_amazon_libraries.py" "account health appeal" --library seller --limit 8
+python3 "/Users/<your-username>/Codex Projects/Amazon Agent/skills/amazon-operator-routing/scripts/search_amazon_libraries.py" "create shipment"
+python3 "/Users/<your-username>/Codex Projects/Amazon Agent/skills/amazon-operator-routing/scripts/search_amazon_libraries.py" "bid adjustment" --library ads --limit 8
+python3 "/Users/<your-username>/Codex Projects/Amazon Agent/skills/amazon-operator-routing/scripts/search_amazon_libraries.py" "account health appeal" --library seller --limit 8
 ```
 
 ## Routing Workflow
@@ -88,7 +88,7 @@ python3 "/Users/victoruhl/Codex Projects/Amazon Agent/skills/amazon-operator-rou
    Ask for confirmation before sending messages, submitting support cases, creating shipments, changing campaigns/budgets/bids, uploading bulk files, deleting data, or making externally visible changes.
 
 8. **Finish with an operator note.**
-   Include what was done, what source(s) were used, open risks, exact files downloaded/prepared, and next action needed from Victor if any.
+   Include what was done, what source(s) were used, open risks, exact files downloaded/prepared, and next action needed from the operator if any.
 
 ## Visual and Table Preservation
 
@@ -97,7 +97,7 @@ When the task involves UI learning, troubleshooting, or documentation:
 - Preserve table values in markdown tables.
 - Save screenshots when they show an important UI state, error, warning, or workflow step.
 - Record exact page names, tab names, button/menu labels, filters, marketplace/account selectors, report types, and date ranges.
-- For troubleshooting, capture the symptom, likely root cause, evidence, and next recommended action so Victor does not need to research it again.
+- For troubleshooting, capture the symptom, likely root cause, evidence, and next recommended action so the operator does not need to research it again.
 
 ## Safety Rules
 
@@ -114,8 +114,8 @@ Browser stop points:
 
 - Do not send creator messages without confirmation.
 - Do not submit Seller Support cases without confirmation.
-- For Seller Support follow-ups or escalations, reply inside the existing case when one exists. Do not open a duplicate case for the same issue unless Victor explicitly asks for a new case or Seller Central blocks replies.
-- Before live Seller Support chat, support-case submission, or email-style case replies, check `_local/local-permissions.md` for the locally configured operator full name. Use that full name for traceability when Amazon asks for a sender name or when signing a message. If no full name is stored locally, pause and ask Victor before sending. Never commit the actual local identity to GitHub.
+- For Seller Support follow-ups or escalations, reply inside the existing case when one exists. Do not open a duplicate case for the same issue unless the operator explicitly asks for a new case or Seller Central blocks replies.
+- Before live Seller Support chat, support-case submission, or email-style case replies, check `_local/local-permissions.md` for the locally configured operator full name. Use that full name for traceability when Amazon asks for a sender name or when signing a message. If no full name is stored locally, pause and ask the operator before sending. Never commit the actual local identity to GitHub.
 - In Seller Support chat, wait for the associate's first message before sending substantive details. Send one focused message at a time and wait for the next associate reply. If the associate says they are still checking, reply politely that the named operator is still waiting.
 - Do not create or confirm shipments without confirmation.
 - Do not upload bulk files without confirmation.

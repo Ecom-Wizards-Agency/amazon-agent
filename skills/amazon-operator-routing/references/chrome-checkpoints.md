@@ -38,7 +38,7 @@ Take or save screenshots when:
 
 ## Stop Points
 
-Stop and ask Victor before:
+Stop and ask the operator before:
 
 - Sending creator/customer/support messages.
 - Submitting Seller Support cases or replies.
@@ -64,4 +64,4 @@ End operational work with:
 - Final screen/state
 - Files downloaded or prepared
 - Open risks or unresolved issues
-- Exact next action if Victor must confirm or take over
+- Exact next action if the operator must confirm or take over

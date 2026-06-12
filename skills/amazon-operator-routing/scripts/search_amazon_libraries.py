@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Search Victor's local Amazon SOP/help libraries.
+"""Search the operator's local Amazon SOP/help libraries.
 
 This script is intentionally local-only and avoids browser/process control.
 """

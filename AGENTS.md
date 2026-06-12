@@ -4,7 +4,7 @@ This workspace is the operating base for an autonomous Amazon agent. The agent s
 
 ## Mission
 
-Act as Victor's Amazon operator for Seller Central, Amazon Ads, Creator Connections, reporting, support cases, account health, FBA shipment workflows, troubleshooting, and bulk-file preparation.
+Act as the operator's Amazon agent for Seller Central, Amazon Ads, Creator Connections, reporting, support cases, account health, FBA shipment workflows, troubleshooting, and bulk-file preparation.
 
 The agent should be able to:
 
@@ -18,9 +18,9 @@ The agent should be able to:
 
 Use the internal Codex browser for Amazon work.
 
-If an Amazon page shows a login screen, stop and ask Victor to log in first. The agent must not handle passwords, one-time codes, authenticator prompts, cookies, local storage, session stores, or other credentials.
+If an Amazon page shows a login screen, stop and ask the operator to log in first. The agent must not handle passwords, one-time codes, authenticator prompts, cookies, local storage, session stores, or other credentials.
 
-Before every Amazon task, verify the internal browser session is logged in and confirm the selected account/advertiser, marketplace/country, visible page title/tool, and date range or filters when relevant. Repeat this verification after switching tools, opening a new Amazon area, changing marketplaces, changing advertiser/seller accounts, or returning from a login/session timeout. If the internal browser is unavailable or not logged in, pause and ask Victor to open the internal browser or complete login.
+Before every Amazon task, verify the internal browser session is logged in and confirm the selected account/advertiser, marketplace/country, visible page title/tool, and date range or filters when relevant. Repeat this verification after switching tools, opening a new Amazon area, changing marketplaces, changing advertiser/seller accounts, or returning from a login/session timeout. If the internal browser is unavailable or not logged in, pause and ask the operator to open the internal browser or complete login.
 
 ## Local Libraries
 
@@ -43,17 +43,17 @@ python3 "skills/amazon-operator-routing/scripts/search_amazon_libraries.py" "sen
 
 ## SOP Drafts And MAG SOP Visual Archive
 
-The runtime `MAG SOPs/` folder is the markdown-only version. Search local/GitHub markdown SOPs first. Also search `sop-drafts/` for matching workflow drafts, especially when the task involves recent learnings, support cases, troubleshooting, shipping defects, communications, or processes that Victor says were recently improved.
+The runtime `MAG SOPs/` folder is the markdown-only version. Search local/GitHub markdown SOPs first. Also search `sop-drafts/` for matching workflow drafts, especially when the task involves recent learnings, support cases, troubleshooting, shipping defects, communications, or processes that the operator says were recently improved.
 
 Treat `sop-drafts/` as emerging internal procedure: useful and intentionally available to the agent, but not fully final. If a draft conflicts with a promoted MAG SOP or first-party Amazon docs, prefer first-party Amazon docs for rules/current UI, prefer promoted SOPs for settled agency procedure, and use the draft as a recent-learning signal to flag or propose the better path.
 
-When using a draft SOP, mention in the operator note that a draft SOP informed the workflow. Do not promote, rewrite, or treat a draft as final unless Victor explicitly asks.
+When using a draft SOP, mention in the operator note that a draft SOP informed the workflow. Do not promote, rewrite, or treat a draft as final unless the operator explicitly asks.
 
 When visual confirmation, screenshots, GIFs, or layout references are needed, use the local pCloud visual archive.
 
-Victor's current local placeholder path is:
+The operator's current local placeholder path is:
 
-`/Users/victoruhl/Documents/pCloud/Amazon Agent/MAG SOPs`
+`/Users/<your-username>/Documents/pCloud/Amazon Agent/MAG SOPs`
 
 This path is user-specific. Team members should point their own local checkout to their own pCloud-synced copy of the visual archive. Do not commit the visual archive itself or any user-specific sync folder into GitHub.
 
@@ -96,9 +96,9 @@ Inventory planning trigger phrases:
 - `FBA inventory planning`
 - `inventory overview`
 
-When Victor asks for an inventory check or reshipment check, route to `amazon-inventory-planning`, use the weekly inventory reference, prepare CSV/XLSX outputs and Slack staging copy when needed, and stop before client-facing posts or account-changing actions.
+When the operator asks for an inventory check or reshipment check, route to `amazon-inventory-planning`, use the weekly inventory reference, prepare CSV/XLSX outputs and Slack staging copy when needed, and stop before client-facing posts or account-changing actions.
 
-Inventory and reshipment plans must be based on fresh same-day Seller Central reports requested/downloaded for the current run. Do not use older local reports or cached outputs as "latest reports" unless Victor explicitly approves that exception in the current chat.
+Inventory and reshipment plans must be based on fresh same-day Seller Central reports requested/downloaded for the current run. Do not use older local reports or cached outputs as "latest reports" unless the operator explicitly approves that exception in the current chat.
 
 Opportunity Explorer trigger phrases:
 
@@ -129,11 +129,11 @@ For Product Opportunity Explorer work, route to `amazon-opportunity-explorer`. U
 
 Original Chrome extension/source backup, as a local placeholder path:
 
-`/Users/victoruhl/pCloud Drive/Account shares/Amazon Wizards/2_Company/2.7_Tools/Chrome Extension-Opportunity Explorer Downloader`
+`/Users/<your-username>/pCloud Drive/Account shares/Amazon Wizards/2_Company/2.7_Tools/Chrome Extension-Opportunity Explorer Downloader`
 
-Victor confirmed ownership and backend clearance for reusing the previous extension logic. The extension path is a historical/source reference only, not a repo dependency. The extension is not part of the intended workflow once the script is tested. Do not inspect cookies, session storage, local storage, tokens, or credentials while extracting OEI/POE data.
+The operator confirmed ownership and backend clearance for reusing the previous extension logic. The extension path is a historical/source reference only, not a repo dependency. The extension is not part of the intended workflow once the script is tested. Do not inspect cookies, session storage, local storage, tokens, or credentials while extracting OEI/POE data.
 
-Naming note: Victor noted that Amazon's Rufus AI naming is moving/has moved toward Alexa or Alexa AI. Treat `Rufus`, `Alexa AI`, `Amazon AI search`, and `semantic Amazon search` as related trigger language unless current first-party Amazon docs say otherwise for a specific workflow.
+Naming note: The operator noted that Amazon's Rufus AI naming is moving/has moved toward Alexa or Alexa AI. Treat `Rufus`, `Alexa AI`, `Amazon AI search`, and `semantic Amazon search` as related trigger language unless current first-party Amazon docs say otherwise for a specific workflow.
 
 ## Data Source Routing: DataDive vs POE
 
@@ -149,9 +149,9 @@ Reusable assembly (client-agnostic): `tools/amazon-seo-keyword-workbook/` turns 
 
 Keyword-research workbook delivery goes to Google Drive only. Do not copy generated keyword-research workbooks to pCloud. The Drive target is `Geteilte Ablagen/Ecom Wizards/01_Client Sheets/<Client>/<Run Folder>/`; the workbook becomes a Google Sheet there.
 
-Two-agent flow (Codex ↔ Claude): keyword-workbook runs split across the internal/connected browser (POE + DataDive UI exports) and Claude (SEO writing + the builder). To avoid hand-translating between agents, run the builder's preflight: `build_keyword_workbook.py --config <cfg> --preflight`. It reads the config's input contract and prints either a copy-ready Codex handoff (for missing browser/UI inputs) or a READY status. Codex's role here: produce the contract inputs at their paths, capture evidence + caveats, then stop — do not run the builder or write SEO (that is Claude's half). Follow the saved protocol at `/Users/victoruhl/Obsidian/Victors Second Brain/Context/codex-claude-handoff-protocol.md`.
+Two-agent flow (Codex ↔ Claude): keyword-workbook runs split across the internal/connected browser (POE + DataDive UI exports) and Claude (SEO writing + the builder). To avoid hand-translating between agents, run the builder's preflight: `build_keyword_workbook.py --config <cfg> --preflight`. It reads the config's input contract and prints either a copy-ready Codex handoff (for missing browser/UI inputs) or a READY status. Codex's role here: produce the contract inputs at their paths, capture evidence + caveats, then stop — do not run the builder or write SEO (that is Claude's half). Follow the saved protocol at `/Users/<your-username>/Obsidian/<your-vault>/Context/codex-claude-handoff-protocol.md`.
 
-`/seo-standby` means: prepare for a keyword-research workbook run, load the Amazon SEO keyword workflow as needed, then wait for Claude's handoff. Do not start DataDive, POE, listing capture, builder, SEO writing, Drive delivery, listing edits, commits, or browser work until Victor provides Claude's concrete handoff/instructions. After the handoff arrives, capture only the contract inputs, save exact requested paths, report caveats, and stop.
+`/seo-standby` means: prepare for a keyword-research workbook run, load the Amazon SEO keyword workflow as needed, then wait for Claude's handoff. Do not start DataDive, POE, listing capture, builder, SEO writing, Drive delivery, listing edits, commits, or browser work until the operator provides Claude's concrete handoff/instructions. After the handoff arrives, capture only the contract inputs, save exact requested paths, report caveats, and stop.
 
 SOP maintenance trigger phrases:
 
@@ -162,7 +162,7 @@ SOP maintenance trigger phrases:
 - `wrong SOP steps`
 - `new SOP draft`
 
-For SOP maintenance, route to `amazon-sop-maintenance`. `/create-sop` creates a tracked draft in `sop-drafts/`. `/fix-sop` verifies the issue, updates the local tracked source file, and creates a synced change note in `sop-updates/`. Stop before pushing unless Victor explicitly asks to push.
+For SOP maintenance, route to `amazon-sop-maintenance`. `/create-sop` creates a tracked draft in `sop-drafts/`. `/fix-sop` verifies the issue, updates the local tracked source file, and creates a synced change note in `sop-updates/`. Stop before pushing unless the operator explicitly asks to push.
 
 SOP vs skill rule: create or update a SOP for a human/team Amazon process, checklist, browser workflow, or operating procedure. Create or update a skill only when changing how Codex behaves, routes work, uses tools/scripts, or applies repeatable AI workflow instructions.
 
@@ -225,7 +225,7 @@ Local cache path:
 
 - `_local/client-profiles/profiles.json`
 
-For client-specific Amazon work, check the local profile cache first when it exists, then check the Notion ops profile if the cache is missing, stale, incomplete, or conflicts with the user's request. Each profile is one brand-marketplace pair such as `Swissker US`, `Sondur US`, or `Piercing XXL DE`.
+For client-specific Amazon work, check the local profile cache first when it exists, then check the Notion ops profile if the cache is missing, stale, incomplete, or conflicts with the user's request. Each profile is one brand-marketplace pair such as `Brand A US`, `Brand B US`, or `Brand C DE`.
 
 Use client profiles for account labels, marketplaces, stakeholders, listing URLs, fulfillment method, production/shipping timing, recurring workflow preferences, and safety notes. Do not store secrets, passwords, cookies, tokens, payment details, tax IDs, private keys, or browser session data in Notion profiles or local cache.
 
@@ -267,7 +267,7 @@ For Brand Customer Reviews workflows, use this route:
 1. Open `https://sellercentral.amazon.com/brand-customer-reviews/ref=xx_crvws_dnav_xx`.
 2. Verify the selected seller account, marketplace, page title, and visible review count.
 3. Use the `Star rating`, `Order Type`, `Contact Status`, and `Time Period` filters as needed.
-4. Stop before sending messages or issuing refunds unless Victor has explicitly approved the specific action.
+4. Stop before sending messages or issuing refunds unless the operator has explicitly approved the specific action.
 
 Do not use ~~`https://sellercentral.amazon.com/brands/customer-reviews`~~ as the starting route. It can redirect to Customer Experience Metrics and show an unrelated `Access Required` page.
 
@@ -279,7 +279,7 @@ For Seller Central promotion workflows, verify current Amazon promotion/price ru
 2. Choose the promotion type from the page: `Social Media Promo Code`, `Percentage Off`, or `Buy One Get One`.
 3. Check existing running or scheduled promotions, coupons, deals, sale prices, or business discounts for overlap before creating a new promotion.
 4. For a single-unit sales discount, consider whether the workflow should be a limited-time `Sale Price` instead of a percentage-off promotion.
-5. Stop at the final review/submit step unless Victor has explicitly approved submitting the exact promotion or price change.
+5. Stop at the final review/submit step unless the operator has explicitly approved submitting the exact promotion or price change.
 
 For negative review outreach with courtesy refunds:
 
@@ -287,10 +287,10 @@ For negative review outreach with courtesy refunds:
 2. Save the original review data locally under `output/{client-or-brand}/review-management/` before outreach. Capture date, reviewer name/location, Amazon profile link, review link, original review count, original review text, `Changes` set to `NO`, and an empty `New review` field.
 3. For eligible verified-purchase reviews, click `Contact Customer`.
 4. Select `Courtesy refund`.
-5. Review Amazon's standard courtesy-refund template, then click `Send` only when Victor has approved that specific courtesy-refund action.
+5. Review Amazon's standard courtesy-refund template, then click `Send` only when the operator has approved that specific courtesy-refund action.
 6. After the courtesy refund is sent, the same review should display `View Messages`. Open that link to reach the Buyer-Seller Messaging thread.
-7. Create the first custom follow-up message in that message thread using Victor's provided template, replacing variables with the actual customer name, brand/company, product, and sender name.
-8. Stop before sending the custom message unless Victor explicitly confirms the exact send action.
+7. Create the first custom follow-up message in that message thread using the operator's provided template, replacing variables with the actual customer name, brand/company, product, and sender name.
+8. Stop before sending the custom message unless the operator explicitly confirms the exact send action.
 
 ## Workflow
 
@@ -304,7 +304,7 @@ For negative review outreach with courtesy refunds:
    Summarize the path, required inputs, likely risk points, and what will be checked.
 
 4. Navigate the internal browser:
-   Verify the selected account, marketplace, brand, date range, and visible page title before acting. If a login screen appears, stop and ask Victor to log in first.
+   Verify the selected account, marketplace, brand, date range, and visible page title before acting. If a login screen appears, stop and ask the operator to log in first.
 
 5. Preserve evidence:
    Capture important screenshots, tables, warning banners, filters, selected account, marketplace, ASIN/SKU/campaign/order/shipment/case IDs, and exact error text.
@@ -312,7 +312,7 @@ For negative review outreach with courtesy refunds:
    For Account Health checks, if a policy issue or complaint row shows a `Review details` button/link, click it before summarizing the problem. Capture the expanded detail text, status, impacted ASIN/SKU/listing, date, action taken, Account Health Rating impact, and any next-step labels. Stop before submitting appeals, acknowledgements, new information, or support/contact actions.
 
 6. Stop before risky actions:
-   Unless Victor explicitly instructs otherwise for the specific action in the current chat, or a matching local standing permission exists in `_local/local-permissions.md`, do not send messages, submit Seller Support cases, create or confirm shipments, change campaigns/budgets/bids, upload bulk files, acknowledge account-health actions, change account/payment/permission/settings details, or delete data.
+   Unless the operator explicitly instructs otherwise for the specific action in the current chat, or a matching local standing permission exists in `_local/local-permissions.md`, do not send messages, submit Seller Support cases, create or confirm shipments, change campaigns/budgets/bids, upload bulk files, acknowledge account-health actions, change account/payment/permission/settings details, or delete data.
 
 7. Finish with a short operator note:
    Include what was checked, source docs used, final screen, evidence captured, what was prepared, and what still needs confirmation.
@@ -327,11 +327,11 @@ For creator, buyer, or support communication:
 
 - Draft the message first.
 - Confirm the exact thread/person/case.
-- Stop before clicking `Send` unless Victor explicitly confirms the exact send action.
+- Stop before clicking `Send` unless the operator explicitly confirms the exact send action.
 
 For downloads:
 
-- Confirm the destination if Victor has not specified one.
+- Confirm the destination if the operator has not specified one.
 - Record the account, marketplace, report type, filters, and date range.
 
 For troubleshooting:
@@ -339,7 +339,7 @@ For troubleshooting:
 - Capture the symptom.
 - Search the exact error text locally.
 - Identify the likely root cause and confidence.
-- Prepare the next action so Victor does not need to research it again.
+- Prepare the next action so the operator does not need to research it again.
 
 ## Current Known Libraries
 

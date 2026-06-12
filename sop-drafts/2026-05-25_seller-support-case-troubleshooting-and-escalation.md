@@ -32,14 +32,14 @@ Create a repeatable workflow for Seller Central support cases so operators gathe
 1. Confirm the account, marketplace, page title, and relevant filters or dates before taking action.
 2. Search the local Amazon libraries and any relevant SOPs for the exact issue text or closest workflow.
 3. Check whether an existing case or dispute already exists for the same issue.
-4. If a case exists, follow up in that case unless Seller Central blocks replies or Victor explicitly asks for a new case.
+4. If a case exists, follow up in that case unless Seller Central blocks replies or the operator explicitly asks for a new case.
 5. Draft concise support text:
    - identify the entity and issue,
    - state what was checked,
    - explain why the previous answer is incomplete if escalating,
    - ask for the exact evidence or root-cause information needed.
 6. Use the locally configured operator signature for traceability when Amazon asks for a sender name or when signing a support message. Do not put the actual local name in GitHub docs.
-7. Prefer email communication when Seller Central allows it, but use chat when Victor approves chat or speed matters.
+7. Prefer email communication when Seller Central allows it, but use chat when the operator approves chat or speed matters.
 8. In live chat:
    - wait for the support associate's first message before sending substantive details,
    - send one focused message at a time,
@@ -87,7 +87,7 @@ Avoid generic filler, long background, and vague asks. For example, say what Ama
 
 ## Stop-Before-Risk Points
 
-- Stop before submitting a new case, sending a reply, starting or continuing chat, acknowledging a defect, submitting a dispute, uploading documentation, changing inventory, creating removals, or deleting listings unless Victor explicitly approved the action or a matching local permission exists.
+- Stop before submitting a new case, sending a reply, starting or continuing chat, acknowledging a defect, submitting a dispute, uploading documentation, changing inventory, creating removals, or deleting listings unless the operator explicitly approved the action or a matching local permission exists.
 - Stop if Seller Central changes the message materially, forces a different communication method, asks for an appeal/acknowledgement instead of a support case, or blocks duplicate case creation.
 - Stop before committing screenshots, raw evidence, client-specific identifiers, local permission records, or actual operator identity to GitHub.
 
@@ -114,4 +114,4 @@ Avoid generic filler, long background, and vague asks. For example, say what Ama
 
 ## Promotion Notes
 
-After team review, promote this SOP into the durable MAG/internal SOP library or link it from the Amazon communications workflow. Keep any examples generic unless Victor explicitly approves a sanitized case study.
+After team review, promote this SOP into the durable MAG/internal SOP library or link it from the Amazon communications workflow. Keep any examples generic unless the operator explicitly approves a sanitized case study.

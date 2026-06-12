@@ -1465,7 +1465,7 @@ def write_handoff_note(path: str, cfg: dict, args: dict, manifest: dict) -> str:
         f"You are working in `/Users/victoruhl/Codex Projects/Amazon Agent`.",
         "Use the project-local skill `skills/amazon-seo-keyword-workflow/SKILL.md`.",
         f"Continue from workbook `{manifest['outputs']['workbook_local']}` and manifest `{manifest['outputs']['manifest']}`.",
-        "Do not edit live listings or upload anything to Seller Central without Victor's explicit approval.",
+        "Do not edit live listings or upload anything to Seller Central without the operator's explicit approval.",
         "Verify health-claim-sensitive language against the actual product label and Amazon/EU compliance before final copy.",
         "```",
         "",
@@ -1535,7 +1535,7 @@ def _codex_handoff_block(cfg: dict, args: dict, missing: list[str]) -> str:
         "family; ingredient/health-claim risks (flag joint/skin/hair/nail/anti-age claims in the live copy).",
         "",
         "Known capture quirks (from prior runs):",
-        "- DataDive export buttons may emit NO detectable download event. If exports don't land, ask Victor to "
+        "- DataDive export buttons may emit NO detectable download event. If exports don't land, ask the operator to "
         "click them manually, then map the files in ~/Downloads by filename/timestamp/rows/headers "
         "(Core 30% includes a 'Sugg. bid & range' column; the Expanded 1% file has many more rows). Report the "
         "row counts + headers per file so Claude can cross-check them against the DataDive MCP niche statistics.",

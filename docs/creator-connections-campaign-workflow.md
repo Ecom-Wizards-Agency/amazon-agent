@@ -185,7 +185,7 @@ In Creator Connections, complete the campaign setup fields shown in the console.
 - Creator brief
 - Any category-specific disclosure or compliance fields
 
-Stop before launch or final submit unless Victor has approved the exact campaign settings in the current chat or a matching local standing permission exists.
+Stop before launch or final submit unless the operator has approved the exact campaign settings in the current chat or a matching local standing permission exists.
 
 ### 6. Manage Creator Messages
 
@@ -195,7 +195,7 @@ For inbound sample requests:
 2. Check whether the creator qualifies under the approved sample policy.
 3. Use the qualification message if proof is needed.
 4. Replace all variables.
-5. Stop before sending unless Victor approves the exact message/thread.
+5. Stop before sending unless the operator approves the exact message/thread.
 
 If a creator sends proof of eligibility:
 

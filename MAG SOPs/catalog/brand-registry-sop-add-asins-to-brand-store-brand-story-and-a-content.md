@@ -27,7 +27,7 @@ Brand Story and A+ Content (EBC)
 
    Direct Seller Central link: <https://sellercentral.amazon.com/enhanced-content/content-manager>
 
-   Default to Premium A+ whenever it is available. Premium A+ has separate desktop and mobile image placements, so confirm both asset sizes are present before building or updating the content. Use Basic A+ only if Premium is unavailable or Victor explicitly asks for Basic.
+   Default to Premium A+ whenever it is available. Premium A+ has separate desktop and mobile image placements, so confirm both asset sizes are present before building or updating the content. Use Basic A+ only if Premium is unavailable or the operator explicitly asks for Basic.
 
   ![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-D0X55JVU.png)
 

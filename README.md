@@ -1,6 +1,6 @@
 # Amazon Agent
 
-Amazon Agent is Victor's local runtime workspace for operating Amazon workflows with a lightweight source structure. It combines first-party Amazon help captures, Ecom Wizards MAG SOP markdown, and focused Amazon skills for Seller Central, Amazon Ads, Creator Connections, reporting, account health, FBA shipment workflows, troubleshooting, and bulk-file preparation.
+Amazon Agent is the operator's local runtime workspace for operating Amazon workflows with a lightweight source structure. It combines first-party Amazon help captures, Ecom Wizards MAG SOP markdown, and focused Amazon skills for Seller Central, Amazon Ads, Creator Connections, reporting, account health, FBA shipment workflows, troubleshooting, and bulk-file preparation.
 
 ## How To Use
 
@@ -11,7 +11,7 @@ For most work:
 1. Classify the workflow: Seller Central, Amazon Ads, Creator Connections, MAG SOP procedure, reporting, logistics, catalog, inventory, or troubleshooting.
 2. Search the local markdown/runtime libraries first.
 3. Use the connected Codex browser with the logged-in Amazon session when browser operation is needed. Common choices are Chrome or Brave.
-4. Stop before externally visible or risky actions unless Victor explicitly approves the specific action.
+4. Stop before externally visible or risky actions unless the operator explicitly approves the specific action.
 
 This project uses one main Codex operator with specialist skills, not separate permanent specialist agents. The dispatcher skill routes work into playbooks like `amazon-seo`, `amazon-catalog`, `amazon-ads`, `amazon-inventory-planning`, `amazon-opportunity-explorer`, and `amazon-communications`.
 
@@ -49,9 +49,9 @@ The local project should stay aligned with the GitHub repo's lightweight runtime
 
 ## Visual MAG SOP Archive
 
-The complete visual MAG SOP archive lives outside the GitHub/runtime project. Victor's current local placeholder path is:
+The complete visual MAG SOP archive lives outside the GitHub/runtime project. The operator's current local placeholder path is:
 
-`/Users/victoruhl/Documents/pCloud/Amazon Agent/MAG SOPs`
+`/Users/<your-username>/Documents/pCloud/Amazon Agent/MAG SOPs`
 
 Use local/GitHub markdown SOPs first for search and routing. Use the pCloud visual archive only when visual confirmation, screenshots, GIFs, or layout references are needed.
 
@@ -116,7 +116,7 @@ Do not store screenshots, GIFs, exports, or heavy evidence in `sop-updates/`. Ke
 
 New SOPs should start as markdown drafts in `sop-drafts/`. Drafts should still be searched by the agent during matching Amazon workflows because they often contain the newest learnings from recent runs.
 
-Promote a draft into `MAG SOPs/` or another source library only when Victor explicitly asks. Until promoted, treat drafts as review-stage guidance: cite them in the operator note when used, and resolve conflicts in favor of first-party Amazon docs for current rules/UI and promoted SOPs for settled agency procedure.
+Promote a draft into `MAG SOPs/` or another source library only when the operator explicitly asks. Until promoted, treat drafts as review-stage guidance: cite them in the operator note when used, and resolve conflicts in favor of first-party Amazon docs for current rules/UI and promoted SOPs for settled agency procedure.
 
 Create or update a SOP when documenting a human/team Amazon process, checklist, browser workflow, or operating procedure. Create or update a skill only when changing how Codex behaves, routes work, uses tools/scripts, or applies repeatable AI workflow instructions.
 

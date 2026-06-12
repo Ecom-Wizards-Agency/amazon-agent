@@ -7,19 +7,19 @@ description: Use for Amazon SEO and listing optimization work: keyword research 
 
 Use this as the Amazon SEO specialist skill. It coordinates existing Ecom Wizards SEO skill references from the GitHub knowledge library with current Amazon first-party rules.
 
-Naming note: Victor noted that Amazon's Rufus AI naming is moving/has moved toward Alexa or Alexa AI. Treat `Rufus`, `Alexa AI`, `Amazon AI search`, and `semantic Amazon search` as related trigger language unless current first-party Amazon docs say otherwise for a specific workflow.
+Naming note: The operator noted that Amazon's Rufus AI naming is moving/has moved toward Alexa or Alexa AI. Treat `Rufus`, `Alexa AI`, `Amazon AI search`, and `semantic Amazon search` as related trigger language unless current first-party Amazon docs say otherwise for a specific workflow.
 
 ## Source Order
 
 1. Knowledge-base skill references for Ecom Wizards methodology:
-   - `/Users/victoruhl/Code/knowledge-base/Skills/keyword-classifier-and-filter.md`
-   - `/Users/victoruhl/Code/knowledge-base/Skills/amazon-seo-writer.md`
-   - `/Users/victoruhl/Code/knowledge-base/Skills/rufus-optimization.md`
-   - `/Users/victoruhl/Code/knowledge-base/Skills/amazon-image-strategy.md` when OEI/POE image strategy or visual search context matters
-   - `/Users/victoruhl/Code/knowledge-base/Skills/direct-response-copywriter.md` when persuasion/voice matters
-   - relevant client/project notes under `/Users/victoruhl/Code/knowledge-base/Projects/Clients/`
+   - `/Users/<your-username>/Code/knowledge-base/Skills/keyword-classifier-and-filter.md`
+   - `/Users/<your-username>/Code/knowledge-base/Skills/amazon-seo-writer.md`
+   - `/Users/<your-username>/Code/knowledge-base/Skills/rufus-optimization.md`
+   - `/Users/<your-username>/Code/knowledge-base/Skills/amazon-image-strategy.md` when OEI/POE image strategy or visual search context matters
+   - `/Users/<your-username>/Code/knowledge-base/Skills/direct-response-copywriter.md` when persuasion/voice matters
+   - relevant client/project notes under `/Users/<your-username>/Code/knowledge-base/Projects/Clients/`
 
-   Note: these knowledge-base skill files are a user-specific local reference and may not exist at the `Code/knowledge-base` path. Victor's current local copies live in an Obsidian vault: `/Users/victoruhl/Obsidian/Victors Second Brain/Skills/` (e.g. `amazon-seo-writer.md`, `keyword-classifier-and-filter.md`, `rufus-optimization.md`, `oei-product-strategy.md`). This path is user-specific — team members should point to their own local knowledge-base/Obsidian copy. Do not commit the vault to GitHub. This is a reference source only, not a "check Obsidian for everything" rule.
+   Note: these knowledge-base skill files are a user-specific local reference and may not exist at the `Code/knowledge-base` path. The operator's current local copies live in an Obsidian vault: `/Users/<your-username>/Obsidian/<your-vault>/Skills/` (e.g. `amazon-seo-writer.md`, `keyword-classifier-and-filter.md`, `rufus-optimization.md`, `oei-product-strategy.md`). This path is user-specific — team members should point to their own local knowledge-base/Obsidian copy. Do not commit the vault to GitHub. This is a reference source only, not a "check Obsidian for everything" rule.
 
    In-repo condensations (use these when the vault is unavailable — they make the skill self-contained):
    - `skills/amazon-seo/references/seo-writing-methodology.md` — keyword classification, Ranking-Juice placement priority, title/bullet/description/backend rules, Rufus/Alexa semantic layer, audit pass.
@@ -59,4 +59,4 @@ Naming note: Victor noted that Amazon's Rufus AI naming is moving/has moved towa
 - Provide title, bullets, description, backend terms, and audit only when requested or useful.
 - Include Ranking Juice assumptions when using keyword search volume.
 - Avoid keyword stuffing; natural compliant copy beats raw keyword density.
-- Mark anything that needs Victor approval before publishing.
+- Mark anything that needs the operator's approval before publishing.

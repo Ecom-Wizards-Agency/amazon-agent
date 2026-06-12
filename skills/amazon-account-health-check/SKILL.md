@@ -37,7 +37,7 @@ Ask which accounts and marketplaces should run before creating a local automatio
 ## Browser Rules
 
 - Use the internal browser for Seller Central.
-- If Seller Central shows login or verification, stop and ask Victor to complete it.
+- If Seller Central shows login or verification, stop and ask the operator to complete it.
 - Verify account, marketplace, page title/tool, and date/filter context before recording.
 - Repeat verification after account/marketplace switches, tool switches, or session timeouts.
 - Stop before appeals, acknowledgements, support contact, listing edits, shipment actions, messages, uploads, or account-changing actions.
@@ -161,4 +161,4 @@ Report:
 - Slack parent link and account comment link.
 - Notion task titles and URLs created.
 - Accounts checked or skipped.
-- Any blockers, login needs, or actions requiring Victor approval.
+- Any blockers, login needs, or actions requiring the operator's approval.

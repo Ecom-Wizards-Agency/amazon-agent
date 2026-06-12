@@ -4,7 +4,7 @@ Use these folders as the first source of truth before answering or operating in 
 
 ## MAG SOPs
 
-Path: `/Users/victoruhl/Codex Projects/Amazon Agent/MAG SOPs`
+Path: `/Users/<your-username>/Codex Projects/Amazon Agent/MAG SOPs`
 
 Use for agency procedures, practical Seller Central/Vendor Central workflows, listing/catalog work, ads SOPs, support-ticket style processes, shipment/FBA workflows, operational checks, and MAG-specific best practices.
 
@@ -17,7 +17,7 @@ Coverage captured on 2026-05-12: 534 SOPs.
 
 ## SOP Drafts
 
-Path: `/Users/victoruhl/Codex Projects/Amazon Agent/sop-drafts`
+Path: `/Users/<your-username>/Codex Projects/Amazon Agent/sop-drafts`
 
 Use for review-stage workflow guidance and recent learnings that have not yet been promoted into MAG SOPs. Drafts should still be searched when a workflow matches, especially for support cases, troubleshooting, shipment defects, communications, and recently improved procedures.
 
@@ -25,7 +25,7 @@ Treat draft SOPs as helpful but not final. If they conflict with first-party Ama
 
 ## Amazon Seller Help
 
-Path: `/Users/victoruhl/Codex Projects/Amazon Agent/Amazon Seller Help`
+Path: `/Users/<your-username>/Codex Projects/Amazon Agent/Amazon Seller Help`
 
 Use for first-party Seller Central help, account health, inventory, listings, orders, payments, Seller Support, FBA, global selling, Brand Registry, policy, and account settings.
 
@@ -39,7 +39,7 @@ Coverage captured on 2026-05-12: 239/239 discovered pages.
 
 ## Amazon Ads Help
 
-Path: `/Users/victoruhl/Codex Projects/Amazon Agent/Amazon Ads Help`
+Path: `/Users/<your-username>/Codex Projects/Amazon Agent/Amazon Ads Help`
 
 Use for Amazon Ads API, no-code tools, guides, reference pages, and knowledge-hub material from the Advanced Tools documentation.
 
@@ -54,7 +54,7 @@ Safety note: credential-heavy examples were summarized rather than stored as run
 
 ## Advertising Help After Login
 
-Path: `/Users/victoruhl/Codex Projects/Amazon Agent/Advertising Help After Login`
+Path: `/Users/<your-username>/Codex Projects/Amazon Agent/Advertising Help After Login`
 
 Use for Amazon Ads Support Center UI help: campaigns, bidding, budgets, targeting, reports, billing, policies, troubleshooting, Ads Console actions, and Creator Connections-related advertising workflows.
 

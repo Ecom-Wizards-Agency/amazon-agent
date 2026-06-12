@@ -5,8 +5,8 @@ This project's source of truth for assistant behavior is `agent.md`.
 At the start of a new chat in this project:
 1. Read `agent.md`.
 2. Follow the Amazon Agent routing, library search, connected-browser checkpoint, evidence, and stop-before-risk rules from `agent.md`.
-3. Use the local visual MAG SOP archive only when screenshots/GIFs are needed. Victor's current local placeholder path is:
-   `/Users/victoruhl/Documents/pCloud/Amazon Agent/MAG SOPs`
+3. Use the local visual MAG SOP archive only when screenshots/GIFs are needed. The operator's current local placeholder path is:
+   `/Users/<your-username>/Documents/pCloud/Amazon Agent/MAG SOPs`
 4. Use the repo-native Opportunity Explorer extraction scripts only when OEI/POE exports are needed:
    `tools/opportunity-explorer/extract-opportunity-explorer.js`
    `tools/opportunity-explorer/format-opportunity-explorer-export.mjs`
@@ -14,7 +14,7 @@ At the start of a new chat in this project:
 
 ## Cross-Agent Handoff
 
-When a task is likely to continue in Codex or another assistant, finish with a copy-ready handoff prompt and save it in the relevant client/project note. Do not make Victor translate between agents.
+When a task is likely to continue in Codex or another assistant, finish with a copy-ready handoff prompt and save it in the relevant client/project note. Do not make the operator translate between agents.
 
 The handoff must include:
 - objective and explicit non-goals
@@ -24,7 +24,7 @@ The handoff must include:
 - caveats, blockers, and risky actions to avoid
 - the next exact action for the other agent
 
-Saved protocol + templates: `/Users/victoruhl/Obsidian/Victors Second Brain/Context/codex-claude-handoff-protocol.md` and the Sheko template under `Projects/Clients/sheko/cross-agent-handoff-template.md`.
+Saved protocol + templates: `/Users/<your-username>/Obsidian/<your-vault>/Context/codex-claude-handoff-protocol.md` and the Sheko template under `Projects/Clients/sheko/cross-agent-handoff-template.md`.
 
 For keyword-workbook runs the handoff is auto-generated — run `tools/amazon-seo-keyword-workbook/build_keyword_workbook.py --config <cfg> --preflight` to emit a copy-ready Codex task for missing inputs (or a READY status). The builder is client-agnostic (copy `config.TEMPLATE.json` for a new client; see `NEW-CLIENT.md`). Claude's role: write the SEO content and run the build. Codex's role: gather the browser/POE + DataDive-UI inputs to the contract paths, then stop. See `tools/amazon-seo-keyword-workbook/WORKFLOW.md` and the `amazon-seo-keyword-workflow` skill.
 

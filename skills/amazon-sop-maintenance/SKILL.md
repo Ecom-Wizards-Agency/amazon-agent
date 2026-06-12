@@ -5,7 +5,7 @@ description: Use for Amazon SOP maintenance commands and requests, including /cr
 
 # Amazon SOP Maintenance
 
-Use this skill when Victor asks to create, review, fix, or draft an SOP, especially with `/create-sop`, `/fix-sop`, `outdated SOP`, `broken SOP link`, `wrong SOP steps`, `SOP correction`, or `new SOP draft`.
+Use this skill when the operator asks to create, review, fix, or draft an SOP, especially with `/create-sop`, `/fix-sop`, `outdated SOP`, `broken SOP link`, `wrong SOP steps`, `SOP correction`, or `new SOP draft`.
 
 ## SOP vs Skill
 
@@ -50,9 +50,9 @@ During `/create-sop`, do not edit:
 - `Advertising Help After Login/`
 - `agent.md`, `AGENTS.md`, `README.md`, `docs/`, `skills/`, or other GitHub source files
 
-Only edit source files when Victor explicitly asks for that exact source update.
+Only edit source files when the operator explicitly asks for that exact source update.
 
-During `/fix-sop`, source edits are allowed only after the issue has been verified against current Amazon docs, browser UI, pCloud visual archive, or user-provided evidence. Stop before pushing unless Victor explicitly asks to push.
+During `/fix-sop`, source edits are allowed only after the issue has been verified against current Amazon docs, browser UI, pCloud visual archive, or user-provided evidence. Stop before pushing unless the operator explicitly asks to push.
 
 ## `/fix-sop` Workflow
 
@@ -63,7 +63,7 @@ Use `/fix-sop` for the full correction loop.
 3. Update the relevant tracked SOP/source file locally.
 4. Create one synced change note in `sop-updates/YYYY-MM-DD_{short-topic}.md` using `sop-updates/TEMPLATE.md`.
 5. Run checks, normally `git diff --check` and any relevant search/helper check.
-6. Stop before pushing unless Victor explicitly asks to push.
+6. Stop before pushing unless the operator explicitly asks to push.
 
 The change note should include:
 
@@ -94,7 +94,7 @@ Draft structure:
 - Open questions or assumptions.
 - Promotion notes.
 
-Do not promote the draft into `MAG SOPs/` or another source library unless Victor explicitly asks.
+Do not promote the draft into `MAG SOPs/` or another source library unless the operator explicitly asks.
 
 ## Evidence
 

@@ -42,7 +42,7 @@ Excel does not allow `/` in sheet names, so `Outlier - Opportunity KWs` is the w
 ## Run
 
 ```bash
-cd "/Users/victoruhl/Codex Projects/Amazon Agent"
+cd "/Users/<your-username>/Codex Projects/Amazon Agent"
 .venv/bin/python tools/amazon-seo-keyword-workbook/build_keyword_workbook.py \
   --config tools/amazon-seo-keyword-workbook/config.sheko-ballastpulver-it.json
 ```

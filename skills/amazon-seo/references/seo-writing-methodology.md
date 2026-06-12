@@ -2,7 +2,7 @@
 
 Condensed, team-shareable version of the Ecom Wizards SEO method so the skill is
 runnable from the repo alone (no Obsidian vault required). The vault
-(`/Users/victoruhl/Obsidian/Victors Second Brain/Skills/` — `amazon-seo-writer`,
+(`/Users/<your-username>/Obsidian/<your-vault>/Skills/` — `amazon-seo-writer`,
 `keyword-classifier-and-filter`, `rufus-optimization`, `direct-response-copywriter`)
 remains the deeper source. Always pair with `eu-compliance-matrix.md`.
 

@@ -5,7 +5,7 @@ listing copy (DE/IT/FR/ES/…). Use it when writing `seo_content` and when filli
 `triage.claim_tokens`. **This is a starting reference, not legal advice** —
 always verify against the current EU claims register, the product's actual
 ingredient + dose, and Amazon's category rules before publishing. When unsure,
-treat the claim as prohibited and ask Victor.
+treat the claim as prohibited and ask the operator.
 
 ## The framework (what governs claims)
 

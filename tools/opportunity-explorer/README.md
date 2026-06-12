@@ -25,9 +25,9 @@ node tools/opportunity-explorer/format-opportunity-explorer-export.mjs /path/to/
 
 ## Historical Reference
 
-The old pCloud Chrome extension can be used as source reference during transition, but it is not part of the intended workflow once this script is tested. This is Victor's current local placeholder path, not a repo dependency:
+The old pCloud Chrome extension can be used as source reference during transition, but it is not part of the intended workflow once this script is tested. This is The operator's current local placeholder path, not a repo dependency:
 
-`/Users/victoruhl/pCloud Drive/Account shares/Amazon Wizards/2_Company/2.7_Tools/Chrome Extension-Opportunity Explorer Downloader`
+`/Users/<your-username>/pCloud Drive/Account shares/Amazon Wizards/2_Company/2.7_Tools/Chrome Extension-Opportunity Explorer Downloader`
 
 ## Safety
 

@@ -88,9 +88,9 @@ Run the builder and require all validations to pass:
 
 ## 6. Deliver
 
-Copy ONLY the QA-passed final `.xlsx` to the client's Google Drive run-folder (shared drive `Ecom Wizards`, account `victor@ecomwizards.agency`):
+Copy ONLY the QA-passed final `.xlsx` to the client's Google Drive run-folder (shared drive `Ecom Wizards`, account `<your-workspace-account>`):
 
-`/Users/victoruhl/Library/CloudStorage/GoogleDrive-victor@ecomwizards.agency/Geteilte Ablagen/Ecom Wizards/01_Client Sheets/<Client>/<Run Folder>/`
+`/Users/<your-username>/Library/CloudStorage/GoogleDrive-<your-workspace-account>/Geteilte Ablagen/Ecom Wizards/01_Client Sheets/<Client>/<Run Folder>/`
 
 (e.g. `Sheko/Sheko IT Collagene Keyword Research 2026-06-11/`). **Google Drive is the only delivery target — do NOT also copy to pCloud** (decided 2026-06-12; the file is converted to a Google Sheet on Drive anyway). This applies to every client. Verify a byte-identical MD5 after copying. Do NOT copy the POE/DataDive raw files or the manifest there — they are embedded in the workbook tabs / kept local working files. Keep the `.xlsx` as the canonical workbook; the native Google Sheet copy is the shareable view.
 
