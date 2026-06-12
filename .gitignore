@@ -52,3 +52,6 @@ tools/sheko-keyword-workbook/TEST-RUN-*.md
 # Local runtimes and assistant permissions
 .venv/
 .claude/settings.local.json
+
+# Legacy Sheko-specific workbook tool (superseded; contains client ASINs/niche ids) — local only
+tools/sheko-keyword-workbook/
