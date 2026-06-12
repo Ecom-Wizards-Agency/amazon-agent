@@ -230,6 +230,38 @@ def transform_roots(rows: list[list[str]], cfg: dict) -> list[list[Any]]:
         min_score = 0.10
     marker = imp.get("marker", "⭐")
 
+    # DataDive's root relevance score is brand-blind: competitor-brand fragments
+    # ('glow', '25', 'glow 25', '25 collagen', ...) and bare numbers score high
+    # enough to get the Important star even though they are not own-product roots.
+    # Suppress the star when every NON-generic token in a root is a competitor
+    # brand word or a number, and honour an explicit exclude_terms relevance
+    # override. Both are opt-out via root_importance; defaults keep prior behaviour
+    # for configs that carry no brand_tokens.
+    suppress_brand = imp.get("suppress_brand_roots", True)
+    exclude_terms = {norm(t) for t in (imp.get("exclude_terms") or [])}
+
+    brand_words: set[str] = set()
+    if suppress_brand:
+        for bt in (cfg.get("triage", {}).get("brand_tokens") or []):
+            # Split on non-alphanumerics AND alpha/digit boundaries so 'glow25'
+            # and 'glow 25' both yield {'glow','25'}.
+            brand_words.update(re.findall(r"[a-z]+|[0-9]+", norm(bt)))
+
+    generic_words = {norm(w) for w in (imp.get("generic_terms") or [])}
+    if not generic_words:
+        ne = cfg.get("never_ever", {}) or {}
+        generic_words = {norm(w) for w in (ne.get("relevant_words") or [])}
+        generic_words |= {norm(w) for w in (ne.get("stop_words") or [])}
+
+    def brand_or_number_dominated(root: str) -> bool:
+        if not suppress_brand:
+            return False
+        tokens = re.findall(r"[a-z]+|[0-9]+", norm(root))
+        non_generic = [t for t in tokens if t not in generic_words]
+        if not non_generic:
+            return False  # pure product/stop words — a legitimate root
+        return all(t.isdigit() or t in brand_words for t in non_generic)
+
     out: list[list[Any]] = [["Important", "Root Keyword", "Frequency", "Broad Search Volume", "Root Score"]]
     for r in rows[1:]:
         root = r[1] if len(r) > 1 else ""
@@ -239,8 +271,13 @@ def transform_roots(rows: list[list[str]], cfg: dict) -> list[list[Any]]:
         score = to_float(raw_score)
         if score is None:
             out.append(["", root, freq, sv, raw_score])
-        else:
-            out.append([marker if score >= min_score else "", root, freq, sv, round(score, 2)])
+            continue
+        important = (
+            score >= min_score
+            and norm(root) not in exclude_terms
+            and not brand_or_number_dominated(root)
+        )
+        out.append([marker if important else "", root, freq, sv, round(score, 2)])
     return out
 
 
@@ -741,11 +778,20 @@ def build_outlier(
         if a != anchor_asin and str(a).strip().upper() not in sibling_set
     ]
 
-    out_header = [
-        "Keyword", "Search Volume", "DataDive Relevancy", f"{anchor_label} Rank",
-        "Best Competitor Rank", "Competitors Top 50", "POE Signal",
-        "Classification", "Reason", "Recommended Use", "Source", "Final Action",
-    ]
+    # The Outlier tab carries the NATIVE DataDive columns for each opportunity
+    # keyword (Search Terms | SV | Relev. | Sugg. bid & range | <per-niche ASIN
+    # rank columns…>) so the real DataDive context — including this niche's
+    # tracked ASINs — travels with the triage verdict. A single leading empty
+    # index column from the export is dropped. The triage decision columns are
+    # appended after the DataDive block.
+    data_start = 1 if (header and norm(header[0]) == "") else 0
+    dd_cols = list(range(data_start, len(header)))
+    dd_pos = {orig: i for i, orig in enumerate(dd_cols)}  # orig col idx -> output position
+    dd_header = [header[i] for i in dd_cols]
+    triage_cols = ["POE Signal", "Classification", "Reason", "Recommended Use", "Source", "Final Action"]
+    out_header = dd_header + triage_cols
+    class_pos = len(dd_header) + 1  # position of "Classification" in an output row
+    sv_pos = dd_pos.get(sv_idx, 1)
 
     snap = snapshot_styles(ws, upto_row=4)
     rows_out = [out_header]
@@ -778,11 +824,11 @@ def build_outlier(
         if action not in allowed_actions:
             bad_actions.append(f"{kw} -> {action}")
 
+        native = [row[i] if i < len(row) else "" for i in dd_cols]
         rows_out.append(
-            [
-                kw, sv, relev, anchor_rank if anchor_rank is not None else "",
-                best_comp if best_comp is not None else "", comps_top50, poe_signal,
-                cls, REASONS.get(cls, ""), RECOMMENDED_USE.get(cls, ""),
+            native
+            + [
+                poe_signal, cls, REASONS.get(cls, ""), RECOMMENDED_USE.get(cls, ""),
                 "DataDive Master List", action,
             ]
         )
@@ -803,10 +849,20 @@ def build_outlier(
         if action not in allowed_actions:
             bad_actions.append(f"{kw} -> {action}")
         poe_signal = "In POE top 20" if norm(kw) in poe_terms else "Expanded 1% only"
+        # Expanded-1%-only keywords are not columns in the Core grid, so align
+        # what we have (term/SV/relevancy) onto the native DataDive layout and
+        # leave the per-ASIN rank columns blank.
+        native = ["" for _ in dd_cols]
+        if kw_idx in dd_pos:
+            native[dd_pos[kw_idx]] = kw
+        if sv_idx in dd_pos:
+            native[dd_pos[sv_idx]] = sv if sv is not None else ""
+        if rel_idx in dd_pos:
+            native[dd_pos[rel_idx]] = relev if relev is not None else ""
         rows_out.append(
-            [
-                kw, sv, relev, "", "", "", poe_signal,
-                cls, REASONS.get(cls, ""), RECOMMENDED_USE.get(cls, ""),
+            native
+            + [
+                poe_signal, cls, REASONS.get(cls, ""), RECOMMENDED_USE.get(cls, ""),
                 "DataDive Expanded MKL 1%", action,
             ]
         )
@@ -816,7 +872,7 @@ def build_outlier(
     # Sort outliers by classification group then descending search volume.
     order = {c: i for i, c in enumerate(tcfg["categories_order"])}
     body = rows_out[1:]
-    body.sort(key=lambda r: (order.get(r[7], 99), -(r[1] or 0)))
+    body.sort(key=lambda r: (order.get(r[class_pos], 99), -(to_int(r[sv_pos]) or 0)))
     rows_out = [out_header] + body
 
     clear_rows(ws)
@@ -847,33 +903,34 @@ def build_seo_text(ws: Worksheet, seo_path: str, result: dict, warnings: list[st
     seo = json.load(open(seo_path, encoding="utf-8"))
 
     snap = snapshot_styles(ws, upto_row=12)
-    # Columns: Old Listing | New Listing | Notes / Compliance. The section label
-    # is embedded in the Old Listing cell so per-section context is not lost.
-    # New Listing holds ONLY the publishable copy — compliance + Ranking Juice
-    # notes go to their own column so the brand-token QA gate can scan pure copy.
-    rows: list[list[Any]] = [["Old Listing", "New Listing", "Notes / Compliance"]]
+    # Columns: Section | Old Listing | New Listing | Notes / Compliance. The
+    # section label is its own column (col A) so each row is self-describing; the
+    # old/live copy and the new copy are separate columns for side-by-side diff.
+    # New Listing (col C) holds ONLY the publishable copy — compliance + Ranking
+    # Juice notes go to col D so the brand-token QA gate can scan pure copy.
+    rows: list[list[Any]] = [["Section", "Old Listing", "New Listing", "Notes / Compliance"]]
     for item in seo["rows"]:
         section = item.get("section", "")
         cur = item.get("current") or ""
-        old_cell = f"[{section}]\n{cur}".strip() if section else cur
         new_cell = item.get("new", "")
         notes = []
         if item.get("compliance"):
             notes.append(f"Compliance: {item['compliance']}")
         if item.get("rj"):
             notes.append(f"Ranking Juice: {item['rj']}")
-        rows.append([old_cell, new_cell, "\n".join(notes)])
+        rows.append([section, cur, new_cell, "\n".join(notes)])
 
     clear_rows(ws)
     write_matrix(ws, rows, snap)
     ws.freeze_panes = "A2"
     from openpyxl.styles import Alignment
 
-    ws.column_dimensions["A"].width = 60
-    ws.column_dimensions["B"].width = 60
-    ws.column_dimensions["C"].width = 50
+    ws.column_dimensions["A"].width = 24
+    ws.column_dimensions["B"].width = 58
+    ws.column_dimensions["C"].width = 58
+    ws.column_dimensions["D"].width = 50
     for r in range(2, len(rows) + 1):
-        for c in range(1, 4):
+        for c in range(1, 5):
             ws.cell(r, c).alignment = Alignment(wrap_text=True, vertical="top")
     result.update({"rows_written": len(rows), "skipped": False})
     return result
@@ -911,9 +968,13 @@ def _capture_text(data: Any) -> str:
     for key in ("text", "rawText", "content"):
         if data.get(key):
             parts.append(str(data[key]))
-    visible = data.get("visibleRoute")
-    if isinstance(visible, dict):
-        parts.append(_capture_text(visible))
+    # Captures may wrap the visible page text one level down (e.g. POE
+    # review/returns JSON stores it under {"tab": {"text": ...}}); descend into
+    # the common wrapper keys so the text-fallback parsers still see it.
+    for key in ("visibleRoute", "tab"):
+        nested = data.get(key)
+        if isinstance(nested, dict):
+            parts.append(_capture_text(nested))
     return "\n".join(parts)
 
 
@@ -928,6 +989,27 @@ def _first_table_rows(data: dict) -> tuple[list[str], list[list[Any]]]:
 
 
 def _extract_review_topic_rows(data: dict, source: str) -> list[list[Any]]:
+    # Preferred: structured reviewTopics from the POE contract capture (v1),
+    # e.g. {"data": {"reviewTopics": [{"topic","percentMentions","reviewSnippets"}]}}.
+    payload = data.get("data") if isinstance(data.get("data"), dict) else data
+    topics = payload.get("reviewTopics") if isinstance(payload, dict) else None
+    if isinstance(topics, list) and topics:
+        out: list[list[Any]] = []
+        for t in topics:
+            if not isinstance(t, dict):
+                continue
+            topic = str(t.get("topic", "")).strip()
+            pct = str(t.get("percentMentions", "")).strip()
+            snips = t.get("reviewSnippets", "")
+            if isinstance(snips, list):
+                snips = " | ".join(str(s) for s in snips if s)
+            else:
+                snips = str(snips).replace('", "', '" | "')
+            if topic:
+                out.append([topic, pct, snips, "POE Customer Review Insights", source])
+        if out:
+            return out
+
     headers, table_rows = _first_table_rows(data)
     if table_rows:
         out = []
@@ -1346,15 +1428,16 @@ def run_validations(wb, cfg, counts, related_result, paths, warnings) -> list[di
     if brand_tokens and seo_tab:
         copy_hits: list[str] = []
         for row in wb[seo_tab].iter_rows(min_row=2, values_only=True):
-            m = re.match(r"\[(.+?)\]", str(row[0] or ""))
-            section = norm(m.group(1)) if m else ""
+            # Layout: Section | Old Listing | New Listing | Notes. Section is its
+            # own column (col A); publishable copy is col C.
+            section = norm(row[0] if row and row[0] is not None else "")
             is_copy = (
                 section in {"title", "description", "backend search terms direction"}
                 or section.startswith("bullet")
             )
             if not is_copy:
                 continue
-            new_copy = norm(row[1] if len(row) > 1 and row[1] is not None else "")
+            new_copy = norm(row[2] if len(row) > 2 and row[2] is not None else "")
             for tok in brand_tokens:
                 if _token_hit(new_copy, [tok], "word"):
                     copy_hits.append(f"{section}: {tok}")
@@ -1503,6 +1586,14 @@ def _codex_handoff_block(cfg: dict, args: dict, missing: list[str]) -> str:
         f"({pa.get('marketplace')}), DataDive niche {pa.get('datadive_niche')}, anchor ASIN {pa.get('asin')}.",
         "",
         "Do NOT: run the builder, write SEO, edit listings, commit/push, or inspect cookies/session/credentials.",
+        "",
+        "BROWSER TO USE:",
+        "- Anything that DOWNLOADS a file (DataDive CSV exports, POE CSV downloads) MUST use the Codex Chrome "
+        "extension (@Chrome). The internal browser CANNOT download files.",
+        "- If @Chrome is not available, the VPN is not set to the US — set the VPN to the US first, then retry the "
+        "download (the DataDive/POE exports won't work otherwise).",
+        "- Anything you only READ/CHECK online (no file download) is faster in the internal browser — use that and "
+        "switch to @Chrome only for the download steps.",
         "",
         "Produce these files at exactly these paths:",
     ]
@@ -1728,8 +1819,15 @@ def main() -> int:
         print(f"  rebuilt {never_sheet!r}: {never_result.get('never_ever_words', 0)} one-word negatives")
 
     # --- Related niches (strict filter) ------------------------------------ #
+    # A tab explicitly routed to generated_blank (e.g. POE exposed no
+    # related-niches grid for this niche) must not also be rebuilt — the blank
+    # pass overwrites it later, and a skipped rebuild would otherwise fail the
+    # drift validation. generated_blank takes precedence.
+    generated_blank_tabs = set((cfg.get("tabs", {}).get("generated_blank") or {}).keys())
     related_result: dict = {}
-    if "POE Raw - Related Niches" in wb.sheetnames:
+    if "POE Raw - Related Niches" in generated_blank_tabs:
+        pass  # handled by the generated_blank pass below
+    elif "POE Raw - Related Niches" in wb.sheetnames:
         build_related_niches(
             wb["POE Raw - Related Niches"], args["related_niches_json"], cfg, related_result, warnings
         )
