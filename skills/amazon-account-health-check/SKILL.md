@@ -27,6 +27,8 @@ Required setup values:
 
 Ask which accounts and marketplaces should run before creating a local automation. Account names, marketplace lists, channel IDs, Notion IDs, assignees, schedules, and local paths are runtime configuration, not source-controlled skill content.
 
+For the full first-run setup flow, placeholder reference, and local automation template, see `docs/daily-account-health-setup.md`.
+
 ## Source Order
 
 1. `{account_profile_source}` for active profiles, `{seller_central_name_field}`, and `{marketplace_field}`.
@@ -37,7 +39,7 @@ Ask which accounts and marketplaces should run before creating a local automatio
 ## Browser Rules
 
 - Use the internal browser for Seller Central.
-- If Seller Central shows login or verification, stop and ask Victor to complete it.
+- If Seller Central shows login or verification, stop and ask the operator to complete it.
 - Verify account, marketplace, page title/tool, and date/filter context before recording.
 - Repeat verification after account/marketplace switches, tool switches, or session timeouts.
 - Stop before appeals, acknowledgements, support contact, listing edits, shipment actions, messages, uploads, or account-changing actions.
@@ -88,7 +90,7 @@ Rules:
 - Do not use or display `Fulfillment Method` in the daily account-health workflow.
 - Skip profiles missing `{seller_central_name_field}` or `{marketplace_field}` and list them under blockers.
 
-## Slack Output
+## Daily Update Output
 
 Use one parent post per daily run in `{daily_update_channel}`. Do not post this workflow to client-specific channels unless setup explicitly chooses that destination.
 
@@ -124,7 +126,7 @@ Other action
 Keep comments short and human-readable. Do not include raw tables unless an issue needs the detail.
 If no alerts, blockers, or follow-up actions are found, write exactly: `No alerts or follow-up needed.`
 
-## Notion Follow-Up Defaults
+## Follow-Up Task Defaults
 
 Create follow-up tasks only for actionable issues, not for clean checks.
 
@@ -158,7 +160,7 @@ Task body must include:
 
 Report:
 
-- Slack parent link and account comment link.
-- Notion task titles and URLs created.
+- Daily update parent link and account comment link.
+- Follow-up task titles and URLs created.
 - Accounts checked or skipped.
-- Any blockers, login needs, or actions requiring Victor approval.
+- Any blockers, login needs, or actions requiring operator approval.
