@@ -1,0 +1,3 @@
+display_name: Amazon SEO Keyword Workflow
+short_description: Build full Amazon SEO keyword workbooks from DataDive 30%/1% exports, POE evidence, and QA rules.
+default_prompt: Use this skill to run the full Amazon SEO keyword workbook workflow, including DataDive Core and Expanded MKL exports, POE scraping, Never Ever KW generation, semantic SEO, health-claim QA, styled XLSX generation, and handoff.

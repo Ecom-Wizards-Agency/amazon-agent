@@ -1,0 +1,446 @@
+{
+  "workflow": {
+    "id": "45716",
+    "title": "ImportFromWeb",
+    "source_url": "https://creator.zerowork.io/workflows/45716",
+    "captured_at": "2026-06-11",
+    "mode": "read_only",
+    "not_performed": [
+      "run_workflow",
+      "trigger_workflow",
+      "edit_workflow",
+      "duplicate_workflow",
+      "delete_workflow",
+      "export_credentials",
+      "inspect_cookies",
+      "inspect_tokens",
+      "inspect_session_storage"
+    ],
+    "visible_canvas_note": "Use Cookie Editor"
+  },
+  "inputs": {
+    "loop_mode": "dynamic_process_table_rows_one_by_one",
+    "source_table": {
+      "name": "Input Link | ZeroWork Results",
+      "id": "86657"
+    },
+    "source_field": {
+      "name": "Amazon Links",
+      "reference": "{id: 86657, name: Amazon Links}"
+    },
+    "newest_rows_first": false,
+    "repetition_limit": null,
+    "start_from_row": null,
+    "auto_continue_from_last_row": false,
+    "backing_google_sheet": {
+      "spreadsheet_title": "Amazon Scraping",
+      "spreadsheet_url": "https://docs.google.com/spreadsheets/d/1XkzBI6iULIra3STWawpMJnTTtNHbq54mWI3zXhKxPhU/",
+      "spreadsheet_id": "1XkzBI6iULIra3STWawpMJnTTtNHbq54mWI3zXhKxPhU",
+      "selected_sheet": "Input Link"
+    },
+    "observed_columns": [
+      "Amazon Links"
+    ],
+    "observed_sample_rows": [
+      {
+        "Amazon Links": "https://www.amazon.com/dp/B09DCB77Z4"
+      },
+      {
+        "Amazon Links": "https://www.amazon.com/dp/B0FZT3W6KJ"
+      },
+      {
+        "Amazon Links": "https://www.amazon.com/dp/B07F1MHRKM"
+      }
+    ]
+  },
+  "outputs": {
+    "destination_table": {
+      "name": "Results | ZeroWork Results",
+      "id": "85772"
+    },
+    "external_google_sheet": {
+      "url_or_id_visible": true,
+      "spreadsheet_title": "Amazon Scraping",
+      "spreadsheet_url": "https://docs.google.com/spreadsheets/d/1XkzBI6iULIra3STWawpMJnTTtNHbq54mWI3zXhKxPhU/",
+      "spreadsheet_id": "1XkzBI6iULIra3STWawpMJnTTtNHbq54mWI3zXhKxPhU",
+      "selected_sheet": "Results"
+    },
+    "columns": [
+      {
+        "name": "link",
+        "source": "Ask ChatGPT node 2044271",
+        "mapping": "Canonicalized link derived from Amazon Links input",
+        "prompt": "{id: 86657, name: Amazon Links}\nShorten the link into: amazon.[country_code]/dp/[ASIN]\n\nFor your response. Include ONLY the link and don't add any other word/s."
+      },
+      {
+        "name": "title",
+        "source": "Save Web Element node 2029572",
+        "selector_type": "xpath",
+        "selector": "//*[@id=\"productTitle\"]",
+        "save_as": "Plain text"
+      },
+      {
+        "name": "bullet_points",
+        "source": "Ask ChatGPT node 2045688 or 2044317 after bullet extraction",
+        "primary_selector": {
+          "node_id": "2040299",
+          "selector_type": "xpath",
+          "selector": "//*[@id=\"feature-bullets\"]/ul"
+        },
+        "fallback_selector": {
+          "node_id": "2029957",
+          "selector_type": "xpath",
+          "selector": "//*[@id=\"productFactsDesktopExpander\"]/div[1]/ul"
+        },
+        "temporary_variable": {
+          "id": "85660",
+          "name": "Bullet Points"
+        },
+        "format_prompt": "{id: 85660, name: Bullet Points}\n\nKindly format it so that it will be in bullet form"
+      },
+      {
+        "name": "ASIN",
+        "source": "Ask ChatGPT node 2045689",
+        "mapping": "ASIN extracted from Amazon Links input",
+        "prompt": "{id: 86657, name: Amazon Links}\nFrom this kindly extract the ASIN.\n\nInclude ONLY the ASIN in your resonse. Don't add other word/s."
+      }
+    ],
+    "observed_columns": [
+      "link",
+      "title",
+      "bullet_points",
+      "ASIN"
+    ],
+    "observed_sample_rows": [
+      {
+        "link": "amazon.com/dp/B09DCB77Z4",
+        "title": "Mens Slimming Compression Shirt, Body Shaper Workout Tank Top, Gynecomastia Tummy Control Undershirts - Change in Seconds",
+        "ASIN": "B09DCB77Z4"
+      }
+    ]
+  },
+  "nodes": [
+    {
+      "sequence": 1,
+      "label": "Start Repeat",
+      "id": "2029551",
+      "type": "logic",
+      "action": "Start Repeat",
+      "screenshot": "tools/listing-capture/zerowork-45716-screenshots/01-start-repeat.png",
+      "parameters": {
+        "loop_type": "Dynamic",
+        "table_to_loop_through": "Input Link | ZeroWork Results",
+        "table_id": "86657",
+        "newest_rows_first": false,
+        "repetition_limit": null,
+        "start_from_row": null,
+        "auto_continue_from_last_row": false
+      }
+    },
+    {
+      "sequence": 2,
+      "label": "Open Link",
+      "id": "2029568",
+      "type": "browser",
+      "action": "Open Link",
+      "screenshot": "tools/listing-capture/zerowork-45716-screenshots/02-open-link.png",
+      "parameters": {
+        "link": "{id: 86657, name: Amazon Links}",
+        "open_in_new_tab": false,
+        "delay_seconds": {
+          "min": 1,
+          "max": 1
+        }
+      }
+    },
+    {
+      "sequence": 3,
+      "label": "Format Link",
+      "id": "2044271",
+      "type": "external",
+      "action": "Ask ChatGPT",
+      "screenshot": "tools/listing-capture/zerowork-45716-screenshots/03-format-link.png",
+      "parameters": {
+        "model": "gpt-3.5-turbo",
+        "visible_model_label": "ChatGPT 3.5 legacy",
+        "prompt": "{id: 86657, name: Amazon Links}\nShorten the link into: amazon.[country_code]/dp/[ASIN]\n\nFor your response. Include ONLY the link and don't add any other word/s.",
+        "save_to_table": "Results | ZeroWork Results",
+        "save_to_table_id": "85772",
+        "save_to_field": "link"
+      }
+    },
+    {
+      "sequence": 4,
+      "label": "Get Title",
+      "id": "2029572",
+      "type": "web_interaction",
+      "action": "Save Web Element",
+      "screenshot": "tools/listing-capture/zerowork-45716-screenshots/04-get-title.png",
+      "parameters": {
+        "selector_type": "xpath",
+        "selector": "//*[@id=\"productTitle\"]",
+        "save_as": "Plain text",
+        "skip_if_no_element_found": true,
+        "save_to_table": "Results | ZeroWork Results",
+        "save_to_table_id": "85772",
+        "save_to_field": "title",
+        "delay_seconds": {
+          "min": 1,
+          "max": 1
+        }
+      }
+    },
+    {
+      "sequence": 5,
+      "label": "Get Bullets 1st",
+      "id": "2040299",
+      "type": "web_interaction",
+      "action": "Save Web Element",
+      "screenshot": "tools/listing-capture/zerowork-45716-screenshots/05-get-bullets-1st.png",
+      "parameters": {
+        "selector_type": "xpath",
+        "selector": "//*[@id=\"feature-bullets\"]/ul",
+        "save_as": "Plain text",
+        "skip_if_no_element_found": true,
+        "save_to": "Variables",
+        "variable_id": "85660",
+        "variable_name": "Bullet Points",
+        "delay_seconds": {
+          "min": 1,
+          "max": 1
+        }
+      }
+    },
+    {
+      "sequence": 6,
+      "label": "Start Condition",
+      "id": "2040298",
+      "type": "logic",
+      "action": "Start Condition",
+      "screenshot": "tools/listing-capture/zerowork-45716-screenshots/06-start-condition-retry.png",
+      "parameters": {
+        "value_to_compare_to": "Variables",
+        "variable_id": "85660",
+        "variable_name": "Bullet Points"
+      },
+      "branches": [
+        {
+          "condition_node_id": "2040307",
+          "label": "isNotEmpty",
+          "comparison": "Data found is not empty",
+          "value": "EXISTS"
+        },
+        {
+          "condition_node_id": "2040300",
+          "label": "isEmpty",
+          "comparison": "Data not found is empty",
+          "value": "NOT_EXISTS"
+        }
+      ]
+    },
+    {
+      "sequence": 7,
+      "branch": "primary_bullets_found",
+      "label": "isNotEmpty",
+      "id": "2040307",
+      "type": "logic",
+      "action": "Set Condition",
+      "screenshot": "tools/listing-capture/zerowork-45716-screenshots/07-is-not-empty.png",
+      "parameters": {
+        "comparison_type": "Data found is not empty",
+        "internal_value": "EXISTS"
+      }
+    },
+    {
+      "sequence": 8,
+      "branch": "primary_bullets_found",
+      "label": "Format Bullets",
+      "id": "2045688",
+      "type": "external",
+      "action": "Ask ChatGPT",
+      "screenshot": "tools/listing-capture/zerowork-45716-screenshots/08-format-bullets-top.png",
+      "parameters": {
+        "model": "gpt-3.5-turbo",
+        "visible_model_label": "ChatGPT 3.5 legacy",
+        "prompt": "{id: 85660, name: Bullet Points}\n\nKindly format it so that it will be in bullet form",
+        "save_to_table": "Results | ZeroWork Results",
+        "save_to_table_id": "85772",
+        "save_to_field": "bullet_points"
+      }
+    },
+    {
+      "sequence": 9,
+      "branch": "primary_bullets_empty",
+      "label": "isEmpty",
+      "id": "2040300",
+      "type": "logic",
+      "action": "Set Condition",
+      "screenshot": "tools/listing-capture/zerowork-45716-screenshots/12-is-empty-retry.png",
+      "parameters": {
+        "comparison_type": "Data not found is empty",
+        "internal_value": "NOT_EXISTS"
+      }
+    },
+    {
+      "sequence": 10,
+      "branch": "primary_bullets_empty",
+      "label": "Get Bullets 2nd",
+      "id": "2029957",
+      "type": "web_interaction",
+      "action": "Save Web Element",
+      "screenshot": "tools/listing-capture/zerowork-45716-screenshots/13-get-bullets-2nd-retry.png",
+      "parameters": {
+        "selector_type": "xpath",
+        "selector": "//*[@id=\"productFactsDesktopExpander\"]/div[1]/ul",
+        "save_as": "Plain text",
+        "skip_if_no_element_found": true,
+        "save_to": "Variables",
+        "variable_id": "85660",
+        "variable_name": "Bullet Points",
+        "delay_seconds": {
+          "min": 1,
+          "max": 1
+        }
+      }
+    },
+    {
+      "sequence": 11,
+      "branch": "primary_bullets_empty",
+      "label": "Format Bullets",
+      "id": "2044317",
+      "type": "external",
+      "action": "Ask ChatGPT",
+      "screenshot": "tools/listing-capture/zerowork-45716-screenshots/09-format-bullets-bottom.png",
+      "parameters": {
+        "model": "gpt-3.5-turbo",
+        "visible_model_label": "ChatGPT 3.5 legacy",
+        "prompt": "{id: 85660, name: Bullet Points}\n\nKindly format it so that it will be in bullet form",
+        "save_to_table": "Results | ZeroWork Results",
+        "save_to_table_id": "85772",
+        "save_to_field": "bullet_points"
+      }
+    },
+    {
+      "sequence": 12,
+      "label": "Get ASIN",
+      "id": "2045689",
+      "type": "external",
+      "action": "Ask ChatGPT",
+      "screenshot": "tools/listing-capture/zerowork-45716-screenshots/10-get-asin.png",
+      "parameters": {
+        "model": "gpt-3.5-turbo",
+        "visible_model_label": "ChatGPT 3.5 legacy",
+        "prompt": "{id: 86657, name: Amazon Links}\nFrom this kindly extract the ASIN.\n\nInclude ONLY the ASIN in your resonse. Don't add other word/s.",
+        "save_to_table": "Results | ZeroWork Results",
+        "save_to_table_id": "85772",
+        "save_to_field": "ASIN"
+      }
+    },
+    {
+      "sequence": 13,
+      "label": "Clear Data",
+      "id": "2045815",
+      "type": "data",
+      "action": "Update Data",
+      "screenshot": "tools/listing-capture/zerowork-45716-screenshots/11-clear-data-retry.png",
+      "parameters": {
+        "operation": "Set equal to the following value",
+        "value": "",
+        "value_meaning": "blank value clears the current value",
+        "data_to_be_updated": "Variables",
+        "variable_id": "85660",
+        "variable_name": "Bullet Points"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "2029551",
+      "to": "2029568"
+    },
+    {
+      "from": "2029568",
+      "to": "2044271"
+    },
+    {
+      "from": "2044271",
+      "to": "2029572"
+    },
+    {
+      "from": "2029572",
+      "to": "2040299"
+    },
+    {
+      "from": "2040299",
+      "to": "2040298"
+    },
+    {
+      "from": "2040298",
+      "to": "2040307",
+      "condition": "Bullet Points exists"
+    },
+    {
+      "from": "2040307",
+      "to": "2045688"
+    },
+    {
+      "from": "2040298",
+      "to": "2040300",
+      "condition": "Bullet Points does not exist"
+    },
+    {
+      "from": "2040300",
+      "to": "2029957"
+    },
+    {
+      "from": "2029957",
+      "to": "2044317"
+    },
+    {
+      "from": "2045688",
+      "to": "2045689"
+    },
+    {
+      "from": "2044317",
+      "to": "2045689"
+    },
+    {
+      "from": "2045689",
+      "to": "2045815"
+    },
+    {
+      "from": "2045815",
+      "to": "2029551",
+      "relationship": "next dynamic input row"
+    }
+  ],
+  "portable_reimplementation": {
+    "recommended_changes": [
+      "Use deterministic ASIN parsing instead of ChatGPT for ASIN extraction.",
+      "Use deterministic marketplace-preserving canonical URL generation instead of ChatGPT for link formatting.",
+      "Use DOM text extraction and deterministic list cleanup instead of ChatGPT for bullet formatting where possible.",
+      "Preserve the primary and fallback selector order.",
+      "Clear the per-row temporary bullet variable after writing the row."
+    ],
+    "selectors": {
+      "title": "#productTitle",
+      "title_xpath": "//*[@id=\"productTitle\"]",
+      "bullet_primary": "#feature-bullets ul",
+      "bullet_primary_xpath": "//*[@id=\"feature-bullets\"]/ul",
+      "bullet_fallback": "#productFactsDesktopExpander > div:first-child ul",
+      "bullet_fallback_xpath": "//*[@id=\"productFactsDesktopExpander\"]/div[1]/ul"
+    }
+  },
+  "selector_test": {
+    "ran_zerowork_workflow": false,
+    "input_url": "https://www.amazon.com/dp/B09DCB77Z4",
+    "resolved_url": "https://www.amazon.com/dp/B09DCB77Z4?th=1&psc=1",
+    "title_selector": "#productTitle",
+    "title_found": true,
+    "primary_bullet_selector": "#feature-bullets ul",
+    "primary_bullet_count": 0,
+    "fallback_bullet_selector": "#productFactsDesktopExpander > div:first-child ul",
+    "fallback_bullet_count": 5,
+    "conclusion": "Fallback branch is required for at least one current Amazon listing layout."
+  }
+}

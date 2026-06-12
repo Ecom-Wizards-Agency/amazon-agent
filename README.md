@@ -21,6 +21,8 @@ For Product Opportunity Explorer work, useful trigger phrases are `Product Oppor
 
 For SOP maintenance, use `/create-sop` to create a new tracked SOP draft in `sop-drafts/`. Use `/fix-sop` for a verified correction that updates a tracked source file and creates a synced change note in `sop-updates/`. Local evidence stays under ignored `output/{client-or-brand-or-general}/sop-maintenance/` and `evidence/{client-or-brand-or-general}/sop-maintenance/`.
 
+Draft SOPs are intentionally available to the agent for normal workflow routing. They represent recent learnings and still-improving procedure. Use them as helpful internal guidance, but prefer first-party Amazon docs for current rules/UI and promoted MAG SOPs for settled agency process.
+
 The routing helper can search the local Amazon libraries:
 
 ```bash
@@ -42,6 +44,7 @@ The local project should stay aligned with the GitHub repo's lightweight runtime
 - `Amazon Ads Help/`
 - `Advertising Help After Login/`
 - `MAG SOPs/` as markdown-only SOPs
+- `sop-drafts/` as review-stage SOPs that can inform current workflows
 - `docs/`
 
 ## Visual MAG SOP Archive
@@ -77,6 +80,18 @@ GitHub stores browser-neutral defaults. Each teammate can optionally create an i
 
 The agent should read that local preference when present. If no local preference exists, use the connected Codex browser/session available in the current chat. Browser choice never overrides account/marketplace verification or stop-before-risk rules.
 
+## Client Profiles
+
+Shared operational client context lives in Notion, not GitHub:
+
+- Notion database: `Amazon Agent Ops Profiles`
+- Database URL: `https://www.notion.so/b42e52380b874dd5be7c0fba6c0d017e`
+- Data source: `collection://8e2f0901-3b8e-44ac-8fd6-464f834bd824`
+
+Each row is one brand-marketplace profile, such as `Swissker US` or `Piercing XXL DE`, linked back to the existing Partner Success brand database.
+
+For fast local lookup, each teammate can keep an ignored cache at `_local/client-profiles/profiles.json`. Treat that cache as generated from Notion and disposable. If it is missing, stale, or conflicts with Notion, use Notion as the source of truth. See `docs/client-profiles.md` and `tools/client-profiles/`.
+
 ## What Does Not Belong In GitHub
 
 Do not commit heavy or local work artifacts to the GitHub repo, including:
@@ -99,7 +114,9 @@ Do not store screenshots, GIFs, exports, or heavy evidence in `sop-updates/`. Ke
 
 ## SOP Drafts
 
-New SOPs should start as markdown drafts in `sop-drafts/`. Promote a draft into `MAG SOPs/` or another source library only when Victor explicitly asks.
+New SOPs should start as markdown drafts in `sop-drafts/`. Drafts should still be searched by the agent during matching Amazon workflows because they often contain the newest learnings from recent runs.
+
+Promote a draft into `MAG SOPs/` or another source library only when Victor explicitly asks. Until promoted, treat drafts as review-stage guidance: cite them in the operator note when used, and resolve conflicts in favor of first-party Amazon docs for current rules/UI and promoted SOPs for settled agency procedure.
 
 Create or update a SOP when documenting a human/team Amazon process, checklist, browser workflow, or operating procedure. Create or update a skill only when changing how Codex behaves, routes work, uses tools/scripts, or applies repeatable AI workflow instructions.
 

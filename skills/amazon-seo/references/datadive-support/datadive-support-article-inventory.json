@@ -1,0 +1,1314 @@
+{
+  "generated_at": "2026-06-11T09:51:36.376938+02:00",
+  "count": 74,
+  "articles": [
+    {
+      "id": 42070138226329,
+      "title": "About Data Dive V1 Google Sheets",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/42070138226329-About-Data-Dive-V1-Google-Sheets",
+      "category": "Advanced",
+      "section": "Advanced Modules",
+      "created_at": "2025-01-07T18:09:22Z",
+      "updated_at": "2025-11-13T03:12:46Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [],
+      "snippet": "The Data Dive V1 Google Sheets integration was an early version of our tool that allowed users to view and work with niche analysis data directly inside Google Sheets. It provided basic functionality and was originally accessible via the Niche Tracker tool. 📉 Why It's No Longer Available As our platform evolved, we fully transitioned to the web-based Data Dive App , which offers a significantly better experience in t",
+      "word_count": 147
+    },
+    {
+      "id": 20851235544473,
+      "title": "Connecting Your Amazon Seller Central Account to Data Dive",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/20851235544473-Connecting-Your-Amazon-Seller-Central-Account-to-Data-Dive",
+      "category": "Advanced",
+      "section": "Advanced Modules",
+      "created_at": "2023-07-19T19:23:34Z",
+      "updated_at": "2026-05-11T21:14:43Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [
+        "rank radar",
+        "ppc"
+      ],
+      "snippet": "How Do I Connect My Amazon Accounts to Data Dive? To unlock full functionality in Data Dive, you're welcome to connect your Amazon Seller Central Account. Data Dive supports three types of connections: Seller Account – Product listings, performance metrics, and financial reports Ads Account – PPC data and advertising metrics SIS Report – Additional competitive insights (if available in your account) These connections",
+      "word_count": 370
+    },
+    {
+      "id": 39101932402841,
+      "title": "Data Dive Workflow: OPTIMIZE - CTR (Click-Through Rate)",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/39101932402841-Data-Dive-Workflow-OPTIMIZE-CTR-Click-Through-Rate",
+      "category": "Advanced",
+      "section": "Advanced Modules",
+      "created_at": "2024-10-21T20:18:53Z",
+      "updated_at": "2024-10-21T20:55:53Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [
+        "rank radar",
+        "competitor",
+        "deep dive"
+      ],
+      "snippet": "OPTIMIZE Improving your Click-Through Rate (CTR) is one of the fastest and most cost-effective ways to enhance your brand's performance on Amazon. With the ability to quickly test and implement different concepts, optimizing for CTR allows you to experiment until you find what works best. This guide provides a step-by-step approach to optimizing your listing for increased CTR, with a primary focus on main image testi",
+      "word_count": 578
+    },
+    {
+      "id": 39184935871641,
+      "title": "Data Dive Workflow: OPTIMIZE - CVR (Conversion Rate)",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/39184935871641-Data-Dive-Workflow-OPTIMIZE-CVR-Conversion-Rate",
+      "category": "Advanced",
+      "section": "Advanced Modules",
+      "created_at": "2024-10-23T16:45:41Z",
+      "updated_at": "2024-10-23T17:15:03Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [
+        "rank radar",
+        "competitor",
+        "deep dive"
+      ],
+      "snippet": "OPTIMIZE Optimizing Conversion Rate (CVR) can be a lengthy and costly endeavor, with results that may vary significantly. It's essential to recognize that CVR can fluctuate widely across different niches, and experiencing substantial daily variations is normal. To effectively optimize CVR, adopt a big-picture perspective: test a variety of concepts, gain a deep understanding of your customer avatars' needs, and focus",
+      "word_count": 997
+    },
+    {
+      "id": 38476449280793,
+      "title": "Data Dive Workflow: OPTIMIZE - Listing Optimization / SEO",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/38476449280793-Data-Dive-Workflow-OPTIMIZE-Listing-Optimization-SEO",
+      "category": "Advanced",
+      "section": "Advanced Modules",
+      "created_at": "2024-10-04T21:14:57Z",
+      "updated_at": "2024-10-21T20:56:34Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [
+        "mkl",
+        "roots",
+        "listing builder",
+        "ranking juice",
+        "rank radar",
+        "search volume"
+      ],
+      "snippet": "OPTIMIZE Building a well-optimized listing is a crucial first step in improving your brand's performance on Amazon. Currently, Amazon’s algorithm looks primarily at what is written in your listing to determine which keywords your product will be indexed for. This guide explains how to determine which keywords you are indexed for and how to fix indexing issues where your organic rank is low or not indexed at all. IT’S",
+      "word_count": 814
+    },
+    {
+      "id": 39185581922073,
+      "title": "Data Dive Workflow: OPTIMIZE - Revenue / PPC",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/39185581922073-Data-Dive-Workflow-OPTIMIZE-Revenue-PPC",
+      "category": "Advanced",
+      "section": "Advanced Modules",
+      "created_at": "2024-10-23T17:38:20Z",
+      "updated_at": "2024-10-23T17:40:12Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [
+        "mkl",
+        "outlier",
+        "residue",
+        "rank radar",
+        "ppc",
+        "relevancy"
+      ],
+      "snippet": "REVENUE OPTIMIZATION The fourth and final step in optimization is boosting revenue or sales velocity. Before diving into revenue optimization, it’s essential to first maximize SEO (relevancy), Click-Through Rate (CTR), and Conversion Rate (CVR). Think of it like this: if you have a boat with a hole in it, adding a more powerful motor won't help much until you've fixed the leak. In the same way, revenue optimization w",
+      "word_count": 625
+    },
+    {
+      "id": 38475147867929,
+      "title": "Data Dive Workflow: VALIDATE",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/38475147867929-Data-Dive-Workflow-VALIDATE",
+      "category": "Advanced",
+      "section": "Advanced Modules",
+      "created_at": "2024-10-04T18:36:57Z",
+      "updated_at": "2024-10-22T19:08:27Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [
+        "mkl",
+        "product scorecard",
+        "competitor"
+      ],
+      "snippet": "VALIDATE Product validation is the single most important aspect of selling on Amazon. It’s crucial to determine the risk level of a niche, prior to launching as well as having a clear understanding of the budget that will be required to launch a product. Two guaranteed ways to fail in launching a product are: selling a product into a niche that’s too competitive before having enough experience AND attempting to launc",
+      "word_count": 917
+    },
+    {
+      "id": 20774667122585,
+      "title": "How can I exclude a custom word or custom keywords?",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/20774667122585-How-can-I-exclude-a-custom-word-or-custom-keywords",
+      "category": "Advanced",
+      "section": "Advanced Modules",
+      "created_at": "2023-07-17T22:56:31Z",
+      "updated_at": "2024-06-20T16:57:10Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [],
+      "snippet": "How can I exclude a custom word or custom keywords? To exclude a specific keyword, enter it into the search bar. The search results will then be filtered to show only phrases that contain the keyword you entered. If the keyword you input does not appear in the list of keywords, it means there are no phrases containing that keyword, so there is nothing to exclude.",
+      "word_count": 66
+    },
+    {
+      "id": 20774540950681,
+      "title": "How do I create a niche?",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/20774540950681-How-do-I-create-a-niche",
+      "category": "Advanced",
+      "section": "Advanced Modules",
+      "created_at": "2023-07-17T22:44:49Z",
+      "updated_at": "2024-06-20T16:57:08Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [
+        "competitor"
+      ],
+      "snippet": "How do I create a niche? Step 1: The only way to create a niche is by starting a new dive. Step 2: Choose 15 or more relevant competitors. Step 3: After seeding your dive, access the Chrome Extension and navigate to your ASIN Tray. Step 4: Click on \"Create New Niche\" and choose the option \"Dive.\" To learn more about starting a dive, you can refer to the article How to Start a Dive .",
+      "word_count": 76
+    },
+    {
+      "id": 20851917799833,
+      "title": "How do I resize columns? How do I change the length of columns?",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/20851917799833-How-do-I-resize-columns-How-do-I-change-the-length-of-columns",
+      "category": "Advanced",
+      "section": "Advanced Modules",
+      "created_at": "2023-07-19T20:43:14Z",
+      "updated_at": "2025-07-23T18:47:10Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [],
+      "snippet": "How do I resize columns? How do I change the length of the columns? Step 1 : Move your cursor to the boundary line between the column headers. Your cursor may change to a double-headed arrow. Step 2 : If you cannot see the double-headed arrow cursor in a particular area, it means that column cannot be resized. Not all columns may have the ability to be resized. Step 3 : If you wish to see all columns on your screen, ",
+      "word_count": 111
+    },
+    {
+      "id": 26376685483033,
+      "title": "How do I schedule and shut off a scheduled Auto Dive?",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/26376685483033-How-do-I-schedule-and-shut-off-a-scheduled-Auto-Dive",
+      "category": "Advanced",
+      "section": "Advanced Modules",
+      "created_at": "2023-12-14T02:34:05Z",
+      "updated_at": "2024-08-24T03:45:43Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [
+        "niche pipeline"
+      ],
+      "snippet": "How can I schedule and shut off Auto Dive in the Niche Pipeline? Step 1: Navigate to the Niche Pipeline. Step 2: Click on the \"Auto Dive\" checkbox to identify niches with auto-dives on. Step 3: Click the double reverse arrow icon to open a pop-up window that presents options for scheduling or disabling auto-dives. Step 4: For scheduling, choose between a weekly or monthly auto-dive then click the 'Schedule' button. S",
+      "word_count": 188
+    },
+    {
+      "id": 20109459833881,
+      "title": "How do I use the product scorecard?",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/20109459833881-How-do-I-use-the-product-scorecard",
+      "category": "Advanced",
+      "section": "Advanced Modules",
+      "created_at": "2023-06-28T20:56:29Z",
+      "updated_at": "2024-08-24T03:40:06Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [
+        "master keyword list",
+        "mkl",
+        "roots",
+        "listing builder",
+        "niche pipeline",
+        "product scorecard",
+        "search volume",
+        "competitor",
+        "deep dive"
+      ],
+      "snippet": "How do I use the product scorecard? Follow the steps below to fill out the Product Scorecard or watch the videos listed below: Office Hours: Product Scorecard Office Hours: Product Scorecard Example #2 Office Hours: Product Scorecard Example #3 Step by Step Instructions: In order to complete the Product Scorecard you’ll have to answer all of the questions in the four sections below. After answering all questions you’",
+      "word_count": 1419
+    },
+    {
+      "id": 18666128244377,
+      "title": "How should I optimize my listing?",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/18666128244377-How-should-I-optimize-my-listing",
+      "category": "Advanced",
+      "section": "Advanced Modules",
+      "created_at": "2023-05-18T18:30:28Z",
+      "updated_at": "2024-06-20T16:58:42Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [
+        "master keyword list",
+        "mkl",
+        "roots",
+        "listing builder",
+        "ppc",
+        "search volume"
+      ],
+      "snippet": "How should I optimize my listing? When it comes to optimizing your listing, there are a few steps you can take to ensure you're getting the most out of your keywords and improving your search rankings. Step 1 : Analyze your Master Keyword List (MKL) Take a look at your Master Keyword List and prioritize the keywords based on search volume. Make sure the highest search volume keywords are at the top of the list. Step ",
+      "word_count": 355
+    },
+    {
+      "id": 24036713907225,
+      "title": "How To Assign A Risk And Opportunity Score To A New Potential Product In Just Minutes?",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/24036713907225-How-To-Assign-A-Risk-And-Opportunity-Score-To-A-New-Potential-Product-In-Just-Minutes",
+      "category": "Advanced",
+      "section": "Advanced Modules",
+      "created_at": "2023-10-14T07:47:07Z",
+      "updated_at": "2023-10-16T23:00:41Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [
+        "outlier"
+      ],
+      "snippet": "How To Assign A Risk And Opportunity Score To A New Potential Product In Just Minutes? Speed up your product research and innovation process with Data Dive’s automated keyword research tool Download and unlock: How to Create a Master Keyword Sheet in Seconds How to Take Advantage of Outlier KWs How to Assign a Risk and Opportunity Score to a Product How to Identify Opportunities with an AI Product Brie Download SOP",
+      "word_count": 72
+    },
+    {
+      "id": 24066155089689,
+      "title": "How to Boost Revenue Potential by Optimizing Your Amazon PPC Campaigns?",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/24066155089689-How-to-Boost-Revenue-Potential-by-Optimizing-Your-Amazon-PPC-Campaigns",
+      "category": "Advanced",
+      "section": "Advanced Modules",
+      "created_at": "2023-10-15T09:32:51Z",
+      "updated_at": "2023-10-16T22:58:33Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [
+        "ppc"
+      ],
+      "snippet": "How to Boost Revenue Potential by Optimizing Your Amazon PPC Campaigns? Boost ranking and revenue with strategic PPC optimization using keyword groups and bid strategies Download and unlock: How to Select the Right Keywords to Target in your Campaigns How to Generate PPC Campaigns Fast with Data Dive How to Track KW Ranking and Ad Performance How to Optimize PPC Campaign for Growth and Maintenance Download SOP",
+      "word_count": 67
+    },
+    {
+      "id": 20109265780633,
+      "title": "How to Manually Add Keywords or Competitors to a Niche",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/20109265780633-How-to-Manually-Add-Keywords-or-Competitors-to-a-Niche",
+      "category": "Advanced",
+      "section": "Advanced Modules",
+      "created_at": "2023-06-28T20:35:43Z",
+      "updated_at": "2026-03-04T16:07:41Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [
+        "master keyword list",
+        "mkl",
+        "outlier",
+        "residue",
+        "rank radar",
+        "ppc",
+        "competitor"
+      ],
+      "snippet": "Data Dive provides powerful tools to fine-tune your keyword research and niche analysis. While some areas (like the Master Keyword List) don’t yet support manual input, there are ways to customize and expand your Dives, competitors, and tracked search terms manually. 📘 Master Keyword List (MKL): Manual Keyword Addition Currently, you cannot manually add keywords directly into the MKL . The MKL is auto-generated based",
+      "word_count": 367
+    },
+    {
+      "id": 24068271975705,
+      "title": "How to Optimize an Existing Amazon Listing for Maximum Organic Ranking Potential?",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/24068271975705-How-to-Optimize-an-Existing-Amazon-Listing-for-Maximum-Organic-Ranking-Potential",
+      "category": "Advanced",
+      "section": "Advanced Modules",
+      "created_at": "2023-10-15T11:03:08Z",
+      "updated_at": "2024-01-24T05:23:13Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [
+        "competitor"
+      ],
+      "snippet": "How to Optimize an Existing Amazon Listing for Maximum Organic Ranking Potential? Effective listing optimization informs customers to see your product, click on it, and buy. Learn how to maximize organic ranking with Data Dive’s solutions Download and unlock: How to Monitor and Analyze Organic Keyword Rankings How to Analyze your Listing vs Competitors How to Identify Optimization Opportunities Download SOP",
+      "word_count": 61
+    },
+    {
+      "id": 20891844753305,
+      "title": "How to Quickly Set Up PPC Campaigns?",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/20891844753305-How-to-Quickly-Set-Up-PPC-Campaigns",
+      "category": "Advanced",
+      "section": "Advanced Modules",
+      "created_at": "2023-07-20T21:58:03Z",
+      "updated_at": "2024-08-23T20:56:24Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [
+        "master keyword list",
+        "mkl",
+        "roots",
+        "ppc"
+      ],
+      "snippet": "How to Quickly Set Up PPC Campaigns? Step 1 : After cleaning up your master keyword list, go to the PPC Keywords tab and click the \"Import MKL\" button to bring in the keywords from the MKL. Step 2 : Navigate to the PPC campaigns for Launch tab. Step 3 : Choose the roots manually by selecting the checkbox in the \"Group by this root?\" column. Remember to select relevant keywords and avoid using generic ones that may no",
+      "word_count": 246
+    },
+    {
+      "id": 20918301286041,
+      "title": "How to Rewrite Your Listing?",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/20918301286041-How-to-Rewrite-Your-Listing",
+      "category": "Advanced",
+      "section": "Advanced Modules",
+      "created_at": "2023-07-21T10:10:40Z",
+      "updated_at": "2024-08-23T22:49:35Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [
+        "master keyword list",
+        "mkl",
+        "listing builder",
+        "search volume"
+      ],
+      "snippet": "How to Rewrite Your Listing? Step 1 : Navigate to the Master Keyword List (MKL) and identify the gaps. Focus on keywords that are highly relevant and have significant search volume. Step 2 : Go to the Listing Builder tab and click \"Root Usage & Hits\". Observe if there is a gap between your title and the keywords listed. Step 3 : If the gaps are not filled, take the root of the keyword and include it in your listing's",
+      "word_count": 192
+    },
+    {
+      "id": 38737329694233,
+      "title": "How to Share a Niche Dive",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/38737329694233-How-to-Share-a-Niche-Dive",
+      "category": "Advanced",
+      "section": "Advanced Modules",
+      "created_at": "2024-10-11T19:15:03Z",
+      "updated_at": "2024-10-14T17:40:23Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [
+        "rank radar"
+      ],
+      "snippet": "There are several ways to share a Niche depending on your needs. If You Need The User To Have Access To Any Research (This Includes Niches And All The Features Such As Rank Radar For Present And Future Data) Step 1. Go to the Team Management section here: https://2.datadive.tools/user-management Step 2. Hover over the user and click the pencil icon to edit the user. Step 3. Change their permission to have \"admin\" rig",
+      "word_count": 347
+    },
+    {
+      "id": 44523126369817,
+      "title": "How to Troubleshoot Syncing PPC Data with Rank Radar",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/44523126369817-How-to-Troubleshoot-Syncing-PPC-Data-with-Rank-Radar",
+      "category": "Advanced",
+      "section": "Advanced Modules",
+      "created_at": "2025-03-14T17:07:24Z",
+      "updated_at": "2026-05-18T19:48:03Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [
+        "rank radar",
+        "ppc"
+      ],
+      "snippet": "1. Ensure the Latest Extension is Installed Open Chrome and right-click the Data Dive extension. Select \"Manage extension.\" If an update is available, you will see an \"Update\" button—click it to install the latest version. (7.10.13 is the version at the time of creating this article. The current version may be different) 2. Verify Amazon Connections Go to Amazon Connections Settings and ensure the following are prope",
+      "word_count": 304
+    },
+    {
+      "id": 35201447598361,
+      "title": "How to Update and Refresh a Niche Dive",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/35201447598361-How-to-Update-and-Refresh-a-Niche-Dive",
+      "category": "Advanced",
+      "section": "Advanced Modules",
+      "created_at": "2024-07-17T15:57:28Z",
+      "updated_at": "2024-10-14T17:40:57Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [
+        "master keyword list",
+        "mkl",
+        "search volume",
+        "competitor"
+      ],
+      "snippet": "Re-diving a niche ensures that all dive information is current. Regular updates are beneficial for several reasons: Stay Updated on Competitors: Keep track of any changes in your competitors’ information or strategies. Maintain Current Keyword and Ranking Information: Ensure your keyword and ranking data reflects the most recent trends and search behaviors. Discover New Keywords: Identify new keywords that have emerg",
+      "word_count": 273
+    },
+    {
+      "id": 24038220501529,
+      "title": "How To Write Amazon Listing Copy To Maximize Ranking Juice?",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/24038220501529-How-To-Write-Amazon-Listing-Copy-To-Maximize-Ranking-Juice",
+      "category": "Advanced",
+      "section": "Advanced Modules",
+      "created_at": "2023-10-14T08:40:38Z",
+      "updated_at": "2023-10-16T22:59:39Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [
+        "ranking juice",
+        "competitor"
+      ],
+      "snippet": "How To Write Amazon Listing Copy To Maximize Ranking Juice? Build your listing copy with keyword research data to maximize ranking score potential and outrank competitors. Download and unlock: How to Conduct Keyword Analysis Effectively How to Leverage your Competitor’s Listing Performance How to Write Listing with an Al Copywriter and Optimizer + Best Practices for Amazon Listing Writing Download SOP",
+      "word_count": 61
+    },
+    {
+      "id": 56785587522841,
+      "title": "Indexing Alerts",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/56785587522841-Indexing-Alerts",
+      "category": "Advanced",
+      "section": "Advanced Modules",
+      "created_at": "2026-04-08T22:28:44Z",
+      "updated_at": "2026-04-08T22:30:06Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [
+        "rank radar",
+        "competitor"
+      ],
+      "snippet": "Overview Indexing Alerts notify you when a product is no longer indexed on Amazon search results. If a listing is not indexed, it will not appear for relevant keywords. This results in zero impressions, zero clicks, and lost revenue until the issue is resolved. Data Dive automatically monitors your catalog and flags these issues so you can take action quickly. Where to Find Indexing Alerts Indexing Alerts are located",
+      "word_count": 378
+    },
+    {
+      "id": 18463544803609,
+      "title": "There’s so many parts to Data Dive, what should I focus on?",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/18463544803609-There-s-so-many-parts-to-Data-Dive-what-should-I-focus-on",
+      "category": "Advanced",
+      "section": "Advanced Modules",
+      "created_at": "2023-05-12T21:58:54Z",
+      "updated_at": "2024-06-20T16:58:44Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [
+        "master keyword list",
+        "mkl",
+        "roots",
+        "outlier",
+        "listing builder",
+        "niche pipeline",
+        "ppc",
+        "search volume",
+        "competitor"
+      ],
+      "snippet": "There are so many parts to Data Dive, what should I focus on? Step 1: Start the Dive The first step in using Data Dive is to start the dive. To begin using Data Dive, navigate to an Amazon search results page and open the Data Dive Chrome extension. Select the relevant ASINs to include in your dive. It's important to be intentional and only select ASINs that are relevant to your niche. After about 90 seconds, the Mas",
+      "word_count": 544
+    },
+    {
+      "id": 36288463160729,
+      "title": "What are Impression Share and Impression Rank in Rank Radar?",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/36288463160729-What-are-Impression-Share-and-Impression-Rank-in-Rank-Radar",
+      "category": "Advanced",
+      "section": "Advanced Modules",
+      "created_at": "2024-08-12T20:58:16Z",
+      "updated_at": "2024-08-12T21:04:21Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [
+        "rank radar",
+        "ppc"
+      ],
+      "snippet": "Impression Share (IS): Impression Share indicates the percentage of shoppers who searched for a specific term and saw an ad for it. Example: If your Sponsored Products ad has a 35% impression share for a search term over a given date range, it means the ad appeared 35% of the time when that term was searched. Keep in mind that while the ad appeared, it might not have been visible to shoppers if it was below the fold.",
+      "word_count": 178
+    },
+    {
+      "id": 20774580099353,
+      "title": "What are launch keywords referring to?",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/20774580099353-What-are-launch-keywords-referring-to",
+      "category": "Advanced",
+      "section": "Advanced Modules",
+      "created_at": "2023-07-17T22:52:42Z",
+      "updated_at": "2024-06-20T16:57:10Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [
+        "master keyword list"
+      ],
+      "snippet": "What are launch keywords referring to? Launch Keywords that are shown in the Master Keyword List are outdated and no longer relevant. For the purposes of working within Data Dive, you can disregard this metric.",
+      "word_count": 35
+    },
+    {
+      "id": 20851449288473,
+      "title": "What is click-through rate (CTR)?",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/20851449288473-What-is-click-through-rate-CTR",
+      "category": "Advanced",
+      "section": "Advanced Modules",
+      "created_at": "2023-07-19T19:51:34Z",
+      "updated_at": "2025-07-23T19:00:59Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [
+        "deep dive"
+      ],
+      "snippet": "What is click-through rate (CTR)? \"Click-Through Rate\" (CTR) is a metric that assesses the effectiveness of a product's listing in attracting clicks from potential customers. It is calculated by dividing the number of impressions (how many times the listing was shown) by the number of clicks it received. A higher CTR indicates a more compelling listing that engages users, while a lower CTR suggests the need for optim",
+      "word_count": 137
+    },
+    {
+      "id": 20108272653209,
+      "title": "What is considered a good product score?",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/20108272653209-What-is-considered-a-good-product-score",
+      "category": "Advanced",
+      "section": "Advanced Modules",
+      "created_at": "2023-06-28T18:50:29Z",
+      "updated_at": "2024-06-20T16:57:16Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [
+        "product scorecard"
+      ],
+      "snippet": "What is considered a good product score? It’s important to keep in mind that all scores derived from the Product Scorecard are relative. There is no such thing as a “good” score or a “bad” score. The higher of positive value a scorecard has generally indicates that a product is at lower risk. The lower negative value a scorecard has generally indicates that a product is at higher risk. After completing a group of Pro",
+      "word_count": 279
+    },
+    {
+      "id": 4416530208025,
+      "title": "What is Ranking Juice?",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/4416530208025-What-is-Ranking-Juice",
+      "category": "Advanced",
+      "section": "Advanced Modules",
+      "created_at": "2022-02-01T05:02:05Z",
+      "updated_at": "2025-07-01T17:57:24Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [
+        "listing builder",
+        "ranking juice",
+        "relevancy"
+      ],
+      "snippet": "What is Ranking juice? \"Ranking juice\" refers to the amount of credit a product listing receives for its keyword ranking based on its performance. This credit is earned through various actions, such as clicks, adding to cart, and sales. The effectiveness of a listing's written content and the match type used are factors that determine the credit it receives. To surpass the competition and increase ranking, it's essen",
+      "word_count": 411
+    },
+    {
+      "id": 18665746775193,
+      "title": "What’s the best way to decide which competitors to include in a dive?",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/18665746775193-What-s-the-best-way-to-decide-which-competitors-to-include-in-a-dive",
+      "category": "Advanced",
+      "section": "Advanced Modules",
+      "created_at": "2023-05-18T17:49:22Z",
+      "updated_at": "2024-08-24T03:35:19Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [
+        "competitor"
+      ],
+      "snippet": "What’s the best way to decide which competitors to include in a dive? Navigating the Amazon marketplace and understanding your competition is a crucial aspect of selling products effectively. In this article, we will provide a step-by-step guide to assist you in pinpointing the competitors you should include in your dive. Find 15+ Relevant Products When starting your dive, you need to select sellers who are offering ",
+      "word_count": 348
+    },
+    {
+      "id": 57630245691801,
+      "title": "Amazon PPC & SQP Data in Rank Radar",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/57630245691801-Amazon-PPC-SQP-Data-in-Rank-Radar",
+      "category": "Essentials",
+      "section": "Quick Start Guide",
+      "created_at": "2026-05-05T23:00:56Z",
+      "updated_at": "2026-05-11T20:28:19Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [
+        "rank radar",
+        "ppc",
+        "search volume"
+      ],
+      "snippet": "Rank Radar combines organic ranking data with Amazon PPC and SQP (Search Query Performance) data to give you a complete view of keyword performance. This allows you to understand not just where you rank, but how your ads and demand are influencing visibility and sales. 🧭 What data is included 📈 PPC Data (Amazon Ads) When connected, Rank Radar shows PPC metrics for tracked keywords, including: Spend – How much you’re ",
+      "word_count": 525
+    },
+    {
+      "id": 57629993051929,
+      "title": "Blind Spend in Rank Radar",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/57629993051929-Blind-Spend-in-Rank-Radar",
+      "category": "Essentials",
+      "section": "Quick Start Guide",
+      "created_at": "2026-05-05T22:42:46Z",
+      "updated_at": "2026-05-06T15:47:17Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [
+        "rank radar",
+        "ppc"
+      ],
+      "snippet": "Blind Spend helps you identify keywords you may be spending on — or should consider tracking — but are not currently tracked in Rank Radar. These are your campaign blind spots: search terms where you may be investing budget or missing visibility into organic performance. 🧭 What Blind Spend shows Blind Spend surfaces keywords from: Your PPC reports Your existing Dives It highlights terms where: You have ad spend But t",
+      "word_count": 400
+    },
+    {
+      "id": 57858099694361,
+      "title": "Competitor Price Tracker",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/57858099694361-Competitor-Price-Tracker",
+      "category": "Essentials",
+      "section": "Quick Start Guide",
+      "created_at": "2026-05-12T22:50:47Z",
+      "updated_at": "2026-05-12T22:50:53Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [
+        "competitor"
+      ],
+      "snippet": "Competitor Price Tracker helps you monitor when your competitors change pricing or launch promotions, so you can better understand shifts in rankings and sales velocity. What is Competitor Promotion Tracking? Competitor Promotion Tracking allows you to track selected competitor products and detect: Price drops Active promotions (coupons, discounts) Changes in pricing over time When a change is detected, it is surface",
+      "word_count": 324
+    },
+    {
+      "id": 4414623176089,
+      "title": "Deep Dive",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/4414623176089-Deep-Dive",
+      "category": "Essentials",
+      "section": "Quick Start Guide",
+      "created_at": "2022-01-13T06:13:17Z",
+      "updated_at": "2024-08-23T23:24:11Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [
+        "mkl",
+        "export",
+        "relevancy",
+        "search volume",
+        "competitor",
+        "deep dive"
+      ],
+      "snippet": "The Deep Dive dashboard gives you a high level overview into the niche. What is Deep Dive? Provides a detailed analysis of the niche including images from the product detail page, detailed sales and pricing information as well as technical specifications about the product. How to analyze using Deep Dive: In the expanded view, Deep Dive shows information from each ASINs product detail page, logistics information, vari",
+      "word_count": 734
+    },
+    {
+      "id": 17477569189273,
+      "title": "How to Start a Dive",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/17477569189273-How-to-Start-a-Dive",
+      "category": "Essentials",
+      "section": "Quick Start Guide",
+      "created_at": "2023-04-12T17:07:57Z",
+      "updated_at": "2024-09-20T15:55:56Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [
+        "master keyword list",
+        "niche pipeline",
+        "export",
+        "search volume",
+        "competitor"
+      ],
+      "snippet": "If you haven't already, install the Data Dive Google Chrome Extension . Tutorial Video: How to Start a Dive: Quick Start Guide How to start a Dive? How to start a new keyword research? Doing a Dive will generate a Master Keyword List . There are three ways that you can begin your research and start diving. The Niche Dive, Divebox, and the ASIN Tray. How to start a dive using Niche Dive: What is Niche Dive? Niche Dive",
+      "word_count": 1879
+    },
+    {
+      "id": 4414623848857,
+      "title": "Listing Builder",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/4414623848857-Listing-Builder",
+      "category": "Essentials",
+      "section": "Quick Start Guide",
+      "created_at": "2022-01-13T06:32:45Z",
+      "updated_at": "2025-01-09T11:01:11Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [
+        "mkl",
+        "roots",
+        "listing builder",
+        "ranking juice",
+        "niche pipeline",
+        "export",
+        "relevancy",
+        "search volume",
+        "competitor"
+      ],
+      "snippet": "What is the Listing Builder? Listing Builder is a user-friendly interface for Amazon sellers to create an optimized product listing that maximizes organic keyword rank. Ranking Juice is a proprietary score used by Data Dive to calculate the ranking potential of a listing based on keywords, match type, listing position, and search volume. Amazon SEO Masterclass using Data Dive: How to use the Optimize Ranking Juice bu",
+      "word_count": 1722
+    },
+    {
+      "id": 4414442624921,
+      "title": "Master Keyword List",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/4414442624921-Master-Keyword-List",
+      "category": "Essentials",
+      "section": "Quick Start Guide",
+      "created_at": "2022-01-11T07:38:10Z",
+      "updated_at": "2026-05-05T22:55:54Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [
+        "master keyword list",
+        "mkl",
+        "roots",
+        "outlier",
+        "residue",
+        "ppc",
+        "export",
+        "relevancy",
+        "search volume",
+        "competitor"
+      ],
+      "snippet": "What is the Master Keyword List (MKL)? The Master Keyword List (MKL) is the core keyword engine inside your Niche, it provides a high-level overview of the keywords that define your market and shows how your competitors perform across them. It shows: All keywords your competitors are ranking for Each competitor’s Organic Rank (OR) Each competitor’s Sponsored Rank (SR) Search volume Relevancy % The MKL helps you under",
+      "word_count": 2499
+    },
+    {
+      "id": 9620622665753,
+      "title": "Niche Pipeline",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/9620622665753-Niche-Pipeline",
+      "category": "Essentials",
+      "section": "Quick Start Guide",
+      "created_at": "2022-08-18T08:35:38Z",
+      "updated_at": "2025-11-18T16:33:02Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [
+        "master keyword list",
+        "mkl",
+        "niche pipeline",
+        "export",
+        "relevancy",
+        "search volume",
+        "competitor"
+      ],
+      "snippet": "Niche Pipeline Walkthrough 📊 What is the Niche Pipeline? The Niche Pipeline is your central dashboard for managing all Dives performed in your Data Dive account. It serves as a live portfolio of your niche research — allowing you to filter, organize, assign, edit, and prioritize Dives with precision. Whether you're a solo seller or collaborating across a large team, the Niche Pipeline gives you complete visibility an",
+      "word_count": 1523
+    },
+    {
+      "id": 9620488412185,
+      "title": "Niche Tracker",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/9620488412185-Niche-Tracker",
+      "category": "Essentials",
+      "section": "Quick Start Guide",
+      "created_at": "2022-08-18T08:31:42Z",
+      "updated_at": "2024-10-11T18:21:53Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [
+        "mkl",
+        "ranking juice",
+        "export",
+        "relevancy",
+        "search volume",
+        "competitor"
+      ],
+      "snippet": "Niche Tracker Start Guide What Is The Niche Tracker? Similar to the MKL, the Niche tracker undergoes changes over time, allowing you to observe your competitors' progressions or regressions. How To Use The Niche Tracker: Step 1 : Open the Niche Tracker tool. Step 2 : Click the \"Niche Dive Again\" drop down arrow and select \"Dive Again - Same Competitors\" Step 3 : Toggle \"Off\" any competitors you don't want to include ",
+      "word_count": 794
+    },
+    {
+      "id": 8988957316377,
+      "title": "Outlier Keywords",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/8988957316377-Outlier-Keywords",
+      "category": "Essentials",
+      "section": "Quick Start Guide",
+      "created_at": "2022-07-30T01:54:39Z",
+      "updated_at": "2024-12-17T21:55:44Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [
+        "master keyword list",
+        "mkl",
+        "outlier",
+        "relevancy",
+        "search volume",
+        "competitor"
+      ],
+      "snippet": "What are Outlier Keywords? Outlier Keywords are keywords with a high search volume but low relevance meaning that only a small number of competitors in the niche are ranked for these keywords. From time to time, these outliers can be quite valuable “low hanging fruit”. How to use the Outlier Keywords tab: Step 1 : Go to the Outliers tab in the Master Keyword List. How to Add Outlier Keywords to the Master Keyword Lis",
+      "word_count": 187
+    },
+    {
+      "id": 4414624338073,
+      "title": "PPC Campaigns",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/4414624338073-PPC-Campaigns",
+      "category": "Essentials",
+      "section": "Quick Start Guide",
+      "created_at": "2022-01-13T06:50:31Z",
+      "updated_at": "2024-09-18T21:05:44Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [
+        "mkl",
+        "roots",
+        "ppc",
+        "search volume"
+      ],
+      "snippet": "What is the PPC Campaigns tab? Allows users to create and push their PPC advertising campaigns directly to Amazon from within the Data Dive platform. How to use the PPC Campaigns tab: Step 1 : Import your MKL in the PPC Keywords tab. Step 2 : After importing your MKL, navigate to the PPC Campaigns tab. Step 3 : Add your SKU (Stock Keeping Unit) for the product you want to advertise and modify the naming convention as",
+      "word_count": 1358
+    },
+    {
+      "id": 4414631623193,
+      "title": "PPC Campaigns for Launch",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/4414631623193-PPC-Campaigns-for-Launch",
+      "category": "Essentials",
+      "section": "Quick Start Guide",
+      "created_at": "2022-01-13T06:37:15Z",
+      "updated_at": "2026-03-18T17:04:35Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [
+        "master keyword list",
+        "mkl",
+        "roots",
+        "niche pipeline",
+        "ppc",
+        "export",
+        "search volume"
+      ],
+      "snippet": "What is PPC Campaigns for Launch? The PPC Campaigns for Launch tab is the fastest way to create an PPC campaign for a new product launch. After selecting the primary keyword roots for a niche, this tool will automatically create Exact Match campaigns ready to send to Amazon. How to use the PPC Campaigns for Launch tab: Step 1 : Open the PPC Keywords tab and ensure that you import the keywords from your MKL (Master Ke",
+      "word_count": 1827
+    },
+    {
+      "id": 4414624041241,
+      "title": "PPC Keywords",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/4414624041241-PPC-Keywords",
+      "category": "Essentials",
+      "section": "Quick Start Guide",
+      "created_at": "2022-01-13T06:42:18Z",
+      "updated_at": "2024-12-07T08:55:59Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [
+        "master keyword list",
+        "mkl",
+        "ppc",
+        "export",
+        "relevancy",
+        "search volume"
+      ],
+      "snippet": "What is PPC Keywords? PPC keywords are the starting point for building out ad campaigns based on your MKL. Here you can select which keywords to include in your campaigns. How to use the PPC Keywords tab: Step 1 : Go to the PPC Keywords tab. Step 2 : Import your cleaned Master Keyword List by selecting \"Import MKL\". The MKL will contain the full list of keywords. Step 3 : At the list's bottom, you'll find suggested A",
+      "word_count": 837
+    },
+    {
+      "id": 55549763168537,
+      "title": "Product Catalog",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/55549763168537-Product-Catalog",
+      "category": "Essentials",
+      "section": "Quick Start Guide",
+      "created_at": "2026-02-27T16:35:05Z",
+      "updated_at": "2026-04-22T17:45:10Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [
+        "rank radar"
+      ],
+      "snippet": "Product Catalog is your centralized control center for everything you’re actively selling on Amazon. It connects your live Seller account data with Data Dive tools, giving you one place to: See performance across all ASINs Monitor inventory levels Track listing changes View connected Niches View and create Rank Radars Instead of switching between Seller Central, Rank Radar, and your Niches, Product Catalog brings eve",
+      "word_count": 630
+    },
+    {
+      "id": 17548874801689,
+      "title": "Product Scorecard",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/17548874801689-Product-Scorecard",
+      "category": "Essentials",
+      "section": "Quick Start Guide",
+      "created_at": "2023-04-14T18:57:36Z",
+      "updated_at": "2025-07-23T15:29:46Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [
+        "master keyword list",
+        "roots",
+        "listing builder",
+        "niche pipeline",
+        "product scorecard",
+        "relevancy",
+        "search volume",
+        "competitor",
+        "deep dive"
+      ],
+      "snippet": "What is Product Scorecard? Product Scorecard is a tool within Data Dive designed to evaluate the risk level of a specific niche after answering questions in four categories: traffic distribution, profitability, potential, and competitiveness. By answering section-specific questions, you receive scores indicating risks or opportunities. Negative scores highlight risks, while positive scores reveal potential opportunit",
+      "word_count": 1304
+    },
+    {
+      "id": 17548880098329,
+      "title": "PROFITS Tool",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/17548880098329-PROFITS-Tool",
+      "category": "Essentials",
+      "section": "Quick Start Guide",
+      "created_at": "2023-04-14T18:57:09Z",
+      "updated_at": "2024-09-19T17:57:10Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [
+        "mkl",
+        "ppc",
+        "export",
+        "competitor"
+      ],
+      "snippet": "Profits Users can use Profits inside of Data Dive to quickly calculate all key financial metrics of a product prior to launching. This is extremely helpful for estimating the required to launch and estimate ROI. The best way to use Profits is by correctly inputting all information based on real-world numbers. If you’d like to move faster, users can select the “ Populate ” button in the top right-hand corner of the Pr",
+      "word_count": 1501
+    },
+    {
+      "id": 34689663975705,
+      "title": "Rank Radar",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/34689663975705-Rank-Radar",
+      "category": "Essentials",
+      "section": "Quick Start Guide",
+      "created_at": "2024-07-05T16:26:54Z",
+      "updated_at": "2026-06-10T17:12:12Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [
+        "roots",
+        "rank radar",
+        "ppc",
+        "search volume",
+        "competitor"
+      ],
+      "snippet": "Rank Radar is Data Dive’s advanced keyword tracking tool that updates daily . It combines organic rank tracking with PPC data so you can see how both influence your visibility on Amazon. Use Rank Radar to: Identify which keywords drive visibility through organic ranking (OR) See how your PPC campaigns impact organic ranks Track key changes over time by adding Highlights and Notes Rank Radar now includes the ability t",
+      "word_count": 1303
+    },
+    {
+      "id": 4414631325209,
+      "title": "Roots",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/4414631325209-Roots",
+      "category": "Essentials",
+      "section": "Quick Start Guide",
+      "created_at": "2022-01-13T06:24:14Z",
+      "updated_at": "2024-10-29T18:55:08Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [
+        "master keyword list",
+        "mkl",
+        "roots",
+        "listing builder",
+        "ranking juice",
+        "ppc",
+        "export",
+        "relevancy",
+        "search volume",
+        "competitor"
+      ],
+      "snippet": "What are keyword Roots? Roots are the repeated words and phrases found in the Master Keyword List . The Roots tab is the fastest way to analyze traffic distribution across groups of keywords, the number of times they are found is the root Frequency , and the Broad Search Volume of the root represents the total search volume of all keywords containing those repeated words and phrases. In the Roots tab, you'll find a d",
+      "word_count": 1007
+    },
+    {
+      "id": 4414632120985,
+      "title": "The Normalizer",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/4414632120985-The-Normalizer",
+      "category": "Essentials",
+      "section": "Quick Start Guide",
+      "created_at": "2022-01-13T06:51:58Z",
+      "updated_at": "2024-10-29T18:41:29Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [
+        "ppc",
+        "export",
+        "search volume"
+      ],
+      "snippet": "What is the Normalizer? The Normalizer is a text processing tool that removes the plurals and conjunctions from keywords. This is mainly used for PPC campaigns as it prevents overlapping keywords from competing with each other for the same search terms. Example: 'garlic press for kitchens' becomes 'garlic press kitchen'. You can copy and paste in your own keywords and use the unique normalized keywords to create your",
+      "word_count": 405
+    },
+    {
+      "id": 4416326726809,
+      "title": "How to Manage Your Subscription or Edit Billing Details",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/4416326726809-How-to-Manage-Your-Subscription-or-Edit-Billing-Details",
+      "category": "Support",
+      "section": "Billing & Support",
+      "created_at": "2022-01-29T22:59:02Z",
+      "updated_at": "2026-02-28T18:55:41Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [],
+      "snippet": "You can manage your subscription and billing information securely through Stripe , our payment processor. Stripe ensures a safe and smooth experience while keeping your sensitive information protected. 🧭 Accessing Your Subscription Settings You have two ways to access your subscription dashboard: Option 1: Click on the Data Dive Extension and select \"Manage Subscription\" Option 2: Go directly to this link: https://2.",
+      "word_count": 196
+    },
+    {
+      "id": 26379462806041,
+      "title": "Understanding Your Usage Quotas in Data Dive",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/26379462806041-Understanding-Your-Usage-Quotas-in-Data-Dive",
+      "category": "Support",
+      "section": "Billing & Support",
+      "created_at": "2023-12-14T03:33:45Z",
+      "updated_at": "2026-02-28T18:52:31Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [
+        "rank radar",
+        "competitor"
+      ],
+      "snippet": "Data Dive offers flexible pricing across three core tiers : Starter , Standard , and Enterprise . Each plan is designed to scale with your needs — whether you're just starting out or managing a large-scale Amazon operation. Plans start at $39/month and can be customized using sliders for each usage metric. You can manage your subscription quotas in the following page: https://2.datadive.tools/subscription/overview 📊 ",
+      "word_count": 932
+    },
+    {
+      "id": 20852738093977,
+      "title": " How do I complete a dive in the United Kingdom marketplace?",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/20852738093977--How-do-I-complete-a-dive-in-the-United-Kingdom-marketplace",
+      "category": "Support",
+      "section": "FAQ",
+      "created_at": "2023-07-19T22:04:46Z",
+      "updated_at": "2024-06-20T16:57:44Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [
+        "competitor"
+      ],
+      "snippet": "How do I complete a dive in the United Kingdom marketplace? Log in to your Amazon account and navigate to the \"Country Settings\" or \"Preferences\" section. Select United Kingdom as your desired country. Update your delivery address and zip code, ensuring they correspond to a location in the UK. Begin your dive, ensuring you choose your competitors from the amazon.co.uk marketplace.",
+      "word_count": 61
+    },
+    {
+      "id": 20852364456089,
+      "title": " Is Data Dive compatible with Singapore? ",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/20852364456089--Is-Data-Dive-compatible-with-Singapore",
+      "category": "Support",
+      "section": "FAQ",
+      "created_at": "2023-07-19T21:32:15Z",
+      "updated_at": "2024-06-20T16:57:46Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [],
+      "snippet": "Is Data Dive compatible with Singapore? Amazon Singapore is not currently supported by Data Dive.",
+      "word_count": 15
+    },
+    {
+      "id": 4416310152857,
+      "title": "Cancel Data Dive Subscription",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/4416310152857-Cancel-Data-Dive-Subscription",
+      "category": "Support",
+      "section": "FAQ",
+      "created_at": "2022-01-29T22:47:33Z",
+      "updated_at": "2026-06-05T02:59:53Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [],
+      "snippet": "Canceling your Current Subscription If you need to cancel your current subscription, it's a quick and easy process to unsubscribe. Simply follow the steps below: Step 1 : Log in to your Data Dive account using your Admin Account and click on \"Your Account\" located at the bottom left in the navigation menu. Step 2 : Click on the Subscription tab. Step 3 : To the right, click on \"More\" and \"Cancel Subscription\". Please",
+      "word_count": 122
+    },
+    {
+      "id": 21020898217625,
+      "title": "Data Dive API & MCP: How to Create an API Key and Get Started",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/21020898217625-Data-Dive-API-MCP-How-to-Create-an-API-Key-and-Get-Started",
+      "category": "Support",
+      "section": "FAQ",
+      "created_at": "2023-07-24T18:22:16Z",
+      "updated_at": "2026-05-14T15:57:40Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [],
+      "snippet": "Data Dive offers an API for customers who want to programmatically access their data and build custom integrations. Who can use the API API access is available only to Standard and Enterprise customers. Starter plans do not include API access. How to create your API key Head over to https://2.datadive.tools/api-key Create your API key directly from the page. You can also review available endpoints and examples from t",
+      "word_count": 297
+    },
+    {
+      "id": 21020948057753,
+      "title": "Do the Data Dive AI tools use ChatGPT? ",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/21020948057753-Do-the-Data-Dive-AI-tools-use-ChatGPT",
+      "category": "Support",
+      "section": "FAQ",
+      "created_at": "2023-07-24T18:27:51Z",
+      "updated_at": "2024-06-20T16:56:15Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [],
+      "snippet": "Do the Data Dive AI tools use ChatGPT? Yes, the Data Dive AI tools, specifically the AI Copywriter and AI Product Brief, utilize ChatGPT.",
+      "word_count": 24
+    },
+    {
+      "id": 20852192093465,
+      "title": "How can I change my Amazon account to a specific country's marketplace? ",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/20852192093465-How-can-I-change-my-Amazon-account-to-a-specific-country-s-marketplace",
+      "category": "Support",
+      "section": "FAQ",
+      "created_at": "2023-07-19T21:15:23Z",
+      "updated_at": "2024-06-20T16:57:06Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [
+        "competitor"
+      ],
+      "snippet": "How can I change my Amazon account to a specific country's marketplace? Sign in to your Amazon account and go to the country/region settings section. From the list of available marketplaces, select the specific country's marketplace that you want to switch to. Update your local address/zip code or payment method associated with that country. Provide the required details, if necessary. As you start your dive, be sure ",
+      "word_count": 74
+    },
+    {
+      "id": 21021419426713,
+      "title": "How do I  change my  organization’s owner?",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/21021419426713-How-do-I-change-my-organization-s-owner",
+      "category": "Support",
+      "section": "FAQ",
+      "created_at": "2023-07-24T19:24:23Z",
+      "updated_at": "2024-08-24T02:44:15Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [],
+      "snippet": "How do I change my organization’s owner? Step 1 : Go to https://2.datadive.tools/user-management . Step 2 : Click on the \"Team\" option then choose the primary account you want to transfer ownership. Step 3 : If you don't have any users listed, click on the \"+\" sign to add a new user then add their email address and username. Step 4 : Make sure to assign them both admin and billing roles, then click \"Done\". Step 5 : C",
+      "word_count": 141
+    },
+    {
+      "id": 21021096786201,
+      "title": "How do I add a user to my account?",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/21021096786201-How-do-I-add-a-user-to-my-account",
+      "category": "Support",
+      "section": "FAQ",
+      "created_at": "2023-07-24T18:43:45Z",
+      "updated_at": "2024-08-24T03:35:19Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [],
+      "snippet": "How do I add a user to my account? The number of users you can add to your account is dependent on which subscription tier you are on: Starter: 1 user. Standard: Up to 10 users . Enterprise: Up to 100,000 users. Step 1 : If you are the owner of the organization or have Admin rights, visit https://2.datadive.tools/user-management or go to \"Your Account\" located at the bottom left of the navigation menu in Data Dive. S",
+      "word_count": 141
+    },
+    {
+      "id": 20852764285337,
+      "title": "How do I complete a dive in the Canadian marketplace?",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/20852764285337-How-do-I-complete-a-dive-in-the-Canadian-marketplace",
+      "category": "Support",
+      "section": "FAQ",
+      "created_at": "2023-07-19T22:05:36Z",
+      "updated_at": "2024-06-20T16:57:44Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [
+        "competitor"
+      ],
+      "snippet": "How do I complete a dive in the Canadian marketplace? Log in to your Amazon account and move to the \"Country Settings\" or \"Preferences\" section. Choose Canada as your preferred country. Update your delivery address and zip code to match a location within Canada. Start your dive, making sure to select your competitors from the amazon.ca marketplace.",
+      "word_count": 57
+    },
+    {
+      "id": 20852749968153,
+      "title": "How do I complete a dive in the French marketplace? ",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/20852749968153-How-do-I-complete-a-dive-in-the-French-marketplace",
+      "category": "Support",
+      "section": "FAQ",
+      "created_at": "2023-07-19T22:06:10Z",
+      "updated_at": "2024-06-20T16:57:43Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [
+        "competitor"
+      ],
+      "snippet": "How do I complete a dive in the French marketplace? Log in to your Amazon account and go to the \"Country Settings\" or \"Preferences\" section. Choose France as your preferred country. Update your delivery address and zip code to match a location within France. Start your dive, making sure to select your competitors from the amazon.fr marketplace.",
+      "word_count": 57
+    },
+    {
+      "id": 20852674214297,
+      "title": "How do I complete a dive in the German marketplace?",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/20852674214297-How-do-I-complete-a-dive-in-the-German-marketplace",
+      "category": "Support",
+      "section": "FAQ",
+      "created_at": "2023-07-19T22:01:56Z",
+      "updated_at": "2024-06-20T16:57:45Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [
+        "competitor"
+      ],
+      "snippet": "How do I complete a dive in the German marketplace? Log in to your Amazon account and navigate to the \"Country Settings\" or \"Preferences\" section. Select Germany as your desired country. Update your delivery address and zip code, ensuring they are accurate for Germany. Begin your dive, ensuring you choose your competitors from the amazon.de marketplace.",
+      "word_count": 56
+    },
+    {
+      "id": 20852830946969,
+      "title": "How do I complete a dive in the Indian marketplace?",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/20852830946969-How-do-I-complete-a-dive-in-the-Indian-marketplace",
+      "category": "Support",
+      "section": "FAQ",
+      "created_at": "2023-07-19T22:11:07Z",
+      "updated_at": "2024-06-20T16:57:42Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [
+        "competitor"
+      ],
+      "snippet": "How do I complete a dive in the Indian marketplace? Log in to your Amazon account and navigate to the \"Country Settings\" or \"Preferences\" section. Select India as your desired country. Update your delivery address and zip code, ensuring they are accurate for India. Start your dive, making sure to select your competitors from the amazon.in marketplace.",
+      "word_count": 57
+    },
+    {
+      "id": 20852790881945,
+      "title": "How do I complete a dive in the Italian marketplace?",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/20852790881945-How-do-I-complete-a-dive-in-the-Italian-marketplace",
+      "category": "Support",
+      "section": "FAQ",
+      "created_at": "2023-07-19T22:09:23Z",
+      "updated_at": "2024-06-20T16:57:43Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [
+        "competitor"
+      ],
+      "snippet": "How do I complete a dive in the Italian marketplace? Log in to your Amazon account and move to the \"Country Settings\" or \"Preferences\" section. Choose Italy as your preferred country. Update your delivery address and zip code to match a location within Italy. Start your dive, making sure to select your competitors from the amazon.it marketplace.",
+      "word_count": 57
+    },
+    {
+      "id": 20852812073497,
+      "title": "How do I complete a dive in the Japanese marketplace? ",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/20852812073497-How-do-I-complete-a-dive-in-the-Japanese-marketplace",
+      "category": "Support",
+      "section": "FAQ",
+      "created_at": "2023-07-19T22:11:45Z",
+      "updated_at": "2024-06-20T16:56:18Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [
+        "competitor"
+      ],
+      "snippet": "How do I complete a dive in the Japanese marketplace? Log in to your Amazon account and move to the \"Country Settings\" or \"Preferences\" section. Choose Japan as your preferred country. Update your delivery address and zip code to match a location within Japan. Begin your dive, ensuring you choose your competitors from the amazon.co.jp marketplace.",
+      "word_count": 56
+    },
+    {
+      "id": 20852777392537,
+      "title": "How do I complete a dive in the Mexican marketplace?",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/20852777392537-How-do-I-complete-a-dive-in-the-Mexican-marketplace",
+      "category": "Support",
+      "section": "FAQ",
+      "created_at": "2023-07-19T22:09:53Z",
+      "updated_at": "2024-06-20T16:57:42Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [
+        "competitor"
+      ],
+      "snippet": "How do I complete a dive in the Mexican marketplace? Log in to your Amazon account and go to the \"Country Settings\" or \"Preferences\" section. Choose Mexico as your preferred country. Update your delivery address and zip code, ensuring they correspond to a location in Mexico. Begin your dive, ensuring you choose your competitors from the amazon.com.mx marketplace.",
+      "word_count": 58
+    },
+    {
+      "id": 20852789999513,
+      "title": "How do I complete a dive in the Spanish marketplace?",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/20852789999513-How-do-I-complete-a-dive-in-the-Spanish-marketplace",
+      "category": "Support",
+      "section": "FAQ",
+      "created_at": "2023-07-19T22:08:57Z",
+      "updated_at": "2024-06-20T16:57:43Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [
+        "competitor"
+      ],
+      "snippet": "How do I complete a dive in the Spanish marketplace? Log in to your Amazon account and navigate to the \"Country Settings\" or \"Preferences\" section. Select Spain as your desired country. Update your delivery address and zip code, ensuring they correspond to a location in Spain. Begin your dive, ensuring you choose your competitors from the amazon.es marketplace.",
+      "word_count": 58
+    },
+    {
+      "id": 20852722937497,
+      "title": "How do I complete a dive in the United States marketplace? ",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/20852722937497-How-do-I-complete-a-dive-in-the-United-States-marketplace",
+      "category": "Support",
+      "section": "FAQ",
+      "created_at": "2023-07-19T22:02:43Z",
+      "updated_at": "2026-05-18T10:43:59Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [
+        "competitor"
+      ],
+      "snippet": "How do I complete a dive in the United States marketplace? Log in to your Amazon account and go to the \"Country Settings\" or \"Preferences\" section. Choose United States as your preferred country. Update your delivery address and zip code to match a location within the United States. Start your dive, making sure to select your competitors from the amazon.com marketplace.",
+      "word_count": 61
+    },
+    {
+      "id": 57820797186073,
+      "title": "How do I export my data (Master Keyword List & Rank Radar)?",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/57820797186073-How-do-I-export-my-data-Master-Keyword-List-Rank-Radar",
+      "category": "Support",
+      "section": "FAQ",
+      "created_at": "2026-05-11T20:55:39Z",
+      "updated_at": "2026-05-13T17:46:56Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [
+        "master keyword list",
+        "rank radar",
+        "export",
+        "search volume",
+        "competitor"
+      ],
+      "snippet": "You can export your data from Data Dive as a CSV file , which can be opened in Excel, Google Sheets, or any spreadsheet tool. ⚠️ Looking for the Legacy V1 Google Sheets integration? If you were expecting a direct connection to Google Sheets, you may be referring to our V1 Google Sheets integration . This feature is no longer available It has been fully deprecated and turned off It cannot be accessed or re-enabled Lea",
+      "word_count": 263
+    },
+    {
+      "id": 20852297482777,
+      "title": "Is Data Dive compatible with Turkey?",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/20852297482777-Is-Data-Dive-compatible-with-Turkey",
+      "category": "Support",
+      "section": "FAQ",
+      "created_at": "2023-07-19T21:26:26Z",
+      "updated_at": "2024-06-20T16:57:46Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [],
+      "snippet": "Is Data Dive compatible with Turkey? Amazon Turkey is not currently supported by Data Dive.",
+      "word_count": 15
+    },
+    {
+      "id": 57230533459609,
+      "title": "KDP (Kindle Direct Publishing) Support in Data Dive",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/57230533459609-KDP-Kindle-Direct-Publishing-Support-in-Data-Dive",
+      "category": "Support",
+      "section": "FAQ",
+      "created_at": "2026-04-22T18:12:09Z",
+      "updated_at": "2026-05-18T18:39:06Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [],
+      "snippet": "Overview Kindle Direct Publishing (KDP) is Amazon’s platform for publishing and selling books, including Kindle eBooks and print-on-demand formats. At this time, Data Dive does not support KDP listings or data . Why KDP is not supported KDP operates differently from the Amazon seller ecosystem that Data Dive is built for. Data Dive is designed around Amazon Seller Central, KDP runs on a separate platform with differe",
+      "word_count": 339
+    },
+    {
+      "id": 10092124500889,
+      "title": "Can I Use a Non-Google Email to Sign Up to Data Dive?",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/10092124500889-Can-I-Use-a-Non-Google-Email-to-Sign-Up-to-Data-Dive",
+      "category": "Support",
+      "section": "Technical Support",
+      "created_at": "2022-09-01T20:45:44Z",
+      "updated_at": "2025-11-18T16:43:09Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [],
+      "snippet": "✅ Yes — Google is no longer required You can now sign up and log in to Data Dive using any email address . Whether it’s Gmail, Outlook, Yahoo, or your company domain, you can access your account with just your email. Simply select “Sign in with Email” on the login screen and enter your address to receive a secure login link. No Google account setup or linking is needed anymore. 🌐 Browser Recommendation For the best e",
+      "word_count": 414
+    },
+    {
+      "id": 26380189471257,
+      "title": "How to subscribe to the Inner Circle?",
+      "html_url": "https://support.datadive.tools/hc/en-us/articles/26380189471257-How-to-subscribe-to-the-Inner-Circle",
+      "category": "Support",
+      "section": "Technical Support",
+      "created_at": "2023-12-14T03:51:41Z",
+      "updated_at": "2024-08-24T03:35:19Z",
+      "draft": false,
+      "outdated": false,
+      "tags": [
+        "ppc",
+        "competitor"
+      ],
+      "snippet": "Free Masterclass and Course Content: At Seller Systems, we kickstart your journey with a free masterclass. This class is a sneak peek into our proven processes, covering everything from product research and keyword analysis to competitor scrutiny, listing optimization, and product launch strategies. Additionally, we offer targeted masterclasses on product selection, optimization, and PPC. Sign up for our free masterc",
+      "word_count": 455
+    }
+  ]
+}

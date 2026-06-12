@@ -9,7 +9,7 @@ description: Route Amazon Seller Central, Amazon Ads, Amazon Creator Connections
 
 Search the local Amazon libraries before answering or touching the connected browser. Use the search results to decide the workflow, then navigate the connected browser with explicit checkpoints and stop before risky actions.
 
-Use this skill as the dispatcher. After classifying the request, load the relevant specialist skill when the task matches: `amazon-troubleshooting`, `amazon-seo`, `amazon-catalog`, `amazon-ads`, `amazon-reporting`, `amazon-inventory-planning`, `amazon-opportunity-explorer`, `amazon-sop-maintenance`, `amazon-logistics`, or `amazon-communications`.
+Use this skill as the dispatcher. After classifying the request, load the relevant specialist skill when the task matches: `amazon-troubleshooting`, `amazon-account-health-check`, `amazon-seo`, `amazon-catalog`, `amazon-ads`, `amazon-reporting`, `amazon-inventory-planning`, `amazon-opportunity-explorer`, `amazon-sop-maintenance`, `amazon-logistics`, or `amazon-communications`.
 
 ## Browser Standard
 
@@ -37,6 +37,7 @@ Do not start Creator Connections from ~~`https://advertising.amazon.com/choose-a
 Read `references/library-map.md` and `references/specialist-routing.md` when choosing where to search. Main folders:
 
 - `/Users/victoruhl/Codex Projects/Amazon Agent/MAG SOPs`
+- `/Users/victoruhl/Codex Projects/Amazon Agent/sop-drafts`
 - `/Users/victoruhl/Codex Projects/Amazon Agent/Amazon Seller Help`
 - `/Users/victoruhl/Codex Projects/Amazon Agent/Amazon Ads Help`
 - `/Users/victoruhl/Codex Projects/Amazon Agent/Advertising Help After Login`
@@ -68,13 +69,14 @@ python3 "/Users/victoruhl/Codex Projects/Amazon Agent/skills/amazon-operator-rou
    - opportunity explorer: `Product Opportunity Explorer`, `Opportunity Explorer`, `OEI`, `POE`, `Niche Scout`, `image strategy`, `product strategy`
    - Amazon AI search: `Rufus`, `Alexa AI`, `Amazon AI search`, `semantic search`
 
-   If the request may involve both agency procedure and current Amazon UI behavior, search one first-party library and MAG before deciding.
+   If the request may involve both agency procedure and current Amazon UI behavior, search one first-party library, MAG, and relevant `sop-drafts/` before deciding.
 
 4. **Decide the workflow.**
    Read `references/workflow-router.md` for common tasks. If several sources conflict, prefer:
    - Current Amazon first-party docs for current UI/rules.
    - Knowledge-base skills/client notes for Ecom Wizards methodology, generated workbooks, SEO writing, analytics logic, and account-specific context.
    - MAG SOPs for agency procedure and practical operator steps.
+   - `sop-drafts/` for recent but not-final workflow learnings.
 
 5. **Prepare before browser action.**
    Summarize the intended path and required inputs. Identify risky steps before they happen.

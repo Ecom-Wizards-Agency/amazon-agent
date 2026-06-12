@@ -23,7 +23,11 @@ Brand Story and A+ Content (EBC)
 
 - Determine which ASINs need to be added to the A+ content, and check to see if the ASIN is part of a parentage. If it’s a standalone listing proceed with the given methods below, otherwise examine which listings in the parentage are appropriate to add to the A+ content using the same steps below.
 
-1. Go to the Advertising tab, then A+ Content Manager
+1. Go to the Advertising tab, then A+ Content Manager.
+
+   Direct Seller Central link: <https://sellercentral.amazon.com/enhanced-content/content-manager>
+
+   Default to Premium A+ whenever it is available. Premium A+ has separate desktop and mobile image placements, so confirm both asset sizes are present before building or updating the content. Use Basic A+ only if Premium is unavailable or Victor explicitly asks for Basic.
 
   ![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-D0X55JVU.png)
 

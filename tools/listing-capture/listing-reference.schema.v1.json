@@ -1,0 +1,49 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "amazon-agent.listing-reference.v1",
+  "title": "Amazon Agent — Listing Reference (v1)",
+  "description": "Captured Amazon listing copy for an anchor + its siblings/competitors. Produced by the amazon-listing-capture routine (tools/listing-capture/extract-amazon-listing-copy.js) and consumed by build_keyword_workbook.py -> build_asins, which keys listings by ASIN to fill the ASINs tab's title / bullet_points / link columns. Never include cookies, storage, tokens, or credentials.",
+  "type": "object",
+  "required": ["schemaVersion", "marketplace", "listings"],
+  "properties": {
+    "schemaVersion": {"const": "amazon-agent.listing-reference.v1"},
+    "capturedAt": {"type": "string", "description": "ISO timestamp of the capture run."},
+    "marketplace": {"type": "string", "description": "e.g. amazon.it / Italy."},
+    "requestedAnchorAsin": {"type": "string"},
+    "accountContext": {"type": "string"},
+    "listings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["asin"],
+        "properties": {
+          "asin": {"type": "string", "pattern": "^[A-Z0-9]{10}$", "description": "The REQUESTED ASIN — the key the builder matches against the ASINs tab. Always set to the requested ASIN even when the page redirects to a variation parent."},
+          "resolvedAsin": {"type": "string", "description": "The ASIN the page actually resolved to (e.g. a variation parent), when it differs from the requested asin."},
+          "role": {"type": "string", "enum": ["Anchor", "Sibling", "Competitor", "Child"], "description": "Optional; the builder also derives role from config + brand match."},
+          "brand": {"type": "string"},
+          "title": {"type": "string", "description": "From #productTitle."},
+          "bullets": {
+            "oneOf": [
+              {"type": "array", "items": {"type": "string"}},
+              {"type": "string"}
+            ],
+            "description": "Bullet points (array preferred). Source: #feature-bullets ul, fallback #productFactsDesktopExpander > div:first-child ul. The builder joins arrays with newlines."
+          },
+          "bullet_points": {
+            "oneOf": [
+              {"type": "array", "items": {"type": "string"}},
+              {"type": "string"}
+            ],
+            "description": "Accepted alias for `bullets` (the builder reads either key)."
+          },
+          "link": {"type": "string", "description": "Canonical amazon.<tld>/dp/<ASIN>. The builder also accepts 'canonical' or 'url'."},
+          "canonical": {"type": "string"},
+          "url": {"type": "string"},
+          "availability": {"type": "string"},
+          "capturedAt": {"type": "string"},
+          "status": {"type": "string", "enum": ["ok", "empty", "error"], "description": "Keep the row even when title/bullets fail; record the failure here."}
+        }
+      }
+    }
+  }
+}

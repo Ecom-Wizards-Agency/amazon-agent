@@ -10,6 +10,8 @@ description: Use for Amazon reporting and analytics: Seller Central reports, Ama
 1. Knowledge-base analytics skill references for workbook logic:
    - `/Users/victoruhl/Code/knowledge-base/Skills/amazon-sqp-intelligence-suite.md`
    - `/Users/victoruhl/Code/knowledge-base/Skills/amazon-yoy-analysis.md`
+
+   Note: these knowledge-base skill files are a user-specific local reference and may not exist at the `Code/knowledge-base` path. Victor's current local copies live in an Obsidian vault: `/Users/victoruhl/Obsidian/Victors Second Brain/Skills/` (e.g. `amazon-sqp-intelligence-suite.md`, `amazon-yoy-analysis.md`). This path is user-specific — team members should point to their own local knowledge-base/Obsidian copy. Do not commit the vault to GitHub. This is a reference source only, not a "check Obsidian for everything" rule.
 2. Amazon Seller Help or Advertising Help After Login for current report definitions, locations, filters, and download behavior.
 3. MAG SOPs for practical report generation steps.
 
