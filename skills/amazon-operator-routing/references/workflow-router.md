@@ -12,7 +12,7 @@ Use this table to map user requests to local search and browser workflows.
 | Download reports | Seller Help, Ads Support, MAG SOPs | exact report name, `download report`, `report center`, `business report`, `search term report` | Seller Central reports or Ads Report Center | Download location if ambiguous; report generation if it changes account state |
 | Seller Support case | Amazon Seller Help, MAG SOPs, sop-drafts | `case`, `support`, `contact us`, issue text, error code | Seller Central > Help/Get Support/Case log | Submitting case or sending reply |
 | Account health issue | Seller Help, MAG SOPs | `account health`, `policy violation`, `appeal`, `deactivation`, error text | Seller Central > Account Health/Performance | Submitting appeal, acknowledging policy action |
-| Daily account health check / sweep | `amazon-account-health-check`, `#sellersonar`, Seller Central | `daily account health`, `SellerSonar`, `Featured Offer`, `Policy Compliance`, `Performance Notifications` | Slack `#sellersonar`, Seller Central Account Health/Homepage, Slack `#amazon`, Notion Client Tasks | Slack/Notion writes unless requested; appeals, acknowledgements, support contact, listing/shipment/account changes |
+| Daily account health check / sweep | `amazon-account-health-check`, alert source such as SellerSonar, Seller Central | `daily account health`, `SellerSonar`, `Featured Offer`, `Policy Compliance`, `Performance Notifications` | Configured alert source, Seller Central Account Health/Homepage, configured daily update destination, optional task tracker | Slack/task writes unless requested or configured; appeals, acknowledgements, support contact, listing/shipment/account changes |
 | Promotion or sales discount setup | Amazon Seller Help, MAG SOPs | `percentage off promotion`, `promo code`, `sale price`, `promotion`, `Pack of 3`, SKU/ASIN | Seller Central > Advertising > Promotions, or Manage Inventory sale price flow if the SOP/task calls for a sale price | Submitting the promotion, changing live prices, deleting/canceling existing promotions |
 | Prepare bulk files | MAG SOPs, Ads Support, Amazon Ads Help | `bulk`, `bulk sheet`, `flat file`, `upload`, template name | Local spreadsheet first, then upload UI if requested | Uploading file, applying changes |
 | Listing/catalog fix | Amazon Seller Help, MAG SOPs | error code, `variation`, `parentage`, `brand`, `attribute`, `A+ Content`, `image`, `feed processing` | Seller Central > Catalog/Manage Inventory or flat-file upload flow | Saving listing changes, deleting/relisting, uploading feeds |
@@ -68,7 +68,7 @@ Use this route for Creator Connections:
 3. Open `Brand content` in the left navigation.
 4. Click `Creator connections`.
 
-Do not use ~~`https://advertising.amazon.com/choose-account?destination=/bi`~~ as the starting route. That direct link can show only a partial account list and may omit accounts visible from Campaign Manager, including the account needed for Swissker/SwissKlip work.
+Do not use ~~`https://advertising.amazon.com/choose-account?destination=/bi`~~ as the starting route. That direct link can show only a partial account list and may omit accounts visible from Campaign Manager.
 
 ## Operator Note Pattern
 

@@ -1,20 +1,38 @@
 ---
 name: amazon-account-health-check
-description: Use for daily Amazon account health checks across Seller Central accounts: reading #sellersonar, checking Seller Central Account Health, posting a #amazon parent thread with one account comment per account, and creating Notion troubleshooting follow-up tasks for actionable account-health issues.
+description: Use for daily Amazon account health checks across Seller Central accounts: reading an alert source such as SellerSonar, checking Seller Central Account Health, posting a configured daily update thread with one account comment per account, and optionally creating troubleshooting follow-up tasks for actionable account-health issues.
 ---
 
 # Amazon Account Health Check
 
 Use this skill for recurring or ad hoc daily account health checks.
 
-Trigger phrases include `daily account health check`, `account health sweep`, `run account health`, `check account health for accounts`, and requests to post a daily `#amazon` account-health thread.
+Trigger phrases include `daily account health check`, `account health sweep`, `run account health`, `check account health for accounts`, and requests to post a daily account-health thread.
+
+## First-Run Setup
+
+Before creating or running a recurring automation, ask for and record local configuration. Do not commit this configuration to GitHub.
+
+Required setup values:
+
+- `{account_profile_source}`: where active account profiles live, such as Notion, a local CSV, or a local JSON cache.
+- `{seller_central_name_field}`: the profile field used to select the Seller Central account. Recommended field name: `Seller Central Name`.
+- `{marketplace_field}`: the profile field used to select the country/marketplace. Recommended field name: `Marketplace`.
+- `{daily_update_channel}`: the Slack channel or other destination for parent posts and account comments.
+- `{sellersonar_alert_source}`: the Slack channel, dashboard, CSV, or other alert source used for first-pass alert triage.
+- `{follow_up_task_database}`: optional task database or tracker for follow-up work.
+- `{default_task_type}`: optional task type for follow-ups, such as `Troubleshooting`.
+- `{default_assignee}`: optional default owner for follow-up tasks.
+- `{schedule}` and `{timezone}`: optional local recurring automation schedule.
+
+Ask which accounts and marketplaces should run before creating a local automation. Account names, marketplace lists, channel IDs, Notion IDs, assignees, schedules, and local paths are runtime configuration, not source-controlled skill content.
 
 ## Source Order
 
-1. Local client profile cache or Notion ops profile for account labels and marketplace.
-2. Slack `#sellersonar` for the first alert pass.
+1. `{account_profile_source}` for active profiles, `{seller_central_name_field}`, and `{marketplace_field}`.
+2. `{sellersonar_alert_source}` for the first alert pass.
 3. Seller Central in the internal browser as the source of truth.
-4. SellerSonar dashboard only when Slack is grouped, truncated, incomplete, or needs filtering.
+4. SellerSonar dashboard only when the alert source is grouped, truncated, incomplete, or needs filtering.
 
 ## Browser Rules
 
@@ -28,15 +46,15 @@ Trigger phrases include `daily account health check`, `account health sweep`, `r
 
 For each account-marketplace:
 
-1. Read the latest `#sellersonar` daily report.
+1. Read the latest report from `{sellersonar_alert_source}`.
 2. Record relevant alerts:
    - search suppression
    - Buy Box / Featured Offer suppression or drop
    - new seller or possible hijacker
    - category/sub-category change
    - rating/review drop
-   - major price, offer, or fulfillment change
-3. Open Seller Central and verify account/marketplace.
+   - major price or offer change
+3. Open Seller Central and verify the account by `{seller_central_name_field}` and the country/region by `{marketplace_field}`.
 4. Check Account Health:
    - overall status and Account Health Rating
    - Policy Compliance categories and `View all`
@@ -51,9 +69,28 @@ For each account-marketplace:
    - Featured Offer %
    - active/suppressed/inactive/pricing issue states
 
+## Account Source
+
+For automation runs, fetch active profiles from `{account_profile_source}`.
+
+Required profile fields:
+
+- `Profile Name`
+- `{seller_central_name_field}`; recommended: `Seller Central Name`
+- `{marketplace_field}`; recommended: `Marketplace`
+- `Status`
+
+Rules:
+
+- Use `{seller_central_name_field}` as the canonical Seller Central account selector.
+- Use `{marketplace_field}` as the canonical country/region selector.
+- Show the country/region in all Slack parent and account-comment output.
+- Do not use or display `Fulfillment Method` in the daily account-health workflow.
+- Skip profiles missing `{seller_central_name_field}` or `{marketplace_field}` and list them under blockers.
+
 ## Slack Output
 
-Use one parent post per daily run in `#amazon`.
+Use one parent post per daily run in `{daily_update_channel}`. Do not post this workflow to client-specific channels unless setup explicitly chooses that destination.
 
 Parent format:
 
@@ -61,49 +98,46 @@ Parent format:
 Daily Amazon Account Health Check - {Mon D}
 
 Accounts covered:
-- {Account Marketplace}
+- {{seller_central_name}} {{marketplace}}
 ```
 
 Thread comment per account:
 
 ```text
-{Account Marketplace}
+{{seller_central_name}} {{marketplace}}
 
-Policy Compliance
-- {status}
+Account Health
+- Status: {Healthy / At risk / Issue found}
 - AHR: {rating}
-- {open issue count} open policy issues
+- Policy Compliance: {summary}
 
 SellerSonar alerts
-- {severity}: {alert summary}
+- {None / severity + alert summary}
 
-Featured Offer
-- Featured Offer: {value/status}
-- `{ASIN}` is {listing status}
-- SKU: `{SKU}`
-- {brand} price: {price}
-- Inventory: {inventory}
+Selling blockers
+- {None / ASIN + issue}
 
 Other action
-- {action summary or "None"}
+- {No alerts or follow-up needed. / known issue update / new task created}
 ```
 
 Keep comments short and human-readable. Do not include raw tables unless an issue needs the detail.
+If no alerts, blockers, or follow-up actions are found, write exactly: `No alerts or follow-up needed.`
 
 ## Notion Follow-Up Defaults
 
 Create follow-up tasks only for actionable issues, not for clean checks.
 
-Route client-specific follow-ups to `Client Tasks - Overview`.
+Create follow-up tasks only when `{follow_up_task_database}` is configured. Do not create tasks during setup or dry runs unless the operator explicitly approves live task creation.
 
 Default fields:
 
-- `Task Type`: `Troubleshooting`
-- `Assignee`: Alain
-- `Assigned Employee`: Alain, when the relation can be resolved
+- `Task Type`: `{default_task_type}`
+- `Assignee`: `{default_assignee}`
+- `Assigned Employee`: `{default_assignee}`, when that relation exists
 - `Due`: next day
 - `Status`: `Not Started`
-- `Brand`: matching Partner Success brand
+- `Brand` or account relation: match from the configured account profile source, when available
 
 Priority mapping:
 
