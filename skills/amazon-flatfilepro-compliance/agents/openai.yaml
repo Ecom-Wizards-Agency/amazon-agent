@@ -1,0 +1,3 @@
+display_name: Amazon FlatFilePro Compliance
+short_description: Build label-based FlatFilePro CSVs.
+default_prompt: Use this skill to prepare Amazon FlatFilePro compliance CSVs and audits from backend exports, product labels, and Account Health case messages.

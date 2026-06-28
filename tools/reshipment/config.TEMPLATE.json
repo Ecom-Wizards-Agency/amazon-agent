@@ -1,0 +1,22 @@
+{
+  "run_date": "2026-01-01",
+  "report_days": 30,
+  "target_days": 66,
+  "multiplier": 1.2,
+  "downloads_dir": "~/Downloads",
+  "output_root": ".",
+  "clients": [
+    {
+      "key": "Acme US",
+      "brand": "Acme",
+      "market": "US",
+      "country": "United States",
+      "fba": "FBA-Inventory.csv",
+      "business": "BusinessReport.csv",
+      "inventory": "Inventory-Report.txt",
+      "restock": "Restock-Report.csv",
+      "restock_country": null,
+      "notes": "Same-day FBA Inventory, Business Report, Inventory Report, and Restock Report used."
+    }
+  ]
+}

@@ -1,0 +1,55 @@
+.DS_Store
+
+# Local visual builds and heavy assets
+.final-build/
+assets/
+*.zip
+
+# Local outputs and evidence
+Output/
+review-tracking/
+Downloads/
+screenshots/
+Screenshots/
+
+# Local user preferences and standing permissions
+local-browser-preference.md
+!_local/
+_local/*
+!_local/.gitkeep
+
+# Keep base artifact folders in GitHub, but ignore their contents.
+!output/
+output/*
+!output/.gitkeep
+!evidence/
+evidence/*
+!evidence/.gitkeep
+!downloads/
+downloads/*
+!downloads/.gitkeep
+!_local-output/
+_local-output/*
+!_local-output/.gitkeep
+
+# Client-specific keyword-workbook configs and SEO content stay LOCAL ONLY.
+# Only the client-agnostic template belongs in GitHub.
+tools/amazon-seo-keyword-workbook/config.*.json
+!tools/amazon-seo-keyword-workbook/config.TEMPLATE.json
+tools/amazon-seo-keyword-workbook/seo_content.*.json
+
+# Reshipment tool: client list + local report paths stay LOCAL ONLY; only the template ships.
+tools/reshipment/config.json
+tools/reshipment/config.*.json
+!tools/reshipment/config.TEMPLATE.json
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.swp
+~$*
+
+# Local runtimes and assistant permissions
+.venv/
+.claude/settings.local.json

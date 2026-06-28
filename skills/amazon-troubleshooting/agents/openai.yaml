@@ -1,0 +1,3 @@
+display_name: Amazon Troubleshooting
+short_description: Diagnose Amazon errors, warnings, suppressions, and account-health issues.
+default_prompt: Use this skill to capture exact Amazon symptoms, search first-party docs first, identify likely causes, prepare next actions or support drafts, and stop before risky account actions.

@@ -1,0 +1,3 @@
+display_name: Amazon Reporting
+short_description: Download and analyze Amazon Seller Central and Ads reports.
+default_prompt: Use this skill for Seller Central reports, Amazon Ads reports, SQP, business reports, period comparisons, dashboards, and workbook outputs.

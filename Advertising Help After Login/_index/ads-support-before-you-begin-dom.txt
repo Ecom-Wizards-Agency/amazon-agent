@@ -1,0 +1,434 @@
+- link "Skip to main content":
+  - /url: "#AACApplicationBody"
+- link "Amazon Advertising Console":
+  - /url: /mn
+  - img "Amazon Advertising Console"
+- navigation
+- navigation:
+  - button "Support Center"
+  - paragraph: Before you begin
+- button "Example Brand Sponsored ads, multiple countries":
+  - paragraph: Example Brand
+  - paragraph: Sponsored ads, multiple countries
+- button "See my notifications":
+  - generic: See my notifications
+- button "Your preferences":
+  - generic: Your preferences
+- button "Create campaign":
+  - img "Create campaign"
+  - generic: Create campaign
+- link "Campaigns":
+  - /url: https://advertising.amazon.com/campaign-manager/all-campaigns?entityId=ENTITY_EXAMPLE
+  - img "Campaigns"
+  - generic: Campaigns
+  - switch "Set Campaigns as your homepage":
+    - generic: Set Campaigns as your homepage
+- link "Accounts overview":
+  - /url: /choose-account?destination=/am/overview?entityId=ENTITY_EXAMPLE
+  - img "Accounts overview"
+  - generic: Accounts overview
+  - switch "Set Accounts overview as your homepage":
+    - generic: Set Accounts overview as your homepage
+- link "Recommendations":
+  - /url: https://advertising.amazon.com/recommendations?entityId=ENTITY_EXAMPLE
+  - img "Recommendations"
+  - generic: Recommendations
+  - switch "Set Recommendations as your homepage":
+    - generic: Set Recommendations as your homepage
+- button "Show links under Partner Network":
+  - img "Partner Network"
+- link "Overview":
+  - /url: /choose-account?destination=/partner-network?entityId=ENTITY_EXAMPLE
+- switch "Set Overview as your homepage":
+  - generic: Set Overview as your homepage
+- link "Partner growth toolkit":
+  - /url: /choose-account?destination=/partner-network/growth?entityId=ENTITY_EXAMPLE
+- generic "Beta":
+  - generic: Beta
+- switch "Set Partner growth toolkit as your homepage":
+  - generic: Set Partner growth toolkit as your homepage
+- link "Partner opportunities":
+  - /url: /choose-account?destination=/partner-network/opportunities?entityId=ENTITY_EXAMPLE
+- switch "Set Partner opportunities as your homepage":
+  - generic: Set Partner opportunities as your homepage
+- link "Leads":
+  - /url: /choose-account?destination=/partner-network/leads?entityId=ENTITY_EXAMPLE
+- switch "Set Leads as your homepage":
+  - generic: Set Leads as your homepage
+- link "Directory profile":
+  - /url: /choose-account?destination=/partner-network/manage/directory_listing?entityId=ENTITY_EXAMPLE
+- switch "Set Directory profile as your homepage":
+  - generic: Set Directory profile as your homepage
+- link "Resources":
+  - /url: /choose-account?destination=/partner-network/resources?entityId=ENTITY_EXAMPLE
+- switch "Set Resources as your homepage":
+  - generic: Set Resources as your homepage
+- link "Events & webinars":
+  - /url: /choose-account?destination=/partner-network/events?entityId=ENTITY_EXAMPLE
+- switch "Set Events & webinars as your homepage":
+  - generic: Set Events & webinars as your homepage
+- link "Certifications":
+  - /url: /choose-account?destination=/partner-network/manage/users/certifications?entityId=ENTITY_EXAMPLE
+- switch "Set Certifications as your homepage":
+  - generic: Set Certifications as your homepage
+- link "API applications":
+  - /url: /choose-account?destination=/partner-network/manage/api?entityId=ENTITY_EXAMPLE
+- switch "Set API applications as your homepage":
+  - generic: Set API applications as your homepage
+- button "Show links under Brand content":
+  - img "Brand content"
+- link "Brand profiles":
+  - /url: https://advertising.amazon.com/builder/brand-profile?entityId=ENTITY_EXAMPLE
+- generic "New":
+  - generic: New
+- switch "Set Brand profiles as your homepage":
+  - generic: Set Brand profiles as your homepage
+- link "Brand Stores":
+  - /url: https://advertising.amazon.com/builder?entityId=ENTITY_EXAMPLE
+- switch "Set Brand Stores as your homepage":
+  - generic: Set Brand Stores as your homepage
+- link "Creator connections":
+  - /url: /choose-account?destination=/bi?entityId=ENTITY_EXAMPLE
+- switch "Set Creator connections as your homepage":
+  - generic: Set Creator connections as your homepage
+- button "Show links under Creative tools":
+  - img "Creative tools"
+- link "Creative assets":
+  - /url: https://advertising.amazon.com/creative-assets?entityId=ENTITY_EXAMPLE
+- switch "Set Creative assets as your homepage":
+  - generic: Set Creative assets as your homepage
+- link "Creative Studio":
+  - /url: https://advertising.amazon.com/creative-studio?entityId=ENTITY_EXAMPLE
+- generic "Beta_ai_with_icon":
+  - text: Beta
+  - text: AI
+- switch "Set Creative Studio as your homepage":
+  - generic: Set Creative Studio as your homepage
+- link "Translations":
+  - /url: https://advertising.amazon.com/translations?entityId=ENTITY_EXAMPLE
+- switch "Set Translations as your homepage":
+  - generic: Set Translations as your homepage
+- button "Show links under Insights & planning":
+  - img "Insights & planning"
+- link "Brand metrics":
+  - /url: https://advertising.amazon.com/bb/bm?entityId=ENTITY_EXAMPLE
+- generic "Beta":
+  - generic: Beta
+- switch "Set Brand metrics as your homepage":
+  - generic: Set Brand metrics as your homepage
+- link "Brand impression share":
+  - /url: https://advertising.amazon.com/bb/bis?entityId=ENTITY_EXAMPLE
+- generic "Beta":
+  - generic: Beta
+- switch "Set Brand impression share as your homepage":
+  - generic: Set Brand impression share as your homepage
+- separator
+- link "Ads planner":
+  - /url: https://advertising.amazon.com/mediaplanning?entityId=ENTITY_EXAMPLE
+- switch "Set Ads planner as your homepage":
+  - generic: Set Ads planner as your homepage
+- button "Show links under Measurement & reporting":
+  - img "Measurement & reporting"
+- link "Amazon Attribution":
+  - /url: https://advertising.amazon.com/attribution?entityId=ENTITY_EXAMPLE
+- generic "Beta":
+  - generic: Beta
+- switch "Set Amazon Attribution as your homepage":
+  - generic: Set Amazon Attribution as your homepage
+- link "Amazon Marketing Cloud":
+  - /url: https://advertising.amazon.com/marketing-cloud?entityId=ENTITY_EXAMPLE
+- switch "Set Amazon Marketing Cloud as your homepage":
+  - generic: Set Amazon Marketing Cloud as your homepage
+- separator
+- link "Reporting":
+  - /url: https://advertising.amazon.com/reporting?entityId=ENTITY_EXAMPLE
+- generic "Beta":
+  - generic: Beta
+- switch "Set Reporting as your homepage":
+  - generic: Set Reporting as your homepage
+- link "Reporting summary":
+  - /url: /choose-account?destination=/reporting/summary?entityId=ENTITY_EXAMPLE
+- switch "Set Reporting summary as your homepage":
+  - generic: Set Reporting summary as your homepage
+- link "Sponsored ads reports":
+  - /url: https://advertising.amazon.com/reports?entityId=ENTITY_EXAMPLE
+- switch "Set Sponsored ads reports as your homepage":
+  - generic: Set Sponsored ads reports as your homepage
+- link "Marketing mix models":
+  - /url: /choose-account?destination=/mmm-portal/requests/ENTITY_EXAMPLE?entityId=ENTITY_EXAMPLE
+- switch "Set Marketing mix models as your homepage":
+  - generic: Set Marketing mix models as your homepage
+- link "Brand lift studies":
+  - /url: https://advertising.amazon.com/studies?entityId=ENTITY_EXAMPLE
+- switch "Set Brand lift studies as your homepage":
+  - generic: Set Brand lift studies as your homepage
+- button "Show links under Data & events":
+  - img "Data & events"
+- link "Data manager":
+  - /url: /choose-account?destination=/ads-data-manager?entityId=ENTITY_EXAMPLE
+- switch "Set Data manager as your homepage":
+  - generic: Set Data manager as your homepage
+- link "Events":
+  - /url: https://advertising.amazon.com/events-manager?entityId=ENTITY_EXAMPLE
+- switch "Set Events as your homepage":
+  - generic: Set Events as your homepage
+- button "Show links under Tools & resources":
+  - img "Tools & resources"
+- generic: MORE ADVERTISING TOOLS
+- link "Partner Directory":
+  - /url: https://advertising.amazon.com/partners/directory?ref_=ad_cons_more_ads_tools_nav
+- link "Amazon Ads Academy":
+  - /url: https://advertising.amazon.com/academy?ref_=advcnsl_us_aaa_gw
+- separator
+- generic: AMAZON SELLING TOOLS
+- link "Seller Central":
+  - /url: https://sellercentral.amazon.com?ref_=AAC_gnav_SC_linkback
+- button "All tools":
+  - img "All tools"
+  - generic: All tools
+- button "Show links under Administration":
+  - img "Administration"
+- link "Account access & settings":
+  - /url: /choose-account?destination=/user/management?entityId=ENTITY_EXAMPLE
+- switch "Set Account access & settings as your homepage":
+  - generic: Set Account access & settings as your homepage
+- separator
+- generic: BILLING & PAYMENT
+- link "Billing":
+  - /url: https://advertising.amazon.fr/billing/history?entityId=ENTITY_EXAMPLE
+- generic "New":
+  - generic: New
+- switch "Set Billing as your homepage":
+  - generic: Set Billing as your homepage
+- link "Manager account billing dashboard":
+  - /url: /choose-account?destination=/billing/ma?entityId=ENTITY_EXAMPLE
+- switch "Set Manager account billing dashboard as your homepage":
+  - generic: Set Manager account billing dashboard as your homepage
+- generic "Create campaign":
+  - img "Create campaign"
+  - generic: Create campaign
+- link "Campaigns":
+  - /url: https://advertising.amazon.com/campaign-manager/all-campaigns?entityId=ENTITY_EXAMPLE
+  - img "Campaigns"
+  - generic: Campaigns
+- link "Accounts overview":
+  - /url: /choose-account?destination=/am/overview?entityId=ENTITY_EXAMPLE
+  - img "Accounts overview"
+  - generic: Accounts overview
+- link "Recommendations":
+  - /url: https://advertising.amazon.com/recommendations?entityId=ENTITY_EXAMPLE
+  - img "Recommendations"
+  - generic: Recommendations
+- generic "Show links under Partner Network":
+  - img "Partner Network"
+  - generic: Partner Network
+- link "Overview":
+  - /url: /choose-account?destination=/partner-network?entityId=ENTITY_EXAMPLE
+- link "Partner growth toolkit":
+  - /url: /choose-account?destination=/partner-network/growth?entityId=ENTITY_EXAMPLE
+- generic "Beta":
+  - generic: Beta
+- link "Partner opportunities":
+  - /url: /choose-account?destination=/partner-network/opportunities?entityId=ENTITY_EXAMPLE
+- link "Leads":
+  - /url: /choose-account?destination=/partner-network/leads?entityId=ENTITY_EXAMPLE
+- link "Directory profile":
+  - /url: /choose-account?destination=/partner-network/manage/directory_listing?entityId=ENTITY_EXAMPLE
+- link "Resources":
+  - /url: /choose-account?destination=/partner-network/resources?entityId=ENTITY_EXAMPLE
+- link "Events & webinars":
+  - /url: /choose-account?destination=/partner-network/events?entityId=ENTITY_EXAMPLE
+- link "Certifications":
+  - /url: /choose-account?destination=/partner-network/manage/users/certifications?entityId=ENTITY_EXAMPLE
+- link "API applications":
+  - /url: /choose-account?destination=/partner-network/manage/api?entityId=ENTITY_EXAMPLE
+- generic "Show links under Brand content":
+  - img "Brand content"
+  - generic: Brand content
+- link "Brand profiles":
+  - /url: https://advertising.amazon.com/builder/brand-profile?entityId=ENTITY_EXAMPLE
+- generic "New":
+  - generic: New
+- link "Brand Stores":
+  - /url: https://advertising.amazon.com/builder?entityId=ENTITY_EXAMPLE
+- link "Creator connections":
+  - /url: /choose-account?destination=/bi?entityId=ENTITY_EXAMPLE
+- generic "Show links under Creative tools":
+  - img "Creative tools"
+  - generic: Creative tools
+- link "Creative assets":
+  - /url: https://advertising.amazon.com/creative-assets?entityId=ENTITY_EXAMPLE
+- link "Creative Studio":
+  - /url: https://advertising.amazon.com/creative-studio?entityId=ENTITY_EXAMPLE
+- generic "Beta_ai_with_icon":
+  - text: Beta
+  - text: AI
+- link "Translations":
+  - /url: https://advertising.amazon.com/translations?entityId=ENTITY_EXAMPLE
+- generic "Show links under Insights & planning":
+  - img "Insights & planning"
+  - generic: Insights & planning
+- link "Brand metrics":
+  - /url: https://advertising.amazon.com/bb/bm?entityId=ENTITY_EXAMPLE
+- generic "Beta":
+  - generic: Beta
+- link "Brand impression share":
+  - /url: https://advertising.amazon.com/bb/bis?entityId=ENTITY_EXAMPLE
+- generic "Beta":
+  - generic: Beta
+- separator
+- link "Ads planner":
+  - /url: https://advertising.amazon.com/mediaplanning?entityId=ENTITY_EXAMPLE
+- generic "Show links under Measurement & reporting":
+  - img "Measurement & reporting"
+  - generic: Measurement & reporting
+- link "Amazon Attribution":
+  - /url: https://advertising.amazon.com/attribution?entityId=ENTITY_EXAMPLE
+- generic "Beta":
+  - generic: Beta
+- link "Amazon Marketing Cloud":
+  - /url: https://advertising.amazon.com/marketing-cloud?entityId=ENTITY_EXAMPLE
+- separator
+- link "Reporting":
+  - /url: https://advertising.amazon.com/reporting?entityId=ENTITY_EXAMPLE
+- generic "Beta":
+  - generic: Beta
+- link "Reporting summary":
+  - /url: /choose-account?destination=/reporting/summary?entityId=ENTITY_EXAMPLE
+- link "Sponsored ads reports":
+  - /url: https://advertising.amazon.com/reports?entityId=ENTITY_EXAMPLE
+- link "Marketing mix models":
+  - /url: /choose-account?destination=/mmm-portal/requests/ENTITY_EXAMPLE?entityId=ENTITY_EXAMPLE
+- link "Brand lift studies":
+  - /url: https://advertising.amazon.com/studies?entityId=ENTITY_EXAMPLE
+- generic "Show links under Data & events":
+  - img "Data & events"
+  - generic: Data & events
+- link "Data manager":
+  - /url: /choose-account?destination=/ads-data-manager?entityId=ENTITY_EXAMPLE
+- link "Events":
+  - /url: https://advertising.amazon.com/events-manager?entityId=ENTITY_EXAMPLE
+- generic "Show links under Tools & resources":
+  - img "Tools & resources"
+  - generic: Tools & resources
+- generic: MORE ADVERTISING TOOLS
+- link "Partner Directory":
+  - /url: https://advertising.amazon.com/partners/directory?ref_=ad_cons_more_ads_tools_nav
+- link "Amazon Ads Academy":
+  - /url: https://advertising.amazon.com/academy?ref_=advcnsl_us_aaa_gw
+- separator
+- generic: AMAZON SELLING TOOLS
+- link "Seller Central":
+  - /url: https://sellercentral.amazon.com?ref_=AAC_gnav_SC_linkback
+- generic "Show links under Administration":
+  - img "Administration"
+  - generic: Administration
+- link "Account access & settings":
+  - /url: /choose-account?destination=/user/management?entityId=ENTITY_EXAMPLE
+- separator
+- generic: BILLING & PAYMENT
+- link "Billing":
+  - /url: https://advertising.amazon.fr/billing/history?entityId=ENTITY_EXAMPLE
+- generic "New":
+  - generic: New
+- link "Manager account billing dashboard":
+  - /url: /choose-account?destination=/billing/ma?entityId=ENTITY_EXAMPLE
+- heading "Before you begin" [level=5]
+- paragraph: Get ready to advertise on Amazon. Discover the different advertising products available, explore campaign planning strategies, and find guidance on preparing your products and brand for advertising success. Build a strong foundation to launch campaigns that can drive results.
+- paragraph: Getting started
+- link "Get started with sponsored ads":
+  - /url: /help/G4HZVWT2A83JR624
+  - button "Get started with sponsored ads"
+- link "Optimize products for advertising":
+  - /url: /help/GXAMM4S99TTG2Y57
+  - button "Optimize products for advertising"
+- paragraph: Product overviews
+- link "Display":
+  - /url: /help/GHYXY6HJRDM5VCCY
+  - button "Display"
+- link "Sponsored Brands":
+  - /url: /help/GGWFYHL27MFXLHS6
+  - button "Sponsored Brands"
+- link "Sponsored Products":
+  - /url: /help/GJUCNANNV3GQVXJZ
+  - button "Sponsored Products"
+- link "Streaming TV":
+  - /url: /help/GXFV9PSQ4356SNUF
+  - button "Streaming TV"
+- link "Promoted Skills":
+  - /url: /help/G7RDY7RJ5DGV2CH7
+  - button "Promoted Skills"
+- paragraph: Campaign planning
+- link "Understand Ads planner":
+  - /url: /help/GCE7SFM36F7D6U66
+  - button "Understand Ads planner"
+- link "Build a media plan with Ads planner":
+  - /url: /help/GZ3RC8VB2BJPLM9Y
+  - button "Build a media plan with Ads planner"
+- link "Plan your budget with Ads Planner":
+  - /url: /help/G3QY49XXEF93NQ52
+  - button "Plan your budget with Ads Planner"
+- paragraph: Brand preparation
+- link "Understand brands on Amazon Ads":
+  - /url: /help/GYD2WUGJKAMM6UNU
+  - button "Understand brands on Amazon Ads"
+- link "Understand Brand profiles":
+  - /url: /help/GWQVDAN3XYCGVP24
+  - button "Understand Brand profiles"
+- link "Create a brand profile":
+  - /url: /help/G3SKBFCNXYFKLZ3D
+  - button "Create a brand profile"
+- paragraph: Integrations
+- link "Amazon Attribution":
+  - /url: /help/GUK77L9456RQ6EJD
+  - button "Amazon Attribution"
+- link "Get started with Partner Network":
+  - /url: /help/GYGUHLUNQLJTCT2U
+  - button "Get started with Partner Network"
+- link "Learn about Amazon Marketing Cloud":
+  - /url: /help/G8MQTW9W32CJFA5V
+  - button "Learn about Amazon Marketing Cloud"
+- paragraph: References
+- link "Ads content moderation":
+  - /url: /help/GXZXZ78UXL2AEBQ9
+  - button "Ads content moderation"
+- link "Understand Ads Agent":
+  - /url: /help/GKT6KLCX98F5LWKM
+  - button "Understand Ads Agent"
+- link "Sponsored ads studies":
+  - /url: /help/GQGYZPBE7AVK6FPS
+  - button "Sponsored ads studies"
+- link "Amazon Ads consent signals":
+  - /url: /help/GJ9NZYG2UT4DZ9JR
+  - button "Amazon Ads consent signals"
+- heading "More ways to learn" [level=5]
+- paragraph: Check out our library of videos and e-learning material to expand your Amazon Ads knowledge.
+- switch "Videos" [checked]
+- switch "Courses"
+- generic: 04:10
+- text: Intro to Amazon Ads
+- generic: 02:09
+- text: Set up an Amazon Ads account
+- generic: 03:06
+- text: Introduction to Stores
+- generic: 03:50
+- text: Preparing your retail pages for advertising
+- generic: 01:50
+- text: Finding Your Billing Information
+- generic: 01:29
+- text: Explore the Unified Campaign Manager
+- generic: Search
+- searchbox "Search"
+- generic: More Help
+- generic: Contact Us
+- generic: Case log
+- separator
+- generic: © 2026 Amazon.com, Inc. or its affiliates.
+- link "Conditions of use":
+  - /url: https://www.amazon.com/gp/help/customer/display.html?nodeId=508088
+- link "Privacy notice":
+  - /url: https://www.amazon.com/gp/help/customer/display.html?nodeId=468496
+- link "Amazon Advertising Agreement":
+  - /url: https://advertising.amazon.com/terms
+- link "Status":
+  - /url: https://status.ads.amazon.com

@@ -1,0 +1,79 @@
+---
+name: amazon-flatfilepro-compliance
+description: Use for Amazon FlatFilePro, Flatfire Pro, flat file, backend export, category listing report, or Amazon template work where catalog fields must be prepared from product labels for Account Health, food safety, nutrition, ingredients, warning, shelf life, manufacturer contact, weight, set name, or label/detail-page mismatch cases. Use when creating narrow upload CSVs, audit files, or validation notes from a FlatFilePro export and physical label/package evidence.
+---
+
+# Amazon FlatFilePro Compliance
+
+## Core Rule
+
+Use the physical product label or approved packaging PDF as the source of truth. Use the FlatFilePro export, category listing report, or Amazon template as the source for available headers, current backend values, SKUs, product types, and upload structure.
+
+If required inputs are missing, answer briefly with only what is needed. Typical minimum inputs are:
+
+- FlatFilePro export or Amazon template
+- product label, packaging PDF, or clear label images
+- affected marketplace(s)
+- affected ASINs/SKUs
+- Amazon case message when the work is for Account Health or Seller Support
+
+## Workflow
+
+1. Identify the marketplace, ASINs, SKUs, product type, and case issue.
+2. Read the export/template headers before deciding which fields can be updated.
+3. Compare current backend values against the physical label.
+4. Review consistency at ASIN level, but write updates at SKU level, including duplicate contribution SKUs such as `-1` variants when they may control the frontend.
+5. Create narrow upload files with only `sku` plus relevant existing FlatFilePro headers.
+6. Produce an audit note or workbook showing included SKUs, excluded SKUs, changed fields, unchanged matching values, and manual-review fields.
+7. Stop before uploading files, saving Seller Central changes, or submitting cases.
+
+Do not touch title, bullets, images, price, offer, variation, claims, browse node, or unrelated fields unless the user explicitly asks.
+
+## Field Policy
+
+Prioritize fields named by Amazon and fields needed for label compliance:
+
+- ingredients
+- nutritional information
+- safety warnings
+- daily dose or serving recommendation
+- serving size and servings per container
+- shelf life and durability indication
+- manufacturer and manufacturer contact information
+- item/package/unit weights
+- unit count and unit count type
+- set name for bundles
+
+Preserve existing values when they already match the label and are not in scope. Overwrite missing, wrong-language, stale, or label-conflicting values only for the targeted fields.
+
+Do not invent a field that is not present in the export/template. If the label has information but no safe target column exists, flag it for manual review instead.
+
+## Nutrition String Policy
+
+Do not fill nutrition string fields by default. Use normal numeric and structured nutrition fields first.
+
+Use string nutrition fields only when:
+
+- Amazon explicitly asks for values in both per-serving and per-100 g/ml form and the template exposes only one structured nutrition block
+- the available numeric fields cannot represent required label text safely
+- an active compliance case has repeated mismatches and a defensive display field is needed
+
+One past collagen case was an exception because repeated compliance checks required defensive dual-basis nutrition text. Do not generalize that to all supplements.
+
+See `references/nutrition-field-policy.md` before using string fields.
+
+## Outputs
+
+Prefer these outputs:
+
+- audit workbook or CSV with old value vs proposed value
+- upload-ready CSV split by product type/template when needed
+- validation note with assumptions, source files, excluded rows, and manual-review items
+
+For CSV creation from reviewed changes, use `scripts/prepare_flatfilepro_compliance_csv.py`. Read `references/flatfilepro-compliance-rules.md` before building complex upload files.
+
+After the CSV is created, use `amazon-flatfilepro-upload-mapper` when the operator asks Codex to upload the file in Chrome, match by SKU, map columns in FlatFilePro, or leave the flow ready for the operator's final click. Keep this skill focused on preparing the CSV and audit.
+
+## Communication
+
+When preparing Seller Support or Account Health replies, state what was updated and that it was done via FlatFilePro/flat file only if true. Attach or reference label evidence when Amazon asks for compliant label proof. Do not argue with Amazon in the reply; keep it factual and case-specific.

@@ -1,0 +1,125 @@
+{
+  "downloaded_at": "2026-05-13",
+  "source": "Amazon Ads Advanced Tools Center",
+  "status": "captured-complete",
+  "sections": {
+    "no-code-tools": [
+      {
+        "title": "Amazon Ads no-code tools",
+        "url": "https://advertising.amazon.com/API/docs/en-us/no-code-tools/overview"
+      },
+      {
+        "title": "Sponsored ads bulk operations",
+        "url": "https://advertising.amazon.com/API/docs/en-us/no-code-tools/bulksheets/2-0/overview-about-bulksheets"
+      },
+      {
+        "title": "Ads data manager console",
+        "url": "https://advertising.amazon.com/API/docs/en-us/no-code-tools/adm/1_ads-data-manager-console-overview"
+      }
+    ],
+    "guides": [
+      {
+        "title": "Guides overview",
+        "url": "https://advertising.amazon.com/API/docs/en-us/guides/overview"
+      },
+      {
+        "title": "Postman",
+        "url": "https://advertising.amazon.com/API/docs/en-us/guides/postman"
+      },
+      {
+        "title": "Translations",
+        "url": "https://advertising.amazon.com/API/docs/en-us/guides/translations"
+      },
+      {
+        "title": "Onboarding overview",
+        "url": "https://advertising.amazon.com/API/docs/en-us/guides/onboarding/overview"
+      },
+      {
+        "title": "Reporting v3 get started",
+        "url": "https://advertising.amazon.com/API/docs/en-us/guides/reporting/v3/get-started"
+      },
+      {
+        "title": "Amazon Marketing Stream onboarding",
+        "url": "https://advertising.amazon.com/API/docs/en-us/guides/amazon-marketing-stream/onboarding"
+      },
+      {
+        "title": "Campaign management overview",
+        "url": "https://advertising.amazon.com/API/docs/en-us/guides/campaign-management/overview"
+      },
+      {
+        "title": "Sponsored Products manual campaigns",
+        "url": "https://advertising.amazon.com/API/docs/en-us/guides/sponsored-products/get-started/manual-campaigns"
+      },
+      {
+        "title": "Sponsored Brands get started with campaigns",
+        "url": "https://advertising.amazon.com/API/docs/en-us/guides/sponsored-brands/campaigns/get-started-with-campaigns"
+      },
+      {
+        "title": "Sponsored Display contextual targeting",
+        "url": "https://advertising.amazon.com/API/docs/en-us/guides/sponsored-display/contextual-targeting"
+      },
+      {
+        "title": "Sponsored Display non-Amazon sellers get started",
+        "url": "https://advertising.amazon.com/API/docs/en-us/guides/sponsored-display/non-amazon-sellers/get-started"
+      }
+    ],
+    "reference": [
+      {
+        "title": "API overview",
+        "url": "https://advertising.amazon.com/API/docs/en-us/reference/api-overview"
+      },
+      {
+        "title": "Amazon Ads API reference overview",
+        "url": "https://advertising.amazon.com/API/docs/en-us/reference/amazon-ads/overview"
+      }
+    ],
+    "knowledge-hub": [
+      {
+        "title": "Knowledge hub overview",
+        "url": "https://advertising.amazon.com/API/docs/en-us/knowledge-hub/knowledge-hub-overview"
+      },
+      {
+        "title": "Amazon Ads MCP Server workshop overview",
+        "url": "https://advertising.amazon.com/API/docs/en-us/knowledge-hub/hands-on-workshops/amazon-ads-mcp-server/01-overview"
+      },
+      {
+        "title": "1st party data workshop overview",
+        "url": "https://advertising.amazon.com/API/docs/en-us/knowledge-hub/hands-on-workshops/1st-party-data-workshop/overview"
+      },
+      {
+        "title": "Gen AI LangGraph agents workshop overview",
+        "url": "https://advertising.amazon.com/API/docs/en-us/knowledge-hub/hands-on-workshops/workshop-gen-ai-langgraph-agents/overview"
+      },
+      {
+        "title": "Hands-on workshops overview",
+        "url": "https://advertising.amazon.com/API/docs/en-us/knowledge-hub/hands-on-workshops/overview"
+      },
+      {
+        "title": "Partner blog: How Advertisers Increase Customer",
+        "url": "https://advertising.amazon.com/API/docs/en-us/knowledge-hub/blogs/partners/How-Advertisers-Increase-Customer"
+      },
+      {
+        "title": "Conversion blog",
+        "url": "https://advertising.amazon.com/API/docs/en-us/knowledge-hub/blogs/conversion/conversion"
+      },
+      {
+        "title": "Gen AI Amazon Ads blog",
+        "url": "https://advertising.amazon.com/API/docs/en-us/knowledge-hub/blogs/genai/gen-ai-amazon-ads"
+      },
+      {
+        "title": "Authorization requests using Python",
+        "url": "https://advertising.amazon.com/API/docs/en-us/knowledge-hub/blogs/usage-examples/2025-03-step-by-step-guide-authorization-amazon-ads-api-requests-using-python"
+      },
+      {
+        "title": "AMS and Snowflake integration",
+        "url": "https://advertising.amazon.com/API/docs/en-us/knowledge-hub/blogs/usage-examples/2025-01-ams-and-snowflake-integration"
+      },
+      {
+        "title": "Blogs overview",
+        "url": "https://advertising.amazon.com/API/docs/en-us/knowledge-hub/blogs/overview"
+      }
+    ]
+  },
+  "discovered_count": 27,
+  "captured_count": 27
+}

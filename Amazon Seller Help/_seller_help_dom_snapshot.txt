@@ -1,0 +1,944 @@
+- button:
+- link "Amazon":
+  - /url: /home
+- link "Switch accounts":
+  - /url: /account-switcher
+- textbox "Search"
+- button "Search":
+- link "New Seller Central":
+  - /url: /amazonsell?ref=sc_trim_header&path=%2Fhelp%2Fhub%2Freference%2FG2
+  - img "New Seller Central"
+- link "New Seller Central":
+  - /url: /amazonsell?ref=sc_trim_header&path=%2Fhelp%2Fhub%2Freference%2FG2
+- generic "Seller Assistant":
+  - button:
+- link "Messages":
+  - /url: /messaging/inbox
+- generic "Settings":
+- generic "Language":
+  - text: EN
+- generic "Help":
+  - generic: Help
+- button:
+- link "Manage All Inventory":
+  - /url: /myinventory/inventory?ref_=xx_invmgr_favb_xx
+- link "Inventory Reports":
+  - /url: /listing/reports/ref=xx_invreport_favb_xx
+- button "Edit"
+- searchbox "Search help articles"
+- button:
+  - generic: 
+- tablist:
+  - tab "All articles" [selected]:
+    - generic: All articles
+  - tabpanel "All articles":
+    - link "Account settings":
+      - /url: /help/hub/reference/G181
+      - generic: 
+      - text: Account settings
+    - link "Manage inventory":
+      - /url: /help/hub/reference/G41
+      - generic: 
+      - text: Manage inventory
+    - link "Policies, agreements, and guidelines":
+      - /url: /help/hub/reference/GSNV3657R94YP9DZ
+      - generic: 
+      - text: Policies, agreements, and guidelines
+    - link "Listing quality guidelines":
+      - /url: /help/hub/reference/GC3QAQ8CCXUG5RE4
+      - generic: 
+      - text: Listing quality guidelines
+    - link "Manage orders":
+      - /url: /help/hub/reference/G28141
+      - generic: 
+      - text: Manage orders
+    - link "Payments":
+      - /url: /help/hub/reference/G211
+      - generic: 
+      - text: Payments
+    - link "Seller-fulfilled returns, refunds, cancellations, and claims":
+      - /url: /help/hub/reference/G69126
+      - generic: 
+      - text: Seller-fulfilled returns, refunds, cancellations, and claims
+    - link "Monitor feedback and performance":
+      - /url: /help/hub/reference/G171
+      - generic: 
+      - text: Monitor feedback and performance
+    - link "Get started with Fulfillment by Amazon (FBA)":
+      - /url: /help/hub/reference/G53921
+      - generic: 
+      - text: Get started with Fulfillment by Amazon (FBA)
+    - link "Amazon Lending":
+      - /url: /help/hub/reference/G5FQ5KR6FTQ4DGG2
+      - generic: 
+      - text: Amazon Lending
+    - link "Increase sales":
+      - /url: /help/hub/reference/G43381
+      - generic: 
+      - text: Increase sales
+    - link "Amazon Global Selling":
+      - /url: /help/hub/reference/G201062890
+      - generic: 
+      - text: Amazon Global Selling
+    - link "Amazon Handmade":
+      - /url: /help/hub/reference/G201817090
+      - generic: 
+      - text: Amazon Handmade
+    - link "Private Brands safety and compliance":
+      - /url: /help/hub/reference/GFZ4GKGVGPHP5XL6
+      - generic: 
+      - text: Private Brands safety and compliance
+    - link "Amazon Custom":
+      - /url: /help/hub/reference/G201757520
+      - generic: 
+      - text: Amazon Custom
+    - link "Data exchange through XML, API, and third-party apps":
+      - /url: /help/hub/reference/G221
+      - generic: 
+      - text: Data exchange through XML, API, and third-party apps
+    - link "Amazon Business (B2B)":
+      - /url: /help/hub/reference/G201542150
+      - generic: 
+      - text: Amazon Business (B2B)
+    - link "Amazon Pay help":
+      - /url: /help/hub/reference/G201064080
+      - generic: 
+      - text: Amazon Pay help
+    - link "Manage service orders":
+      - /url: /help/hub/reference/G201484490
+      - generic: 
+      - text: Manage service orders
+    - link "Delivery with Services":
+      - /url: /help/hub/reference/G202159960
+      - generic: 
+      - text: Delivery with Services
+    - link "Amazon Services Provider program":
+      - /url: /help/hub/reference/G201955140
+      - generic: 
+      - text: Amazon Services Provider program
+    - link "Amazon Brand Registry":
+      - /url: /help/hub/reference/G202130410
+      - generic: 
+      - text: Amazon Brand Registry
+    - link "Merch Collab":
+      - /url: /help/hub/reference/GE9SDJX2QH6ZSLSV
+      - generic: 
+      - text: Merch Collab
+  - tab "Recently viewed":
+    - generic: Recently viewed
+- heading "Need more help?" [level=2]
+- link "Visit Seller Forums":
+  - /url: /forums/index.jspa
+- link "Visit Seller University":
+  - /url: /learn/ref=xx_su_hh_menu
+- link "Get Support":
+  - /url: /help/hub/support
+- heading "Help for Amazon Sellers" [level=1]
+- heading "Account settings" [level=2]:
+  - link "Account settings":
+    - /url: /help/hub/reference/G181
+- list:
+  - text: 
+  - link "Selling on Amazon":
+    - /url: /help/hub/reference/G200421970
+  - text: 
+  - link "Get Started with Selling Services":
+    - /url: /help/hub/reference/G201484560
+  - text: 
+  - link "Global seller identity, address, and business verification":
+    - /url: /help/hub/reference/GQRP483PDN88Q3M9
+  - text: 
+  - link "Two-Step Verification":
+    - /url: /help/hub/reference/G202110760
+  - text: 
+  - link "Manage account settings":
+    - /url: /help/hub/reference/G69035
+  - text: 
+  - link "Seller-fulfilled shipping":
+    - /url: /help/hub/reference/G200342080
+  - text: 
+  - link "Selling on Amazon video tutorials":
+    - /url: /help/hub/reference/G201813650
+  - text: 
+  - link "Bank account and credit or debit card information for your seller account":
+    - /url: /help/hub/reference/G19791
+  - text: 
+  - link "Selling on Amazon reference":
+    - /url: /help/hub/reference/G69036
+  - text: 
+  - link "Next Gen Selling (NGS)":
+    - /url: /help/hub/reference/G78FETD7HXHVNCKG
+- heading "Policies, agreements, and guidelines" [level=2]:
+  - link "Policies, agreements, and guidelines":
+    - /url: /help/hub/reference/GSNV3657R94YP9DZ
+- list:
+  - text: 
+  - link "Amazon Services Business Solutions Agreement":
+    - /url: /help/hub/reference/G1791
+  - text: 
+  - link "Changes to the Amazon Services Business Solutions Agreement":
+    - /url: /help/hub/reference/G47071
+  - text: 
+  - link "Agent Policy":
+    - /url: /help/hub/reference/GS83KH2MA7HM69PH
+  - text: 
+  - link "Canada Digital Tax Reporting":
+    - /url: /help/hub/reference/G6JPYHKCN4YG943H
+  - text: 
+  - link "Program Policies":
+    - /url: /help/hub/reference/G521
+  - text: 
+  - link "Amazon Autos":
+    - /url: /help/hub/reference/GLAQ5ETRLQ4T9D7W
+- heading "Manage orders" [level=2]:
+  - link "Manage orders":
+    - /url: /help/hub/reference/G28141
+- list:
+  - text: 
+  - link "FBM Order Reports":
+    - /url: /help/hub/reference/G651
+  - text: 
+  - link "The order process":
+    - /url: /help/hub/reference/G200200040
+  - text: 
+  - link "Search Orders":
+    - /url: /help/hub/reference/G28151
+  - text: 
+  - link "Communicate with buyers using Buyer-Seller messages":
+    - /url: /help/hub/reference/G200389080
+  - text: 
+  - link "Options for managing orders":
+    - /url: /help/hub/reference/G200198170
+  - text: 
+  - link "Your orders list":
+    - /url: /help/hub/reference/G201724060
+  - text: 
+  - link "View your orders":
+    - /url: /help/hub/reference/G201724070
+  - text: 
+  - link "Pending Orders":
+    - /url: /help/hub/reference/G40571
+  - text: 
+  - link "Change Your Seller Order ID":
+    - /url: /help/hub/reference/G200198130
+  - text: 
+  - link "Manage Orders FAQ":
+    - /url: /help/hub/reference/G69124
+  - text: 
+  - link:
+    - /url: /help/hub/reference/G131
+  - text: 
+  - link "Seller Messaging Assistant Overview":
+    - /url: /help/hub/reference/GC5SGGCDDP3ZDNZM
+  - text: 
+  - link "Error code explanations":
+    - /url: /help/hub/reference/GMSXZGCDG6ZVPSFV
+- heading "Seller-fulfilled returns, refunds, cancellations, and claims" [level=2]:
+  - link "Seller-fulfilled returns, refunds, cancellations, and claims":
+    - /url: /help/hub/reference/G69126
+- list:
+  - text: 
+  - link "Manage seller-fulfilled returns":
+    - /url: /help/hub/reference/G200708210
+  - text: 
+  - link "Issue refunds and concessions for seller-fulfilled orders":
+    - /url: /help/hub/reference/GU7K5N5GUP67M4X9
+  - text: 
+  - link "Cancellations":
+    - /url: /help/hub/reference/GBN4AZVWUS29ZUJX
+  - text: 
+  - link "Amazon’s A-to-z Guarantee claims":
+    - /url: /help/hub/reference/G27951
+  - text: 
+  - link "Amazon Product Support":
+    - /url: /help/hub/reference/GK4MGCBF7LJYKGQM
+  - text: 
+  - link "Frequently-returned item badge":
+    - /url: /help/hub/reference/GTRP6DXEA983DPD6
+  - text: 
+  - link "Commercial liability insurance best practices for sellers based in mainland China":
+    - /url: /help/hub/reference/GSACR66DCGPA3FZK
+- heading "Get started with Fulfillment by Amazon (FBA)" [level=2]:
+  - link "Get started with Fulfillment by Amazon (FBA)":
+    - /url: /help/hub/reference/G53921
+- list:
+  - text: 
+  - link "Prime Day readiness playbook":
+    - /url: /help/hub/reference/GM2ADTH3XH3A5N57
+  - text: 
+  - link "FBA Global Selling":
+    - /url: /help/hub/reference/G5KV5DGG6UMQAKL4
+  - text: 
+  - link "Ship products to Amazon":
+    - /url: /help/hub/reference/G200141420
+  - text: 
+  - link "FBA policies and requirements":
+    - /url: /help/hub/reference/G201030350
+  - text: 
+  - link "FBA features, services, and fees":
+    - /url: /help/hub/reference/G201074400
+  - text: 
+  - link "FBA peak readiness playbook":
+    - /url: /help/hub/reference/G4QH4XCRWUXRJBLY
+  - text: 
+  - link "FBA inventory":
+    - /url: /help/hub/reference/G201074410
+  - text: 
+  - 'link "Multi-Channel Fulfillment: Fulfill orders for your sales channels"':
+    - /url: /help/hub/reference/G200332450
+  - text: 
+  - link "Amazon Warehousing and Distribution (AWD)":
+    - /url: /help/hub/reference/GF6ZC8VEBM7HCEGV
+  - text: 
+  - 'link "Extra-large: Fulfillment by Amazon"':
+    - /url: /help/hub/reference/GTTVM5H5ZE8YJ5NU
+  - text: 
+  - link "Maximizing Delivery Speed":
+    - /url: /help/hub/reference/GA8NP4NDZZ3EJRU5
+- heading "Increase sales" [level=2]:
+  - link "Increase sales":
+    - /url: /help/hub/reference/G43381
+- list:
+  - text: 
+  - link "Start selling":
+    - /url: /help/hub/reference/G69064
+  - text: 
+  - link "Amazon promotions":
+    - /url: /help/hub/reference/G60951
+  - text: 
+  - link "Seller Fulfilled Prime":
+    - /url: /help/hub/reference/G201812230
+  - text: 
+  - link "Amazon Ads account and campaigns":
+    - /url: /help/hub/reference/G200663330
+  - text: 
+  - link "Amazon deals":
+    - /url: /help/hub/reference/G202043110
+  - text: 
+  - link "Coupons":
+    - /url: /help/hub/reference/G3QLEV6W2QK84C57
+  - text: 
+  - link "Amazon Outlet":
+    - /url: /help/hub/reference/GHLYT4TPVCY2MJE3
+  - text: 
+  - link "Manage Your Experiments":
+    - /url: /help/hub/reference/GVP453K5XRBJS7Y9
+  - text: 
+  - link "A+ content":
+    - /url: /help/hub/reference/G202102930
+  - text: 
+  - link "Amazon Vine":
+    - /url: /help/hub/reference/G92T8UV339NZ98TN
+  - text: 
+  - link "Brand Referral Bonus":
+    - /url: /help/hub/reference/GL9HPJ34VBFP76HX
+  - text: 
+  - link "Product Opportunity Explorer":
+    - /url: /help/hub/reference/GNJ4YRTXWLMBY38U
+  - text: 
+  - link "FBA Enrollment Opportunities":
+    - /url: /help/hub/reference/GLVZKY7AM8CKEBU6
+  - text: 
+  - link "Flexible Customer Financing":
+    - /url: /help/hub/reference/GTS9WQG3YNFVEXM2
+  - text: 
+  - link "Business planner overview":
+    - /url: /help/hub/reference/GEANBS97BNTWSBJB
+  - text: 
+  - link "Business goal creation":
+    - /url: /help/hub/reference/GRG94ATAYVWUZ5L4
+  - text: 
+  - link "New Seller Incentives":
+    - /url: /help/hub/reference/GXMJ38VA95GUN5XU
+  - text: 
+  - link "Additional tips for increasing sales":
+    - /url: /help/hub/reference/G69065
+  - text: 
+  - link "Additional resources for increasing sales":
+    - /url: /help/hub/reference/G69066
+  - text: 
+  - link "The New Seller Guide program and benefits":
+    - /url: /help/hub/reference/GFG4VRQK7CQLGRTM
+  - text: 
+  - link "Optimize your business":
+    - /url: /help/hub/reference/GWU5WMK8UR8XHHC2
+  - text: 
+  - link "Potential Sales Lift":
+    - /url: /help/hub/reference/GMJFAN8FZ6T4EYUY
+  - text: 
+  - link "Price discounts":
+    - /url: /help/hub/reference/G7F8CQ4EJ5YA4272
+  - text: 
+  - link "Rufus, our AI-powered conversational shopping assistant":
+    - /url: /help/hub/reference/GYYH9SLHSTHKT3CZ
+  - text: 
+  - link "Subscribe & Save for sellers":
+    - /url: /help/hub/reference/G201620110
+  - text: 
+  - link "Unlock marketing opportunities":
+    - /url: /help/hub/reference/GFJTFMCXPRQ5GHUK
+  - text: 
+  - link "Set up Buy with Prime":
+    - /url: /help/hub/reference/GNVVBDJCTV3RSY3D
+  - text: 
+  - link "Amazon Haul":
+    - /url: /help/hub/reference/GMULTR2SMZ6WWX57
+- heading "Amazon Handmade" [level=2]:
+  - link "Amazon Handmade":
+    - /url: /help/hub/reference/G201817090
+- list:
+  - text: 
+  - link "Get started with Amazon Handmade":
+    - /url: /help/hub/reference/G2NVGK9X3Y4XRT9H
+  - text: 
+  - link "Amazon Handmade terms and conditions":
+    - /url: /help/hub/reference/G201817290
+  - text: 
+  - link "Maker profile for Handmade":
+    - /url: /help/hub/reference/G201817720
+  - text: 
+  - 'link "Amazon Handmade: List your products"':
+    - /url: /help/hub/reference/G201817280
+  - text: 
+  - 'link "Amazon Handmade: Category listing policies & requirements"':
+    - /url: /help/hub/reference/GNGMMFQ5FPLJFBJP
+  - text: 
+  - link "Common reasons you cannot find your Handmade listings":
+    - /url: /help/hub/reference/GRCWJ4KHBNQ3SNTB
+  - text: 
+  - link "Relisting ‘Inactive’ Handmade listings":
+    - /url: /help/hub/reference/G2YC8BRR324G39TY
+  - text: 
+  - link "Policies for Amazon Handmade returns, refunds, restocking fees, and cancellations":
+    - /url: /help/hub/reference/G201817830
+  - text: 
+  - 'link "Amazon Handmade: Referral fees"':
+    - /url: /help/hub/reference/G201814220
+  - text: 
+  - 'link "Amazon Handmade: Best practices for fulfilling orders"':
+    - /url: /help/hub/reference/G201835090
+  - text: 
+  - link "Cancel your Amazon Handmade account":
+    - /url: /help/hub/reference/G201816790
+  - text: 
+  - link "Amazon Handmade catalog reclassification project":
+    - /url: /help/hub/reference/G897CPXT2RGBG3HV
+- heading "Amazon Custom" [level=2]:
+  - link "Amazon Custom":
+    - /url: /help/hub/reference/G201757520
+- list:
+  - text: 
+  - link "Amazon Custom returns policies":
+    - /url: /help/hub/reference/G37HSKLMSZXZNWGS
+  - text: 
+  - 'link "Amazon Custom: Troubleshooting Guide"':
+    - /url: /help/hub/reference/GZDG8NSAKTX4TMJL
+  - text: 
+  - 'link "Amazon Custom: Common Errors Guide"':
+    - /url: /help/hub/reference/GYW7V75R2XYR2USC
+  - text: 
+  - link "List customized products with Amazon Custom":
+    - /url: /help/hub/reference/G201822780
+  - text: 
+  - link "Fulfill Amazon Custom orders":
+    - /url: /help/hub/reference/G201822830
+  - text: 
+  - link "Enable bulk customizations":
+    - /url: /help/hub/reference/GQMSBWT4DK5ARMXL
+- heading "Amazon Business (B2B)" [level=2]:
+  - link "Amazon Business (B2B)":
+    - /url: /help/hub/reference/G201542150
+- list:
+  - text: 
+  - link "Amazon Business terms":
+    - /url: /help/hub/reference/G202087450
+  - text: 
+  - link "Amazon Business FAQ":
+    - /url: /help/hub/reference/G201750810
+  - text: 
+  - link "B2B Central":
+    - /url: /help/hub/reference/G202161480
+  - text: 
+  - link "Amazon Business features":
+    - /url: /help/hub/reference/G201741830
+  - text: 
+  - link "Amazon Business glossary":
+    - /url: /help/hub/reference/G201760900
+  - text: 
+  - link "Amazon Business FBA multi-unit fulfillment fee discount":
+    - /url: /help/hub/reference/GMZ5WFTZHCM4Q4C5
+  - text: 
+  - link "Amazon Business bulk order fee discount":
+    - /url: /help/hub/reference/G2G7KPB963EMPEYD
+  - text: 
+  - link "Amazon Business Metrics":
+    - /url: /help/hub/reference/G202141920
+  - text: 
+  - link "Amazon Business Professional Healthcare program":
+    - /url: /help/hub/reference/GFFRHXRJSRGPZ9UL
+  - text: 
+  - link "COVID-19 infection control and recovery":
+    - /url: /help/hub/reference/GGLKLPJ5DCN6CMLW
+- heading "Manage service orders" [level=2]:
+  - link "Manage service orders":
+    - /url: /help/hub/reference/G201484490
+- list:
+  - text: 
+  - link "Service order best practices":
+    - /url: /help/hub/reference/GTP5RCSXC62A7SUG
+  - text: 
+  - link "Buyer contact guidelines":
+    - /url: /help/hub/reference/GQT33PDCBBKZTH9U
+- heading "Amazon Services Provider program" [level=2]:
+  - link "Amazon Services Provider program":
+    - /url: /help/hub/reference/G201955140
+- list:
+  - text: 
+  - link "Preferred Provider model":
+    - /url: /help/hub/reference/GG5UCUP98QXA942F
+  - text: 
+  - link "Happiness Guarantee policy":
+    - /url: /help/hub/reference/GRS6ZVRSVYBJ99N3
+  - text: 
+  - link "Service Safe-T claims":
+    - /url: /help/hub/reference/GPCE7EEUM5GJ5GD8
+  - text: 
+  - link "Service Order Types":
+    - /url: /help/hub/reference/G202079670
+  - text: 
+  - link "Account Management":
+    - /url: /help/hub/reference/G202083910
+  - text: 
+  - link "Charges and Credits":
+    - /url: /help/hub/reference/G202124970
+  - text: 
+  - link "Service Provider Credential Program":
+    - /url: /help/hub/reference/GA3KV5CWJ2AHHCT5
+  - text: 
+  - link "Amazon Home Services FAQ":
+    - /url: /help/hub/reference/GR6GG4G6MGRJ3TC7
+- heading "Merch Collab" [level=2]:
+  - link "Merch Collab":
+    - /url: /help/hub/reference/GE9SDJX2QH6ZSLSV
+- list:
+  - text: 
+  - link "Using social media for your products in Merch Collab":
+    - /url: /help/hub/reference/GJ5KXBWSM96N8QDE
+  - text: 
+  - link "Instructions to set up your store page":
+    - /url: /help/hub/reference/GWNX58G4XPLWMUFA
+  - text: 
+  - link "How to use the Collab tool":
+    - /url: /help/hub/reference/GQC8LT9W52P48PDC
+  - text: 
+  - link "Merch Collab fees and royalties":
+    - /url: /help/hub/reference/GVD6A7JWY484GRYF
+  - text: 
+  - link "Best practices for Merch Collab brand profile":
+    - /url: /help/hub/reference/G67EVQTQQE3XZAF3
+  - text: 
+  - link "Launch Readiness Checklist for Collab Brands":
+    - /url: /help/hub/reference/GLT5TSQ8UQU8XV67
+- heading "Manage inventory" [level=2]:
+  - link "Manage inventory":
+    - /url: /help/hub/reference/G41
+- list:
+  - text: 
+  - link "Listings APIs":
+    - /url: /help/hub/reference/GD76M4FUWL4NEU32
+  - text: 
+  - link "Multi-Location Inventory (MLI)":
+    - /url: /help/hub/reference/GJTDKPYEPQCXNS6M
+  - text: 
+  - link "Get started with Multi-Location Inventory":
+    - /url: /help/hub/reference/GYCAQ9XRL273EVDX
+  - text: 
+  - link "Featured Offer":
+    - /url: /help/hub/reference/G37911
+  - text: 
+  - link "Business Blue Savings Badge":
+    - /url: /help/hub/reference/GZK9RLHFV3K442KH
+  - text: 
+  - link "Create and manage offers":
+    - /url: /help/hub/reference/GFQ8J5JPKERTHQPP
+  - text: 
+  - link "Manage your offers one at a time":
+    - /url: /help/hub/reference/G201186860
+  - text: 
+  - link "Manage your offers in bulk":
+    - /url: /help/hub/reference/G9DZLGS87GVDT94B
+  - text: 
+  - link "Price your item":
+    - /url: /help/hub/reference/G62551
+  - text: 
+  - link "Product detail page rules":
+    - /url: /help/hub/reference/G200390640
+  - text: 
+  - link "Product variations":
+    - /url: /help/hub/reference/GF4VNS6ZQQPYYGGP
+  - text: 
+  - link "Catalog and drafts":
+    - /url: /help/hub/reference/G202078860
+  - text: 
+  - link "Custom Report Builder":
+    - /url: /help/hub/reference/GEQ8JEWH5KJC5QCG
+  - text: 
+  - link "Large and Oversize":
+    - /url: /help/hub/reference/G63ZD2BUDXF28WEC
+  - text: 
+  - link "Restock recommendation":
+    - /url: /help/hub/reference/GRG6KMB257N2XXNQ
+  - text: 
+  - link "Enhance Listings":
+    - /url: /help/hub/reference/G88AQCL62ED7WDGA
+- heading "Listing quality guidelines" [level=2]:
+  - link "Listing quality guidelines":
+    - /url: /help/hub/reference/GC3QAQ8CCXUG5RE4
+- list:
+  - text: 
+  - link "Product title requirements and guidelines":
+    - /url: /help/hub/reference/GYTR6SYGFA5E3EQC
+  - text: 
+  - link "Product bullet point requirements":
+    - /url: /help/hub/reference/GX5L8BF8GLMML6CX
+  - text: 
+  - link "Attributes guide":
+    - /url: /help/hub/reference/GBWHYLJ7NNQMXBAQ
+  - text: 
+  - link "Product image guide":
+    - /url: /help/hub/reference/G1881
+  - text: 
+  - link "Shoppable video guide":
+    - /url: /help/hub/reference/GUZBYWTTVULY6C9Y
+  - text: 
+  - link "Search optimization":
+    - /url: /help/hub/reference/GNYWHX2TP7C8GXHK
+  - text: 
+  - link "A+ Content guide":
+    - /url: /help/hub/reference/GLG4RQK2Y2RJADU4
+- heading "Payments" [level=2]:
+  - link "Payments":
+    - /url: /help/hub/reference/G211
+- list:
+  - text: 
+  - link "Payments FAQ":
+    - /url: /help/hub/reference/G69122
+  - text: 
+  - link "Payments tasks and tools":
+    - /url: /help/hub/reference/G69038
+  - text: 
+  - link "Payments reference":
+    - /url: /help/hub/reference/G69039
+  - text: 
+  - link "Seller Lending program":
+    - /url: /help/hub/reference/GZN5DX64LP2QYZ69
+  - text: 
+  - link "Acceptable bank accounts and payment service providers":
+    - /url: /help/hub/reference/GKLETRP8MLF7CVFX
+  - text: 
+  - link "Payment Service Provider FAQ":
+    - /url: /help/hub/reference/GY8JTVAWBPQT2XFC
+  - text: 
+  - link "Payment Service Provider updates":
+    - /url: /help/hub/reference/GHP8M87Z5W6XTSTL
+  - text: 
+  - link "Seller Wallet":
+    - /url: /help/hub/reference/GW57DZACAZGNREVQ
+  - text: 
+  - link "Express Payout frequently asked questions":
+    - /url: /help/hub/reference/GA24UN79VBPKXZXX
+  - text: 
+  - link "Express Payout Bank Account and Debit Card Policies":
+    - /url: /help/hub/reference/GHRCBB7RE3HSLGHC
+  - text: 
+  - link "Micro deposit verification FAQ":
+    - /url: /help/hub/reference/G3VMLXD2ZL3V47JC
+  - text: 
+  - link "Express Payout (UK Visa Debit Card) policy":
+    - /url: /help/hub/reference/GVRVXQVEDY8CLA47
+  - text: 
+  - link "Express Payout (UK Visa Debit Card) service terms and conditions":
+    - /url: /help/hub/reference/G6HWWWCJWX3VACGT
+  - text: 
+  - link "Funds disbursement eligibility policy":
+    - /url: /help/hub/reference/G9RA9LYBJ3QP27M6
+  - text: 
+  - link "Disburse on Demand":
+    - /url: /help/hub/reference/GSCWUZNYQRY4LEZH
+- heading "Monitor feedback and performance" [level=2]:
+  - link "Monitor feedback and performance":
+    - /url: /help/hub/reference/G171
+- list:
+  - text: 
+  - link "Getting Started":
+    - /url: /help/hub/reference/G69031
+  - text: 
+  - link "Tasks & tools":
+    - /url: /help/hub/reference/G69032
+  - text: 
+  - link "Reference":
+    - /url: /help/hub/reference/G69033
+  - text: 
+  - link "E-Learning Tutorials":
+    - /url: /help/hub/reference/G200289490
+  - text: 
+  - link "Frequently Asked Questions":
+    - /url: /help/hub/reference/G69120
+  - text: 
+  - link "Prepare for the Holiday Season":
+    - /url: /help/hub/reference/G8ZDWEJB9Z9YPFQ8
+  - text: 
+  - link "Customer Service Quality Insights on Feedback Manager":
+    - /url: /help/hub/reference/GEGVWH65EDJLWHQD
+  - text: 
+  - link "Customer Service Quality Insights frequently asked questions":
+    - /url: /help/hub/reference/GFAK2DGMB6JWDZUX
+- heading "Amazon Lending" [level=2]:
+  - link "Amazon Lending":
+    - /url: /help/hub/reference/G5FQ5KR6FTQ4DGG2
+- list:
+  - text: 
+  - link "Amazon Lending Automated Repayment terms":
+    - /url: /help/hub/reference/G200716850
+  - text: 
+  - link "Third-party financing providers for Amazon Lending":
+    - /url: /help/hub/reference/GPQQ2VAVEHREQYGL
+- heading "Amazon Global Selling" [level=2]:
+  - link "Amazon Global Selling":
+    - /url: /help/hub/reference/G201062890
+- list:
+  - text: 
+  - link "Merge accounts":
+    - /url: /help/hub/reference/G201841950
+  - text: 
+  - link "Setting up your Amazon Global Selling Account":
+    - /url: /help/hub/reference/G201468450
+  - text: 
+  - link "Registration requirements by store":
+    - /url: /help/hub/reference/G201468460
+  - text: 
+  - link "Listing Creation for Global Accounts":
+    - /url: /help/hub/reference/G201468480
+  - text: 
+  - link "Payments for global accounts":
+    - /url: /help/hub/reference/G201468470
+  - text: 
+  - link "Global registration":
+    - /url: /help/hub/reference/GKMK7CM7F9Q8FKUG
+  - text: 
+  - link "Where and what to sell with Amazon Global Selling":
+    - /url: /help/hub/reference/G201468340
+  - text: 
+  - link "Amazon North American and Brazil stores":
+    - /url: /help/hub/reference/G201394090
+  - text: 
+  - link "Amazon EU and UK stores":
+    - /url: /help/hub/reference/G200671260
+  - text: 
+  - link "Build International Listings":
+    - /url: /help/hub/reference/G202121570
+  - text: 
+  - link "Ship and fulfill with Amazon Global Selling":
+    - /url: /help/hub/reference/G201468490
+  - text: 
+  - link "Taxes and regulations for Amazon Global Selling":
+    - /url: /help/hub/reference/G201468380
+  - text: 
+  - link "Customer support and returns for international sales":
+    - /url: /help/hub/reference/G201468530
+  - text: 
+  - link "Find help from external solution providers with Selling Partner Appstore":
+    - /url: /help/hub/reference/G201687890
+  - text: 
+  - link "Customer Service by Amazon program":
+    - /url: /help/hub/reference/GYGMNGX67ZJZMZNP
+  - text: 
+  - link "Unify global accounts":
+    - /url: /help/hub/reference/GJZJNMG4UX3DXSGV
+  - text: 
+  - link "Guide for selling partners from out of Brazil":
+    - /url: /help/hub/reference/GME4JXYQ8QC3T2QV
+  - text: 
+  - link "Sell Globally experience":
+    - /url: /help/hub/reference/GDYZBUHVDD66VHVR
+  - text: 
+  - link "Sell Globally experience FAQ":
+    - /url: /help/hub/reference/GNFDSYQP7TR7SPUW
+  - text: 
+  - link "Compliance Services Store":
+    - /url: /help/hub/reference/G5XSKWYY7BWDMS4V
+  - text: 
+  - link "Expand to Canada with PanAmericas":
+    - /url: /help/hub/reference/GL29MXM9KNN7WLJV
+- heading "Private Brands safety and compliance" [level=2]:
+  - link "Private Brands safety and compliance":
+    - /url: /help/hub/reference/GFZ4GKGVGPHP5XL6
+- list:
+  - text: 
+  - link "Safety and compliance verification for Private Brands products":
+    - /url: /help/hub/reference/GZR95BWRLUAD37C5
+- heading "Data exchange through XML, API, and third-party apps" [level=2]:
+  - link "Data exchange through XML, API, and third-party apps":
+    - /url: /help/hub/reference/G221
+- list:
+  - text: 
+  - link "Get started with data exchange":
+    - /url: /help/hub/reference/G69040
+  - text: 
+  - link "XML tasks and tools":
+    - /url: /help/hub/reference/G69041
+- heading "Amazon Pay help" [level=2]:
+  - link "Amazon Pay help":
+    - /url: /help/hub/reference/G201064080
+- list:
+  - text: 
+  - link "What is Amazon Pay?":
+    - /url: /help/hub/reference/G201186400
+- heading "Delivery with Services" [level=2]:
+  - link "Delivery with Services":
+    - /url: /help/hub/reference/G202159960
+- list:
+  - text: 
+  - link "Delivery with Services - FAQ":
+    - /url: /help/hub/reference/GG693BAJ9NUV8F6N
+  - text: 
+  - link "Delivery with Services - Customers":
+    - /url: /help/hub/reference/G4979EVYE6RQ6A7H
+  - text: 
+  - link "Delivery with Services - Orders":
+    - /url: /help/hub/reference/GB5PYDG7MC7FHSRZ
+- heading "Amazon Brand Registry" [level=2]:
+  - link "Amazon Brand Registry":
+    - /url: /help/hub/reference/G202130410
+- list:
+  - text: 
+  - link "Amazon Brand Registry help topics":
+    - /url: /help/hub/reference/G5S7CQF3NUULNCY8
+  - text: 
+  - link "Manage co-brand relationships":
+    - /url: /help/hub/reference/GHQ2EX7F4PZT92QC
+  - text: 
+  - link "Brand Registry glossary":
+    - /url: /help/hub/reference/GBR82EG272SZJDFS
+  - text: 
+  - link "Country-specific trademark information":
+    - /url: /help/hub/reference/GHUDSVJLN4U9WY8Z
+  - text: 
+  - link "Brand Registry application process":
+    - /url: /help/hub/reference/GN2GYQVPR7R4VMPB
+  - text: 
+  - link "Brand Registry application step-by-step guide":
+    - /url: /help/hub/reference/GRWHD3TXWAVKUT86
+  - text: 
+  - link "Manage Brand Registry application issues":
+    - /url: /help/hub/reference/GJPGY8BRDAQUQV4V
+  - text: 
+  - link "About Brand Registry facial data verification":
+    - /url: /help/hub/reference/GSJL26WNCBGHTGL4
+  - text: 
+  - link "Brand Registry identity verification process":
+    - /url: /help/hub/reference/GYRZRWX6NG36F4GH
+  - text: 
+  - link "Brand Registry identity verification FAQ":
+    - /url: /help/hub/reference/G3UY9ZFTXGRJUSQ2
+  - text: 
+  - link "Brand Registry protection roles":
+    - /url: /help/hub/reference/GCF9UE9VGKGA2W5F
+  - text: 
+  - link "Brand Registry selling roles":
+    - /url: /help/hub/reference/GJ84K745AL3R5N3Q
+  - text: 
+  - link "Brand Registry FAQ":
+    - /url: /help/hub/reference/G7XU99JWVLB645MU
+  - text: 
+  - link "Register products to your brand":
+    - /url: /help/hub/reference/G6DU75NSM86VXKZC
+  - text: 
+  - link "Report intellectual property infringements":
+    - /url: /help/hub/reference/G202132860
+  - text: 
+  - link "Report alleged trademark infringements via common law":
+    - /url: /help/hub/reference/GS45XXXQDNDP9MJU
+  - text: 
+  - 'link "Report a Violation: Search for ASINs in bulk"':
+    - /url: /help/hub/reference/GU8ZZK78DD5DUD5E
+  - text: 
+  - 'link "Report a Violation: Submission history FAQ"':
+    - /url: /help/hub/reference/G8JH57W4H4CXQPU5
+  - text: 
+  - link "Amazon Patent Evaluation Express":
+    - /url: /help/hub/reference/GEALWAHER4GDYZXV
+  - text: 
+  - link "Add additional trademarks to your brand":
+    - /url: /help/hub/reference/GQCYJTBSFZK8HGN6
+  - text: 
+  - link "Project Zero FAQ":
+    - /url: /help/hub/reference/G8Y5LL28EX2GDE6D
+  - text: 
+  - 'link "Project Zero: Guidelines and training"':
+    - /url: /help/hub/reference/GLWPXVRVZD7AWJZT
+  - text: 
+  - link "Protect your brand with Transparency":
+    - /url: /help/hub/reference/GSB2AVC33KWCAYSA
+  - text: 
+  - link "Brand Registry error messages":
+    - /url: /help/hub/reference/G34GHEG4ZWXQTNAU
+  - text: 
+  - link "Enrollment error messages":
+    - /url: /help/hub/reference/G5UAL3T9ZQWULEKF
+  - text: 
+  - link "Role assignment error messages":
+    - /url: /help/hub/reference/GPQTLD2Z4EYAVGX5
+  - text: 
+  - link "Report a Violation error messages":
+    - /url: /help/hub/reference/GMSR9C4BP3GYR673
+  - text: 
+  - link "Abusive conduct error messages":
+    - /url: /help/hub/reference/G2M4ASKCSYMDL7KZ
+  - text: 
+  - link "Spotlight communication features":
+    - /url: /help/hub/reference/GFGQSTY7A97VAVJ3
+  - text: 
+  - 'link "Manage all inventory: Brand Health page"':
+    - /url: /help/hub/reference/GSNVU683HQTWDGHM
+  - text: 
+  - 'link "Brands that require a Product ID: UPC, EAN, JAN, and ISBN"':
+    - /url: /help/hub/reference/G201440080
+  - text: 
+  - link "Create a Brand Name":
+    - /url: /help/hub/reference/GTTTDEQTT9GFW9X2
+  - text: 
+  - link "Small Business products FAQ":
+    - /url: /help/hub/reference/GKSCZ5A9SEBFVQHG
+  - text: 
+  - link "Manage your Brands":
+    - /url: /help/hub/reference/GF79K5R2ZLCWCPJT
+  - text: 
+  - link "Brand acquisition best practices":
+    - /url: /help/hub/reference/GXBVXFNXWZ65HYT7
+- link "FEEDBACK":
+  - /url: "#"
+- list:
+  - link "Help":
+    - /url: /help/hub?ref=xx_contactus_foot_xx
+  - link "Program Policies":
+    - /url: /gp/help/help.html/ref=xx_help_foot_xx?itemID=521
+  - combobox:
+    - option "English" [selected]
+    - option "中文(简体)"
+    - option "Deutsch"
+    - option "Español"
+    - option "Français"
+    - option "Italiano"
+    - option "日本語"
+    - option "한국어"
+    - option "ไทย"
+    - option "Tiếng Việt"
+    - option "हिंदी"
+    - option "தமிழ்"
+    - option "Português"
+    - option "中文(繁體)"
+  - link "Download the Amazon Seller mobile app":
+    - /url: /sellermobileapp?ref=xx_sellermobileapp_foot_xx
+- list:
+  - listitem: © 1999-2026, Amazon.com, Inc. or its affiliates

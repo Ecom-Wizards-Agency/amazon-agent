@@ -1,0 +1,160 @@
+{
+  "_README": "TEMPLATE — copy to config.<client>-<product>-<market>.json and fill every <...> and TO_RECORD_* value. This tool is client-agnostic: nothing is product-specific until you fill this in. Run `build_keyword_workbook.py --config <your config> --preflight` to see what inputs are still missing. See NEW-CLIENT.md.",
+
+  "product_anchor": {
+    "client": "<CLIENT>",
+    "amazon_account": "<Seller Central account + country>",
+    "marketplace": "<Germany|Italy|UK|...>",
+    "product": "<full product name>",
+    "asin": "<anchor ASIN, must be a DataDive-tracked column in the master CSV>",
+    "asin_note": "<optional: ASIN gotchas, e.g. a pack/variant that resolves to a different product>",
+    "datadive_niche": "<DataDive niche id>",
+    "poe_niche": "<POE niche / hero keyword>",
+    "listing_status": "<optional: e.g. live | currently unavailable>",
+    "pack_size": "<optional>"
+  },
+
+  "product_facts": {
+    "_comment": "Physical product facts from the LABEL/PDP. Fill BEFORE writing seo_content — they gate the title framing (blend vs single) and compliance. ingredient NAMES are factual (allowed); ingredient EFFECTS need an EU register entry at dose (see eu-compliance-matrix.md). The builder warns if this block is missing and checks it when present.",
+    "form": "<powder | capsule | tablet | liquid | gummy | ...>",
+    "blend_or_single": "<blend | single>",
+    "ingredients": [
+      {"name": "<ingredient name as it may appear in copy>", "branded_raw_material": "<e.g. Fibregum™ — or empty>", "role": "<what it is, e.g. soluble fibre>", "is_hero": false}
+    ],
+    "certifications": {"organic_bio": false, "vegan": false, "gluten_free": false, "lactose_free": false},
+    "key_attributes": {"per_serving": "<e.g. 8 g fibre>", "calories": "<e.g. 22 kcal>", "pack_size": "<e.g. 300 g>", "servings": "<e.g. 30>"}
+  },
+
+  "datadive_exports": {
+    "_comment": "Metadata for BOTH MKL exports. Placeholder values (TO_RECORD_*) FAIL validation by design — fill them at export time.",
+    "core_mkl": {
+      "source": "DataDive UI CSV",
+      "min_relevancy": "30%",
+      "min_sv": "", "max_sv": "",
+      "visible_keyword_count": "TO_RECORD_FROM_DATADIVE_UI",
+      "visible_search_volume": "TO_RECORD_FROM_DATADIVE_UI",
+      "export_timestamp": "TO_RECORD_AT_EXPORT",
+      "niche_id": "<niche id>", "marketplace": "<market>", "hero_keyword": "<hero kw>"
+    },
+    "expanded_mkl": {
+      "source": "DataDive UI CSV",
+      "min_relevancy": "1%",
+      "min_sv": "", "max_sv": "",
+      "visible_keyword_count": "TO_RECORD_FROM_DATADIVE_UI",
+      "visible_search_volume": "TO_RECORD_FROM_DATADIVE_UI",
+      "export_timestamp": "TO_RECORD_AT_EXPORT",
+      "niche_id": "<niche id>", "marketplace": "<market>", "hero_keyword": "<hero kw>"
+    }
+  },
+
+  "related_niche_filter": {
+    "_comment": "STRICT relevance gate for the POE Raw - Related Niches tab. keep = ONLY niches genuinely relevant to this product. exclude_examples = known drift the build must drop (validation fails if any survive). Fill from the actual POE related-niches grid.",
+    "keep": ["<relevant related niche>", "<...>"],
+    "exclude_examples": ["<known drift niche to drop>", "<...>"]
+  },
+
+  "triage": {
+    "_comment": "Token rules for Outlier triage. Fill brand_tokens from the DataDive competitors; form/claim/negative for THIS product form + marketplace language.",
+    "match": "word",
+    "categories_order": [
+      "Competitor/brand term", "Wrong product form",
+      "Unsupported claim/health-risk", "Negative candidate",
+      "Semantic opportunity", "Ignore"
+    ],
+    "brand_tokens": ["<competitor brand>", "<...>"],
+    "form_tokens": ["<wrong-form word for this product, e.g. capsule/drink/serum>"],
+    "claim_tokens": ["<health/claim-risk word for this category — see eu-compliance-matrix.md>"],
+    "negative_tokens": ["<clearly off-product/irrelevant word>"],
+    "semantic_opportunity": {
+      "_comment": "When no token rule fires, flag as opportunity if relevant AND the anchor product under-ranks vs competitors. (Legacy key names are still accepted for back-compat.)",
+      "min_relevancy": 0.5,
+      "min_search_volume": 200,
+      "anchor_rank_worse_than_best_competitor_by": 5,
+      "include_if_anchor_not_ranking": true
+    }
+  },
+
+  "root_importance": {
+    "_comment": "OPTIONAL. '1. Root Keywords' is written as: Important | Root Keyword | Frequency | Broad Search Volume | Root Score (the score is the roots CSV's unnamed trailing 0-1 relevance column). Roots with score >= min_score get the marker in 'Important'. Omit this block entirely for the defaults shown here.",
+    "min_score": 0.10,
+    "marker": "⭐"
+  },
+
+  "never_ever": {
+    "_comment": "Generated from the Expanded MKL 1% file. Only one-word rows classified Never Ever are written. relevant_words protect real product intent from being auto-negated; explicit_never_words force-negate known junk.",
+    "min_frequency": 2,
+    "max_relevancy_for_auto_negative": 0.3,
+    "stop_words": ["<marketplace-language stop words>"],
+    "relevant_words": ["<core product words to NEVER mark negative>"],
+    "misspell_or_variant_words": ["<relevant misspellings/variants to keep>"],
+    "explicit_never_words": ["<known-junk single words to force-negate>"]
+  },
+
+  "final_action": {
+    "allowed": ["Use in copy", "Backend only", "A+ only", "PPC only", "Negative", "Ignore"],
+    "by_classification": {
+      "Semantic opportunity": "Use in copy",
+      "Competitor/brand term": "PPC only",
+      "Wrong product form": "Negative",
+      "Unsupported claim/health-risk": "Ignore",
+      "Negative candidate": "Negative",
+      "Ignore": "Ignore"
+    }
+  },
+
+  "tabs": {
+    "_comment": "Production model. The template .xlsx is STYLE ONLY — no product-specific tab is carried forward. exact_paste = 1:1 CSV (exception: the roots CSV gets a header-cleanup transform — see root_importance); rebuild = generated from current sources; generated_blank = explicit skipped row.",
+    "exact_paste": {
+      "1. Root Keywords": "roots_csv",
+      "3.1. Master List DataDive": "master_csv",
+      "3.2. Expanded MKL 1%": "expanded_mkl_csv",
+      "POE Raw - Products": "poe_products_csv",
+      "POE Raw - Search Terms": "poe_search_terms_csv"
+    },
+    "rebuild": [
+      "ASINs", "2 Never KWs", "POE Raw - Related Niches", "Outlier - Opportunity KWs",
+      "4.1 SEO Text", "4.2 Competitors", "POE Raw - Reviews", "POE Raw - Returns",
+      "POE Semantic Insights"
+    ],
+    "carry_forward": ["3.2. Root Long-Tails DataDive", "5. Campaign Structure"],
+    "_carry_forward_comment": "5. Campaign Structure is carried forward as the empty PPC scaffold from template_keyword_workbook.xlsx (Rank/Shield SKW waves, Long-Tails, Discovery, PAT) so keywords can be filled in later. Do NOT add it to generated_blank — that would wipe the scaffold. Leave generated_blank empty unless a tab genuinely needs an explicit skipped row.",
+    "carry_forward_clear": [],
+    "generated_blank": {}
+  },
+
+  "inputs": {
+    "_comment": "Input contract — paths the builder reads (CLI flags still override; ~ and repo-relative resolved). Fill all of these for the new client.",
+    "template": "<path to a styled .xlsx to reuse as style base>",
+    "seo_content": "tools/amazon-seo-keyword-workbook/seo_content.<client>-<market>.json",
+    "roots_csv": "~/Downloads/niche-<niche>-niche-analysis-roots.csv",
+    "master_csv": "~/Downloads/master list-niche-<niche>-keywords.csv",
+    "expanded_mkl_csv": "~/Downloads/master list-niche-<niche>-keywords-1pct.csv",
+    "competitors_csv": "~/Downloads/niche-<niche>-competitors.csv",
+    "poe_products_csv": "~/Downloads/<date>_<market>_NicheDetailsProductsTab.csv",
+    "poe_search_terms_csv": "~/Downloads/<date>_<market>_NicheDetailsSearchTermsTab.csv",
+    "related_niches_json": "output/<client>/opportunity-data/<date>_poe_related-niches.json",
+    "poe_reviews_json": "output/<client>/opportunity-data/<date>_poe_customer-review-insights.json",
+    "poe_returns_json": "output/<client>/opportunity-data/<date>_poe_returns.json",
+    "poe_structured_json": "output/<client>/opportunity-data/<date>_poe_visible-structured.json",
+    "listing_reference_json": "evidence/<client>/opportunity-data/<date>_listing.json",
+    "out": "output/<client>/seo/<Client> <Product> Keyword Research <date> v1.xlsx",
+    "manifest": "output/<client>/seo/<date>_<client>_keyword_research_v1_summary.json",
+    "handoff_note": ""
+  },
+
+  "required_current_tabs": ["POE Raw - Reviews", "POE Raw - Returns", "POE Semantic Insights"],
+
+  "stale_data_guard": {
+    "_comment": "Fails the build if a previous product's/market's terms leak into the guarded tabs (the bug where an Italian fibre workbook inherited German collagen review topics). Fill forbidden_terms with the PREVIOUS template product's distinctive terms.",
+    "tabs": ["POE Raw - Reviews", "POE Raw - Returns", "POE Semantic Insights"],
+    "forbidden_terms": ["<distinctive term from the template's product that must NOT appear>"]
+  },
+
+  "tab_order": [
+    "ASINs", "1. Root Keywords", "2 Never KWs", "3.1. Master List DataDive",
+    "3.2. Expanded MKL 1%", "4.1 SEO Text", "4.2 Competitors",
+    "POE Raw - Products", "POE Raw - Search Terms", "POE Raw - Reviews",
+    "POE Raw - Returns", "POE Raw - Related Niches", "POE Semantic Insights",
+    "Outlier - Opportunity KWs", "5. Campaign Structure"
+  ]
+}
