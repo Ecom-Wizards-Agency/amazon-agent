@@ -24,8 +24,9 @@ Fill every `<...>` and `TO_RECORD_*`:
 .venv/bin/python tools/amazon-seo-keyword-workbook/build_keyword_workbook.py \
   --config tools/amazon-seo-keyword-workbook/config.<client>-<product>-<market>.json --preflight
 ```
-- Missing browser/UI inputs → it prints a **copy-ready Codex task**. Paste to Codex.
-- Codex (connected browser): DataDive UI CSVs (roots, Core 30% MKL, **Expanded 1% MKL**, competitors), POE Products/Search Terms CSVs, POE related-niches/reviews/returns/structured JSON, and a listing-reference JSON. Then it stops and reports paths.
+- Preflight tags each missing input `(MCP)`, `(CODEX)`, or `(setup)`.
+- **`(MCP)` — Claude generates, no browser download:** roots, Core 30% MKL, and competitors come from the DataDive MCP. Call `get_niche_roots` / `get_niche_keywords` / `get_niche_competitors`, save each raw JSON, confirm `len(keywords) == numVisibleKeywords`, then run `datadive_mcp_to_csv.py` to write the three contract CSVs. (Validated identical to the UI exports — see `datadive-mcp-vs-download` memory.)
+- **`(CODEX)` — connected browser:** the **Expanded 1% MKL** (the ONE DataDive download that is NOT MCP-reproducible — do not substitute the 30% file), POE Products/Search Terms CSVs, POE related-niches/reviews/returns/structured JSON, and a listing-reference JSON. Codex saves to the contract paths, stops, and reports.
 
 ## 3. Write the SEO content
 ```bash

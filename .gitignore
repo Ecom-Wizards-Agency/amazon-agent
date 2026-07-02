@@ -43,6 +43,14 @@ tools/reshipment/config.json
 tools/reshipment/config.*.json
 !tools/reshipment/config.TEMPLATE.json
 
+# Ad/Sales Audit tool: client configs + saved DataDive JSON stay LOCAL ONLY; only the template ships.
+tools/amazon-ad-audit/config.*.json
+!tools/amazon-ad-audit/config.TEMPLATE.json
+
+# Campaign builder: client campaign configs stay LOCAL ONLY; only the template ships.
+tools/amazon-campaign-builder/config.*.json
+!tools/amazon-campaign-builder/config.TEMPLATE.json
+
 # Temporary files
 *.tmp
 *.temp

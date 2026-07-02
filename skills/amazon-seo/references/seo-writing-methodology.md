@@ -139,6 +139,17 @@ genuinely irrelevant/wrong-form/unsafe after checking examples + relevancy.
   - **Do NOT repeat title tokens** — a covered keyword already counts; repeating
     it wastes the field. Spend it on genuine, uncovered USPs and high-SV
     attributes.
+  - **QA gate — measure the IH's _incremental_ SV, not its SV.** Compute the tokens
+    covered by every searchable field EXCEPT the IH, then check what the IH adds on
+    top. If that increment is ~0, the IH is redundant and must be reallocated to the
+    highest-SV genuinely-relevant terms still uncovered anywhere. This especially
+    bites when the bullets/description are written or swapped by someone else (e.g.
+    owner-supplied copy): an IH that was optimal against the old bullets can silently
+    go to 0 increment once the visible copy changes — **always re-audit the IH after
+    any bullet/description edit.** Worked case (a DE supplement shake): owner bullets used
+    "Protein" throughout, making a "Protein/Proteinshake" IH 0-increment; it was
+    rebuilt around the uncovered, genuinely-true "Eiweißshake"/"Diätshake" compounds
+    for +5,276 SV.
 
   Worked example (fictional collagen powder; title already holds *collagen,
   powder, peptides, hydrolyzed, type 1 & 3, 300g, bovine*):

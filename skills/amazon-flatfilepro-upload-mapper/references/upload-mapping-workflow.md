@@ -43,6 +43,10 @@ Repeat for all remaining relevant file columns:
 
 Do not map random helper columns, validation-note columns, comments, or any field that is not part of the upload CSV.
 
+Map only columns that need to be transmitted. If the CSV contains intentionally empty helper/string columns, skip them instead of mapping blank values into Amazon. For nutrition work, string fields should usually be skipped unless the compliance skill intentionally filled them for a case.
+
+FlatFilePro can briefly fail to show a file column even when it exists in the CSV. If exact search returns no file-column option, search the core family such as `safety` or `unit_count`, then choose the exact technical header from the list. Do not mark the field skipped until this retry has been attempted.
+
 ## Preview Checks
 
 Before stopping, review:
@@ -54,6 +58,12 @@ Before stopping, review:
 - FlatFilePro does not show unexpected blocking validation errors
 
 If validation issues are visible, capture exact field, SKU, message, and code when possible.
+
+If a validation issue appears on the final preview, stop on that file. Do not continue to a second upload file until the issue is reviewed or the user explicitly asks to continue anyway.
+
+Known example:
+
+- Italy can reject `unit_count.0.type.value = gramm` with code `90004205` for `Volume/peso dell’unita di vendita`. The corrected IT value should follow the Italy export enum, for example `grams`.
 
 ## Final Stop
 

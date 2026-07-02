@@ -1,0 +1,51 @@
+{
+  "_README": "Per-client Amazon Ad/Sales Audit config. Copy to config.<client>-<market>.json (gitignored; only this TEMPLATE is committed). Fill every <...> placeholder. Paths in inputs{} may use ~ and repo-relative paths. Run: python tools/amazon-ad-audit/build_audit.py --config <this file> --preflight  → then --config <this file> to build. break-even ACOS is an ASSUMPTION until margin is confirmed; every red/amber verdict keys off it.",
+
+  "client": "<Client display name>",
+  "date": "<YYYY-MM-DD of the deliverable>",
+  "marketplaces": ["US"],
+  "amazon_account": "<seller account + country>",
+  "currency": "USD",
+  "breakeven_acos": 0.50,
+
+  "brand_tokens": ["<brand>", "<common misspelling/transposition>"],
+  "brand_tokens_note": "Substring, case-insensitive. Include real misspellings that carry brand intent; do NOT include dictionary words that merely resemble the brand.",
+  "competitor_tokens": ["<competitor brand 1>", "<competitor brand 2>"],
+
+  "asin_groups": {
+    "<Product line A>": ["<ASIN>", "<ASIN>"],
+    "<Product line B>": ["<ASIN>"]
+  },
+  "asin_groups_note": "Optional. null or {} for an ungrouped single-line catalog. Groups map SQP files and Business-Report ASINs to product lines.",
+
+  "windows": {
+    "ads": "<e.g. 2026-06-01..2026-06-30 (30d)>",
+    "business_report": "<e.g. June 2026>",
+    "sqp_weeks": ["<YYYY-MM-DD>", "<YYYY-MM-DD>"],
+    "datadive": "<YYYY-MM-DD>"
+  },
+
+  "datadive_niche": "<nicheId, or empty if no organic overlay>",
+
+  "inputs": {
+    "ads_bulk_xlsx": "<path to Amazon Ads bulk .xlsx>",
+    "business_report_csv": "<path to Business Report .csv>",
+    "sqp_csvs": {
+      "<Product line A>": "<path to multi-ASIN SQP .csv>",
+      "<Product line B>": "<path to multi-ASIN SQP .csv>"
+    },
+    "datadive_niche_json": "<path to saved DataDive niche keywords JSON (Claude pulls via MCP), or empty>",
+    "datadive_competitors_json": "<optional path to DataDive competitors JSON, or empty>"
+  },
+
+  "delivery": {
+    "drive_folder": "<path to the client's Google Drive audit folder>",
+    "google_sheet_convert": false
+  },
+
+  "narrative": {
+    "include_levers": true,
+    "include_30day_plan": false,
+    "include_what_can_be_reached": false
+  }
+}

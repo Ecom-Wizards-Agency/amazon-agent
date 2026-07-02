@@ -48,6 +48,27 @@ Avoid long explanations at this stage.
 
 Use exact headers from the source file. Do not rename columns unless the user specifically asks for a human-readable review sheet.
 
+## Listing Copy Field Mapping
+
+Only prepare title, Item Highlights, or bullet fields when the user explicitly asks for those listing-copy fields. Treat them as distinct fields:
+
+- Title / item name: use the export/template's title header, commonly `itemName` or `item_name.*.value`.
+- Item Highlights: use the export/template's Item Highlights-equivalent header. In FlatFilePro exports this may appear as `title_differentiation.0.value`. This is one short highlight field, not bullet points; keep it within the requested/Amazon character limit, commonly 125 characters.
+- Bullet points: use only `bullet_point.*.value` headers.
+
+Do not map Item Highlights to `bullet_point.*.value`, do not create bullet columns when the request is only for Item Highlights, and do not invent a human-readable `Item Highlights` column for an upload file unless the template/export already uses that exact header.
+
+## Marketplace Enum Policy
+
+Do not copy localized enum values between marketplaces. Use the current target-marketplace FlatFilePro export as the source for enum spelling.
+
+Known example:
+
+- DE may accept `unit_count.0.type.value = gramm`.
+- IT rejects `gramm` for `unit_count.0.type.value`; use the Italy export style such as `grams`.
+
+Apply the same rule to unit fields such as serving unit, unit count type, item weight unit, package weight unit, and nutrition units. If the label value is clear but the enum spelling is uncertain, prefer the enum already used in the target marketplace export over a translated display label.
+
 ## Upload File Rules
 
 - Create separate CSVs when product types/templates differ.

@@ -858,18 +858,105 @@ def build_seo_text(ws: Worksheet, seo_path: str, result: dict, warnings: list[st
         rows.append([section, cur, new_cell, "\n".join(notes)])
 
     clear_rows(ws)
-    write_matrix(ws, rows, snap)
+    for i, row in enumerate(rows, start=1):
+        for j, val in enumerate(row, start=1):
+            ws.cell(i, j, value=val)
     ws.freeze_panes = "A2"
-    from openpyxl.styles import Alignment
+
+    from openpyxl.styles import Alignment, Border, Side, Font
 
     ws.column_dimensions["A"].width = 26
     ws.column_dimensions["B"].width = 60
     ws.column_dimensions["C"].width = 60
     ws.column_dimensions["D"].width = 50
+
+    # Deterministic, UNIFORM styling. Do NOT bleed the template's heterogeneous
+    # per-row styles onto the content — that is what put stray bold + random
+    # horizontal separator lines on arbitrary rows (e.g. Bullet 5, Backend).
+    thin = Side(style="thin", color="BFBFBF")
+    box = Border(left=thin, right=thin, top=thin, bottom=thin)
+    top_align = Alignment(wrap_text=True, vertical="top")
+
+    # Header row 1: reuse the template's captured header font+fill (brand accent),
+    # forced bold + a clean box border.
+    hdr_snap = snap[0] if snap else []
+    for c in range(1, 5):
+        cell = ws.cell(1, c)
+        st = hdr_snap[min(c, len(hdr_snap)) - 1] if hdr_snap else None
+        if st:
+            f = copy.copy(st["font"]); f.bold = True; cell.font = f
+            cell.fill = copy.copy(st["fill"])
+        else:
+            cell.font = Font(bold=True)
+        cell.border = box
+        cell.alignment = top_align
+
+    # Data rows 2..N: ONE consistent style. Section label (col A) bold for
+    # scannability; the copy columns regular. Uniform box border everywhere —
+    # no random separators, no lone bold bullet.
+    data_font = None
+    for probe in (4, 3, 2):  # a clean template data row → font family/size/color
+        if len(snap) >= probe and snap[probe - 1]:
+            data_font = snap[probe - 1][min(2, len(snap[probe - 1])) - 1]["font"]
+            break
     for r in range(2, len(rows) + 1):
         for c in range(1, 5):
-            ws.cell(r, c).alignment = Alignment(wrap_text=True, vertical="top")
+            cell = ws.cell(r, c)
+            f = copy.copy(data_font) if data_font is not None else copy.copy(cell.font)
+            f.bold = (c == 1)
+            cell.font = f
+            cell.border = box
+            cell.alignment = top_align
+
     result.update({"rows_written": len(rows), "skipped": False})
+    return result
+
+
+def build_seo_variations(wb, seo_path: str, result: dict, warnings: list[str]) -> dict:
+    """Optional 'SEO Variations' tab — one column per supply/pack size for the
+    fields that differ by variation (e.g. Item Highlights, Bullet 5). Driven by
+    seo_content['supply_variations']; if that block is absent the tab is skipped
+    entirely (other clients/products are unaffected)."""
+    if not os.path.exists(seo_path):
+        result.update({"skipped": True})
+        return result
+    seo = json.load(open(seo_path, encoding="utf-8"))
+    sv = seo.get("supply_variations") or {}
+    labels = sv.get("labels") or []
+    var_rows = sv.get("rows") or []
+    if not labels or not var_rows:
+        result.update({"skipped": True})
+        return result
+
+    ws = ensure_sheet(wb, "SEO Variations", after="4. SEO Text")
+    clear_rows(ws)
+    matrix: list[list[Any]] = [["Field"] + list(labels)]
+    for row in var_rows:
+        vals = row.get("values", {})
+        matrix.append([row.get("field", "")] + [vals.get(l, "") for l in labels])
+    if sv.get("shared_note"):
+        matrix.append(["Shared fields"] + [sv["shared_note"]] + [""] * (len(labels) - 1))
+    for i, r in enumerate(matrix, start=1):
+        for j, v in enumerate(r, start=1):
+            ws.cell(i, j, value=v)
+
+    from openpyxl.styles import Alignment, Border, Side, Font
+    from openpyxl.utils import get_column_letter
+
+    thin = Side(style="thin", color="BFBFBF")
+    box = Border(left=thin, right=thin, top=thin, bottom=thin)
+    ta = Alignment(wrap_text=True, vertical="top")
+    ws.freeze_panes = "B2"
+    ws.column_dimensions["A"].width = 22
+    for c in range(2, len(labels) + 2):
+        ws.column_dimensions[get_column_letter(c)].width = 62
+    for r in range(1, len(matrix) + 1):
+        for c in range(1, len(labels) + 2):
+            cell = ws.cell(r, c)
+            cell.font = Font(bold=(r == 1 or c == 1))
+            cell.border = box
+            cell.alignment = ta
+    result.update({"rows_written": len(matrix), "skipped": False})
     return result
 
 
@@ -1695,8 +1782,14 @@ def write_handoff_note(path: str, cfg: dict, args: dict, manifest: dict) -> str:
 # --------------------------------------------------------------------------- #
 # Preflight (auto-generated cross-agent handoff)
 # --------------------------------------------------------------------------- #
+# DataDive inputs the MCP can supply — Claude generates these from saved MCP JSON
+# via datadive_mcp_to_csv.py (get_niche_roots / get_niche_keywords / get_niche_competitors),
+# so they are NOT part of the Codex browser task. Validated byte-for-data-identical to the
+# UI exports on a validation run (roots 222/222, Core 257/257, 0 mismatches). The Expanded
+# 1% MKL stays in CODEX because the MCP returns only the ~visible/tracked set, not the 1% tail.
+MCP_INPUT_KEYS = ["roots_csv", "master_csv", "competitors_csv"]
 CODEX_INPUT_KEYS = [
-    "roots_csv", "master_csv", "expanded_mkl_csv", "competitors_csv",
+    "expanded_mkl_csv",
     "poe_products_csv", "poe_search_terms_csv", "related_niches_json",
     "poe_reviews_json", "poe_returns_json", "poe_structured_json", "listing_reference_json",
 ]
@@ -1784,23 +1877,41 @@ def run_preflight(cfg: dict, args: dict) -> int:
     print(f"PREFLIGHT — {pa.get('client')} · {pa.get('product')}")
     print(f"  marketplace={pa.get('marketplace')}  niche={pa.get('datadive_niche')}  anchor={pa.get('asin')}")
     print("=" * 64)
-    present = [k for k in CODEX_INPUT_KEYS + SETUP_INPUT_KEYS if os.path.exists(args[k])]
+    present = [k for k in MCP_INPUT_KEYS + CODEX_INPUT_KEYS + SETUP_INPUT_KEYS if os.path.exists(args[k])]
+    missing_mcp = [k for k in MCP_INPUT_KEYS if not os.path.exists(args[k])]
     missing_codex = [k for k in CODEX_INPUT_KEYS if not os.path.exists(args[k])]
     missing_setup = [k for k in SETUP_INPUT_KEYS if not os.path.exists(args[k])]
 
     print("PRESENT:")
     for k in present:
         print(f"  [x] {k}")
-    if missing_codex or missing_setup:
+    if missing_mcp or missing_codex or missing_setup:
         print("MISSING:")
+        for k in missing_mcp:
+            print(f"  [ ] (MCP)    {k}  -> {args[k]}")
         for k in missing_codex:
             print(f"  [ ] (CODEX)  {k}  -> {args[k]}")
         for k in missing_setup:
             print(f"  [ ] (setup)  {k}  -> {args[k]}")
 
+    if missing_mcp:
+        niche = cfg["product_anchor"].get("datadive_niche", "<NICHE>")
+        anchor = cfg["product_anchor"].get("asin", "<ANCHOR>")
+        print(
+            "\nSTATUS: NEEDS MCP GEN — Claude generates these from the DataDive MCP (no browser download):\n"
+            "  1) Call get_niche_roots / get_niche_keywords / get_niche_competitors for niche "
+            f"{niche}; save each raw JSON response to a file.\n"
+            "  2) Cross-check len(keywords) == get_niche_competitors numVisibleKeywords before trusting Core.\n"
+            "  3) Run datadive_mcp_to_csv.py to write roots_csv/master_csv/competitors_csv:\n"
+            f"     .venv/bin/python tools/amazon-seo-keyword-workbook/datadive_mcp_to_csv.py --anchor {anchor} \\\n"
+            "       --roots-json <roots.json> --keywords-json <keywords.json> --competitors-json <comps.json> \\\n"
+            f"       --out-roots \"{args['roots_csv']}\" --out-core \"{args['master_csv']}\" --out-competitors \"{args['competitors_csv']}\"\n"
+        )
     if missing_codex:
         print("\nSTATUS: WAITING ON CODEX. Paste the block below into Codex (do not hand-write it):\n")
         print(_codex_handoff_block(cfg, args, missing_codex))
+    elif missing_mcp:
+        pass
     elif missing_setup:
         print(f"\nSTATUS: NEEDS SETUP — provide: {', '.join(missing_setup)}")
     else:
@@ -1993,6 +2104,13 @@ def main() -> int:
             print(f"  rebuilt {seo_sheet!r}: {seo_result.get('rows_written', 0)} rows (+ Ranking Juice column)")
     else:
         warnings.append("SEO Text tab not in template; skipped.")
+
+    # Optional per-supply 'SEO Variations' tab (only if seo_content defines it).
+    seo_var_result: dict = {}
+    build_seo_variations(wb, args["seo_content"], seo_var_result, warnings)
+    if not seo_var_result.get("skipped"):
+        counts["SEO Variations"] = seo_var_result.get("rows_written", 0)
+        print(f"  built 'SEO Variations': {seo_var_result.get('rows_written', 0)} rows")
 
     # --- Curated tabs (real POE-sourced content, e.g. Reviews) -------------- #
     curated_result: dict = {}

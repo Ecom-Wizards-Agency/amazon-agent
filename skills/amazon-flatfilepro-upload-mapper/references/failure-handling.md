@@ -30,6 +30,12 @@ If FlatFilePro reports issues:
 - capture field
 - capture message and error code
 - do not force updates unless the operator explicitly approves the exact force action
+- stop the current workflow before uploading or mapping another file unless the operator explicitly says to continue
+
+Known issue:
+
+- IT marketplace may reject `unit_count.0.type.value = gramm` as invalid for `Volume/peso dell’unita di vendita` with code `90004205`.
+- Treat this as a CSV enum problem, not a mapping problem. Regenerate the IT CSV using the target export enum such as `grams`, then upload/map again.
 
 ## Risk Boundaries
 

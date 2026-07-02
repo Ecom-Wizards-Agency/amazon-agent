@@ -29,6 +29,16 @@ If required inputs are missing, answer briefly with only what is needed. Typical
 
 Do not touch title, bullets, images, price, offer, variation, claims, browse node, or unrelated fields unless the user explicitly asks.
 
+## Listing Field Terminology
+
+When the user explicitly asks for listing copy fields, keep these fields separate:
+
+- `title` / `itemName`: the product title only.
+- `Item Highlights`: Amazon's short, single-line highlight field. It is not a bullet list. When a FlatFilePro export exposes `title_differentiation.0.value`, treat that as the likely upload header for Item Highlights and keep the value within the requested/Amazon limit, commonly 125 characters.
+- `bullet points`: the normal Amazon feature bullets. Use only `bullet_point.*.value` headers for bullets.
+
+Never map Item Highlights into `bullet_point.*.value`, and never split one Item Highlight into multiple bullets. If the export/header mapping is ambiguous, stop and confirm the intended FlatFilePro column before creating the upload CSV.
+
 ## Field Policy
 
 Prioritize fields named by Amazon and fields needed for label compliance:

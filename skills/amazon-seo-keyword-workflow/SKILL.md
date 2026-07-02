@@ -25,14 +25,29 @@ When Claude's handoff arrives, Codex's job is to gather the requested browser/UI
 
 ## Required Data Inputs
 
-- DataDive roots CSV.
-- DataDive Core MKL CSV at `30% Min Rel.`.
-- DataDive Expanded MKL CSV at `1% Min Rel.`.
-- DataDive competitors CSV or MCP-derived competitor export.
+- DataDive roots CSV. **(MCP-generatable — see below.)**
+- DataDive Core MKL CSV at `30% Min Rel.`. **(MCP-generatable.)**
+- DataDive Expanded MKL CSV at `1% Min Rel.`. **(DOWNLOAD ONLY — not MCP-reproducible.)**
+- DataDive competitors CSV or MCP-derived competitor export. **(MCP-generatable.)**
 - Ranking Juice snapshot from DataDive MCP in the SEO content JSON.
 - POE Products/Search Terms CSVs.
 - POE Reviews, Returns, Related Niches, and structured overview JSON.
 - Listing reference JSON with product family, ASINs, listing status, title/bullets/description, ingredients, and pack size.
+
+### DataDive: MCP-first (only ONE file needs the browser download)
+
+Generate **roots**, **Core 30% MKL**, and **competitors** from the DataDive MCP — do NOT send Codex to the browser for them. Only the **Expanded 1% MKL** still requires the UI download, because the MCP returns only the ~visible/tracked set (== the 30% view), not the 1% expansion tail. Validated byte-for-data-identical to the UI exports on a validation run (roots 222/222, Core 257/257, 0 mismatches; a full rebuild from the generated CSVs passed all QA gates with identical Ranking-Juice coverage). See [[datadive-mcp-vs-download]].
+
+Procedure (Claude, before the build):
+1. Call `get_niche_roots`, `get_niche_keywords`, `get_niche_competitors` for the niche; save each raw JSON response to a file.
+2. **Guardrail:** confirm `len(get_niche_keywords.keywords) == get_niche_competitors.numVisibleKeywords` before trusting the Core file. If they diverge, fall back to the UI Core export.
+3. Run the generator to write the three contract CSVs:
+   ```bash
+   .venv/bin/python tools/amazon-seo-keyword-workbook/datadive_mcp_to_csv.py --anchor <ANCHOR> \
+     --roots-json <roots.json> --keywords-json <keywords.json> --competitors-json <comps.json> \
+     --out-roots "<roots_csv path>" --out-core "<master_csv path>" --out-competitors "<competitors_csv path>"
+   ```
+Notes: the Core file's `Sugg. bid & range` column is left blank (the builder never reads it; it only matters for PPC builds). `--preflight` marks these three as `(MCP)` rather than `(CODEX)`, so the Codex task only asks for the Expanded 1% MKL + POE + listing capture.
 
 Record DataDive export metadata for both Core and Expanded MKL: Min Relevancy, Min SV/Max SV if changed, visible keyword count, visible search volume, export timestamp, niche ID, marketplace, and hero keyword. **Capture these at export time, while the grid is on screen** — do not backfill later.
 

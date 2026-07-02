@@ -11,6 +11,7 @@ At the start of a new chat in this project:
    `tools/opportunity-explorer/extract-opportunity-explorer.js`
    `tools/opportunity-explorer/format-opportunity-explorer-export.mjs`
 5. Use the `amazon-listing-capture` skill + `tools/listing-capture/extract-amazon-listing-copy.js` (connected browser) to capture live listing copy (title/bullets/link) for anchor + competitors into the listing-reference JSON; it feeds the keyword-workbook ASINs tab and replaces the legacy ZeroWork scrape.
+6. Use the `amazon-campaign-builder` skill + `tools/amazon-campaign-builder/` (`/create-campaigns`) to build SP campaign bulk-upload files from a text brief — file-only output, paused by default; uploading or any AdLabs push stays a separate operator-confirmed action.
 
 ## Cross-Agent Handoff
 

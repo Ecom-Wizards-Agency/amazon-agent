@@ -6,12 +6,12 @@
 
 ## 1. Gather DataDive Exports
 
-From the DataDive UI, export (prefer real UI exports over MCP fallbacks):
+**MCP-first:** generate **roots**, **Core 30% MKL**, and **competitors** from the DataDive MCP via `datadive_mcp_to_csv.py` — only the **Expanded 1% MKL** needs a UI download (the MCP returns only the ~visible/tracked set == the 30% view, not the 1% tail). Validated identical to the UI exports; see the `datadive-mcp-vs-download` memory and the `amazon-seo-keyword-workflow` skill.
 
-- **roots CSV** — inside the **Roots** grid, use the leftmost **Export** tab for **Normalized Root**.
-- **Core MKL CSV at `30% Min Rel.`**
-- **Expanded MKL CSV at `1% Min Rel.`** (export the full grid as a real CSV — never recover by scrolling; never substitute the 30% file).
-- **competitors CSV** — **Niche Tracker > Export Competitors** (MCP-derived fallback only if the UI genuinely can't export).
+- **roots CSV** — MCP `get_niche_roots` → generator (or Roots grid's leftmost **Export** tab for **Normalized Root**).
+- **Core MKL CSV at `30% Min Rel.`** — MCP `get_niche_keywords` → generator (confirm `len(keywords)==numVisibleKeywords` first).
+- **Expanded MKL CSV at `1% Min Rel.`** — **UI DOWNLOAD ONLY** (export the full grid as a real CSV — never recover by scrolling; never substitute the 30% file; NOT MCP-reproducible).
+- **competitors CSV** — MCP `get_niche_competitors` → generator (or **Niche Tracker > Export Competitors**).
 
 At export time, record for **both** MKLs in the config: **Min Rel., visible keyword count, visible search volume, and export timestamp** (don't backfill these later — capture them while the grid is on screen).
 

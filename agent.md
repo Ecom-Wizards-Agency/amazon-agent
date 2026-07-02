@@ -83,6 +83,7 @@ Default routing:
 - `amazon-seo`: keyword research, listing SEO, Ranking Juice, Rufus/semantic optimization, SEO audits, and updating/re-optimizing an existing listing's title/bullets/Item Highlights/backend (load it for any "update the title/bullets/SEO" or "make the listing compliant" request, and run its product-facts intake before writing).
 - `amazon-catalog`: variations, parentage, flat files, listing edits, catalog conflicts.
 - `amazon-ads`: Ads Console, PPC, Creator Connections, bidding, budgets, targeting.
+- `amazon-campaign-builder`: creating Sponsored Products campaigns from a text brief → bulk-upload `.xlsx` via `tools/amazon-campaign-builder/` (file-only; upload stays operator-confirmed).
 - `amazon-reporting`: Seller/Ads reports, SQP, business reports, analytics workbooks.
 - `amazon-inventory-planning`: weekly FBA inventory overview, reshipment planning, pCloud outputs, Slack staging.
 - `amazon-opportunity-explorer`: Product Opportunity Explorer/OEI/POE exports, image strategy, product strategy, Alexa/Rufus semantic insights.
@@ -166,6 +167,25 @@ Source priority:
 2. For Ecom Wizards methodology, generated workbooks, SEO writing, analytics logic, and client-specific playbooks, use the knowledge-base skill references first, then verify against current Amazon rules.
 3. Use MAG SOPs for agency procedure and practical UI steps; also check `sop-drafts/` for recent, still-improving workflow learnings. Use the pCloud visual archive when screenshots, GIFs, module layouts, or visual confirmation are needed.
 4. If sources conflict, prefer first-party Amazon docs for rules/current UI and MAG/internal notes for operating procedure.
+
+## Ad / Sales Audit Standard
+
+For any Amazon ad or sales audit, follow `docs/amazon-ad-audit-playbook.md` before writing the narrative or building the workbook. It is the repeatable, GitHub-shareable standard for the audit narrative structure + operator voice and the master-workbook layout (single MASTER file merging the Ad Audit + SQP Intelligence tabs under a built one-page Overview). Keep it client-agnostic and public-safe.
+
+Two audit variants exist — route by data source:
+
+- Prospect/bulk-file audits (ads bulk + Business Report + SQP downloads): `amazon-ad-audit` skill + `tools/amazon-ad-audit/` toolkit (below).
+- Managed accounts connected to AdLabs ("audit/analyze via AdLabs", `/adlabs-audit`): `amazon-adlabs-audit` skill — context-first (AdLabs profile memory + Notion A/B-Tests event log + call summaries), 10-step AdLabs MCP audit per marketplace, Optimization-Group-level ACOS grading, DataDive Rank-Radar verification of rank campaigns, read-only unless the operator explicitly lifts the rule for a specific write.
+
+The workbooks and a numbers-filled narrative scaffold are built by the client-agnostic toolkit `tools/amazon-ad-audit/` — driven entirely by a per-client config (copy `config.TEMPLATE.json`; see `NEW-CLIENT.md` and `WORKFLOW.md`). Run `build_audit.py --config <cfg> --preflight` to emit a copy-ready Codex download task for the browser inputs (ads bulk, Business Report, multi-ASIN SQP), or a READY status; Claude pulls the DataDive niche via MCP. Then `--config <cfg>` builds analyze → audit + SQP workbooks → MASTER → narrative scaffold, and `--validate` runs the QA gates (spend reconciliation; ACOS is always a ratio and >100% must never colour green). Claude's role: pull DataDive, build, and write the narrative prose/Problems/Levers per the playbook. Codex's role: download the exports to the contract paths, then stop. For the full end-to-end run, route to the `amazon-ad-audit` skill. Client config JSONs are gitignored (only `config.TEMPLATE.json` ships); deliver the MASTER `.xlsx` + narrative `.docx` to the client's Google Drive audit folder.
+
+## Campaign Creation Standard
+
+To create Sponsored Products campaigns from a plain-text brief ("create SKW campaigns for these keywords", `/create-campaigns`), route to the `amazon-campaign-builder` skill and the client-agnostic toolkit `tools/amazon-campaign-builder/` — a Python port of the Ecom Wizards Amazon Ads Bulk Creator app's generation core (SKW/Halo/BMM/Phrase/Auto/PAT, EW naming convention, format-fixed to Amazon's documented bulksheets-2.0 vocabulary).
+
+Flow: parse the brief → ask once for missing required fields → scaffold `config.<client>-<market>.json` from `config.TEMPLATE.json` (gitignored) → `build_campaigns.py --preflight` → `--preview` for operator confirmation → build the `.xlsx` + `_REVIEW.md` under `output/<client-slug>/ads/` (QA gates must PASS) → stop.
+
+The output is a FILE ONLY and campaigns default to `paused`. Uploading the bulk file (Campaign Manager → Bulk Operations), enabling campaigns, or pushing via AdLabs `create_entities` are stop-before-risk actions: each needs the operator's explicit instruction for that specific action in the current chat or a matching `_local/local-permissions.md` entry. An AdLabs push, when explicitly requested, follows the `amazon-adlabs-audit` write policy (per-write lift, batch-by-batch summary, tags). SP only in v1; SB/SD requests fall back to `amazon-ads`.
 
 ## Local Output Storage
 
@@ -325,6 +345,10 @@ For cross-agent tasks, finish by saving a handoff note in the relevant client/pr
 - the next exact action for Claude or Codex
 
 If the next agent is known, name it directly in the prompt. If no next agent is known, write a neutral "Next operator prompt".
+
+## Repository Hygiene (Public Release)
+
+This repo is being prepared as a public-safe, reusable workspace. Before any commit that will be pushed to a public remote, follow `docs/public-release-checklist.md` — git identity (never publish a personal machine identity), no client/local data staged, public-safe content scan, no secrets, and the branch → PR flow. This applies to whichever agent performs the push (Claude or Codex); the pushing agent re-runs the checklist rather than trusting a handoff. Do not push unless the operator has explicitly asked for that specific push.
 
 ## Safety Rules
 

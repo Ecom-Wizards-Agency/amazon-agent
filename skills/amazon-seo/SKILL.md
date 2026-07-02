@@ -54,6 +54,16 @@ Naming note: the operator noted that Amazon's Rufus AI naming is moving/has move
 5. For regulated categories, explicitly check restricted claims against `references/eu-compliance-matrix.md` and avoid medical, disease, cure, guaranteed-result, weight-loss, or unsupported compliance-sensitive language.
 6. Stop before saving or publishing listing changes, uploading flat files, or editing live catalog content.
 
+## Listing Field Terminology
+
+Keep these listing fields distinct in keyword workbooks, SEO drafts, and flat-file CSVs:
+
+- Title / item name: one product title. In FlatFilePro or Amazon templates this is usually `itemName` or `item_name.*.value`.
+- Item Highlights: one short highlight field, often capped at 125 characters. It is not a bullet list. In FlatFilePro exports this may map to `title_differentiation.0.value`.
+- Bullet points: the normal Amazon feature bullets. In FlatFilePro/Amazon templates these use `bullet_point.*.value`.
+
+Do not use bullet fields for Item Highlights, do not split an Item Highlight into bullets, and do not collapse normal bullets into the Item Highlights field unless the user explicitly asks for a rewritten single highlight.
+
 ## Updating an existing listing's SEO
 
 When the task is "update the title / bullets / Item Highlights / backend" or

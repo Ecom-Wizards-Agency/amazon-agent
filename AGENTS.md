@@ -81,6 +81,7 @@ Default routing:
 - `amazon-seo`: keyword research, listing SEO, Ranking Juice, Rufus/semantic optimization, SEO audits.
 - `amazon-catalog`: variations, parentage, flat files, listing edits, catalog conflicts.
 - `amazon-ads`: Ads Console, PPC, Creator Connections, bidding, budgets, targeting.
+- `amazon-campaign-builder`: creating Sponsored Products campaigns from a text brief → bulk-upload `.xlsx` via `tools/amazon-campaign-builder/` (file-only; upload stays operator-confirmed).
 - `amazon-reporting`: Seller/Ads reports, SQP, business reports, analytics workbooks.
 - `amazon-inventory-planning`: weekly FBA inventory overview, reshipment planning, pCloud outputs, Slack staging.
 - `amazon-opportunity-explorer`: Product Opportunity Explorer/OEI/POE exports, image strategy, product strategy, Alexa/Rufus semantic insights.
@@ -147,6 +148,14 @@ Keyword and opportunity research draws on two complementary sources with differe
 
 The two are complementary: DataDive gives ranking/keyword intelligence; POE gives Amazon-native demand, review/return voice-of-customer, and related-niche structure. Save exports under the controlled folders (`downloads/{client}/opportunity-data/`, `output/{client}/opportunity-data/`, `evidence/{client}/opportunity-data/`).
 
+Listing field terminology for SEO and FlatFilePro work:
+
+- Title / item name: one product title. Use `itemName` or `item_name.*.value` when those are the export/template headers.
+- Item Highlights: one short Amazon highlight field, often capped at 125 characters. It is not a bullet list. In FlatFilePro exports it may appear as `title_differentiation.0.value`.
+- Bullet points: the normal Amazon feature bullets. Use `bullet_point.*.value` headers only for bullets.
+
+Do not map Item Highlights into bullet fields or create bullet columns when the operator asks only for Item Highlights.
+
 Reusable assembly (client-agnostic): `tools/amazon-seo-keyword-workbook/` turns these raw exports into a styled, validated keyword workbook — Core 30% + Expanded 1% MKL, strict related-niche filter, Never-Ever generation, outlier triage + final-action fields, POE Reviews/Returns/Semantic rebuilt from JSON, SEO-text tab with a DataDive Ranking Juice column, validation + evidence manifest. It is driven entirely by a per-client config (copy `config.TEMPLATE.json`; see `NEW-CLIENT.md` and `WORKFLOW.md`) — nothing is product-specific. For the full end-to-end run, route to the `amazon-seo-keyword-workflow` skill. Deliver the `.xlsx`; convert to a native Google Sheet with one click if a shareable link is needed. (An older client-specific version of this tool has been superseded.)
 
 Keyword-research workbook delivery goes to Google Drive only. Do not copy generated keyword-research workbooks to pCloud. The Drive target is `Geteilte Ablagen/Ecom Wizards/01_Client Sheets/<Client>/<Run Folder>/`; the workbook becomes a Google Sheet there.
@@ -174,6 +183,14 @@ Source priority:
 2. For Ecom Wizards methodology, generated workbooks, SEO writing, analytics logic, and client-specific playbooks, use the knowledge-base skill references first, then verify against current Amazon rules.
 3. Use MAG SOPs for agency procedure and practical UI steps; also check `sop-drafts/` for recent, still-improving workflow learnings. Use the pCloud visual archive when screenshots, GIFs, module layouts, or visual confirmation are needed.
 4. If sources conflict, prefer first-party Amazon docs for rules/current UI and MAG/internal notes for operating procedure.
+
+## Campaign Creation Standard
+
+To create Sponsored Products campaigns from a plain-text brief ("create SKW campaigns for these keywords", `/create-campaigns`), route to the `amazon-campaign-builder` skill and the client-agnostic toolkit `tools/amazon-campaign-builder/` — a Python port of the Ecom Wizards Amazon Ads Bulk Creator app's generation core (SKW/Halo/BMM/Phrase/Auto/PAT, EW naming convention, format-fixed to Amazon's documented bulksheets-2.0 vocabulary).
+
+Flow: parse the brief → ask once for missing required fields → scaffold `config.<client>-<market>.json` from `config.TEMPLATE.json` (gitignored) → `build_campaigns.py --preflight` → `--preview` for operator confirmation → build the `.xlsx` + `_REVIEW.md` under `output/<client-slug>/ads/` (QA gates must PASS) → stop.
+
+The output is a FILE ONLY and campaigns default to `paused`. Uploading the bulk file (Campaign Manager → Bulk Operations), enabling campaigns, or pushing via AdLabs `create_entities` are stop-before-risk actions: each needs the operator's explicit instruction for that specific action in the current chat or a matching `_local/local-permissions.md` entry. An AdLabs push, when explicitly requested, follows the `amazon-adlabs-audit` write policy (per-write lift, batch-by-batch summary, tags). SP only in v1; SB/SD requests fall back to `amazon-ads`.
 
 ## Local Output Storage
 
@@ -318,6 +335,10 @@ For negative review outreach with courtesy refunds:
 
 7. Finish with a short operator note:
    Include what was checked, source docs used, final screen, evidence captured, what was prepared, and what still needs confirmation.
+
+## Repository Hygiene (Public Release)
+
+This repo is being prepared as a public-safe, reusable workspace. Before any commit that will be pushed to a public remote, follow `docs/public-release-checklist.md` — git identity (never publish a personal machine identity), no client/local data staged, public-safe content scan, no secrets, and the branch → PR flow. This applies to whichever agent performs the push (Claude or Codex); the pushing agent re-runs the checklist rather than trusting a handoff. Do not push unless the operator has explicitly asked for that specific push.
 
 ## Safety Rules
 

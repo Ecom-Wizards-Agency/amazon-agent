@@ -1,0 +1,71 @@
+{
+  "_README": "Per-client Amazon SP campaign config. Copy to config.<client>-<market>.json (gitignored; only this TEMPLATE is committed). The agent fills campaigns[] from the operator's text brief — never carry another client's values. Run: python3 tools/amazon-campaign-builder/build_campaigns.py --config <this file> --preflight → --preview → then --config <this file> to build. Output is a bulk-upload FILE only; uploading it in Campaign Manager > Bulk Operations is a separate operator-confirmed action.",
+
+  "client": "<Client display name>",
+  "brand": "<Brand for the output filename, e.g. Acme>",
+  "marketplace": "US",
+  "amazon_account": "<advertiser account + country, e.g. Acme US (Seller Central)>",
+  "date": "",
+  "vendor_central_mode": false,
+
+  "naming": {
+    "_note": "Campaign name = variable_order joined by delimiter; ad group name drops Goal/EW/Counter/Date. Extra tokens available: Counter, Date, Custom1, Custom2, CampaignType.",
+    "variable_order": ["Goal", "SP", "MatchType", "ProductName", "TargetDescriptor", "EW"],
+    "delimiter": " | ",
+    "suffix": "EW",
+    "custom1_value": "",
+    "custom2_value": ""
+  },
+
+  "defaults": {
+    "_note": "Per-campaign fields override these. state=paused is the safety default — campaigns only go live when the operator flips them on after upload (or explicitly asks for enabled). start_date empty = today. Placements are whole-number percentages (0 = no Bidding Adjustment row).",
+    "state": "paused",
+    "start_date": "",
+    "daily_budget": 10.0,
+    "keyword_bid": 0.5,
+    "bidding_strategy": "",
+    "portfolio_id": "",
+    "top_of_search_placement": 0,
+    "rest_of_search_placement": 0,
+    "product_pages_placement": 0,
+    "site_restriction": "Amazon"
+  },
+
+  "campaigns": [
+    {
+      "_note": "One entry per campaign spec; SKW fans out to one campaign per keyword, transpose_keywords chunks keywords into keywords_per_campaign-sized campaigns. campaign_type: SKW (exact, Rank) | Halo (exact, Profit) | BMM (broad, optional +modifier) | Phrase | Auto (4 auto groups) | PAT (ASIN targeting via target_asins; match_type ASIN_EXACT or ASIN_EXPANDED). goal/match_type/bidding_strategy empty = campaign-type default.",
+      "campaign_type": "<SKW|Halo|BMM|Phrase|Auto|PAT>",
+      "goal": "",
+      "product_name": "<short product label for the campaign name>",
+      "target_descriptor": "<targeting label for the name, e.g. generic>",
+      "sku": ["<SKU>"],
+      "asin": ["<ASIN, optional for sellers, required for vendors>"],
+      "keywords": ["<one keyword per entry>"],
+      "target_asins": [],
+      "match_type": "",
+      "keywords_per_campaign": 0,
+      "transpose_keywords": false,
+      "swap_name_order": false,
+      "skw_include_keyword_in_name": true,
+      "bmm_modifier": false,
+      "negative_keywords": [],
+      "negative_match_type": "NEGATIVE_EXACT",
+      "negative_level": "ad_group",
+      "daily_budget": null,
+      "keyword_bid": null,
+      "bidding_strategy": "",
+      "portfolio_id": "",
+      "state": "",
+      "start_date": "",
+      "site_restriction": "",
+      "auto_close_match_bid": null,
+      "auto_close_match_state": "",
+      "auto_loose_match_bid": null,
+      "auto_loose_match_state": "",
+      "auto_substitutes_bid": null,
+      "auto_substitutes_state": "",
+      "auto_complements_bid": null,
+      "auto_complements_state": ""
+    }
+  ]
+}
