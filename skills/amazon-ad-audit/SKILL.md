@@ -28,8 +28,36 @@ Use this when the operator asks for an Amazon advertising or sales audit (often 
 4. **Claude pulls DataDive** via MCP, saves to the config paths. Re-run `--preflight` → READY.
 5. **Build.** `--config <cfg>` → analyze → audit + SQP workbooks → MASTER → narrative scaffold under `output/<client-slug>/reporting/`.
 6. **QA.** `--validate` gates must PASS (spend reconciliation; no >100% ACOS colored green; master tab count). It also prints soft **WARNINGS** and a **DATA COMPLETENESS** panel (see rules) — resolve or disclose each before delivery.
-7. **Write narrative** into the pre-filled scaffold per the playbook (voice, lean, Problems + Growth Levers). Regenerate `.docx`.
-8. **Deliver** the MASTER `.xlsx` + narrative `.docx` to the client's Google Drive audit folder. Confirm with the operator before a prospect sees it.
+7. **Write narrative** into the pre-filled scaffold per the playbook (voice, lean, Problems + Growth Levers). Reference screenshots inline as `![caption](file.png)` (paths relative to the `.md`). The build renders the branded deliverable from this `.md`.
+8. **Deliver** the MASTER `.xlsx` + the **branded audit `.docx` + `.pdf`** to the client's Google Drive audit folder. Confirm with the operator before a prospect sees it.
+
+## Branded deliverable (Ecom Wizards CI)
+
+`render_branded.py` turns the narrative `.md` + `metrics.json` into an **A4, Inter**, EW-branded **`.docx`
+and `.pdf`** — light readable body, one accent (Signal Orange `#FD4807`), KPI stat-cards auto-built from
+metrics, Ink-header tables, footer with page number, smart page-break hygiene (no dangling single-sentence
+page ends; KPI/table/figure never split). `build_audit.py` calls it automatically; it falls back to plain
+`md_to_docx` if brand assets/Chrome are missing.
+
+- **Cover page = first-time audits ONLY.** Controlled by config `branding.first_time` (or `--cover` /
+  `--no-cover`). Regular update audits set `first_time:false` → no cover, same branded body.
+- **Byline** from `branding.prepared_by` (default `Victor Uhl, Founder`); subtitle from `branding.cover_subtitle`.
+- **Font is Inter** (the website typeface). The brand-guide PDF lists Geist primary / Inter fallback, but the
+  site — and these docs — use Inter.
+- **Brand assets are LOCAL/gitignored** (`tools/amazon-ad-audit/brand/`): logo/mark PNGs + Inter font.
+  Regenerate with `python3 tools/amazon-ad-audit/prepare_brand_assets.py` (reads your pCloud brand sources;
+  macOS has no SVG rasteriser so it uses headless Chrome). Never commit the binaries.
+- **Editable-in-Google-Docs = the A4 `.docx`** (opens in Docs preserving layout). A *native* Google Doc
+  conversion breaks the full-bleed cover + KPI cards + font, so don't convert; send the `.pdf`, edit the `.docx`.
+- **Markdown authoring contract (so blocks render as intended, not as headlines):**
+  - **Growth levers** — write each as a bold lead-in with the body on the SAME line:
+    `**Lever N — Short title.** Body sentence continues here…`. The renderer splits this into a
+    `LEVER N` eyebrow + short title card, then the body as a normal paragraph. Do NOT put the whole
+    lever on a heading line (`### Lever N …`) or the entire paragraph renders as one giant headline
+    (the historical bug: the lever regex swallowed title *and* body into the H3).
+  - **Problems** render as plain bold-lead paragraphs (`**Problem N — …** body`) — no card, by design.
+  - **Section headers** are `## H2` (also feed the cover's "Inside" list) and `### H3`; a `> ` line is a
+    pull-note; `![caption](rel.png)` is a figure. Keep levers as the bold-lead form, not `###`.
 
 ## Rules
 

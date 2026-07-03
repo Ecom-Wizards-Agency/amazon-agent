@@ -196,3 +196,34 @@ The master is assembled by copying each source sheet **cell-by-cell** (value + s
   uncontrolled and per-product ad stats blur.
 - Intent classification is rule-based (brand / own-ASIN / competitor / generic) —
   audit-grade, review before bulk campaign changes.
+
+## Part 3 — The Branded Document (Ecom Wizards CI)
+
+The narrative ships as a **brand-styled A4 document** — `.docx` (editable) + `.pdf` (send) — rendered from
+the narrative `.md` by `tools/amazon-ad-audit/render_branded.py`. Not a pixel deck; a clean, readable report
+that carries the CI.
+
+- **Typeface: Inter** (the website font). The brand-guide PDF names Geist primary / Inter fallback, but the
+  site — and therefore these documents — use Inter. Type scale: cover title 800, section 700, big stat 800,
+  body 400/1.55, eyebrow 600 caps.
+- **Colour:** neutrals ~70% (Obsidian `#0F1318` / Ink `#11151C` / Cloud `#F5F6F8` / White); **one accent,
+  ≤5%: Signal Orange `#FD4807`** (eyebrows, rules, KPI-card tops, "Lever n" labels). Numbers tabular.
+- **Body is light, not dark.** The brand deck uses dark report pages, but dark full-body is hard to read —
+  keep dark for the **cover only** and use light body + orange accents. State the intent-split coverage %
+  at the traffic-mix table; never present the split as if it sums to 100% of spend.
+- **Cover page = first-time audits only** (`branding.first_time` / `--cover` / `--no-cover`). Dark Obsidian,
+  faint grid (<6%), white logo grouped with an orange rule + eyebrow, big title, "Prepared for" +
+  `prepared_by` byline (default "Victor Uhl, Founder"), "What's inside" = the section names, footer
+  `Confidential · www.ecomwizards.agency`. Horizontal rules snap onto the grid.
+- **KPI stat-cards** (spend / ad sales / blended ACoS vs break-even / TACoS) are auto-built from
+  `metrics.json` and placed under the verdict/summary section — Cloud card, orange top rule, big Inter stat.
+- **Markdown conventions** the renderer reads: `## H2`, `### Lever N: title` (or `**Lever N — …**`) →
+  orange "LEVER N" eyebrow, `> quote` → orange note callout, `![caption](file.png)` → figure + caption,
+  pipe tables → Ink-header tables. `<!-- ... -->` stubs are dropped.
+- **Page-break hygiene:** widow/orphan control, headings kept with their first lines, KPI-card row / tables
+  / figures never split across a page — so no page ends on a lone dangling sentence.
+- **Brand assets are LOCAL/gitignored** (`tools/amazon-ad-audit/brand/`). Regenerate with
+  `prepare_brand_assets.py` (headless Chrome for SVG→PNG on macOS). If assets/Chrome are absent the build
+  degrades to a plain `md_to_docx` `.docx` with a WARN — never a hard failure.
+- **Delivery:** the A4 `.docx` is the Google-Docs-editable file (opens in Docs preserving layout). Do **not**
+  convert to a native Google Doc — the full-bleed cover + KPI cards + font break. Send the `.pdf`.

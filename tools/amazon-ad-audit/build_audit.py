@@ -98,7 +98,7 @@ def preflight(cfg, cfg_path) -> int:
 
 
 # ----------------------------------------------------------------- build
-def build(cfg, cfg_path) -> int:
+def build(cfg, cfg_path, cover=None) -> int:
     import analyze_audit
     import build_audit_workbook
     import build_sqp_workbook
@@ -110,17 +110,31 @@ def build(cfg, cfg_path) -> int:
     sqp_path = build_sqp_workbook.build(cfg_path, outdir)
     master_path = build_master_workbook.build(cfg_path, outdir, audit_path, sqp_path)
     scaffold_md = narrative_scaffold.build(cfg_path, outdir)
-    docx_path = None
+
+    # Resolve cover: --cover/--no-cover overrides config branding.first_time (first-time audits only).
+    if cover is None:
+        cover = bool((cfg.get("branding", {}) or {}).get("first_time", False))
+
+    # Branded deliverable (EW CI, A4, Inter): .docx + .pdf. Falls back to plain md_to_docx if unavailable.
+    branded = {}
     try:
-        import subprocess
-        docx_path = Path(str(scaffold_md)).with_suffix(".docx")
-        subprocess.run([sys.executable, str(HERE / "md_to_docx.py"), str(scaffold_md), str(docx_path)],
-                       check=True)
-    except Exception as e:  # docx is a convenience; the .md scaffold is the contract
-        print(f"[build] md_to_docx skipped: {e}")
-        docx_path = None
+        import render_branded
+        branded = render_branded.render(cfg, outdir, scaffold_md, cover=cover)
+    except Exception as e:
+        print(f"[build] branded render skipped ({e}); using plain md_to_docx")
+
+    docx_path = branded.get("docx")
+    if not docx_path:
+        try:
+            import subprocess
+            docx_path = Path(str(scaffold_md)).with_suffix(".docx")
+            subprocess.run([sys.executable, str(HERE / "md_to_docx.py"), str(scaffold_md), str(docx_path)],
+                           check=True)
+        except Exception as e:  # docx is a convenience; the .md scaffold is the contract
+            print(f"[build] md_to_docx skipped: {e}")
+            docx_path = None
     print("\nArtifacts:")
-    for p in (audit_path, sqp_path, master_path, scaffold_md, docx_path):
+    for p in (audit_path, sqp_path, master_path, scaffold_md, docx_path, branded.get("pdf")):
         if p:
             print(f"  {p}")
     _completeness_panel(outdir)
@@ -180,8 +194,14 @@ def validate(cfg, cfg_path) -> int:
                         f"(coverage {stb_spend / M['totals']['spend']:.1%} of total SP+ spend)")
 
     # (b) no ACOS ratio > 1.0 carrying a green fill, in any built workbook
+    # Reference the toolkit's OWN canonical outputs only — the outdir may also hold
+    # hand-delivered / stale workbooks (e.g. dated _Branded files) that must not be scored.
     markets = "-".join(M.get("marketplaces", []) or ["x"])
-    books = sorted(outdir.glob("*.xlsx"))
+    stem = f"{_slug(cfg['client'])}_{_slug(markets)}"
+    audit = outdir / f"{stem}_Ad_Audit.xlsx"
+    sqp = outdir / f"{stem}_SQP_Intelligence.xlsx"
+    master = outdir / f"{stem}_Amazon_Audit_MASTER.xlsx"
+    books = [p for p in (audit, sqp, master) if p.exists()]
     bad = []
     for wb_path in books:
         wb = load_workbook(wb_path)
@@ -201,10 +221,7 @@ def validate(cfg, cfg_path) -> int:
                     not bad, f"scanned {len(books)} workbooks" + (f"; offenders: {bad[:5]}" if bad else ""))
 
     # (c) master tab count = overview + (audit - sources) + (sqp - sources) + master sources
-    master = next((p for p in books if "MASTER" in p.name), None)
-    audit = next((p for p in books if "Ad_Audit" in p.name), None)
-    sqp = next((p for p in books if "SQP_Intelligence" in p.name), None)
-    if master and audit and sqp:
+    if master.exists() and audit.exists() and sqp.exists():
         n_master = len(load_workbook(master, read_only=True).sheetnames)
         n_expect = (len(load_workbook(audit, read_only=True).sheetnames) - 1
                     + len(load_workbook(sqp, read_only=True).sheetnames) - 1 + 2)
@@ -239,13 +256,16 @@ def main():
     ap.add_argument("--config", required=True)
     ap.add_argument("--preflight", action="store_true")
     ap.add_argument("--validate", action="store_true")
+    ap.add_argument("--cover", action=argparse.BooleanOptionalAction, default=None,
+                    help="Force the branded cover page on/off (--cover / --no-cover). "
+                         "Default: config branding.first_time (cover for first-time audits, none for updates).")
     args = ap.parse_args()
     cfg = load_config(args.config)
     if args.preflight:
         sys.exit(preflight(cfg, args.config))
     if args.validate:
         sys.exit(validate(cfg, args.config))
-    sys.exit(build(cfg, args.config))
+    sys.exit(build(cfg, args.config, cover=args.cover))
 
 
 if __name__ == "__main__":

@@ -28,9 +28,11 @@ Two-agent flow (Codex gathers browser downloads; Claude pulls DataDive, builds, 
 
 7. **Data completeness** — the build prints a DATA COMPLETENESS panel and `--validate` prints soft WARNINGS: intent-split coverage <90%, SQP-revenue gap >20% (with the uncovered groups), missing channels, multi-parent ad groups. These aren't gate failures — they're thin data. For each: either download the missing report (re-run) or **disclose it in the deliverable's Method Notes** (e.g. "SQP genuinely absent in Brand Analytics for X — capture figures are floors").
 
-8. **Narrative** — write the prose/Problems/Levers into the pre-filled scaffold per `docs/amazon-ad-audit-playbook.md`. Keep lean (no 30-day plan / "what can be reached" / "bottom line" unless config flags them).
+8. **Narrative** — write the prose/Problems/Levers into the pre-filled scaffold per `docs/amazon-ad-audit-playbook.md`. Keep lean (no 30-day plan / "what can be reached" / "bottom line" unless config flags them). Reference screenshots inline as `![caption](file.png)`.
 
-9. **Deliver** — master `.xlsx` + narrative `.docx` to `delivery.drive_folder`. Confirm with the operator before a prospect sees it.
+9. **Brand render** — the build produces a branded **A4 / Inter** `.docx` + `.pdf` (`render_branded.py`): light body, Signal-Orange accent, KPI cards from metrics, page-break hygiene. **Cover page only for first-time audits** (`branding.first_time` / `--cover` / `--no-cover`). One-time per machine: `prepare_brand_assets.py` populates the gitignored `brand/` assets; without them it falls back to plain `md_to_docx`.
+
+10. **Deliver** — master `.xlsx` + branded `.docx` **+ `.pdf`** to `delivery.drive_folder`. The A4 `.docx` edits in Google Docs (don't convert to a native gdoc — it breaks the cover/cards). Confirm with the operator before a prospect sees it.
 
 ## Notes
 

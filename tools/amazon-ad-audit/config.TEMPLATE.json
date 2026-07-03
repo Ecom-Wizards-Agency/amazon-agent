@@ -47,5 +47,13 @@
     "include_levers": true,
     "include_30day_plan": false,
     "include_what_can_be_reached": false
+  },
+
+  "branding": {
+    "_note": "Ecom Wizards CI rendering (render_branded.py) → A4 branded .docx + .pdf in Inter. first_time=true renders the dark cover page; regular update audits set false (no cover). Requires the local brand/ assets (run prepare_brand_assets.py). Falls back to plain md_to_docx if assets/Chrome are missing.",
+    "first_time": true,
+    "prepared_by": "Victor Uhl, Founder",
+    "cover_subtitle": "Where the money leaks, and the levers to fix it.",
+    "brand_dir": ""
   }
 }

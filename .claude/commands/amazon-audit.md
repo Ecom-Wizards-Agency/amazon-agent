@@ -22,8 +22,8 @@ The user's target is: **$ARGUMENTS**
 
 5. **Build + QA** — once READY, `--config <cfg>` to build (analyze → audit + SQP workbooks → MASTER → narrative scaffold), then `--validate` (all gates must pass).
 
-6. **Write the narrative** into the pre-filled scaffold per the playbook (operator voice, lean; Problems + Growth Levers). Regenerate `.docx`.
+6. **Write the narrative** into the pre-filled scaffold per the playbook (operator voice, lean; Problems + Growth Levers; screenshots inline as `![caption](file.png)`). The build renders a branded **A4 / Inter** `.docx` + `.pdf` (EW CI, `render_branded.py`) — **cover page for first-time audits only** (`branding.first_time` / `--cover` / `--no-cover`); regular updates skip the cover. One-time per machine: `prepare_brand_assets.py` for the gitignored `brand/` assets.
 
-7. **Deliver** the MASTER `.xlsx` + narrative `.docx` to the client's Google Drive audit folder; confirm with the operator before a prospect sees it.
+7. **Deliver** the MASTER `.xlsx` + branded `.docx` **+ `.pdf`** to the client's Google Drive audit folder; confirm with the operator before a prospect sees it. The A4 `.docx` edits in Google Docs (don't convert to a native gdoc — it breaks the cover/cards).
 
 Break-even ACOS is an assumption until margin is confirmed — flag it, and every ACOS verdict updates on the real number.

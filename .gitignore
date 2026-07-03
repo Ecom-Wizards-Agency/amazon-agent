@@ -47,6 +47,12 @@ tools/reshipment/config.*.json
 tools/amazon-ad-audit/config.*.json
 !tools/amazon-ad-audit/config.TEMPLATE.json
 
+# Ad/Sales Audit tool: EW brand assets (logo/mark PNGs, fonts, generated covers) stay LOCAL ONLY.
+# Regenerate them with brand/prepare_assets.py from your local pCloud brand sources. Only code + docs ship.
+tools/amazon-ad-audit/brand/*
+!tools/amazon-ad-audit/brand/.gitkeep
+!tools/amazon-ad-audit/brand/README.md
+
 # Campaign builder: client campaign configs stay LOCAL ONLY; only the template ships.
 tools/amazon-campaign-builder/config.*.json
 !tools/amazon-campaign-builder/config.TEMPLATE.json
