@@ -101,9 +101,8 @@ Avoid generic filler, long background, and vague asks. For example, say what Ama
 
 ## Source Docs/SOPs Used
 
-- `skills/amazon-operator-routing/SKILL.md`
+- `AGENTS.md` (routing, formerly `skills/amazon-operator-routing`)
 - `skills/amazon-communications/SKILL.md`
-- `skills/amazon-operator-routing/references/workflow-router.md`
 - Current Seller Central support and shipment defect UI observed during recent case handling
 
 ## Open Questions Or Assumptions

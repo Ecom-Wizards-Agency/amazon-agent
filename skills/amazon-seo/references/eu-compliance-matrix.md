@@ -2,7 +2,9 @@
 
 Practical, reusable reference for what may and may not be claimed in EU Amazon
 listing copy (DE/IT/FR/ES/…). Use it when writing `seo_content` and when filling
-`triage.claim_tokens`. **This is a starting reference, not legal advice** —
+`triage.claim_tokens`. Process layer on top of this matrix — category risk tiers,
+US regime, the SAS-style self-check, and the RJ-preserving rewrite ladder — lives
+in `health-claims-compliance.md`. **This is a starting reference, not legal advice** —
 always verify against the current EU claims register, the product's actual
 ingredient + dose, and Amazon's category rules before publishing. When unsure,
 treat the claim as prohibited and ask the operator.

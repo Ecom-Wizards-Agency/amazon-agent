@@ -4,7 +4,7 @@ Amazon Agent is the operator's local runtime workspace for operating Amazon work
 
 ## How To Use
 
-Start with `agent.md`. It is the source of truth for assistant behavior, routing, library search order, connected-browser checkpoints, evidence capture, and stop-before-risk rules.
+Start with `AGENTS.md`. It is the source of truth for assistant behavior, routing, library search order, connected-browser checkpoints, evidence capture, and stop-before-risk rules.
 
 For most work:
 
@@ -13,7 +13,7 @@ For most work:
 3. Use the connected Codex browser with the logged-in Amazon session when browser operation is needed. Common choices are Chrome or Brave.
 4. Stop before externally visible or risky actions unless the operator explicitly approves the specific action.
 
-This project uses one main Codex operator with specialist skills, not separate permanent specialist agents. The dispatcher skill routes work into playbooks like `amazon-seo`, `amazon-catalog`, `amazon-ads`, `amazon-inventory-planning`, `amazon-opportunity-explorer`, and `amazon-communications`.
+This project uses one main Codex operator with specialist skills, not separate permanent specialist agents. The dispatcher skill routes work into playbooks like `amazon-seo`, `amazon-catalog`, `amazon-ads`, `amazon-creator-connections`, `amazon-inventory-planning`, `amazon-opportunity-explorer`, and `amazon-communications`.
 
 For inventory/reshipment work, useful trigger phrases are `Weekly FBA Inventory Overview`, `reshipment planning`, `FBA inventory planning`, and `inventory overview`.
 
@@ -26,7 +26,7 @@ Draft SOPs are intentionally available to the agent for normal workflow routing.
 The routing helper can search the local Amazon libraries:
 
 ```bash
-python3 "skills/amazon-operator-routing/scripts/search_amazon_libraries.py" "send to amazon shipment create fba shipment" --library mag --limit 5
+python3 "tools/search_amazon_libraries.py" "send to amazon shipment create fba shipment" --library mag --limit 5
 ```
 
 ## GitHub Repo
@@ -38,7 +38,6 @@ Canonical GitHub repo:
 The local project should stay aligned with the GitHub repo's lightweight runtime/source structure:
 
 - `AGENTS.md`
-- `agent.md`
 - `skills/`
 - `Amazon Seller Help/`
 - `Amazon Ads Help/`

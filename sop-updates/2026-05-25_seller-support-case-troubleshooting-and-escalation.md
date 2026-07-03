@@ -24,8 +24,7 @@ Verified against the current project routing rules, communications skill, SOP ma
 - `sop-drafts/2026-05-25_seller-support-case-troubleshooting-and-escalation.md`
 - `sop-updates/2026-05-25_seller-support-case-troubleshooting-and-escalation.md`
 - `skills/amazon-communications/SKILL.md`
-- `skills/amazon-operator-routing/SKILL.md`
-- `skills/amazon-operator-routing/references/workflow-router.md`
+- `AGENTS.md` (routing, formerly `skills/amazon-operator-routing`)
 
 ## Checks Run
 

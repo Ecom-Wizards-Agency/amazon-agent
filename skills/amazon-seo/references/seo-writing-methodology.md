@@ -24,11 +24,31 @@ Leave **relevant** keywords blank; mark negatives with one marker:
 Filtering uses **word-boundary matching**: a phrase containing ANY X/B/C word is
 excluded; phrases of only-blank words are included → the Master List.
 
-In the keyword-workbook builder this maps to: the **`2 Never KWs`** tab (one-word
-true negatives, generated from the Expanded 1% MKL) and the **Outlier triage**
-categories (`Competitor/brand term`=B, `Wrong product form`/`Negative candidate`=X/C).
+In the keyword-workbook builder this maps to: the **`2 Never KWs`** tab (generated
+from the Expanded 1% MKL) and the **Outlier triage** categories
+(`Competitor/brand term`=B, `Wrong product form`/`Negative candidate`=X/C).
 Protect real product intent — a high-frequency word is only `Never Ever` when it's
 genuinely irrelevant/wrong-form/unsafe after checking examples + relevancy.
+
+The Never-KWs tab is a **sectioned audit view**, protection-first ladder: a word is
+protected if it appears in the Core-30% vocabulary, the product/listing language,
+POE search terms, or configured relevant/misspell words; then brands and claim-risk
+words route to their own sections (never blanket-negated); what remains becomes a
+`Never Ever` single-word negative (configured junk/wrong-form/off-niche, or the auto
+rule: frequent in 1% discovery, max relevancy ≤ the cut, absent from core/product/POE).
+Sections: Never Ever (apply as negative phrase on the root word) → Competitor brands
+(campaign-dependent: negative in rank/SKW, target in PAT/conquest) → Claim risk
+(compliance review) → Review-manually near-miss band → phrase-level negative
+candidates (combination-irrelevant phrases whose words are individually clean).
+Every row carries Category, Why, max SV, max relevancy, and example phrases so a
+human can justify each call.
+
+The **`1. Root Keywords`** tab carries the ad-targeting signal: ⭐⭐ ad roots
+(DataDive root score ≥ `ad_min_score` AND Broad SV ≥ `ad_min_sv` AND not
+Brand/Claim/Form/Off-niche) are the roots that seed SKW/rank campaigns; ⭐ marks
+relevant-but-below-SV-floor roots. The Category column uses the same token sets as
+the Never-Ever ladder, so the two tabs never disagree about what a brand or claim
+word is.
 
 ## 2. Ranking Juice (the optimization metric)
 

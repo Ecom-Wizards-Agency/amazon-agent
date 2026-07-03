@@ -211,15 +211,71 @@ def ensure_sheet(wb, title: str, after: Any = None) -> Worksheet:
 # --------------------------------------------------------------------------- #
 # Tab builders
 # --------------------------------------------------------------------------- #
-def transform_roots(rows: list[list[str]], cfg: dict) -> list[list[Any]]:
+def _triage_vocab(core_rows: list[list[str]], poe_terms: set[str], args: dict, cfg: dict) -> dict:
+    """The shared vocabulary/token sets used to classify both roots and
+    Never-Ever words — one consistent logic across the two tabs."""
+    tcfg = cfg.get("triage", {})
+    ncfg = cfg.get("never_ever", {})
+    core = _keyword_rows_by_term(core_rows)
+    return {
+        "core_words": {tok for kw in core for tok in _word_tokens(kw)},
+        "poe_words": {tok for term in poe_terms for tok in _word_tokens(term)},
+        "listing_words": set(_word_tokens(_listing_language(args, cfg))),
+        "brand": {norm(x) for x in tcfg.get("brand_tokens", [])},
+        "form": {norm(x) for x in tcfg.get("form_tokens", [])},
+        "claim": {norm(x) for x in tcfg.get("claim_tokens", [])},
+        "negative": {norm(x) for x in tcfg.get("negative_tokens", [])},
+        "explicit_never": {norm(x) for x in ncfg.get("explicit_never_words", [])},
+        "relevant": {norm(x) for x in ncfg.get("relevant_words", [])},
+        "misspell": {norm(x) for x in ncfg.get("misspell_or_variant_words", [])},
+        "stop": {norm(x) for x in ncfg.get("stop_words", [])},
+        "related_excludes": {
+            tok
+            for phrase in cfg.get("related_niche_filter", {}).get("exclude_examples", [])
+            for tok in _word_tokens(phrase)
+        },
+    }
+
+
+def _root_category(root: str, vocab: dict) -> str:
+    """Semantic bucket for a root. Guard buckets (Brand/Claim/Form/Off-niche)
+    win over Core/Product so an ad-root marker can never land on them."""
+    words = _word_tokens(root)
+    if any(w in vocab["brand"] for w in words):
+        return "Brand"
+    if any(w in vocab["claim"] for w in words):
+        return "Claim risk"
+    if any(w in vocab["form"] for w in words):
+        return "Wrong form"
+    if any(w in vocab["negative"] or w in vocab["explicit_never"] or w in vocab["related_excludes"] for w in words):
+        return "Off-niche"
+    if any(
+        w in vocab["core_words"] or w in vocab["listing_words"] or w in vocab["poe_words"] or w in vocab["relevant"]
+        for w in words
+    ):
+        return "Core/Product"
+    return "Review"
+
+
+def transform_roots(rows: list[list[str]], cfg: dict, vocab: dict | None = None) -> list[list[Any]]:
     """Clean up the DataDive roots CSV for the '1. Root Keywords' tab.
 
     The raw export is `(empty) | Normalized Root | Frequency | Broad Search
     Volume | (unnamed 0-1 relevance score)`. Output columns: `Important | Root
-    Keyword | Frequency | Broad Search Volume | Root Score`, where Important is
-    auto-marked from the score (config block `root_importance`, defaults:
-    min_score 0.10, marker '⭐'). Keeps exactly one output row per input row so
-    the roots row-count QA gate is unaffected.
+    Keyword | Frequency | Broad Search Volume | Root Score | Category`.
+
+    Importance marking (config block `root_importance`) — the operator's ad
+    targets, so this is the load-bearing column:
+    - Tiered mode (when `ad_min_sv`/`ad_min_score` is configured): `ad_marker`
+      (default '⭐⭐') when score >= ad_min_score AND Broad SV >= ad_min_sv AND
+      the root's Category is Core/Product or Review — the roots that should
+      seed SKW/rank campaigns. `marker` ('⭐') for score >= min_score without
+      the SV floor. Brand/Claim/Form/Off-niche roots never get the ad marker.
+    - Legacy mode (only min_score/marker configured): unchanged binary marking.
+
+    Category comes from `_root_category()` (same token sets as the Never-Ever
+    ladder) when vocab is provided. Keeps exactly one output row per input row
+    so the roots row-count QA gate is unaffected.
     """
     if not rows:
         return rows
@@ -229,18 +285,34 @@ def transform_roots(rows: list[list[str]], cfg: dict) -> list[list[Any]]:
     except (TypeError, ValueError):
         min_score = 0.10
     marker = imp.get("marker", "⭐")
+    tiered = "ad_min_sv" in imp or "ad_min_score" in imp
+    try:
+        ad_min_score = float(imp.get("ad_min_score", min_score))
+    except (TypeError, ValueError):
+        ad_min_score = min_score
+    try:
+        ad_min_sv = int(imp.get("ad_min_sv", 500))
+    except (TypeError, ValueError):
+        ad_min_sv = 500
+    ad_marker = imp.get("ad_marker", "⭐⭐")
 
-    out: list[list[Any]] = [["Important", "Root Keyword", "Frequency", "Broad Search Volume", "Root Score"]]
+    out: list[list[Any]] = [["Important", "Root Keyword", "Frequency", "Broad Search Volume", "Root Score", "Category"]]
     for r in rows[1:]:
         root = r[1] if len(r) > 1 else ""
         freq = r[2] if len(r) > 2 else ""
         sv = r[3] if len(r) > 3 else ""
         raw_score = r[4] if len(r) > 4 else ""
         score = to_float(raw_score)
+        category = _root_category(root, vocab) if vocab else ""
         if score is None:
-            out.append(["", root, freq, sv, raw_score])
-        else:
-            out.append([marker if score >= min_score else "", root, freq, sv, round(score, 2)])
+            out.append(["", root, freq, sv, raw_score, category])
+            continue
+        mark = marker if score >= min_score else ""
+        if tiered and score >= ad_min_score and category in ("Core/Product", "Review", ""):
+            sv_val = to_int(sv)
+            if sv_val is not None and sv_val >= ad_min_sv:
+                mark = ad_marker
+        out.append([mark, root, freq, sv, round(score, 2), category])
     return out
 
 
@@ -433,30 +505,19 @@ def build_never_keywords(
 ) -> dict:
     snap = snapshot_styles(ws, upto_row=4)
     expanded = _keyword_rows_by_term(expanded_rows)
-    core = _keyword_rows_by_term(core_rows)
-    core_words = {tok for kw in core for tok in _word_tokens(kw)}
-    poe_words = {tok for term in poe_terms for tok in _word_tokens(term)}
-    listing_words = set(_word_tokens(_listing_language(args, cfg)))
+    vocab = _triage_vocab(core_rows, poe_terms, args, cfg)
 
-    tcfg = cfg.get("triage", {})
     ncfg = cfg.get("never_ever", {})
     min_freq = int(ncfg.get("min_frequency", 2))
     max_rel = float(ncfg.get("max_relevancy_for_auto_negative", 0.3))
-    stop_words = {norm(x) for x in ncfg.get("stop_words", [])}
-    relevant_words = {norm(x) for x in ncfg.get("relevant_words", [])}
-    misspell_words = {norm(x) for x in ncfg.get("misspell_or_variant_words", [])}
-    explicit_never = {norm(x) for x in ncfg.get("explicit_never_words", [])}
-    negative_tokens = {norm(x) for x in tcfg.get("negative_tokens", [])}
-    form_tokens = {norm(x) for x in tcfg.get("form_tokens", [])}
-    brand_tokens = {norm(x) for x in tcfg.get("brand_tokens", [])}
-    claim_tokens = {norm(x) for x in tcfg.get("claim_tokens", [])}
-    related_excludes = {tok for phrase in cfg.get("related_niche_filter", {}).get("exclude_examples", []) for tok in _word_tokens(phrase)}
+    review_band = float(ncfg.get("review_band_max_relevancy", 0.5))
+    phrase_candidates = bool(ncfg.get("phrase_candidates", True))
 
     bucket: dict[str, dict[str, Any]] = {}
     for kw, meta in expanded.items():
         seen_in_kw = set(_word_tokens(kw))
         for word in seen_in_kw:
-            if len(word) < 2 or word in stop_words:
+            if len(word) < 2 or word in vocab["stop"]:
                 continue
             b = bucket.setdefault(word, {"frequency": 0, "sv": [], "rel": [], "examples": []})
             b["frequency"] += 1
@@ -467,53 +528,124 @@ def build_never_keywords(
             if len(b["examples"]) < 5:
                 b["examples"].append(meta["keyword"])
 
-    # Template's '2.2 Never KWs' is lean: Negative Marker | Frequency | Negative Phrase.
-    rows = [["Negative Marker", "Frequency", "Negative Phrase"]]
+    # Sectioned audit view: the classification ladder is unchanged (protection
+    # first), but everything it computes is now WRITTEN instead of discarded —
+    # category, why, SV/relevancy evidence, example phrases — and the
+    # non-negative categories (brands, claim risk, review band) get their own
+    # sections so a human can audit and act per campaign type.
+    header = ["Negative Marker", "Frequency", "Word / Phrase", "Category", "Why", "Max SV", "Max Relevancy", "Example Phrases"]
+    never_rows: list[list[Any]] = []
+    brand_rows: list[list[Any]] = []
+    claim_rows: list[list[Any]] = []
+    review_rows: list[list[Any]] = []
     reviewed = 0
+    never_words: set[str] = set()
+
     for word, data in bucket.items():
         reviewed += 1
         freq = data["frequency"]
         rels = data["rel"] or [0.0]
-        avg_rel = round(sum(rels) / len(rels), 4)
         max_rel_seen = max(rels)
-        in_core = word in core_words
-        in_poe = word in poe_words
-        in_product = word in listing_words
+        in_core = word in vocab["core_words"]
+        in_poe = word in vocab["poe_words"]
+        in_product = word in vocab["listing_words"]
         max_sv = max(data["sv"]) if data["sv"] else ""
         examples = "; ".join(data["examples"])
+        evidence = [freq, word, "", "", max_sv, round(max_rel_seen, 3), examples]
 
-        classification = "Review manually"
-        reason = "Expanded 1% term needs manual review."
-        if word in relevant_words or in_product or in_core or in_poe:
-            classification = "Relevant"
-            reason = "Appears in core/product/POE language or configured relevant words."
-        elif word in misspell_words:
-            classification = "Misspell / grammar variant"
-            reason = "Variant still represents relevant product intent."
-        elif word in brand_tokens:
-            classification = "Competitor / brand"
-            reason = "Competitor brand term; keep for PPC/context, not Never Ever."
-        elif word in claim_tokens:
-            classification = "Claim risk"
-            reason = "Potential health/compliance risk; do not use in copy automatically."
-        elif word in explicit_never or word in negative_tokens or word in form_tokens or word in related_excludes:
-            classification = "Never Ever"
-            reason = "Configured irrelevant/wrong-form/off-niche token."
-        elif freq >= min_freq and max_rel_seen <= max_rel and not in_core and not in_poe and not in_product:
-            classification = "Never Ever"
-            reason = f"Frequent in 1% discovery but absent from core/product/POE context; max relevancy <= {max_rel}."
-
-        if classification != "Never Ever":
+        if word in vocab["relevant"] or in_product or in_core or in_poe:
+            continue  # protected — appears in core/product/POE language or configured relevant words
+        if word in vocab["misspell"]:
+            continue  # variant still represents relevant product intent
+        if word in vocab["brand"]:
+            evidence[2:4] = ["Competitor brand", "Negative in rank/SKW campaigns, TARGET in PAT/conquest — decide per campaign. Never a blanket negative."]
+            brand_rows.append(["Campaign-dependent"] + evidence)
             continue
-        # Negative Marker = the Amazon negative match-type to apply (these are
-        # single-word negatives → phrase). Frequency = 1% discovery frequency.
-        rows.append(["Negative phrase", freq, word])
+        if word in vocab["claim"]:
+            evidence[2:4] = ["Claim risk", "Health/compliance risk — do not use in copy automatically; see health-claims-compliance.md / compliance.claims_audit."]
+            claim_rows.append(["Do not auto-use"] + evidence)
+            continue
+        if word in vocab["explicit_never"] or word in vocab["negative"] or word in vocab["form"] or word in vocab["related_excludes"]:
+            category = (
+                "Wrong form" if word in vocab["form"]
+                else "Configured junk" if word in vocab["explicit_never"]
+                else "Off-niche/irrelevant"
+            )
+            evidence[2:4] = [category, "Configured irrelevant/wrong-form/off-niche token."]
+            never_rows.append(["Negative phrase"] + evidence)
+            never_words.add(word)
+            continue
+        if freq >= min_freq and max_rel_seen <= max_rel:
+            evidence[2:4] = [
+                "Auto (low-relevancy discovery)",
+                f"Frequent in 1% discovery but absent from core/product/POE context; max relevancy <= {max_rel}.",
+            ]
+            never_rows.append(["Negative phrase"] + evidence)
+            never_words.add(word)
+            continue
+        if freq >= min_freq and max_rel < max_rel_seen <= review_band:
+            evidence[2:4] = [
+                "Near-miss band",
+                f"Absent from core/product/POE but relevancy {round(max_rel_seen, 3)} is above the {max_rel} auto cut — human call.",
+            ]
+            review_rows.append(["Review manually"] + evidence)
 
-    rows[1:] = sorted(rows[1:], key=lambda r: (-int(r[1]), str(r[2])))
+    # Phrase-level negative candidates: full 1% keywords whose combination is
+    # low-relevancy although no single word earned a word-level negative — the
+    # combination-irrelevant edge case. Kept small (top 30 by SV).
+    phrase_rows: list[list[Any]] = []
+    if phrase_candidates:
+        core_kws = set(_keyword_rows_by_term(core_rows))
+        for kw, meta in expanded.items():
+            rel = meta.get("relevancy")
+            if rel is None or rel > max_rel:
+                continue
+            words = _word_tokens(kw)
+            if len(words) < 2 or any(w in never_words for w in words):
+                continue
+            # Brand/claim words have their own sections with their own handling;
+            # don't duplicate those phrases here.
+            if any(w in vocab["brand"] or w in vocab["claim"] for w in words):
+                continue
+            if norm(kw) in poe_terms or norm(kw) in core_kws:
+                continue
+            phrase_rows.append([
+                "Review (phrase)", "", meta["keyword"], "Phrase-level candidate",
+                f"Combination relevancy {round(rel, 3)} <= {max_rel} but no single word qualified as a word-level negative — negate the exact phrase if truly off-product.",
+                meta.get("sv") or "", round(rel, 3), "",
+            ])
+        phrase_rows.sort(key=lambda r: -(to_int(r[5]) or 0))
+        phrase_rows = phrase_rows[:30]
+
+    def _freq_sorted(rows_: list[list[Any]]) -> list[list[Any]]:
+        return sorted(rows_, key=lambda r: (-(to_int(r[1]) or 0), str(r[2])))
+
+    rows: list[list[Any]] = [header]
+    sections = [
+        ("SECTION: NEVER EVER — apply as negative phrase", _freq_sorted(never_rows)),
+        ("SECTION: COMPETITOR BRANDS — campaign-dependent (not blanket negatives)", _freq_sorted(brand_rows)),
+        ("SECTION: CLAIM RISK — compliance review, do not auto-use", _freq_sorted(claim_rows)),
+        ("SECTION: REVIEW MANUALLY — near-miss band", _freq_sorted(review_rows)),
+        ("SECTION: PHRASE-LEVEL NEGATIVE CANDIDATES — review", phrase_rows),
+    ]
+    for title, srows in sections:
+        if not srows:
+            continue
+        rows.append([title, "", "", "", "", "", "", ""])
+        rows.extend(srows)
+
     clear_rows(ws)
     write_matrix(ws, rows, snap)
     ws.freeze_panes = "A2"
-    result.update({"rows_written": len(rows), "never_ever_words": max(0, len(rows) - 1), "words_reviewed": reviewed})
+    result.update({
+        "rows_written": len(rows),
+        "never_ever_words": len(never_rows),
+        "brand_words": len(brand_rows),
+        "claim_words": len(claim_rows),
+        "review_words": len(review_rows),
+        "phrase_candidates": len(phrase_rows),
+        "words_reviewed": reviewed,
+    })
     return result
 
 
@@ -1477,23 +1609,34 @@ def run_validations(wb, cfg, counts, related_result, paths, warnings) -> list[di
         f"invalid={counts.get('_invalid_actions')}",
     )
     # Template's '2.2 Never KWs' columns: Negative Marker | Frequency | Negative Phrase.
-    # Every row is a Never-Ever negative by construction; verify the phrase (col C)
-    # is a single word.
+    # Sectioned Never-KWs tab: word rows (Never Ever / brand / claim / review
+    # band) must be single words; multi-word entries are allowed only in the
+    # phrase-candidates section. Every data row must carry Category + Why.
     never_bad = []
     never_sheet = next((s for s in ("2 Never KWs", "2.2 Never KWs") if s in wb.sheetnames), None)
     never_rows = 0
+    never_sections = 0
+    in_phrase_section = False
     if never_sheet:
         ws = wb[never_sheet]
         for row in ws.iter_rows(min_row=2, values_only=True):
+            col_a = norm(row[0] if row else "")
+            if col_a.startswith("section:"):
+                never_sections += 1
+                in_phrase_section = "phrase" in col_a
+                continue
             phrase = norm(row[2] if row and len(row) > 2 else "")
-            if phrase:
-                never_rows += 1
-                if len(phrase.split()) != 1:
-                    never_bad.append(f"multiword:{phrase}")
+            if not phrase:
+                continue
+            never_rows += 1
+            if len(phrase.split()) != 1 and not in_phrase_section:
+                never_bad.append(f"multiword:{phrase}")
+            if len(row) < 5 or not norm(row[3]) or not norm(row[4]):
+                never_bad.append(f"missing-category/why:{phrase}")
     add(
-        "Never Ever tab contains one-word Never Ever rows only",
-        bool(never_sheet) and not never_bad,
-        f"sheet={never_sheet!r} rows={never_rows} bad={never_bad[:12]} total={len(never_bad)}",
+        "Never KWs tab is sectioned; word rows are single words with Category+Why",
+        bool(never_sheet) and (never_sections >= 1 or never_rows == 0) and not never_bad,
+        f"sheet={never_sheet!r} sections={never_sections} rows={never_rows} bad={never_bad[:12]} total={len(never_bad)}",
     )
 
     # Defensive: every tab declared in tabs.rebuild must have actually been rebuilt
@@ -1643,6 +1786,23 @@ def run_validations(wb, cfg, counts, related_result, paths, warnings) -> list[di
                 f"check the title/Item Highlights front-load the head cluster."
             )
 
+        # Compliance tax: SV of addressable keywords gated by claim tokens —
+        # visible copy can't cover them compliantly, so they deflate the
+        # addressable % silently unless reported here. Informational row;
+        # recovery is via the rewrite ladder (health-claims-compliance.md).
+        claim_toks = tri.get("claim_tokens") or []
+        if claim_toks:
+            rj_ex_claims = compute_rj_coverage(master_sv, publishable, excl_tokens + claim_toks)
+            claim_gated = rj["addressable"] - rj_ex_claims["addressable"]
+            pct_gated = round(100.0 * claim_gated / rj["addressable"], 1) if rj["addressable"] else 0.0
+            add(
+                "Compliance tax computed (claim-gated SV reported)",
+                True,
+                f"claim-gated {claim_gated} of addressable {rj['addressable']} SV ({pct_gated}%) | "
+                f"addressable excl. claims: {rj_ex_claims['covered_addressable']}/{rj_ex_claims['addressable']} "
+                f"({rj_ex_claims['covered_addressable_pct']}%)",
+            )
+
         # Blend title guard: a blend title shouldn't LEAD with one ingredient name.
         if pf and norm(pf.get("blend_or_single")) == "blend" and lead:
             led_by_ing = next(
@@ -1662,6 +1822,15 @@ def run_validations(wb, cfg, counts, related_result, paths, warnings) -> list[di
             "Semantic / Alexa AI direction present",
             bool(sem and sem.strip()),
             f"present={sem is not None} non_empty={bool(sem and sem.strip())}",
+        )
+
+    # Regulated-category nudge: the health-claims self-check must have run
+    # before delivery (skills/amazon-seo/references/health-claims-compliance.md).
+    comp = cfg.get("compliance") or {}
+    if norm(comp.get("category_tier")) == "regulated" and not comp.get("checked"):
+        warnings.append(
+            "Regulated category: health-claims self-check not recorded — run "
+            "/health-claims-check for this listing and set compliance.checked=true."
         )
 
     return checks
@@ -1935,6 +2104,20 @@ def main() -> int:
     cfg = json.load(open(args["config"], encoding="utf-8"))
     warnings: list[str] = []
 
+    # Compliance layer: audit-derived prohibited terms (from a health-claims
+    # self-check or an Amazon SAS audit) extend the hand-authored claim_tokens.
+    comp = cfg.get("compliance") or {}
+    audited_prohibited = [
+        e.get("term") for e in (comp.get("claims_audit") or [])
+        if norm(e.get("verdict")) == "prohibited" and norm(e.get("term")) and not e.get("term", "").startswith("<")
+    ]
+    if audited_prohibited:
+        tri = cfg.setdefault("triage", {})
+        existing = {norm(t) for t in tri.get("claim_tokens", [])}
+        tri.setdefault("claim_tokens", []).extend(
+            t for t in audited_prohibited if norm(t) not in existing
+        )
+
     # Input contract: paths may live in config `inputs{}` so they aren't recited
     # on the CLI. Precedence: explicit CLI flag > config inputs > built-in default.
     explicit = {
@@ -1997,9 +2180,13 @@ def main() -> int:
     counts["_master_header"] = master[0] if master else []
 
     # The DataDive roots CSV ships a leading empty column and an unnamed
-    # trailing 0–1 relevance score; transform_roots() renames the columns and
-    # auto-marks important roots from that score (config: root_importance).
-    roots_disp = transform_roots(roots, cfg)
+    # trailing 0–1 relevance score; transform_roots() renames the columns,
+    # marks important/ad roots (config: root_importance — tiered ⭐⭐ ad roots
+    # when ad_min_sv/ad_min_score are set), and buckets each root with the same
+    # vocabulary the Never-Ever ladder uses.
+    poe_terms = load_poe_terms(args["poe_search_terms_csv"])
+    roots_vocab = _triage_vocab(master, poe_terms, args, cfg)
+    roots_disp = transform_roots(roots, cfg, roots_vocab)
 
     exact = cfg["tabs"]["exact_paste"]
     src_for = {
@@ -2046,10 +2233,13 @@ def main() -> int:
     )
     if never_sheet:
         ws = ensure_sheet(wb, never_sheet)
-        poe_terms = load_poe_terms(args["poe_search_terms_csv"])
         build_never_keywords(ws, expanded_mkl, master, poe_terms, args, cfg, never_result, warnings)
         counts[never_sheet] = never_result.get("rows_written", 0)
-        print(f"  rebuilt {never_sheet!r}: {never_result.get('never_ever_words', 0)} one-word negatives")
+        print(
+            f"  rebuilt {never_sheet!r}: {never_result.get('never_ever_words', 0)} one-word negatives, "
+            f"{never_result.get('brand_words', 0)} brand, {never_result.get('claim_words', 0)} claim-risk, "
+            f"{never_result.get('review_words', 0)} review-band, {never_result.get('phrase_candidates', 0)} phrase candidates"
+        )
 
     # --- Related niches (strict filter) ------------------------------------ #
     related_result: dict = {}

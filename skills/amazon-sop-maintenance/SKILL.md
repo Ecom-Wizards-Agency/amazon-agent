@@ -48,7 +48,7 @@ During `/create-sop`, do not edit:
 - `Amazon Seller Help/`
 - `Amazon Ads Help/`
 - `Advertising Help After Login/`
-- `agent.md`, `AGENTS.md`, `README.md`, `docs/`, `skills/`, or other GitHub source files
+- `AGENTS.md`, `README.md`, `docs/`, `skills/`, or other GitHub source files
 
 Only edit source files when the operator explicitly asks for that exact source update.
 

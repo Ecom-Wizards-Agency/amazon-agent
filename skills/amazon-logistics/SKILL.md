@@ -1,6 +1,6 @@
 ---
 name: amazon-logistics
-description: Use for Amazon FBA and inventory operations: Send to Amazon, FBA shipments, shipment reconciliation, AWD, removal orders, returns, inventory health, reserved inventory, seller-fulfilled shipping settings, and logistics troubleshooting.
+description: Use for executing Amazon FBA and inventory operations: Send to Amazon, FBA shipments, shipment reconciliation, AWD, removal orders, returns, inventory health, reserved inventory, seller-fulfilled shipping settings, and logistics troubleshooting. For the Weekly FBA Inventory Overview or reshipment planning use amazon-inventory-planning.
 ---
 
 # Amazon Logistics

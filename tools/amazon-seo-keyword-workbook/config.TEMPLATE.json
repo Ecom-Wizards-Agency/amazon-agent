@@ -74,16 +74,32 @@
     }
   },
 
+  "compliance": {
+    "_comment": "OPTIONAL health-claims compliance layer — see skills/amazon-seo/references/health-claims-compliance.md. category_tier: regulated (supplements/foods-with-claims/health&beauty/medical-adjacent) or standard (household/general). regime: EU or US. risk_posture: standard (kill HIGH only in regulated; keep MEDIUM when it ranks) | conservative | aggressive. Set checked=true after the health-claims self-check ran for this listing. claims_audit: per-term verdicts from a self-check or an Amazon SAS audit; verdict=prohibited terms are merged into triage.claim_tokens at build time.",
+    "category_tier": "regulated",
+    "regime": "EU",
+    "risk_posture": "standard",
+    "checked": false,
+    "claims_audit": [
+      {"term": "<claim word/phrase>", "verdict": "prohibited|authorised|review", "basis": "<register entry / policy reason>", "routing": "drop|backend|ppc|keep"}
+    ]
+  },
+
   "root_importance": {
-    "_comment": "OPTIONAL. '1. Root Keywords' is written as: Important | Root Keyword | Frequency | Broad Search Volume | Root Score (the score is the roots CSV's unnamed trailing 0-1 relevance column). Roots with score >= min_score get the marker in 'Important'. Omit this block entirely for the defaults shown here.",
+    "_comment": "'1. Root Keywords' is written as: Important | Root Keyword | Frequency | Broad Search Volume | Root Score | Category. The Important column is the AD-TARGETING signal: with ad_min_sv/ad_min_score set (tiered mode), roots get the ad_marker when score >= ad_min_score AND Broad SV >= ad_min_sv AND Category is not Brand/Claim/Form/Off-niche — these seed SKW/rank campaigns. Roots with score >= min_score but no SV floor get the plain marker. Category comes from the same triage tokens + core/POE vocabulary as the Never-Ever ladder. Legacy configs with only min_score/marker keep the old binary marking.",
     "min_score": 0.10,
-    "marker": "⭐"
+    "marker": "⭐",
+    "ad_min_score": 0.10,
+    "ad_min_sv": 500,
+    "ad_marker": "⭐⭐"
   },
 
   "never_ever": {
-    "_comment": "Generated from the Expanded MKL 1% file. Only one-word rows classified Never Ever are written. relevant_words protect real product intent from being auto-negated; explicit_never_words force-negate known junk.",
+    "_comment": "Generated from the Expanded MKL 1% file into a SECTIONED audit tab: (1) Never Ever single-word negatives (apply as negative phrase) with Category + Why + SV/relevancy evidence + example phrases; (2) competitor brands (campaign-dependent: negative in rank/SKW, target in PAT/conquest — never blanket negatives); (3) claim-risk words (compliance review); (4) review-manually near-miss band (relevancy between the auto cut and review_band_max_relevancy); (5) phrase-level negative candidates (combination-irrelevant phrases whose words are individually clean, top 30 by SV; disable with phrase_candidates=false). relevant_words protect real product intent from being auto-negated; explicit_never_words force-negate known junk.",
     "min_frequency": 2,
     "max_relevancy_for_auto_negative": 0.3,
+    "review_band_max_relevancy": 0.5,
+    "phrase_candidates": true,
     "stop_words": ["<marketplace-language stop words>"],
     "relevant_words": ["<core product words to NEVER mark negative>"],
     "misspell_or_variant_words": ["<relevant misspellings/variants to keep>"],

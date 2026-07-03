@@ -1,6 +1,6 @@
 ---
 name: amazon-catalog
-description: Use for Amazon catalog management: variations, parentage, flat files, listing edits, A+ content, images, browse nodes, brand attributes, feed processing errors, suppressed/inactive listings, delete-relist workflows, Vendor Central catalog feeds, and Brand Registry catalog conflicts.
+description: Use for Amazon catalog management: variations, parentage, flat files, listing edits, A+ content, images, browse nodes, brand attributes, feed processing, delete-relist workflows, Vendor Central catalog feeds, and Brand Registry catalog conflicts. Diagnosing an unknown error or suppression → amazon-troubleshooting; FlatFilePro compliance CSVs → amazon-flatfilepro-compliance; listing copy/SEO → amazon-seo.
 ---
 
 # Amazon Catalog

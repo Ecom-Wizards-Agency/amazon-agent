@@ -1,6 +1,6 @@
 ---
 name: amazon-ads
-description: Use for Amazon Ads: Sponsored Products, Sponsored Brands, Sponsored Display, DSP, Campaign Manager, Creator Connections, bidding, budgets, placements, targeting, campaign troubleshooting, Ads reports, billing warnings, and bulk sheets.
+description: Use for day-to-day Amazon Ads Console work: bidding, budgets, placements, targeting, campaign settings and troubleshooting, billing warnings, and SB/SD/DSP questions. Not for: creating SP campaigns from a brief (amazon-campaign-builder), ad/sales audits (amazon-ad-audit for bulk files, amazon-adlabs-audit for AdLabs managed accounts), Creator Connections (amazon-creator-connections), or report pulls (amazon-reporting).
 ---
 
 # Amazon Ads

@@ -223,7 +223,7 @@ Severity maps to default routing: Critical findings are escalation candidates; H
 
 ## Source Docs/SOPs Used
 
-- `skills/amazon-operator-routing/SKILL.md`
+- `AGENTS.md` (routing, formerly `skills/amazon-operator-routing`)
 - `skills/amazon-troubleshooting/SKILL.md`
 - `MAG SOPs/catalog/catalog-sop-amazon-policy-violations-check.md`
 - `MAG SOPs/general/supplemental-article-amazon-seller-central-home-page-basic-navigation.md`

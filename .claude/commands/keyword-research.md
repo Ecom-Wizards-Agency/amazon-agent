@@ -16,9 +16,10 @@ The user's target is: **$ARGUMENTS**
    **Required (only the user can give these):**
    - **Brand / client**
    - **Marketplace** (e.g. amazon.it / Italy)
-   - **Product** (full product name)
    - **DataDive niche** (URL or ID)
    - **Anchor ASIN** — must be a DataDive-tracked column in the niche, or available via the `datadive` MCP (`get_niche_keywords`) so its rank column can be injected
+
+   **Do NOT ask for the Product — derive it, then confirm.** Once the niche + anchor ASIN are known the product is derivable, so it is not a question. After the required fields are in, resolve the product from the DataDive niche label (`list_niches` → `nicheLabel` / `heroKeyword`) plus the anchor ASIN's PDP (via the listing capture), then **show the derived product name back to the user for a one-line yes/no** before scaffolding. Keep the safety check: a terse niche label ("manuka cream") is not a full product name, and one niche can contain several of the client's own ASINs (or multiple forms / size-variants under the given anchors) — so confirm form and variant grouping rather than assuming. If the derivation is ambiguous, ask a single targeted follow-up.
 
    **Optional (sensible defaults if unspecified — state the default you used):**
    - Seller Central account (default: same as the client's other runs)
@@ -42,4 +43,4 @@ The user's target is: **$ARGUMENTS**
 
 6. **Deliver + handoff.** Review the `.xlsx`, then copy **only the final Excel** to the client's Google Drive run-folder `<your-gdrive-mount>/Geteilte Ablagen/Ecom Wizards/01_Client Sheets/<Client>/<Run Folder>/` and verify a byte-identical MD5. **Google Drive only — do NOT copy to pCloud** (the file becomes a Google Sheet there anyway). POE/DataDive raw files + the manifest stay out (embedded in the sheet / kept local). Surface the auto-generated manifest, Obsidian handoff note, and copy-ready Claude/Codex prompt.
 
-Follow the connected-browser checkpoint, evidence, and stop-before-risk rules from `agent.md` throughout.
+Follow the connected-browser checkpoint, evidence, and stop-before-risk rules from `AGENTS.md` throughout.

@@ -1,6 +1,6 @@
 ---
 name: amazon-seo
-description: Use for Amazon SEO and listing optimization work: keyword research workbooks, Never Ever classification, Master Keyword Lists, Ranking Juice, title/bullets/description/backend search terms, Rufus/Alexa AI semantic optimization, SEO audits, compliance checks, and listing copy intended for Seller Central or flat files. Also use when updating/re-optimizing an EXISTING listing's title, bullets, Item Highlights, or backend, or making a listing compliant.
+description: Use for Amazon SEO strategy and listing copywriting: writing or re-optimizing titles, bullets, Item Highlights, description, and backend search terms; Rufus/Alexa AI semantic optimization; SEO audits; health-claims compliance ("make the listing compliant"); Never Ever classification decisions. For the DataDive-export-to-XLSX keyword-workbook build pipeline use amazon-seo-keyword-workflow — this skill writes the SEO content that feeds it.
 ---
 
 # Amazon SEO
@@ -24,6 +24,7 @@ Naming note: the operator noted that Amazon's Rufus AI naming is moving/has move
    In-repo condensations (use these when the vault is unavailable — they make the skill self-contained):
    - `skills/amazon-seo/references/seo-writing-methodology.md` — keyword classification, Ranking-Juice placement priority, title/bullet/description/backend rules, Rufus/Alexa semantic layer, audit pass.
    - `skills/amazon-seo/references/eu-compliance-matrix.md` — EU health-claim rules (Reg. 1924/2006 + 432/2012 + 1925/2006), authorized-vs-prohibited by category, with worked collagen/fibre cases. Consult before writing copy or filling `triage.claim_tokens`.
+   - `skills/amazon-seo/references/health-claims-compliance.md` — the compliance process layer (modeled on Amazon's SAS Health Claims Check audits): category risk tiers (regulated vs standard), EU + US regimes, the SAS-style per-claim self-check (`/health-claims-check`), and the RJ-preserving rewrite ladder (strip-effect → authorised-wording swap → ADD authorised claims → backend/PPC routing → drop last). Mandatory self-check before delivery for regulated-tier products; client-facing report only on explicit operator request.
 
    Reusable workflow: for full keyword-research workbooks built from DataDive + POE exports, use `skills/amazon-seo-keyword-workflow/SKILL.md` and the repo builder `tools/amazon-seo-keyword-workbook/`. The builder uses DataDive Core MKL at 30%, Expanded MKL at 1%, POE evidence, Never Ever frequency analysis, outlier triage, SEO text, and a DataDive Ranking Juice snapshot.
 
@@ -51,7 +52,7 @@ Naming note: the operator noted that Amazon's Rufus AI naming is moving/has move
 2. Load only the relevant knowledge-base skill reference, not every SEO reference.
 3. Search Amazon first-party docs for current constraints before finalizing copy or recommendations.
 4. Use MAG SEO SOPs when the user needs the step-by-step agency workflow or Seller Central movement.
-5. For regulated categories, explicitly check restricted claims against `references/eu-compliance-matrix.md` and avoid medical, disease, cure, guaranteed-result, weight-loss, or unsupported compliance-sensitive language.
+5. For regulated categories (supplements, foods with claims, health & beauty, medical-adjacent), apply `references/health-claims-compliance.md`: check restricted claims against `references/eu-compliance-matrix.md` (EU) or the US regime section, run the SAS-style self-check before delivery, and fix findings via the RJ-preserving rewrite ladder — never bare deletion — so Ranking Juice and semantic coverage survive the compliance pass. Standard-tier categories (household/general) get the claims-lite pass and may keep more aggressive wording.
 6. Stop before saving or publishing listing changes, uploading flat files, or editing live catalog content.
 
 ## Listing Field Terminology

@@ -1,10 +1,6 @@
 # Browser Checkpoints
 
-Use the teammate's connected Codex browser for logged-in Amazon workflows after local library search. Common choices are Chrome or Brave.
-
-If `local-browser-preference.md` exists in the project root, read it before browser work and use that preferred connected browser when available. If no local preference exists, use the connected browser/session available in the current chat.
-
-Before acting in Amazon, verify the connected browser/session is logged in and confirm the selected account/advertiser, marketplace/country, visible page title/tool, and date range or filters when relevant. If the preferred browser is unavailable or not logged in, pause and ask which connected browser/session to use.
+Which browser to use per agent, the login rule, and the session-verification rule live in the Browser Standard section of `AGENTS.md`. This file is the detailed per-screen procedure for logged-in Amazon workflows after local library search.
 
 ## Before Navigating
 

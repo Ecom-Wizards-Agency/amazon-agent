@@ -12,7 +12,7 @@ import re
 from pathlib import Path
 
 
-WORKSPACE_ROOT = Path(__file__).resolve().parents[3]
+WORKSPACE_ROOT = Path(__file__).resolve().parents[1]
 
 ROOTS = [
     ("MAG SOPs", WORKSPACE_ROOT / "MAG SOPs"),

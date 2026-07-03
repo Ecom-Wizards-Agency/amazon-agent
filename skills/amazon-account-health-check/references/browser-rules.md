@@ -1,0 +1,11 @@
+# Browser Rules
+
+- Use `{preferred_browser}` for all live runs. Two browsers are approved for this workflow: the built-in in-app browser, and a Chromium browser connected through the browser extension (such as Chrome or Brave; typically requires the operator's US VPN). Whichever the operator saved as preferred is the default for every browser step; the other approved browser is the fallback.
+- Step 1 of every live run is opening `{preferred_browser}` and confirming Seller Central is logged in before any account checks begin.
+- If Seller Central is not logged in or shows login or verification in the preferred browser, try the fallback browser before declaring the run blocked, and note the fallback in the finish report. If both are blocked, run the degraded-run procedure (see dispositions-and-ledger.md) and escalate the login blocker.
+- Parallel tabs are allowed only across regions (for example one US Seller Central tab plus one Europe tab), because regions are separate Seller Central sessions. Never open two tabs within the same regional Seller Central domain - they share one session and account selector, and switching account in one tab silently switches the other.
+- One regional login covers every marketplace in that region. Stay on whichever Seller Central domain the active session uses (operators may be logged in via the DE, UK, IT, or another regional domain) and switch country/account only through the in-app marketplace/account switcher. Never reach another country in the same region by changing the Seller Central URL/domain - a domain change drops the session and forces a new login. The same applies to deep links such as the case log: open paths like `/cu/case-lobby` on the active session's domain.
+- Verify account, marketplace, page title/tool, and date/filter context before recording.
+- Repeat verification after account/marketplace switches, tool switches, or session timeouts.
+- Never click `Submit appeal` during an account-health check unless the operator is present and has explicitly approved that exact action.
+- Stop before appeals, acknowledgements, support contact, support replies, listing edits, shipment actions, messages, uploads, or account-changing actions.

@@ -5,7 +5,7 @@ Central browser** to produce the Product Opportunity Explorer (POE) inputs that
 the keyword-workbook builder consumes. POE is behind Seller-Central auth — there
 is **no MCP** for it, so this step is always browser-driven.
 
-> Safety (per `agent.md`): never inspect cookies, local storage, session
+> Safety (per `AGENTS.md`): never inspect cookies, local storage, session
 > storage, tokens, or credentials during extraction. Verify the selected
 > **account, marketplace, and niche/page title** before exporting.
 

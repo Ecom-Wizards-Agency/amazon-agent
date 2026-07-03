@@ -1,6 +1,6 @@
 ---
 name: amazon-inventory-planning
-description: Use for Amazon FBA inventory planning and reshipment planning, especially the Weekly FBA Inventory Overview workflow: downloading Seller Central inventory/business/restock reports, applying the local FBA reshipment planner calculations, creating CSV/XLSX inventory overview outputs, organizing pCloud raw reports, and preparing Slack staging summaries.
+description: Use for Amazon FBA inventory and reshipment PLANNING, especially the Weekly FBA Inventory Overview workflow: downloading fresh Seller Central inventory/business/restock reports, applying the local FBA reshipment planner calculations, creating CSV/XLSX overview outputs, organizing pCloud raw reports, and preparing Slack staging summaries. For executing shipments, removals, or AWD use amazon-logistics.
 ---
 
 # Amazon Inventory Planning

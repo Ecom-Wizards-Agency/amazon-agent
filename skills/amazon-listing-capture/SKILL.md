@@ -12,7 +12,7 @@ listing-reference JSON that `tools/amazon-seo-keyword-workbook/build_keyword_wor
 This replaces a legacy ZeroWork workflow. The old capture artifacts are intentionally
 not shipped because they can contain account-specific tables, screenshots, and example
 ASINs. It is **Codex's job** via the connected/internal browser — Amazon blocks headless
-scraping and `agent.md` mandates the connected browser. Never inspect cookies, storage,
+scraping and `AGENTS.md` mandates the connected browser. Never inspect cookies, storage,
 tokens, or credentials.
 
 ## Inputs

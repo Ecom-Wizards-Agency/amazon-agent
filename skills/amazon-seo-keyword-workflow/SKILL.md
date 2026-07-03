@@ -1,6 +1,6 @@
 ---
 name: amazon-seo-keyword-workflow
-description: Use for end-to-end Amazon SEO keyword workbook workflows from DataDive 30%/1% exports, POE/OEI evidence, Never Ever KW frequency analysis, outlier triage, semantic/Alexa SEO, health-claim QA, styled XLSX generation, Drive delivery, and Obsidian/Claude handoff.
+description: Use for the end-to-end keyword-research workbook BUILD pipeline: DataDive 30%/1% exports plus POE/OEI evidence in; Never Ever frequency analysis, outlier triage, and validation; styled XLSX workbook out, with Google Drive delivery and the Codex-Claude handoff. For SEO writing, listing re-optimization, or compliance checks use amazon-seo.
 ---
 
 # Amazon SEO Keyword Workflow
@@ -78,9 +78,9 @@ Keyword-research workbooks are delivered to Google Drive only. Do not copy the f
 - Tab names/order must match the canonical `template_keyword_workbook.xlsx` (= the "(Template) Brand-Country-Product Name Keyword Research" Google Sheet). Point `--template` at that clean template, NOT a previous product workbook — mismatched scheme-2 tab names were the root cause of silently-skipped/stale tabs.
 - Use `3.1 MKL DataDive 30%` for the Core `30%` MKL.
 - Use `2.1 MKL DataDive 1%` for the Expanded `1%` MKL.
-- Use the Expanded `1%` MKL to generate `2.2 Never KWs`.
+- Use the Expanded `1%` MKL to generate `2.2 Never KWs` — a sectioned audit tab: Never-Ever single-word negatives (negative-phrase on the root word), competitor brands (campaign-dependent), claim-risk words, a review-manually near-miss band, and phrase-level negative candidates. Every row carries Category, Why, max SV, max relevancy, and example phrases so a human can justify each negative.
 - Keep misspellings/grammar variants out of Never Ever when they still represent relevant product intent.
-- Keep competitor/brand terms as PPC/context unless the operator explicitly approves another use.
+- Keep competitor/brand terms as PPC/context unless the operator explicitly approves another use — in the Never-KWs tab they live in their own section: negative in rank/SKW campaigns, TARGET in PAT/conquest, never blanket negatives.
 - Treat disease, cure, laxative, diagnosis, weight-loss, and unsupported health terms as compliance-risk by default.
 - Carry `5. Campaign Structure` forward as the empty PPC scaffold from the canonical template (Rank/Shield SKW waves, Long-Tails, Discovery, PAT Stronger/Weaker, Sum formulas, intent legend) so keywords can be filled in there. Do NOT add it to `generated_blank` — that wipes the scaffold. Only populate the campaigns when PPC is explicitly requested.
 
@@ -100,8 +100,8 @@ Use `--preflight` first. If a DataDive `1%` export or metadata is missing, stop 
 - Core and Expanded source paths are distinct.
 - The Core MKL has the exact anchor ASIN as a real column (verify this BEFORE any fallback/injection). Same-brand sibling ASINs are listed in `asin_roles.siblings` so they are labelled `Sibling` (not `Competitor`) and excluded from opportunity triage; the anchor is never duplicated in the ASINs tab.
 - DataDive export metadata is complete and not placeholder text.
-- Never Ever tab contains one-word rows classified as `Never Ever`.
-- Every Never Ever row includes frequency, relevancy, example keywords, and source.
+- Never KWs tab is sectioned (Never Ever / brands / claim risk / review band / phrase candidates); word rows are single words; every data row has Category + Why populated (validated).
+- Every Never Ever row includes frequency, max SV, max relevancy, and example phrases as written columns.
 - POE raw tabs match current files.
 - POE Reviews/Returns/Semantic tabs are current product/market data.
 - Stale terms from another product, language, or marketplace are absent.
@@ -112,8 +112,10 @@ Use `--preflight` first. If a DataDive `1%` export or metadata is missing, stop 
 - The ≤75 title **leads with a tracked MKL keyword, not a root** — the title covers at least one Master-List keyword and its lead (non-brand) token exists in the MKL vocabulary. See [[seo-title-ranking-juice-rules]].
 - **Ranking-Juice coverage is computed and reported** (covered SV / total + addressable %) in the validation/manifest output — covered SV must be > 0; a warning fires below 60% addressable. No new workbook tab; the human-facing RJ stays in the SEO-content `rj`/compliance columns.
 - **Semantic / Alexa AI direction row present and non-empty** — keeps the semantic layer alive alongside Ranking Juice (the dual objective).
+- **Compliance tax reported** when `triage.claim_tokens` exist — claim-gated SV vs addressable SV is a validation row, so the RJ cost of compliance is visible instead of silently deflating the addressable %; recover it via the rewrite ladder in `skills/amazon-seo/references/health-claims-compliance.md`.
+- **Regulated-category check reminder**: with `compliance.category_tier: "regulated"` and `compliance.checked` false, the builder warns to run `/health-claims-check` before delivery; `compliance.claims_audit` verdict=`prohibited` terms auto-merge into `triage.claim_tokens`.
 - Blend guard: if `product_facts.blend_or_single == "blend"`, the title must not lead with a single ingredient name (warning).
-- `1. Root Keywords` columns are `Important | Root Keyword | Frequency | Broad Search Volume | Root Score`; `Important` is auto-marked from the roots CSV's trailing 0–1 score at `root_importance.min_score` (default 0.10, marker ⭐).
+- `1. Root Keywords` columns are `Important | Root Keyword | Frequency | Broad Search Volume | Root Score | Category`. The Important column is the AD-TARGETING signal (operator priority): in tiered mode (`root_importance.ad_min_sv`/`ad_min_score` set) roots get ⭐⭐ when score ≥ ad_min_score AND Broad SV ≥ ad_min_sv AND Category is not Brand/Claim/Form/Off-niche — these seed the SKW/rank campaigns; ⭐ marks relevant-but-below-SV-floor roots. Category uses the same triage tokens + core/POE vocabulary as the Never-Ever ladder. Legacy configs (only `min_score`) keep the old binary ⭐.
 - Final workbook style is preserved.
 - Manifest and Obsidian handoff note are generated.
 
