@@ -63,6 +63,7 @@ Step 0 - Re-check open findings first:
 Browser rules:
 - Use the operator's locally saved preferred browser for all runs: the built-in in-app browser, or a Chromium browser connected through the browser extension. Use the other approved browser as fallback before declaring the run blocked.
 - Parallel tabs only across regions (separate Seller Central sessions); never two tabs within the same regional Seller Central domain.
+- One regional login covers every marketplace in that region: stay on the active session's Seller Central domain and switch country/account only via the in-app marketplace switcher; never by changing the URL/domain (that forces a re-login). Open deep links such as /cu/case-lobby on the active session's domain.
 
 Daily update destination:
 - Post all daily account-health output only to {daily_update_channel}.
