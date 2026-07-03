@@ -11,9 +11,11 @@ Create a fast daily routine for checking each Amazon account, using `#sellersona
 
 ## Preconditions
 
-- The operator has access to the built-in Codex in-app browser and the relevant Seller Central sessions.
-- Step 1 of every live run is opening the built-in Codex browser and confirming Seller Central is logged in before any account checks begin.
-- If a Seller Central page shows a login screen, the operator stops and asks the operator to log in in the built-in browser. The operator must not handle passwords, one-time codes, authenticator prompts, cookies, local storage, session stores, or other credentials.
+- The operator has a locally saved preferred browser for live runs: either the built-in Codex in-app browser or a Chromium browser connected through the Chrome extension (Chrome, Brave; the extension typically requires the US VPN). The preferred browser is used for every browser step; the other approved browser is the fallback.
+- Step 1 of every live run is opening the preferred browser and confirming Seller Central is logged in before any account checks begin. If the preferred browser is logged out, try the fallback browser before declaring the run blocked.
+- Parallel tabs are allowed only across regions (for example one US Seller Central tab plus one Europe tab); never two tabs within the same regional Seller Central domain, because they share one session and account selector.
+- If a Seller Central page shows a login screen in both approved browsers, the run is blocked: the assistant stops and asks the operator to log in. The assistant must not handle passwords, one-time codes, authenticator prompts, cookies, local storage, session stores, or other credentials.
+- The local findings ledger (`findings.json` next to the automation) is readable; it carries open findings, their dispositions, and links to their follow-up tasks between runs. It is private automation memory, never committed to GitHub; the task system remains the human source of truth.
 - The account list for the day is known from the current task, Notion ops profiles, or `_local/client-profiles/profiles.json`.
 - The operator can read the Slack channel `#sellersonar`.
 - The operator knows where to record the daily result. Default is a concise operator note in the current chat unless the operator names a Slack, Notion, or other destination.
@@ -38,6 +40,13 @@ Run accounts by region in this order:
 2. US accounts second.
 3. Any remaining non-Europe, non-US marketplaces last unless the operator gives a different priority.
 
+### 0. Re-Check Open Findings First
+
+1. Load the findings ledger and the open follow-up tasks it links for in-scope accounts.
+2. The run starts by answering: "What was still open yesterday, and what is its status today?" - not by looking for new issues.
+3. During each account's check, verify every open finding's current state in Seller Central, then re-dispose it in step 9: still open and owned (Assigned, with age and an OVERDUE flag when past due), pending an external party (Waiting, with who and since when), or verified resolved (record the resolved date, comment on the task, and report it for the owner to close - never close it yourself).
+4. If an account cannot be checked today, carry its ledger entries forward unchanged; never infer resolved from a missed check.
+
 ### 1. Start With SellerSonar In Slack
 
 1. Read the latest daily report in `#sellersonar`.
@@ -53,6 +62,7 @@ Run accounts by region in this order:
 5. Open SellerSonar dashboard only when Slack is incomplete, grouped, truncated, or needs filtering by account/brand.
 6. Download or use the linked `Notifications.csv` only when the Slack report contains meaningful alerts, grouped `+N notifications`, or missing detail needed for triage.
 7. Record the alert count and alert types in the operator note. Do not treat SellerSonar as final proof of account health.
+8. Freshness guard: if the latest daily report is older than the previous business day, never record `0 alerts` - record `alert source stale ({report date})` and treat SellerSonar-dependent checks as not performed.
 
 ### 2. Verify Seller Central Context
 
@@ -157,16 +167,28 @@ Use this concise format:
 Daily account health check - {Account / Marketplace}
 Date checked: {YYYY-MM-DD}
 Seller Central context: {account label}, {marketplace}, {page/tool verified}
-SellerSonar: {0 alerts / alert count + types}
+SellerSonar: {0 alerts / alert count + types / alert source stale ({date})}
 Account Health: {status}, AHR {score if visible}
 Policy/Compliance issues: {none / summary with ASIN/SKU/status/deadline}
 Performance notifications: {none / summary}
 Order/shipping metrics: {healthy / issue summary}
 Listing health: {healthy / issue summary}
 Evidence captured: {none / evidence path}
-Recommended next action: {none / owner + urgency + next step}
+Findings: {per finding: Disposition | Owner | Task link | Deadline}
 Stop points remaining: {appeal/support/send/change action needing approval}
 ```
+
+### 9. Dispose Every Finding
+
+Before the run ends, every finding - new or carried over from the ledger - must get exactly one disposition. Dispositions are the workflow's internal routing layer that decides what happens in the task system; they never replace task statuses.
+
+1. **No action needed** - clean, informational, or verified resolved. No task.
+2. **Action needed** - new actionable issue with no owner yet. Create a follow-up task in the same run (default assignee: the daily runner), then report the finding as Assigned.
+3. **Assigned** - an open task already exists. Report owner, age in days, and OVERDUE when past due; comment on the task when the state changed; raise priority or pull the due date earlier when it worsened.
+4. **Waiting** - action taken, pending an external party (Amazon case reply, client documents, reinstatement review). Update the task with who it waits on and since when; set the closest waiting/blocked status the task system offers; the daily runner keeps ownership and chases it.
+5. **Escalate** - meets an escalation trigger: deactivation/suspension or explicit warning, a stop-before-risk decision, identity/bank/tax/verification requests, legal/IP/counterfeit claims, an unhandled hard deadline within 48 hours, or a login blocker after both approved browsers were tried. Task assigned to the escalation owner at the highest priority, mentioned only on escalation lines.
+
+Update the findings ledger once at the end of the run with every finding's key, disposition, owner, task link, dates, and deadline.
 
 ## Severity Rules
 
@@ -174,6 +196,8 @@ Stop points remaining: {appeal/support/send/change action needing approval}
 - High: search suppression, Buy Box suppression on key ASINs, new unauthorized seller, major Valid Tracking Rate, late shipment, or cancellation issue.
 - Medium: rating drop, category change, pricing-health issue, inactive listing, stranded inventory, or repeated warning without immediate deadline.
 - Low: positive rating movement, informational SellerSonar changes, resolved alerts, or minor dashboard recommendations.
+
+Severity maps to default routing: Critical findings are escalation candidates; High and Medium route to the daily runner; Low is No action needed unless recurring.
 
 ## Stop-Before-Risk Points
 
@@ -207,7 +231,7 @@ Stop points remaining: {appeal/support/send/change action needing approval}
 ## Open Questions Or Assumptions
 
 - Seller Central in the internal browser is the source of truth for account health.
-- The built-in Codex browser is mandatory for this workflow unless the operator explicitly approves another browser for a specific run.
+- The operator's locally saved preferred browser (built-in Codex browser, or Chrome/Brave via the Chrome extension with US VPN) is used for all runs; the other approved browser is the fallback.
 - `#sellersonar` is the fastest first pass for alert discovery.
 - SellerSonar dashboard is a drill-down tool and is not mandatory for every clean account.
 - `#sellersonar-now` is intentionally out of scope.

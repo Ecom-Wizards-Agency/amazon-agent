@@ -1,3 +1,3 @@
 display_name: Amazon Account Health Check
-short_description: Run daily Seller Central account health checks with configurable alerts, posts, and follow-ups.
-default_prompt: Run the daily Amazon account health check for the configured accounts, post the parent thread and account comments to the configured destination when requested, and create follow-up tasks only when a task tracker is configured.
+short_description: Run daily Seller Central account health checks as an action queue with dispositions, a local findings ledger, and owner-routed follow-ups.
+default_prompt: Run the daily Amazon account health check for the configured accounts as an action-queue workflow. Re-check open findings from the local ledger first, dispose every finding (no action / action needed / assigned / waiting / escalate), post the action-queue parent thread and account comments to the configured destination when requested, and create or update follow-up tasks only when a task tracker is configured.
