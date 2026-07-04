@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Ecom Wizards branded audit renderer: narrative markdown + metrics -> A4 .docx + .pdf.
+"""Branded audit renderer: narrative markdown + metrics -> A4 .docx + .pdf.
 
-Client-agnostic. Consumes the operator-written `*_Sales_Audit_SCAFFOLD.md` (the narrative), the run's
-`metrics.json` (for the KPI cards), the config (client / market / window / prepared_by / first_time), and
-the local brand assets in `brand/` (see brand/README.md). Produces a light, readable body in **Inter** with
-the EW palette, a dark **cover page** (first-time audits only), KPI stat-cards, restyled tables, footer with
-page number, and smart page-break hygiene. Degrades gracefully to plain md_to_docx when assets are missing.
+Client- and agency-agnostic. Consumes the operator-written `*_Sales_Audit_SCAFFOLD.md` (the narrative),
+the run's `metrics.json` (for the KPI cards), the config (client / market / window / prepared_by /
+first_time), the agency identity from `_local/branding/branding.json` (see BRANDING.md; falls back to a
+Claude/Codex example style), and the local brand assets in `brand/`. Produces a light, readable body,
+a dark **cover page** (first-time audits only), KPI stat-cards, restyled tables, footer with page number,
+and smart page-break hygiene. Degrades gracefully to plain md_to_docx when assets are missing.
 
 Markdown conventions (superset of md_to_docx.py — which has no image support):
   ## H2                      -> orange rule + section head
@@ -24,15 +25,32 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 
-# EW palette
-INK_H = "11151C"; CLOUD_H = "F5F6F8"; ORANGE_H = "FD4807"; MISTLINE_H = "E4E7EC"; STEEL_H = "5B6573"
+import branding as _branding
+
+# palette/fonts — populated from the branding file (agency identity) via _apply_branding()
+INK_H = CLOUD_H = ORANGE_H = MISTLINE_H = STEEL_H = MIST_H = ""
+FONT_NAME = FONT_FILE = MARK_FILE = ""
+_B: dict = {}
 _CHROMES = ["/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
             "/Applications/Chromium.app/Contents/MacOS/Chromium",
             "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge"]
 
 
+def _apply_branding(b):
+    global _B, INK_H, CLOUD_H, ORANGE_H, MISTLINE_H, STEEL_H, MIST_H, FONT_NAME, FONT_FILE, MARK_FILE
+    _B = b
+    p = b["palette_doc"]
+    INK_H, CLOUD_H, ORANGE_H = p["ink"], p["cloud"], p["accent"]
+    MISTLINE_H, STEEL_H, MIST_H = p["mistline"], p["steel"], p["mist"]
+    FONT_NAME, FONT_FILE = b["fonts"]["doc_font_name"], b["fonts"]["doc_font_file"]
+    MARK_FILE = b["assets"]["mark"]
+
+
+_apply_branding(_branding.load_branding({}))
+
+
 def _chrome():
-    for p in [os.environ.get("EW_CHROME", "")] + _CHROMES:
+    for p in [os.environ.get("EW_CHROME", ""), os.environ.get("BRAND_CHROME", "")] + _CHROMES:
         if p and Path(p).exists(): return p
     return None
 
@@ -60,6 +78,8 @@ def _kpi_after(blocks):
 
 
 def _kpis(M):
+    if M.get("custom_kpis"):  # non-audit docs: [[number, label, sub-or-null], ...] in metrics.json
+        return [(str(n), l, s) for n, l, s in M["custom_kpis"]]
     T = M["totals"]; cur = M.get("currency", "USD"); be = M.get("breakeven", 0.5)
     return [(_money(T["spend"], cur), "Ad spend / month", None),
             (_money(T["sales"], cur), "Ad sales", None),
@@ -130,12 +150,15 @@ def _cover_kwargs(cfg, M, blocks, brand_dir):
     if cur: lines.append(cur)
     inside = [(f"{i+1:02d}", t) for i, (k, t) in enumerate([b for b in blocks if b[0] == "h2"])
               if t.lower() != "sources used"][:4]
-    by = _bcfg(cfg, "prepared_by", "Victor Uhl, Founder")
+    by = _bcfg(cfg, "prepared_by", _B.get("prepared_by_default") or "the operator")
+    label = _bcfg(cfg, "doc_label", "Amazon Advertising & Sales Audit")
     return dict(brand_dir=str(brand_dir), title=client,
-                eyebrow="AMAZON ADVERTISING & SALES AUDIT", dateline=f"{mname} · {win}".upper(),
-                sub_lines=lines or [sub], prepared_for=client, prepared_by=f"By Ecom Wizards · {by}",
-                inside=inside, footer_left="Confidential · www.ecomwizards.agency",
-                footer_right="Amazon Advertising & Sales Audit")
+                eyebrow=label.upper(), dateline=f"{mname} · {win}".upper(),
+                sub_lines=lines or [sub], prepared_for=client,
+                prepared_by=_branding.prepared_by_line(_B, by),
+                inside=inside, footer_left=_branding.cover_footer_left(_B),
+                footer_right=label, palette=_B["palette_doc"], font_file=FONT_FILE,
+                logo_file=_B["assets"]["logo_white"])
 
 
 # ------------------------------ DOCX ------------------------------
@@ -146,17 +169,18 @@ def _render_docx(blocks, M, cfg, brand_dir, cover_png, out):
     from docx.enum.section import WD_SECTION
     from docx.oxml import OxmlElement
     from docx.oxml.ns import qn
-    INK = RGBColor(0x11, 0x15, 0x1C); STEEL = RGBColor(0x5B, 0x65, 0x73)
-    MIST = RGBColor(0x9A, 0xA5, 0xB4); ORANGE = RGBColor(0xFD, 0x48, 0x07); WHITE = RGBColor(0xFF, 0xFF, 0xFF)
+    def _rgb(h): return RGBColor(int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16))
+    INK = _rgb(INK_H); STEEL = _rgb(STEEL_H)
+    MIST = _rgb(MIST_H); ORANGE = _rgb(ORANGE_H); WHITE = RGBColor(0xFF, 0xFF, 0xFF)
     A4_W = Inches(8.27); A4_H = Inches(11.69)
     doc = Document()
-    nm = doc.styles['Normal']; nm.font.name = 'Inter'; nm.font.size = Pt(10.5); nm.font.color.rgb = INK
+    nm = doc.styles['Normal']; nm.font.name = FONT_NAME; nm.font.size = Pt(10.5); nm.font.color.rgb = INK
     pf = nm.paragraph_format; pf.line_spacing = 1.4; pf.space_after = Pt(7); pf.widow_control = True
 
     def font(r):
-        r.font.name = 'Inter'; rpr = r._element.get_or_add_rPr(); rf = rpr.find(qn('w:rFonts'))
+        r.font.name = FONT_NAME; rpr = r._element.get_or_add_rPr(); rf = rpr.find(qn('w:rFonts'))
         if rf is None: rf = OxmlElement('w:rFonts'); rpr.append(rf)
-        for a in ('w:ascii', 'w:hAnsi', 'w:cs'): rf.set(qn(a), 'Inter')
+        for a in ('w:ascii', 'w:hAnsi', 'w:cs'): rf.set(qn(a), FONT_NAME)
 
     def runs(p, text, size=10.5, color=INK, bold=False, italic=False, caps=False, tracking=None):
         for i, part in enumerate(re.split(r'\*\*(.+?)\*\*', text)):
@@ -275,16 +299,16 @@ def _render_docx(blocks, M, cfg, brand_dir, cover_png, out):
     body.left_margin = Inches(0.85); body.right_margin = Inches(0.85)
 
     # footer: mark + label + page number
-    mark = Path(brand_dir) / "mark_black.png"
+    mark = Path(brand_dir) / MARK_FILE
     body.footer.is_linked_to_previous = False
     fp = body.footer.paragraphs[0]; fp.text = ''
     if mark.exists(): fp.add_run().add_picture(str(mark), height=Inches(0.16))
-    r2 = fp.add_run(f"   {cfg.get('client','')} · Amazon Advertising & Sales Audit"); font(r2)
+    r2 = fp.add_run(f"   {cfg.get('client','')} · {_bcfg(cfg, 'doc_label', 'Amazon Advertising & Sales Audit')}"); font(r2)
     r2.font.size = Pt(8); r2.font.color.rgb = STEEL
     fp.add_run("\t"); fp.paragraph_format.tab_stops.add_tab_stop(Inches(6.55), WD_TAB_ALIGNMENT.RIGHT)
     pgt = fp.add_run("p. "); font(pgt); pgt.font.size = Pt(8); pgt.font.color.rgb = STEEL
     fld = OxmlElement('w:fldSimple'); fld.set(qn('w:instr'), 'PAGE'); r = OxmlElement('w:r')
-    rpr = OxmlElement('w:rPr'); rf = OxmlElement('w:rFonts'); rf.set(qn('w:ascii'), 'Inter'); rf.set(qn('w:hAnsi'), 'Inter'); rpr.append(rf)
+    rpr = OxmlElement('w:rPr'); rf = OxmlElement('w:rFonts'); rf.set(qn('w:ascii'), FONT_NAME); rf.set(qn('w:hAnsi'), FONT_NAME); rpr.append(rf)
     sz = OxmlElement('w:sz'); sz.set(qn('w:val'), '16'); rpr.append(sz)
     col = OxmlElement('w:color'); col.set(qn('w:val'), STEEL_H); rpr.append(col)
     tt = OxmlElement('w:t'); tt.text = "1"; r.append(rpr); r.append(tt); fld.append(r); fp._p.append(fld)
@@ -311,7 +335,7 @@ def _render_docx(blocks, M, cfg, brand_dir, cover_png, out):
 def _render_pdf(blocks, M, cfg, brand_dir, cover_png, out):
     chrome = _chrome()
     if not chrome: raise RuntimeError("no headless Chrome for PDF")
-    var = Path(brand_dir) / "Inter-Variable.ttf"
+    var = Path(brand_dir) / FONT_FILE
 
     def b64(p): return base64.b64encode(Path(p).read_bytes()).decode()
     def imguri(p): return f"data:image/png;base64,{b64(p)}"
@@ -352,16 +376,16 @@ def _render_pdf(blocks, M, cfg, brand_dir, cover_png, out):
                 parts.append(f'<figure><img src="{imguri(f)}"><figcaption>{html.escape(cap)}</figcaption></figure>')
     bodyhtml = "".join(parts).replace("</ul><ul>", "")
     client = cfg.get("client", "")
-    fontcss = ("@font-face{font-family:Inter;font-weight:100 900;font-style:normal;"
-               f"src:url(data:font/ttf;base64,{b64(var)}) format('truetype-variations');}}")
+    fontcss = (f"@font-face{{font-family:{FONT_NAME};font-weight:100 900;font-style:normal;"
+               f"src:url(data:font/ttf;base64,{b64(var)}) format('truetype-variations');}}") if var.exists() else ""
     coverdiv = f'<div class="cover"><img src="{imguri(cover_png)}"></div>' if cover_png else ''
     CSS = f"""{fontcss}
 *{{box-sizing:border-box;}} html,body{{margin:0;padding:0;}}
-body{{font-family:Inter,'Helvetica Neue',sans-serif;color:#11151C;font-size:10.5pt;line-height:1.55;
+body{{font-family:{FONT_NAME},'Helvetica Neue',sans-serif;color:#{INK_H};font-size:10.5pt;line-height:1.55;
  -webkit-print-color-adjust:exact;print-color-adjust:exact;}}
 @page{{size:A4;margin:0.7in 0.75in 0.85in 0.75in;
- @bottom-left{{content:"{client} · Amazon Advertising & Sales Audit";font-family:Inter;font-size:8pt;color:#9AA5B4;}}
- @bottom-right{{content:"Ecom Wizards · Confidential · p. " counter(page);font-family:Inter;font-size:8pt;color:#9AA5B4;}}}}
+ @bottom-left{{content:"{client} · {_bcfg(cfg, 'doc_label', 'Amazon Advertising & Sales Audit')}";font-family:{FONT_NAME};font-size:8pt;color:#{MIST_H};}}
+ @bottom-right{{content:"{_branding.pdf_footer_right_prefix(_B)}" counter(page);font-family:{FONT_NAME};font-size:8pt;color:#{MIST_H};}}}}
 @page cover{{margin:0;@bottom-left{{content:"";}}@bottom-right{{content:"";}}}}
 .cover{{page:cover;break-after:page;position:relative;z-index:5;}}
 .cover img{{display:block;width:8.27in;height:11.69in;}}
@@ -369,26 +393,26 @@ h2,h3,.eyebrow,.lever,.rule{{break-after:avoid;}}
 tr,figure,table,.kpis,.note{{break-inside:avoid;}}
 h2{{font-weight:700;font-size:19pt;margin:2pt 0 8pt;letter-spacing:-0.01em;}}
 h3{{font-weight:700;font-size:13pt;margin:12pt 0 5pt;}}
-.lever{{margin:16pt 0 4pt;padding-top:8pt;border-top:1px solid #E4E7EC;}}
-.eyebrow{{font-weight:600;font-size:8.5pt;letter-spacing:0.14em;color:#FD4807;text-transform:uppercase;}}
+.lever{{margin:16pt 0 4pt;padding-top:8pt;border-top:1px solid #{MISTLINE_H};}}
+.eyebrow{{font-weight:600;font-size:8.5pt;letter-spacing:0.14em;color:#{ORANGE_H};text-transform:uppercase;}}
 h3.lt{{margin:2pt 0 6pt;font-size:14.5pt;}}
-.rule{{width:64px;height:4px;background:#FD4807;margin:16pt 0 8pt;border-radius:2px;}}
+.rule{{width:64px;height:4px;background:#{ORANGE_H};margin:16pt 0 8pt;border-radius:2px;}}
 p{{margin:0 0 7pt;orphans:2;widows:2;}} strong{{font-weight:700;}}
 ul{{margin:0 0 8pt;padding-left:16pt;}} li{{margin:0 0 4pt;}}
-.numline{{margin:0 0 6pt;padding-left:14pt;}} .nnum{{color:#FD4807;font-weight:800;margin-right:8px;}}
-.note{{border-left:3px solid #FD4807;background:#F5F6F8;padding:8pt 12pt;margin:0 0 10pt;
- font-size:9.5pt;color:#5B6573;font-style:italic;border-radius:0 4px 4px 0;}}
+.numline{{margin:0 0 6pt;padding-left:14pt;}} .nnum{{color:#{ORANGE_H};font-weight:800;margin-right:8px;}}
+.note{{border-left:3px solid #{ORANGE_H};background:#{CLOUD_H};padding:8pt 12pt;margin:0 0 10pt;
+ font-size:9.5pt;color:#{STEEL_H};font-style:italic;border-radius:0 4px 4px 0;}}
 table{{width:100%;border-collapse:collapse;margin:4pt 0 12pt;font-size:8.6pt;font-variant-numeric:tabular-nums;}}
-th{{background:#11151C;color:#fff;font-weight:600;text-align:left;padding:6px 8px;}}
-td{{padding:5px 8px;border-bottom:1px solid #E4E7EC;}} tbody tr:nth-child(even){{background:#F5F6F8;}}
+th{{background:#{INK_H};color:#fff;font-weight:600;text-align:left;padding:6px 8px;}}
+td{{padding:5px 8px;border-bottom:1px solid #{MISTLINE_H};}} tbody tr:nth-child(even){{background:#{CLOUD_H};}}
 .kpis{{display:flex;gap:10px;margin:6pt 0 12pt;}}
-.kpi{{flex:1;background:#F5F6F8;border:1px solid #E9ECF1;border-top:3px solid #FD4807;border-radius:6px;padding:10px 12px;}}
+.kpi{{flex:1;background:#{CLOUD_H};border:1px solid #{MISTLINE_H};border-top:3px solid #{ORANGE_H};border-radius:6px;padding:10px 12px;}}
 .kn{{font-weight:800;font-size:22pt;letter-spacing:-0.02em;line-height:1;}}
-.kl{{font-weight:600;font-size:7.5pt;letter-spacing:0.08em;text-transform:uppercase;color:#5B6573;margin-top:5px;}}
-.ks{{font-size:8.5pt;color:#FD4807;margin-top:2px;}}
+.kl{{font-weight:600;font-size:7.5pt;letter-spacing:0.08em;text-transform:uppercase;color:#{STEEL_H};margin-top:5px;}}
+.ks{{font-size:8.5pt;color:#{ORANGE_H};margin-top:2px;}}
 figure{{margin:8pt 0 10pt;text-align:center;}}
-figure img{{max-width:100%;border:1px solid #E4E7EC;border-radius:4px;}}
-figcaption{{font-size:8.5pt;color:#5B6573;font-style:italic;margin-top:5px;}}"""
+figure img{{max-width:100%;border:1px solid #{MISTLINE_H};border-radius:4px;}}
+figcaption{{font-size:8.5pt;color:#{STEEL_H};font-style:italic;margin-top:5px;}}"""
     doc = f'<!doctype html><html><head><meta charset="utf-8"><style>{CSS}</style></head><body>{coverdiv}<div class="wrap">{bodyhtml}</div></body></html>'
     htmlp = Path(out).with_suffix(".html"); htmlp.write_text(doc)
     subprocess.run([chrome, "--headless=new", "--disable-gpu", "--no-pdf-header-footer",
@@ -403,7 +427,8 @@ def render(cfg, outdir, scaffold_md, cover=False, brand_dir=None):
     """Render branded .docx (+ .pdf) from the narrative markdown. Returns dict of outputs.
     Raises on hard failure; callers should fall back to md_to_docx."""
     outdir = Path(outdir).resolve(); scaffold_md = Path(scaffold_md)  # absolute so headless-Chrome file:// URI works
-    brand_dir = Path(brand_dir or _bcfg(cfg, "brand_dir") or (HERE / "brand"))
+    _apply_branding(_branding.load_branding(cfg))
+    brand_dir = Path(brand_dir or _bcfg(cfg, "brand_dir") or _B["assets"]["brand_dir"] or (HERE / "brand"))
     M = json.loads((outdir / "metrics.json").read_text())
     title, blocks = parse_markdown(scaffold_md.read_text(), scaffold_md.parent)
     stem = scaffold_md.name.replace("_SCAFFOLD.md", "").replace(".md", "")
@@ -412,7 +437,7 @@ def render(cfg, outdir, scaffold_md, cover=False, brand_dir=None):
 
     cover_png = None
     if cover:
-        need = ["Inter-Variable.ttf", "logo_white.png"]
+        need = [FONT_FILE, _B["assets"]["logo_white"]]
         if all((brand_dir / n).exists() for n in need):
             from brand_cover import build_cover
             cover_png = outdir / "_cover.png"

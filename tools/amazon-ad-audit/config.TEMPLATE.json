@@ -50,7 +50,7 @@
   },
 
   "branding": {
-    "_note": "Ecom Wizards CI rendering (render_branded.py) → A4 branded .docx + .pdf in Inter. first_time=true renders the dark cover page; regular update audits set false (no cover). Requires the local brand/ assets (run prepare_brand_assets.py). Falls back to plain md_to_docx if assets/Chrome are missing.",
+    "_note": "Branded rendering (render_branded.py) → A4 .docx + .pdf. Agency identity (palette/fonts/name/URL) comes from _local/branding/branding.json — see tools/amazon-ad-audit/BRANDING.md. first_time=true renders the dark cover page; regular update audits set false (no cover). Requires the local brand/ assets (prepare_brand_assets.py or your own). Falls back to plain md_to_docx if assets/Chrome are missing.",
     "first_time": true,
     "prepared_by": "Victor Uhl, Founder",
     "cover_subtitle": "Where the money leaks, and the levers to fix it.",

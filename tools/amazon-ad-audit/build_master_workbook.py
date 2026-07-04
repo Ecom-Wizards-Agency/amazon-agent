@@ -44,7 +44,7 @@ def build(config_path, outdir, audit_path, sqp_path):
     for col in range(1, W + 1):
         ws.cell(1, col).fill = ew.HDR_FILL
     ws.merge_cells(start_row=2, start_column=1, end_row=2, end_column=W)
-    a = ws.cell(2, 1, f"ECOM WIZARDS  ·  {win.get('ads','')}  ·  {'/'.join(channels)}  ·  Break-even ACOS assumption: {BE:.0%}"); a.font = F(9, True, C["white"]); a.fill = ew.CORAL_FILL; a.alignment = LEFT
+    a = ws.cell(2, 1, ew.brand_banner(f"{win.get('ads','')}  ·  {'/'.join(channels)}  ·  Break-even ACOS assumption: {BE:.0%}")); a.font = F(9, True, C["white"]); a.fill = ew.CORAL_FILL; a.alignment = LEFT
     for col in range(1, W + 1):
         ws.cell(2, col).fill = ew.CORAL_FILL
     ws.row_dimensions[1].height = 26; ws.row_dimensions[2].height = 16

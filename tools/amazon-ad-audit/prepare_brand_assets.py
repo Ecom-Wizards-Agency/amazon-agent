@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Regenerate the (gitignored) Ecom Wizards brand assets used by render_branded.py.
+"""Regenerate the (gitignored) brand assets used by render_branded.py.
+
+Operator-local helper with Ecom Wizards default source paths (override via env vars).
+Agency identity (palette/fonts/strings) lives in _local/branding/branding.json — see BRANDING.md.
 
 Sources are OPERATOR-LOCAL (pCloud / installed fonts) and never committed — like the MAG-SOP local
 path in CLAUDE.md. Point EW_PCLOUD_ROOT at your local pCloud brand root (or override the individual

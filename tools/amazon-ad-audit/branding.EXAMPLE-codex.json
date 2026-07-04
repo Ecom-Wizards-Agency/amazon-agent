@@ -1,0 +1,22 @@
+{
+  "_comment": "Fallback style used when no _local/branding/branding.json exists and the session runs under Codex. Near-black/teal aesthetic. No agency identity — footers stay generic until you create your own branding.json from branding.TEMPLATE.json.",
+  "agency_name": "",
+  "agency_url": "",
+  "prepared_by_default": "",
+  "palette_doc": {
+    "ink": "0D0D0D", "cloud": "F7F7F8", "accent": "10A37F",
+    "mistline": "E3E3E6", "steel": "565869", "mist": "9B9DAB",
+    "cover_bg": "0D0D0D", "cover_slate": "2A2B32", "white": "FFFFFF"
+  },
+  "palette_xlsx": {
+    "obsidian": "0D0D0D", "carbon": "17181D", "slate": "202128",
+    "coral": "10A37F", "violet": "5436DA", "deep": "1A2E5C",
+    "mist": "9B9DAB", "cloud": "F7F7F8", "hairline": "E3E3E6",
+    "white": "FFFFFF", "ink": "202128"
+  },
+  "fonts": {
+    "doc_font_name": "Inter", "doc_font_file": "Inter-Variable.ttf",
+    "xlsx_font_display": "Aptos Display", "xlsx_font_body": "Aptos"
+  },
+  "assets": { "brand_dir": "", "logo_white": "logo_white.png", "mark": "mark_black.png" }
+}

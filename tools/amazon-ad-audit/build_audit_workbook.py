@@ -301,7 +301,7 @@ def build(config_path, outdir):
         ("Placement", "From SP Bidding Adjustment (placement) rows in the bulk file."),
         ("SQP caveat", "Multi-ASIN SQP exports cap the query grid; shares are directional. Weekly snapshots averaged."),
         ("Colour legend", f"ACOS green <30% · light-green <{BE:.0%} (break-even) · amber ≤60% · red >60%. ROAS green ≥3 · amber ≥1.5 · red <1.5."),
-        ("Prepared by", f"Ecom Wizards. Figures reconcile to the raw bulk (spend {_m(T['spend'],MONEY)} / sales {_m(T['sales'],MONEY)}) and Business Report ({_m(T['br_total_sales'],MONEY)})."),
+        ("Prepared by", f"{ew.prepared_by_org()}. Figures reconcile to the raw bulk (spend {_m(T['spend'],MONEY)} / sales {_m(T['sales'],MONEY)}) and Business Report ({_m(T['br_total_sales'],MONEY)})."),
     ]
     rr = 4
     for k, v in lines:

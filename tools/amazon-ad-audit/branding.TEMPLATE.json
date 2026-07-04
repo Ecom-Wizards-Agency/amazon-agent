@@ -1,0 +1,35 @@
+{
+  "_comment": "TEMPLATE — copy to _local/branding/branding.json (gitignored) and replace every <placeholder>. This is your agency identity for all branded audit outputs (docx/pdf covers/footers + xlsx banners). Schema + layout rules: tools/amazon-ad-audit/BRANDING.md. Without this file the renderers fall back to a built-in Claude- or Codex-style example depending on the agent running.",
+  "agency_name": "<Your Agency Name — appears in bylines, footers, and workbook banners>",
+  "agency_url": "<www.youragency.com — cover footer 'Confidential · <url>'>",
+  "prepared_by_default": "<Default 'prepared by' person, e.g. Jane Doe, Founder>",
+
+  "palette_doc": {
+    "_comment": "Document palette (hex, no #): ink=body text, cloud=light panels, accent=rules/eyebrows/KPI top-border, mistline=hairlines, steel=secondary text, mist=muted text, cover_bg/cover_slate=dark cover, white.",
+    "ink": "<hex>", "cloud": "<hex>", "accent": "<hex>",
+    "mistline": "<hex>", "steel": "<hex>", "mist": "<hex>",
+    "cover_bg": "<hex>", "cover_slate": "<hex>", "white": "FFFFFF"
+  },
+
+  "palette_xlsx": {
+    "_comment": "Workbook palette (keys must stay as-is; they map to header fills, banner fill, accents).",
+    "obsidian": "<hex>", "carbon": "<hex>", "slate": "<hex>",
+    "coral": "<hex — the banner/accent fill>", "violet": "<hex>", "deep": "<hex>",
+    "mist": "<hex>", "cloud": "<hex>", "hairline": "<hex>",
+    "white": "FFFFFF", "ink": "<hex>"
+  },
+
+  "fonts": {
+    "doc_font_name": "<font family used in docx/pdf, e.g. Inter>",
+    "doc_font_file": "<variable-font filename inside the brand assets dir, e.g. Inter-Variable.ttf>",
+    "xlsx_font_display": "<workbook display font, e.g. Aptos Display>",
+    "xlsx_font_body": "<workbook body font, e.g. Aptos>"
+  },
+
+  "assets": {
+    "_comment": "brand_dir empty = tools/amazon-ad-audit/brand/ (gitignored). Filenames are relative to brand_dir.",
+    "brand_dir": "",
+    "logo_white": "logo_white.png",
+    "mark": "mark_black.png"
+  }
+}

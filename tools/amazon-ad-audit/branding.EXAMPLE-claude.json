@@ -1,0 +1,22 @@
+{
+  "_comment": "Fallback style used when no _local/branding/branding.json exists and the session runs under Claude. Warm ivory/coral aesthetic. No agency identity — footers stay generic until you create your own branding.json from branding.TEMPLATE.json.",
+  "agency_name": "",
+  "agency_url": "",
+  "prepared_by_default": "",
+  "palette_doc": {
+    "ink": "1F1E1D", "cloud": "F5F0E8", "accent": "D97757",
+    "mistline": "E8E0D5", "steel": "6B6559", "mist": "A39E92",
+    "cover_bg": "1F1E1D", "cover_slate": "3A3733", "white": "FFFFFF"
+  },
+  "palette_xlsx": {
+    "obsidian": "1F1E1D", "carbon": "282624", "slate": "33302C",
+    "coral": "D97757", "violet": "8A7A66", "deep": "5C4E3E",
+    "mist": "A39E92", "cloud": "F5F0E8", "hairline": "E8E0D5",
+    "white": "FFFFFF", "ink": "33302C"
+  },
+  "fonts": {
+    "doc_font_name": "Inter", "doc_font_file": "Inter-Variable.ttf",
+    "xlsx_font_display": "Aptos Display", "xlsx_font_body": "Aptos"
+  },
+  "assets": { "brand_dir": "", "logo_white": "logo_white.png", "mark": "mark_black.png" }
+}

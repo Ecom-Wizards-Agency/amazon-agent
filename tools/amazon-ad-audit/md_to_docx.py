@@ -9,7 +9,15 @@ from docx.shared import Pt, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 
 SRC = Path(sys.argv[1]); OUT = Path(sys.argv[2])
-INK = RGBColor(0x1E,0x24,0x2C); CORAL = RGBColor(0xFD,0x48,0x07)
+
+def _rgb(h): return RGBColor(int(h[0:2],16), int(h[2:4],16), int(h[4:6],16))
+try:  # palette from the agency branding file; hard fallback — this script must never fail
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from branding import load_branding
+    _pal = load_branding({})["palette_xlsx"]
+    INK = _rgb(_pal["ink"]); CORAL = _rgb(_pal["coral"])
+except Exception:
+    INK = RGBColor(0x1E,0x24,0x2C); CORAL = RGBColor(0x3B,0x6E,0xF6)
 
 doc = Document()
 style = doc.styles['Normal']; style.font.name='Calibri'; style.font.size=Pt(10.5)

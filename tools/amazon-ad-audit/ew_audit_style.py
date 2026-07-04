@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """
-Ecom Wizards — Amazon Ad/Sales Audit shared styling system.
-Single source of truth for the EW CI palette, fonts, and workbook helpers used
-by build_audit_workbook / build_sqp_workbook / build_master_workbook.
+Amazon Ad/Sales Audit shared styling system.
+Single source of truth for the workbook palette, fonts, and helpers used by
+build_audit_workbook / build_sqp_workbook / build_master_workbook. The palette
+and fonts come from the agency branding file (_local/branding/branding.json via
+branding.py — see BRANDING.md); module name kept for import stability.
 
 CRITICAL RULE (the bug this module exists to prevent):
   ACOS is ALWAYS stored as a ratio (0.23 = 23%, 1.09 = 109%). Colour helpers must
@@ -14,13 +16,23 @@ from copy import copy
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 
-# ---------- Ecom Wizards CI ----------
-C = {"obsidian": "0F1318", "carbon": "171C24", "slate": "1E242C",
-     "coral": "FD4807", "violet": "3322E0", "deep": "0E01A2",
-     "mist": "9AA5B4", "cloud": "F5F6F8", "hairline": "E3E7ED", "white": "FFFFFF", "ink": "1E242C"}
+# ---------- agency palette (from the branding file) ----------
+from branding import load_branding as _load_branding, banner as _brand_banner
+_B = _load_branding({})
+C = dict(_B["palette_xlsx"])
 # soft traffic-lights (used on decision columns only)
 TL = {"good": "C6EFCE", "ok": "E2EFDA", "warn": "FFEB9C", "bad": "FFC7CE", "grey": "E7EAEF"}
-DISPLAY = "Aptos Display"; BODY = "Aptos"
+DISPLAY = _B["fonts"]["xlsx_font_display"]; BODY = _B["fonts"]["xlsx_font_body"]
+
+
+def brand_banner(text):
+    """'<AGENCY>  ·  <text>' (or just text when no agency is configured)."""
+    return _brand_banner(_B, text)
+
+
+def prepared_by_org():
+    """Organisation for 'Prepared by' rows — the configured agency or 'the operator'."""
+    return _B.get("agency_name") or "the operator"
 
 def F(sz=11, bold=False, color="1E242C", name=BODY):
     return Font(name=name, size=sz, bold=bold, color=color)
@@ -84,11 +96,13 @@ def tl_fill(value, metric, breakeven=0.50):
     return None
 
 # ---------- workbook frame helpers ----------
-def title_block(ws, title, subtitle, width_cols, banner="ECOM WIZARDS  ·  Amazon Advertising Audit"):
+def title_block(ws, title, subtitle, width_cols, banner=None):
     ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=width_cols)
     c = ws.cell(1, 1, title); c.font = F(16, True, C["white"], DISPLAY); c.fill = HDR_FILL; c.alignment = LEFT
     for col in range(1, width_cols + 1):
         ws.cell(1, col).fill = HDR_FILL
+    if banner is None:
+        banner = brand_banner("Amazon Advertising Audit")
     ws.merge_cells(start_row=2, start_column=1, end_row=2, end_column=width_cols)
     a = ws.cell(2, 1, banner); a.font = F(9, True, C["white"]); a.fill = CORAL_FILL; a.alignment = LEFT
     for col in range(1, width_cols + 1):

@@ -31,7 +31,7 @@ Use this when the operator asks for an Amazon advertising or sales audit (often 
 7. **Write narrative** into the pre-filled scaffold per the playbook (voice, lean, Problems + Growth Levers). Reference screenshots inline as `![caption](file.png)` (paths relative to the `.md`). The build renders the branded deliverable from this `.md`.
 8. **Deliver** the MASTER `.xlsx` + the **branded audit `.docx` + `.pdf`** to the client's Google Drive audit folder. Confirm with the operator before a prospect sees it.
 
-## Branded deliverable (Ecom Wizards CI)
+## Branded deliverable (agency identity from `_local/branding/` — see tools/amazon-ad-audit/BRANDING.md)
 
 `render_branded.py` turns the narrative `.md` + `metrics.json` into an **A4, Inter**, EW-branded **`.docx`
 and `.pdf`** — light readable body, one accent (Signal Orange `#FD4807`), KPI stat-cards auto-built from

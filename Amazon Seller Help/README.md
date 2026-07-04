@@ -19,4 +19,3 @@ Local capture of the Amazon Seller Central Help hub and linked article pages for
 - Index: `_index/seller-help-index.json`
 - Missing list: `_index/seller-help-missing.json`
 - Original hub outline: `help-for-amazon-sellers.md`
-- Render snapshot used for discovery: `_seller_help_dom_snapshot.txt`

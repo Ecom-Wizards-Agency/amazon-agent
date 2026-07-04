@@ -3,13 +3,20 @@
 Amazon Ad/Sales Audit — narrative scaffold generator.
 Emits a Markdown draft following docs/amazon-ad-audit-playbook.md's section skeleton,
 with KPIs/tables PRE-FILLED from metrics.json + sqp_summary.json and prose/problem/lever
-bodies left as `<!-- operator: ... -->` stubs for the operator to write in the EW voice.
+bodies left as `<!-- operator: ... -->` stubs for the operator to write in the agency voice.
 Honors config.narrative flags (include_levers, include_30day_plan, include_what_can_be_reached).
 """
 from __future__ import annotations
 import json, sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from branding import load_branding as _load_branding
+
+
+def _prepared_by_org():
+    return _load_branding({}).get("agency_name") or "the operator"
+
+
 from analyze_audit import load_config
 
 
@@ -32,7 +39,7 @@ def build(config_path, outdir):
     A = L.append
 
     A(f"# {CLIENT} — {markets} Amazon Advertising & Sales Audit\n")
-    A(f"**Prepared by Ecom Wizards · Marketplace: {markets} · Window: {win.get('ads','')}**\n")
+    A(f"**Prepared by {_prepared_by_org()} · Marketplace: {markets} · Window: {win.get('ads','')}**\n")
     A(f"**Sources:** Ads bulk ({win.get('ads','')}), Business Report ({win.get('business_report','')}), "
       f"SQP ({len(win.get('sqp_weeks',[]))} weekly snapshots), DataDive niche {cfg.get('datadive_niche','')}.\n")
     A(f"> **Break-even ACOS = {BE:.0%} is an ASSUMPTION** pending confirmed margin. Every red/amber verdict keys off it.\n")

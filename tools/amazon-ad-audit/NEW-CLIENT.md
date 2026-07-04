@@ -49,11 +49,11 @@ All gates must PASS (spend reconciliation, no >100% ACOS colored green, master t
 
 Open the `.md` scaffold — KPIs and tables are pre-filled. Write the prose, Problems, and Growth Levers per `docs/amazon-ad-audit-playbook.md` (operator voice, second person, keep it lean — no 30-day plan / "what can be reached" / "bottom line" unless the config flags them on). Reference screenshots inline with `![caption](file.png)` (paths relative to the `.md`). Re-run the build to regenerate the branded `.docx` + `.pdf`.
 
-## 5b. Branding (Ecom Wizards CI)
+## 5b. Branding (agency identity from `_local/branding/` — see BRANDING.md)
 
 The build renders a branded **A4 / Inter** `.docx` + `.pdf` (`render_branded.py`) from the narrative `.md`.
 - Set `branding.first_time: true` for a **first-time audit** → dark cover page. For a **regular update**, set `false` (no cover) or pass `--no-cover`. `--cover` forces it on.
-- `branding.prepared_by` (default `Victor Uhl, Founder`) and `cover_subtitle` feed the cover.
+- `branding.prepared_by` (default: `prepared_by_default` from _local/branding/branding.json) and `cover_subtitle` feed the cover.
 - One-time per machine: `python3 tools/amazon-ad-audit/prepare_brand_assets.py` populates the gitignored `brand/` assets (logo + Inter). If they're missing, the build degrades to a plain `.docx` with a WARN.
 
 ## 6. Deliver

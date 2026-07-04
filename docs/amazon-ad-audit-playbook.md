@@ -152,7 +152,7 @@ The master is assembled by copying each source sheet **cell-by-cell** (value + s
 
 ### Design system (all tabs)
 
-- **Ecom Wizards CI palette**: obsidian `0F1318`, coral `FD4807`, violet `3322E0`,
+- **Agency palette** (from `_local/branding/branding.json`, see `tools/amazon-ad-audit/BRANDING.md`; EW values shown as reference): obsidian `0F1318`, coral `FD4807`, violet `3322E0`,
   deep `0E01A2`, mist `5B6573`, cloud `F5F6F8`, hairline `E3E7ED`, ink `1E242C`.
 - **Fonts**: Aptos (body), Aptos Display (headers).
 - **Traffic-light fills** on decision columns only (soft pastels): good `C6EFCE`,
@@ -197,7 +197,7 @@ The master is assembled by copying each source sheet **cell-by-cell** (value + s
 - Intent classification is rule-based (brand / own-ASIN / competitor / generic) —
   audit-grade, review before bulk campaign changes.
 
-## Part 3 — The Branded Document (Ecom Wizards CI)
+## Part 3 — The Branded Document (agency identity from `_local/branding/`)
 
 The narrative ships as a **brand-styled A4 document** — `.docx` (editable) + `.pdf` (send) — rendered from
 the narrative `.md` by `tools/amazon-ad-audit/render_branded.py`. Not a pixel deck; a clean, readable report
@@ -214,7 +214,7 @@ that carries the CI.
 - **Cover page = first-time audits only** (`branding.first_time` / `--cover` / `--no-cover`). Dark Obsidian,
   faint grid (<6%), white logo grouped with an orange rule + eyebrow, big title, "Prepared for" +
   `prepared_by` byline (default "Victor Uhl, Founder"), "What's inside" = the section names, footer
-  `Confidential · www.ecomwizards.agency`. Horizontal rules snap onto the grid.
+  `Confidential · <agency URL from branding.json>`. Horizontal rules snap onto the grid.
 - **KPI stat-cards** (spend / ad sales / blended ACoS vs break-even / TACoS) are auto-built from
   `metrics.json` and placed under the verdict/summary section — Cloud card, orange top rule, big Inter stat.
 - **Markdown conventions** the renderer reads: `## H2`, `### Lever N: title` (or `**Lever N — …**`) →

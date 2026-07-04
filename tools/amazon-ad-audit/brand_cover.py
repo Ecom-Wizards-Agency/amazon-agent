@@ -1,25 +1,35 @@
 #!/usr/bin/env python3
-"""Ecom Wizards branded audit cover (A4 @200dpi, Inter). Client-agnostic; used by render_branded.py.
+"""Branded audit cover (A4 @200dpi). Client- and agency-agnostic; used by render_branded.py.
 
-Reads the Inter font + white logo from the brand dir (see brand/README.md). Version-D layout:
-smaller logo grouped with the eyebrow, vertically centred, horizontal rules snapped onto the grid.
+Reads the variable font + white logo from the brand dir and the palette from the branding file
+(_local/branding/branding.json via branding.py — see BRANDING.md). Version-D layout: smaller logo
+grouped with the eyebrow, vertically centred, horizontal rules snapped onto the grid.
 """
 import os
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
-OBSIDIAN=(15,19,24); WHITE=(255,255,255); CLOUD=(245,246,248)
-MIST=(154,165,180); STEEL=(91,101,115); SLATE=(42,50,61); ORANGE=(253,72,7)
 W,H=1654,2339; MX=140; GRID=88
+
+
+def _rgb(h):
+    return (int(h[0:2],16), int(h[2:4],16), int(h[4:6],16))
 
 
 def _snap(v): return int(round(v/GRID))*GRID
 
 
 def build_cover(out, brand_dir, title, eyebrow, dateline, sub_lines, prepared_for, prepared_by,
-                inside, footer_left, footer_right, logo_w=300, logo_y=300, block_y=440, inside_y=1496):
+                inside, footer_left, footer_right, logo_w=300, logo_y=300, block_y=440, inside_y=1496,
+                palette=None, font_file="Inter-Variable.ttf", logo_file="logo_white.png"):
+    if palette is None:
+        import branding as _branding
+        palette = _branding.load_branding({})["palette_doc"]
+    OBSIDIAN=_rgb(palette["cover_bg"]); WHITE=_rgb(palette["white"]); CLOUD=_rgb(palette["cloud"])
+    MIST=_rgb(palette["mist"]); STEEL=_rgb(palette["steel"]); SLATE=_rgb(palette["cover_slate"])
+    ORANGE=_rgb(palette["accent"])
     brand_dir = Path(brand_dir)
-    var = str(brand_dir / "Inter-Variable.ttf")
+    var = str(brand_dir / font_file)
 
     def inter(w, size):
         f = ImageFont.truetype(var, size)
@@ -40,7 +50,7 @@ def build_cover(out, brand_dir, title, eyebrow, dateline, sub_lines, prepared_fo
     img = Image.alpha_composite(img.convert("RGBA"), grid).convert("RGB")
     d = ImageDraw.Draw(img)
 
-    logo = Image.open(brand_dir / "logo_white.png").convert("RGBA")
+    logo = Image.open(brand_dir / logo_file).convert("RGBA")
     logo = logo.crop(logo.split()[3].getbbox())
     lh = int(logo_w * logo.height / logo.width); logo = logo.resize((logo_w, lh), Image.LANCZOS)
     img.paste(logo, (MX, logo_y), logo)

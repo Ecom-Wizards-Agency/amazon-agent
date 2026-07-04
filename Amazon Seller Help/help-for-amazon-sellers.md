@@ -15,7 +15,6 @@ If you are already a seller, [sign in](https://sellercentral.amazon.com/sign-in?
 ## Source Files
 
 - Rendered source URL: https://sellercentral.amazon.com/help/hub/reference/external/G2?mons_sel_locale=en_US&pageName=US%3ASC%3ATrim-help%2Fhub%2Freference%2Fexternal%2FGZ4ZQ4HZQM2R4B2X
-- Raw HTML shell: [help-for-amazon-sellers.raw.html](help-for-amazon-sellers.raw.html)
 
 ## Main Help Categories
 

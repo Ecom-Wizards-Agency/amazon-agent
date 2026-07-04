@@ -228,12 +228,18 @@ Top-level folder roles:
 
 Use ongoing client-first paths for new artifacts:
 
-- `output/{client-or-brand}/{workflow}/`
-- `downloads/{client-or-brand}/{source}/`
-- `evidence/{client-or-brand}/{workflow}/`
-- `output/{client-or-brand}/review-management/`
+- `output/{client}/{workflow}/`
+- `downloads/{client}/{source}/`
+- `evidence/{client}/{workflow}/`
+- `output/{client}/review-management/`
 
-Dates belong in filenames, not folder names. Review management is ongoing and client-specific; update the same client folder over time. Keep support drafts under `output/{client-or-brand}/support-prep/` and support evidence under `evidence/{client-or-brand}/support-prep/`; use Notion for live support-case tracking.
+Client folder rules (normalized 2026-07-04 — do not let variants drift back):
+
+- `{client}` is one lowercase-kebab slug per client (`seranova`, `number-artist`, `goda`) — no spaces, no capitals, no marketplace suffixes. Marketplace/country and dates belong in filenames (or a workflow subfolder), never in the client folder name.
+- Before saving, list the artifact folder and REUSE the existing client folder; match the client slug in `tools/*/config.<slug>*.json` when one exists. Never create a spelling variant of an existing client folder ("Goda US" next to `goda`).
+- No loose files at the `output/` root — everything lives under `output/{client}/{workflow}/` (internal/agency work goes under `output/ecom-wizards/`; run-scoped folders like `reshipment-plans-<date>/` count as workflow folders).
+
+Review management is ongoing and client-specific; update the same client folder over time. Keep support drafts under `output/{client}/support-prep/` and support evidence under `evidence/{client}/support-prep/`; use Notion for live support-case tracking.
 
 Controlled workflow names:
 

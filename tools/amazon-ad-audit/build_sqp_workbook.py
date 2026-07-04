@@ -102,7 +102,7 @@ def build(config_path, outdir):
     has_dd = bool(ddrank)
 
     wb = Workbook(); wb.remove(wb.active)
-    banner = f"ECOM WIZARDS  ·  {CLIENT} SQP Intelligence ({markets})  ·  {len(KEPT)} weeks"
+    banner = ew.brand_banner(f"{CLIENT} SQP Intelligence ({markets})  ·  {len(KEPT)} weeks")
 
     def title_block(ws, t, sub, wd):
         _tb(ws, t, sub, wd, banner=banner)

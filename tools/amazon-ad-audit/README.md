@@ -43,7 +43,7 @@ python3 tools/amazon-ad-audit/build_audit.py --config tools/amazon-ad-audit/conf
 
 ## Files
 
-- `ew_audit_style.py` — shared EW CI styling (single source of truth; ACOS is always a ratio, never divided by 100).
+- `ew_audit_style.py` — shared workbook styling; palette/fonts come from the local branding file (see BRANDING.md). ACOS is always a ratio, never divided by 100.
 - `analyze_audit.py` — parser → `metrics.json` + `clean/*.csv` + `clean/sqp_summary.json`.
 - `build_audit_workbook.py` / `build_sqp_workbook.py` / `build_master_workbook.py` — the three builders.
 - `narrative_scaffold.py` + `md_to_docx.py` — narrative draft.
