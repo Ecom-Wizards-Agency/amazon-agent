@@ -15,8 +15,8 @@ Two-agent flow (Codex gathers browser downloads; Claude pulls DataDive, builds, 
 
 3. **Codex gathers** (per the emitted task):
    - **Ads bulk `.xlsx`** — Amazon Ads console → Bulk Operations → download a Spend/Sales report for the window (SP required; SB/SB-Multi/SD/RAS sheets included if running). File downloads use the @Chrome extension (US VPN) per the Codex download rule.
-   - **Business Report `.csv`** — Seller Central → Reports → Business Reports → Detail Page Sales & Traffic by Child ASIN, for the window.
-   - **Multi-ASIN SQP `.csv`** (one per product group) — Brand Analytics → Search Query Performance → multi-ASIN export, weekly, for the product line's ASINs. (Caveat: the multi-ASIN tool caps the query grid; SV totals are a floor. For full data, export per single ASIN.)
+   - **Business Report `.csv`** — Seller Central → Reports → Business Reports → Detail Page Sales & Traffic by Child ASIN, for the window. (Or fetch it without the manual download: `tools/report-fetcher/` — see the `amazon-reporting` skill.)
+   - **Multi-ASIN SQP `.csv`** (one per product group) — Brand Analytics → Search Query Performance → multi-ASIN export, weekly, for the product line's ASINs. (Caveat: the multi-ASIN tool caps the query grid; SV totals are a floor. For full data, export per single ASIN.) (Or fetch via `tools/report-fetcher/` — one ASIN per file gives uncapped SV.)
    - **Recommended extras (optional, won't block READY):** SB campaign placement report (the bulk's SB placement rows are incomplete) and the SP Search-Term Impression-Share report (ToS headroom). **Not needed:** SB/SD search-term reports — SB is intent-split by target from the bulk itself.
    - Save each to the exact `inputs{}` path; note evidence + any caveats; stop.
 

@@ -87,7 +87,7 @@ Default routing:
 - `amazon-ads`: Ads Console, PPC, bidding, budgets, targeting.
 - `amazon-campaign-builder`: creating Sponsored Products campaigns from a text brief → bulk-upload `.xlsx` via `tools/amazon-campaign-builder/` (file-only; upload stays operator-confirmed).
 - `amazon-creator-connections`: Creator Connections inbox audits, status-filtered message triage, campaign tracker updates, reply drafting (operator-confirmed sends), campaign prep to the publish checkpoint, tracker gaps, reconciliation.
-- `amazon-reporting`: Seller/Ads reports, SQP, business reports, analytics workbooks.
+- `amazon-reporting`: Seller/Ads reports, SQP, business reports, analytics workbooks; Business Reports + SQP can be fetched without manual download via `tools/report-fetcher/`.
 - `amazon-inventory-planning`: weekly FBA inventory overview, reshipment planning, pCloud outputs, Slack staging.
 - `amazon-opportunity-explorer`: Product Opportunity Explorer/OEI/POE exports, image strategy, product strategy, Alexa/Rufus semantic insights.
 - `amazon-listing-capture`: capture live listing copy (title/bullets/link) for anchor + competitors via the connected-browser extractor; feeds the keyword-workbook ASINs tab; replaces the legacy ZeroWork scrape.
@@ -359,6 +359,8 @@ This repo is being prepared as a public-safe, reusable workspace. Before any com
 ## Safety Rules
 
 Never inspect browser cookies, local storage, passwords, session stores, API secrets, bearer tokens, refresh tokens, bank details, tax IDs, payment identifiers, or private keys.
+
+Narrow carve-out for the report fetcher: reading the page's own `anti-csrftoken-a2z` `<meta>` tag to call that same Seller Central page's report API in the operator's existing logged-in session (same-origin, read-only report reads — see `tools/report-fetcher/`) is permitted. That meta tag is the anti-forgery value the page already exposes for its own requests; it is not a cookie, credential, or session store. Everything else in the line above still applies — never read cookies, passwords, session/local storage, or bearer/refresh tokens.
 
 Avoid broad system/process inspection, broad cleanup, browser resets, or process killing. These actions can trigger security warnings and are not needed for normal Amazon work.
 

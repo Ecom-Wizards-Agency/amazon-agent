@@ -25,7 +25,7 @@ Fill every `<...>` placeholder:
 python3 tools/amazon-ad-audit/build_audit.py --config tools/amazon-ad-audit/config.<client>-<market>.json --preflight
 ```
 
-- If it prints **WAITING ON CODEX**, paste the emitted block to Codex. Codex downloads the ads bulk `.xlsx`, Business Report `.csv`, and multi-ASIN SQP `.csv`(s) to the exact paths in `inputs{}` (connected browser; file downloads use the @Chrome extension per the Codex download rule), captures evidence + caveats, and stops. Codex does **not** run the builder or write the narrative.
+- If it prints **WAITING ON CODEX**, paste the emitted block to Codex. Codex downloads the ads bulk `.xlsx`, Business Report `.csv`, and multi-ASIN SQP `.csv`(s) to the exact paths in `inputs{}` (connected browser; file downloads use the @Chrome extension per the Codex download rule), captures evidence + caveats, and stops. Codex does **not** run the builder or write the narrative. (The Business Report + SQP files can also be fetched without manual download via `tools/report-fetcher/` — see the `amazon-reporting` skill. The ads bulk `.xlsx` still comes from the Ads console.)
 - **Claude** pulls the DataDive niche via MCP (`get_niche_keywords`, `get_niche_competitors`) and saves them to the `datadive_niche_json` / `datadive_competitors_json` paths.
 - Re-run `--preflight` until it prints **READY**.
 
