@@ -1,6 +1,6 @@
 ---
 description: Prepare a narrow FlatFilePro upload CSV from an export + evidence (SKU-keyed, partial update; file-only, upload stays manual)
-argument-hint: "[client-market, e.g. sheko-de — plus attach/point to the FlatFilePro export]"
+argument-hint: "[client-market, e.g. acme-de — plus attach/point to the FlatFilePro export]"
 ---
 
 # FlatFilePro Prepare (upload CSV)

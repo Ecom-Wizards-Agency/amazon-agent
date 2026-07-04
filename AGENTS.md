@@ -235,8 +235,8 @@ Use ongoing client-first paths for new artifacts:
 
 Client folder rules (normalized 2026-07-04 — do not let variants drift back):
 
-- `{client}` is one lowercase-kebab slug per client (`seranova`, `number-artist`, `goda`) — no spaces, no capitals, no marketplace suffixes. Marketplace/country and dates belong in filenames (or a workflow subfolder), never in the client folder name.
-- Before saving, list the artifact folder and REUSE the existing client folder; match the client slug in `tools/*/config.<slug>*.json` when one exists. Never create a spelling variant of an existing client folder ("Goda US" next to `goda`).
+- `{client}` is one lowercase-kebab slug per client (`acme`, `globex-brands`) — no spaces, no capitals, no marketplace suffixes. Marketplace/country and dates belong in filenames (or a workflow subfolder), never in the client folder name.
+- Before saving, list the artifact folder and REUSE the existing client folder; match the client slug in `tools/*/config.<slug>*.json` when one exists. Never create a spelling variant of an existing client folder ("Acme US" next to `acme`).
 - No loose files at the `output/` root — everything lives under `output/{client}/{workflow}/` (internal/agency work goes under `output/ecom-wizards/`; run-scoped folders like `reshipment-plans-<date>/` count as workflow folders).
 
 Review management is ongoing and client-specific; update the same client folder over time. Keep support drafts under `output/{client}/support-prep/` and support evidence under `evidence/{client}/support-prep/`; use Notion for live support-case tracking.
