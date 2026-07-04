@@ -1,0 +1,72 @@
+{
+  "schema": "amazon-agent.ads-strategy.v1",
+  "_comment": "TEMPLATE — copy to _local/ads-strategy/strategy.json and replace every <placeholder>. The real file is operator-specific and gitignored (never commit it). fill_campaign_structure.py refuses to run while any '<' placeholder remains. Numbers here are METHODOLOGY — keep them out of tracked files.",
+  "refreshed_from_notion": "<YYYY-MM-DD — when these values were last checked against your strategy source>",
+
+  "sv_bands": {
+    "_comment": "Search-volume bands per bucket. severity 'warn' reports but allows; 'fail' blocks the apply.",
+    "rank_skw": { "min": "<int, e.g. lower SV bound for single-keyword rank campaigns>", "max": "<int, upper SV bound>", "severity_outside": "warn" },
+    "halo": { "max": "<int — keywords at or above this SV do not belong in halo campaigns>", "severity_above": "fail" },
+    "phase1": { "count_min": "<int>", "count_max": "<int>", "sv_min": "<int>", "sv_max": "<int>", "_comment": "launch phase-1 target count and SV window; echoed to the agent, not enforced" }
+  },
+
+  "caps": {
+    "halo_keywords_per_campaign": "<int>",
+    "pat_asins_per_campaign": "<int>"
+  },
+
+  "discovery": {
+    "min_root_words": "<int — roots with fewer words trigger a specificity WARN>"
+  },
+
+  "pat_split": {
+    "method": "<median_revenue | revenue_floor | agent>",
+    "revenue_floor": null
+  },
+
+  "expanded_candidate_filter": {
+    "_comment": "Bounds which Expanded-MKL rows become halo candidates, to keep candidates.json readable.",
+    "min_relevancy": "<float 0-1>",
+    "max_sv": "<int>"
+  },
+
+  "bids": {
+    "_comment": "Visual plan only — rendered into the Proposed Campaign Names block, never pushed anywhere. start_bid_pct_of_recommended: your launch rule as a signed percent (e.g. -30 = start 30% below the recommended/suggested bid; applied to the MKL 'Sugg. bid & range' value when present, otherwise shown as a rule). Placement modifiers are percents (0 = none). Mirrors the bulk-creator webapp default_settings fields.",
+    "start_bid_pct_of_recommended": "<signed int, e.g. -30>",
+    "by_bucket": {
+      "rank_skw": { "daily_budget": "<number>", "top_of_search_placement": "<int %>", "rest_of_search_placement": 0, "product_pages_placement": 0 },
+      "shield_skw": { "daily_budget": "<number>", "top_of_search_placement": 0, "rest_of_search_placement": 0, "product_pages_placement": 0 },
+      "halo": { "daily_budget": "<number>", "top_of_search_placement": 0, "rest_of_search_placement": 0, "product_pages_placement": 0 },
+      "discovery_bmm": { "daily_budget": "<number>", "top_of_search_placement": 0, "rest_of_search_placement": 0, "product_pages_placement": 0 },
+      "discovery_phrase": { "daily_budget": "<number>", "top_of_search_placement": 0, "rest_of_search_placement": 0, "product_pages_placement": 0 },
+      "shield_discovery_bmm": { "daily_budget": "<number>", "top_of_search_placement": 0, "rest_of_search_placement": 0, "product_pages_placement": 0 },
+      "shield_discovery_phrase": { "daily_budget": "<number>", "top_of_search_placement": 0, "rest_of_search_placement": 0, "product_pages_placement": 0 },
+      "pat_stronger": { "daily_budget": "<number>", "top_of_search_placement": 0, "rest_of_search_placement": 0, "product_pages_placement": 0 },
+      "pat_weaker": { "daily_budget": "<number>", "top_of_search_placement": 0, "rest_of_search_placement": 0, "product_pages_placement": 0 }
+    }
+  },
+
+  "naming": {
+    "_comment": "Mirrors the bulk-creator webapp NamingSettings 1:1 so proposed names in the workbook match what the webapp generates. Copy your webapp settings here. 'suffix' is your agency/operator marker (the 'EW' naming variable renders this value).",
+    "variable_order": ["Goal", "SP", "MatchType", "ProductName", "TargetDescriptor", "EW"],
+    "delimiter": " | ",
+    "suffix": "<your agency marker>",
+    "use_counter": false,
+    "skw_mode": true,
+    "add_date": false,
+    "custom1_label": "", "custom1_value": "",
+    "custom2_label": "", "custom2_value": "",
+    "by_bucket": {
+      "_comment": "ctx per bucket for name generation. descriptor placeholders: {keyword} {root} {counter}. goal values must be Discovery|Rank|Profit; match_type EXACT|BROAD|PHRASE|ASIN_EXACT; campaign_type SKW|Halo|BMM|Phrase|PAT.",
+      "rank_skw": { "goal": "Rank", "match_type": "EXACT", "campaign_type": "SKW", "descriptor": "{keyword}" },
+      "shield_skw": { "goal": "<goal for brand-defense SKW campaigns>", "match_type": "EXACT", "campaign_type": "SKW", "descriptor": "<e.g. Brand {keyword}>" },
+      "halo": { "goal": "Profit", "match_type": "EXACT", "campaign_type": "Halo", "descriptor": "{root}" },
+      "discovery_bmm": { "goal": "Discovery", "match_type": "BROAD", "campaign_type": "BMM", "descriptor": "{root}" },
+      "discovery_phrase": { "goal": "Discovery", "match_type": "PHRASE", "campaign_type": "Phrase", "descriptor": "{root}" },
+      "shield_discovery_bmm": { "goal": "<goal>", "match_type": "BROAD", "campaign_type": "BMM", "descriptor": "<e.g. Brand {root}>" },
+      "shield_discovery_phrase": { "goal": "<goal>", "match_type": "PHRASE", "campaign_type": "Phrase", "descriptor": "<e.g. Brand {root}>" },
+      "pat_stronger": { "goal": "<goal for stronger-competitor PAT>", "match_type": "ASIN_EXACT", "campaign_type": "PAT", "descriptor": "<e.g. Stronger {counter}>" },
+      "pat_weaker": { "goal": "<goal for weaker-competitor PAT>", "match_type": "ASIN_EXACT", "campaign_type": "PAT", "descriptor": "<e.g. Weaker {counter}>" }
+    }
+  }
+}

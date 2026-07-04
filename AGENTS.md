@@ -161,7 +161,7 @@ Listing field terminology for SEO and FlatFilePro work:
 
 Do not map Item Highlights into bullet fields or create bullet columns when the operator asks only for Item Highlights.
 
-Reusable assembly (client-agnostic): `tools/amazon-seo-keyword-workbook/` turns these raw exports into a styled, validated keyword workbook, driven entirely by a per-client config (copy `config.TEMPLATE.json`; see `NEW-CLIENT.md` and `WORKFLOW.md`). Tab structure, thresholds, and validation details live in the `amazon-seo-keyword-workflow` skill — route there for the full end-to-end run.
+Reusable assembly (client-agnostic): `tools/amazon-seo-keyword-workbook/` turns these raw exports into a styled, validated keyword workbook, driven entirely by a per-client config (copy `config.TEMPLATE.json`; see `NEW-CLIENT.md` and `WORKFLOW.md`). Tab structure, thresholds, and validation details live in the `amazon-seo-keyword-workflow` skill — route there for the full end-to-end run. On explicit PPC request, the workbook's `5. Campaign Structure` tab is filled via `fill_campaign_structure.py` (`/fill-campaigns`) — visual plan only; strategy thresholds and campaign naming live local-only in `_local/ads-strategy/`.
 
 Keyword-research workbook delivery goes to Google Drive only. Do not copy generated keyword-research workbooks to pCloud. Target folder pattern: `Geteilte Ablagen/Ecom Wizards/01_Client Sheets/<Client>/Keyword Research/<Country>/` — one `Keyword Research` folder per client with a sub-folder per country (NOT a folder per run). If the client has only one country, the workbook goes directly in `…/<Client>/Keyword Research/` with no country sub-folder. The workbook becomes a Google Sheet there.
 

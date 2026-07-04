@@ -104,3 +104,11 @@ The build also writes:
 - manifest JSON
 - Obsidian handoff note
 - copy-ready Claude/Codex prompt
+
+## 7. (Optional, on explicit PPC request) Fill Campaign Structure
+
+Fill the `5. Campaign Structure` tab from the built workbook via
+`fill_campaign_structure.py` (`/fill-campaigns`): extract candidates → agent classifies per
+`_local/ads-strategy/strategy.md` → dry-run → apply. Visual plan + Proposed Campaign Names block
+only — no bulk files; the operator pastes into the bulk-creator webapp. Details in the
+`amazon-seo-keyword-workflow` skill, section "Campaign Structure Fill".

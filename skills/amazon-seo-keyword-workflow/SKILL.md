@@ -82,7 +82,7 @@ Keyword-research workbooks are delivered to Google Drive only. Do not copy the f
 - Keep misspellings/grammar variants out of Never Ever when they still represent relevant product intent.
 - Keep competitor/brand terms as PPC/context unless the operator explicitly approves another use — in the Never-KWs tab they live in their own section: negative in rank/SKW campaigns, TARGET in PAT/conquest, never blanket negatives.
 - Treat disease, cure, laxative, diagnosis, weight-loss, and unsupported health terms as compliance-risk by default.
-- Carry `5. Campaign Structure` forward as the empty PPC scaffold from the canonical template (Rank/Shield SKW waves, Long-Tails, Discovery, PAT Stronger/Weaker, Sum formulas, intent legend) so keywords can be filled in there. Do NOT add it to `generated_blank` — that wipes the scaffold. Only populate the campaigns when PPC is explicitly requested.
+- Carry `5. Campaign Structure` forward as the empty PPC scaffold from the canonical template (Rank/Shield SKW waves, Long-Tails, Discovery, PAT Stronger/Weaker, Sum formulas, intent legend) so keywords can be filled in there. Do NOT add it to `generated_blank` — that wipes the scaffold. Only populate the campaigns when PPC is explicitly requested — via `fill_campaign_structure.py` (see Campaign Structure Fill below).
 
 ## Builder Command
 
@@ -122,3 +122,41 @@ Use `--preflight` first. If a DataDive `1%` export or metadata is missing, stop 
 ## Handoff Note Location
 
 Every run gets its **own** handoff/protocol note saved inside that client's Obsidian folder — never appended to one shared cross-client file. Set `inputs.handoff_note` in the config to a per-run path under `…/Projects/Clients/<client>/<date>-<product>-<market>-keyword-workbook-<vN>-handoff.md`. The builder writes the note there and points the preflight Codex block's `Protocol:` line at that same per-run note (falling back to the reusable `…/Context/codex-claude-handoff-protocol.md` only when `handoff_note` is unset).
+
+## Campaign Structure Fill (on request)
+
+Fill the workbook's `5. Campaign Structure` tab from the built workbook's own data. **VISUAL PLAN
+ONLY** — the output is the filled tab plus a Proposed Campaign Names block; pasting into the
+bulk-creator webapp is the operator's manual step. Never emit campaign bulk files from this flow.
+
+Preconditions: a built, QA-passed workbook; `_local/ads-strategy/strategy.json` + `strategy.md`
+present with no `<placeholders>` (copy from `tools/amazon-seo-keyword-workbook/ads-strategy.TEMPLATE.*`).
+The strategy files are proprietary and local-only. Claude refreshes them from the Notion playbooks
+listed in the strategy.md header when stale; Codex uses them as-is and asks the operator if missing.
+Set `campaign_structure.own_brand_tokens` and `product_name_for_naming` in the client config.
+
+Three phases:
+
+```bash
+# 1. mechanical extraction (SV bands, brand/never/claim flags, roots, PAT revenue)
+.venv/bin/python tools/amazon-seo-keyword-workbook/fill_campaign_structure.py \
+  --config tools/amazon-seo-keyword-workbook/config.<client>.json \
+  --extract output/<client>/ppc/<date>_campaign_candidates.json
+
+# 2. agent judgment (no script): read candidates.json + _local/ads-strategy/strategy.md; assign
+#    keywords/ASINs to scaffold slots per the judgment rules (intent tiers/waves, discovery root
+#    specificity, halo theming, PAT strength); write classification.json
+#    (schema amazon-agent.campaign-classification.v1)
+
+# 3. validate + write (always dry-run first, show the operator, then apply)
+.venv/bin/python tools/amazon-seo-keyword-workbook/fill_campaign_structure.py \
+  --config ... --workbook <xlsx> --apply <classification.json> --dry-run
+.venv/bin/python tools/amazon-seo-keyword-workbook/fill_campaign_structure.py \
+  --config ... --workbook <xlsx> --apply <classification.json>   # writes a .bak first
+```
+
+Judgment split: the script enforces SV bands, caps, never/claim/form/brand exclusions, same-root
+halo, one-root discovery, dedupe, capacity, and generates campaign names from the local naming
+template. The agent decides intent tiers (Wave 1/2/3), which roots are specific enough for
+Discovery, halo grouping, PAT Stronger/Weaker when revenue is missing, and review-band promotions —
+each with a short "why". A FAIL blocks the save; fix the classification, don't fight the validator.
