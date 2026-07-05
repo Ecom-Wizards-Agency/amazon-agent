@@ -16,6 +16,7 @@
  * mapping tweak, never a silent wrong file.
  */
 import { readFileSync, writeFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 
 const SQP_HEADERS = [
   "Reporting Date", "Search Query", "ASIN", "Search Query Volume",
@@ -298,16 +299,18 @@ function selfTest() {
 function assert(cond, msg) { if (!cond) fail("self-test: " + msg); }
 
 // ---------------------------------------------------------------- main
-const args = process.argv.slice(2);
-if (args[0] === "--self-test") {
-  selfTest();
-} else if (args.length === 2) {
-  const doc = JSON.parse(readFileSync(args[0], "utf8"));
-  const csv = format(doc);
-  writeFileSync(args[1], csv);
-  const n = csv.split("\n").filter((l) => l.trim()).length - 1;
-  console.log(`wrote ${args[1]} (${n} rows, ${doc.report})`);
-} else {
-  console.error("usage: node format-seller-reports.mjs <input.json> <out.csv>\n   or: node format-seller-reports.mjs --self-test");
-  process.exit(2);
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  const args = process.argv.slice(2);
+  if (args[0] === "--self-test") {
+    selfTest();
+  } else if (args.length === 2) {
+    const doc = JSON.parse(readFileSync(args[0], "utf8"));
+    const csv = format(doc);
+    writeFileSync(args[1], csv);
+    const n = csv.split("\n").filter((l) => l.trim()).length - 1;
+    console.log(`wrote ${args[1]} (${n} rows, ${doc.report})`);
+  } else {
+    console.error("usage: node format-seller-reports.mjs <input.json> <out.csv>\n   or: node format-seller-reports.mjs --self-test");
+    process.exit(2);
+  }
 }

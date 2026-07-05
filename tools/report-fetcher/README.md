@@ -12,11 +12,12 @@ The runner drives Chrome's REAL page main world over the DevTools Protocol (CDP)
 uses your existing login — no console paste, no browser-evaluate sandbox. Any agent with
 shell access (Codex `@computer`) can run it.
 
-One-time setup — launch Chrome with the debug port (uses your normal profile, so the
-Seller Central login carries over):
+One-time setup — launch a dedicated debug Chrome (a separate profile/window that runs
+alongside your normal Chrome — no need to quit it):
 
 ```bash
-tools/report-fetcher/launch-chrome-debug.sh     # quit Chrome fully first
+tools/report-fetcher/launch-chrome-debug.sh      # opens a new Chrome window
+# → sign in to Seller Central once in that window; the login persists for future runs
 node tools/report-fetcher/run.mjs doctor         # confirms the connection + a logged-in tab
 ```
 

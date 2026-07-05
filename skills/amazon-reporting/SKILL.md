@@ -32,7 +32,7 @@ Preconditions: connected/internal browser (never headless) on a logged-in `selle
 Hands-off (preferred — one command, needs Chrome on the debug port; an agent with shell/`@computer` can run and troubleshoot this itself):
 
 ```bash
-tools/report-fetcher/launch-chrome-debug.sh        # one-time; quit Chrome first, then log into Seller Central
+tools/report-fetcher/launch-chrome-debug.sh        # one-time; opens a dedicated debug Chrome — log into Seller Central in it
 node tools/report-fetcher/run.mjs doctor           # verify connection + a logged-in tab
 node tools/report-fetcher/run.mjs sqp --asin B0... --week YYYY-MM-DD --out output/{client}/reporting/sqp_<asin>.csv
 node tools/report-fetcher/run.mjs business --start YYYY-MM-DD --end YYYY-MM-DD --out output/{client}/reporting/business.csv
