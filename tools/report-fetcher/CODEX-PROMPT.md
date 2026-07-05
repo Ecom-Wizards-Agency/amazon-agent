@@ -71,6 +71,8 @@ the <out>.raw.json.
 Notes:
 - Output CSVs feed the ad-audit pipeline: SQP → `inputs.sqp_csvs["<group>"]`, Business →
   `inputs.business_report_csv`. SCP/TST are standalone.
+- **TST is marketplace-wide** (huge) — it defaults to the top ~500 rows; add `--brand`,
+  `--search-term`, or `--asins` to narrow it, or `--max-pages N` to go deeper.
 - SQP is fetched **one ASIN per call** (uncapped Search Query Volume), then combined or split.
 - The runner opens its own background tab, writes the CSV, and closes it — it never disturbs
   the operator's tabs. Read-only report reads only.

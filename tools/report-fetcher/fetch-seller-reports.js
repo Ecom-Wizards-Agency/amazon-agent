@@ -156,7 +156,8 @@ function _rfRangeFilters(range, periodEnd) {
 // Generic Brand-Analytics dashboard fetch (SQP/SCP/TST share the shape): loop each
 // period, page to ceil(totalItems/100), collect reportsV2[0].rows. `extraFilters`
 // are prepended (asin/brand/etc). Returns { columns, batches:[{reportingDate, rows}] }.
-async function _rfDashboardFetch(url, range, mp, periodEndDates, reportId, viewId, sortByColumnId, ascending, extraFilters) {
+async function _rfDashboardFetch(url, range, mp, periodEndDates, reportId, viewId, sortByColumnId, ascending, extraFilters, maxPages) {
+  maxPages = maxPages || 200;   // runaway guard; TST (marketplace-wide) passes a small cap
   var out = { columns: [], batches: [] };
   var first = true;
   for (var pi = 0; pi < periodEndDates.length; pi++) {
@@ -185,6 +186,7 @@ async function _rfDashboardFetch(url, range, mp, periodEndDates, reportId, viewI
       for (var i = 0; i < raw.length; i++) rows.push(_rfNormalizeRow(raw[i], colIds));
       var total = section.totalItems || section.totalRows || null;
       if (raw.length < 100 || (total !== null && page * 100 >= total)) break;
+      if (page >= maxPages) { out.truncated = true; out.note = "stopped at maxPages=" + maxPages + " (" + rows.length + " rows); narrow with a filter (brand/search-term/asins) or raise --max-pages"; break; }
       page += 1;
     }
     out.batches.push({ reportingRange: range, reportingDate: periodEnd, rows: rows });
@@ -234,13 +236,16 @@ async function fetchScp(params) {
   if (params.asins && params.asins.length) extra.push({ id: "asins", value: params.asins.join(","), valueType: "ASIN" });
   var res = await _rfDashboardFetch(url, range, mp, params.periodEndDates,
     "brand-catalog-performance-report-table", "brand-catalog-performance-default-view",
-    "impressions-count", false, extra);
+    "impressions-count", false, extra, params.maxPages || 200);
   return Object.assign({ schemaVersion: "amazon-agent.seller-report.v1", report: "scp",
     marketplace: mp, reportingRange: range, capturedAt: new Date().toISOString() }, res);
 }
 
 // ---------------------------------------------------------------- TST (Top Search Terms)
-// params: { marketplace:"us", reportingRange, periodEndDates:[...], asins?:[...], brand?, searchTerm? }
+// params: { marketplace:"us", reportingRange, periodEndDates:[...], asins?:[...], brand?, searchTerm?, maxPages? }
+// NOTE: TST is the whole marketplace's search-term ranking (hundreds of thousands of rows).
+// Unfiltered it is enormous, so it defaults to a small page cap (top ~500). Narrow with
+// brand / searchTerm / asins, or raise maxPages, to go deeper.
 async function fetchTst(params) {
   var base = location.origin;
   var url = base + "/api/brand-analytics/v1/dashboard/top-search-terms/reports";
@@ -250,9 +255,10 @@ async function fetchTst(params) {
   if (params.asins && params.asins.length) extra.push({ id: "asins", value: params.asins.join(","), valueType: "ASIN" });
   if (params.brand) extra.push({ id: "brand-freeform", value: params.brand, valueType: "BRAND" });
   if (params.searchTerm) extra.push({ id: "search-term-freeform", value: params.searchTerm, valueType: "SEARCH_TERM" });
+  var cap = params.maxPages || 5;   // top ~500 rows unless narrowed/overridden
   var res = await _rfDashboardFetch(url, range, mp, params.periodEndDates,
     "top-search-terms-report-table", "top-search-terms-default-view",
-    "st-search-frequency", true, extra);
+    "st-search-frequency", true, extra, cap);
   return Object.assign({ schemaVersion: "amazon-agent.seller-report.v1", report: "tst",
     marketplace: mp, reportingRange: range, capturedAt: new Date().toISOString() }, res);
 }

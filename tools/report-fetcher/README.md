@@ -43,7 +43,10 @@ node tools/report-fetcher/run.mjs tst --weeks <YYYY-MM-DD> --out output/<client>
 ```
 
 Reports: `sqp` (Search Query Performance), `business` (Detail Sales & Traffic), `scp` (Brand
-Catalog Performance), `tst` (Top Search Terms), `all` (every report in the config).
+Catalog Performance), `tst` (Top Search Terms), `all` (every report in the config). **TST is
+the whole marketplace's search-term ranking (hundreds of thousands of rows)** — unfiltered it
+defaults to the top ~500 (5 pages); narrow with `--brand` / `--search-term` / `--asins`, or
+raise `--max-pages`, to go deeper.
 Options: `--range weekly|monthly|quarterly` (SQP/SCP/TST) · `--weeks a,b` (multiple periods) ·
 `--asins a,b` · `--split` (SQP: one file per ASIN instead of one combined file per group) ·
 `--report child|parent|sku` (Business) · `--marketplace us` · `--plan` (print the plan,

@@ -80,6 +80,7 @@ function emit(doc, outPath, verbose, desc) {
   ensureDir(outPath); writeFileSync(outPath, csv);
   const rows = csv.split("\n").filter((l) => l.trim()).length - 1;
   console.log(`OK — ${outPath} (${rows} rows) · ${desc}`);
+  if (doc.truncated) console.log(`   NOTE: ${doc.note}`);
 }
 
 // Build the job list for a report from config and/or flags. Each job:
@@ -114,6 +115,7 @@ function buildJobs(report, cfg, args, mp) {
     if (args.asins || c.asins) p.asins = list(args.asins || c.asins);
     if (args.brand || c.brand) p.brand = args.brand || c.brand;
     if (report === "tst" && (args["search-term"] || c.search_term)) p.searchTerm = args["search-term"] || c.search_term;
+    if (args["max-pages"] || c.max_pages) p.maxPages = Number(args["max-pages"] || c.max_pages);
     const fn = report === "scp" ? "fetchScp" : "fetchTst";
     jobs.push({ report, out, range, weeks, pageUrl: `/brand-analytics/dashboard/${report === "scp" ? "brand-catalog-performance" : "top-search-terms"}`,
       needMetaTag: true, call: `${fn}(${JSON.stringify(p)})`, desc: `${report.toUpperCase()} ${range} ${weeks.join(",")}` });
