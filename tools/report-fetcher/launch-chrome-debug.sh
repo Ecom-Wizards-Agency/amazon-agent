@@ -1,42 +1,29 @@
 #!/usr/bin/env bash
-# Put the DevTools debug port on your NORMAL Chrome (default profile) so the
-# report fetcher uses your ACTIVE Seller Central session — no separate window,
-# no re-login. CDP requires Chrome to be *started* with the flag, so if Chrome is
-# already running this does a GRACEFUL restart of your normal profile: cookies and
-# logins persist (you stay signed in); a Seller Central tab is reopened for you.
+# Launch a DEDICATED debug Chrome for the report fetcher — a separate profile on
+# the DevTools debug port that runs ALONGSIDE your normal Chrome (no need to quit
+# it). Log into Seller Central once in the window that opens; the login persists
+# in this profile for future runs. The debug port is localhost-only.
 #
-# Prefer a throwaway profile instead (no restart, but you log in there once)?
-#   CDP_PROFILE="$HOME/.amazon-agent/chrome-debug" tools/report-fetcher/launch-chrome-debug.sh
+# Why not your normal Chrome profile? Chrome 136+ silently IGNORES
+# --remote-debugging-port on the default user-data-dir (verified on Chrome 149
+# on 2026-07-05: the browser starts fine, the port never opens). A graceful
+# restart of the real profile therefore can NEVER expose CDP — the dedicated
+# profile is the only working path on current Chrome.
 set -euo pipefail
 PORT="${CDP_PORT:-9222}"
+PROFILE="${CDP_PROFILE:-$HOME/.amazon-agent/chrome-debug}"
 CHROME="${CHROME_BIN:-/Applications/Google Chrome.app/Contents/MacOS/Google Chrome}"
-START_URL="https://sellercentral.amazon.com"
+START_URL="${CDP_START_URL:-https://sellercentral.amazon.com}"
 
 if curl -s "http://127.0.0.1:${PORT}/json/version" >/dev/null 2>&1; then
   echo "Debug port ${PORT} already up. Ready → node tools/report-fetcher/run.mjs doctor"
   exit 0
 fi
 
-PROFILE_ARGS=()
-if [ -n "${CDP_PROFILE:-}" ]; then
-  mkdir -p "$CDP_PROFILE"
-  PROFILE_ARGS=(--user-data-dir="$CDP_PROFILE")
-  echo "Dedicated debug profile at $CDP_PROFILE — you'll sign into Seller Central there once."
-else
-  if pgrep -x "Google Chrome" >/dev/null 2>&1; then
-    echo "Restarting your Chrome with the debug port (you stay logged in; Seller Central reopens)…"
-    osascript -e 'quit app "Google Chrome"' >/dev/null 2>&1 || true
-    for _ in $(seq 1 40); do pgrep -x "Google Chrome" >/dev/null 2>&1 || break; sleep 0.5; done
-    sleep 1
-  fi
-fi
-
-"$CHROME" --remote-debugging-port="$PORT" "${PROFILE_ARGS[@]}" \
+mkdir -p "$PROFILE"
+echo "Launching debug Chrome (separate profile at $PROFILE; your normal Chrome is untouched)…"
+"$CHROME" --remote-debugging-port="$PORT" --user-data-dir="$PROFILE" \
   --no-first-run --no-default-browser-check "$START_URL" >/dev/null 2>&1 &
 sleep 2
-if [ -z "${CDP_PROFILE:-}" ]; then
-  echo "Chrome relaunched with your normal profile — still signed into Seller Central."
-else
-  echo "Debug Chrome launched — sign into Seller Central in the new window (persists next time)."
-fi
+echo "Sign into Seller Central in the NEW window (first run only — the login persists in this profile)."
 echo "Next: node tools/report-fetcher/run.mjs doctor"
