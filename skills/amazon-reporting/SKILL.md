@@ -29,18 +29,20 @@ description: Use for Amazon reporting and analytics: Seller Central reports, Ama
 
 Preconditions: connected/internal browser (never headless) on a logged-in `sellercentral.amazon.*` tab; correct account + marketplace confirmed via the browser checkpoint; for SQP, a Brand Analytics page (so the `anti-csrftoken-a2z` meta tag is present).
 
-Hands-off (preferred — one command, needs Chrome on the debug port; an agent with shell/`@computer` can run and troubleshoot this itself):
+Reports: `sqp` (Search Query Performance), `business` (Detail Sales & Traffic), `scp` (Brand Catalog Performance), `tst` (Top Search Terms), `all`. Slash command: `/fetch-reports`. Canonical copy-paste prompt: `tools/report-fetcher/CODEX-PROMPT.md`.
+
+Hands-off (preferred — needs Chrome on the debug port; an agent with shell/`@computer` runs and troubleshoots it). Copy-paste path: fill a per-client config once (`config.TEMPLATE.json` → `config.<client>.json`, gitignored), then a fixed command:
 
 ```bash
-tools/report-fetcher/launch-chrome-debug.sh        # one-time; opens a dedicated debug Chrome — log into Seller Central in it
-node tools/report-fetcher/run.mjs doctor           # verify connection + a logged-in tab
-node tools/report-fetcher/run.mjs sqp --asin B0... --week YYYY-MM-DD --out output/{client}/reporting/sqp_<asin>.csv
-node tools/report-fetcher/run.mjs business --start YYYY-MM-DD --end YYYY-MM-DD --out output/{client}/reporting/business.csv
+tools/report-fetcher/launch-chrome-debug.sh        # one-time; dedicated debug Chrome — log into Seller Central in it
+node tools/report-fetcher/run.mjs doctor           # verify connection + that the profile is signed in
+node tools/report-fetcher/run.mjs all --config tools/report-fetcher/config.<client>.json --plan
+node tools/report-fetcher/run.mjs all --config tools/report-fetcher/config.<client>.json --verbose
 ```
 
-`run.mjs` drives Chrome's real page main world over CDP (uses the existing login, no console paste). Add `--verbose` on a first run to also capture `<out>.raw.json` + column ids for troubleshooting. Full options in `tools/report-fetcher/README.md`.
+Or explicit flags: `run.mjs sqp --asins B0..,B0.. --weeks YYYY-MM-DD --range weekly|monthly|quarterly --out ... [--split]`; `business --start .. --end .. --out ...`; `scp`/`tst --weeks .. --out ...`. SQP fetches one ASIN per call (uncapped SV) and writes one combined file per group (or `--split` per ASIN). `--verbose` captures `<out>.raw.json` + column ids for troubleshooting; `--plan` prints the plan without fetching. Full options in `tools/report-fetcher/README.md`.
 
-Manual fallback (no debug port): `evaluate` the source of `fetch-seller-reports.js` in a logged-in tab, call `fetchSqp({asins, marketplace, reportingRange, periodEndDates})` / `fetchBusinessReport({legacyReportId, startDate, endDate, asins})`, save the JSON, then `node tools/report-fetcher/format-seller-reports.mjs <json> <out.csv>`.
+Manual fallback (no debug port): `evaluate` the source of `fetch-seller-reports.js` in a logged-in tab, call `fetchSqp`/`fetchBusinessReport`/`fetchScp`/`fetchTst`, save the JSON, then `node tools/report-fetcher/format-seller-reports.mjs <json> <out.csv>`.
 
 Then point the consumer config at the CSV: SQP → `inputs.sqp_csvs["<group>"]` (one file per ASIN group; one ASIN per file for uncapped SV); Business → `inputs.business_report_csv`.
 

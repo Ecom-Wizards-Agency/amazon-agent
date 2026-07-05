@@ -213,10 +213,50 @@ function formatBusiness(doc) {
   return toCsv(BR_HEADERS, out);
 }
 
+// SCP / TST have no strict downstream consumer — emit all known columns (id -> label,
+// in order) plus Reporting Date from the batch. Verified against the extension source.
+const SCP_COLS = [
+  ["asin", "ASIN"], ["asin-title", "ASIN Title"], ["category", "Category"],
+  ["impressions-count", "Impressions: Impressions"], ["impression-price", "Impressions: Price (Median)"],
+  ["clicks", "Clicks: Clicks"], ["ctr-clicks", "Clicks: Click Rate (CTR)"], ["click-price", "Clicks: Price (Median)"],
+  ["cart-adds-count", "Cart Adds: Cart Adds"], ["cart-adds-price", "Cart Adds: Price (Median)"],
+  ["purchases-count", "Purchases: Purchases"], ["total-sales-purchases", "Purchases: Search Traffic Sales"],
+  ["conversion-rate", "Purchases: Conversion Rate %"], ["purchase-price", "Purchases: Price (Median)"],
+];
+const TST_COLS = [
+  ["st-search-frequency", "Search Frequency Rank"], ["st-search-term", "Search Term"],
+  ["st-top-brand-1", "Top Clicked Brand #1"], ["st-top-brand-2", "Top Clicked Brand #2"], ["st-top-brand-3", "Top Clicked Brand #3"],
+  ["st-top-category-1", "Top Clicked Category #1"], ["st-top-category-2", "Top Clicked Category #2"], ["st-top-category-3", "Top Clicked Category #3"],
+  ["st-top-asin-1", "Top Clicked Product #1: ASIN"], ["st-top-asin-title-1", "Top Clicked Product #1: Product Title"],
+  ["st-top-asin-click-share-1", "Top Clicked Product #1: Click Share"], ["st-top-asin-conversion-share-1", "Top Clicked Product #1: Conversion Share"],
+  ["st-top-asin-2", "Top Clicked Product #2: ASIN"], ["st-top-asin-title-2", "Top Clicked Product #2: Product Title"],
+  ["st-top-asin-click-share-2", "Top Clicked Product #2: Click Share"], ["st-top-asin-conversion-share-2", "Top Clicked Product #2: Conversion Share"],
+  ["st-top-asin-3", "Top Clicked Product #3: ASIN"], ["st-top-asin-title-3", "Top Clicked Product #3: Product Title"],
+  ["st-top-asin-click-share-3", "Top Clicked Product #3: Click Share"], ["st-top-asin-conversion-share-3", "Top Clicked Product #3: Conversion Share"],
+];
+
+function formatGeneric(doc, colMap) {
+  const headers = ["Reporting Date", ...colMap.map(([, label]) => label)];
+  const out = [];
+  for (const b of doc.batches || []) {
+    for (const row of b.rows || []) {
+      const rec = { "Reporting Date": b.reportingDate || "" };
+      for (const [id, label] of colMap) {
+        const textCol = /ASIN|Title|Term|Category|Brand/i.test(label);
+        rec[label] = textCol ? (row[id] ?? "") : num(row[id]);
+      }
+      out.push(rec);
+    }
+  }
+  return toCsv(headers, out);
+}
+
 export function format(doc) {
   if (doc.error) fail("input JSON carries an error from the fetch: " + doc.error);
   if (doc.report === "sqp") return formatSqp(doc);
   if (doc.report === "business") return formatBusiness(doc);
+  if (doc.report === "scp") return formatGeneric(doc, SCP_COLS);
+  if (doc.report === "tst") return formatGeneric(doc, TST_COLS);
   fail('unknown report type: ' + JSON.stringify(doc.report));
 }
 
@@ -293,7 +333,23 @@ function selfTest() {
   assert(/B0TEST00001/.test(brRow) && /1999.00/.test(brRow) && /Test Manuka Balm 55g/.test(brRow),
     "BR row mismatch: " + brRow);
 
-  console.log("self-test OK — SQP 12/12 headers + row parity; Business headers + row parity");
+  // SCP + TST: rows keyed by column id, Reporting Date from the batch.
+  const scp = { report: "scp", batches: [{ reportingDate: "2026-06-27",
+    rows: [{ "asin": "B0TEST00001", "asin-title": "Test, Balm", "category": "Skin",
+      "impressions-count": "5,000", "clicks": "120", "purchases-count": "18",
+      "total-sales-purchases": "$540.00", "conversion-rate": "15.0%" }] }] };
+  const scpCsv = formatGeneric(scp, SCP_COLS);
+  assert(scpCsv.split("\n")[0] === ["Reporting Date", ...SCP_COLS.map((c) => c[1])].join(","), "SCP header mismatch");
+  assert(/2026-06-27,B0TEST00001,"Test, Balm",Skin,5000/.test(scpCsv.split("\n")[1]), "SCP row mismatch: " + scpCsv.split("\n")[1]);
+
+  const tst = { report: "tst", batches: [{ reportingDate: "2026-06-27",
+    rows: [{ "st-search-frequency": "12", "st-search-term": "manuka balm",
+      "st-top-brand-1": "Acme", "st-top-asin-1": "B0TEST00001", "st-top-asin-click-share-1": "22%" }] }] };
+  const tstCsv = formatGeneric(tst, TST_COLS);
+  assert(tstCsv.split("\n")[0] === ["Reporting Date", ...TST_COLS.map((c) => c[1])].join(","), "TST header mismatch");
+  assert(/2026-06-27,12,manuka balm,Acme/.test(tstCsv.split("\n")[1]), "TST row mismatch: " + tstCsv.split("\n")[1]);
+
+  console.log("self-test OK — SQP 12/12 + Business + SCP + TST headers & row parity");
 }
 
 function assert(cond, msg) { if (!cond) fail("self-test: " + msg); }

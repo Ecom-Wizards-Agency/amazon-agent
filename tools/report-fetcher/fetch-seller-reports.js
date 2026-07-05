@@ -137,61 +137,124 @@ async function _rfPost(url, payload, useCsrf) {
   catch (e) { return { __error: "response was not JSON — likely a login redirect" }; }
 }
 
+// Brand-Analytics range filters for a reporting range + period-END date (YYYY-MM-DD).
+// Verified identical for SQP / SCP / TST. Weekly = one filter; monthly/quarterly add a
+// year companion. Returns an array to spread into filterSelections.
+function _rfRangeFilters(range, periodEnd) {
+  var yyyy = String(periodEnd).slice(0, 4);
+  if (range === "monthly") {
+    return [{ id: "monthly-year", value: yyyy, valueType: null },
+            { id: yyyy + "-month", value: periodEnd, valueType: "monthly" }];
+  }
+  if (range === "quarterly") {
+    return [{ id: "quarterly-year", value: yyyy, valueType: null },
+            { id: yyyy + "-quarter", value: periodEnd, valueType: "quarterly" }];
+  }
+  return [{ id: "weekly-week", value: periodEnd, valueType: "weekly" }];
+}
+
+// Generic Brand-Analytics dashboard fetch (SQP/SCP/TST share the shape): loop each
+// period, page to ceil(totalItems/100), collect reportsV2[0].rows. `extraFilters`
+// are prepended (asin/brand/etc). Returns { columns, batches:[{reportingDate, rows}] }.
+async function _rfDashboardFetch(url, range, mp, periodEndDates, reportId, viewId, sortByColumnId, ascending, extraFilters) {
+  var out = { columns: [], batches: [] };
+  var first = true;
+  for (var pi = 0; pi < periodEndDates.length; pi++) {
+    var periodEnd = periodEndDates[pi];
+    var rows = [];
+    var page = 1;
+    while (true) {
+      if (!first) await _rfPace();
+      first = false;
+      var payload = {
+        filterSelections: (extraFilters || []).concat(
+          [{ id: "reporting-range", value: range, valueType: null }],
+          _rfRangeFilters(range, periodEnd)),
+        reportId: reportId,
+        reportOperations: [{ ascending: ascending, pageNumber: page, pageSize: 100,
+          reportId: reportId, reportType: "TABLE", sortByColumnId: sortByColumnId }],
+        selectedCountries: [mp],
+        viewId: viewId
+      };
+      var r = await _rfPost(url, payload, true);
+      if (r.__error) { out.error = r.__error; return out; }
+      var section = (((r.data || {}).data || {}).reportsV2 || [])[0] || (r.data.reportsV2 || [])[0] || {};
+      var colIds = _rfColumnIds(section);
+      if (colIds.length && !out.columns.length) out.columns = section.columns || section.headers || colIds;
+      var raw = section.rows || [];
+      for (var i = 0; i < raw.length; i++) rows.push(_rfNormalizeRow(raw[i], colIds));
+      var total = section.totalItems || section.totalRows || null;
+      if (raw.length < 100 || (total !== null && page * 100 >= total)) break;
+      page += 1;
+    }
+    out.batches.push({ reportingRange: range, reportingDate: periodEnd, rows: rows });
+  }
+  return out;
+}
+
 // ---------------------------------------------------------------- SQP
-// params: { asins:[...], marketplace:"us", reportingRange:"weekly"|"monthly",
-//           periodEndDates:["YYYY-MM-DD", ...] }  (dates are period-END Saturday, LA time)
+// params: { asins:[...], marketplace:"us", reportingRange:"weekly"|"monthly"|"quarterly",
+//           periodEndDates:["YYYY-MM-DD", ...] }  (dates are period-END, LA time)
 // Payload verified against Amazon's report API (reconciled to the manual UI export).
 async function fetchSqp(params) {
   var base = location.origin;
   var url = base + "/api/brand-analytics/v1/dashboard/query-performance/reports";
   var range = (params.reportingRange || "weekly").toLowerCase();
   var mp = (params.marketplace || "us").toLowerCase();       // lowercase country code
-  var rangeIdByRange = { weekly: "weekly-week", monthly: "monthly-month", quarterly: "quarterly-quarter" };
   var out = {
     schemaVersion: "amazon-agent.seller-report.v1", report: "sqp",
     marketplace: mp, reportingRange: range,
     capturedAt: new Date().toISOString(), columns: [], batches: []
   };
-  var first = true;
+  // one single-ASIN pass per ASIN → uncapped SV (better than Amazon's multi-ASIN grid)
   for (var ai = 0; ai < params.asins.length; ai++) {
     var asin = params.asins[ai];
-    for (var pi = 0; pi < params.periodEndDates.length; pi++) {
-      var periodEnd = params.periodEndDates[pi];
-      var rows = [];
-      var page = 1;
-      while (true) {
-        if (!first) await _rfPace();
-        first = false;
-        var payload = {
-          filterSelections: [
-            { id: "asin", value: asin, valueType: "ASIN" },
-            { id: "reporting-range", value: range, valueType: null },
-            { id: rangeIdByRange[range], value: periodEnd, valueType: range }
-          ],
-          reportId: "query-performance-asin-report-table",
-          reportOperations: [{
-            ascending: true, pageNumber: page, pageSize: 100,
-            reportId: "query-performance-asin-report-table", reportType: "TABLE",
-            sortByColumnId: "qp-asin-query-rank"
-          }],
-          selectedCountries: [mp],
-          viewId: "query-performance-asin-view"
-        };
-        var r = await _rfPost(url, payload, true);
-        if (r.__error) { out.error = r.__error; return out; }
-        var section = (((r.data || {}).data || {}).reportsV2 || [])[0] || (r.data.reportsV2 || [])[0] || {};
-        var colIds = _rfColumnIds(section);
-        if (colIds.length && !out.columns.length) out.columns = section.columns || section.headers || colIds;
-        var raw = section.rows || [];
-        for (var i = 0; i < raw.length; i++) rows.push(_rfNormalizeRow(raw[i], colIds));
-        var total = section.totalItems || section.totalRows || null;
-        if (raw.length < 100 || (total !== null && page * 100 >= total)) break;
-        page += 1;
-      }
-      out.batches.push({ asin: asin, reportingRange: range, reportingDate: periodEnd, rows: rows });
+    var res = await _rfDashboardFetch(url, range, mp, params.periodEndDates,
+      "query-performance-asin-report-table", "query-performance-asin-view",
+      "qp-asin-query-rank", true, [{ id: "asin", value: asin, valueType: "ASIN" }]);
+    if (res.error) { out.error = res.error; return out; }
+    if (!out.columns.length) out.columns = res.columns;
+    for (var bi = 0; bi < res.batches.length; bi++) {
+      out.batches.push({ asin: asin, reportingRange: range,
+        reportingDate: res.batches[bi].reportingDate, rows: res.batches[bi].rows });
     }
   }
   return out;
+}
+
+// ---------------------------------------------------------------- SCP (Brand Catalog Performance)
+// params: { marketplace:"us", reportingRange, periodEndDates:[...], asins?:[...], brand?:"<brand id>" }
+async function fetchScp(params) {
+  var base = location.origin;
+  var url = base + "/api/brand-analytics/v1/dashboard/brand-catalog-performance/reports";
+  var range = (params.reportingRange || "weekly").toLowerCase();
+  var mp = (params.marketplace || "us").toLowerCase();
+  var extra = [];
+  if (params.brand) extra.push({ id: "brand", value: params.brand, valueType: null });
+  if (params.asins && params.asins.length) extra.push({ id: "asins", value: params.asins.join(","), valueType: "ASIN" });
+  var res = await _rfDashboardFetch(url, range, mp, params.periodEndDates,
+    "brand-catalog-performance-report-table", "brand-catalog-performance-default-view",
+    "impressions-count", false, extra);
+  return Object.assign({ schemaVersion: "amazon-agent.seller-report.v1", report: "scp",
+    marketplace: mp, reportingRange: range, capturedAt: new Date().toISOString() }, res);
+}
+
+// ---------------------------------------------------------------- TST (Top Search Terms)
+// params: { marketplace:"us", reportingRange, periodEndDates:[...], asins?:[...], brand?, searchTerm? }
+async function fetchTst(params) {
+  var base = location.origin;
+  var url = base + "/api/brand-analytics/v1/dashboard/top-search-terms/reports";
+  var range = (params.reportingRange || "weekly").toLowerCase();
+  var mp = (params.marketplace || "us").toLowerCase();
+  var extra = [];
+  if (params.asins && params.asins.length) extra.push({ id: "asins", value: params.asins.join(","), valueType: "ASIN" });
+  if (params.brand) extra.push({ id: "brand-freeform", value: params.brand, valueType: "BRAND" });
+  if (params.searchTerm) extra.push({ id: "search-term-freeform", value: params.searchTerm, valueType: "SEARCH_TERM" });
+  var res = await _rfDashboardFetch(url, range, mp, params.periodEndDates,
+    "top-search-terms-report-table", "top-search-terms-default-view",
+    "st-search-frequency", true, extra);
+  return Object.assign({ schemaVersion: "amazon-agent.seller-report.v1", report: "tst",
+    marketplace: mp, reportingRange: range, capturedAt: new Date().toISOString() }, res);
 }
 
 // ------------------------------------------------------- Business Reports
@@ -241,4 +304,6 @@ async function fetchBusinessReport(params) {
 try {
   window.amazonAgentFetchSqp = fetchSqp;
   window.amazonAgentFetchBusinessReport = fetchBusinessReport;
+  window.amazonAgentFetchScp = fetchScp;
+  window.amazonAgentFetchTst = fetchTst;
 } catch (e) { /* non-extensible window in some evaluate contexts — path A is used instead */ }

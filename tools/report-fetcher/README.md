@@ -23,19 +23,34 @@ tools/report-fetcher/launch-chrome-debug.sh      # opens the dedicated debug Chr
 node tools/report-fetcher/run.mjs doctor         # confirms the connection + a logged-in tab
 ```
 
-Then fetch:
+Then fetch. **Copy-paste path — fill a per-client config once, then a fixed command** (copy
+`config.TEMPLATE.json` → `config.<client>.json`, gitignored, and fill ASIN groups / dates):
 
 ```bash
-node tools/report-fetcher/run.mjs sqp --asin B0GF8LG5JV --week 2026-06-27 \
-  --out output/<client>/reporting/sqp_<asin>.csv
-node tools/report-fetcher/run.mjs business --start 2026-06-01 --end 2026-06-30 \
-  --out output/<client>/reporting/business.csv
+node tools/report-fetcher/run.mjs all --config tools/report-fetcher/config.<client>.json --plan     # show the plan
+node tools/report-fetcher/run.mjs all --config tools/report-fetcher/config.<client>.json --verbose  # fetch everything
 ```
 
-Options: `--weeks a,b` (multiple SQP weeks) · `--asins a,b` · `--report child|parent|sku`
-(Business) · `--marketplace us` · `--verbose` (also writes `<out>.raw.json` and prints the
-column ids — use this to troubleshoot a first run). The runner opens its own temporary tab,
-runs the fetch, writes the CSV, and closes the tab; it never disturbs your other tabs.
+Or explicit flags (no config):
+
+```bash
+node tools/report-fetcher/run.mjs sqp --asins <ASIN>,<ASIN> --weeks <YYYY-MM-DD> --range weekly \
+  --out output/<client>/reporting/sqp.csv [--split]
+node tools/report-fetcher/run.mjs business --start <YYYY-MM-DD> --end <YYYY-MM-DD> \
+  --out output/<client>/reporting/business.csv
+node tools/report-fetcher/run.mjs scp --weeks <YYYY-MM-DD> --out output/<client>/reporting/scp.csv
+node tools/report-fetcher/run.mjs tst --weeks <YYYY-MM-DD> --out output/<client>/reporting/tst.csv
+```
+
+Reports: `sqp` (Search Query Performance), `business` (Detail Sales & Traffic), `scp` (Brand
+Catalog Performance), `tst` (Top Search Terms), `all` (every report in the config).
+Options: `--range weekly|monthly|quarterly` (SQP/SCP/TST) · `--weeks a,b` (multiple periods) ·
+`--asins a,b` · `--split` (SQP: one file per ASIN instead of one combined file per group) ·
+`--report child|parent|sku` (Business) · `--marketplace us` · `--plan` (print the plan,
+fetch nothing) · `--verbose` (also writes `<out>.raw.json` + column ids — troubleshoot a
+first run). Each SQP ASIN is fetched with a single-ASIN call (uncapped Search Query Volume).
+The runner opens its own background tab, writes the CSV, closes the tab; it never disturbs
+your other tabs. The canonical copy-paste Codex prompt is in `CODEX-PROMPT.md`.
 
 First-run troubleshooting (an agent can do this itself): `run.mjs doctor` checks the
 connection; `--verbose` captures the raw response + column ids; if the formatter can't map a

@@ -1,24 +1,41 @@
 {
-  "_README": "TEMPLATE — copy to config.<client>-<market>.json (gitignored) for per-client defaults. All fields optional; the agent may pass any of these as params instead. Marketplace is the country code used in the report payload (US, DE, IT, UK, ...). See README.md.",
+  "_README": "TEMPLATE — copy to config.<client>-<market>.json (gitignored) for per-client defaults. Then a fixed command runs everything: node tools/report-fetcher/run.mjs all --config <this>. All fields optional; any can be passed as a --flag instead. marketplace = lowercase country code (us, de, it, uk, ...). See README.md.",
   "client": "<client slug, lowercase-kebab>",
-  "marketplace": "US",
+  "marketplace": "us",
   "sqp": {
-    "_comment": "One entry per ASIN group => one CSV file per group (matches inputs.sqp_csvs in the ad-audit config). reporting_range: weekly|monthly. period_end_dates: period-END dates YYYY-MM-DD (America/Los_Angeles), e.g. week-ending Saturdays.",
+    "_comment": "One entry per ASIN group. Each group => one combined CSV (rows tagged by ASIN — a valid inputs.sqp_csvs group file), or one file per ASIN when split=true. Each ASIN is fetched with a single-ASIN call (uncapped SV). reporting_range: weekly|monthly|quarterly. period_end_dates: period-END dates YYYY-MM-DD (weekly = week-ending Saturday; monthly/quarterly = last day of the period), America/Los_Angeles.",
     "reporting_range": "weekly",
+    "period_end_dates": ["<YYYY-MM-DD>", "<YYYY-MM-DD>"],
     "asin_groups": {
       "<Product line A>": ["<ASIN>", "<ASIN>"],
       "<Product line B>": ["<ASIN>"]
     },
-    "period_end_dates": ["<YYYY-MM-DD>", "<YYYY-MM-DD>"],
-    "out_dir": "downloads/<client>/reporting/"
+    "split": false,
+    "out_dir": "output/<client>/reporting/"
   },
   "business_report": {
-    "_comment": "legacy_report_id: 102:DetailSalesTrafficByChildItem (child ASIN — default) | ...ByParentItem | ...BySKU | 102:SalesTrafficTimeSeries. granularity DAY|WEEK|MONTH. asins optional (omit for account-wide).",
+    "_comment": "legacy_report_id: 102:DetailSalesTrafficByChildItem (child ASIN — default) | ...ByParentItem | ...BySKU | 102:SalesTrafficTimeSeries. asins optional (omit/[] for all child ASINs).",
     "legacy_report_id": "102:DetailSalesTrafficByChildItem",
-    "granularity": "MONTH",
     "start_date": "<YYYY-MM-DD>",
     "end_date": "<YYYY-MM-DD>",
     "asins": [],
-    "out": "downloads/<client>/reporting/<date>_business-report.csv"
+    "out": "output/<client>/reporting/business_<YYYY-MM>.csv"
+  },
+  "scp": {
+    "_comment": "Brand Catalog Performance. brand = brand id (from Brand Analytics); asins optional. Standalone CSV (not consumed by the audit builders).",
+    "reporting_range": "weekly",
+    "period_end_dates": ["<YYYY-MM-DD>"],
+    "brand": "<optional brand id>",
+    "asins": [],
+    "out": "output/<client>/reporting/scp.csv"
+  },
+  "tst": {
+    "_comment": "Top Search Terms. Optional brand / search_term / asins filters. Standalone CSV.",
+    "reporting_range": "weekly",
+    "period_end_dates": ["<YYYY-MM-DD>"],
+    "brand": "<optional brand>",
+    "search_term": "<optional search term>",
+    "asins": [],
+    "out": "output/<client>/reporting/tst.csv"
   }
 }
