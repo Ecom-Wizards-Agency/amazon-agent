@@ -29,10 +29,19 @@ description: Use for Amazon reporting and analytics: Seller Central reports, Ama
 
 Preconditions: connected/internal browser (never headless) on a logged-in `sellercentral.amazon.*` tab; correct account + marketplace confirmed via the browser checkpoint; for SQP, a Brand Analytics page (so the `anti-csrftoken-a2z` meta tag is present).
 
-Sequence (details + params in `tools/report-fetcher/README.md`):
+Hands-off (preferred — one command, needs Chrome on the debug port; an agent with shell/`@computer` can run and troubleshoot this itself):
 
-1. `evaluate` the source of `tools/report-fetcher/fetch-seller-reports.js`, then call `fetchSqp({asins, marketplace, reportingRange, periodEndDates})` or `fetchBusinessReport({legacyReportId, granularity, startDate, endDate, asins?})`. Save the returned JSON.
-2. `node tools/report-fetcher/format-seller-reports.mjs <json> output/{client}/reporting/<file>.csv`.
-3. Point the consumer config at it: SQP → `inputs.sqp_csvs["<group>"]` (one file per ASIN group; one ASIN per file for uncapped SV); Business → `inputs.business_report_csv`.
+```bash
+tools/report-fetcher/launch-chrome-debug.sh        # one-time; quit Chrome first, then log into Seller Central
+node tools/report-fetcher/run.mjs doctor           # verify connection + a logged-in tab
+node tools/report-fetcher/run.mjs sqp --asin B0... --week YYYY-MM-DD --out output/{client}/reporting/sqp_<asin>.csv
+node tools/report-fetcher/run.mjs business --start YYYY-MM-DD --end YYYY-MM-DD --out output/{client}/reporting/business.csv
+```
+
+`run.mjs` drives Chrome's real page main world over CDP (uses the existing login, no console paste). Add `--verbose` on a first run to also capture `<out>.raw.json` + column ids for troubleshooting. Full options in `tools/report-fetcher/README.md`.
+
+Manual fallback (no debug port): `evaluate` the source of `fetch-seller-reports.js` in a logged-in tab, call `fetchSqp({asins, marketplace, reportingRange, periodEndDates})` / `fetchBusinessReport({legacyReportId, startDate, endDate, asins})`, save the JSON, then `node tools/report-fetcher/format-seller-reports.mjs <json> <out.csv>`.
+
+Then point the consumer config at the CSV: SQP → `inputs.sqp_csvs["<group>"]` (one file per ASIN group; one ASIN per file for uncapped SV); Business → `inputs.business_report_csv`.
 
 Rules: read-only (report reads only); reads only the page's own anti-CSRF meta tag, never cookies/passwords/session storage/tokens (see the Safety Rules carve-out in `AGENTS.md`); ~5 s between requests. If there is no active session or the evaluate can't fire, land nothing and ask the operator to open/refresh the tab — never fabricate rows. Runs under whichever agent drives the browser (Codex internal browser or Claude connected Chrome).

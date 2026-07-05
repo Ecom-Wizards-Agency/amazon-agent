@@ -1,16 +1,53 @@
 # Seller Central Report Fetcher — Business Reports + SQP
 
 Pull **Business Reports** (Detail Page Sales & Traffic) and **Search Query Performance**
-(SQP) straight from Seller Central's own report APIs, in the operator's logged-in browser
-tab — no clicking through the UI, no manual downloads. Output CSVs drop straight into the
-ad-audit pipeline (`build_sqp_workbook.py`, `analyze_audit.py`).
+(SQP) straight from Seller Central's own report APIs, using the operator's logged-in
+session — no clicking through the UI, no manual downloads. Output CSVs drop straight into
+the ad-audit pipeline (`build_sqp_workbook.py`, `analyze_audit.py`). Live-reconciled: the
+fetched CSVs match the manual Seller Central export to the penny.
+
+## Hands-off (one command, via Chrome's debug protocol)
+
+The runner drives Chrome's REAL page main world over the DevTools Protocol (CDP), so it
+uses your existing login — no console paste, no browser-evaluate sandbox. Any agent with
+shell access (Codex `@computer`) can run it.
+
+One-time setup — launch Chrome with the debug port (uses your normal profile, so the
+Seller Central login carries over):
+
+```bash
+tools/report-fetcher/launch-chrome-debug.sh     # quit Chrome fully first
+node tools/report-fetcher/run.mjs doctor         # confirms the connection + a logged-in tab
+```
+
+Then fetch:
+
+```bash
+node tools/report-fetcher/run.mjs sqp --asin B0GF8LG5JV --week 2026-06-27 \
+  --out output/<client>/reporting/sqp_<asin>.csv
+node tools/report-fetcher/run.mjs business --start 2026-06-01 --end 2026-06-30 \
+  --out output/<client>/reporting/business.csv
+```
+
+Options: `--weeks a,b` (multiple SQP weeks) · `--asins a,b` · `--report child|parent|sku`
+(Business) · `--marketplace us` · `--verbose` (also writes `<out>.raw.json` and prints the
+column ids — use this to troubleshoot a first run). The runner opens its own temporary tab,
+runs the fetch, writes the CSV, and closes the tab; it never disturbs your other tabs.
+
+First-run troubleshooting (an agent can do this itself): `run.mjs doctor` checks the
+connection; `--verbose` captures the raw response + column ids; if the formatter can't map a
+column it exits non-zero and lists the source columns it saw (a one-line map tweak in
+`format-seller-reports.mjs`).
+
+## Under the hood (also runnable by console paste)
 
 Two parts, following the house pattern (`extract-amazon-listing-copy.js`):
 
-1. `fetch-seller-reports.js` — runs in the connected/internal browser on a logged-in
-   `sellercentral.amazon.*` tab; returns report JSON.
+1. `fetch-seller-reports.js` — runs in the page main world on a logged-in
+   `sellercentral.amazon.*` tab; returns report JSON. (The runner injects it via CDP; you
+   can also paste it into the DevTools console directly.)
 2. `format-seller-reports.mjs` — local Node; converts that JSON to the exact CSV headers
-   the builders read.
+   the builders read. `cdp.mjs` + `run.mjs` are the CDP driver + CLI.
 
 ## How it works (and why it's safe)
 

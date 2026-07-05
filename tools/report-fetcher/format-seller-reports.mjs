@@ -212,7 +212,7 @@ function formatBusiness(doc) {
   return toCsv(BR_HEADERS, out);
 }
 
-function format(doc) {
+export function format(doc) {
   if (doc.error) fail("input JSON carries an error from the fetch: " + doc.error);
   if (doc.report === "sqp") return formatSqp(doc);
   if (doc.report === "business") return formatBusiness(doc);
