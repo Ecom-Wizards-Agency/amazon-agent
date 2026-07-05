@@ -33,15 +33,27 @@ const attached = new Set();
 const distinct = new Set();
 const wantUrl = (u) => /sellercentral\.amazon\./.test(u) && (!rx || rx.test(u));
 
+const ALL_TYPES = process.argv.includes("--all-types");
+const downloads = [];
+
 async function attach(page) {
   if (attached.has(page.id)) return;
   attached.add(page.id);
   let s;
   try { s = await Session.open(page.webSocketDebuggerUrl); } catch { attached.delete(page.id); return; }
   await s.send("Network.enable", { maxPostDataSize: 65536 });
+  await s.send("Page.enable").catch(() => {});
+  await s.send("Page.setDownloadBehavior", { behavior: "default" }).catch(() => {});
+  // A file download fires downloadWillBegin with the real URL — the reliable way to
+  // catch report downloads (they aren't plain XHRs).
+  s.subscribe("Page.downloadWillBegin", (p) => {
+    if (!p || !p.url) return;
+    downloads.push({ url: p.url, suggestedFilename: p.suggestedFilename });
+    console.log(`  DOWNLOAD ${p.suggestedFilename || ""}\n    ${p.url}`);
+  });
   s.subscribe("Network.requestWillBeSent", (p) => {
     const t = p.type || "", m = (p.request && p.request.method) || "";
-    if (!(t === "XHR" || t === "Fetch" || m === "POST")) return;
+    if (!ALL_TYPES && !(t === "XHR" || t === "Fetch" || m === "POST")) return;
     if (!wantUrl(p.request.url)) return;
     seen.set(p.requestId, { type: t, method: m, url: p.request.url, postData: p.request.postData || null });
   });
@@ -79,8 +91,8 @@ async function main() {
 
   const records = [...seen.values()].filter((r) => r.status !== undefined);
   mkdirSync(dirname(OUT), { recursive: true });
-  writeFileSync(OUT, JSON.stringify(records, null, 1));
-  console.log(`\nDone — ${records.length} request(s), ${distinct.size} distinct endpoint(s) → ${OUT}`);
+  writeFileSync(OUT, JSON.stringify({ requests: records, downloads }, null, 1));
+  console.log(`\nDone — ${records.length} request(s), ${distinct.size} distinct endpoint(s), ${downloads.length} download(s) → ${OUT}`);
 }
 
 main().catch((e) => { console.error("ERROR:", e.message); process.exit(1); });
