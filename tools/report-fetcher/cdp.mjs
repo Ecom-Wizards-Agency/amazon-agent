@@ -46,9 +46,20 @@ export class Session {
       } else if (msg.method) {
         s.events.push(msg);
         for (const w of s._waiters || []) if (w.method === msg.method) w.resolve(msg);
+        const subs = s._subs || {};
+        for (const fn of [...(subs[msg.method] || []), ...(subs["*"] || [])]) {
+          try { fn(msg.params, msg.method); } catch (_) { /* subscriber errors must not kill the socket */ }
+        }
       }
     };
     return s;
+  }
+
+  // Streaming event hook (used by long-running listeners, e.g. the POE endpoint
+  // discovery logger). `method` may be "*" for all events.
+  subscribe(method, fn) {
+    this._subs = this._subs || {};
+    (this._subs[method] = this._subs[method] || []).push(fn);
   }
 
   send(method, params = {}) {
@@ -78,7 +89,9 @@ export class Session {
 export async function createPage(url) {
   const ver = await httpJson("/json/version");
   const browser = await Session.open(ver.webSocketDebuggerUrl);
-  const { targetId } = await browser.send("Target.createTarget", { url });
+  // background: true keeps the temp tab from stealing focus / flashing to the
+  // front while the operator is using the debug window (e.g. logging in).
+  const { targetId } = await browser.send("Target.createTarget", { url, background: true });
   browser.close();
   // find the new target's page WS
   for (let i = 0; i < 40; i++) {
