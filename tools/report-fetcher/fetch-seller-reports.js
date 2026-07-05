@@ -75,7 +75,8 @@ function _rfColumnIds(section) {
   var cols = (section && (section.columns || section.headers)) || [];
   return cols.map(function (c) {
     if (typeof c === "string") return c;
-    return c.id || c.columnId || c.key || c.name || "";
+    // translationKey is the id Business-Report rows are keyed/aligned by (SC_MA_*).
+    return c.id || c.columnId || c.translationKey || c.key || c.name || "";
   });
 }
 
@@ -137,16 +138,18 @@ async function _rfPost(url, payload, useCsrf) {
 }
 
 // ---------------------------------------------------------------- SQP
-// params: { asins:[...], marketplace:"US", reportingRange:"weekly"|"monthly",
-//           periodEndDates:["YYYY-MM-DD", ...] }  (dates are period-END, LA time)
+// params: { asins:[...], marketplace:"us", reportingRange:"weekly"|"monthly",
+//           periodEndDates:["YYYY-MM-DD", ...] }  (dates are period-END Saturday, LA time)
+// Payload verified against Amazon's report API (reconciled to the manual UI export).
 async function fetchSqp(params) {
   var base = location.origin;
   var url = base + "/api/brand-analytics/v1/dashboard/query-performance/reports";
-  var range = params.reportingRange || "weekly";
+  var range = (params.reportingRange || "weekly").toLowerCase();
+  var mp = (params.marketplace || "us").toLowerCase();       // lowercase country code
   var rangeIdByRange = { weekly: "weekly-week", monthly: "monthly-month", quarterly: "quarterly-quarter" };
   var out = {
     schemaVersion: "amazon-agent.seller-report.v1", report: "sqp",
-    marketplace: params.marketplace || "", reportingRange: range,
+    marketplace: mp, reportingRange: range,
     capturedAt: new Date().toISOString(), columns: [], batches: []
   };
   var first = true;
@@ -162,13 +165,17 @@ async function fetchSqp(params) {
         var payload = {
           filterSelections: [
             { id: "asin", value: asin, valueType: "ASIN" },
-            { id: "reporting-range", value: range },
-            { id: rangeIdByRange[range], value: periodEnd }
+            { id: "reporting-range", value: range, valueType: null },
+            { id: rangeIdByRange[range], value: periodEnd, valueType: range }
           ],
           reportId: "query-performance-asin-report-table",
-          viewId: "query-performance-asin-view",
-          reportOperations: [{ pageNumber: page, pageSize: 100, reportType: "TABLE" }],
-          selectedCountries: [params.marketplace]
+          reportOperations: [{
+            ascending: true, pageNumber: page, pageSize: 100,
+            reportId: "query-performance-asin-report-table", reportType: "TABLE",
+            sortByColumnId: "qp-asin-query-rank"
+          }],
+          selectedCountries: [mp],
+          viewId: "query-performance-asin-view"
         };
         var r = await _rfPost(url, payload, true);
         if (r.__error) { out.error = r.__error; return out; }
@@ -196,26 +203,29 @@ async function fetchSqp(params) {
 async function fetchBusinessReport(params) {
   var base = location.origin;
   var url = base + "/business-reports/api";
-  var query = "query getReportData($input: GetReportDataInput!) {" +
-    " getReportData(input: $input) { rows columns hasNext page granularity size } }";
+  // `columns` needs a sub-selection (it is an object type); `rows` is a scalar
+  // (positional arrays). Query + input verified against Amazon's API.
+  var query = "query reportDataQuery($input:GetReportDataInput){getReportData(input:$input){" +
+    "granularity hadPrevious hasNext size startDate endDate page " +
+    "columns{label valueFormat isGraphable translationKey isDefaultSortAscending " +
+    "isDefaultGraphed isDefaultSelected isDefaultSortColumn __typename} rows __typename}}";
   var out = {
     schemaVersion: "amazon-agent.seller-report.v1", report: "business",
-    legacyReportId: params.legacyReportId, capturedAt: new Date().toISOString(),
-    columns: [], batches: [{ rows: [] }]
+    legacyReportId: params.legacyReportId || "102:DetailSalesTrafficByChildItem",
+    capturedAt: new Date().toISOString(), columns: [], batches: [{ rows: [] }]
   };
-  var page = 1, first = true;
+  var page = 0, first = true;   // Business Reports page counter is 0-indexed
   while (true) {
     if (!first) await _rfPace();
     first = false;
     var input = {
+      asins: params.asins || [],
       startDate: params.startDate, endDate: params.endDate,
-      granularity: params.granularity || "MONTH",
       legacyReportId: params.legacyReportId || "102:DetailSalesTrafficByChildItem",
       page: page
     };
-    if (params.asins && params.asins.length) input.asins = params.asins;
-    // Business Reports GraphQL is same-origin; Origin/Referer suffice, no CSRF header.
-    var r = await _rfPost(url, { query: query, variables: { input: input } }, false);
+    // Same-origin: Origin/Referer are set by the browser; no CSRF header needed here.
+    var r = await _rfPost(url, { operationName: "reportDataQuery", query: query, variables: { input: input } }, false);
     if (r.__error) { out.error = r.__error; return out; }
     var section = ((r.data || {}).data || {}).getReportData || {};
     var colIds = _rfColumnIds(section);

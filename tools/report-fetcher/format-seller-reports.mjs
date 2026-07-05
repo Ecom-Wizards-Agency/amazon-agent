@@ -62,13 +62,45 @@ const BR_MATCH = [
   ["Total Order Items", (s) => /order.?item/.test(s)],
 ];
 
-const REQUIRED_SQP = new Set(SQP_HEADERS.filter((h) => h !== "Reporting Date"));
+// Exact source-column-id -> target-header maps (verified against Amazon's report
+// API). Applied before the semantic fallback so mapping is deterministic.
+const SQP_EXACT = {
+  "qp-asin-query": "Search Query",
+  "qp-asin-query-volume": "Search Query Volume",
+  "qp-asin-impressions": "Impressions: Total Count",
+  "qp-asin-count-impressions": "Impressions: ASIN Count",
+  "qp-asin-clicks": "Clicks: Total Count",
+  "qp-asin-count-clicks": "Clicks: ASIN Count",
+  "qp-asin-cart-adds": "Cart Adds: Total Count",
+  "qp-asin-count-cart-adds": "Cart Adds: ASIN Count",
+  "qp-asin-purchases": "Purchases: Total Count",
+  "qp-asin-count-purchases": "Purchases: ASIN Count",
+  "asin": "ASIN",
+};
+const BR_EXACT = {
+  "SC_MA_ParentASIN_25990": "(Parent) ASIN",
+  "SC_MA_ChildASIN_25991": "(Child) ASIN",
+  "sc_mat-ss_colDef_title": "Title",
+  "SC_MA_SKU_25959": "SKU",
+  "SC_MA_Sessions_Total": "Sessions - Total",
+  "SC_MA_SessionPercentage_Total": "Session Percentage - Total",
+  "SC_MA_PageViews_Total": "Page Views - Total",
+  "SC_MA_BuyBoxPercentage_25956": "Featured Offer (Buy Box) Percentage",
+  "SC_MA_UnitsOrdered_40590": "Units Ordered",
+  "SC_MA_UnitSessionPercentage_25957": "Unit Session Percentage",
+  "SC_MA_OrderedProductSales_40591": "Ordered Product Sales",
+  "SC_MA_TotalOrderItems_1": "Total Order Items",
+};
+
+// ASIN + Reporting Date come from the batch (Amazon returns neither as a column).
+const REQUIRED_SQP = new Set(SQP_HEADERS.filter((h) => h !== "Reporting Date" && h !== "ASIN"));
 const REQUIRED_BR = new Set(["(Child) ASIN", "Ordered Product Sales", "Units Ordered",
   "Sessions - Total", "Unit Session Percentage", "Featured Offer (Buy Box) Percentage"]);
 
 function colId(col) {
   if (typeof col === "string") return col;
-  return col.id || col.columnId || col.key || col.name || "";
+  // translationKey is the id Business-Report rows are keyed by (SC_MA_*).
+  return col.id || col.columnId || col.translationKey || col.key || col.name || "";
 }
 
 // The text we keyword-match against. Prefer a human label — the raw ids carry a
@@ -88,10 +120,13 @@ function colKey(col) {
     .filter(Boolean).join(" ");
 }
 
-function buildMap(columns, rules) {
-  // columns: source column descriptors (string or object) -> { targetHeader: sourceColumnId }
+function buildMap(columns, rules, exact) {
+  // { targetHeader: sourceColumnId } — exact id map first, semantic fallback second.
   const map = {};
   const ids = columns.map(colId);
+  if (exact) {
+    for (const id of ids) if (exact[id]) map[exact[id]] = id;
+  }
   const hay = columns.map(colHaystack);
   for (const [target, test] of rules) {
     if (map[target]) continue;
@@ -120,9 +155,19 @@ function toCsv(headers, rows) {
   return lines.join("\n") + "\n";
 }
 
-function formatSqp(doc) {
+// Rows may arrive keyed by column id with no separate columns array (SQP). Fall
+// back to the union of row keys so the id maps still resolve.
+function columnsFrom(doc) {
   const cols = doc.columns || [];
-  const map = buildMap(cols, SQP_MATCH);
+  if (cols.length) return cols;
+  const seen = new Set();
+  for (const b of doc.batches || []) for (const r of b.rows || []) for (const k in r) seen.add(k);
+  return [...seen];
+}
+
+function formatSqp(doc) {
+  const cols = columnsFrom(doc);
+  const map = buildMap(cols, SQP_MATCH, SQP_EXACT);
   const missing = [...REQUIRED_SQP].filter((h) => !map[h]);
   if (missing.length) {
     fail("SQP: could not map required columns " + JSON.stringify(missing) +
@@ -146,8 +191,8 @@ function formatSqp(doc) {
 }
 
 function formatBusiness(doc) {
-  const cols = doc.columns || [];
-  const map = buildMap(cols, BR_MATCH);
+  const cols = columnsFrom(doc);
+  const map = buildMap(cols, BR_MATCH, BR_EXACT);
   const missing = [...REQUIRED_BR].filter((h) => !map[h]);
   if (missing.length) {
     fail("Business: could not map required columns " + JSON.stringify(missing) +
