@@ -21,7 +21,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { assertChrome, listPages, createPage, closePage, evaluate } from "./cdp.mjs";
+import { assertChrome, listPages, createPage, closePage, evaluate, Session } from "./cdp.mjs";
 import { format } from "./format-seller-reports.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -76,8 +76,21 @@ async function main() {
     console.log("Chrome:", v.Browser, "| debug port reachable");
     const pages = await listPages();
     const sc = pages.filter((p) => /sellercentral\.amazon\./.test(p.url || ""));
-    console.log(`Seller Central tabs: ${sc.length}` + (sc.length ? " → " + sc.map((p) => new URL(p.url).host).join(", ") : " (none — open Seller Central and log in)"));
-    process.exit(sc.length ? 0 : 1);
+    if (!sc.length) {
+      console.log("Seller Central: no tab found — open https://sellercentral.amazon.com in the debug window and sign in.");
+      process.exit(1);
+    }
+    // Actively verify the debug profile is SIGNED IN (not sitting on a login page).
+    const s = await Session.open(sc[0].webSocketDebuggerUrl);
+    let st;
+    try {
+      st = await evaluate(s, `(function(){return {url:location.href,title:document.title,` +
+        `signin:/signin|ap\\/signin|authportal|\\/account-picker|\\/ax\\//i.test(location.href)||/sign[- ]?in/i.test(document.title)};})()`);
+    } finally { s.close(); }
+    console.log(`Seller Central: ${sc.length} tab(s) → ${new URL(sc[0].url).host}`);
+    if (st && !st.signin) { console.log("Login: OK — session is active. Ready to fetch."); process.exit(0); }
+    console.log("Login: NOT signed in (on a sign-in page). Sign into Seller Central in the debug window, then re-run doctor.");
+    process.exit(1);
   }
 
   if (!args.out) die("missing --out <path.csv>");
