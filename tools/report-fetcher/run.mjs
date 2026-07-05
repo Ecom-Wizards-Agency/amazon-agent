@@ -51,7 +51,7 @@ async function findSellerCentralOrigin() {
 async function waitReady(session, needMetaTag) {
   for (let i = 0; i < 100; i++) {
     const ok = await evaluate(session,
-      `(function(){return document.readyState==='complete' && (${needMetaTag ? "!!document.querySelector('meta[name=\\'anti-csrftoken-a2z\\']')" : "true"});})()`);
+      `(function(){return /^https?:/.test(location.href) && document.readyState==='complete' && (${needMetaTag ? "!!document.querySelector('meta[name=\\'anti-csrftoken-a2z\\']')" : "true"});})()`);
     if (ok) return;
     await new Promise((r) => setTimeout(r, 200));
   }
