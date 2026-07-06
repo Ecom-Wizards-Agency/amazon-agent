@@ -103,8 +103,10 @@ def load_branding(cfg: dict | None = None) -> dict:
 
 # ---------------------------------------------------------------- derived strings
 def prepared_by_line(b: dict, by: str) -> str:
+    # Cover byline shows the agency only (cleaner look). The person/title `by`
+    # is kept solely as the fallback when no agency_name is configured.
     name = b.get("agency_name", "")
-    return f"By {name} · {by}" if name else f"By {by}"
+    return f"By {name}" if name else f"By {by}"
 
 
 def cover_footer_left(b: dict) -> str:

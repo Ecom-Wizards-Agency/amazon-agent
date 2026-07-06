@@ -30,21 +30,30 @@ never pad.
 
 1. **Title + one-line context block** — market(s), the report/ads/SQP/DataDive
    windows. No motivational tagline, no reassurance paragraph. Open on the problem.
-2. **Ads Summary** — the one-paragraph "what's really going on" + the intent split
-   table (Branded / Generic / Competitor) and the SQP/DataDive "why". State the single
-   headline: usually *branded carries the account, generic bleeds*.
-3. **Current Account Performance** — Business Report by ASIN, Ads by format, SP
-   placement. Tables carry the numbers; one line of read-through under each.
+2. **Where you stand organically** — the audit opens on organic reality, not ads
+   (the operator starts every walkthrough here: "organic ranking is way more
+   important"). Who outranks you and why, organic-position bands (1–3 best, 1–4
+   workable, 5+ below the sponsored fold), DataDive rank screenshots, plus any
+   time-critical listing flags (e.g. title-length compliance deadlines, claims
+   crackdowns) as callouts here.
+3. **Current Account Performance** — Business Report by ASIN. Tables carry the
+   numbers; one line of read-through under each.
 4. **Demand: what shoppers are actually doing (SQP)** — intent split, CTR/CVR vs
    market, branded demand worth defending, and which generic is/ isn't winnable yet.
+   Name the diagnostic play: good CTR + solid impression share + below-market CVR =
+   a listing problem (main image / title / images), not a bidding problem.
 5. **DataDive: category difficulty & SEO gap** — market size, review/price moat,
-   Ranking Juice listing gap.
-6. **Good and Bad** — the problems, numbered (`Problem 1…`), each with its evidence.
+   Ranking Juice listing gap. Rating targets are visual: 4.2 and 4.3 render the same
+   star image on the search page; 4.5 is the half-star jump worth pushing toward.
+6. **Ads Summary** — the one-paragraph "what's really going on" + the intent split
+   table (Branded / Generic / Competitor), then Ads by format + SP placement. State
+   the single headline. TACOS band the operator calls solid: 10–15%.
+7. **Good and Bad** — the problems, numbered (`Problem 1…`), each with its evidence.
    Strengths are stated inline in a sentence where relevant, **not** as a separate
    praise section.
-7. **Growth Levers** — the recommendations, numbered (`Lever 1…`), including
+8. **Growth Levers** — the recommendations, numbered (`Lever 1…`), including
    next-level tactics (see voice rule 8).
-8. **Sources Used** + **Method Notes** — files/dates, assumptions (esp. break-even
+9. **Sources Used** + **Method Notes** — files/dates, assumptions (esp. break-even
    ACOS), classification logic, caveats.
 
 ### Cut these — they add length, not value
@@ -90,6 +99,40 @@ Write like the operator talking directly to the client, not a neutral analyst.
     *Ads Summary* over *Executive Summary*, *Current Account Performance* over
     *Current Account Reality*, *Good and Bad* over separate *What Is Working* /
     *Problems*.
+11. **No spaced em-dashes (" — ") anywhere in the narrative.** It reads as AI
+    style. End the sentence and start a new one, the way somebody would speak.
+    Colons and parentheses are fine. Lead-ins use a colon: `**Problem 1: Title.**`
+    and `**Lever 1: Title.**`. Only exceptions: "—" as an empty table cell and
+    numeric ranges.
+
+### Standard operator plays (fold into Problems/Levers where the data supports them)
+
+These came out of real client walkthroughs; check each one on every audit:
+
+- **Placement-mechanism check.** Don't stop at "product pages bleed" — open the big
+  campaigns and read base bid × placement multiplier. Multipliers live on **campaign
+  level**: a ~$10 base bid with a 500% top-of-search boost authorizes ~$50/click.
+  Mixed match types in one campaign make placement control impossible — **one match
+  type per campaign** is the fix, and reduce bids gradually (rarely smart to just
+  cut). Tie-break bids: bid $10.01, not the round $10 everyone else picks.
+- **Brand negatives in generic campaigns.** Branded search terms leaking into
+  non-branded campaigns flatter their numbers — exclude the brand as negative phrase
+  from every generic campaign (plus obvious irrelevants, e.g. "shoes").
+- **Title-length compliance.** Check live titles against the ≤75-char rule
+  (effective 2026-07-27) — flag as time-critical when non-compliant, and use the
+  forced rewrite to front-load target keywords.
+- **CTR-good / CVR-bad play.** Relevant keyword + good CTR + solid impression share
+  + below-market CVR → fix the listing, then push that keyword into its own Exact
+  campaign (SB and keyword-specific video ads too). Target specific mid-size terms
+  near the brand's use case, not the giant heads. Match imagery to the query
+  ("…for men" → show men).
+- **SD retargeting window.** For non-rebuy products: views/purchases lookback =
+  **last 7 days only**, ROAS-focused; top/mid-funnel SD only after the basics work.
+- **Branded-spend verdict is about execution, not allocation.** A high branded share
+  with solid ACOS is "okay in itself" — critique the bids/placements/measurability,
+  and note organic holds brand demand as generic pushes lift overall relevance.
+- **POE mining.** Product Opportunity Explorer return reasons + review themes for
+  the niche feed the listing-fix lever.
 
 ### Micro before → after
 
@@ -217,7 +260,8 @@ that carries the CI.
   `Confidential · <agency URL from branding.json>`. Horizontal rules snap onto the grid.
 - **KPI stat-cards** (spend / ad sales / blended ACoS vs break-even / TACoS) are auto-built from
   `metrics.json` and placed under the verdict/summary section — Cloud card, orange top rule, big Inter stat.
-- **Markdown conventions** the renderer reads: `## H2`, `### Lever N: title` (or `**Lever N — …**`) →
+- **Markdown conventions** the renderer reads: `## H2`, `**Lever N: title.** body` (the legacy
+  `**Lever N — …**` form still parses, but write the colon form per voice rule 11) →
   orange "LEVER N" eyebrow, `> quote` → orange note callout, `![caption](file.png)` → figure + caption,
   pipe tables → Ink-header tables. `<!-- ... -->` stubs are dropped.
 - **Page-break hygiene:** widow/orphan control, headings kept with their first lines, KPI-card row / tables

@@ -50,14 +50,17 @@ page ends; KPI/table/figure never split). `build_audit.py` calls it automaticall
 - **Editable-in-Google-Docs = the A4 `.docx`** (opens in Docs preserving layout). A *native* Google Doc
   conversion breaks the full-bleed cover + KPI cards + font, so don't convert; send the `.pdf`, edit the `.docx`.
 - **Markdown authoring contract (so blocks render as intended, not as headlines):**
-  - **Growth levers** — write each as a bold lead-in with the body on the SAME line:
-    `**Lever N — Short title.** Body sentence continues here…`. The renderer splits this into a
+  - **Growth levers**: write each as a bold lead-in with the body on the SAME line:
+    `**Lever N: Short title.** Body sentence continues here…`. The renderer splits this into a
     `LEVER N` eyebrow + short title card, then the body as a normal paragraph. Do NOT put the whole
     lever on a heading line (`### Lever N …`) or the entire paragraph renders as one giant headline
     (the historical bug: the lever regex swallowed title *and* body into the H3).
-  - **Problems** render as plain bold-lead paragraphs (`**Problem N — …** body`) — no card, by design.
+  - **Problems** render as plain bold-lead paragraphs (`**Problem N: …** body`). No card, by design.
   - **Section headers** are `## H2` (also feed the cover's "Inside" list) and `### H3`; a `> ` line is a
     pull-note; `![caption](rel.png)` is a figure. Keep levers as the bold-lead form, not `###`.
+  - **No spaced em-dashes (" — ") in any written text** (narrative, captions, workbook notes). It reads
+    as AI style. Short sentences with periods instead; colons for lead-ins. Exceptions: "—" as an empty
+    table cell, numeric ranges. See AGENTS.md "Writing Style" and playbook voice rule 11.
 
 ## Rules
 
@@ -68,7 +71,8 @@ page ends; KPI/table/figure never split). `build_audit.py` calls it automaticall
 - **SB is ONE channel across two sheets — dedupe it.** Amazon's bulk lists every Sponsored Brands campaign in BOTH "Sponsored Brands Campaigns" (legacy) and "SB Multi Ad Group Campaigns" (superset) — same Campaign IDs, same spend/sales. Summing both double-counts SB (it inflated a real audit's ad sales by ~$112k). The toolkit assigns each SB campaign to one sheet by Campaign ID (`_sb_owner`, superset wins) and counts/parses it once, for both channel totals and the SB target intent-split.
 - **Sanity-check total ad sales against the console, not just internal reconciliation.** The spend-reconciliation gate proves buckets == search-term rows (internal consistency) — it will happily agree with a double-count. Before delivery, eyeball total ad sales/spend against the Ads console figure; a >2–3% gap means a channel is double-counted or missing.
 - **Placement: never sum SP "Bidding Adjustment" audience-cohort rows** (they slice the same traffic by audience — including them double-counts spend). Only true placement rows count.
-- **Structural checks that are standard findings:** duplicate keyword+match pairs (self-competition), campaigns with no negatives, oversized ad groups, branded/generic mixed in one campaign, and **ad groups advertising several parent families** (Amazon picks which product serves each query → keyword→product fit uncontrolled, per-product stats blurred).
+- **Structural checks that are standard findings:** duplicate keyword+match pairs (self-competition), campaigns with no negatives, oversized ad groups, branded/generic mixed in one campaign, **mixed match types in one campaign** (placement multipliers are campaign-level → placement control impossible), **brand not excluded as negative phrase from generic campaigns** (branded terms flatter generic numbers), and **ad groups advertising several parent families** (Amazon picks which product serves each query → keyword→product fit uncontrolled, per-product stats blurred).
+- **Narrative opens organic-first** (playbook skeleton): organic reality → BR → SQP → DataDive → ads. Read base bid × placement multiplier on the big campaigns (the product-page-bleed mechanism), check live titles against the ≤75-char rule (2026-07-27), and treat 4.5 stars as the visual review target (4.2/4.3 render the same). See the playbook's "Standard operator plays".
 - **Data-completeness gate:** `--validate` emits soft WARNINGS (low intent coverage, SQP-revenue gap, missing channels, multi-parent ad groups) and the build prints a DATA COMPLETENESS panel. These are not bugs — they are thin data. Resolve (download the missing report) or disclose (in Method Notes) every one before delivery.
 - **Never hand-edit the builders per client** — everything client-specific lives in the config. If the code can't express something, extend the toolkit, not a fork.
 - **Once the operator starts editing the delivered `.docx`** (adds images, rewrites levers), do NOT regenerate/overwrite it — patch it in place (python-docx, back up first). Preserve their images and wording; correct only number tokens. Images can be anchored inside a section you're removing — clear the text runs but keep the drawing runs; never delete an image-bearing paragraph.

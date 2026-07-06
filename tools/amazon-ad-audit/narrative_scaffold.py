@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Amazon Ad/Sales Audit — narrative scaffold generator.
+Amazon Ad/Sales Audit narrative scaffold generator.
 Emits a Markdown draft following docs/amazon-ad-audit-playbook.md's section skeleton,
 with KPIs/tables PRE-FILLED from metrics.json + sqp_summary.json and prose/problem/lever
 bodies left as `<!-- operator: ... -->` stubs for the operator to write in the agency voice.
@@ -38,7 +38,7 @@ def build(config_path, outdir):
     L = []
     A = L.append
 
-    A(f"# {CLIENT} — {markets} Amazon Advertising & Sales Audit\n")
+    A(f"# {CLIENT}: {markets} Amazon Advertising & Sales Audit\n")
     A(f"**Prepared by {_prepared_by_org()} · Marketplace: {markets} · Window: {win.get('ads','')}**\n")
     A(f"**Sources:** Ads bulk ({win.get('ads','')}), Business Report ({win.get('business_report','')}), "
       f"SQP ({len(win.get('sqp_weeks',[]))} weekly snapshots), DataDive niche {cfg.get('datadive_niche','')}.\n")
@@ -48,7 +48,7 @@ def build(config_path, outdir):
     # ---- Ads Summary ----
     organic = T["br_total_sales"] - T["sales"]
     A("## Ads Summary\n")
-    A("<!-- operator: 2-3 sentences — what's really going on. Lead with the branded-carries / generic-bleeds tension and the capture wall. -->\n")
+    A("<!-- operator: 2-3 sentences on what's really going on. Lead with the branded-carries / generic-bleeds tension and the capture wall. -->\n")
     A("| Metric | Value |")
     A("|---|---|")
     A(f"| Ad spend | {_m(T['spend'],cur)} |")
@@ -78,7 +78,7 @@ def build(config_path, outdir):
     for d in sorted(M["business_report"]["rows"], key=lambda x: -x["sales"]):
         A(f"| {d['asin']} | {d['group']} | {d['sessions']:,} | {d['units']} | {_m(d['sales'],cur)} | {d['buybox']:.0%} |")
     A("")
-    A("<!-- operator: one-line read-through — which line carries revenue, $0 ASINs, CVR health. -->\n")
+    A("<!-- operator: one-line read-through: which line carries revenue, $0 ASINs, CVR health. -->\n")
     A("### Ads by format\n")
     A(f"Channels present: **{', '.join(channels)}**." + (f" Missing: **{', '.join(miss)}**." if miss else "") + "\n")
     A("### Placement\n")
@@ -100,7 +100,7 @@ def build(config_path, outdir):
                 continue
             A(f"| {b} | {s['queries']} | {s['sv_share']:.1%} | {s['capture']:.1%} ({s['brand_purch']}/{s['mkt_purch']}) |")
         A("")
-        A("<!-- operator: the capture number is the story — category demand is large but unconverted. CTR-vs-CVR wall. -->\n")
+        A("<!-- operator: the capture number is the story: category demand is large but unconverted. CTR-vs-CVR wall. -->\n")
         A("---\n")
 
     # ---- DataDive ----
@@ -113,28 +113,28 @@ def build(config_path, outdir):
             client_asins)
         A("## DataDive: category difficulty & the price/review gap\n")
         A(f"Category median price **{_m(comp['median_price'],cur)}**, median reviews **{comp['median_reviews']:.0f}**, median rating **{comp['median_rating']}**.\n")
-        A("<!-- operator: frame the price/review moat — is the client a premium outlier? what does that do to generic conversion? -->\n")
+        A("<!-- operator: frame the price/review moat: is the client a premium outlier? what does that do to generic conversion? -->\n")
         A("---\n")
 
     # ---- Good and Bad ----
     A("## Good and Bad\n")
     A("<!-- operator: fold strengths inline as read-throughs. Then number the problems. -->\n")
-    A("**Problem 1 — <!-- title -->.** <!-- evidence -->\n")
-    A("**Problem 2 — <!-- title -->.** <!-- evidence -->\n")
-    A("**Problem 3 — <!-- title -->.** <!-- evidence -->\n")
+    A("**Problem 1: <!-- title -->.** <!-- evidence -->\n")
+    A("**Problem 2: <!-- title -->.** <!-- evidence -->\n")
+    A("**Problem 3: <!-- title -->.** <!-- evidence -->\n")
     A("---\n")
 
     # ---- Growth Levers ----
     if nflags.get("include_levers", True):
         A("## Growth Levers\n")
         A("<!-- operator: order by impact on the ceiling. Offer track (reviews/expectations, positioning) usually leads; PPC restructure + placement + missing channels follow. -->\n")
-        A("**Lever 1 — <!-- reviews / expectation reset -->.**\n")
-        A("**Lever 2 — <!-- positioning / winning use case -->.**\n")
-        A("**Lever 3 — <!-- restructure PPC (waste falls out of a clean setup) -->.**\n")
-        A("**Lever 4 — <!-- narrow generic wedge -->.**\n")
-        A("**Lever 5 — <!-- placement rebalance -->.**\n")
+        A("**Lever 1: <!-- reviews / expectation reset -->.**\n")
+        A("**Lever 2: <!-- positioning / winning use case -->.**\n")
+        A("**Lever 3: <!-- restructure PPC (waste falls out of a clean setup) -->.**\n")
+        A("**Lever 4: <!-- narrow generic wedge -->.**\n")
+        A("**Lever 5: <!-- placement rebalance -->.**\n")
         if miss:
-            A(f"**Lever 6 — <!-- add {', '.join(miss)} -->.**\n")
+            A(f"**Lever 6: <!-- add {', '.join(miss)} -->.**\n")
         A("---\n")
 
     if nflags.get("include_30day_plan", False):
@@ -148,9 +148,9 @@ def build(config_path, outdir):
 
     # ---- Sources / Method ----
     A("## Sources used\n")
-    A(f"- Ads bulk ({win.get('ads','')}) — reconciles to spend {_m(T['spend'],cur)} / sales {_m(T['sales'],cur)}.")
-    A(f"- Business Report ({win.get('business_report','')}) — total sales {_m(T['br_total_sales'],cur)}.")
-    A(f"- SQP — {len(win.get('sqp_weeks',[]))} weekly snapshots.")
+    A(f"- Ads bulk ({win.get('ads','')}): reconciles to spend {_m(T['spend'],cur)} / sales {_m(T['sales'],cur)}.")
+    A(f"- Business Report ({win.get('business_report','')}): total sales {_m(T['br_total_sales'],cur)}.")
+    A(f"- SQP: {len(win.get('sqp_weeks',[]))} weekly snapshots.")
     A(f"- DataDive niche {cfg.get('datadive_niche','')}.\n")
     A("## Method notes\n")
     A(f"- **Break-even ACOS = {BE:.0%} is an assumption** pending margin.")
