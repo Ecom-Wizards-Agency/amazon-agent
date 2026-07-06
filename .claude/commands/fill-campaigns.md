@@ -20,12 +20,12 @@ Load the `amazon-seo-keyword-workflow` skill (section "Campaign Structure Fill")
 3. **Extract**:
    ```bash
    .venv/bin/python tools/amazon-seo-keyword-workbook/fill_campaign_structure.py \
-     --config <cfg> --workbook <xlsx> --extract output/<client>/ppc/<date>_campaign_candidates.json
+     --config <cfg> --workbook <xlsx> --extract output/<client>/ads/<date>_campaign_candidates.json
    ```
 4. **Classify** (agent judgment): read the candidates JSON + `_local/ads-strategy/strategy.md`;
    assign keywords/ASINs to scaffold slots per the judgment rules (Wave intent tiers, discovery
    root specificity, halo theming, PAT strength). Write
-   `output/<client>/ppc/<date>_campaign_classification.json`
+   `output/<client>/ads/<date>_campaign_classification.json`
    (schema `amazon-agent.campaign-classification.v1`), each judgment call with a short `why`.
 5. **Dry-run and show the operator** the slot fill counts + proposed names:
    ```bash

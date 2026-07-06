@@ -553,10 +553,17 @@ def build_never_keywords(
         examples = "; ".join(data["examples"])
         evidence = [freq, word, "", "", max_sv, round(max_rel_seen, 3), examples]
 
-        if word in vocab["relevant"] or in_product or in_core or in_poe:
-            continue  # protected — appears in core/product/POE language or configured relevant words
+        if word in vocab["relevant"]:
+            continue  # protected — operator-configured relevant words always win
         if word in vocab["misspell"]:
             continue  # variant still represents relevant product intent
+        # Brand/claim are AUDIT sections (never negatives), so they classify
+        # before the listing/core/POE language protection — same guard order as
+        # _root_category(), so the two tabs agree. A configured brand/claim
+        # token is what it is even when it appears inside core keywords or the
+        # captured (anchor + COMPETITOR) listing copy; hiding it defeats the
+        # audit. The protection below still shields every NEGATION path
+        # (explicit/auto/review), so the negatives set is unchanged.
         if word in vocab["brand"]:
             evidence[2:4] = ["Competitor brand", "Negative in rank/SKW campaigns, TARGET in PAT/conquest — decide per campaign. Never a blanket negative."]
             brand_rows.append(["Campaign-dependent"] + evidence)
@@ -565,13 +572,27 @@ def build_never_keywords(
             evidence[2:4] = ["Claim risk", "Health/compliance risk — do not use in copy automatically; see health-claims-compliance.md / compliance.claims_audit."]
             claim_rows.append(["Do not auto-use"] + evidence)
             continue
-        if word in vocab["explicit_never"] or word in vocab["negative"] or word in vocab["form"] or word in vocab["related_excludes"]:
+        # Operator-configured junk WORDS force-negate (config comment:
+        # explicit_never "force-negate off-product junk") — before the
+        # data-derived core/POE protection, same order as _root_category().
+        # relevant_words (checked above) remains the override. Deliberate
+        # word-level lists only: related_excludes holds tokenized junk PHRASES
+        # ("shampoo for black men"), so its individual words stay behind the
+        # protection guard below, as does the AUTO heuristic.
+        if word in vocab["explicit_never"] or word in vocab["negative"] or word in vocab["form"]:
             category = (
                 "Wrong form" if word in vocab["form"]
                 else "Configured junk" if word in vocab["explicit_never"]
                 else "Off-niche/irrelevant"
             )
             evidence[2:4] = [category, "Configured irrelevant/wrong-form/off-niche token."]
+            never_rows.append(["Negative phrase"] + evidence)
+            never_words.add(word)
+            continue
+        if in_product or in_core or in_poe:
+            continue  # protected — core-MKL / listing / POE language; never auto-negated
+        if word in vocab["related_excludes"]:
+            evidence[2:4] = ["Off-niche/irrelevant", "Word from an excluded related-niche phrase, absent from core/product/POE language."]
             never_rows.append(["Negative phrase"] + evidence)
             never_words.add(word)
             continue
@@ -1141,6 +1162,36 @@ def _first_table_rows(data: dict) -> tuple[list[str], list[list[Any]]]:
 
 
 def _extract_review_topic_rows(data: dict, source: str) -> list[list[Any]]:
+    # Fast path: fetch-poe structured capture (amazon-agent.poe-cri.v1, from
+    # tools/opportunity-explorer/format-poe.mjs). Positive AND negative topics
+    # arrive pre-separated with snippets inline; sentiment is carried in the
+    # Evidence Type column so the tab header stays unchanged.
+    if isinstance(data, dict) and data.get("schemaVersion") == "amazon-agent.poe-cri.v1":
+        out: list[list[Any]] = []
+        for sentiment in ("positive", "negative"):
+            for t in data.get(sentiment) or []:
+                pct = t.get("percentOfMentions")
+                out.append([
+                    t.get("topic", ""),
+                    f"{pct}%" if pct is not None else "",
+                    " | ".join(t.get("snippets") or []),
+                    f"POE Customer Review Insights ({sentiment})",
+                    source,
+                ])
+        for topic in data.get("topics") or []:
+            for s in topic.get("subTopics") or []:
+                for sentiment in ("positive", "negative"):
+                    side = s.get(sentiment)
+                    if side and side.get("percentOfMentions") is not None:
+                        out.append([
+                            f"{topic.get('name', '')} / {s.get('name', '')}",
+                            f"{side['percentOfMentions']}%",
+                            " | ".join(side.get("snippets") or []),
+                            f"POE Customer Review Insights ({sentiment}, subtopic)",
+                            source,
+                        ])
+        return out
+
     headers, table_rows = _first_table_rows(data)
     if table_rows:
         out = []
@@ -1219,6 +1270,16 @@ def build_poe_reviews(ws: Worksheet, path: str, result: dict, warnings: list[str
 
 
 def _extract_returns_rows(data: dict, source: str) -> list[list[Any]]:
+    # Fast path: fetch-poe structured capture (amazon-agent.poe-returns.v1).
+    # notExposed → [] so build_poe_returns writes its explicit not-exposed row.
+    if isinstance(data, dict) and data.get("schemaVersion") == "amazon-agent.poe-returns.v1":
+        if data.get("notExposed"):
+            return []
+        return [
+            [t.get("topic", ""), f"{t.get('percentOfMentions')}%", "", "POE Returns", source]
+            for t in data.get("topics") or []
+        ]
+
     headers, table_rows = _first_table_rows(data)
     if table_rows:
         return [[*(row[:4]), source] for row in table_rows]
@@ -1345,9 +1406,20 @@ def build_semantic_insights(
 
     if args.get("poe_reviews_json") and os.path.exists(args["poe_reviews_json"]):
         review_rows = _extract_review_topic_rows(load_json(args["poe_reviews_json"]), args["poe_reviews_json"])
-        for topic, pct, snippets, _etype, source in review_rows[:10]:
-            action = "Use as customer-language input; rewrite into compliant product/benefit wording."
-            rows.append([1, "Review topic", topic, pct, action, source])
+        # Sentiment-labeled captures (poe-cri.v1): balance the tab — top 5
+        # negative (objections to address) + top 5 positive (proof language).
+        # Legacy captures carry no sentiment label and keep the old top-10.
+        neg = [r for r in review_rows if "(negative" in r[3]]
+        pos = [r for r in review_rows if "(positive" in r[3]]
+        picked = (neg[:5] + pos[:5]) if (neg or pos) else review_rows[:10]
+        for topic, pct, snippets, etype, source in picked:
+            if "(negative" in etype:
+                label, action = "Review topic (negative)", "Address this objection in bullets/images; rewrite into compliant wording."
+            elif "(positive" in etype:
+                label, action = "Review topic (positive)", "Use as customer proof language; rewrite into compliant product/benefit wording."
+            else:
+                label, action = "Review topic", "Use as customer-language input; rewrite into compliant product/benefit wording."
+            rows.append([1, label, topic, pct, action, source])
     else:
         rows.append([1, "Review topic", "Missing POE review evidence", "", "Do not finalize semantic insights until review capture exists.", args.get("poe_reviews_json", "")])
 
@@ -1986,12 +2058,12 @@ def _codex_handoff_block(cfg: dict, args: dict, missing: list[str]) -> str:
         "master_csv": "DataDive UI — Core MKL CSV at 30% Min Rel.",
         "expanded_mkl_csv": "DataDive UI — Expanded MKL CSV at 1% Min Rel.",
         "competitors_csv": "DataDive UI (or MCP fallback) — competitors CSV",
-        "poe_products_csv": "POE — Niche Details > Products tab CSV",
-        "poe_search_terms_csv": "POE — Niche Details > Search Terms tab CSV",
-        "related_niches_json": "POE — related-niches capture JSON",
-        "poe_reviews_json": "POE — Customer Review Insights capture JSON",
-        "poe_returns_json": "POE — Returns route/table capture JSON",
-        "poe_structured_json": "POE — structured overview capture JSON",
+        "poe_products_csv": "POE — Products CSV (auto: `run-poe.mjs niche` → *_NicheDetailsProductsTab.csv; manual tab export = fallback)",
+        "poe_search_terms_csv": "POE — Search Terms CSV (auto: `run-poe.mjs niche` → *_NicheDetailsSearchTermsTab.csv)",
+        "related_niches_json": "POE — related-niches JSON (auto: `run-poe.mjs search|batch` → *_related-niches.json)",
+        "poe_reviews_json": "POE — Customer Review Insights JSON, sentiment-labeled (auto: `run-poe.mjs niche` → *_customer-review-insights.json)",
+        "poe_returns_json": "POE — Returns JSON (auto: `run-poe.mjs niche` → *_returns.json)",
+        "poe_structured_json": "POE — overview JSON (auto: `run-poe.mjs niche` → *_overview.json)",
         "listing_reference_json": (
             "Listing copy for the ANCHOR + COMPETITORS — use the `amazon-listing-capture` skill "
             "/ `tools/listing-capture/extract-amazon-listing-copy.js` (local language; title #productTitle; "
@@ -2014,10 +2086,11 @@ def _codex_handoff_block(cfg: dict, args: dict, missing: list[str]) -> str:
         "click them manually, then map the files in ~/Downloads by filename/timestamp/rows/headers "
         "(Core 30% includes a 'Sugg. bid & range' column; the Expanded 1% file has many more rows). Report the "
         "row counts + headers per file so Claude can cross-check them against the DataDive MCP niche statistics.",
-        "- POE: direct tab URLs may render only the tab header — click the in-page tab to load the actual "
-        "Products/Search Terms/Reviews/Returns content before capturing.",
-        "- POE Download clicks DO work even when the browser download event times out — check ~/Downloads for "
-        "the new file and rename it to the contract path.",
+        "- POE: use the API-first downloader — ONE command per niche produces ALL POE contract files "
+        "(tools/opportunity-explorer/run-poe.mjs niche --niche-id <id> --marketplace <cc> --client <slug>; "
+        "search/batch for the related-niches JSON; EU marketplaces all via --origin https://sellercentral.amazon.de). "
+        "Rename outputs to the contract paths. Manual tab clicking/CSV export is fallback only "
+        "(direct tab URLs render header-only; Download clicks work even when the download event times out — check ~/Downloads).",
         "- Amazon listing pages may render in English despite locale URL params — switch the Amazon site "
         "language preference to the marketplace language (e.g. 'italiano - IT'), then re-run the capture.",
         "- After Claude confirms the canonical files, delete duplicate/raw intermediate downloads "

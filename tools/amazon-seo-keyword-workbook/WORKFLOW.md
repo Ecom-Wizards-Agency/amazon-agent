@@ -2,7 +2,7 @@
 
 > **Cross-agent note:** Codex gathers these inputs via the internal browser while Claude writes SEO + builds. Codex waits for Claude's handoff with the **`/seo-standby`** command, then captures to the contract paths and stops.
 >
-> **Known capture quirks** (baked into the preflight Codex task; details in the `amazon-seo-keyword-workflow` skill): DataDive export buttons may emit no download event → manual download + Codex maps files by rows/headers, Claude cross-checks counts vs the DataDive MCP; POE tabs need an in-page click (direct URLs render header-only) and POE downloads land in `~/Downloads` even when the download event times out; Amazon may render EN → switch the site language preference before listing capture; Codex cleans up duplicate downloads only after Claude accepts the canonical files.
+> **Known capture quirks** (baked into the preflight Codex task; details in the `amazon-seo-keyword-workflow` skill): DataDive export buttons may emit no download event → manual download + Codex maps files by rows/headers, Claude cross-checks counts vs the DataDive MCP; POE inputs come from the API-first downloader (`run-poe.mjs` — one command per niche; manual tab-click/CSV export is fallback only); Amazon may render EN → switch the site language preference before listing capture; Codex cleans up duplicate downloads only after Claude accepts the canonical files.
 
 ## 1. Gather DataDive Exports
 
@@ -26,21 +26,34 @@ Use DataDive MCP for:
 
 ## 2. Gather POE/OEI Evidence
 
-Use Chrome/Seller Central and the `amazon-opportunity-explorer` skill.
+Preferred: the API-first downloader (`amazon-opportunity-explorer` skill,
+`tools/opportunity-explorer/run-poe.mjs`) — ONE command per niche produces every
+POE contract input, locale-independent and builder-ready:
 
-Capture:
+```bash
+node tools/opportunity-explorer/run-poe.mjs search --query "<niche kw>" --marketplace <cc> --client <slug>   # → *_related-niches.json
+node tools/opportunity-explorer/run-poe.mjs niche  --niche-id <id>     --marketplace <cc> --client <slug>   # → Products/SearchTerms CSVs, CRI (sentiment-labeled), Returns, overview JSON
+```
 
-- POE Products CSV — **Niche Details route `/product`**
-- POE Search Terms CSV — **Niche Details route `/search-queries`**
-- Customer Review Insights JSON
-- Returns JSON or not-exposed evidence
-- Related Niches JSON
-- structured overview JSON
-- screenshots/evidence
+All EU marketplaces run through the one `.de` login (`--origin
+https://sellercentral.amazon.de --marketplace de|it|es|fr|…`); US via the
+default `.com` origin. Map outputs to the config inputs:
 
-Record the visible POE context (account, country, niche, last-updated date), e.g. `Example Brand · target account · target marketplace · niche "<niche name>" · last updated <date>`.
+| config input | run-poe output |
+|---|---|
+| `poe_products_csv` | `<date>_<cc>-<slug>_NicheDetailsProductsTab.csv` |
+| `poe_search_terms_csv` | `<date>_<cc>-<slug>_NicheDetailsSearchTermsTab.csv` |
+| `related_niches_json` | `<date>_poe_<cc>_<query>_related-niches.json` |
+| `poe_reviews_json` | `<date>_poe_<cc>-<slug>_customer-review-insights.json` |
+| `poe_returns_json` | `<date>_poe_<cc>-<slug>_returns.json` |
+| `poe_structured_json` | `<date>_poe_<cc>-<slug>_overview.json` |
 
-If **Customer Review Insights** or **Returns** routes are sparse / expose no table, still capture the visible route state as JSON **with an explicit caveat** — the builder writes an honest "not-exposed" row rather than leaving the tab stale.
+Record the POE context from the overview JSON (account, marketplace, niche,
+last-updated date). A niche without returns data yields `notExposed: true` —
+the builder writes its honest "not-exposed" row automatically.
+
+Fallback (manual UI export + deprecated DOM extractor): see
+`skills/amazon-opportunity-explorer/references/poe-niche-export-checklist.md`.
 
 Never inspect cookies, local storage, session storage, tokens, or credentials.
 

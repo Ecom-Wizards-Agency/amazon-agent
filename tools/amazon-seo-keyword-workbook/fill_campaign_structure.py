@@ -368,6 +368,7 @@ def cmd_extract(cfg: dict, cfg_path: str, args: argparse.Namespace) -> int:
     own_cfg = [t for t in cs.get("own_brand_tokens", []) if norm(t)]
     is_own_brand = brand_matcher(own_cfg, anchor_brand)
     launched = {norm(k) for k in cs.get("already_launched", [])}
+    claim_authorized = {norm(t) for t in cs.get("claim_authorized_terms", []) if norm(t)}
     comp_brand_terms = sorted({k for k, f in outlier.items() if f["competitor_brand"]})
 
     bands = strat["sv_bands"]
@@ -391,12 +392,13 @@ def cmd_extract(cfg: dict, cfg_path: str, args: argparse.Namespace) -> int:
             "competitor_brand": bool(fl.get("competitor_brand")),
             "never": term in never,
             "claim": bool(fl.get("claim")),
+            "claim_authorized": bool(fl.get("claim")) and term in claim_authorized,
             "form": bool(fl.get("form")),
             "already_launched": term in launched,
         }
         r = assign_root(v["keyword"], roots)
         sv = v["sv"] or 0
-        if flags["never"] or flags["claim"] or flags["form"]:
+        if flags["never"] or flags["form"] or (flags["claim"] and not flags["claim_authorized"]):
             bucket, why = "exclude", "never/claim/form flag"
         elif flags["competitor_brand"]:
             bucket, why = "pat_context", "competitor brand term — PAT target context, not a keyword"
@@ -505,6 +507,11 @@ def cmd_apply(cfg: dict, cfg_path: str, args: argparse.Namespace) -> int:
     own_cfg = [t for t in cs.get("own_brand_tokens", []) if norm(t)]
     is_own_brand = brand_matcher(own_cfg, anchor_brand)
     launched = {norm(k) for k in cs.get("already_launched", [])}
+    # Operator-authorized exceptions to the claim-flag reject (exact terms only,
+    # config campaign_structure.claim_authorized_terms). Never/form/brand
+    # rejections have no override — this is for disease-AUDIENCE terms the
+    # operator has explicitly cleared for PPC targeting.
+    claim_authorized = {norm(t) for t in cs.get("claim_authorized_terms", []) if norm(t)}
     roots = read_roots(wb)
     root_names = {norm(r["root"]) for r in roots}
 
@@ -544,8 +551,10 @@ def cmd_apply(cfg: dict, cfg_path: str, args: argparse.Namespace) -> int:
                 fails.append(f"{s['bucket']}/{s['label']}: keyword not in workbook MKL tabs: {a['keyword']!r}")
                 continue
             fl = outlier.get(term, {})
-            if term in never or fl.get("claim") or fl.get("form"):
-                fails.append(f"{s['bucket']}/{s['label']}: never/claim/form-flagged keyword rejected: {a['keyword']!r}")
+            if term in never or fl.get("form") or (fl.get("claim") and term not in claim_authorized):
+                fails.append(f"{s['bucket']}/{s['label']}: never/claim/form-flagged keyword rejected: {a['keyword']!r}"
+                             + (" (claim-flagged; operator can clear exact terms via campaign_structure.claim_authorized_terms)"
+                                if fl.get("claim") and not fl.get("form") and term not in never else ""))
                 continue
             if fl.get("competitor_brand"):
                 fails.append(f"{s['bucket']}/{s['label']}: competitor brand term rejected (TARGET it in PAT instead): {a['keyword']!r}")

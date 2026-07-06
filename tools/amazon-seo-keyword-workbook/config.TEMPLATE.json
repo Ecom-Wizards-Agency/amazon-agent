@@ -172,7 +172,7 @@
     "strategy_json": "_local/ads-strategy/strategy.json",
     "strategy_md": "_local/ads-strategy/strategy.md",
     "workbook": "",
-    "candidates_out": "output/<client>/ppc/<date>_campaign_candidates.json",
+    "candidates_out": "output/<client>/ads/<date>_campaign_candidates.json",
     "own_brand_tokens": [
       "<own brand words/phrases as they appear in search terms>"
     ],

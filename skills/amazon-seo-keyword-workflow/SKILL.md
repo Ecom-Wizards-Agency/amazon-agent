@@ -16,7 +16,7 @@ When Claude's handoff arrives, Codex's job is to gather the requested browser/UI
 ## Load Order
 
 1. Use `amazon-seo` for Amazon SEO writing, semantic/Alexa/Rufus logic, and compliance posture.
-2. Use `amazon-opportunity-explorer` for POE/OEI scraping and evidence.
+2. Use `amazon-opportunity-explorer` for POE/OEI data (API-first `run-poe.mjs` downloader) and evidence.
 2a. Use `amazon-listing-capture` to capture live listing copy (title/bullets/link) for the anchor + competitors into the listing-reference JSON; the builder fills the ASINs tab from it.
 3. Use the workbook builder: `tools/amazon-seo-keyword-workbook/build_keyword_workbook.py`.
 4. Use DataDive references only when terminology or UI behavior matters:
@@ -57,8 +57,8 @@ DataDive UI export locations (so Codex doesn't hunt for them):
 - Core/Expanded MKL — always record Min Rel, visible keyword count, visible search volume, and export timestamp at export time.
 - Before fallback or rank injection, confirm the Core MKL has the exact anchor ASIN as a real DataDive column.
 - **DataDive export buttons may emit no detectable download event for Codex** (confirmed 2026-06-12). Fallback: the operator clicks the exports manually; Codex maps the files in `~/Downloads` by filename/timestamp/rows/headers (Core 30% includes a `Sugg. bid & range` column; Expanded 1% has far more rows) and reports row counts + headers. Claude then cross-checks the counts against the DataDive MCP niche statistics (`get_niche_competitors` → numVisibleKeywords/totalSvOfVisibleKeywords for 30%, numKeywords/totalSvOfKeywords for 1%) before accepting.
-- POE Products is the Niche Details route **`/product`**; POE Search Terms is **`/search-queries`**. Capture visible context: Seller Central account, account country, niche marketplace, niche name, and last-updated date.
-- POE quirks: direct tab URLs may render only the tab header — click the in-page tab to load real content. The POE **Download** click works even when the browser download event times out — look for the new file in `~/Downloads` and rename to the contract path. The repo POE script is for JSON/visible-page captures; native CSVs come from the Download button.
+- POE inputs come from the API-first downloader: `tools/opportunity-explorer/run-poe.mjs` (`search` → related-niches JSON; `niche` → Products/SearchTerms CSVs + sentiment-labeled CRI + Returns + overview JSON, all builder-ready and locale-independent). One `.de` login covers every EU marketplace (`--origin https://sellercentral.amazon.de --marketplace de|it|es|fr|…`); US uses the `.com` origin. Whoever has the debug Chrome (Claude via CDP, or Codex via internal-browser evaluate of `fetch-poe.js`) can produce these — no manual tab clicking. Capture context (account, marketplace, niche, last-updated) comes from the overview JSON.
+- POE fallback quirks (manual export only): direct tab URLs render header-only — click the in-page tab; the Download click works even when the download event times out — check `~/Downloads` and rename to the contract path.
 - After Claude accepts the canonical inputs, Codex deletes duplicate/raw intermediate downloads (never the canonical contract paths).
 - Sparse POE Review Insights or Returns routes still get a visible JSON capture plus an explicit caveat.
 - Listing capture uses the local-language Amazon path and preserves both requested ASIN and resolved ASIN. Flag same-brand sibling redirects and cross-family edge cases.
@@ -141,7 +141,7 @@ Three phases:
 # 1. mechanical extraction (SV bands, brand/never/claim flags, roots, PAT revenue)
 .venv/bin/python tools/amazon-seo-keyword-workbook/fill_campaign_structure.py \
   --config tools/amazon-seo-keyword-workbook/config.<client>.json \
-  --extract output/<client>/ppc/<date>_campaign_candidates.json
+  --extract output/<client>/ads/<date>_campaign_candidates.json
 
 # 2. agent judgment (no script): read candidates.json + _local/ads-strategy/strategy.md; assign
 #    keywords/ASINs to scaffold slots per the judgment rules (intent tiers/waves, discovery root
