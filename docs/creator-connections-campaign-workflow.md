@@ -210,8 +210,10 @@ Track creators from the first visible thread or campaign interaction. For now, a
 Use one tracker per brand/campaign. For local working files, save drafts under:
 
 ```text
-output/{client-or-brand}/ads/
+output/{client}/ads/
 ```
+
+Use the normalized lowercase-kebab client slug from `AGENTS.md`; keep marketplace and campaign/date details in filenames or subfolders, not in the client folder name.
 
 Suggested AI table:
 

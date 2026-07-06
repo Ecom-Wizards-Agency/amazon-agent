@@ -26,7 +26,7 @@ For Seller Central promotion workflows, verify current Amazon promotion/price ru
 ## Negative Review Outreach with Courtesy Refunds
 
 1. Filter for the requested star ratings, usually `1 Stars` and `2 Stars`.
-2. Save the original review data locally under `output/{client-or-brand}/review-management/` before outreach. Capture date, reviewer name/location, Amazon profile link, review link, original review count, original review text, `Changes` set to `NO`, and an empty `New review` field.
+2. Save the original review data locally under `output/{client}/review-management/` before outreach, using the normalized lowercase-kebab client slug from `AGENTS.md` and keeping marketplace/date in filenames. Capture date, reviewer name/location, Amazon profile link, review link, original review count, original review text, `Changes` set to `NO`, and an empty `New review` field.
 3. For eligible verified-purchase reviews, click `Contact Customer`.
 4. Select `Courtesy refund`.
 5. Review Amazon's standard courtesy-refund template, then click `Send` only when the operator has approved that specific courtesy-refund action.

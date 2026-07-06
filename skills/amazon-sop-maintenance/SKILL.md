@@ -20,15 +20,15 @@ If someone asks vaguely for a workflow, default to a SOP when it is human/team p
 Use ignored local artifacts for screenshots, local evidence, and working notes:
 
 - `output/general/sop-maintenance/`
-- `output/{client-or-brand}/sop-maintenance/`
+- `output/{client}/sop-maintenance/`
 - `evidence/general/sop-maintenance/`
-- `evidence/{client-or-brand}/sop-maintenance/`
+- `evidence/{client}/sop-maintenance/`
+
+`{client}` is the normalized lowercase-kebab client slug from `AGENTS.md`. Use `general` when no client or brand is involved.
 
 Dates belong in filenames:
 
 - `YYYY-MM-DD_{short-topic}.md`
-
-Use `general` when no client or brand is involved.
 
 Use the GitHub-synced `sop-updates/` folder only for final change notes after a SOP correction has been verified and applied to a tracked source file:
 

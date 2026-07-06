@@ -16,6 +16,13 @@ The agent should be able to:
 - Preserve screenshots, tables, visible warnings, dates, account names, marketplace selectors, IDs, and exact UI labels when learning or troubleshooting.
 - Stop before any externally visible or risky action.
 
+## Writing Style (all agents, all written output)
+
+- **Never use the spaced em-dash (" — ") in written text.** It reads as AI style. This applies to client deliverables, narratives, workbook notes, chat replies, commit messages, and docs.
+- Instead: end the sentence and start a new one. Short sentences, the way somebody would speak. A colon or parentheses are fine where a real pause or aside is needed.
+- Allowed exceptions: table cells using "—" as an empty/null marker, numeric ranges ("$10–15", "2026-06-01..2026-06-30"), and minus signs in math.
+- When editing an existing doc, rewrite em-dash sentences instead of mechanically swapping the character. The sentence should still sound like the operator talking.
+
 ## Browser Standard
 
 Per-agent browser: Codex uses the internal Codex browser for Amazon work. Claude and other assistants with a connected browser use the operator's connected browser (commonly Chrome or Brave). If `local-browser-preference.md` exists in the project root, read it before browser work and use that preferred browser when available — the file is local-only and ignored by Git. Everywhere this document says "the browser," it means whichever of these applies to the current agent.
@@ -130,10 +137,13 @@ DataDive trigger phrases:
 
 For DataDive research, use the local `datadive` MCP server when available. It runs `@datadive-tools/mcp` locally over stdio and is read-only. Use it for DataDive-owned niche, keyword, competitor, Ranking Juice, and Rank Radar data before falling back to manual exports. Do not save the DataDive API key in this project, commit it to GitHub, paste it into SOPs, or repeat it in operator notes. Store the key only in local MCP/client secret storage. DataDive output can inform Amazon SEO, image strategy, opportunity-data, and catalog research, but current Amazon rules and UI behavior still come from first-party Amazon docs.
 
-For Product Opportunity Explorer work, route to `amazon-opportunity-explorer`. Use the repo-native script-first extraction workflow when an export is needed:
+For Product Opportunity Explorer work, route to `amazon-opportunity-explorer`. Use the repo-native API-first downloader when an export is needed — one `getNiche` call returns every niche-detail tab (overview, Products, Search Terms, Customer Review Insights positive+negative with snippets, Returns, trends); the keyword search returns the related-niches grid:
 
-- `tools/opportunity-explorer/extract-opportunity-explorer.js`
-- `tools/opportunity-explorer/format-opportunity-explorer-export.mjs`
+- `tools/opportunity-explorer/fetch-poe.js` (browser-side, same-origin GraphQL; window.amazonAgentFetchPoe*)
+- `tools/opportunity-explorer/format-poe.mjs` (local formatter, `--self-test`)
+- `tools/opportunity-explorer/run-poe.mjs` (one-command CDP runner; shares the report-fetcher debug Chrome)
+- Contract + verification: `tools/opportunity-explorer/references/poe-endpoints.md`, `poe-gap-matrix.md`
+- Deprecated DOM-scraping fallback: `extract-opportunity-explorer.js` + `format-opportunity-explorer-export.mjs`
 
 Original Chrome extension/source backup, as a local placeholder path:
 
@@ -148,7 +158,7 @@ Naming note: the operator noted that Amazon's Rufus AI naming is moving/has move
 Keyword and opportunity research draws on two complementary sources with different access models:
 
 - DataDive (MCP, read-only): niche analysis, master keyword lists, competitor ASINs, Ranking Juice, Rank Radar, indexing-issue alerts. Use the local `datadive` MCP server first when available; no browser/login needed. Niche data is addressed by `nicheId` (find it with `list_niches`).
-- Product Opportunity Explorer (POE/OEI): Products, Search Terms, Customer Review Insights, Returns, and Related Niches. This lives behind the Seller Central login and has NO MCP — it is always internal/connected browser work. Use the script-first extractor (`tools/opportunity-explorer/extract-opportunity-explorer.js`) and the per-niche export checklist (`skills/amazon-opportunity-explorer/references/poe-niche-export-checklist.md`).
+- Product Opportunity Explorer (POE/OEI): Products, Search Terms, Customer Review Insights, Returns, and Related Niches. This lives behind the Seller Central login and has NO MCP — it is always internal/connected browser work. Use the API-first downloader (`tools/opportunity-explorer/fetch-poe.js` via `run-poe.mjs` or internal-browser evaluate; niche data can be fetched without manual CSV download) and the per-niche export checklist (`skills/amazon-opportunity-explorer/references/poe-niche-export-checklist.md`).
 - Listing copy (title/bullets/link) for the anchor + competitors: not in DataDive or POE — capture it from the live product pages via the `amazon-listing-capture` skill / `tools/listing-capture/extract-amazon-listing-copy.js` (connected browser; deterministic ASIN; bullets primary `#feature-bullets ul` then fallback `#productFactsDesktopExpander > div:first-child ul`). Output one `listing-reference` JSON per `tools/listing-capture/listing-reference.schema.v1.json`; the builder fills the workbook ASINs tab from it. Replaces the legacy ZeroWork scrape, whose client-specific capture artifacts are intentionally not shipped.
 
 The two are complementary: DataDive gives ranking/keyword intelligence; POE gives Amazon-native demand, review/return voice-of-customer, and related-niche structure. Save exports under the controlled folders (`downloads/{client}/opportunity-data/`, `output/{client}/opportunity-data/`, `evidence/{client}/opportunity-data/`).
@@ -360,7 +370,7 @@ This repo is being prepared as a public-safe, reusable workspace. Before any com
 
 Never inspect browser cookies, local storage, passwords, session stores, API secrets, bearer tokens, refresh tokens, bank details, tax IDs, payment identifiers, or private keys.
 
-Narrow carve-out for the report fetcher: reading the page's own `anti-csrftoken-a2z` `<meta>` tag to call that same Seller Central page's report API in the operator's existing logged-in session (same-origin, read-only report reads — see `tools/report-fetcher/`) is permitted. That meta tag is the anti-forgery value the page already exposes for its own requests; it is not a cookie, credential, or session store. Everything else in the line above still applies — never read cookies, passwords, session/local storage, or bearer/refresh tokens.
+Narrow carve-out for the report fetcher and the POE downloader: reading the page's own `anti-csrftoken-a2z` `<meta>` tag to call that same Seller Central page's report/data API in the operator's existing logged-in session (same-origin, read-only reads — see `tools/report-fetcher/` and `tools/opportunity-explorer/`) is permitted. That meta tag is the anti-forgery value the page already exposes for its own requests; it is not a cookie, credential, or session store. Everything else in the line above still applies — never read cookies, passwords, session/local storage, or bearer/refresh tokens.
 
 Avoid broad system/process inspection, broad cleanup, browser resets, or process killing. These actions can trigger security warnings and are not needed for normal Amazon work.
 

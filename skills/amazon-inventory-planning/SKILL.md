@@ -38,7 +38,7 @@ Important planner files:
 - Business Report units ordered for the last 30 days are the primary demand source.
 - FBA Inventory 7-day and 30-day shipped units are context/trend fields.
 - Restock sold30 is fallback/supporting signal only where the planner uses it.
-- Save final deliverables outside SOP/help folders, normally under `output/{client-or-brand}/inventory/` with dates in filenames.
+- Save final deliverables outside SOP/help folders, normally under `output/{client}/inventory/` with dates in filenames. `{client}` is the normalized lowercase-kebab client slug from `AGENTS.md`, with marketplace in filenames, not folder names.
 - Stop before client-facing Slack sends, destructive Downloads cleanup, or any account-changing Seller Central action.
 - The former automation does not need to be reactivated to run this workflow; use this skill and reference file as the source of truth.
 
