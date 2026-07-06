@@ -14,3 +14,14 @@ description: Use for Amazon catalog management: variations, parentage, flat file
 5. Decide manual UI vs flat-file vs support case.
 6. Preserve current state before edits.
 7. Stop before saving listing changes, deleting/relisting, uploading feeds, or submitting support cases.
+
+## Parentage / Variation Flat Files
+
+For creating or editing variation families (parentage) or any targeted flat-file edit, load `references/parentage-flatfile-playbook.md` BEFORE building or reviewing the file. Non-negotiables from live-verified runs:
+
+- Upload base = a fresh **blank template** (single-country, correct browse node). The Category Listings Report is a **data source only** — re-uploading its echoed values fails current-schema validation.
+- Parent rows: Full Update, generic title, ALL required attributes filled (Data Definitions sheet), no variation/offer/condition data.
+- Child rows: minimal Partial Update — parentage fields + the variation attribute value, nothing else echoed.
+- Map template columns by attribute name, never by index; read `dataRow` from the settings cell (it varies by template flavor).
+- Read the Feed Processing Summary per SKU; "successful with other errors" = change applied, pre-existing listing issues flagged separately.
+- When merging existing ASINs, capture the pre-merge KPI baseline first (see playbook).

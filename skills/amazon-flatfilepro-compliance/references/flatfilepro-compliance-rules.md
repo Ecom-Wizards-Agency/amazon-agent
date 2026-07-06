@@ -85,3 +85,24 @@ Stop before:
 - saving Seller Central edits
 - submitting an Account Health appeal
 - sending a Seller Support reply
+
+## Full-grid output rule (2026-07-05)
+
+Upload CSVs are **full-grid by default**: run `prepare_flatfilepro_compliance_csv.py` with `--fill-unchanged` so every included column carries a value for every included SKU — the reviewed change where one exists, the SKU's current source-export value otherwise. Rationale: a column that is mapped in FlatFilePro but empty for some SKUs can clear the live value for those SKUs on apply. A cell may only remain empty when the field is also empty in the source export (nothing to preserve). This also makes the file self-documenting: the operator sees the complete final state per SKU, not a sparse diff. Keep the audit note as the place where changed-vs-carried values are distinguished.
+
+## Attribute-group completeness (Amazon code 99022, 2026-07-05)
+
+Amazon validates grouped attributes as a whole per feed row. Submitting one member of a group without its required companions fails per SKU with code 99022 ("Il campo X per l'attributo Y non ha valori sufficienti. Il minimo necessario è di 1"). Confirmed live on the Sheko IT collagen upload: sending `nutritional_info.0.energy.0.content` without `…energy.0.unit` (and similar) failed every SKU even though the unit was already populated on Amazon.
+
+Companion map — when ANY member on the left is in the file, include ALL fields on the right for that SKU:
+
+- `nutritional_info.0.energy.0.*` → `content` + `unit`
+- `nutritional_info.0.protein.0.*` → `value` + `unit`
+- `nutritional_info.0.carbohydrate.0.*` → `total` + `unit`
+- `nutritional_info.0.fat.0.*` → `total` + `unit`
+- `nutritional_info.0.vitamins_and_minerals.N.*` → `nutrient` + `value` + `unit` (per index N)
+- any `nutritional_info.*` member at all → `nutritional_info.0.serving_quantity` + `nutritional_info.0.serving_unit` (+ `serving_description.0.value`)
+- `unit_count.0.value` ↔ `unit_count.0.type.value` (always both)
+- `item_weight` / `item_package_weight` / `item_display_weight` `.0.value` ↔ `.0.unit` (always both)
+
+Fill companions current-export-value-first, reviewed-baseline-second, generic default last (`kilocalories` for energy unit, `grams` for other units). Combined with the full-grid rule, the end state is: every SKU row in the upload carries complete, self-consistent attribute groups.

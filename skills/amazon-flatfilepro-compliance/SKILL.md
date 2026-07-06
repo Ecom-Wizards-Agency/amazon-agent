@@ -23,7 +23,8 @@ If required inputs are missing, answer briefly with only what is needed. Typical
 2. Read the export/template headers before deciding which fields can be updated.
 3. Compare current backend values against the physical label.
 4. Review consistency at ASIN level, but write updates at SKU level, including duplicate contribution SKUs such as `-1` variants when they may control the frontend.
-5. Create narrow upload files with only `sku` plus relevant existing FlatFilePro headers.
+5. Create narrow upload files with only `sku` plus relevant existing FlatFilePro headers. **Default to full-grid output** (`--fill-unchanged` on the script): every included column is filled for every included SKU — the new value where changed, the SKU's current source value otherwise. A mapped-but-empty cell risks clearing a live value at upload time; a cell may only stay empty when the field is also empty in the source. Sparse output (changed cells only) is acceptable only when the operator explicitly wants it.
+6. **Complete every touched attribute group** (Amazon error 99022 otherwise, per SKU): when the file touches any member of a grouped attribute, include the whole group's required members in the same file — nutrition macros (`energy`/`protein`/`carbohydrate`/`fat`: value **and** unit), vitamins rows (`nutrient` + `value` + `unit`), any `nutritional_info` touch also requires `serving_quantity` + `serving_unit` (+ `serving_description`), `unit_count.0.value` ↔ `unit_count.0.type.value`, and every weight value with its unit. Source companion values current-export-first, reviewed-baseline-second. See `references/flatfilepro-compliance-rules.md` § Attribute-group completeness.
 6. Produce an audit note or workbook showing included SKUs, excluded SKUs, changed fields, unchanged matching values, and manual-review fields.
 7. Stop before uploading files, saving Seller Central changes, or submitting cases.
 
