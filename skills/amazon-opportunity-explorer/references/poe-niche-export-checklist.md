@@ -17,7 +17,21 @@ marketplace for the job at hand. A DE collagen powder (`collagen pulver`,
 
 ## A. Per-niche "Niche Details" CSV exports (canonical builder inputs)
 
-For the **main niche** and **each related niche you intend to keep**:
+**Preferred (API-first, no clicking):** fetch the niche via the downloader —
+one call captures Products, Search Terms, CRI (positive+negative), Returns and
+overview, and writes builder-ready EN-canonical CSVs regardless of UI locale:
+
+```bash
+node tools/opportunity-explorer/run-poe.mjs search --query "<niche keyword>" --marketplace <cc> --client <slug>
+node tools/opportunity-explorer/run-poe.mjs niche --niche-id <id> --marketplace <cc> --client <slug>
+```
+
+(or via internal-browser evaluate of `tools/opportunity-explorer/fetch-poe.js`
++ `format-poe.mjs` — see that tool's README; API contract in
+`tools/opportunity-explorer/references/poe-endpoints.md`.)
+
+**Fallback (manual UI export)** — for the **main niche** and **each related
+niche you intend to keep**:
 
 1. Open POE → search/open the niche → **Niche Details**.
 2. **Products tab** → export CSV.
@@ -37,13 +51,17 @@ in step B — see the optional enhancement in the builder README.)
 
 ## B. Related-niches grid + Reviews / Returns / Insights (JSON capture)
 
-In the connected browser, on the relevant POE page, run the repo extractor in
-page context:
+**Preferred:** already covered by the downloader in step A — `run-poe.mjs
+search` writes the related-niches v1 JSON (builder-compatible `cells` rows) and
+`run-poe.mjs niche` writes sentiment-labeled CRI + Returns JSON/CSV.
+
+**Fallback (deprecated DOM extractor):** in the connected browser, on the
+relevant POE page, run the repo extractor in page context:
 
 ```js
 await window.amazonAgentExtractOpportunityExplorer()
 ```
-(loaded from `tools/opportunity-explorer/extract-opportunity-explorer.js`)
+(loaded from `tools/opportunity-explorer/extract-opportunity-explorer.js`, DEPRECATED)
 
 - Save the returned object as JSON under
   `output/{client}/opportunity-data/<date>_poe_<niche-slug>_*.json`. The builder

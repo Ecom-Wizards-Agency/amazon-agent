@@ -1,4 +1,9 @@
 /*
+ * DEPRECATED (2026-07-05): DOM-scraping fallback only — use fetch-poe.js +
+ * run-poe.mjs instead (POE's internal GraphQL API returns every tab in one
+ * call; see references/poe-endpoints.md). Kept until the fetch path has
+ * survived a few real client runs, then delete.
+ *
  * Browser-side Product Opportunity Explorer extractor.
  *
  * Usage:

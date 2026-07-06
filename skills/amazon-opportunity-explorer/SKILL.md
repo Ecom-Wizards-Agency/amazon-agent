@@ -20,12 +20,14 @@ Use this specialist skill when the task involves Amazon Product Opportunity Expl
 
 ## Extraction Tool
 
-Use the repo-native extraction workflow:
+Use the repo-native API-first downloader (house pattern of `tools/report-fetcher/`):
 
-- Browser-side extractor: `tools/opportunity-explorer/extract-opportunity-explorer.js`
-- JSON/Markdown formatter: `tools/opportunity-explorer/format-opportunity-explorer-export.mjs`
+- Browser-side fetcher: `tools/opportunity-explorer/fetch-poe.js` — same-origin GraphQL; ONE `fetchPoeNiche` call returns every niche-detail tab (overview, Products, Search Terms, Customer Review Insights positive+negative with snippets, Returns, Insights & Trends series); `fetchPoeSearch` returns the keyword-search / related-niches grid.
+- Local formatter: `tools/opportunity-explorer/format-poe.mjs` (`--self-test`) — EN-canonical builder-ready CSVs + sentiment-labeled CRI, Returns, overview, related-niches JSON.
+- One-command CDP runner: `tools/opportunity-explorer/run-poe.mjs` (shares the report-fetcher debug Chrome; `--marketplace` verified against the session).
+- API contract + verification: `tools/opportunity-explorer/references/poe-endpoints.md`, `poe-gap-matrix.md`.
 
-Default model: script-first. Codex should run the browser-side extractor in the already logged-in connected browser Seller Central page, then save structured JSON plus Markdown. This avoids manual extension-panel clicking while preserving the useful scraping logic.
+Default model: API-first. Codex evaluates `fetch-poe.js` in the already logged-in internal-browser Seller Central page (path A); terminal agents use `run-poe.mjs` (path B). Both produce identical files. The legacy DOM extractor (`extract-opportunity-explorer.js` + `format-opportunity-explorer-export.mjs`) is a DEPRECATED fallback only.
 
 The Chrome extension package is not part of the intended workflow once the script is tested. Keep the pCloud extension only as historical/source reference during transition.
 
@@ -40,8 +42,8 @@ The operator confirmed ownership and backend clearance for reusing the previous 
 1. Confirm account, marketplace, product/niche/category, and intended output: image strategy, product strategy, SEO/Alexa AI strategy, or combined opportunity brief.
 2. Search local Amazon docs and MAG SOPs for the current Product Opportunity Explorer path if browser navigation is needed.
 3. In the connected browser, navigate Seller Central to Product Opportunity Explorer / Opportunity Explorer and verify the selected account and marketplace.
-4. Run `tools/opportunity-explorer/extract-opportunity-explorer.js` in the page context on the relevant Opportunity Explorer niche/page. Do not require the user to open or click a Chrome extension unless script execution is unavailable.
-5. Save the raw extractor output as JSON, then run the formatter to create JSON and Markdown under `output/{client-or-brand}/opportunity-data/` with dates in filenames, or another the operator-approved local/pCloud destination.
+4. Fetch the niche via `fetch-poe.js` (`fetchPoeSearch` to find the nicheId, then `fetchPoeNiche`) in the page context, or run `run-poe.mjs niche --niche-id <id> --marketplace <cc> --client <slug>` from the terminal. Do not require the user to open or click a Chrome extension.
+5. Format with `tools/opportunity-explorer/format-poe.mjs` into `output/{client}/opportunity-data/` with dates in filenames, or another operator-approved destination. `{client}` is the normalized lowercase-kebab client slug from `AGENTS.md`, with marketplace in filenames, not folder names.
 6. Load only the relevant knowledge-base reference:
    - `amazon-image-strategy` for image set recommendations and creative direction.
    - `oei-product-strategy` for product development, differentiation, and market entry.
