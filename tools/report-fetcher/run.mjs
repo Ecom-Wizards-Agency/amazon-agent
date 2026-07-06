@@ -76,6 +76,12 @@ function emit(doc, outPath, verbose, desc) {
     console.log("[verbose]", rawPath, "| column ids:", Object.keys(firstRow).join(", ") || "(none)");
   }
   if (doc.error) die(`fetch error: ${doc.error}\n  (${desc}) — tab logged out / wrong marketplace, or a payload field changed. --verbose captures the raw response.`);
+  if (doc.report === "file") {             // inventory/listing report: raw file, no reformatting
+    ensureDir(outPath); writeFileSync(outPath, doc.text || "");
+    const lines = (doc.text || "").split("\n").filter((l) => l.trim()).length;
+    console.log(`OK — ${outPath} (${Math.max(0, lines - 1)} rows) · ${desc} · ${doc.filename || ""}`);
+    return;
+  }
   const csv = format(doc);                 // throws + lists columns if a required one is unmapped
   ensureDir(outPath); writeFileSync(outPath, csv);
   const rows = csv.split("\n").filter((l) => l.trim()).length - 1;
@@ -119,6 +125,14 @@ function buildJobs(report, cfg, args, mp) {
     const fn = report === "scp" ? "fetchScp" : "fetchTst";
     jobs.push({ report, out, range, weeks, pageUrl: `/brand-analytics/dashboard/${report === "scp" ? "brand-catalog-performance" : "top-search-terms"}`,
       needMetaTag: true, call: `${fn}(${JSON.stringify(p)})`, desc: `${report.toUpperCase()} ${range} ${weeks.join(",")}` });
+  } else if (report === "inventory") {
+    const c = cfgFor("inventory");
+    const rtype = args["report-type"] || c.report_type || "";
+    const ext = args.out && /\.\w+$/.test(args.out) ? "" : ".txt";
+    const out = args.out || c.out || join(c.out_dir || "output/<client>/reporting/", `inventory${ext}`);
+    const p = rtype ? { reportType: rtype } : {};
+    jobs.push({ report, out, pageUrl: "/listing/reports/ref=xx_invreport_favb_xx", needMetaTag: false,
+      call: `fetchInventoryReport(${JSON.stringify(p)})`, desc: `Inventory report${rtype ? " " + rtype : ""}` });
   } else if (report === "business") {
     const c = cfgFor("business_report");
     const start = args.start || c.start_date, end = args.end || c.end_date;
@@ -168,9 +182,9 @@ async function main() {
     process.exit(1);
   }
 
-  const reports = args._ === "all" ? ["sqp", "business", "scp", "tst"].filter((r) => cfg && (cfg[r] || cfg[r === "business" ? "business_report" : r])) : [args._];
-  if (!reports.length || !["sqp", "scp", "tst", "business"].includes(reports[0]))
-    die("usage: run.mjs <sqp|scp|tst|business|all|doctor> [--config <cfg>] [flags] — see the header of run.mjs");
+  const reports = args._ === "all" ? ["sqp", "business", "scp", "tst", "inventory"].filter((r) => cfg && (cfg[r] || cfg[r === "business" ? "business_report" : r])) : [args._];
+  if (!reports.length || !["sqp", "scp", "tst", "business", "inventory"].includes(reports[0]))
+    die("usage: run.mjs <sqp|scp|tst|business|inventory|all|doctor> [--config <cfg>] [flags] — see the header of run.mjs");
 
   const jobs = reports.flatMap((r) => buildJobs(r, cfg, args, mp));
 

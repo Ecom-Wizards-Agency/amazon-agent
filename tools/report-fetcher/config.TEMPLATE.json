@@ -37,5 +37,10 @@
     "search_term": "<optional search term>",
     "asins": [],
     "out": "output/<client>/reporting/tst.csv"
+  },
+  "inventory": {
+    "_comment": "Pre-generated listing/inventory files from the 'View Downloads' status API (fetches the NEWEST DONE report of the type — always fresh). report_type: sc_mfm_inventory_report_46092 (Inventory Report — default) | volt_all_listings_report (All Listings) | sc_feeds_merchant_listings_report_37265 (Active Listings) | sc_vla_referral_fee_preview_report_0313 (Referral Fee Preview). Feeds tools/reshipment (clients[].inventory). NOT here: Report Central FBA/Restock (19600/94300) and the Category Listings Report — download those manually for now.",
+    "report_type": "sc_mfm_inventory_report_46092",
+    "out": "output/<client>/reporting/inventory.txt"
   }
 }

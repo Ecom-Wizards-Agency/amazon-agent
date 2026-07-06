@@ -263,6 +263,43 @@ async function fetchTst(params) {
     marketplace: mp, reportingRange: range, capturedAt: new Date().toISOString() }, res);
 }
 
+// ---------------------------------------------------------------- Inventory / listing report file
+// params: { reportType? }  reportType translationStringId (default = the Inventory Report).
+// These are pre-generated files served via the Listing reports status API: list DONE
+// reports of the type, take the newest, follow its downloadfile link. Returns the RAW
+// file text (tab- or comma-delimited) — no reformatting.
+//   Inventory Report → "sc_mfm_inventory_report_46092"
+//   All Listings     → "volt_all_listings_report"
+//   Active Listings  → "sc_feeds_merchant_listings_report_37265"
+async function fetchInventoryReport(params) {
+  var base = location.origin;
+  var rtype = params.reportType || "sc_mfm_inventory_report_46092";
+  var out = { schemaVersion: "amazon-agent.seller-report.v1", report: "file", reportType: rtype,
+    capturedAt: new Date().toISOString() };
+  var list;
+  try {
+    var lr = await fetch(base + "/listing/api/status/inventory-reports", { credentials: "include", headers: { "Accept": "application/json" } });
+    if (!lr.ok) { out.error = "report list HTTP " + lr.status + " (session logged out?)"; return out; }
+    list = await lr.json();
+  } catch (e) { out.error = "report list failed: " + String(e); return out; }
+  var done = (list.statuses || []).filter(function (s) {
+    return (s.processingState || {}).name === "DONE" && (!rtype || (s.reportType || {}).translationStringId === rtype);
+  });
+  if (!done.length) { out.error = "no DONE report of type " + rtype + " found — generate one in Seller Central first"; return out; }
+  done.sort(function (a, b) { return String(b.submissionDate || "").localeCompare(String(a.submissionDate || "")); });
+  var top = done[0];
+  var link = ((top.actions || [])[0] || {}).link;
+  if (!link) { out.error = "newest report has no download link"; return out; }
+  out.filename = top.originalFileName; out.submissionDate = top.submissionDate;
+  try {
+    var dr = await fetch(base + link, { credentials: "include" });
+    if (!dr.ok) { out.error = "download HTTP " + dr.status; return out; }
+    out.contentType = dr.headers.get("content-type");
+    out.text = await dr.text();
+  } catch (e) { out.error = "download failed: " + String(e); return out; }
+  return out;
+}
+
 // ------------------------------------------------------- Business Reports
 // params: { legacyReportId, asins?, startDate:"YYYY-MM-DD", endDate:"YYYY-MM-DD",
 //           granularity:"DAY"|"WEEK"|"MONTH" }
@@ -312,4 +349,5 @@ try {
   window.amazonAgentFetchBusinessReport = fetchBusinessReport;
   window.amazonAgentFetchScp = fetchScp;
   window.amazonAgentFetchTst = fetchTst;
+  window.amazonAgentFetchInventoryReport = fetchInventoryReport;
 } catch (e) { /* non-extensible window in some evaluate contexts — path A is used instead */ }
