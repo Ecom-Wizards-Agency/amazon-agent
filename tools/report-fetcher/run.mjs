@@ -198,9 +198,20 @@ async function main() {
   }
 
   await assertChrome();
-  const sc = (await listPages()).find((p) => /sellercentral\.amazon\./.test(p.url || ""));
-  if (!sc) die("No logged-in Seller Central tab found. Run launch-chrome-debug.sh and sign in, then retry.");
-  const origin = new URL(sc.url).origin;
+  // Region: pass --origin (e.g. https://sellercentral.amazon.de) to force it — needed
+  // when the debug Chrome has tabs from more than one region (US .com vs EU .de). One
+  // EU login (.de) covers DE/IT/ES/FR/NL/... via --marketplace; US uses .com.
+  const forced = args.origin || (cfg && cfg.origin);
+  const pages = await listPages();
+  let origin;
+  if (forced) {
+    origin = new URL(forced).origin;
+    if (!pages.some((p) => (p.url || "").startsWith(origin))) die(`No debug-Chrome tab on ${origin}. Open Seller Central there (signed in) and retry.`);
+  } else {
+    const sc = pages.find((p) => /sellercentral\.amazon\./.test(p.url || ""));
+    if (!sc) die("No logged-in Seller Central tab found. Run launch-chrome-debug.sh and sign in, then retry.");
+    origin = new URL(sc.url).origin;
+  }
 
   for (const job of jobs) {
     if (job.report === "sqp") await runSqpJob(origin, job, args);

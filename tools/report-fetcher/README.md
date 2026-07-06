@@ -2,7 +2,11 @@
 
 Pull **Business Reports** (Detail Page Sales & Traffic) and **Search Query Performance**
 (SQP) straight from Seller Central's own report APIs, using the operator's logged-in
-session — no clicking through the UI, no manual downloads. Output CSVs drop straight into
+session — no clicking through the UI, no manual downloads.
+
+`cdp.mjs` and `launch-chrome-debug.sh` are shared infrastructure: the Opportunity
+Explorer downloader (`tools/opportunity-explorer/run-poe.mjs`) uses the same CDP client
+and the same debug Chrome/login. Output CSVs drop straight into
 the ad-audit pipeline (`build_sqp_workbook.py`, `analyze_audit.py`). Live-reconciled: the
 fetched CSVs match the manual Seller Central export to the penny.
 
@@ -54,6 +58,14 @@ fetch nothing) · `--verbose` (also writes `<out>.raw.json` + column ids — tro
 first run). Each SQP ASIN is fetched with a single-ASIN call (uncapped Search Query Volume).
 The runner opens its own background tab, writes the CSV, closes the tab; it never disturbs
 your other tabs. The canonical copy-paste Codex prompt is in `CODEX-PROMPT.md`.
+
+**Regions (US / EU).** The runner uses whichever region the debug Chrome is signed into
+(auto-detected from the logged-in tab) and the `--marketplace` code for the report payload.
+For EU, sign the debug Chrome into an EU Seller Central — **one `.de` login covers DE/IT/ES/FR/NL/…**
+— and pass the marketplace, e.g. `--marketplace de` (or `it`/`es`/`fr`). US uses `.com` with
+`--marketplace us`. If the debug Chrome has tabs from more than one region open, force the
+region with `--origin https://sellercentral.amazon.de` (or the config's `origin`). Report
+types and column ids are language-independent (matched by id, not the localized label).
 
 First-run troubleshooting (an agent can do this itself): `run.mjs doctor` checks the
 connection; `--verbose` captures the raw response + column ids; if the formatter can't map a
