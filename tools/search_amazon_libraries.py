@@ -50,6 +50,8 @@ def iter_files(root: Path):
         if path.is_file() and path.suffix.lower() in EXTS:
             if "/.direct-build" in str(path) or "/.final-build" in str(path):
                 continue
+            if "/_archive/" in str(path):
+                continue
             if "/_index/" in str(path) and path.suffix.lower() == ".json":
                 continue
             yield path

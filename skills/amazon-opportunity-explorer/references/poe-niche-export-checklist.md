@@ -2,14 +2,14 @@
 
 What the operator/agent must do **in the connected, logged-in Amazon Seller
 Central browser** to produce the Product Opportunity Explorer (POE) inputs that
-the keyword-workbook builder consumes. POE is behind Seller-Central auth — there
+the keyword-workbook builder consumes. POE is behind Seller-Central auth. There
 is **no MCP** for it, so this step is always browser-driven.
 
 > Safety (per `AGENTS.md`): never inspect cookies, local storage, session
 > storage, tokens, or credentials during extraction. Verify the selected
 > **account, marketplace, and niche/page title** before exporting.
 
-This checklist is product-agnostic — substitute the client, niche, ASIN, and
+This checklist is product-agnostic: substitute the client, niche, ASIN, and
 marketplace for the job at hand. A DE collagen powder (`collagen pulver`,
 `B0XXXXXXXX`, amazon.de) is the worked example.
 
@@ -17,8 +17,8 @@ marketplace for the job at hand. A DE collagen powder (`collagen pulver`,
 
 ## A. Per-niche "Niche Details" CSV exports (canonical builder inputs)
 
-**Preferred (API-first, no clicking):** fetch the niche via the downloader —
-one call captures Products, Search Terms, CRI (positive+negative), Returns and
+**Preferred (API-first, no clicking):** fetch the niche via the downloader.
+One call captures Products, Search Terms, CRI (positive+negative), Returns and
 overview, and writes builder-ready EN-canonical CSVs regardless of UI locale:
 
 ```bash
@@ -27,11 +27,11 @@ node tools/opportunity-explorer/run-poe.mjs niche --niche-id <id> --marketplace 
 ```
 
 (or via internal-browser evaluate of `tools/opportunity-explorer/fetch-poe.js`
-+ `format-poe.mjs` — see that tool's README; API contract in
++ `format-poe.mjs`; see that tool's README; API contract in
 `tools/opportunity-explorer/references/poe-endpoints.md`.)
 
-**Fallback (manual UI export)** — for the **main niche** and **each related
-niche you intend to keep**:
+**Fallback (manual UI export)**. Do this for the **main niche** and **each
+related niche you intend to keep**:
 
 1. Open POE → search/open the niche → **Niche Details**.
 2. **Products tab** → export CSV.
@@ -47,11 +47,11 @@ Destination + naming the builder expects:
 (The main-niche CSVs are passed to the builder via `--poe-products-csv` /
 `--poe-search-terms-csv`. The per-niche related CSVs are archived for evidence;
 the builder currently derives the related-niches **tab** from the grid capture
-in step B — see the optional enhancement in the builder README.)
+in step B; see the optional enhancement in the builder README.)
 
 ## B. Related-niches grid + Reviews / Returns / Insights (JSON capture)
 
-**Preferred:** already covered by the downloader in step A — `run-poe.mjs
+**Preferred:** already covered by the downloader in step A. `run-poe.mjs
 search` writes the related-niches v1 JSON (builder-compatible `cells` rows) and
 `run-poe.mjs niche` writes sentiment-labeled CRI + Returns JSON/CSV.
 
@@ -74,7 +74,7 @@ await window.amazonAgentExtractOpportunityExplorer()
     <input.json> output/{client}/opportunity-data
   ```
 - The extractor also captures Insights & Trends, Products, Search Terms,
-  Customer Review Insights, and Returns tab text/tables — use these to curate
+  Customer Review Insights, and Returns tab text/tables. Use these to curate
   the `POE Raw - Reviews`, `POE Raw - Returns`, and `POE Semantic Insights` tabs.
 
 ## C. Evidence
@@ -86,7 +86,7 @@ Save screenshots / tab snapshots under `evidence/{client}/opportunity-data/`
 
 ## D. Relevance is the builder's job, not the export's
 
-Export whatever niches you need to inspect — **including drift**. The builder
+Export whatever niches you need to inspect, **including drift**. The builder
 applies the strict keep-list filter (`<your config>.json →
 related_niche_filter`) and drops unrelated niches (e.g. `glow`-drift, skincare,
 perfume, teeth-whitening, toys, lights, filament). Keep the keep-list in the

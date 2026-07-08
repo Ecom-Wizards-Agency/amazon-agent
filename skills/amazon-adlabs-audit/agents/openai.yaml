@@ -1,0 +1,3 @@
+display_name: AdLabs PPC Audit
+short_description: Run read-only PPC audits of AdLabs-managed accounts via the AdLabs MCP.
+default_prompt: Use this skill for /adlabs-audit and audit-via-AdLabs requests on managed accounts (context-first, 10 steps per marketplace, read-only). For prospect audits from bulk files use amazon-ad-audit instead.

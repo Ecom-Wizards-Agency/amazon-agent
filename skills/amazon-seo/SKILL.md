@@ -1,6 +1,6 @@
 ---
 name: amazon-seo
-description: Use for Amazon SEO strategy and listing copywriting: writing or re-optimizing titles, bullets, Item Highlights, description, and backend search terms; Rufus/Alexa AI semantic optimization; SEO audits; health-claims compliance ("make the listing compliant"); Never Ever classification decisions. For the DataDive-export-to-XLSX keyword-workbook build pipeline use amazon-seo-keyword-workflow — this skill writes the SEO content that feeds it.
+description: Use for Amazon SEO strategy and listing copywriting: writing or re-optimizing titles, bullets, Item Highlights, description, and backend search terms; Rufus/Alexa AI semantic optimization; SEO audits; health-claims compliance ("make the listing compliant"); Never Ever classification decisions. For the DataDive-export-to-XLSX keyword-workbook build pipeline use amazon-seo-keyword-workflow; this skill writes the SEO content that feeds it.
 ---
 
 # Amazon SEO
@@ -19,21 +19,21 @@ Naming note: the operator noted that Amazon's Rufus AI naming is moving/has move
    - `<your-knowledge-base>/Skills/direct-response-copywriter.md` when persuasion/voice matters
    - relevant client/project notes under `<your-knowledge-base>/Projects/Clients/`
 
-   Note: these knowledge-base skill files are a user-specific local reference and may not exist at the `Code/knowledge-base` path. The operator's current local copies live in an Obsidian vault: `<your-vault>/Skills/` (e.g. `amazon-seo-writer.md`, `keyword-classifier-and-filter.md`, `rufus-optimization.md`, `oei-product-strategy.md`). This path is user-specific — team members should point to their own local knowledge-base/Obsidian copy. Do not commit the vault to GitHub. This is a reference source only, not a "check Obsidian for everything" rule.
+   Note: these knowledge-base skill files are a user-specific local reference and may not exist at the `Code/knowledge-base` path. The operator's current local copies live in an Obsidian vault: `<your-vault>/Skills/` (e.g. `amazon-seo-writer.md`, `keyword-classifier-and-filter.md`, `rufus-optimization.md`, `oei-product-strategy.md`). This path is user-specific. Team members should point to their own local knowledge-base/Obsidian copy. Do not commit the vault to GitHub. This is a reference source only, not a "check Obsidian for everything" rule.
 
-   In-repo condensations (use these when the vault is unavailable — they make the skill self-contained):
-   - `skills/amazon-seo/references/seo-writing-methodology.md` — keyword classification, Ranking-Juice placement priority, title/bullet/description/backend rules, Rufus/Alexa semantic layer, audit pass.
-   - `skills/amazon-seo/references/eu-compliance-matrix.md` — EU health-claim rules (Reg. 1924/2006 + 432/2012 + 1925/2006), authorized-vs-prohibited by category, with worked collagen/fibre cases. Consult before writing copy or filling `triage.claim_tokens`.
-   - `skills/amazon-seo/references/health-claims-compliance.md` — the compliance process layer (modeled on Amazon's SAS Health Claims Check audits): category risk tiers (regulated vs standard), EU + US regimes, the SAS-style per-claim self-check (`/health-claims-check`), and the RJ-preserving rewrite ladder (strip-effect → authorised-wording swap → ADD authorised claims → backend/PPC routing → drop last). Mandatory self-check before delivery for regulated-tier products; client-facing report only on explicit operator request.
+   In-repo condensations (use these when the vault is unavailable; they make the skill self-contained):
+   - `skills/amazon-seo/references/seo-writing-methodology.md`: keyword classification, Ranking-Juice placement priority, title/bullet/description/backend rules, Rufus/Alexa semantic layer, audit pass.
+   - `skills/amazon-seo/references/eu-compliance-matrix.md`: EU health-claim rules (Reg. 1924/2006 + 432/2012 + 1925/2006), authorized-vs-prohibited by category, with worked collagen/fibre cases. Consult before writing copy or filling `triage.claim_tokens`.
+   - `skills/amazon-seo/references/health-claims-compliance.md`: the compliance process layer (modeled on Amazon's SAS Health Claims Check audits): category risk tiers (regulated vs standard), EU + US regimes, the SAS-style per-claim self-check (`/health-claims-check`), and the RJ-preserving rewrite ladder (strip-effect → authorised-wording swap → ADD authorised claims → backend/PPC routing → drop last). Mandatory self-check before delivery for regulated-tier products; client-facing report only on explicit operator request.
 
    Reusable workflow: for full keyword-research workbooks built from DataDive + POE exports, use `skills/amazon-seo-keyword-workflow/SKILL.md` and the repo builder `tools/amazon-seo-keyword-workbook/`. The builder uses DataDive Core MKL at 30%, Expanded MKL at 1%, POE evidence, Never Ever frequency analysis, outlier triage, SEO text, and a DataDive Ranking Juice snapshot.
 
    DataDive support references (Zendesk article index + SEO workflow map):
    - `skills/amazon-seo/references/datadive-support/datadive-support-index.md`
    - `skills/amazon-seo/references/datadive-support/datadive-seo-workflow-article-map.md`
-   - refresh with `tools/datadive-support/refresh_datadive_support_index.py` when DataDive's help center changes (the index is metadata + links, not full article text).
+   - refresh with `tools/datadive-support/refresh_datadive_support_index.py` when DataDive's help center changes (the index is metadata + links, not full article text). The script also regenerates `datadive-support-article-inventory.json` in the same folder; both are generated files, do not hand-edit.
 
-   When to consult them (don't load preemptively — open the workflow map and search the topic only when it matters):
+   When to consult them (don't load preemptively; open the workflow map and search the topic only when it matters):
 
    | If the task involves… | Consult the DataDive topic | Builder step it informs |
    |---|---|---|
@@ -52,7 +52,7 @@ Naming note: the operator noted that Amazon's Rufus AI naming is moving/has move
 2. Load only the relevant knowledge-base skill reference, not every SEO reference.
 3. Search Amazon first-party docs for current constraints before finalizing copy or recommendations.
 4. Use MAG SEO SOPs when the user needs the step-by-step agency workflow or Seller Central movement.
-5. For regulated categories (supplements, foods with claims, health & beauty, medical-adjacent), apply `references/health-claims-compliance.md`: check restricted claims against `references/eu-compliance-matrix.md` (EU) or the US regime section, run the SAS-style self-check before delivery, and fix findings via the RJ-preserving rewrite ladder — never bare deletion — so Ranking Juice and semantic coverage survive the compliance pass. Standard-tier categories (household/general) get the claims-lite pass and may keep more aggressive wording.
+5. For regulated categories (supplements, foods with claims, health & beauty, medical-adjacent), apply `references/health-claims-compliance.md`: check restricted claims against `references/eu-compliance-matrix.md` (EU) or the US regime section, run the SAS-style self-check before delivery, and fix findings via the RJ-preserving rewrite ladder (never bare deletion) so Ranking Juice and semantic coverage survive the compliance pass. Standard-tier categories (household/general) get the claims-lite pass and may keep more aggressive wording.
 6. Stop before saving or publishing listing changes, uploading flat files, or editing live catalog content.
 
 ## Listing Field Terminology
@@ -69,20 +69,20 @@ Do not use bullet fields for Item Highlights, do not split an Item Highlight int
 
 When the task is "update the title / bullets / Item Highlights / backend" or
 "re-optimize / make compliant" an existing listing (not a full keyword workbook),
-**ask for these inputs up front** before writing — they gate both Ranking Juice and
+**ask for these inputs up front** before writing. They gate both Ranking Juice and
 compliance, and skipping them is what produces wrong titles:
 
 1. **Anchor ASIN + marketplace.**
-2. **DataDive niche ID** — the highest-leverage input. Pull the live **master keyword
+2. **DataDive niche ID**: the highest-leverage input. Pull the live **master keyword
    list** (`get_niche_keywords`) so you front-load the highest-SV **tracked** keyword,
    not a Roots-tab term (see methodology §2, root-vs-tracked), and the Ranking Juice
    snapshot (`get_ranking_juice`).
-3. **Product facts from the label/PDP** — `form`, **blend or single ingredient**, the
+3. **Product facts from the label/PDP**: `form`, **blend or single ingredient**, the
    **ingredient list** (+ branded raw materials, e.g. Fibregum™), certifications
    (organic/Bio, vegan, gluten-free), and key attributes. A **blend must not lead the
-   title with one ingredient** — use a generic blend signal and recover the names in
+   title with one ingredient**. Use a generic blend signal and recover the names in
    Item Highlights/bullets.
-4. **Any intended benefit/claim angle** — screen it against
+4. **Any intended benefit/claim angle**: screen it against
    `references/eu-compliance-matrix.md` before it reaches copy (ingredient **names**
    are factual; ingredient **effects** are health claims).
 

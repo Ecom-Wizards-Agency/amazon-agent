@@ -1,6 +1,6 @@
 ---
 name: amazon-flatfilepro-compliance
-description: Use for Amazon FlatFilePro, Flatfire Pro, flat file, backend export, category listing report, or Amazon template work where catalog fields must be prepared from product labels for Account Health, food safety, nutrition, ingredients, warning, shelf life, manufacturer contact, weight, set name, or label/detail-page mismatch cases. Use when creating narrow upload CSVs, audit files, or validation notes from a FlatFilePro export and physical label/package evidence.
+description: Use to prepare narrow FlatFilePro upload CSVs, audit files, or validation notes from a FlatFilePro export plus label/package evidence (Account Health, food-safety, and label-vs-detail-page mismatch cases). Trigger on FlatFilePro, Flatfire Pro, flat file, backend export, or category listing report work. The upload itself routes to `amazon-flatfilepro-upload-mapper`.
 ---
 
 # Amazon FlatFilePro Compliance
@@ -23,8 +23,8 @@ If required inputs are missing, answer briefly with only what is needed. Typical
 2. Read the export/template headers before deciding which fields can be updated.
 3. Compare current backend values against the physical label.
 4. Review consistency at ASIN level, but write updates at SKU level, including duplicate contribution SKUs such as `-1` variants when they may control the frontend.
-5. Create narrow upload files with only `sku` plus relevant existing FlatFilePro headers. **Default to full-grid output** (`--fill-unchanged` on the script): every included column is filled for every included SKU — the new value where changed, the SKU's current source value otherwise. A mapped-but-empty cell risks clearing a live value at upload time; a cell may only stay empty when the field is also empty in the source. Sparse output (changed cells only) is acceptable only when the operator explicitly wants it.
-6. **Complete every touched attribute group** (Amazon error 99022 otherwise, per SKU): when the file touches any member of a grouped attribute, include the whole group's required members in the same file — nutrition macros (`energy`/`protein`/`carbohydrate`/`fat`: value **and** unit), vitamins rows (`nutrient` + `value` + `unit`), any `nutritional_info` touch also requires `serving_quantity` + `serving_unit` (+ `serving_description`), `unit_count.0.value` ↔ `unit_count.0.type.value`, and every weight value with its unit. Source companion values current-export-first, reviewed-baseline-second. See `references/flatfilepro-compliance-rules.md` § Attribute-group completeness.
+5. Create narrow upload files with only `sku` plus relevant existing FlatFilePro headers. **Default to full-grid output** (`--fill-unchanged` on the script): every included column is filled for every included SKU: the new value where changed, the SKU's current source value otherwise. A mapped-but-empty cell risks clearing a live value at upload time; a cell may only stay empty when the field is also empty in the source. Sparse output (changed cells only) is acceptable only when the operator explicitly wants it.
+6. **Complete every touched attribute group** (Amazon error 99022 otherwise, per SKU): when the file touches any member of a grouped attribute, include the whole group's required members in the same file: nutrition macros (`energy`/`protein`/`carbohydrate`/`fat`: value **and** unit), vitamins rows (`nutrient` + `value` + `unit`), any `nutritional_info` touch also requires `serving_quantity` + `serving_unit` (+ `serving_description`), `unit_count.0.value` ↔ `unit_count.0.type.value`, and every weight value with its unit. Source companion values current-export-first, reviewed-baseline-second. See `references/flatfilepro-compliance-rules.md` § Attribute-group completeness.
 6. Produce an audit note or workbook showing included SKUs, excluded SKUs, changed fields, unchanged matching values, and manual-review fields.
 7. Stop before uploading files, saving Seller Central changes, or submitting cases.
 
@@ -81,7 +81,7 @@ Prefer these outputs:
 - upload-ready CSV split by product type/template when needed
 - validation note with assumptions, source files, excluded rows, and manual-review items
 
-For CSV creation from reviewed changes, use `scripts/prepare_flatfilepro_compliance_csv.py`. Read `references/flatfilepro-compliance-rules.md` before building complex upload files.
+For CSV creation from reviewed changes, use `scripts/prepare_flatfilepro_compliance_csv.py`. Read `references/flatfilepro-compliance-rules.md` before building complex upload files. When reading physical labels or packaging, map label sections to backend fields with `references/label-to-backend-mapping.md`.
 
 After the CSV is created, use `amazon-flatfilepro-upload-mapper` when the operator asks Codex to upload the file in Chrome, match by SKU, map columns in FlatFilePro, or leave the flow ready for the operator's final click. Keep this skill focused on preparing the CSV and audit.
 

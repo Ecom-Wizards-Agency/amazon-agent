@@ -1,6 +1,6 @@
-# /fetch-reports — pull Seller Central reports (Business / SQP / SCP / TST)
+# /fetch-reports: pull Seller Central reports (Business / SQP / SCP / TST)
 
-Fetch Seller Central reports hands-off with `tools/report-fetcher/` — no manual download,
+Fetch Seller Central reports hands-off with `tools/report-fetcher/`: no manual download,
 no console paste. Runs in the operator's logged-in Chrome over the debug protocol. Read-only
 (report reads only); never change Seller Central settings. Full reference:
 `tools/report-fetcher/README.md`; copy-paste prompts: `tools/report-fetcher/CODEX-PROMPT.md`.
@@ -28,8 +28,8 @@ Load the `amazon-reporting` skill first.
 4. **Report** the row count per file and where each CSV landed
    (`output/<client>/reporting/`). SQP → `inputs.sqp_csvs`, Business → `inputs.business_report_csv`.
 5. **On an "unmapped column" error**: it exits non-zero and lists the source columns; paste
-   the column ids from the matching `<out>.raw.json` — a one-line map fix in
+   the column ids from the matching `<out>.raw.json`; the fix is a one-line map in
    `format-seller-reports.mjs`, never a wrong file.
 
 Stop rules: read-only; if there's no active session, land nothing and ask the operator to
-sign in — never fabricate rows.
+sign in. Never fabricate rows.

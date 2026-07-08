@@ -25,17 +25,17 @@ The agent should be able to:
 
 ## Browser Standard
 
-Per-agent browser: Codex uses the internal Codex browser for Amazon work. Claude and other assistants with a connected browser use the operator's connected browser (commonly Chrome or Brave). If `local-browser-preference.md` exists in the project root, read it before browser work and use that preferred browser when available — the file is local-only and ignored by Git. Everywhere this document says "the browser," it means whichever of these applies to the current agent.
+Per-agent browser: Codex uses the internal Codex browser for Amazon work. Claude and other assistants with a connected browser use the operator's connected browser (commonly Chrome or Brave). If `local-browser-preference.md` exists in the project root, read it before browser work and use that preferred browser when available. The file is local-only and ignored by Git. Everywhere this document says "the browser," it means whichever of these applies to the current agent.
 
 If an Amazon page shows a login screen, stop and ask the operator to log in first. The agent must not handle passwords, one-time codes, authenticator prompts, cookies, local storage, session stores, or other credentials.
 
-Before every Amazon task, verify the browser session is logged in and confirm the selected account/advertiser, marketplace/country, visible page title/tool, and date range or filters when relevant. Repeat this verification after switching tools, opening a new Amazon area, changing marketplaces, changing advertiser/seller accounts, or returning from a login/session timeout. If the browser is unavailable or not logged in, pause and ask the operator to open it, complete login, or name which browser/session to use.
+Before every Amazon task, verify the browser session is logged in and confirm the selected account/advertiser, marketplace/country, visible page title/tool, and date range or filters when relevant. If the task names a client, brand, advertiser, seller account, or marketplace, switch to that exact account and marketplace before doing any task work, downloading files, reading reports, or confirming statuses. If the correct account/marketplace is not selected, unavailable, ambiguous, or hidden behind login/session friction, stop and ask the operator before proceeding. Repeat this verification after switching tools, opening a new Amazon area, changing marketplaces, changing advertiser/seller accounts, or returning from a login/session timeout. If the browser is unavailable or not logged in, pause and ask the operator to open it, complete login, or name which browser/session to use.
 
 Detailed per-screen checkpoint, screenshot, and stop-point procedure: `docs/browser-checkpoints.md`.
 
 ## Local Libraries
 
-Search narrowly before answering or operating. Index-first rule: each library ships a `README.md` plus a machine-readable index (`Amazon Seller Help/_index/seller-help-index.json`, `Amazon Ads Help/_index/amazon-ads-help-index.json`, `Advertising Help After Login/_index/advertising-help-index.json`, `MAG SOPs/_index/sop-index.json`). When no specialist skill matches the request, start from these indexes or the search helper — do not crawl or grep whole SOP/help folders.
+Search narrowly before answering or operating. Index-first rule: each library ships a `README.md` plus a machine-readable index (`Amazon Seller Help/_index/seller-help-index.json`, `Amazon Ads Help/_index/amazon-ads-help-index.json`, `Advertising Help After Login/_index/advertising-help-index.json`, `MAG SOPs/_index/sop-index.json`). When no specialist skill matches the request, start from these indexes or the search helper. Do not crawl or grep whole SOP/help folders.
 
 - `Amazon Seller Help`
 - `Amazon Ads Help`
@@ -55,7 +55,7 @@ python3 "tools/search_amazon_libraries.py" "send to amazon shipment" --library a
 
 ## SOP Drafts And MAG SOP Visual Archive
 
-The runtime `MAG SOPs/` folder is the markdown-only version; the GitHub/runtime project keeps it searchable and lightweight — heavy images, GIFs, screenshots, zip files, generated evidence, outputs, and client work artifacts do not belong in the runtime source tree. Search local/GitHub markdown SOPs first. Also search `sop-drafts/` for matching workflow drafts, especially when the task involves recent learnings, support cases, troubleshooting, shipping defects, communications, or processes that the operator says were recently improved.
+The runtime `MAG SOPs/` folder is the markdown-only version; the GitHub/runtime project keeps it searchable and lightweight. Heavy images, GIFs, screenshots, zip files, generated evidence, outputs, and client work artifacts do not belong in the runtime source tree. The runtime tree is also curated for Amazon work: the AI ChatGPT-prompt and Product Development categories and two Business Analysis SOPs were removed (2026-07-08), and the Walmart SOPs live under `MAG SOPs/_archive/` (excluded from the index and the search helper). The complete 535-file capture stays in the pCloud visual archive. Search local/GitHub markdown SOPs first. Also search `sop-drafts/` for matching workflow drafts, especially when the task involves recent learnings, support cases, troubleshooting, shipping defects, communications, or processes that the operator says were recently improved.
 
 Treat `sop-drafts/` as emerging internal procedure: useful and intentionally available to the agent, but not fully final. If a draft conflicts with a promoted MAG SOP or first-party Amazon docs, prefer first-party Amazon docs for rules/current UI, prefer promoted SOPs for settled agency procedure, and use the draft as a recent-learning signal to flag or propose the better path.
 
@@ -94,7 +94,7 @@ Default routing:
 - `amazon-ads`: Ads Console, PPC, bidding, budgets, targeting.
 - `amazon-campaign-builder`: creating Sponsored Products campaigns from a text brief → bulk-upload `.xlsx` via `tools/amazon-campaign-builder/` (file-only; upload stays operator-confirmed).
 - `amazon-creator-connections`: Creator Connections inbox audits, status-filtered message triage, campaign tracker updates, reply drafting (operator-confirmed sends), campaign prep to the publish checkpoint, tracker gaps, reconciliation.
-- `amazon-reporting`: Seller/Ads reports, SQP, business reports, analytics workbooks; Business Reports + SQP can be fetched without manual download via `tools/report-fetcher/`.
+- `amazon-reporting`: fetching and formatting Seller/Ads reports, SQP, business reports, analytics workbooks; Business Reports + SQP can be fetched without manual download via `tools/report-fetcher/`. Not for audit narratives (that is `amazon-ad-audit` or `amazon-adlabs-audit`).
 - `amazon-inventory-planning`: weekly FBA inventory overview, reshipment planning, pCloud outputs, Slack staging.
 - `amazon-opportunity-explorer`: Product Opportunity Explorer/OEI/POE exports, image strategy, product strategy, Alexa/Rufus semantic insights.
 - `amazon-listing-capture`: capture live listing copy (title/bullets/link) for anchor + competitors via the connected-browser extractor; feeds the keyword-workbook ASINs tab; replaces the legacy ZeroWork scrape.
@@ -102,7 +102,7 @@ Default routing:
 - `amazon-logistics`: Send to Amazon, FBA shipments, removals, AWD, inventory operations.
 - `amazon-communications`: support cases, buyer messages, courtesy-refund follow-ups (creator replies inside Creator Connections → `amazon-creator-connections`).
 - `amazon-flatfilepro-compliance`: prepare label-based FlatFilePro/flat-file compliance CSVs and audit notes from backend exports, labels, packaging, and case messages.
-- `amazon-flatfilepro-upload-mapper`: operate the logged-in Chrome FlatFilePro upload flow for prepared CSVs, match by SKU, map columns, capture validation issues, and stop before final submit/update.
+- `amazon-flatfilepro-upload-mapper`: operate the FlatFilePro upload flow in the logged-in browser for prepared CSVs, match by SKU, map columns, capture validation issues, and stop before final submit/update.
 
 Inventory planning trigger phrases:
 
@@ -137,7 +137,7 @@ DataDive trigger phrases:
 
 For DataDive research, use the local `datadive` MCP server when available. It runs `@datadive-tools/mcp` locally over stdio and is read-only. Use it for DataDive-owned niche, keyword, competitor, Ranking Juice, and Rank Radar data before falling back to manual exports. Do not save the DataDive API key in this project, commit it to GitHub, paste it into SOPs, or repeat it in operator notes. Store the key only in local MCP/client secret storage. DataDive output can inform Amazon SEO, image strategy, opportunity-data, and catalog research, but current Amazon rules and UI behavior still come from first-party Amazon docs.
 
-For Product Opportunity Explorer work, route to `amazon-opportunity-explorer`. Use the repo-native API-first downloader when an export is needed — one `getNiche` call returns every niche-detail tab (overview, Products, Search Terms, Customer Review Insights positive+negative with snippets, Returns, trends); the keyword search returns the related-niches grid:
+For Product Opportunity Explorer work, route to `amazon-opportunity-explorer`. Use the repo-native API-first downloader when an export is needed: one `getNiche` call returns every niche-detail tab (overview, Products, Search Terms, Customer Review Insights positive+negative with snippets, Returns, trends); the keyword search returns the related-niches grid:
 
 - `tools/opportunity-explorer/fetch-poe.js` (browser-side, same-origin GraphQL; window.amazonAgentFetchPoe*)
 - `tools/opportunity-explorer/format-poe.mjs` (local formatter, `--self-test`)
@@ -158,8 +158,8 @@ Naming note: the operator noted that Amazon's Rufus AI naming is moving/has move
 Keyword and opportunity research draws on two complementary sources with different access models:
 
 - DataDive (MCP, read-only): niche analysis, master keyword lists, competitor ASINs, Ranking Juice, Rank Radar, indexing-issue alerts. Use the local `datadive` MCP server first when available; no browser/login needed. Niche data is addressed by `nicheId` (find it with `list_niches`).
-- Product Opportunity Explorer (POE/OEI): Products, Search Terms, Customer Review Insights, Returns, and Related Niches. This lives behind the Seller Central login and has NO MCP — it is always internal/connected browser work. Use the API-first downloader (`tools/opportunity-explorer/fetch-poe.js` via `run-poe.mjs` or internal-browser evaluate; niche data can be fetched without manual CSV download) and the per-niche export checklist (`skills/amazon-opportunity-explorer/references/poe-niche-export-checklist.md`).
-- Listing copy (title/bullets/link) for the anchor + competitors: not in DataDive or POE — capture it from the live product pages via the `amazon-listing-capture` skill / `tools/listing-capture/extract-amazon-listing-copy.js` (connected browser; deterministic ASIN; bullets primary `#feature-bullets ul` then fallback `#productFactsDesktopExpander > div:first-child ul`). Output one `listing-reference` JSON per `tools/listing-capture/listing-reference.schema.v1.json`; the builder fills the workbook ASINs tab from it. Replaces the legacy ZeroWork scrape, whose client-specific capture artifacts are intentionally not shipped.
+- Product Opportunity Explorer (POE/OEI): Products, Search Terms, Customer Review Insights, Returns, and Related Niches. This lives behind the Seller Central login and has NO MCP. It is always internal/connected browser work. Use the API-first downloader (`tools/opportunity-explorer/fetch-poe.js` via `run-poe.mjs` or internal-browser evaluate; niche data can be fetched without manual CSV download) and the per-niche export checklist (`skills/amazon-opportunity-explorer/references/poe-niche-export-checklist.md`).
+- Listing copy (title/bullets/link) for the anchor + competitors: not in DataDive or POE. Capture it from the live product pages via the `amazon-listing-capture` skill / `tools/listing-capture/extract-amazon-listing-copy.js` (connected browser; deterministic ASIN; bullets primary `#feature-bullets ul` then fallback `#productFactsDesktopExpander > div:first-child ul`). Output one `listing-reference` JSON per `tools/listing-capture/listing-reference.schema.v1.json`; the builder fills the workbook ASINs tab from it. Replaces the legacy ZeroWork scrape, whose client-specific capture artifacts are intentionally not shipped.
 
 The two are complementary: DataDive gives ranking/keyword intelligence; POE gives Amazon-native demand, review/return voice-of-customer, and related-niche structure. Save exports under the controlled folders (`downloads/{client}/opportunity-data/`, `output/{client}/opportunity-data/`, `evidence/{client}/opportunity-data/`).
 
@@ -171,26 +171,15 @@ Listing field terminology for SEO and FlatFilePro work:
 
 Do not map Item Highlights into bullet fields or create bullet columns when the operator asks only for Item Highlights.
 
-Reusable assembly (client-agnostic): `tools/amazon-seo-keyword-workbook/` turns these raw exports into a styled, validated keyword workbook, driven entirely by a per-client config (copy `config.TEMPLATE.json`; see `NEW-CLIENT.md` and `WORKFLOW.md`). Tab structure, thresholds, and validation details live in the `amazon-seo-keyword-workflow` skill — route there for the full end-to-end run. On explicit PPC request, the workbook's `5. Campaign Structure` tab is filled via `fill_campaign_structure.py` (`/fill-campaigns`) — visual plan only; strategy thresholds and campaign naming live local-only in `_local/ads-strategy/`.
+Reusable assembly (client-agnostic): `tools/amazon-seo-keyword-workbook/` turns these raw exports into a styled, validated keyword workbook, driven entirely by a per-client config (copy `config.TEMPLATE.json`; see `NEW-CLIENT.md` and `WORKFLOW.md`). Tab structure, thresholds, and validation details live in the `amazon-seo-keyword-workflow` skill. Route there for the full end-to-end run. On explicit PPC request, the workbook's `5. Campaign Structure` tab is filled via `fill_campaign_structure.py` (`/fill-campaigns`): visual plan only; strategy thresholds and campaign naming live local-only in `_local/ads-strategy/`.
 
-Keyword-research workbook delivery goes to Google Drive only. Do not copy generated keyword-research workbooks to pCloud. Target folder pattern: `Geteilte Ablagen/Ecom Wizards/01_Client Sheets/<Client>/Keyword Research/<Country>/` — one `Keyword Research` folder per client with a sub-folder per country (NOT a folder per run). If the client has only one country, the workbook goes directly in `…/<Client>/Keyword Research/` with no country sub-folder. The workbook becomes a Google Sheet there.
+Keyword-research workbook delivery goes to Google Drive only. Do not copy generated keyword-research workbooks to pCloud. Target folder pattern: `Geteilte Ablagen/Ecom Wizards/01_Client Sheets/<Client>/Keyword Research/<Country>/`. One `Keyword Research` folder per client with a sub-folder per country (NOT a folder per run). If the client has only one country, the workbook goes directly in `…/<Client>/Keyword Research/` with no country sub-folder. The workbook becomes a Google Sheet there.
 
-Two-agent flow (Codex ↔ Claude): keyword-workbook runs split across the internal/connected browser (POE + DataDive UI exports) and Claude (SEO writing + the builder). To avoid hand-translating between agents, run the builder's preflight: `build_keyword_workbook.py --config <cfg> --preflight`. It reads the config's input contract and prints either a copy-ready Codex handoff (for missing browser/UI inputs) or a READY status. Codex's role here: produce the contract inputs at their paths, capture evidence + caveats, then stop — do not run the builder or write SEO (that is Claude's half: write the SEO content and run the build). Follow the saved protocol at `<your-vault>/Context/codex-claude-handoff-protocol.md`. Building a different product than the style template clears product-specific curated tabs to placeholders (via `tabs.carry_forward_clear`) so a new-market workbook never ships another product's content.
+Two-agent flow (Codex ↔ Claude): keyword-workbook runs split across the internal/connected browser (POE + DataDive UI exports) and Claude (SEO writing + the builder). To avoid hand-translating between agents, run the builder's preflight: `build_keyword_workbook.py --config <cfg> --preflight`. It reads the config's input contract and prints either a copy-ready Codex handoff (for missing browser/UI inputs) or a READY status. Codex's role here: produce the contract inputs at their paths, capture evidence + caveats, then stop. Do not run the builder or write SEO (that is Claude's half: write the SEO content and run the build). Follow the saved protocol at `<your-vault>/Context/codex-claude-handoff-protocol.md`. Building a different product than the style template clears product-specific curated tabs to placeholders (via `tabs.carry_forward_clear`) so a new-market workbook never ships another product's content.
 
 `/seo-standby` means: prepare for a keyword-research workbook run, load the Amazon SEO keyword workflow as needed, then wait for Claude's handoff. Do not start DataDive, POE, listing capture, builder, SEO writing, Drive delivery, listing edits, commits, or browser work until the operator provides Claude's concrete handoff/instructions. After the handoff arrives, capture only the contract inputs, save exact requested paths, report caveats, and stop.
 
-SOP maintenance trigger phrases:
-
-- `/create-sop`
-- `/fix-sop`
-- `outdated SOP`
-- `broken SOP link`
-- `wrong SOP steps`
-- `new SOP draft`
-
-For SOP maintenance, route to `amazon-sop-maintenance`. `/create-sop` creates a tracked draft in `sop-drafts/`. `/fix-sop` verifies the issue, updates the local tracked source file, and creates a synced change note in `sop-updates/`. Stop before pushing unless the operator explicitly asks to push.
-
-SOP vs skill rule: create or update a SOP for a human/team Amazon process, checklist, browser workflow, or operating procedure. Create or update a skill only when changing how the agent behaves, routes work, uses tools/scripts, or applies repeatable AI workflow instructions.
+For SOP maintenance (`/create-sop`, `/fix-sop`, outdated SOPs, broken SOP links, wrong SOP steps, new SOP drafts), route to `amazon-sop-maintenance`. The trigger phrases, the SOP-vs-skill rule, storage locations, and the full correction workflow live in that skill. Stop before pushing unless the operator explicitly asks to push.
 
 Source priority:
 
@@ -203,12 +192,12 @@ Source priority:
 
 For any Amazon ad or sales audit, follow `docs/amazon-ad-audit-playbook.md` before writing the narrative or building the workbook. It is the repeatable, GitHub-shareable standard for the audit narrative structure + operator voice and the master-workbook layout (single MASTER file merging the Ad Audit + SQP Intelligence tabs under a built one-page Overview). Keep it client-agnostic and public-safe.
 
-Two audit variants exist — route by data source:
+Two audit variants exist. Route by data source:
 
 - Prospect/bulk-file audits (ads bulk + Business Report + SQP downloads): `amazon-ad-audit` skill + `tools/amazon-ad-audit/` toolkit (below).
-- Managed accounts connected to AdLabs ("audit/analyze via AdLabs", `/adlabs-audit`): `amazon-adlabs-audit` skill — context-first (AdLabs profile memory + Notion A/B-Tests event log + call summaries), 10-step AdLabs MCP audit per marketplace, Optimization-Group-level ACOS grading, DataDive Rank-Radar verification of rank campaigns, read-only unless the operator explicitly lifts the rule for a specific write.
+- Managed accounts connected to AdLabs ("audit/analyze via AdLabs", `/adlabs-audit`): `amazon-adlabs-audit` skill: context-first (AdLabs profile memory + Notion A/B-Tests event log + call summaries), 10-step AdLabs MCP audit per marketplace, Optimization-Group-level ACOS grading, DataDive Rank-Radar verification of rank campaigns, read-only unless the operator explicitly lifts the rule for a specific write.
 
-The workbooks and narrative scaffold are built by the client-agnostic toolkit `tools/amazon-ad-audit/` (per-client config from `config.TEMPLATE.json`; see its `WORKFLOW.md` and `NEW-CLIENT.md`). Build steps, roles (Codex downloads exports, Claude pulls DataDive/builds/writes), QA gates, and delivery rules live in the `amazon-ad-audit` skill — route there for the full run. Client config JSONs are gitignored; deliver the MASTER `.xlsx` + narrative `.docx` to the client's Google Drive audit folder.
+The workbooks and narrative scaffold are built by the client-agnostic toolkit `tools/amazon-ad-audit/` (per-client config from `config.TEMPLATE.json`; see its `WORKFLOW.md` and `NEW-CLIENT.md`). Build steps, roles (Codex downloads exports, Claude pulls DataDive/builds/writes), QA gates, and delivery rules live in the `amazon-ad-audit` skill. Route there for the full run. Client config JSONs are gitignored; deliver the MASTER `.xlsx` + narrative `.docx` to the client's Google Drive audit folder.
 
 ## Campaign Creation Standard
 
@@ -218,7 +207,7 @@ The output is a FILE ONLY and campaigns default to `paused`. Uploading the bulk 
 
 ## Creator Connections Standard
 
-For Creator Connections work ("go through the creator messages", "update the creator tracker", `/creator-connections`), route to the `amazon-creator-connections` skill — browser work via the Creator Connections route below (Campaign Manager → account selector → Brand content → Creator connections). The triage flow, client config (`_local/creator-connections/`, gitignored), and status-filter rules live in the skill.
+For Creator Connections work ("go through the creator messages", "update the creator tracker", `/creator-connections`), route to the `amazon-creator-connections` skill. Browser work goes through the Creator Connections route below (Campaign Manager → account selector → Brand content → Creator connections). The triage flow, client config (`_local/creator-connections/`, gitignored), and status-filter rules live in the skill.
 
 Two stop-gates: **sending any creator message** and **publishing any campaign** each need the operator's explicit approval of that exact action in the current chat or a matching `_local/local-permissions.md` standing permission.
 
@@ -243,11 +232,11 @@ Use ongoing client-first paths for new artifacts:
 - `evidence/{client}/{workflow}/`
 - `output/{client}/review-management/`
 
-Client folder rules (normalized 2026-07-04 — do not let variants drift back):
+Client folder rules (normalized 2026-07-04; do not let variants drift back):
 
-- `{client}` is one lowercase-kebab slug per client (`acme`, `globex-brands`) — no spaces, no capitals, no marketplace suffixes. Marketplace/country and dates belong in filenames (or a workflow subfolder), never in the client folder name.
+- `{client}` is one lowercase-kebab slug per client (`acme`, `globex-brands`): no spaces, no capitals, no marketplace suffixes. Marketplace/country and dates belong in filenames (or a workflow subfolder), never in the client folder name.
 - Before saving, list the artifact folder and REUSE the existing client folder; match the client slug in `tools/*/config.<slug>*.json` when one exists. Never create a spelling variant of an existing client folder ("Acme US" next to `acme`).
-- No loose files at the `output/` root — everything lives under `output/{client}/{workflow}/` (internal/agency work goes under `output/ecom-wizards/`; run-scoped folders like `reshipment-plans-<date>/` count as workflow folders).
+- No loose files at the `output/` root: everything lives under `output/{client}/{workflow}/` (internal/agency work goes under `output/ecom-wizards/`; run-scoped folders like `reshipment-plans-<date>/` count as workflow folders).
 
 Review management is ongoing and client-specific; update the same client folder over time. Keep support drafts under `output/{client}/support-prep/` and support evidence under `evidence/{client}/support-prep/`; use Notion for live support-case tracking.
 
@@ -360,17 +349,19 @@ For cross-agent tasks, finish by saving a handoff note in the relevant client/pr
 
 If the next agent is known, name it directly in the prompt. If no next agent is known, write a neutral "Next operator prompt".
 
-For keyword-workbook runs the handoff is auto-generated — `build_keyword_workbook.py --config <cfg> --preflight` emits a copy-ready Codex task for missing inputs (or a READY status). Saved protocol + templates: `<your-vault>/Context/codex-claude-handoff-protocol.md` and the per-client template under `Projects/Clients/<client>/cross-agent-handoff-template.md`.
+For keyword-workbook runs the handoff is auto-generated: `build_keyword_workbook.py --config <cfg> --preflight` emits a copy-ready Codex task for missing inputs (or a READY status). Saved protocol + templates: `<your-vault>/Context/codex-claude-handoff-protocol.md` and the per-client template under `Projects/Clients/<client>/cross-agent-handoff-template.md`.
 
 ## Repository Hygiene (Public Release)
 
-This repo is being prepared as a public-safe, reusable workspace. Before any commit that will be pushed to a public remote, follow `docs/public-release-checklist.md` — git identity (never publish a personal machine identity), no client/local data staged, public-safe content scan, no secrets, and the branch → PR flow. This applies to whichever agent performs the push (Claude or Codex); the pushing agent re-runs the checklist rather than trusting a handoff. Do not push unless the operator has explicitly asked for that specific push.
+Before committing doc or skill changes, run `python3 tools/lint_agent_docs.py`. It checks that every skill ships both discovery manifests (SKILL.md frontmatter + agents/openai.yaml), that routing-table names resolve, that no spaced em-dash slipped into authored files, and that shared skill files stay agent-neutral (no Claude-only tool names).
+
+This repo is being prepared as a public-safe, reusable workspace. Before any commit that will be pushed to a public remote, follow `docs/public-release-checklist.md`: git identity (never publish a personal machine identity), no client/local data staged, public-safe content scan, no secrets, and the branch → PR flow. This applies to whichever agent performs the push (Claude or Codex); the pushing agent re-runs the checklist rather than trusting a handoff. Do not push unless the operator has explicitly asked for that specific push.
 
 ## Safety Rules
 
 Never inspect browser cookies, local storage, passwords, session stores, API secrets, bearer tokens, refresh tokens, bank details, tax IDs, payment identifiers, or private keys.
 
-Narrow carve-out for the report fetcher and the POE downloader: reading the page's own `anti-csrftoken-a2z` `<meta>` tag to call that same Seller Central page's report/data API in the operator's existing logged-in session (same-origin, read-only reads — see `tools/report-fetcher/` and `tools/opportunity-explorer/`) is permitted. That meta tag is the anti-forgery value the page already exposes for its own requests; it is not a cookie, credential, or session store. Everything else in the line above still applies — never read cookies, passwords, session/local storage, or bearer/refresh tokens.
+Narrow carve-out for the report fetcher and the POE downloader: reading the page's own `anti-csrftoken-a2z` `<meta>` tag to call that same Seller Central page's report/data API in the operator's existing logged-in session (same-origin, read-only reads; see `tools/report-fetcher/` and `tools/opportunity-explorer/`) is permitted. That meta tag is the anti-forgery value the page already exposes for its own requests; it is not a cookie, credential, or session store. Everything else in the line above still applies: never read cookies, passwords, session/local storage, or bearer/refresh tokens.
 
 Avoid broad system/process inspection, broad cleanup, browser resets, or process killing. These actions can trigger security warnings and are not needed for normal Amazon work.
 

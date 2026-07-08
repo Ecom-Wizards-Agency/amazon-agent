@@ -1,6 +1,6 @@
 # Public Release / Pre-Push Checklist
 
-This repo is being prepared as a public-safe, reusable workspace. Run this checklist before **any commit that will be pushed to a public remote**. It is agent-neutral: whichever agent performs the push (Claude Code or Codex) and the operator both follow it. This file is itself public — keep real names, IDs, and client brands out of it.
+This repo is being prepared as a public-safe, reusable workspace. Run this checklist before **any commit that will be pushed to a public remote**. It is agent-neutral: whichever agent performs the push (Claude Code or Codex) and the operator both follow it. This file is itself public; keep real names, IDs, and client brands out of it.
 
 ## 1. Git identity (do not publish a personal machine identity)
 
@@ -26,9 +26,9 @@ The default git identity can fall back to a personal name plus the local machine
 Sweep for anything that identifies the operator, a client, or internal infrastructure:
 
 - **Operator/personal**: personal names, personal emails, personal absolute paths (`/Users/<name>`), private vault names, personal cloud-share links.
-- **Client brand names**: cached help-library captures under `Amazon Seller Help/` and `Advertising Help After Login/` embed the logged-in account brand in each file's header — these still need a scripted scrub or re-capture and are a known outstanding blocker for a fully public repo. Do not assume markdown-only genericization covered them.
+- **Client brand names**: cached help-library captures under `Amazon Seller Help/` and `Advertising Help After Login/` embed the logged-in account brand in each file's header. These still need a scripted scrub or re-capture and are a known outstanding blocker for a fully public repo. Do not assume markdown-only genericization covered them.
 - **Internal IDs**: Notion database/data-source IDs, Slack channel IDs, MCP/chat session IDs, ads profile/team IDs.
-- **Functional scripts**: `tools/*.py` may still carry personal paths or client-specific values — genericize or gitignore before publishing (do not change runtime behavior without testing).
+- **Functional scripts**: `tools/*.py` may still carry personal paths or client-specific values; genericize or gitignore before publishing (do not change runtime behavior without testing).
 - Representative sweep (adjust patterns to the current known-leaks list): grep tracked non-template files for personal name/email fragments, `/Users/[a-z]`, 32-hex ID strings, `api[_-]?key`, `token`, `secret`.
 
 ## 4. Secrets never ship
@@ -46,4 +46,4 @@ Because Codex holds the shared runtime for git work in the two-agent model, the 
 
 ## Change log of verified-safe additions
 
-- 2026-07-02 — `skills/amazon-adlabs-audit/SKILL.md`, `.claude/commands/adlabs-audit.md`, and the `agent.md` routing edit scanned clean (no brand/PII/currency/ID leakage); brand-agnostic and ready to publish.
+- 2026-07-02: `skills/amazon-adlabs-audit/SKILL.md`, `.claude/commands/adlabs-audit.md`, and the `agent.md` routing edit scanned clean (no brand/PII/currency/ID leakage); brand-agnostic and ready to publish.

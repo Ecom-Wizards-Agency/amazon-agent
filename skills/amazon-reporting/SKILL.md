@@ -1,6 +1,6 @@
 ---
 name: amazon-reporting
-description: Use for Amazon reporting and analytics: Seller Central reports, Amazon Ads reports, SQP, SCP, business reports, search term reports, bulk downloads, period comparisons, dashboards, and Excel/CSV workbook outputs.
+description: Use for fetching and formatting Amazon reports (`/fetch-reports`): Seller Central Business Reports, SQP, SCP, Ads reports, search term reports, bulk downloads, period comparisons, and Excel/CSV workbook outputs. Not for audit narratives: route full ad/sales audits to `amazon-ad-audit` or `amazon-adlabs-audit`.
 ---
 
 # Amazon Reporting
@@ -11,7 +11,7 @@ description: Use for Amazon reporting and analytics: Seller Central reports, Ama
    - `<your-knowledge-base>/Skills/amazon-sqp-intelligence-suite.md`
    - `<your-knowledge-base>/Skills/amazon-yoy-analysis.md`
 
-   Note: these knowledge-base skill files are a user-specific local reference and may not exist at the `Code/knowledge-base` path. The operator's current local copies live in an Obsidian vault: `<your-vault>/Skills/` (e.g. `amazon-sqp-intelligence-suite.md`, `amazon-yoy-analysis.md`). This path is user-specific — team members should point to their own local knowledge-base/Obsidian copy. Do not commit the vault to GitHub. This is a reference source only, not a "check Obsidian for everything" rule.
+   Note: these knowledge-base skill files are a user-specific local reference and may not exist at the `Code/knowledge-base` path. The operator's current local copies live in an Obsidian vault: `<your-vault>/Skills/` (e.g. `amazon-sqp-intelligence-suite.md`, `amazon-yoy-analysis.md`). This path is user-specific; team members should point to their own local knowledge-base/Obsidian copy. Do not commit the vault to GitHub. This is a reference source only, not a "check Obsidian for everything" rule.
 2. Amazon Seller Help or Advertising Help After Login for current report definitions, locations, filters, and download behavior.
 3. MAG SOPs for practical report generation steps.
 
@@ -25,16 +25,16 @@ description: Use for Amazon reporting and analytics: Seller Central reports, Ama
 
 ## Fetch reports without manual download (Business Reports + SQP)
 
-`tools/report-fetcher/` pulls Business Reports (Detail Page Sales & Traffic) and Search Query Performance straight from Seller Central's own report APIs in the connected/internal browser — no clicking through the UI, no manual CSV download. The output CSVs match the exact headers `build_sqp_workbook.py` and `analyze_audit.py` read, so they satisfy the ad-audit preflight's Business-Report + SQP CODEX tasks directly.
+`tools/report-fetcher/` pulls Business Reports (Detail Page Sales & Traffic) and Search Query Performance straight from Seller Central's own report APIs in the connected/internal browser: no clicking through the UI, no manual CSV download. The output CSVs match the exact headers `build_sqp_workbook.py` and `analyze_audit.py` read, so they satisfy the ad-audit preflight's Business-Report + SQP CODEX tasks directly.
 
 Preconditions: connected/internal browser (never headless) on a logged-in `sellercentral.amazon.*` tab; correct account + marketplace confirmed via the browser checkpoint; for SQP, a Brand Analytics page (so the `anti-csrftoken-a2z` meta tag is present).
 
 Reports: `sqp` (Search Query Performance), `business` (Detail Sales & Traffic), `scp` (Brand Catalog Performance), `tst` (Top Search Terms), `all`. Slash command: `/fetch-reports`. Canonical copy-paste prompt: `tools/report-fetcher/CODEX-PROMPT.md`.
 
-Hands-off (preferred — needs Chrome on the debug port; an agent with shell/`@computer` runs and troubleshoots it). Copy-paste path: fill a per-client config once (`config.TEMPLATE.json` → `config.<client>.json`, gitignored), then a fixed command:
+Hands-off (preferred; needs Chrome on the debug port; an agent with shell/`@computer` runs and troubleshoots it). Copy-paste path: fill a per-client config once (`config.TEMPLATE.json` → `config.<client>.json`, gitignored), then a fixed command:
 
 ```bash
-tools/report-fetcher/launch-chrome-debug.sh        # one-time; dedicated debug Chrome — log into Seller Central in it
+tools/report-fetcher/launch-chrome-debug.sh        # one-time; dedicated debug Chrome; log into Seller Central in it
 node tools/report-fetcher/run.mjs doctor           # verify connection + that the profile is signed in
 node tools/report-fetcher/run.mjs all --config tools/report-fetcher/config.<client>.json --plan
 node tools/report-fetcher/run.mjs all --config tools/report-fetcher/config.<client>.json --verbose
@@ -46,4 +46,4 @@ Manual fallback (no debug port): `evaluate` the source of `fetch-seller-reports.
 
 Then point the consumer config at the CSV: SQP → `inputs.sqp_csvs["<group>"]` (one file per ASIN group; one ASIN per file for uncapped SV); Business → `inputs.business_report_csv`.
 
-Rules: read-only (report reads only); reads only the page's own anti-CSRF meta tag, never cookies/passwords/session storage/tokens (see the Safety Rules carve-out in `AGENTS.md`); ~5 s between requests. If there is no active session or the evaluate can't fire, land nothing and ask the operator to open/refresh the tab — never fabricate rows. Runs under whichever agent drives the browser (Codex internal browser or Claude connected Chrome).
+Rules: read-only (report reads only); reads only the page's own anti-CSRF meta tag, never cookies/passwords/session storage/tokens (see the Safety Rules carve-out in `AGENTS.md`); ~5 s between requests. If there is no active session or the evaluate can't fire, land nothing and ask the operator to open/refresh the tab. Never fabricate rows. Runs under whichever agent drives the browser (Codex internal browser or Claude connected Chrome).

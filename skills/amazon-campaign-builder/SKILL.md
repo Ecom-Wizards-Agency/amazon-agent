@@ -1,6 +1,6 @@
 ---
 name: amazon-campaign-builder
-description: Use to create Amazon Sponsored Products campaigns from a plain-text brief — parses the brief into a per-client config and builds a bulk-upload .xlsx (SKW/Halo/BMM/Phrase/Auto/PAT, EW naming convention, paused by default). File-only output; uploading or any AdLabs push stays a separate operator-confirmed action.
+description: Use to create Amazon Sponsored Products campaigns from a plain-text brief. Trigger on requests like create SKW campaigns for these keywords, build campaigns from this brief, or `/create-campaigns`. Builds a bulk-upload .xlsx (paused by default). File-only output; uploading or any AdLabs push stays a separate operator-confirmed action.
 ---
 
 # Amazon Campaign Builder (SP campaigns from text)
@@ -9,8 +9,8 @@ Use this when the operator asks to create/build/set up Sponsored Products campai
 
 ## Source of truth
 
-1. **Toolkit:** `tools/amazon-campaign-builder/` — `campaign_model.py` (pure logic) + `build_campaigns.py` (CLI). See its `README.md`, `NEW-CLIENT.md`, `WORKFLOW.md`.
-2. **Bulksheet format:** the toolkit emits Amazon's documented bulksheets-2.0 vocabulary (sheet `Sponsored Products Campaigns`, `Dynamic bids - down only`, `negativeExact`, `asin-expanded=`, …) — the README's "Format fixes" table records where it deliberately deviates from the web app.
+1. **Toolkit:** `tools/amazon-campaign-builder/`: `campaign_model.py` (pure logic) + `build_campaigns.py` (CLI). See its `README.md`, `NEW-CLIENT.md`, `WORKFLOW.md`.
+2. **Bulksheet format:** the toolkit emits Amazon's documented bulksheets-2.0 vocabulary (sheet `Sponsored Products Campaigns`, `Dynamic bids - down only`, `negativeExact`, `asin-expanded=`, …). The README's "Format fixes" table records where it deliberately deviates from the web app.
 
 ## The config contract
 
@@ -19,7 +19,7 @@ Copy `tools/amazon-campaign-builder/config.TEMPLATE.json` → `config.<client>-<
 ## Flow
 
 1. **Parse the brief.** Extract client, marketplace, SKUs/ASINs, campaign types, keywords/target ASINs, budgets, bids, negatives, portfolio, start date, state.
-2. **Ask once for what's missing** (AskUserQuestion): marketplace/account, SKUs, budget + bid, paused vs enabled, portfolio, negatives. Never carry another client's values.
+2. **Ask once for what's missing**, in a single scoping message: marketplace/account, SKUs, budget + bid, paused vs enabled, portfolio, negatives. Never carry another client's values.
 3. **Scaffold the config** and run `build_campaigns.py --config <cfg> --preflight` until READY.
 4. **Preview** (`--preview`) and show the operator the planned campaigns + combined daily budget. Adjust until it matches intent.
 5. **Build** (`--config <cfg>`) → `output/<client-slug>/ads/<date>_<Brand>_<Market>_SP_bulk_campaigns.xlsx` + `_REVIEW.md`; the QA gates must PASS.
@@ -29,6 +29,6 @@ Copy `tools/amazon-campaign-builder/config.TEMPLATE.json` → `config.<client>-<
 
 - **File-only output.** The toolkit never uploads or touches live campaigns. Uploading the bulk file, enabling campaigns, changing live bids/budgets, or any AdLabs `create_entities` push is stop-before-risk: it needs the operator's explicit instruction for that specific action in the current chat, or a matching `_local/local-permissions.md` standing permission.
 - **Paused by default.** `state: enabled` only when the operator explicitly asks; preflight flags it (campaigns go live the moment Amazon processes the upload).
-- **AdLabs push variant:** for AdLabs-managed accounts the operator may ask to push instead of upload — that follows the `amazon-adlabs-audit` write policy verbatim (explicit per-write lift in the current chat, batch-by-batch what-will-change summary, tags). Build the file first anyway; it is the reviewable artifact.
-- **Never hand-edit the builders per client** — everything client-specific lives in the config. If the code can't express something, extend the toolkit, not a fork.
+- **AdLabs push variant:** for AdLabs-managed accounts the operator may ask to push instead of upload. That follows the `amazon-adlabs-audit` write policy verbatim (explicit per-write lift in the current chat, batch-by-batch what-will-change summary, tags). Build the file first anyway; it is the reviewable artifact.
+- **Never hand-edit the builders per client.** Everything client-specific lives in the config. If the code can't express something, extend the toolkit, not a fork.
 - SP only in v1. SB/SD requests: say so and fall back to the `amazon-ads` skill / manual console flow (the row builders are channel-keyed for a later SB/SD port).

@@ -1,0 +1,3 @@
+display_name: Amazon Listing Capture
+short_description: Capture live listing copy (title, bullets, link) into listing-reference JSON.
+default_prompt: Use this skill to capture live Amazon listing copy for an anchor ASIN and its siblings/competitors via the browser extractor, producing the listing-reference JSON the keyword-workbook builder ingests.

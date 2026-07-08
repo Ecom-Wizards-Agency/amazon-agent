@@ -2,10 +2,10 @@
 
 Practical, reusable reference for what may and may not be claimed in EU Amazon
 listing copy (DE/IT/FR/ES/…). Use it when writing `seo_content` and when filling
-`triage.claim_tokens`. Process layer on top of this matrix — category risk tiers,
-US regime, the SAS-style self-check, and the RJ-preserving rewrite ladder — lives
-in `health-claims-compliance.md`. **This is a starting reference, not legal advice** —
-always verify against the current EU claims register, the product's actual
+`triage.claim_tokens`. The process layer on top of this matrix (category risk tiers,
+US regime, the SAS-style self-check, and the RJ-preserving rewrite ladder) lives
+in `health-claims-compliance.md`. **This is a starting reference, not legal advice.**
+Always verify against the current EU claims register, the product's actual
 ingredient + dose, and Amazon's category rules before publishing. When unsure,
 treat the claim as prohibited and ask the operator.
 
@@ -18,25 +18,25 @@ treat the claim as prohibited and ask the operator.
 | **Reg. 1925/2006** | Added vitamins/minerals/substances | Governs fortification + what's permitted. |
 | Art. 12 / 14 (1924/2006) | Disease & weight-loss claims | Disease prevention/treatment claims are **prohibited** (except authorized risk-reduction claims). Rate/amount-of-weight-loss claims are **prohibited**. |
 
-**Two claim types — don't confuse them:**
-- **Nutrition claim** (about composition): e.g. "high in fibre", "source of protein", "low sugar". Allowed if the Annex threshold is met — **no register needed**.
+**Two claim types (don't confuse them):**
+- **Nutrition claim** (about composition): e.g. "high in fibre", "source of protein", "low sugar". Allowed if the Annex threshold is met; **no register needed**.
 - **Health claim** (effect on the body): e.g. "supports digestion", "maintains normal cholesterol". Allowed **only** if on the authorized register at the qualifying dose, in approved wording.
 
-**Core rule — ingredient NAMES vs ingredient EFFECTS:** *naming* an ingredient is a
+**Core rule (ingredient NAMES vs ingredient EFFECTS):** *naming* an ingredient is a
 factual attribute and is **allowed** ("Akazienfaser", "lösliche Maisfaser", "Pektin
 aus Zitrusfrüchten", "collagen peptides type I"). *Ascribing an effect* to that
 ingredient is a **health claim** and is **prohibited** unless it's on the EU register
 at the qualifying dose ("wirkt präbiotisch", "verbessert die Verdauung",
 "Blutzuckerregulierung", "fördert die Darmflora", "reduziert Völlegefühl", "länger
 anhaltende Sättigung", "allgemeines Wohlbefinden"). When a client hands over
-per-ingredient marketing blurbs, **keep the names, drop the effects** — the effect
+per-ingredient marketing blurbs, **keep the names, drop the effects**. The effect
 sentences are usually exactly the unauthorized claims.
 
 ## Generally allowed (factual / authorized)
 
-- **Nutrition claims** meeting the Annex thresholds — e.g. *"alto contenuto di fibre" / "high fibre"* (≥6 g/100 g or ≥3 g/100 kcal); *"fonte di fibre" / "source of fibre"* (≥3 g/100 g or ≥1.5 g/100 kcal); "source/high protein", "low/no sugar", "vegan", "lactose-free", "gluten-free" (only if true/certified).
+- **Nutrition claims** meeting the Annex thresholds, e.g. *"alto contenuto di fibre" / "high fibre"* (≥6 g/100 g or ≥3 g/100 kcal); *"fonte di fibre" / "source of fibre"* (≥3 g/100 g or ≥1.5 g/100 kcal); "source/high protein", "low/no sugar", "vegan", "lactose-free", "gluten-free" (only if true/certified).
 - **Factual product attributes**: ingredient, form, peptide/fibre type, dosage per serving, kcal, solubility, taste, origin ("Made in Germany"), pack size, usage (drinks, baking).
-- **Authorized function claims at the qualifying dose**, in register wording — examples:
+- **Authorized function claims at the qualifying dose**, in register wording. Examples:
   - *Pectin* → "contributes to the maintenance of normal blood cholesterol" (6 g/day); "reduction of blood-glucose rise after a meal" (10 g/meal).
   - *Beta-glucans* (oats/barley) → normal blood cholesterol (3 g/day).
   - *Psyllium / Plantago ovata husk* → normal blood cholesterol (7 g/day); bowel-function/transit claims for some fibres at stated doses.
@@ -55,7 +55,7 @@ sentences are usually exactly the unauthorized claims.
 | Product | Marketplace | Verdict | Why |
 |---|---|---|---|
 | **Collagen** (collagen powder) | DE | **No authorized health claim** → factual only (peptide type I/II/III, hydrolysate, form, solubility, origin). | Collagen has **no** authorized EU health claims; the live listing's "unterstützen nachweislich Gelenke/Haut…" was unauthorized → removed. |
-| **Fibre blend** (soluble corn fibre + acacia/carob + citrus pectin) | IT | **"Alto contenuto di fibre" (nutrition claim) allowed**; digestion / bowel / satiety / weight-loss **prohibited**. | No authorized health claim applies to this blend at this dose (pectin cholesterol claim needs 6 g/day — not met). The live listing's "favorisce la digestione / sazietà / perdita di peso" were unauthorized → removed. **Not psyllium** — don't borrow psyllium's claims. |
+| **Fibre blend** (soluble corn fibre + acacia/carob + citrus pectin) | IT | **"Alto contenuto di fibre" (nutrition claim) allowed**; digestion / bowel / satiety / weight-loss **prohibited**. | No authorized health claim applies to this blend at this dose (pectin cholesterol claim needs 6 g/day, not met). The live listing's "favorisce la digestione / sazietà / perdita di peso" were unauthorized → removed. **Not psyllium**. Don't borrow psyllium's claims. |
 | **Fibre blend** (**Fibregum™ Akazienfaser + lösliche Maisfasern + Pektin aus Zitrusfrüchten**) | DE | **"Hoher Ballaststoffgehalt" (nutrition claim) allowed**; the 3 fibre **names** allowed; präbiotisch / Verdauung / Blutzuckerregulierung / Darmflora / Völlegefühl / Sättigung **prohibited**. | Names-vs-effects rule applied to client-supplied per-ingredient blurbs: kept the ingredient names (incl. the branded raw material Fibregum™), dropped every effect sentence. `präbiotisch` is a true descriptor of acacia but is an EU **implied** health claim → backend only, never visible. No authorized claim qualifies at this dose. |
 
 ## How to use this in a build
@@ -63,5 +63,5 @@ sentences are usually exactly the unauthorized claims.
 1. Identify the **actual ingredient(s) + dose per serving** from the listing-reference JSON / label (verify any source discrepancy, e.g. acacia vs carob).
 2. Allow: matching **nutrition claims** + factual attributes + any **authorized function claim** whose ingredient + dose qualify, in register wording.
 3. Put prohibited terms into `triage.claim_tokens` so the workbook flags them as `Unsupported claim/health-risk`.
-4. In `seo_content` compliance notes, cite the basis (e.g. "Reg. 1924/2006 nutrition claim" or "factual only — no authorized claim").
+4. In `seo_content` compliance notes, cite the basis (e.g. "Reg. 1924/2006 nutrition claim" or "factual only, no authorized claim").
 5. Always end with: *final publication needs category compliance review + label verification.*

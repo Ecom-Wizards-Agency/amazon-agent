@@ -1,0 +1,3 @@
+display_name: Amazon Ad / Sales Audit
+short_description: Build end-to-end ad/sales audits from downloaded files into the MASTER workbook + narrative.
+default_prompt: Use this skill for full Amazon ad/sales audits from downloaded files (ads bulk, Business Report, SQP, DataDive niche). For AdLabs-managed accounts use amazon-adlabs-audit instead.

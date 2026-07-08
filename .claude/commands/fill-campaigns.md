@@ -1,8 +1,8 @@
-# /fill-campaigns — fill the workbook's Campaign Structure tab (visual plan only)
+# /fill-campaigns: fill the workbook's Campaign Structure tab (visual plan only)
 
 Fill the `5. Campaign Structure` tab of a built keyword-research workbook per the local ads
 strategy. Output = the filled tab + a Proposed Campaign Names block. **This flow never creates
-campaign bulk files, never uploads anything, and never touches Amazon** — pasting the plan into the
+campaign bulk files, never uploads anything, and never touches Amazon.** Pasting the plan into the
 bulk-creator webapp is the operator's manual step afterwards.
 
 Load the `amazon-seo-keyword-workflow` skill (section "Campaign Structure Fill") first.
@@ -14,7 +14,7 @@ Load the `amazon-seo-keyword-workflow` skill (section "Campaign Structure Fill")
 2. **Check the local strategy files** `_local/ads-strategy/strategy.json` + `strategy.md`:
    - Missing or `<placeholders>` → Claude: offer to create/refresh them from the Notion playbooks
      listed in the strategy.md header (via `tools/amazon-seo-keyword-workbook/ads-strategy.TEMPLATE.*`).
-     Codex: stop and ask the operator for the files — never guess thresholds.
+     Codex: stop and ask the operator for the files. Never guess thresholds.
    - Check the client config has `campaign_structure.own_brand_tokens` and
      `product_name_for_naming`; ask once for missing values.
 3. **Extract**:
@@ -31,7 +31,7 @@ Load the `amazon-seo-keyword-workflow` skill (section "Campaign Structure Fill")
    ```bash
    ... --apply <classification.json> --dry-run
    ```
-   Fix validation FAILs by correcting the classification — never by weakening the validator.
+   Fix validation FAILs by correcting the classification, never by weakening the validator.
 6. **Apply** after the operator confirms (writes a timestamped `.bak` next to the workbook):
    ```bash
    ... --apply <classification.json>

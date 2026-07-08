@@ -1,3 +1,3 @@
-name: Amazon Opportunity Explorer
+display_name: Amazon Opportunity Explorer
 short_description: Turn Product Opportunity Explorer exports into image, product, and Amazon AI search strategy.
 default_prompt: Use this skill for OEI/POE, Niche Scout, Product Opportunity Explorer exports, image strategy, product development strategy, and Alexa/Rufus semantic Amazon search insights.
