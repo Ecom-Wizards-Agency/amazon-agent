@@ -67,3 +67,7 @@ tools/amazon-campaign-builder/config.*.json
 # Local runtimes and assistant permissions
 .venv/
 .claude/settings.local.json
+
+# sqp-supa client configs (local-only)
+tools/sqp-supa/config.*.json
+!tools/sqp-supa/config.TEMPLATE.json
