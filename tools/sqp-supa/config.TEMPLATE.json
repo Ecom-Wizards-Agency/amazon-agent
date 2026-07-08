@@ -2,7 +2,7 @@
   "client": "CLIENT NAME",
   "marketplace": "US",
   "currency": "USD",
-  "adlabs_team_id": "75142",
+  "adlabs_team_id": "REQUIRED",
   "adlabs_profile_id": "REQUIRED",
   "parent_asin": "B0XXXXXXXX",
   "asins": {
