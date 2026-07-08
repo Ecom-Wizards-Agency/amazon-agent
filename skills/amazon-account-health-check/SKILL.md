@@ -5,6 +5,8 @@ description: Use for the daily Amazon account health check across Seller Central
 
 # Amazon Account Health Check
 
+Browser: Codex interactive (SC Account Health; Review-details clicks + screenshot evidence).
+
 Use this skill for recurring or ad hoc daily account health checks.
 
 Trigger phrases include `daily account health check`, `account health sweep`, `run account health`, `check account health for accounts`, and requests to post a daily account-health thread.

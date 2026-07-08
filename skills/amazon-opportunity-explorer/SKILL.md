@@ -5,6 +5,8 @@ description: Use for Amazon Product Opportunity Explorer (OEI/POE) workflows, Ni
 
 # Amazon Opportunity Explorer
 
+Browser: CDP (`run-poe.mjs` over the shared debug Chrome). Fallback: evaluate `fetch-poe.js` in a logged-in SC page (Codex).
+
 Use this specialist skill when the task involves Amazon Product Opportunity Explorer, OEI/POE data, Niche Scout exports, category/niche insights, product opportunity analysis, image strategy, product development ideas, or visual/listing strategy from customer review and returns data.
 
 ## Source Order
@@ -28,7 +30,7 @@ Use the repo-native API-first downloader (house pattern of `tools/report-fetcher
 - API contract + verification: `tools/opportunity-explorer/references/poe-endpoints.md`, `poe-gap-matrix.md`.
 - Per-niche export completeness checklist: `references/poe-niche-export-checklist.md` (also used by the keyword-workbook workflow).
 
-Default model: API-first. Codex evaluates `fetch-poe.js` in the already logged-in internal-browser Seller Central page (path A); terminal agents use `run-poe.mjs` (path B). Both produce identical files. The legacy DOM extractor (`extract-opportunity-explorer.js` + `format-opportunity-explorer-export.mjs`) is a DEPRECATED fallback only; its manual navigation steps live in `references/opportunity-explorer-workflow.md`.
+Default model: API-first over the shared CDP debug Chrome (Browser Standard in `AGENTS.md`): run `run-poe.mjs` from the terminal (path A, works for both agents; it launches or reuses the debug Chrome). Fallback when the debug profile lacks the needed Seller Central login: evaluate `fetch-poe.js` in an already logged-in Seller Central page in the connected/internal browser (path B). Both produce identical files. The legacy DOM extractor (`extract-opportunity-explorer.js` + `format-opportunity-explorer-export.mjs`) is a DEPRECATED fallback only; its manual navigation steps live in `references/opportunity-explorer-workflow.md`.
 
 The Chrome extension package is not part of the intended workflow once the script is tested. Keep the pCloud extension only as historical/source reference during transition.
 
@@ -43,7 +45,7 @@ The operator confirmed ownership and backend clearance for reusing the previous 
 1. Confirm account, marketplace, product/niche/category, and intended output: image strategy, product strategy, SEO/Alexa AI strategy, or combined opportunity brief.
 2. Search local Amazon docs and MAG SOPs for the current Product Opportunity Explorer path if browser navigation is needed.
 3. In the connected browser, navigate Seller Central to Product Opportunity Explorer / Opportunity Explorer and verify the selected account and marketplace.
-4. Fetch the niche via `fetch-poe.js` (`fetchPoeSearch` to find the nicheId, then `fetchPoeNiche`) in the page context, or run `run-poe.mjs niche --niche-id <id> --marketplace <cc> --client <slug>` from the terminal. Do not require the user to open or click a Chrome extension.
+4. Fetch the niche: default is `run-poe.mjs niche --niche-id <id> --marketplace <cc> --client <slug>` from the terminal against the shared CDP debug Chrome. Fallback: evaluate `fetch-poe.js` (`fetchPoeSearch` to find the nicheId, then `fetchPoeNiche`) in a logged-in page context. Do not require the user to open or click a Chrome extension.
 5. Format with `tools/opportunity-explorer/format-poe.mjs` into `output/{client}/opportunity-data/` with dates in filenames, or another operator-approved destination. `{client}` is the normalized lowercase-kebab client slug from `AGENTS.md`, with marketplace in filenames, not folder names.
 6. Load only the relevant knowledge-base reference:
    - `amazon-image-strategy` for image set recommendations and creative direction.

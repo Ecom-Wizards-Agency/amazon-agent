@@ -5,6 +5,8 @@ description: Use to capture live Amazon listing copy (title, bullet points, cano
 
 # Amazon Listing Capture
 
+Browser: CDP (extractor evaluated over `cdp.mjs`; PDPs need no login). Fallback: Codex interactive evaluate.
+
 Capture live listing copy (title + bullets + link) for a set of ASINs and write it to the
 listing-reference JSON that `tools/amazon-seo-keyword-workbook/build_keyword_workbook.py`
 (`build_asins`) ingests to fill the **ASINs tab** (`title`, `bullet_points`, `link`).
@@ -30,9 +32,11 @@ tokens, or credentials.
    itself (the language switcher in the nav/footer, e.g. "italiano - IT"), then re-run the capture for
    all affected ASINs.
 2. **Run the extractor** `tools/listing-capture/extract-amazon-listing-copy.js`: one
-   self-contained function. **Proven runner** (Codex connected browser): evaluate a STRING that
-   defines the function and calls it; passing the function *object* is blocked there
-   ("Code generation from strings disallowed"):
+   self-contained function. **Preferred runner: the shared CDP debug Chrome** (Browser Standard in
+   `AGENTS.md`): open the locale PDP URL in the debug profile and evaluate the extractor source over
+   CDP (`tools/report-fetcher/cdp.mjs` Session; product pages need no login). **Proven fallback**
+   (connected browser): evaluate a STRING that defines the function and calls it; passing the
+   function *object* is blocked there ("Code generation from strings disallowed"):
    ```js
    await tab.playwright.evaluate(
     `(function(){\n${extractorSource}\nreturn extractAmazonListingCopy("<requested ASIN>");\n})()`

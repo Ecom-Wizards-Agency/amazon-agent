@@ -5,6 +5,8 @@ description: Use for Amazon FBA inventory and reshipment PLANNING, especially th
 
 # Amazon Inventory Planning
 
+Browser: Mixed (fresh SC reports via CDP fetcher where covered; other UI exports are Codex interactive).
+
 Use this skill for recurring or ad hoc FBA inventory overview and reshipment planning. It owns the former "Weekly FBA Inventory Overview" automation workflow.
 
 ## When To Use

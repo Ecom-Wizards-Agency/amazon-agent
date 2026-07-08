@@ -25,13 +25,17 @@ The agent should be able to:
 
 ## Browser Standard
 
-Per-agent browser: Codex uses the internal Codex browser for Amazon work. Claude and other assistants with a connected browser use the operator's connected browser (commonly Chrome or Brave). If `local-browser-preference.md` exists in the project root, read it before browser work and use that preferred browser when available. The file is local-only and ignored by Git. Everywhere this document says "the browser," it means whichever of these applies to the current agent.
+CDP-first for scripted workflows: the repo keeps a dedicated debug Chrome profile (`~/.amazon-agent/chrome-debug`, DevTools port 9222, localhost-only), launched or reused idempotently via `tools/report-fetcher/launch-chrome-debug.sh`. It runs alongside the normal browser, its Amazon logins persist across runs, and scripts drive it directly over CDP with no extension round-trips, which makes it faster and more reliable than operating a normal browser UI. Current Chrome (136+) silently ignores the debug port on the default profile, so this dedicated profile is the only working CDP path. Every workflow that has a script/CDP runner (report fetcher `run.mjs`, POE downloader `run-poe.mjs`, listing capture, future fetchers) uses the debug Chrome by default, for both agents. All account/marketplace verification and login rules below apply to the debug profile exactly like any other browser session.
+
+Interactive UI work (FlatFilePro mapping, Creator Connections inbox, visual checks, anything without a script path) is Codex's job. Codex uses the internal Codex browser, or the operator's Chrome extension for downloads and extension-dependent flows. When Claude hits an interactive step, it hands off to Codex per the Cross-Agent Handoff section instead of driving a browser, unless the operator explicitly asks Claude to use the connected browser in the current chat. If `local-browser-preference.md` exists in the project root, read it before browser work and honor it. The file is local-only and ignored by Git. Everywhere this document says "the browser," it means whichever of these applies to the current agent and task.
+
+Every skill declares its path in one standardized line right under its title (`Browser: CDP|Codex interactive|None|Mixed`, enforced by `tools/lint_agent_docs.py`). Trust that line when a skill is loaded; the full per-workflow table is `docs/browser-routing-map.md`.
 
 If an Amazon page shows a login screen, stop and ask the operator to log in first. The agent must not handle passwords, one-time codes, authenticator prompts, cookies, local storage, session stores, or other credentials.
 
 Before every Amazon task, verify the browser session is logged in and confirm the selected account/advertiser, marketplace/country, visible page title/tool, and date range or filters when relevant. If the task names a client, brand, advertiser, seller account, or marketplace, switch to that exact account and marketplace before doing any task work, downloading files, reading reports, or confirming statuses. If the correct account/marketplace is not selected, unavailable, ambiguous, or hidden behind login/session friction, stop and ask the operator before proceeding. Repeat this verification after switching tools, opening a new Amazon area, changing marketplaces, changing advertiser/seller accounts, or returning from a login/session timeout. If the browser is unavailable or not logged in, pause and ask the operator to open it, complete login, or name which browser/session to use.
 
-Detailed per-screen checkpoint, screenshot, and stop-point procedure: `docs/browser-checkpoints.md`.
+Detailed per-screen checkpoint, screenshot, and stop-point procedure: `docs/browser-checkpoints.md`. Per-workflow browser routing (which path each skill uses): `docs/browser-routing-map.md`.
 
 ## Local Libraries
 

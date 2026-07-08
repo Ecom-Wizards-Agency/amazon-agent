@@ -5,6 +5,8 @@ description: Use for PPC audits of AdLabs-managed accounts via the AdLabs MCP. T
 
 # AdLabs PPC Audit (managed accounts)
 
+Browser: None (AdLabs MCP, read-only).
+
 Use this when the operator asks to audit/analyze/optimize a managed account's Amazon PPC "through AdLabs" (e.g. `/adlabs-audit`). It complements `amazon-ad-audit` (bulk-file MASTER workbook for prospects): this one runs live on the AdLabs MCP, grades against the account's own goal structure, and ends in an actionable, context-aware recommendation set.
 
 **Which audit to use: the routing rule.** Is the brand an existing managed client connected to our AdLabs? → this skill. Is it a prospect / new brand not yet in our AdLabs? → `amazon-ad-audit` (it must download bulk files because there's no live connection). That connection status is the whole reason the two skills exist and it drives the data source below.

@@ -5,6 +5,8 @@ description: Use for Amazon communication workflows: Seller Support cases, case 
 
 # Amazon Communications
 
+Browser: Codex interactive (SC case log / messaging; stop before send).
+
 ## Workflow
 
 1. Confirm exact account, marketplace, brand, recipient/thread/case, and visible message context.

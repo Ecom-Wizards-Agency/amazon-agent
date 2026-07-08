@@ -5,6 +5,8 @@ description: Use for Amazon SEO strategy and listing copywriting: writing or re-
 
 # Amazon SEO
 
+Browser: None (local writing/compliance work; listing text comes from `amazon-listing-capture`).
+
 Use this as the Amazon SEO specialist skill. It coordinates existing Ecom Wizards SEO skill references from the GitHub knowledge library with current Amazon first-party rules.
 
 Naming note: the operator noted that Amazon's Rufus AI naming is moving/has moved toward Alexa or Alexa AI. Treat `Rufus`, `Alexa AI`, `Amazon AI search`, and `semantic Amazon search` as related trigger language unless current first-party Amazon docs say otherwise for a specific workflow.

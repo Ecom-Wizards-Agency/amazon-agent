@@ -5,6 +5,8 @@ description: Use for Amazon Creator Connections work: auditing/triaging the crea
 
 # Amazon Creator Connections
 
+Browser: Codex interactive (Ads console, no MCP; stop before any send/publish).
+
 ## Core Rule
 
 Creator Connections lives behind the Amazon Ads login and has no MCP. All inbox, campaign, and tracker-verification work happens in the browser, per the Browser Standard in `AGENTS.md` (whichever agent holds the logged-in browser). Reading messages, updating the tracker sheet, and drafting replies are normal work. **Sending any creator message and publishing any campaign are stop-before-risk actions**: each needs the operator's explicit approval of that exact action in the current chat, or a matching `_local/local-permissions.md` standing permission.

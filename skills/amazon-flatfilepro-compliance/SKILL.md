@@ -5,6 +5,8 @@ description: Use to prepare narrow FlatFilePro upload CSVs, audit files, or vali
 
 # Amazon FlatFilePro Compliance
 
+Browser: None (local CSV build from export + label evidence).
+
 ## Core Rule
 
 Use the physical product label or approved packaging PDF as the source of truth. Use the FlatFilePro export, category listing report, or Amazon template as the source for available headers, current backend values, SKUs, product types, and upload structure.

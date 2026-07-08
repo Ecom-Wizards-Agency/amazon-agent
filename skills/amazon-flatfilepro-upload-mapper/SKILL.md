@@ -5,6 +5,8 @@ description: Use when a prepared Amazon FlatFilePro or Flatfire Pro CSV must be 
 
 # Amazon FlatFilePro Upload Mapper
 
+Browser: Codex interactive (logged-in FlatFilePro session; stop before final apply).
+
 ## Core Rule
 
 Use the operator's browser with the logged-in FlatFilePro session, per the Browser Standard in `AGENTS.md` (Chrome is the operator default). This skill is for operating the FlatFilePro upload/mapping UI after a CSV already exists. If the CSV still needs to be created from labels or backend exports, use `amazon-flatfilepro-compliance` first.

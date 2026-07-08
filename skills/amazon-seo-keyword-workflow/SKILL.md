@@ -5,6 +5,8 @@ description: Use for the end-to-end keyword-research workbook BUILD pipeline: Da
 
 # Amazon SEO Keyword Workflow
 
+Browser: Mixed (build is local; DataDive via MCP; the Expanded 1% MKL download is Codex interactive).
+
 Use this when the operator asks for a full Amazon SEO keyword workbook, not only listing copy.
 
 ## Standby Command

@@ -1,0 +1,46 @@
+{
+  "client": "CLIENT NAME",
+  "marketplace": "US",
+  "currency": "USD",
+  "adlabs_team_id": "75142",
+  "adlabs_profile_id": "REQUIRED",
+  "parent_asin": "B0XXXXXXXX",
+  "asins": {
+    "B0XXXXXXXX": "short variant label"
+  },
+  "weeks": ["2026-06-14", "2026-06-21", "2026-06-28"],
+  "weeks_note": "Sunday week-start dates, Sunday-Saturday SQP weeks, ascending. Last entry is the focus week.",
+  "targets": { "acos": 0.30, "tacos": 0.20 },
+  "thresholds": {
+    "min_sv": 100,
+    "opp_min_sv": 500,
+    "opp2_min_sv": 200,
+    "min_spend_prev": 5.0,
+    "min_spend_flag": 10.0,
+    "click_share_drop_pp": 0.5,
+    "click_share_drop_rel": 0.10,
+    "share_loss_held_pp": 1.0,
+    "spend_drop_rel": 0.20,
+    "acos_problem_mult": 1.5,
+    "low_share": 0.05,
+    "converts_edge_pp": 2.0,
+    "asin_click_share_drop_rel": 0.05,
+    "asin_spend_drop_rel": 0.10,
+    "asin_purchase_share_drop_rel": 0.10,
+    "asin_sv_up_rel": 0.10
+  },
+  "inputs": {
+    "sqp_csvs": {
+      "2026-06-14": "downloads/<client>/reporting/sqp_2026-06-14.csv"
+    },
+    "search_term_csvs": {
+      "2026-06-14": "downloads/<client>/reporting/search_terms_2026-06-14.csv"
+    }
+  },
+  "output": {
+    "dir": "output/<client>/reporting",
+    "drive_folder": "path on the Drive desktop mount, set per client"
+  },
+  "max_rows_per_asin": 150,
+  "actions_cap": 40
+}

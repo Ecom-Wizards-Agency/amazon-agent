@@ -5,6 +5,8 @@ description: Use for day-to-day Amazon Ads Console work: bidding, budgets, place
 
 # Amazon Ads
 
+Browser: Codex interactive (Ads Campaign Manager; stop before changes).
+
 ## Workflow
 
 1. Use `https://advertising.amazon.com/campaign-manager` as the starting point for Ads Console work.

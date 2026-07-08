@@ -5,6 +5,8 @@ description: Use for Amazon SOP maintenance commands and requests, including /cr
 
 # Amazon SOP Maintenance
 
+Browser: None (docs/local work; UI verification during /fix-sop, when needed, is Codex interactive).
+
 Use this skill when the operator asks to create, review, fix, or draft an SOP, especially with `/create-sop`, `/fix-sop`, `outdated SOP`, `broken SOP link`, `wrong SOP steps`, `SOP correction`, or `new SOP draft`.
 
 ## SOP vs Skill

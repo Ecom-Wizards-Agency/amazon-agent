@@ -5,6 +5,8 @@ description: Use for executing Amazon FBA and inventory operations: Send to Amaz
 
 # Amazon Logistics
 
+Browser: Codex interactive (Send to Amazon flows; stop before creating/confirming shipments).
+
 ## Workflow
 
 1. Confirm account, marketplace, SKU/ASIN list, quantities, shipment IDs, destination, and dates.

@@ -7,13 +7,16 @@ Do not commit `local-browser-preference.md`. It is ignored by Git because browse
 Example:
 
 ```text
-Preferred Amazon browser: Brave
-Notes: Use my logged-in Seller Central profile for Amazon work.
+Scripted workflows (report fetcher, POE, listing capture): the shared CDP debug Chrome
+(tools/report-fetcher/launch-chrome-debug.sh, port 9222). Launch/reuse it by default.
+Interactive UI work: Chrome via the connected-browser extension.
+Fallback for read-only checks: the internal agent browser.
 ```
 
 Rules:
 
-- Use the connected Codex browser/session that is available in the current chat.
+- Prefer the shared CDP debug Chrome for any workflow that has a script/CDP runner (see the Browser Standard in `AGENTS.md`).
+- For interactive work, use the connected browser/session that is available in the current chat.
 - Common choices are Chrome or Brave.
 - Verify the selected account/advertiser, marketplace/country, page title/tool, and date range or filters before acting.
 - If the preferred browser is unavailable or not logged in, pause and ask which connected browser/session to use.

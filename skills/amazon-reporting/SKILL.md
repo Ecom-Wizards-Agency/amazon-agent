@@ -5,6 +5,8 @@ description: Use for fetching and formatting Amazon reports (`/fetch-reports`): 
 
 # Amazon Reporting
 
+Browser: CDP (report fetcher `run.mjs` over the shared debug Chrome). Fallback: evaluate in a logged-in tab (Codex).
+
 ## Source Order
 
 1. Knowledge-base analytics skill references for workbook logic:
@@ -46,4 +48,4 @@ Manual fallback (no debug port): `evaluate` the source of `fetch-seller-reports.
 
 Then point the consumer config at the CSV: SQP → `inputs.sqp_csvs["<group>"]` (one file per ASIN group; one ASIN per file for uncapped SV); Business → `inputs.business_report_csv`.
 
-Rules: read-only (report reads only); reads only the page's own anti-CSRF meta tag, never cookies/passwords/session storage/tokens (see the Safety Rules carve-out in `AGENTS.md`); ~5 s between requests. If there is no active session or the evaluate can't fire, land nothing and ask the operator to open/refresh the tab. Never fabricate rows. Runs under whichever agent drives the browser (Codex internal browser or Claude connected Chrome).
+Rules: read-only (report reads only); reads only the page's own anti-CSRF meta tag, never cookies/passwords/session storage/tokens (see the Safety Rules carve-out in `AGENTS.md`); ~5 s between requests. If there is no active session or the evaluate can't fire, land nothing and ask the operator to open/refresh the tab. Never fabricate rows. The CDP runner is the default for both agents; the manual evaluate fallback runs under whichever agent drives the browser.

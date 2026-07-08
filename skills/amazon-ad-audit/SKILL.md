@@ -5,6 +5,8 @@ description: Use for end-to-end Amazon ad/sales audits from downloaded files (ad
 
 # Amazon Ad / Sales Audit Workflow
 
+Browser: Mixed (SQP + Business Report via CDP report fetcher; ads bulk download is Codex interactive; build is local).
+
 Use this when the operator asks for an Amazon advertising or sales audit (often a prospect audit in the `04_Sales Audits` Drive folder). It is the repeatable standard behind our real client ad/sales audits.
 
 ## Source of truth
