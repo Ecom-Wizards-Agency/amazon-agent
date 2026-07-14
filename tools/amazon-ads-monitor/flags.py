@@ -86,7 +86,9 @@ GOAL_RANK_LAUNCH = "rank-launch"
 GOAL_SCALE = "scale"
 GOAL_PROFIT_MAINTAIN = "profit-maintain"
 GOAL_DEFEND = "defend"
+GOAL_MAINTAIN = "maintain"
 GOAL_LIQUIDATE = "liquidate"
+GOAL_INACTIVE = "inactive"
 GOAL_NEUTRAL = "neutral"
 DEFAULT_GOAL = GOAL_NEUTRAL
 
@@ -133,6 +135,18 @@ GOAL_LENSES = {
         "tacos_margin_behavior": "alert_on_rise",
         "impression_rank_critical": True,
     },
+    GOAL_MAINTAIN: {
+        "label": "Maintain / Stability",
+        "description": (
+            "Keep the account steady with no surprises (e.g. offboarding client, caretaker mode). "
+            "Any sharp move -- spend spike, TACOS rise, margin drop -- is the alert; growth pushes "
+            "are out of scope, stability is the goal."
+        ),
+        "threshold_overrides": {"tacos_rise_alert_pct": 0.20, "margin_drop_alert_pct": -0.10, "spend_spike_pct": 0.30},
+        "tacos_margin_behavior": "alert_on_rise",
+        "impression_rank_critical": False,
+        "escalate_spend_spike": True,
+    },
     GOAL_LIQUIDATE: {
         "label": "Liquidate",
         "description": (
@@ -143,6 +157,16 @@ GOAL_LENSES = {
         "tacos_margin_behavior": "expected_high",
         "impression_rank_critical": False,
         "downgrade_zero_sales": True,
+    },
+    GOAL_INACTIVE: {
+        "label": "Inactive",
+        "description": (
+            "Account not live yet (or paused entirely) -- runs are normally skipped. If data does "
+            "show up, any ad spend at all is unexpected and worth a look; everything else is noise."
+        ),
+        "threshold_overrides": {"spend_spike_pct": 0.20, "zero_sales_spend_min": 10.0},
+        "tacos_margin_behavior": "ignore",
+        "impression_rank_critical": False,
     },
     GOAL_NEUTRAL: {
         "label": "Neutral",
@@ -492,8 +516,8 @@ def evaluate(analysis: AnalysisResult, config: Optional[dict] = None, goal: Opti
     sorted alert > warn > info.
 
     `goal`: the brand's goal/stage string (rank-launch, scale,
-    profit-maintain, defend, liquidate) from its Notion "Amazon Agent Ops
-    Profiles" row. Unknown/missing goals resolve to the neutral lens
+    profit-maintain, defend, maintain, liquidate, inactive) from its
+    Notion "Amazon Agent Ops Profiles" row. Unknown/missing goals resolve to the neutral lens
     (`resolve_goal_lens`), which leaves every threshold and severity
     exactly as before -- passing no `goal` is fully backward compatible.
     """
