@@ -281,6 +281,20 @@ Use client profiles for account labels, marketplaces, stakeholders, listing URLs
 
 The agent must not silently change shared client facts. If a profile needs correction, draft the proposed update with evidence and wait for approval before changing Notion. Refresh the local cache after approved Notion updates.
 
+## Shared Knowledge (Notion, for non-repo runtimes)
+
+Runtimes that have the repo code but not `_local/` (for example Claude in Slack / Claude Tag, or a teammate without the team pack) read the private methodology from Notion instead, so they operate on the same playbook. Three-layer split: the public GitHub repo holds skill code; gitignored `_local/` holds secrets and per-operator config; the Notion "Amazon Agent - Shared Brain" space holds the shared private knowledge.
+
+Notion "Amazon Agent - Shared Brain": `https://app.notion.com/p/39d0df49a4a881c5997cdd9fdef39ee8`
+
+- PPC Strategy (rank-first): `https://app.notion.com/p/39d0df49a4a8817f96eecdea8abd08de`
+- PPC Naming Convention: `https://app.notion.com/p/39d0df49a4a881679baaf9e878ee3baf`
+- PPC Knowledge Digest: `https://app.notion.com/p/39d0df49a4a8814ebba7c1b9b4354bc6`
+- Conflicts and Test Backlog: `https://app.notion.com/p/39d0df49a4a881808dbdf3485b373805`
+- Brand Identity / Alias Resolver: `https://app.notion.com/p/39d0df49a4a88173bbf1f7d7d8e8adfe`
+
+Per-brand Goal/Stage and Situation live as fields on the `Amazon Agent Ops Profiles` database rows. When `_local/` is present it is the fast path; otherwise read these Notion pages. Keep the two in sync; when they disagree, the operator decides. Never put secrets (feed tokens, API keys) in Notion.
+
 ## Local Permission Memory
 
 Standing permission changes such as "do not ask me again for this action" are user-specific consent records. The shared GitHub instructions define the mechanism, but actual standing permissions must stay local to each operator.
