@@ -97,6 +97,7 @@ Default routing:
 - `amazon-catalog`: variations, parentage, flat files, listing edits, catalog conflicts.
 - `amazon-ads`: Ads Console, PPC, bidding, budgets, targeting.
 - `amazon-campaign-builder`: creating Sponsored Products campaigns from a text brief → bulk-upload `.xlsx` via `tools/amazon-campaign-builder/` (file-only; upload stays operator-confirmed).
+- `amazon-ads-monitor`: automated daily (and weekly) Amazon Ads performance brief with trends, % changes, a Sellerboard-vs-AdLabs data cross-check, and goal-lens-aware philosophy-aware flags, posted to Slack → `tools/amazon-ads-monitor/` (read-only; Sellerboard "Dashboard Totals" CSV + AdLabs cross-check primary, SP Ads API v3 secondary, mock/PREVIEW fallback with no credentials).
 - `amazon-creator-connections`: Creator Connections inbox audits, status-filtered message triage, campaign tracker updates, reply drafting (operator-confirmed sends), campaign prep to the publish checkpoint, tracker gaps, reconciliation.
 - `amazon-reporting`: fetching and formatting Seller/Ads reports, SQP, business reports, analytics workbooks; Business Reports + SQP can be fetched without manual download via `tools/report-fetcher/`. Not for audit narratives (that is `amazon-ad-audit` or `amazon-adlabs-audit`).
 - `amazon-inventory-planning`: weekly FBA inventory overview, reshipment planning, pCloud outputs, Slack staging.

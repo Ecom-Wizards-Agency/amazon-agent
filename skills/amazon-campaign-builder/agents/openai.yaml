@@ -1,3 +1,3 @@
 display_name: Amazon Campaign Builder
-short_description: Create Sponsored Products campaigns from a text brief as a bulk-upload xlsx.
-default_prompt: Use this skill to build SP campaigns from a plain-text brief (/create-campaigns) into a paused bulk-upload .xlsx. File-only; uploading stays a separate operator-confirmed action.
+short_description: Create Sponsored Products campaigns (text brief or keyword workbook) or update/pause/archive existing ones, as bulk-upload xlsx files.
+default_prompt: Use this skill to build SP campaigns from a plain-text brief or a keyword-research workbook (/create-campaigns) into a paused bulk-upload .xlsx, or to update/pause/archive existing SP campaigns from a downloaded bulksheets export into a real-ID Update/Archive/Create .xlsx. File-only; uploading stays a separate operator-confirmed action. Update-mode output changes a live account on upload: its _REVIEW.md is mandatory reading first.

@@ -34,19 +34,19 @@ sys.path.insert(0, str(HERE))
 
 from campaign_model import (  # noqa: E402
     AMAZON_BIDDING, AMAZON_MATCH, AMAZON_NEG_MATCH, AUTO_EXPRESSIONS,
-    BIDDING_STRATEGIES, CAMPAIGN_TYPES, CAMPAIGN_TYPE_GOALS, CAMPAIGN_TYPE_MATCH,
+    BIDDING_STRATEGIES, CAMPAIGN_PURPOSE_BIDDING, CAMPAIGN_PURPOSES,
+    CAMPAIGN_TYPE_DEFAULT_PURPOSE, CAMPAIGN_TYPES, CAMPAIGN_TYPE_GOALS, CAMPAIGN_TYPE_MATCH,
     COLUMNS, DEFAULT_BID, DEFAULT_BUDGET, GOALS, MATCH_TYPES, MIN_BID,
-    NEGATIVE_LEVELS, NEGATIVE_MATCH_TYPES, PLACEMENT_LABELS, SHEET_NAMES, STATES,
+    NAMING_PRESETS, NEGATIVE_LEVELS, NEGATIVE_MATCH_TYPES, PLACEMENT_LABELS, SHEET_NAMES, STATES,
     build_bulk_rows, generate_campaigns, parse_product_list,
+    resolve_bidding_strategy, resolve_campaign_purpose,
 )
 
-NAMING_DEFAULTS = {
-    "variable_order": ["Goal", "SP", "MatchType", "ProductName", "TargetDescriptor", "EW"],
-    "delimiter": " | ",
-    "suffix": "EW",
-    "custom1_value": "",
-    "custom2_value": "",
-}
+# v2 default: the Ecom Wizards 8-slot naming convention (naming-convention.md).
+# Every existing config that sets its own naming.variable_order is unaffected —
+# see load_config(): an explicit variable_order always wins over this default.
+# Opt back into the pre-v2 order with `"naming": {"preset": "LEGACY"}`.
+NAMING_DEFAULTS = NAMING_PRESETS["EW"]
 
 MAX_CAMPAIGN_NAME = 128
 MAX_AD_GROUP_NAME = 255
@@ -69,7 +69,9 @@ def _rel(p):
 def load_config(path):
     cfg = json.loads(Path(path).read_text())
     cfg.setdefault("defaults", {})
-    cfg["naming"] = {**NAMING_DEFAULTS, **cfg.get("naming", {})}
+    naming_in = cfg.get("naming", {})
+    preset = NAMING_PRESETS.get((naming_in.get("preset") or "").upper(), NAMING_DEFAULTS)
+    cfg["naming"] = {**preset, **{k: v for k, v in naming_in.items() if k != "preset"}}
     return cfg
 
 
@@ -102,6 +104,7 @@ def campaign_forms(cfg):
             keywords = [k for k in re.split(r"\n", keywords)]
         form = {
             "campaign_type": ctype,
+            "campaign_purpose": (spec.get("campaign_purpose") or "").strip().upper(),
             "goal": spec.get("goal") or goals[0],
             "product_name": spec.get("product_name", ""),
             "target_descriptor": spec.get("target_descriptor", ""),
@@ -180,8 +183,17 @@ def preflight(cfg):
         if form["match_type"] and form["match_type"] not in MATCH_TYPES:
             issues.append(f"{tag}: match_type must be one of {'/'.join(MATCH_TYPES)} (or empty for the "
                           f"{ctype} default {CAMPAIGN_TYPE_MATCH[ctype]})")
+        if form["campaign_purpose"] and form["campaign_purpose"] not in CAMPAIGN_PURPOSES:
+            issues.append(f"{tag}: campaign_purpose must be one of {'/'.join(CAMPAIGN_PURPOSES)} (or empty for "
+                          f"the {ctype} default {CAMPAIGN_TYPE_DEFAULT_PURPOSE.get(ctype, '?')})")
         if form["bidding_strategy"] and form["bidding_strategy"] not in BIDDING_STRATEGIES:
             issues.append(f"{tag}: bidding_strategy must be one of {'/'.join(BIDDING_STRATEGIES)} (or empty)")
+        elif form["bidding_strategy"] and ctype in CAMPAIGN_TYPE_DEFAULT_PURPOSE:
+            purpose = form["campaign_purpose"] or CAMPAIGN_TYPE_DEFAULT_PURPOSE[ctype]
+            expected = CAMPAIGN_PURPOSE_BIDDING.get(purpose)
+            if expected and form["bidding_strategy"] != expected:
+                notes.append(f"{tag}: bidding_strategy override '{form['bidding_strategy']}' differs from the "
+                             f"naming-convention.md default '{expected}' for purpose {purpose} (QC-enforced table)")
         if form["state"] not in STATES:
             issues.append(f"{tag}: state must be enabled|paused")
         if not MIN_BID <= form["keyword_bid"] <= MAX_BID:
@@ -198,9 +210,23 @@ def preflight(cfg):
         fans_out = (form["transpose_keywords"] and form["keywords_per_campaign"] >= 1
                     and len(kws) > form["keywords_per_campaign"]) \
             or (ctype == "SKW" and len(kws) > 1 and not form["skw_include_keyword_in_name"])
-        if fans_out and "Counter" not in order:
+        # A literal keyword slot disambiguates SKW fan-out on its own (each campaign gets a
+        # different Keyword token); Counter/CampCounter both work for everything else, but
+        # CampCounter only actually emits a value for Halo/Auto per naming-convention.md.
+        disambiguated_by_keyword = "Keyword" in order and ctype == "SKW" and form["skw_include_keyword_in_name"]
+        disambiguated_by_counter = "Counter" in order or ("CampCounter" in order and ctype in ("Halo", "Auto"))
+        if fans_out and not disambiguated_by_keyword and not disambiguated_by_counter:
             issues.append(f"{tag}: fans out to several identically-named campaigns — add 'Counter' "
-                          f"to naming.variable_order (Amazon rejects duplicate campaign names)")
+                          f"(or, for Halo/Auto, 'CampCounter') to naming.variable_order (Amazon rejects "
+                          f"duplicate campaign names)")
+        if ctype in ("BMM", "Phrase") and not form["negative_keywords"]:
+            notes.append(f"{tag}: discovery campaign has no negative_keywords — naming-convention.md QC "
+                         f"requires a Never-Ever/negative-phrase list at ad-group level from day one")
+        purpose_for_qc = form["campaign_purpose"] or CAMPAIGN_TYPE_DEFAULT_PURPOSE.get(ctype, "")
+        if ctype == "PAT" and form["match_type"] == "ASIN_EXPANDED" and purpose_for_qc == "SELF_TARGETING":
+            notes.append(f"{tag}: Self-Targeting Expanded needs a negative product list of the targeted ASINs "
+                         f"(naming-convention.md QC #7) — this toolkit doesn't model Negative Product Targeting "
+                         f"yet; add it via an update-mode change-set after the initial build")
         if form["start_date"]:
             try:
                 sd = datetime.strptime(form["start_date"], "%Y-%m-%d").date()
@@ -212,6 +238,12 @@ def preflight(cfg):
         if form["state"] == "enabled":
             notes.append(f"{tag}: state=enabled — campaigns go LIVE on upload; the safety default is paused")
 
+    campaigns = generate_all(cfg) if not issues else []
+    for c in campaigns:
+        if c["ad_group_name"] == c["campaign_name"]:
+            notes.append(f"'{c['campaign_name']}': ad group name equals campaign name — naming-convention.md "
+                         f"QC requires the ad group name to differ (drop prefix & suffix)")
+
     print(f"Preflight — {cfg.get('client', '?')} ({cfg.get('marketplace', '?')})")
     for msg in issues:
         print(f"  [MISSING] {msg}")
@@ -220,8 +252,7 @@ def preflight(cfg):
     if issues:
         print(f"\nNOT READY — fix the {len(issues)} item(s) above in the config.")
         return 1
-    n = len(generate_all(cfg))
-    print(f"\nREADY — {len(cfg['campaigns'])} spec(s) -> {n} campaign(s). "
+    print(f"\nREADY — {len(cfg['campaigns'])} spec(s) -> {len(campaigns)} campaign(s). "
           f"Run without --preflight to build.")
     return 0
 
@@ -476,12 +507,25 @@ def main():
     ap.add_argument("--config", "--brief", dest="config", required=True,
                     help="per-client campaign config JSON (copy config.TEMPLATE.json)")
     ap.add_argument("--out", help="override the output .xlsx path")
+    ap.add_argument("--keyword-file", help="keyword-research workbook (.xlsx) to source "
+                    "campaigns[] from — see keyword_workbook.py; merges ahead of any "
+                    "campaigns[] already in the config")
+    ap.add_argument("--keyword-sheet", help="sheet name inside --keyword-file to parse "
+                    "(default: auto-detect '5. Campaign Structure' or fall back to the first sheet)")
     ap.add_argument("--preflight", action="store_true", help="check the config, list missing fields")
     ap.add_argument("--preview", action="store_true", help="print planned campaigns, write nothing")
     ap.add_argument("--validate", action="store_true", help="run QA gates on the built file only")
     args = ap.parse_args()
 
     cfg = load_config(args.config)
+    if args.keyword_file:
+        from keyword_workbook import parse_keyword_workbook
+        kwd = cfg.get("keyword_file_defaults", {})
+        specs = parse_keyword_workbook(args.keyword_file, sheet=args.keyword_sheet,
+                                        product_name=kwd.get("product_name", ""),
+                                        sku=kwd.get("sku"), asin=kwd.get("asin"))
+        cfg["campaigns"] = specs + cfg.get("campaigns", [])
+        print(f"keyword-file: {len(specs)} campaign spec(s) parsed from {args.keyword_file}\n")
     if args.preflight:
         return preflight(cfg)
     if args.preview:

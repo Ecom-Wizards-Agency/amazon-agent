@@ -22,6 +22,26 @@ vocabulary through the AMAZON_* tables below before diffing):
                                               'Dynamic bids - up and down'/'Fixed bid'
   PAT expanded  'similar-product="..."'    -> 'asin-expanded="..."'
   placement     'Placement Rest of Search' -> 'Placement Rest Of Search'
+
+v2 additions (campaign-builder v2 — create + update, keyword-file input, EW
+naming, see tools/amazon-campaign-builder/README.md):
+  - `campaign_purpose` + CAMPAIGN_PURPOSE_BIDDING: the naming-convention.md
+    bidding-strategy table is keyed by campaign *purpose* (Rank SKW / Auto /
+    Category / Self-Targeting / Shield / discovery / Halo), which cuts across
+    the existing campaign_type enum (e.g. a Shield SKW campaign is still
+    campaign_type=SKW but purpose=SHIELD, and gets "Down only" not "Fixed
+    bids"). CAMPAIGN_TYPE_BIDDING still gives the type-level default (used
+    when no purpose is specified) and now matches naming-convention.md's
+    "Rank SKW = Fixed bid" row (previously all-down-only).
+  - EW_NAMING_PRESET: the 8-slot Ecom Wizards campaign-name format
+    (Goal | Ad Type | Match Type | Trigger Words OR Placement |
+    Product Identifier | Keyword | Camp Counter | Suffix), selectable via
+    naming.preset in the config. LEGACY_NAMING_PRESET keeps the original
+    6-token order used by every existing config.
+  - Update-mode (real-ID Update/Archive/Create rows against an existing
+    account) lives in update_model.py / update_campaigns.py, which import
+    the shared constants below (SP_COLUMNS, AMAZON_* maps) but never reuse
+    this module's temp-ID create-row builder for update output.
 """
 from __future__ import annotations
 
@@ -56,7 +76,7 @@ CAMPAIGN_TYPE_MATCH = {
 }
 
 CAMPAIGN_TYPE_BIDDING = {
-    "SKW": "Down only",
+    "SKW": "Fixed bids",   # naming-convention.md: Rank SKW = Fixed bid
     "Halo": "Down only",
     "BMM": "Down only",
     "Phrase": "Down only",
@@ -64,8 +84,51 @@ CAMPAIGN_TYPE_BIDDING = {
     "PAT": "Down only",
 }
 
-NAMING_VARIABLES = ["Goal", "SP", "MatchType", "ProductName", "TargetDescriptor",
-                    "EW", "Counter", "Date", "Custom1", "Custom2"]
+# ----------------------------------------------------------------- campaign purpose (naming-convention.md)
+# The QC-enforced bidding-strategy table is keyed by *purpose*, which is more
+# granular than campaign_type: a Shield or Self-Targeting campaign can be
+# built on top of SKW/BMM/Phrase/PAT but takes a different bidding default
+# than that type's usual one. Config specs may set `campaign_purpose`
+# explicitly (SHIELD / SELF_TARGETING / CATEGORY); otherwise it's inferred
+# from campaign_type below.
+CAMPAIGN_PURPOSES = ("RANK_SKW", "HALO", "DISCOVERY", "AUTO", "CATEGORY", "SELF_TARGETING", "SHIELD")
+
+CAMPAIGN_TYPE_DEFAULT_PURPOSE = {
+    "SKW": "RANK_SKW",
+    "Halo": "HALO",
+    "BMM": "DISCOVERY",
+    "Phrase": "DISCOVERY",
+    "Auto": "AUTO",
+    "PAT": "DISCOVERY",  # competitor-ASIN targeting ("BMM & Phrase & PAT ASIN" row); self
+                         # PAT sets campaign_purpose="SELF_TARGETING" explicitly to get up/down.
+}
+
+# naming-convention.md: "Bidding strategy by campaign type (QC-enforced, must match Figma)".
+# NOTE this replaces the old blanket down-only assumption in CAMPAIGN_TYPE_BIDDING above.
+CAMPAIGN_PURPOSE_BIDDING = {
+    "RANK_SKW": "Fixed bids",
+    "AUTO": "Up and down",
+    "CATEGORY": "Up and down",
+    "SELF_TARGETING": "Up and down",
+    "SHIELD": "Down only",
+    "DISCOVERY": "Down only",  # Broad Match Modifier & Phrase & PAT ASIN
+    "HALO": "Down only",
+}
+
+# Trigger word shown in the EW campaign name's "Trigger Words OR Placement" slot.
+# "The trigger word must exactly match the campaign type" (naming-convention.md) —
+# for the three purposes that aren't literal campaign_type values (Shield,
+# Self-Targeting, Category) we use their own label; everything else falls back
+# to the literal campaign_type (SKW/Halo/BMM/Phrase/Auto/PAT).
+TRIGGER_WORD_LABELS = {
+    "SHIELD": "Shield",
+    "SELF_TARGETING": "Self-Targeting",
+    "CATEGORY": "Category",
+}
+
+NAMING_VARIABLES = ["Goal", "SP", "AdType", "MatchType", "TriggerWord", "ProductName", "Keyword",
+                    "TargetDescriptor", "EW", "Counter", "CampCounter", "CampaignType", "Date",
+                    "Custom1", "Custom2"]
 
 MATCH_TYPE_LABELS = {
     "EXACT": "Exact",
@@ -114,20 +177,31 @@ AUTO_EXPRESSIONS = ("close-match", "loose-match", "substitutes", "complements")
 def _variable_value(variable, ctx, settings, today):
     if variable == "Goal":
         return ctx["goal"]
-    if variable == "SP":
+    if variable in ("SP", "AdType"):
         return "SP"
     if variable == "MatchType":
         return MATCH_TYPE_LABELS.get(ctx["match_type"], ctx["match_type"])
     if variable == "CampaignType":
         return CAMPAIGN_TYPE_LABELS.get(ctx["campaign_type"], ctx["campaign_type"])
+    if variable == "TriggerWord":
+        return ctx.get("trigger_word") or CAMPAIGN_TYPE_LABELS.get(ctx["campaign_type"], ctx["campaign_type"])
     if variable == "ProductName":
         return ctx.get("product_name") or "ProductName"
+    if variable == "Keyword":
+        return ctx.get("keyword_text") or ""
     if variable == "TargetDescriptor":
         return ctx.get("target_descriptor") or "Target"
     if variable == "EW":
         return settings.get("suffix") or "EW"
     if variable == "Counter":
         return f"{ctx['counter']:02d}" if ctx.get("counter") is not None else ""
+    if variable == "CampCounter":
+        # naming-convention.md: "Camp Counter ONLY used for Halo and Auto campaigns;
+        # leave it off for everything else" — blank parts are dropped when the name
+        # is joined, so returning "" here is how "off otherwise" is enforced.
+        if ctx.get("campaign_type") in ("Halo", "Auto") and ctx.get("counter") is not None:
+            return f"{ctx['counter']:02d}"
+        return ""
     if variable == "Date":
         return (today or date.today()).isoformat().replace("-", "")
     if variable == "Custom1":
@@ -143,7 +217,13 @@ def generate_campaign_name(settings, ctx, today=None):
 
 
 def generate_ad_group_name(settings, ctx, today=None):
-    keep = [v for v in settings["variable_order"] if v not in ("Goal", "EW", "Counter", "Date")]
+    # "Ad group name is the shorter form — drop prefix & suffix" (naming-convention.md).
+    # NOTE: "SP" is deliberately NOT dropped here — the original (legacy-preset) app
+    # behavior keeps it in the ad group name and that's what the 71-row parity fixture
+    # verifies. The EW preset uses "AdType" (not "SP") for the same slot, so adding
+    # AdType/CampCounter to the drop set only affects the new preset, never the legacy one.
+    drop = ("Goal", "EW", "Counter", "Date", "AdType", "CampCounter")
+    keep = [v for v in settings["variable_order"] if v not in drop]
     parts = [_variable_value(v, ctx, settings, today) for v in keep]
     return settings["delimiter"].join(p for p in parts if p)
 
@@ -154,6 +234,51 @@ def swap_name_order(settings):
         p, t = order.index("ProductName"), order.index("TargetDescriptor")
         order[p], order[t] = order[t], order[p]
     return {**settings, "variable_order": order}
+
+
+# ----------------------------------------------------------------- naming presets
+# LEGACY is the original app order (unchanged — every existing config that sets its
+# own naming.variable_order continues to work exactly as before, see build_campaigns
+# .load_config). EW is the Ecom Wizards 8-slot convention from naming-convention.md:
+#   Goal | Ad Type | Match Type | Trigger Words OR Placement | Product Identifier |
+#   Keyword | Camp Counter | Suffix
+LEGACY_NAMING_PRESET = {
+    "variable_order": ["Goal", "SP", "MatchType", "ProductName", "TargetDescriptor", "EW"],
+    "delimiter": " | ",
+    "suffix": "EW",
+    "custom1_value": "",
+    "custom2_value": "",
+}
+
+EW_NAMING_PRESET = {
+    "variable_order": ["Goal", "AdType", "MatchType", "TriggerWord", "ProductName", "Keyword",
+                        "CampCounter", "EW"],
+    "delimiter": " | ",
+    "suffix": "EW",
+    "custom1_value": "",
+    "custom2_value": "",
+}
+
+NAMING_PRESETS = {"LEGACY": LEGACY_NAMING_PRESET, "EW": EW_NAMING_PRESET}
+
+
+def resolve_campaign_purpose(form):
+    """campaign_purpose override, else the campaign_type's default purpose."""
+    return form.get("campaign_purpose") or CAMPAIGN_TYPE_DEFAULT_PURPOSE.get(form["campaign_type"], "DISCOVERY")
+
+
+def resolve_trigger_word(form):
+    purpose = resolve_campaign_purpose(form)
+    return TRIGGER_WORD_LABELS.get(purpose) or CAMPAIGN_TYPE_LABELS.get(form["campaign_type"], form["campaign_type"])
+
+
+def resolve_bidding_strategy(form):
+    """Explicit override wins; otherwise the naming-convention.md purpose default,
+    falling back to the plain campaign_type default for a purpose with no table row."""
+    if form.get("bidding_strategy"):
+        return form["bidding_strategy"]
+    purpose = resolve_campaign_purpose(form)
+    return CAMPAIGN_PURPOSE_BIDDING.get(purpose) or CAMPAIGN_TYPE_BIDDING[form["campaign_type"]]
 
 
 # ----------------------------------------------------------------- generator (port of campaignGenerator.ts)
@@ -203,7 +328,9 @@ def generate_campaigns(form, naming_settings, today=None):
     naming = swap_name_order(naming_settings) if form.get("swap_name_order") else naming_settings
 
     match_type = form.get("match_type") or CAMPAIGN_TYPE_MATCH[form["campaign_type"]]
-    bidding = form.get("bidding_strategy") or CAMPAIGN_TYPE_BIDDING[form["campaign_type"]]
+    purpose = resolve_campaign_purpose(form)
+    bidding = resolve_bidding_strategy(form)
+    trigger_word = resolve_trigger_word(form)
     targeting_type = "AUTO" if form["campaign_type"] == "Auto" else "MANUAL"
 
     raw_keywords = [k.strip() for k in form.get("keywords_raw", "").split("\n") if k.strip()]
@@ -221,12 +348,15 @@ def generate_campaigns(form, naming_settings, today=None):
         }
 
     def push(c, kws, asins):
+        c = {**c, "trigger_word": trigger_word,
+             "keyword_text": kws[0] if len(kws) == 1 else (c.get("target_descriptor") or "")}
         name = generate_campaign_name(naming, c, today)
         campaigns.append(_build_campaign({
             "campaign_name": name,
             "ad_group_name": generate_ad_group_name(naming, c, today),
             "targeting_type": targeting_type,
             "campaign_type": form["campaign_type"],
+            "campaign_purpose": purpose,
             "goal": form["goal"],
             "keywords": kws,
             "match_type": match_type,
