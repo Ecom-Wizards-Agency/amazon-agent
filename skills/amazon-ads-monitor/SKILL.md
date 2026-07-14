@@ -148,7 +148,10 @@ firecrawl fallback that costs Firecrawl credits:
    - **Slack MCP -- send_message**: post the Slack payload (from
      `--slack-json`, annotated per step 4 if anything needed
      softening/context) to **#amazon-daily-report** (channel ID
-     `C0BGWLFMW3V`). When running multiple brands in one pass, lead with
+     `C0BGWLFMW3V`). Start the message with a `<!here>` mention and a
+     one-line header (e.g. "<!here> Daily Amazon Ads report -- <date>")
+     -- `<!here>` daily, not `<!channel>`, to avoid pinging everyone
+     every day. When running multiple brands in one pass, lead with
      any brand that has a critical/alert flag or a data-mismatch verdict
      before the clean ones.
    - Save the markdown report exactly where the toolkit wrote it:
@@ -272,7 +275,10 @@ docstring for exact signatures.
 5. **Deliver.**
    - **Slack MCP -- send_message**: post the weekly Slack payload (from
      `--slack-json`) to **#amazon-daily-report** (channel ID
-     `C0BGWLFMW3V`) -- the same channel as the daily brief. Lead with any
+     `C0BGWLFMW3V`) -- the same channel as the daily brief. Start the
+     message with a `<!channel>` mention and a one-line header (e.g.
+     "<!channel> Weekly Amazon Ads analysis -- week ending <date>");
+     weekly posts tag the whole channel. Lead with any
      brand whose Push/Pause-Optimize list flags something urgent (a
      Rank/Shield target losing impression share, a self-competition
      conflict) before the routine ones.
