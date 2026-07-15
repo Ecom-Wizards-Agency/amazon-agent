@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Self-test harness for campaign-builder v2 — synthetic fixtures, no network/Amazon access.
+"""Self-test harness for campaign-builder v2: synthetic fixtures, no network/Amazon access.
 
 Exercises:
   A. create mode, LEGACY naming preset (backward compatibility: unchanged naming formula
@@ -43,7 +43,7 @@ FAILURES = []
 
 def check(label, cond, detail=""):
     status = "ok" if cond else "FAIL"
-    print(f"  [{status}] {label}" + (f" — {detail}" if detail and not cond else ""))
+    print(f"  [{status}] {label}" + (f": {detail}" if detail and not cond else ""))
     if not cond:
         FAILURES.append(f"{label}: {detail}")
 
@@ -57,7 +57,7 @@ TMP = Path(tempfile.mkdtemp(prefix="campaign-builder-selftest-"))
 
 # =================================================================== A. create/LEGACY
 def test_create_legacy():
-    section("A. create mode — LEGACY naming preset (backward compatibility)")
+    section("A. create mode: LEGACY naming preset (backward compatibility)")
     cfg = {
         "client": "Selftest Legacy", "brand": "Selftest", "marketplace": "US",
         "naming": {"preset": "LEGACY", "suffix": "EW"},
@@ -115,7 +115,7 @@ def test_create_legacy():
 
 # =================================================================== B. create/EW
 def test_create_ew():
-    section("B. create mode — EW naming preset (default) + campaign_purpose overrides")
+    section("B. create mode: EW naming preset (default) + campaign_purpose overrides")
     cfg = {
         "client": "Selftest EW", "brand": "Selftest", "marketplace": "US",
         "defaults": {"daily_budget": 10.0, "keyword_bid": 0.5, "state": "paused"},
@@ -236,7 +236,7 @@ def _write_campaign_structure_fixture(path):
 
     # Discovery-Root Keywords: BMM and Phrase columns, distinguished by a label row
     # between the section title and the Keyword/Search Volume header (this is how
-    # scan_campaign_structure_sections tells them apart — see keyword_workbook.py).
+    # scan_campaign_structure_sections tells them apart; see keyword_workbook.py).
     h4 = section(20, 1, "Discovery-Root Keywords", "keywords", label="BMM Root")
     ws.cell(h4 + 1, 1, "widget")
     ws.cell(h4 + 1, 2, 5000)
@@ -261,7 +261,7 @@ def _write_campaign_structure_fixture(path):
 
 
 def test_keyword_file():
-    section("C. create mode — keyword-file input ('5. Campaign Structure' scaffold)")
+    section("C. create mode: keyword-file input ('5. Campaign Structure' scaffold)")
     wb_path = TMP / "keyword_workbook_fixture.xlsx"
     _write_campaign_structure_fixture(wb_path)
 
@@ -397,7 +397,7 @@ def _good_change_set(export_file):
 
 
 def test_update_good():
-    section("D. update mode — real-ID Update/Archive/Create rows + partial-update rules")
+    section("D. update mode: real-ID Update/Archive/Create rows + partial-update rules")
     export_path = TMP / "export.xlsx"
     _write_export_fixture(export_path)
 
@@ -451,7 +451,7 @@ def test_update_good():
           not um.looks_like_real_id(replace_create[0]["Keyword ID"]))
 
     neg_archive = [r for r in rows if "Negative" in r["Entity"] and r["Operation"] == "Archive"]
-    check("negative archived (never paused — no negative Update rows at all)",
+    check("negative archived (never paused; no negative Update rows at all)",
           len(neg_archive) == 1 and not any(
               "Negative" in r["Entity"] and r["Operation"] == "Update" for r in rows))
 
@@ -472,7 +472,7 @@ def test_update_good():
 
 
 def test_update_broken(export_path):
-    section("E. update mode QA gates — deliberately-broken file must FAIL validate")
+    section("E. update mode QA gates: deliberately-broken file must FAIL validate")
     cfg = {"client": "Selftest Update Broken", "brand": "Selftest", "marketplace": "US",
            "export_file": export_path, "allow_end_date_clear": False, "changes": {}}
     cfg_path = TMP / "cfg_update_broken.json"
@@ -535,7 +535,7 @@ def main():
 
     print(f"\n{'='*70}")
     if FAILURES:
-        print(f"SELFTEST: FAIL — {len(FAILURES)} assertion(s) failed:")
+        print(f"SELFTEST: FAIL ({len(FAILURES)} assertion(s) failed):")
         for f in FAILURES:
             print(f"  - {f}")
         return 1

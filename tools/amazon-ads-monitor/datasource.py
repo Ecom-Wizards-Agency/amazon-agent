@@ -525,8 +525,8 @@ _SB_DATE_FMT = "%d/%m/%Y"
 
 # Column names exactly as Sellerboard emits them (quoted in the CSV; the
 # csv module strips the quotes). Never reference these by position --
-# column SETS differ between accounts (Swissklip carries extra fee
-# columns Sondur doesn't).
+# column SETS differ between accounts (some carry extra fee columns
+# that others don't).
 _SB_AD_SPEND_COLUMNS = ("SponsoredProducts", "SponsoredDisplay", "SponsoredBrands", "SponsoredBrandsVideo")
 
 

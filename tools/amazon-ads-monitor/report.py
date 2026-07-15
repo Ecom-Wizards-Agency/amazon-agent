@@ -11,6 +11,8 @@ payload this module returns.
 from __future__ import annotations
 
 import datetime as dt
+import json as _json
+from pathlib import Path as _Path
 from typing import Optional
 
 from analyze import AnalysisResult, SeriesAnalysis, WeeklyAnalysis
@@ -18,6 +20,22 @@ from flags import Flag, SEVERITY_CRITICAL, SEVERITY_ALERT, SEVERITY_WARN, SEVERI
 from datasource import CATEGORY_UNKNOWN
 from crosscheck import render_verdict_emoji_line
 from recommendations import RecommendationsResult
+
+SLACK_CHANNEL_NAME = "#amazon-daily-report"
+
+
+def default_slack_channel() -> str:
+    """Channel for Slack payloads. The real workspace channel ID lives only
+    in gitignored `_local/ads-monitor/config.json` (`slack_channel_id`);
+    without it, fall back to the channel NAME and let the poster resolve
+    it. No workspace ID may appear as a literal in this repo."""
+    cfg = _Path(__file__).resolve().parents[2] / "_local" / "ads-monitor" / "config.json"
+    try:
+        channel = _json.loads(cfg.read_text(encoding="utf-8")).get("slack_channel_id")
+    except (OSError, ValueError):
+        channel = None
+    return channel or SLACK_CHANNEL_NAME
+
 
 HEADLINE_METRICS = ("spend", "sales", "orders", "acos", "roas", "tacos", "impressions", "clicks", "ctr", "cvr", "cpc")
 SLACK_HEADLINE_METRICS = ("spend", "sales", "acos", "tacos", "orders")
@@ -360,7 +378,7 @@ def render_slack(
     blocks.append({"type": "context", "elements": context_elements})
 
     return {
-        "channel": meta.get("slack_channel_id", "C0BGWLFMW3V"),
+        "channel": meta.get("slack_channel_id") or default_slack_channel(),
         "text": text_fallback,
         "blocks": blocks,
     }
@@ -632,7 +650,7 @@ def render_weekly_slack(
     })
 
     return {
-        "channel": meta.get("slack_channel_id", "C0BGWLFMW3V"),
+        "channel": meta.get("slack_channel_id") or default_slack_channel(),
         "text": text_fallback,
         "blocks": blocks,
     }

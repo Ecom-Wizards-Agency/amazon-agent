@@ -33,11 +33,15 @@ AUTHORED_GLOBS = [
     ".claude/commands/*.md",
     "sop-drafts/*.md",
     "sop-updates/*.md",
+    "tools/**/*.md",
 ]
 
 # Generated or captured content inside the authored globs: exempt.
 EXEMPT_PARTS = [
     "skills/amazon-seo/references/datadive-support/",
+    # Temporary: em-dash sweep deferred while the branding-doc rework is in
+    # flight in the operator's working tree (2026-07-15). Remove once swept.
+    "tools/amazon-ad-audit/",
 ]
 
 CLAUDE_ONLY_TOOLS = ["AskUserQuestion"]

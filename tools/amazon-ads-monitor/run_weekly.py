@@ -44,15 +44,15 @@ Sellerboard CSV alone (no AdLabs yet -- Push/Pause-Optimize come back
 empty with a note; that's a valid, complete weekly run):
 
     python3 tools/amazon-ads-monitor/run_weekly.py \\
-        --csv _local/ads-monitor/inbox/sondur/dashboardtotals_30d.csv \\
-        --account sondur --goal rank-launch --date 2026-07-13
+        --csv _local/ads-monitor/inbox/acme/dashboardtotals_30d.csv \\
+        --account acme --goal rank-launch --date 2026-07-13
 
 Full weekly run with AdLabs weekly entities + a signal digest:
 
     python3 tools/amazon-ads-monitor/run_weekly.py \\
-        --csv <7d path>,<30d path> --account sondur --goal rank-launch \\
+        --csv <7d path>,<30d path> --account acme --goal rank-launch \\
         --situation "recurring ACOS spikes on broad match" \\
-        --adlabs-json _local/ads-monitor/inbox/sondur/adlabs_weekly.json \\
+        --adlabs-json _local/ads-monitor/inbox/acme/adlabs_weekly.json \\
         --signal-digest _local/ads-signals/2026-W28/digest.md \\
         --out output --slack-json -
 """
@@ -70,12 +70,13 @@ from datasource import SellerboardDataSource, SELLERBOARD_METRICS
 from flags import evaluate, resolve_goal_lens, GOAL_LENSES
 from recommendations import build_recommendations, parse_signal_digest_markdown
 from report import (
+    default_slack_channel,
     render_weekly_markdown, render_weekly_slack,
     WEEKLY_HEADLINE_METRICS, WEEKLY_SLACK_HEADLINE_METRICS,
     SELLERBOARD_METRIC_LABEL_OVERRIDES,
 )
 
-DEFAULT_SLACK_CHANNEL_ID = "C0BGWLFMW3V"  # #amazon-daily-report
+DEFAULT_SLACK_CHANNEL_ID = default_slack_channel()  # real ID lives in _local/ads-monitor/config.json
 
 
 def _yesterday() -> dt.date:

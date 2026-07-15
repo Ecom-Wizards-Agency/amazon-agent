@@ -3,26 +3,26 @@
 change-set -> real-ID Update/Archive/Create rows.
 
 See references/bulksheets-2.0-reference.md section 4 ("Update semantics... the
-critical rules") for the rules enforced here — in short:
+critical rules") for the rules enforced here. In short:
 
   - Update/Archive rows need the REAL, bulksheets-download ID, never a temp ID.
-  - Blank fields on an Update row = "leave unchanged" — EXCEPT End Date, where blank
+  - Blank fields on an Update row = "leave unchanged", EXCEPT End Date, where blank
     CLEARS an existing end date. This module carries the export's existing End Date
     forward by default on every Campaign Update row, and only touches it when the
     change-set explicitly asks for a new one or opts into clearing it.
   - Portfolio ID must be re-included on every Campaign Update row (never left blank),
     or the campaign silently drops out of its portfolio.
-  - Keyword Text / Match Type / Product Targeting Expression are immutable — a
+  - Keyword Text / Match Type / Product Targeting Expression are immutable: a
     "change" is always Archive-old + Create-new (fresh temp ID for the new entity;
     the parent Campaign/Ad Group ID is the existing real one, not a temp one).
-  - Archiving a Campaign/Ad Group cascades to its children — this module drops any
+  - Archiving a Campaign/Ad Group cascades to its children. This module drops any
     explicit child Archive request whose parent is archived in the same change-set,
     logging the skip to the review trail instead of emitting a redundant row.
   - Negatives can only be archived, never paused.
 
 This module only reads a .xlsx (never writes) and returns row dicts + a plain-English
 review trail; update_campaigns.py does the file I/O and CLI. Nothing here touches a
-live account — only the operator's later manual bulk-upload does.
+live account. Only the operator's later manual bulk-upload does.
 """
 from __future__ import annotations
 
@@ -148,7 +148,7 @@ def build_change_set_rows(changes, export, *, allow_end_date_clear=False):
     """changes: the 'changes' dict from a config.UPDATE.TEMPLATE.json-shaped config.
     Returns (rows, review, errors). `review` is a flat list of plain-English lines
     (both applied changes and SKIPPED no-op/cascade lines) suitable for _REVIEW.md.
-    `errors` are hard failures (unresolved ID, disallowed end-date clear, bad enum) —
+    `errors` are hard failures (unresolved ID, disallowed end-date clear, bad enum);
     if non-empty the caller should refuse to build."""
     rows, review, errors = [], [], []
     counter = iter(range(1, 10 ** 9))
@@ -168,7 +168,7 @@ def build_change_set_rows(changes, export, *, allow_end_date_clear=False):
             continue
         camp = export.ad_group_campaign(ag_id)
         if camp in archived_campaigns:
-            review.append(f"SKIPPED (parent+child archive): Ad Group {ag_id} — Campaign {camp} "
+            review.append(f"SKIPPED (parent+child archive): Ad Group {ag_id}, because Campaign {camp} "
                           f"is already archived in this file; archiving a campaign cascades to "
                           f"its ad groups, so a separate Archive row for the child is redundant")
             continue
@@ -186,15 +186,15 @@ def build_change_set_rows(changes, export, *, allow_end_date_clear=False):
         cid = _s(ch.get("campaign_id"))
         if not looks_like_real_id(cid):
             errors.append(f"changes.campaigns: campaign_id {ch.get('campaign_id')!r} is not a "
-                          f"real bulksheets ID — Update/Archive rows must use IDs sourced from "
+                          f"real bulksheets ID; Update/Archive rows must use IDs sourced from "
                           f"a bulksheets download, never a temp ID")
             continue
         if cid not in export.campaigns:
             errors.append(f"changes.campaigns: campaign_id {cid!r} not found in the loaded export")
             continue
         if cid in archived_campaigns:
-            review.append(f"SKIPPED: Campaign {cid} update — also archived in this file; the "
-                          f"archive supersedes the update")
+            review.append(f"SKIPPED: Campaign {cid} update (also archived in this file; the "
+                          f"archive supersedes the update)")
             continue
         export_row = export.campaigns[cid]
         row = _empty_row("Update")
@@ -223,12 +223,12 @@ def build_change_set_rows(changes, export, *, allow_end_date_clear=False):
                 row["State"] = ch["state"]
                 changed["State"] = (export_row.get("State", ""), ch["state"])
 
-        # Portfolio ID — ALWAYS re-included (reference 4.3): omitting it on an Update
+        # Portfolio ID is ALWAYS re-included (reference 4.3): omitting it on an Update
         # row silently drops the campaign from its portfolio, regardless of the
         # general blank-means-unchanged rule.
         row["Portfolio ID"] = export.campaign_portfolio(cid)
 
-        # End Date — the one field where blank means CLEAR, not "unchanged" (4.2).
+        # End Date is the one field where blank means CLEAR, not "unchanged" (4.2).
         # Default: carry the export's existing End Date forward untouched. Only
         # change it if the change-set gives a new end_date, or explicitly opts into
         # clearing it (clear_end_date AND the file-level allow_end_date_clear both true).
@@ -236,19 +236,19 @@ def build_change_set_rows(changes, export, *, allow_end_date_clear=False):
         if ch.get("clear_end_date"):
             if not allow_end_date_clear:
                 errors.append(f"changes.campaigns/{cid}: clear_end_date is set but the "
-                              f"change-set's top-level allow_end_date_clear is false — blank "
+                              f"change-set's top-level allow_end_date_clear is false; blank "
                               f"End Date clears an existing end date, so clearing must be "
                               f"opted into explicitly")
             else:
                 row["End Date"] = ""
-                changed["End Date"] = (existing_end_date or "(none)", "(cleared — runs indefinitely)")
+                changed["End Date"] = (existing_end_date or "(none)", "(cleared, runs indefinitely)")
         elif ch.get("end_date"):
             new_end = _yyyymmdd(ch["end_date"])
             row["End Date"] = new_end
             if new_end != existing_end_date:
                 changed["End Date"] = (existing_end_date or "(none)", new_end)
         else:
-            row["End Date"] = existing_end_date  # carry forward — never accidentally clear
+            row["End Date"] = existing_end_date  # carry forward, never accidentally clear
 
         placement_rows = []
         for key, label in PLACEMENT_LABELS.items():
@@ -265,7 +265,7 @@ def build_change_set_rows(changes, export, *, allow_end_date_clear=False):
 
         if not changed and not placement_rows:
             review.append(f"SKIPPED (no-op): Campaign {cid} ({export_row.get('Campaign Name','')}) "
-                          f"— no fields differ from the export")
+                          f"has no fields that differ from the export")
             continue
 
         rows.append(row)
@@ -283,7 +283,7 @@ def build_change_set_rows(changes, export, *, allow_end_date_clear=False):
         row["Campaign ID"] = cid
         row["Campaign Name"] = export.campaigns[cid].get("Campaign Name", "")
         rows.append(row)
-        review.append(f"ARCHIVE Campaign {cid} ({row['Campaign Name']}) — cascades to all of "
+        review.append(f"ARCHIVE Campaign {cid} ({row['Campaign Name']}); cascades to all of "
                       f"its Ad Groups, Keywords, Product Targeting, and Negatives")
 
     # ---------------------------------------------------- ad group updates
@@ -299,7 +299,7 @@ def build_change_set_rows(changes, export, *, allow_end_date_clear=False):
         campaign_id = export.ad_group_campaign(agid)
         parent, parent_kind = parent_archived(campaign_id, agid)
         if parent:
-            review.append(f"SKIPPED (parent archived): Ad Group {agid} update — its "
+            review.append(f"SKIPPED (parent archived): Ad Group {agid} update, because its "
                           f"{parent_kind} {parent} is archived in this file")
             continue
         export_row = export.ad_groups[agid]
@@ -327,7 +327,7 @@ def build_change_set_rows(changes, export, *, allow_end_date_clear=False):
 
         if not changed:
             review.append(f"SKIPPED (no-op): Ad Group {agid} ({export_row.get('Ad Group Name','')}) "
-                          f"— no fields differ from the export")
+                          f"has no fields that differ from the export")
             continue
         rows.append(row)
         for field, (old, new) in changed.items():
@@ -342,7 +342,7 @@ def build_change_set_rows(changes, export, *, allow_end_date_clear=False):
         row["Ad Group ID"] = agid
         row["Ad Group Name"] = export.ad_groups[agid].get("Ad Group Name", "")
         rows.append(row)
-        review.append(f"ARCHIVE Ad Group {agid} ({row['Ad Group Name']}) — cascades to its "
+        review.append(f"ARCHIVE Ad Group {agid} ({row['Ad Group Name']}); cascades to its "
                       f"Keywords, Product Targeting, and Negatives")
 
     # ---------------------------------------------------- keywords
@@ -356,13 +356,13 @@ def build_change_set_rows(changes, export, *, allow_end_date_clear=False):
             camp, ag = export.keyword_parents(kwid)
             parent, parent_kind = parent_archived(camp, ag)
             if parent:
-                review.append(f"SKIPPED (parent archived): Keyword {kwid} {action} — its "
+                review.append(f"SKIPPED (parent archived): Keyword {kwid} {action}, because its "
                               f"{parent_kind} {parent} is archived in this file")
                 continue
             exrow = export.keywords[kwid]
             if _s(exrow.get("State")) == target_state:
                 review.append(f"SKIPPED (no-op): Keyword {kwid} ({exrow.get('Keyword Text','')}) "
-                              f"— already {target_state}")
+                              f"is already {target_state}")
                 continue
             row = _empty_row("Update")
             row["Entity"] = "Keyword"
@@ -379,7 +379,7 @@ def build_change_set_rows(changes, export, *, allow_end_date_clear=False):
         camp, ag = export.keyword_parents(kwid)
         parent, parent_kind = parent_archived(camp, ag)
         if parent:
-            review.append(f"SKIPPED (parent archived): Keyword {kwid} archive — its "
+            review.append(f"SKIPPED (parent archived): Keyword {kwid} archive, because its "
                           f"{parent_kind} {parent} is already archived in this file")
             continue
         exrow = export.keywords[kwid]
@@ -419,15 +419,15 @@ def build_change_set_rows(changes, export, *, allow_end_date_clear=False):
         rows.append(crow)
         note = f" [archive of old ID skipped: parent {parent_kind} {parent} already archived]" if parent else ""
         review.append(f"REPLACE Keyword {old_id} ({exrow.get('Keyword Text','')}, "
-                      f"{exrow.get('Match Type','')}) -> new Keyword '{new_text}' ({new_match}) "
-                      f"— Keyword Text/Match Type are immutable, so this is Archive-old + "
+                      f"{exrow.get('Match Type','')}) -> new Keyword '{new_text}' ({new_match}); "
+                      f"Keyword Text/Match Type are immutable, so this is Archive-old + "
                       f"Create-new, never an Update{note}")
 
     for add in kw.get("add", []):
         camp, ag = _s(add.get("campaign_id")), _s(add.get("ad_group_id"))
         if not looks_like_real_id(camp) or camp not in export.campaigns:
             errors.append(f"keywords.add: campaign_id {add.get('campaign_id')!r} not found in "
-                          f"the export — new keywords attach to an EXISTING (real-ID) campaign")
+                          f"the export; new keywords attach to an EXISTING (real-ID) campaign")
             continue
         if not looks_like_real_id(ag) or ag not in export.ad_groups:
             errors.append(f"keywords.add: ad_group_id {add.get('ad_group_id')!r} not found in "
@@ -435,7 +435,7 @@ def build_change_set_rows(changes, export, *, allow_end_date_clear=False):
             continue
         parent, parent_kind = parent_archived(camp, ag)
         if parent:
-            review.append(f"SKIPPED (parent archived): new keyword {add.get('text')!r} — "
+            review.append(f"SKIPPED (parent archived): new keyword {add.get('text')!r}, because "
                           f"{parent_kind} {parent} is archived in this file")
             continue
         row = _empty_row("Create")
@@ -460,7 +460,7 @@ def build_change_set_rows(changes, export, *, allow_end_date_clear=False):
         camp, ag = export.negative_parents(negid)
         parent, parent_kind = parent_archived(camp, ag)
         if parent:
-            review.append(f"SKIPPED (parent archived): Negative {negid} archive — its "
+            review.append(f"SKIPPED (parent archived): Negative {negid} archive, because its "
                           f"{parent_kind} {parent} is already archived in this file")
             continue
         exrow = export.negatives[negid]
@@ -471,7 +471,7 @@ def build_change_set_rows(changes, export, *, allow_end_date_clear=False):
             row["Ad Group ID"] = ag
         row["Keyword ID"] = negid
         rows.append(row)
-        review.append(f"ARCHIVE Negative {negid} ({exrow.get('Keyword Text','')}) — negatives "
+        review.append(f"ARCHIVE Negative {negid} ({exrow.get('Keyword Text','')}); negatives "
                       f"can only be archived, never paused (reference 4.7)")
 
     for add in neg.get("add", []):
@@ -485,7 +485,7 @@ def build_change_set_rows(changes, export, *, allow_end_date_clear=False):
             continue
         parent, parent_kind = parent_archived(camp, ag if level == "ad_group" else "")
         if parent:
-            review.append(f"SKIPPED (parent archived): new negative {add.get('text')!r} — "
+            review.append(f"SKIPPED (parent archived): new negative {add.get('text')!r}, because "
                           f"{parent_kind} {parent} is archived in this file")
             continue
         row = _empty_row("Create")
@@ -510,7 +510,7 @@ def build_change_set_rows(changes, export, *, allow_end_date_clear=False):
         camp, ag = export.target_parents(tid)
         parent, parent_kind = parent_archived(camp, ag)
         if parent:
-            review.append(f"SKIPPED (parent archived): Target {tid} archive — its {parent_kind} "
+            review.append(f"SKIPPED (parent archived): Target {tid} archive, because its {parent_kind} "
                           f"{parent} is already archived in this file")
             continue
         exrow = export.targets[tid]
@@ -531,7 +531,7 @@ def build_change_set_rows(changes, export, *, allow_end_date_clear=False):
             continue
         parent, parent_kind = parent_archived(camp, ag)
         if parent:
-            review.append(f"SKIPPED (parent archived): new target {add.get('asin')!r} — "
+            review.append(f"SKIPPED (parent archived): new target {add.get('asin')!r}, because "
                           f"{parent_kind} {parent} is archived in this file")
             continue
         expr = (f'asin-expanded="{_s(add.get("asin")).upper()}"' if add.get("expanded")

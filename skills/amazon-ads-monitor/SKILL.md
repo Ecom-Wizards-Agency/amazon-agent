@@ -147,8 +147,9 @@ firecrawl fallback that costs Firecrawl credits:
 5. **Deliver.**
    - **Slack MCP -- send_message**: post the Slack payload (from
      `--slack-json`, annotated per step 4 if anything needed
-     softening/context) to **#amazon-daily-report** (channel ID
-     `C0BGWLFMW3V`). Start the message with a `<!here>` mention and a
+     softening/context) to **#amazon-daily-report** (channel ID from
+     `slack_channel_id` in the `_local/ads-monitor/` config; resolve by
+     name if unset). Start the message with a `<!here>` mention and a
      one-line header (e.g. "<!here> Daily Amazon Ads report -- <date>")
      -- `<!here>` daily, not `<!channel>`, to avoid pinging everyone
      every day. When running multiple brands in one pass, lead with
@@ -274,8 +275,9 @@ docstring for exact signatures.
 
 5. **Deliver.**
    - **Slack MCP -- send_message**: post the weekly Slack payload (from
-     `--slack-json`) to **#amazon-daily-report** (channel ID
-     `C0BGWLFMW3V`) -- the same channel as the daily brief. Start the
+     `--slack-json`) to **#amazon-daily-report** (channel ID from
+     `slack_channel_id` in the `_local/ads-monitor/` config; resolve by
+     name if unset) -- the same channel as the daily brief. Start the
      message with a `<!channel>` mention and a one-line header (e.g.
      "<!channel> Weekly Amazon Ads analysis -- week ending <date>");
      weekly posts tag the whole channel. Lead with any
@@ -326,10 +328,12 @@ specific change named, never execute it from this skill.
   -- the toolkit already keeps these out of active flags; do not re-add
   them as a "just in case" warning when writing the Slack summary.
 - **Resolve brand identity through `_local/ads-monitor/brand-aliases.json`.**
-  The same brand is spelled differently across systems -- Sellerboard slug
-  `swissklip` is "Swissker US" in Notion; `sven-island` is "Svens Island";
-  `allmedica-sheko` is "Sheko"; the Alphainfuse Slack channel is
-  `#alphaninfuse-ew-amazon` (extra n); Pawsan's is `#pawsan-amazon-ew`.
+  The same brand is spelled differently across systems -- a Sellerboard
+  slug like `acme-us` can be "Acme Labs US" in Notion, its Slack channel
+  `#acmee-ew-amazon` (typo and all), and its channel-name word order can
+  differ from every other brand's. The real mappings live only in
+  `_local/ads-monitor/brand-aliases.json` and the Notion "Brand Identity /
+  Alias Resolver" page, never in this repo.
   Before matching a Sellerboard feed to a Notion Ops Profile row, a Slack
   channel, or an AdLabs profile, normalize the name (lowercase, strip
   spaces/hyphens) and resolve it through this alias map -- never assume the

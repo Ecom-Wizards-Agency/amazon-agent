@@ -108,8 +108,8 @@ account the source knows about.
 
 ```bash
 python3 tools/amazon-ads-monitor/run_monitor.py --source sellerboard \
-  --csv _local/ads-monitor/inbox/sondur/dashboardtotals_7d.csv \
-  --accounts sondur --goal rank-launch --date 2026-07-13 \
+  --csv _local/ads-monitor/inbox/acme/dashboardtotals_7d.csv \
+  --accounts acme --goal rank-launch --date 2026-07-13 \
   --adlabs-json <path to {"ad_spend":..,"ad_sales":..,"total_sales":..}> \
   --out output --slack-json -
 ```
@@ -130,8 +130,8 @@ AdLabs entirely for that brand/day per `sellerboard-feeds.json`'s
 
 ```bash
 python3 tools/amazon-ads-monitor/run_weekly.py \
-  --csv _local/ads-monitor/inbox/sondur/dashboardtotals_30d.csv \
-  --account sondur --goal rank-launch --situation "recurring ACOS spikes" \
+  --csv _local/ads-monitor/inbox/acme/dashboardtotals_30d.csv \
+  --account acme --goal rank-launch --situation "recurring ACOS spikes" \
   --date 2026-07-13 \
   --adlabs-json <path to a JSON list of normalized weekly AdLabs entities, or omit> \
   --signal-digest _local/ads-signals/2026-W28/digest.md \
@@ -209,7 +209,7 @@ in active flags, only in suppressed, while every real-anomaly rule DOES
 fire) on both the hand fixture and the real `MockDataSource`'s scripted
 scenarios; markdown + Slack rendering; Sellerboard CSV delimiter
 auto-detection (synthetic values) and column mapping against the real
-sample `_local/ads-monitor/samples/sondur_dashboardtotals_7d.csv` (with
+sample `_local/ads-monitor/samples/sample_dashboardtotals_7d.csv` (with
 day-over-day deltas recomputed independently at test time -- no real
 financial figures are hardcoded in this committed file); Sellerboard-
 vs-AdLabs cross-check verdicts; goal-lens severity differences (e.g. a

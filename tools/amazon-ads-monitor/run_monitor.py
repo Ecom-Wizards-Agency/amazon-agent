@@ -19,15 +19,15 @@ _local/ads-monitor/SELLERBOARD-FORMAT.md and the amazon-ads-monitor skill
 for the file-first/firecrawl-fallback flow):
 
     python3 tools/amazon-ads-monitor/run_monitor.py --source sellerboard \\
-        --csv _local/ads-monitor/inbox/sondur/dashboardtotals_7d.csv \\
-        --accounts sondur --goal rank-launch --date 2026-07-13
+        --csv _local/ads-monitor/inbox/acme/dashboardtotals_7d.csv \\
+        --accounts acme --goal rank-launch --date 2026-07-13
 
 Pass a same-day AdLabs figure file (fetched via the AdLabs MCP at the
 skill layer -- this CLI makes no MCP/network calls itself) to also run
 the Sellerboard-vs-AdLabs cross-check:
 
     python3 tools/amazon-ads-monitor/run_monitor.py --source sellerboard \\
-        --csv <path> --accounts sondur --adlabs-json <path to {"ad_spend":..,"ad_sales":..,"total_sales":..}>
+        --csv <path> --accounts acme --adlabs-json <path to {"ad_spend":..,"ad_sales":..,"total_sales":..}>
 
 Real Amazon Ads API (secondary source, once _local/ads-monitor/config.json
 has credentials):
@@ -47,10 +47,10 @@ from pathlib import Path
 from analyze import analyze_account
 from datasource import DATASOURCES, SPAdsApiConfigError, SELLERBOARD_METRICS
 from flags import evaluate, resolve_goal_lens, GOAL_LENSES
-from report import render_markdown, render_slack, SELLERBOARD_HEADLINE_METRICS, SELLERBOARD_SLACK_HEADLINE_METRICS, SELLERBOARD_METRIC_LABEL_OVERRIDES
+from report import render_markdown, render_slack, default_slack_channel, SELLERBOARD_HEADLINE_METRICS, SELLERBOARD_SLACK_HEADLINE_METRICS, SELLERBOARD_METRIC_LABEL_OVERRIDES
 from crosscheck import cross_check
 
-DEFAULT_SLACK_CHANNEL_ID = "C0BGWLFMW3V"  # #amazon-daily-report
+DEFAULT_SLACK_CHANNEL_ID = default_slack_channel()  # real ID lives in _local/ads-monitor/config.json
 
 
 def _yesterday() -> dt.date:
@@ -99,7 +99,7 @@ def _load_config(path: str) -> dict:
 
 def _infer_account_from_csv_path(path: str) -> str:
     """Best-effort account slug from a Sellerboard export filename, e.g.
-    'sondur_dashboardtotals_7d.csv' -> 'sondur'. Falls back to the whole
+    'acme_dashboardtotals_7d.csv' -> 'acme'. Falls back to the whole
     stem if no recognized marker is found."""
     stem = Path(path).stem
     lower = stem.lower()

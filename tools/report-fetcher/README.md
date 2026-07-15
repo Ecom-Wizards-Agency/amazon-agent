@@ -1,8 +1,8 @@
-# Seller Central Report Fetcher — Business Reports + SQP
+# Seller Central Report Fetcher: Business Reports + SQP
 
 Pull **Business Reports** (Detail Page Sales & Traffic) and **Search Query Performance**
 (SQP) straight from Seller Central's own report APIs, using the operator's logged-in
-session — no clicking through the UI, no manual downloads.
+session. No clicking through the UI, no manual downloads.
 
 `cdp.mjs` and `launch-chrome-debug.sh` are shared infrastructure: the Opportunity
 Explorer downloader (`tools/opportunity-explorer/run-poe.mjs`) uses the same CDP client
@@ -13,10 +13,10 @@ fetched CSVs match the manual Seller Central export to the penny.
 ## Hands-off (one command, via Chrome's debug protocol)
 
 The runner drives Chrome's REAL page main world over the DevTools Protocol (CDP), so it
-uses your existing login — no console paste, no browser-evaluate sandbox. Any agent with
+uses your existing login. No console paste, no browser-evaluate sandbox. Any agent with
 shell access (Codex `@computer`) can run it.
 
-One-time setup — Chrome 136+ ignores `--remote-debugging-port` on your normal profile
+One-time setup: Chrome 136+ ignores `--remote-debugging-port` on your normal profile
 (a Chrome security change), so the runner uses a dedicated debug Chrome that runs
 **alongside** your normal Chrome. You sign into Seller Central **once** in that window;
 the login persists in the debug profile for every future run.
@@ -27,7 +27,7 @@ tools/report-fetcher/launch-chrome-debug.sh      # opens the dedicated debug Chr
 node tools/report-fetcher/run.mjs doctor         # confirms the connection + a logged-in tab
 ```
 
-Then fetch. **Copy-paste path — fill a per-client config once, then a fixed command** (copy
+Then fetch. **Copy-paste path: fill a per-client config once, then a fixed command** (copy
 `config.TEMPLATE.json` → `config.<client>.json`, gitignored, and fill ASIN groups / dates):
 
 ```bash
@@ -48,21 +48,21 @@ node tools/report-fetcher/run.mjs tst --weeks <YYYY-MM-DD> --out output/<client>
 
 Reports: `sqp` (Search Query Performance), `business` (Detail Sales & Traffic), `scp` (Brand
 Catalog Performance), `tst` (Top Search Terms), `all` (every report in the config). **TST is
-the whole marketplace's search-term ranking (hundreds of thousands of rows)** — unfiltered it
+the whole marketplace's search-term ranking (hundreds of thousands of rows).** Unfiltered it
 defaults to the top ~500 (5 pages); narrow with `--brand` / `--search-term` / `--asins`, or
 raise `--max-pages`, to go deeper.
 Options: `--range weekly|monthly|quarterly` (SQP/SCP/TST) · `--weeks a,b` (multiple periods) ·
 `--asins a,b` · `--split` (SQP: one file per ASIN instead of one combined file per group) ·
 `--report child|parent|sku` (Business) · `--marketplace us` · `--plan` (print the plan,
-fetch nothing) · `--verbose` (also writes `<out>.raw.json` + column ids — troubleshoot a
+fetch nothing) · `--verbose` (also writes `<out>.raw.json` + column ids, for troubleshooting a
 first run). Each SQP ASIN is fetched with a single-ASIN call (uncapped Search Query Volume).
 The runner opens its own background tab, writes the CSV, closes the tab; it never disturbs
 your other tabs. The canonical copy-paste Codex prompt is in `CODEX-PROMPT.md`.
 
 **Regions (US / EU).** The runner uses whichever region the debug Chrome is signed into
 (auto-detected from the logged-in tab) and the `--marketplace` code for the report payload.
-For EU, sign the debug Chrome into an EU Seller Central — **one `.de` login covers DE/IT/ES/FR/NL/…**
-— and pass the marketplace, e.g. `--marketplace de` (or `it`/`es`/`fr`). US uses `.com` with
+For EU, sign the debug Chrome into an EU Seller Central (**one `.de` login covers
+DE/IT/ES/FR/NL/…**) and pass the marketplace, e.g. `--marketplace de` (or `it`/`es`/`fr`). US uses `.com` with
 `--marketplace us`. If the debug Chrome has tabs from more than one region open, force the
 region with `--origin https://sellercentral.amazon.de` (or the config's `origin`). Report
 types and column ids are language-independent (matched by id, not the localized label).
@@ -76,10 +76,10 @@ column it exits non-zero and lists the source columns it saw (a one-line map twe
 
 Two parts, following the house pattern (`extract-amazon-listing-copy.js`):
 
-1. `fetch-seller-reports.js` — runs in the page main world on a logged-in
+1. `fetch-seller-reports.js`: runs in the page main world on a logged-in
    `sellercentral.amazon.*` tab; returns report JSON. (The runner injects it via CDP; you
    can also paste it into the DevTools console directly.)
-2. `format-seller-reports.mjs` — local Node; converts that JSON to the exact CSV headers
+2. `format-seller-reports.mjs`: local Node; converts that JSON to the exact CSV headers
    the builders read. `cdp.mjs` + `run.mjs` are the CDP driver + CLI.
 
 ## How it works (and why it's safe)
@@ -87,12 +87,12 @@ Two parts, following the house pattern (`extract-amazon-listing-copy.js`):
 The fetch runs **inside the page origin** via a browser `evaluate`, so it is same-origin:
 the browser attaches the existing login cookies, `Origin`, and `Referer` automatically. The
 only extra header the Brand-Analytics API needs is `anti-csrftoken-a2z`, read from the
-page's OWN `<meta name="anti-csrftoken-a2z">` — the same anti-forgery value the page uses
+page's OWN `<meta name="anti-csrftoken-a2z">`, the same anti-forgery value the page uses
 for its own requests. The script **never** reads cookies, localStorage, sessionStorage,
 passwords, or bearer/refresh tokens, and never logs in. Report data is returned to the agent
 and sent nowhere else.
 
-- Connected/internal browser only — **never headless** (Amazon blocks bots).
+- Connected/internal browser only, **never headless** (Amazon blocks bots).
 - **Read-only**: these endpoints only read reports; nothing is written or changed.
 - **~5 s spacing** between requests (mirrors real usage).
 - No session / 403 / missing token → the function returns `{ error }` and the agent stops
@@ -110,14 +110,14 @@ Analytics page so the `anti-csrftoken-a2z` meta tag is present.
 **1. Fetch (in the browser).** Pass the source string + a call (Playwright / Codex path):
 
 ```js
-// SQP — one product line, two weeks
+// SQP: one product line, two weeks
 await tab.playwright.evaluate(`(function(){
   ${fetchSellerReportsSource}
   return fetchSqp({ asins:["B0XXXXXXXX"], marketplace:"US",
                     reportingRange:"weekly", periodEndDates:["2026-06-21","2026-06-28"] });
 })()`)
 
-// Business Report — child-ASIN, one month
+// Business Report: child-ASIN, one month
 await tab.playwright.evaluate(`(function(){
   ${fetchSellerReportsSource}
   return fetchBusinessReport({ legacyReportId:"102:DetailSalesTrafficByChildItem",
@@ -142,7 +142,7 @@ node tools/report-fetcher/format-seller-reports.mjs <name>.json output/<client>/
   `inputs.business_report_csv` at it.
 
 If a required column can't be matched, the formatter exits non-zero and prints the source
-columns it saw — a one-line mapping tweak in `format-seller-reports.mjs`, never a silent
+columns it saw: a one-line mapping tweak in `format-seller-reports.mjs`, never a silent
 wrong file.
 
 ## Self-test

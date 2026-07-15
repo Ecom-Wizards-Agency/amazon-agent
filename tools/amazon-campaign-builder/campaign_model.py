@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Amazon Sponsored Products campaign model — pure logic, no I/O.
+Amazon Sponsored Products campaign model: pure logic, no I/O.
 
 Python port of the Ecom Wizards "Amazon Ads Bulk Creator" web app core
 (src/types/index.ts, src/lib/naming.ts, src/lib/campaignGenerator.ts,
@@ -8,7 +8,7 @@ src/lib/bulkExport.ts in Ecom-Wizards-Agency/amazon-ads-bulk-creator),
 generalized for config-driven CLI use. Row structure, naming, chunking,
 and defaults are 1:1 with the app.
 
-Deliberate vocabulary fixes vs the app — the app emits values the current
+Deliberate vocabulary fixes vs the app: the app emits values the current
 bulksheets 2.0 upload parser does not document; this port emits what
 Amazon's docs and real bulk exports use (the parity harness maps the app's
 vocabulary through the AMAZON_* tables below before diffing):
@@ -23,7 +23,7 @@ vocabulary through the AMAZON_* tables below before diffing):
   PAT expanded  'similar-product="..."'    -> 'asin-expanded="..."'
   placement     'Placement Rest of Search' -> 'Placement Rest Of Search'
 
-v2 additions (campaign-builder v2 — create + update, keyword-file input, EW
+v2 additions (campaign-builder v2: create + update, keyword-file input, EW
 naming, see tools/amazon-campaign-builder/README.md):
   - `campaign_purpose` + CAMPAIGN_PURPOSE_BIDDING: the naming-convention.md
     bidding-strategy table is keyed by campaign *purpose* (Rank SKW / Auto /
@@ -116,8 +116,8 @@ CAMPAIGN_PURPOSE_BIDDING = {
 }
 
 # Trigger word shown in the EW campaign name's "Trigger Words OR Placement" slot.
-# "The trigger word must exactly match the campaign type" (naming-convention.md) —
-# for the three purposes that aren't literal campaign_type values (Shield,
+# "The trigger word must exactly match the campaign type" (naming-convention.md).
+# For the three purposes that aren't literal campaign_type values (Shield,
 # Self-Targeting, Category) we use their own label; everything else falls back
 # to the literal campaign_type (SKW/Halo/BMM/Phrase/Auto/PAT).
 TRIGGER_WORD_LABELS = {
@@ -197,7 +197,7 @@ def _variable_value(variable, ctx, settings, today):
         return f"{ctx['counter']:02d}" if ctx.get("counter") is not None else ""
     if variable == "CampCounter":
         # naming-convention.md: "Camp Counter ONLY used for Halo and Auto campaigns;
-        # leave it off for everything else" — blank parts are dropped when the name
+        # leave it off for everything else". Blank parts are dropped when the name
         # is joined, so returning "" here is how "off otherwise" is enforced.
         if ctx.get("campaign_type") in ("Halo", "Auto") and ctx.get("counter") is not None:
             return f"{ctx['counter']:02d}"
@@ -217,8 +217,8 @@ def generate_campaign_name(settings, ctx, today=None):
 
 
 def generate_ad_group_name(settings, ctx, today=None):
-    # "Ad group name is the shorter form — drop prefix & suffix" (naming-convention.md).
-    # NOTE: "SP" is deliberately NOT dropped here — the original (legacy-preset) app
+    # "Ad group name is the shorter form, drop prefix & suffix" (naming-convention.md).
+    # NOTE: "SP" is deliberately NOT dropped here: the original (legacy-preset) app
     # behavior keeps it in the ad group name and that's what the 71-row parity fixture
     # verifies. The EW preset uses "AdType" (not "SP") for the same slot, so adding
     # AdType/CampCounter to the drop set only affects the new preset, never the legacy one.
@@ -237,7 +237,7 @@ def swap_name_order(settings):
 
 
 # ----------------------------------------------------------------- naming presets
-# LEGACY is the original app order (unchanged — every existing config that sets its
+# LEGACY is the original app order (unchanged: every existing config that sets its
 # own naming.variable_order continues to work exactly as before, see build_campaigns
 # .load_config). EW is the Ecom Wizards 8-slot convention from naming-convention.md:
 #   Goal | Ad Type | Match Type | Trigger Words OR Placement | Product Identifier |

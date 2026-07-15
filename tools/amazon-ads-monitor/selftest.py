@@ -19,7 +19,7 @@ Covers:
 - datasource.py `parse_sellerboard_csv`/`SellerboardDataSource`: delimiter
   auto-detection (synthetic semicolon CSV, values never committed as real
   brand financials) and column-name mapping against the REAL gitignored
-  sample `_local/ads-monitor/samples/sondur_dashboardtotals_7d.csv` (read
+  sample `_local/ads-monitor/samples/sample_dashboardtotals_7d.csv` (read
   only if present; the expected figures are recomputed from the CSV's own
   raw columns at test time, not hardcoded, so no real financial numbers
   ever land in this committed file).
@@ -55,7 +55,7 @@ FAILURES = []
 PASSES = []
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-REAL_SAMPLE_PATH = REPO_ROOT / "_local" / "ads-monitor" / "samples" / "sondur_dashboardtotals_7d.csv"
+REAL_SAMPLE_PATH = REPO_ROOT / "_local" / "ads-monitor" / "samples" / "sample_dashboardtotals_7d.csv"
 
 
 def check(name, condition, detail=""):
@@ -201,7 +201,7 @@ def test_report_rendering(analysis, active, suppressed):
         "preview": True,
         "attribution_window": "7d (synthetic)",
         "generated_at": "2026-07-13T00:00:00Z",
-        "slack_channel_id": "C0BGWLFMW3V",
+        "slack_channel_id": "C000000000",
         "notes": [],
     }
     md = render_markdown(analysis, active, suppressed, meta)
@@ -213,7 +213,7 @@ def test_report_rendering(analysis, active, suppressed):
 
     slack = render_slack(analysis, active, suppressed, meta)
     check("slack_has_blocks", "blocks" in slack and isinstance(slack["blocks"], list) and len(slack["blocks"]) > 0)
-    check("slack_channel_default", slack["channel"] == "C0BGWLFMW3V", slack["channel"])
+    check("slack_channel_default", slack["channel"] == "C000000000", slack["channel"])
     check("slack_text_nonempty", bool(slack.get("text")))
     check("slack_preview_tag", "PREVIEW" in slack["text"])
 
@@ -373,8 +373,8 @@ def test_real_sellerboard_sample():
     exp_total_12, exp_spend_12, exp_tacos_12, exp_real_acos_12 = expected(d12)
     exp_total_13, exp_spend_13, exp_tacos_13, exp_real_acos_13 = expected(d13)
 
-    ds = SellerboardDataSource.from_paths({"sondur": [str(REAL_SAMPLE_PATH)]})
-    rows = ds.get_account_daily("sondur", d12 - dt.timedelta(days=7), d13)
+    ds = SellerboardDataSource.from_paths({"acme": [str(REAL_SAMPLE_PATH)]})
+    rows = ds.get_account_daily("acme", d12 - dt.timedelta(days=7), d13)
     by_date = {r.date: r for r in rows}
     r12, r13 = by_date.get(d12), by_date.get(d13)
     check("real_sample_parses_12_and_13", r12 is not None and r13 is not None)
@@ -393,7 +393,7 @@ def test_real_sellerboard_sample():
     # Day-over-day (13/07 vs 12/07), via analyze.py, checked against the
     # same independently-recomputed expected values -- not the parser's
     # own numbers, so this actually exercises the delta math too.
-    analysis = analyze_account("sondur", d13, rows, [], metrics=SELLERBOARD_METRICS)
+    analysis = analyze_account("acme", d13, rows, [], metrics=SELLERBOARD_METRICS)
     total_sales_d = analysis.account_series.deltas["total_sales"]
     spend_d = analysis.account_series.deltas["spend"]
     exp_total_delta = exp_total_13 - exp_total_12
@@ -714,7 +714,7 @@ def test_weekly_report_rendering(weekly, active_flags, suppressed_flags, empty_t
         "source_label": "Sellerboard 'Dashboard Totals' (PRIMARY, whole-account truth)",
         "preview": False,
         "generated_at": "2026-07-13T00:00:00Z",
-        "slack_channel_id": "C0BGWLFMW3V",
+        "slack_channel_id": "C000000000",
         "goal_lens": {"label": "Profit / Maintain", "description": "Mature ASIN, defending margin."},
     }
 
@@ -735,7 +735,7 @@ def test_weekly_report_rendering(weekly, active_flags, suppressed_flags, empty_t
 
     slack_no_tests = render_weekly_slack(weekly, empty_tests_result, base_meta)
     check("weekly_slack_is_dict", isinstance(slack_no_tests, dict))
-    check("weekly_slack_has_channel", slack_no_tests.get("channel") == "C0BGWLFMW3V", slack_no_tests.get("channel"))
+    check("weekly_slack_has_channel", slack_no_tests.get("channel") == "C000000000", slack_no_tests.get("channel"))
     check("weekly_slack_has_blocks", isinstance(slack_no_tests.get("blocks"), list) and len(slack_no_tests["blocks"]) > 0)
     check("weekly_slack_text_nonempty", bool(slack_no_tests.get("text")))
     check("weekly_slack_goal_lens_label", "Profit / Maintain" in slack_no_tests["text"])
@@ -812,7 +812,7 @@ def test_cli_end_to_end_weekly():
         check("weekly_cli_prints_slack_json", json_start != -1)
         if json_start != -1:
             payload = json.loads(stdout[json_start:])
-            check("weekly_cli_slack_json_has_channel", payload.get("channel") == "C0BGWLFMW3V", payload.get("channel"))
+            check("weekly_cli_slack_json_has_channel", bool(payload.get("channel")), payload.get("channel"))
 
 
 def test_cli_end_to_end_weekly_csv_only():
