@@ -71,3 +71,7 @@ tools/amazon-campaign-builder/config.*.json
 # sqp-supa client configs (local-only)
 tools/sqp-supa/config.*.json
 !tools/sqp-supa/config.TEMPLATE.json
+
+# Python caches
+__pycache__/
+*.pyc

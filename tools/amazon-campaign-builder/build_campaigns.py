@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Amazon SP campaign builder — text brief -> config -> bulk-upload .xlsx.
+Amazon SP campaign builder: text brief -> config -> bulk-upload .xlsx.
 
   # Preflight: check the config contract, list what's missing or READY
   python3 tools/amazon-campaign-builder/build_campaigns.py --config <cfg> --preflight
@@ -14,7 +14,7 @@ Amazon SP campaign builder — text brief -> config -> bulk-upload .xlsx.
   # QA gates only (re-check an already-built file)
   python3 tools/amazon-campaign-builder/build_campaigns.py --config <cfg> --validate
 
-Output is a FILE ONLY — this tool never uploads or touches live campaigns.
+Output is a FILE ONLY. This tool never uploads or touches live campaigns.
 Uploading via Campaign Manager > Bulk Operations is a separate, operator-
 confirmed action (stop-before-risk). Everything client-specific lives in
 the config (see config.TEMPLATE.json / NEW-CLIENT.md).
@@ -34,19 +34,19 @@ sys.path.insert(0, str(HERE))
 
 from campaign_model import (  # noqa: E402
     AMAZON_BIDDING, AMAZON_MATCH, AMAZON_NEG_MATCH, AUTO_EXPRESSIONS,
-    BIDDING_STRATEGIES, CAMPAIGN_TYPES, CAMPAIGN_TYPE_GOALS, CAMPAIGN_TYPE_MATCH,
+    BIDDING_STRATEGIES, CAMPAIGN_PURPOSE_BIDDING, CAMPAIGN_PURPOSES,
+    CAMPAIGN_TYPE_DEFAULT_PURPOSE, CAMPAIGN_TYPES, CAMPAIGN_TYPE_GOALS, CAMPAIGN_TYPE_MATCH,
     COLUMNS, DEFAULT_BID, DEFAULT_BUDGET, GOALS, MATCH_TYPES, MIN_BID,
-    NEGATIVE_LEVELS, NEGATIVE_MATCH_TYPES, PLACEMENT_LABELS, SHEET_NAMES, STATES,
+    NAMING_PRESETS, NEGATIVE_LEVELS, NEGATIVE_MATCH_TYPES, PLACEMENT_LABELS, SHEET_NAMES, STATES,
     build_bulk_rows, generate_campaigns, parse_product_list,
+    resolve_bidding_strategy, resolve_campaign_purpose,
 )
 
-NAMING_DEFAULTS = {
-    "variable_order": ["Goal", "SP", "MatchType", "ProductName", "TargetDescriptor", "EW"],
-    "delimiter": " | ",
-    "suffix": "EW",
-    "custom1_value": "",
-    "custom2_value": "",
-}
+# v2 default: the Ecom Wizards 8-slot naming convention (naming-convention.md).
+# Every existing config that sets its own naming.variable_order is unaffected.
+# See load_config(): an explicit variable_order always wins over this default.
+# Opt back into the pre-v2 order with `"naming": {"preset": "LEGACY"}`.
+NAMING_DEFAULTS = NAMING_PRESETS["EW"]
 
 MAX_CAMPAIGN_NAME = 128
 MAX_AD_GROUP_NAME = 255
@@ -69,7 +69,9 @@ def _rel(p):
 def load_config(path):
     cfg = json.loads(Path(path).read_text())
     cfg.setdefault("defaults", {})
-    cfg["naming"] = {**NAMING_DEFAULTS, **cfg.get("naming", {})}
+    naming_in = cfg.get("naming", {})
+    preset = NAMING_PRESETS.get((naming_in.get("preset") or "").upper(), NAMING_DEFAULTS)
+    cfg["naming"] = {**preset, **{k: v for k, v in naming_in.items() if k != "preset"}}
     return cfg
 
 
@@ -102,6 +104,7 @@ def campaign_forms(cfg):
             keywords = [k for k in re.split(r"\n", keywords)]
         form = {
             "campaign_type": ctype,
+            "campaign_purpose": (spec.get("campaign_purpose") or "").strip().upper(),
             "goal": spec.get("goal") or goals[0],
             "product_name": spec.get("product_name", ""),
             "target_descriptor": spec.get("target_descriptor", ""),
@@ -147,7 +150,7 @@ def preflight(cfg):
         if not cfg.get(key):
             issues.append(f"config: `{key}` is required")
     if not cfg.get("campaigns"):
-        issues.append("config: `campaigns[]` is empty — nothing to build")
+        issues.append("config: `campaigns[]` is empty (nothing to build)")
 
     vendor = bool(cfg["defaults"].get("vendor_central_mode") or cfg.get("vendor_central_mode"))
     for i, (spec, form) in enumerate(zip(cfg.get("campaigns", []), campaign_forms(cfg)), 1):
@@ -180,8 +183,17 @@ def preflight(cfg):
         if form["match_type"] and form["match_type"] not in MATCH_TYPES:
             issues.append(f"{tag}: match_type must be one of {'/'.join(MATCH_TYPES)} (or empty for the "
                           f"{ctype} default {CAMPAIGN_TYPE_MATCH[ctype]})")
+        if form["campaign_purpose"] and form["campaign_purpose"] not in CAMPAIGN_PURPOSES:
+            issues.append(f"{tag}: campaign_purpose must be one of {'/'.join(CAMPAIGN_PURPOSES)} (or empty for "
+                          f"the {ctype} default {CAMPAIGN_TYPE_DEFAULT_PURPOSE.get(ctype, '?')})")
         if form["bidding_strategy"] and form["bidding_strategy"] not in BIDDING_STRATEGIES:
             issues.append(f"{tag}: bidding_strategy must be one of {'/'.join(BIDDING_STRATEGIES)} (or empty)")
+        elif form["bidding_strategy"] and ctype in CAMPAIGN_TYPE_DEFAULT_PURPOSE:
+            purpose = form["campaign_purpose"] or CAMPAIGN_TYPE_DEFAULT_PURPOSE[ctype]
+            expected = CAMPAIGN_PURPOSE_BIDDING.get(purpose)
+            if expected and form["bidding_strategy"] != expected:
+                notes.append(f"{tag}: bidding_strategy override '{form['bidding_strategy']}' differs from the "
+                             f"naming-convention.md default '{expected}' for purpose {purpose} (QC-enforced table)")
         if form["state"] not in STATES:
             issues.append(f"{tag}: state must be enabled|paused")
         if not MIN_BID <= form["keyword_bid"] <= MAX_BID:
@@ -198,30 +210,49 @@ def preflight(cfg):
         fans_out = (form["transpose_keywords"] and form["keywords_per_campaign"] >= 1
                     and len(kws) > form["keywords_per_campaign"]) \
             or (ctype == "SKW" and len(kws) > 1 and not form["skw_include_keyword_in_name"])
-        if fans_out and "Counter" not in order:
-            issues.append(f"{tag}: fans out to several identically-named campaigns — add 'Counter' "
-                          f"to naming.variable_order (Amazon rejects duplicate campaign names)")
+        # A literal keyword slot disambiguates SKW fan-out on its own (each campaign gets a
+        # different Keyword token); Counter/CampCounter both work for everything else, but
+        # CampCounter only actually emits a value for Halo/Auto per naming-convention.md.
+        disambiguated_by_keyword = "Keyword" in order and ctype == "SKW" and form["skw_include_keyword_in_name"]
+        disambiguated_by_counter = "Counter" in order or ("CampCounter" in order and ctype in ("Halo", "Auto"))
+        if fans_out and not disambiguated_by_keyword and not disambiguated_by_counter:
+            issues.append(f"{tag}: fans out to several identically-named campaigns; add 'Counter' "
+                          f"(or, for Halo/Auto, 'CampCounter') to naming.variable_order (Amazon rejects "
+                          f"duplicate campaign names)")
+        if ctype in ("BMM", "Phrase") and not form["negative_keywords"]:
+            notes.append(f"{tag}: discovery campaign has no negative_keywords; naming-convention.md QC "
+                         f"requires a Never-Ever/negative-phrase list at ad-group level from day one")
+        purpose_for_qc = form["campaign_purpose"] or CAMPAIGN_TYPE_DEFAULT_PURPOSE.get(ctype, "")
+        if ctype == "PAT" and form["match_type"] == "ASIN_EXPANDED" and purpose_for_qc == "SELF_TARGETING":
+            notes.append(f"{tag}: Self-Targeting Expanded needs a negative product list of the targeted ASINs "
+                         f"(naming-convention.md QC #7); this toolkit doesn't model Negative Product Targeting "
+                         f"yet; add it via an update-mode change-set after the initial build")
         if form["start_date"]:
             try:
                 sd = datetime.strptime(form["start_date"], "%Y-%m-%d").date()
                 if sd < date.today():
-                    issues.append(f"{tag}: start_date {form['start_date']} is in the past — Amazon "
+                    issues.append(f"{tag}: start_date {form['start_date']} is in the past; Amazon "
                                   f"rejects past start dates on create")
             except ValueError:
                 issues.append(f"{tag}: start_date must be YYYY-MM-DD")
         if form["state"] == "enabled":
-            notes.append(f"{tag}: state=enabled — campaigns go LIVE on upload; the safety default is paused")
+            notes.append(f"{tag}: state=enabled means campaigns go LIVE on upload; the safety default is paused")
 
-    print(f"Preflight — {cfg.get('client', '?')} ({cfg.get('marketplace', '?')})")
+    campaigns = generate_all(cfg) if not issues else []
+    for c in campaigns:
+        if c["ad_group_name"] == c["campaign_name"]:
+            notes.append(f"'{c['campaign_name']}': ad group name equals campaign name; naming-convention.md "
+                         f"QC requires the ad group name to differ (drop prefix & suffix)")
+
+    print(f"Preflight: {cfg.get('client', '?')} ({cfg.get('marketplace', '?')})")
     for msg in issues:
         print(f"  [MISSING] {msg}")
     for msg in notes:
         print(f"  [NOTE]    {msg}")
     if issues:
-        print(f"\nNOT READY — fix the {len(issues)} item(s) above in the config.")
+        print(f"\nNOT READY. Fix the {len(issues)} item(s) above in the config.")
         return 1
-    n = len(generate_all(cfg))
-    print(f"\nREADY — {len(cfg['campaigns'])} spec(s) -> {n} campaign(s). "
+    print(f"\nREADY: {len(cfg['campaigns'])} spec(s) -> {len(campaigns)} campaign(s). "
           f"Run without --preflight to build.")
     return 0
 
@@ -246,7 +277,7 @@ def summarize(cfg, campaigns):
 
 def preview(cfg):
     campaigns = generate_all(cfg)
-    print(f"Preview — {cfg['client']} ({cfg.get('marketplace')}) · "
+    print(f"Preview: {cfg['client']} ({cfg.get('marketplace')}) · "
           f"{len(campaigns)} campaign(s), nothing written\n")
     for line in summarize(cfg, campaigns):
         print(f"  {line}")
@@ -262,14 +293,14 @@ def write_review(cfg, campaigns, rows, xlsx):
     n_neg = sum(1 for r in rows if "Negative" in r["Entity"])
     enabled = [c for c in campaigns if c["state"] == "enabled"]
     lines = [
-        f"# Campaign build review — {cfg['client']} ({cfg.get('marketplace')})",
+        f"# Campaign build review: {cfg['client']} ({cfg.get('marketplace')})",
         "",
         f"- File: `{xlsx.name}` (sheet `{SHEET_NAMES['SP']}`, {len(rows)} rows)",
         f"- {len(campaigns)} campaign(s) · {n_kw} keyword target(s) · {n_pt} product target(s) · "
         f"{n_neg} negative(s)",
         f"- Combined daily budget: {sum(c['daily_budget'] for c in campaigns):.2f}",
         f"- State: {len(enabled)} enabled / {len(campaigns) - len(enabled)} paused"
-        + (" — **enabled campaigns go live on upload**" if enabled else ""),
+        + (" (**enabled campaigns go live on upload**)" if enabled else ""),
         "",
         "| Campaign | Type | State | Budget | Bid | Strategy | Targets | Negatives |",
         "| --- | --- | --- | --- | --- | --- | --- | --- |",
@@ -284,13 +315,13 @@ def write_review(cfg, campaigns, rows, xlsx):
                      f"{len(c['negative_keywords'])} ({c['negative_level']}) |")
     lines += [
         "",
-        "## Upload (operator action — not automated)",
+        "## Upload (operator action, not automated)",
         "",
         "1. Campaign Manager > Bulk Operations > Upload your file.",
         "2. Amazon validates the sheet and reports created entities / errors.",
         "3. Campaigns arrive in the state above; flip paused campaigns on when ready.",
         "",
-        "Generated by `tools/amazon-campaign-builder/` — do not hand-edit the builder; "
+        "Generated by `tools/amazon-campaign-builder/`. Do not hand-edit the builder; "
         "change the config and rebuild.",
     ]
     md.write_text("\n".join(lines))
@@ -303,7 +334,7 @@ def build(cfg, override_out=None):
 
     campaigns = generate_all(cfg)
     if not campaigns:
-        print("Nothing to build — campaigns[] produced no campaigns.")
+        print("Nothing to build: campaigns[] produced no campaigns.")
         return 1
     defaults = {**cfg["defaults"], "vendor_central_mode":
                 bool(cfg["defaults"].get("vendor_central_mode") or cfg.get("vendor_central_mode"))}
@@ -338,7 +369,7 @@ def validate(cfg, override_out=None):
     xlsx = out_path(cfg, override_out)
     fails, warns = [], []
     if not xlsx.exists():
-        print(f"VALIDATE: file not found — {xlsx}")
+        print(f"VALIDATE: file not found at {xlsx}")
         return 1
     wb = load_workbook(xlsx, data_only=True)
     if SHEET_NAMES["SP"] not in wb.sheetnames:
@@ -378,7 +409,7 @@ def validate(cfg, override_out=None):
         if ent == "Campaign":
             name = r["Campaign Name"]
             if name in camp_names:
-                fails.append(f"row {i}: duplicate campaign name '{name}' (also row {camp_names[name]}) — "
+                fails.append(f"row {i}: duplicate campaign name '{name}' (also row {camp_names[name]}); "
                              f"Amazon rejects duplicate names on create")
             camp_names[name] = i
             if len(str(name)) > MAX_CAMPAIGN_NAME:
@@ -443,7 +474,7 @@ def validate(cfg, override_out=None):
                 .add(str(r["Campaign ID"]))
     for (kw, mt), camps in across.items():
         if len(camps) > 1:
-            warns.append(f"keyword '{kw}' ({mt}) appears in {len(camps)} campaigns — self-competition")
+            warns.append(f"keyword '{kw}' ({mt}) appears in {len(camps)} campaigns (self-competition)")
     per_camp = {}
     for r in rows:
         per_camp.setdefault(str(r["Campaign ID"]), set()).add(r["Entity"])
@@ -451,9 +482,9 @@ def validate(cfg, override_out=None):
         if "Campaign" not in ents:
             continue
         if "Product Ad" not in ents:
-            fails.append(f"campaign {cid}: no Product Ad row — nothing would be advertised")
+            fails.append(f"campaign {cid}: no Product Ad row, so nothing would be advertised")
         if not ents & {"Keyword", "Product Targeting"}:
-            fails.append(f"campaign {cid}: no Keyword or Product Targeting row — no targets")
+            fails.append(f"campaign {cid}: no Keyword or Product Targeting row, so no targets")
 
     return _report(fails, warns)
 
@@ -476,12 +507,25 @@ def main():
     ap.add_argument("--config", "--brief", dest="config", required=True,
                     help="per-client campaign config JSON (copy config.TEMPLATE.json)")
     ap.add_argument("--out", help="override the output .xlsx path")
+    ap.add_argument("--keyword-file", help="keyword-research workbook (.xlsx) to source "
+                    "campaigns[] from (see keyword_workbook.py); merges ahead of any "
+                    "campaigns[] already in the config")
+    ap.add_argument("--keyword-sheet", help="sheet name inside --keyword-file to parse "
+                    "(default: auto-detect '5. Campaign Structure' or fall back to the first sheet)")
     ap.add_argument("--preflight", action="store_true", help="check the config, list missing fields")
     ap.add_argument("--preview", action="store_true", help="print planned campaigns, write nothing")
     ap.add_argument("--validate", action="store_true", help="run QA gates on the built file only")
     args = ap.parse_args()
 
     cfg = load_config(args.config)
+    if args.keyword_file:
+        from keyword_workbook import parse_keyword_workbook
+        kwd = cfg.get("keyword_file_defaults", {})
+        specs = parse_keyword_workbook(args.keyword_file, sheet=args.keyword_sheet,
+                                        product_name=kwd.get("product_name", ""),
+                                        sku=kwd.get("sku"), asin=kwd.get("asin"))
+        cfg["campaigns"] = specs + cfg.get("campaigns", [])
+        print(f"keyword-file: {len(specs)} campaign spec(s) parsed from {args.keyword_file}\n")
     if args.preflight:
         return preflight(cfg)
     if args.preview:

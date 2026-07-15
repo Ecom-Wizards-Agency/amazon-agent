@@ -97,6 +97,7 @@ Default routing:
 - `amazon-catalog`: variations, parentage, flat files, listing edits, catalog conflicts.
 - `amazon-ads`: Ads Console, PPC, bidding, budgets, targeting.
 - `amazon-campaign-builder`: creating Sponsored Products campaigns from a text brief → bulk-upload `.xlsx` via `tools/amazon-campaign-builder/` (file-only; upload stays operator-confirmed).
+- `amazon-ads-monitor`: automated daily (and weekly) Amazon Ads performance brief with trends, % changes, a Sellerboard-vs-AdLabs data cross-check, and goal-lens-aware philosophy-aware flags, posted to Slack → `tools/amazon-ads-monitor/` (read-only; Sellerboard "Dashboard Totals" CSV + AdLabs cross-check primary, SP Ads API v3 secondary, mock/PREVIEW fallback with no credentials).
 - `amazon-creator-connections`: Creator Connections inbox audits, status-filtered message triage, campaign tracker updates, reply drafting (operator-confirmed sends), campaign prep to the publish checkpoint, tracker gaps, reconciliation.
 - `amazon-reporting`: fetching and formatting Seller/Ads reports, SQP, business reports, analytics workbooks; Business Reports + SQP can be fetched without manual download via `tools/report-fetcher/`. Not for audit narratives (that is `amazon-ad-audit` or `amazon-adlabs-audit`).
 - `amazon-inventory-planning`: weekly FBA inventory overview, reshipment planning, pCloud outputs, Slack staging.
@@ -279,6 +280,21 @@ For client-specific Amazon work, check the local profile cache first when it exi
 Use client profiles for account labels, marketplaces, stakeholders, listing URLs, fulfillment method, production/shipping timing, recurring workflow preferences, and safety notes. Do not store secrets, passwords, cookies, tokens, payment details, tax IDs, private keys, or browser session data in Notion profiles or local cache.
 
 The agent must not silently change shared client facts. If a profile needs correction, draft the proposed update with evidence and wait for approval before changing Notion. Refresh the local cache after approved Notion updates.
+
+## Shared Knowledge (Notion, for non-repo runtimes)
+
+Runtimes that have the repo code but not `_local/` (for example Claude in Slack / Claude Tag, or a teammate without the team pack) read the private methodology from Notion instead, so they operate on the same playbook. Three-layer split: the public GitHub repo holds skill code; gitignored `_local/` holds secrets and per-operator config; the Notion "Amazon Agent - Shared Brain" space holds the shared private knowledge.
+
+Find these pages by exact title via the Notion connector search (direct URLs stay in the team pack / `_local/`, never in this public repo):
+
+- "Amazon Agent - Shared Brain" (the space's top page)
+- "PPC Strategy (rank-first)"
+- "PPC Naming Convention"
+- "PPC Knowledge Digest"
+- "Conflicts and Test Backlog"
+- "Brand Identity / Alias Resolver"
+
+Per-brand Goal/Stage and Situation live as fields on the `Amazon Agent Ops Profiles` database rows. When `_local/` is present it is the fast path; otherwise read these Notion pages. Keep the two in sync; when they disagree, the operator decides. Never put secrets (feed tokens, API keys) in Notion.
 
 ## Local Permission Memory
 

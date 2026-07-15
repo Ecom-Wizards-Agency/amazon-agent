@@ -1,15 +1,15 @@
-# Codex prompt — fetch Seller Central reports (copy-paste)
+# Codex prompt: fetch Seller Central reports (copy-paste)
 
 Canonical, client-agnostic prompt for pulling Seller Central reports with the report
 fetcher via Codex `@computer`. Fill the placeholders; nothing here names a client.
 
-Prereq (one-time): a dedicated debug Chrome is running and signed into Seller Central —
-`tools/report-fetcher/launch-chrome-debug.sh`, then log in once in that window. The login
+Prereq (one-time): a dedicated debug Chrome is running and signed into Seller Central.
+Run `tools/report-fetcher/launch-chrome-debug.sh`, then log in once in that window. The login
 persists in the debug profile.
 
 ---
 
-## A. Config-driven (recommended — fill the config once, then this is fixed)
+## A. Config-driven (recommended: fill the config once, then this is fixed)
 
 First (one-time per client): copy `tools/report-fetcher/config.TEMPLATE.json` to
 `tools/report-fetcher/config.<CLIENT_SLUG>.json` (gitignored) and fill the ASIN groups,
@@ -19,7 +19,7 @@ Then paste this to Codex:
 
 ```
 Using @computer, in ~/Codex Projects/Amazon Agent, fetch Seller Central reports.
-Read-only — change no Seller Central settings.
+Read-only. Change no Seller Central settings.
 
 CONFIG: tools/report-fetcher/config.<CLIENT_SLUG>.json
 
@@ -41,7 +41,7 @@ paste the column ids from the matching <out>.raw.json so it can be fixed in one 
 
 ```
 Using @computer, in ~/Codex Projects/Amazon Agent, fetch Seller Central reports.
-Read-only — change no Seller Central settings.
+Read-only. Change no Seller Central settings.
 
 FILL:
   CLIENT SLUG:    <CLIENT_SLUG>          (lowercase-kebab)
@@ -71,8 +71,8 @@ the <out>.raw.json.
 Notes:
 - Output CSVs feed the ad-audit pipeline: SQP → `inputs.sqp_csvs["<group>"]`, Business →
   `inputs.business_report_csv`. SCP/TST are standalone.
-- **TST is marketplace-wide** (huge) — it defaults to the top ~500 rows; add `--brand`,
+- **TST is marketplace-wide** (huge). It defaults to the top ~500 rows; add `--brand`,
   `--search-term`, or `--asins` to narrow it, or `--max-pages N` to go deeper.
 - SQP is fetched **one ASIN per call** (uncapped Search Query Volume), then combined or split.
-- The runner opens its own background tab, writes the CSV, and closes it — it never disturbs
+- The runner opens its own background tab, writes the CSV, and closes it. It never disturbs
   the operator's tabs. Read-only report reads only.

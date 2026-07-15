@@ -2,7 +2,7 @@
 
 Reusable builder for Amazon SEO keyword workbooks from DataDive and Amazon Product Opportunity Explorer sources.
 
-**Client-agnostic.** Nothing is product-specific — every run is driven by a per-client config. To start a new client/product/market, copy `config.TEMPLATE.json` and follow `NEW-CLIENT.md`. Any local `config.<client>.json` files are just worked examples (gitignored), not the tool's identity.
+**Client-agnostic.** Nothing is product-specific. Every run is driven by a per-client config. To start a new client/product/market, copy `config.TEMPLATE.json` and follow `NEW-CLIENT.md`. Any local `config.<client>.json` files are just worked examples (gitignored), not the tool's identity.
 
 The workbook template is used only as a style source. Every product-specific tab is rebuilt from current files or generated as an explicit skipped/not-exposed tab.
 

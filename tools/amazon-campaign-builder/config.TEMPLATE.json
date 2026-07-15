@@ -1,5 +1,5 @@
 {
-  "_README": "Per-client Amazon SP campaign config. Copy to config.<client>-<market>.json (gitignored; only this TEMPLATE is committed). The agent fills campaigns[] from the operator's text brief — never carry another client's values. Run: python3 tools/amazon-campaign-builder/build_campaigns.py --config <this file> --preflight → --preview → then --config <this file> to build. Output is a bulk-upload FILE only; uploading it in Campaign Manager > Bulk Operations is a separate operator-confirmed action.",
+  "_README": "Per-client Amazon SP campaign config. Copy to config.<client>-<market>.json (gitignored; only this TEMPLATE is committed). The agent fills campaigns[] from the operator's text brief. Never carry another client's values. Run: python3 tools/amazon-campaign-builder/build_campaigns.py --config <this file> --preflight → --preview → then --config <this file> to build. Output is a bulk-upload FILE only; uploading it in Campaign Manager > Bulk Operations is a separate operator-confirmed action.",
   "client": "<Client display name>",
   "brand": "<Brand for the output filename, e.g. Acme>",
   "marketplace": "US",
@@ -7,13 +7,16 @@
   "date": "",
   "vendor_central_mode": false,
   "naming": {
-    "_note": "Campaign name = variable_order joined by delimiter; ad group name drops Goal/EW/Counter/Date. Extra tokens available: Counter, Date, Custom1, Custom2, CampaignType.",
+    "_note": "Campaign name = variable_order joined by delimiter; ad group name drops the shorter form's prefix/suffix tokens (Goal/AdType/EW/Counter/CampCounter/Date). Default preset is EW (this file's variable_order below), the 8-slot Ecom Wizards convention: Goal | Ad Type | Match Type | Trigger Words | Product Identifier | Keyword | Camp Counter | Suffix. Set `preset: \"LEGACY\"` to use the pre-v2 6-token order instead (Goal | SP | MatchType | ProductName | TargetDescriptor | EW). Extra tokens available: Counter, CampCounter (Halo/Auto only, blank otherwise), Date, Custom1, Custom2, CampaignType.",
+    "preset": "EW",
     "variable_order": [
       "Goal",
-      "SP",
+      "AdType",
       "MatchType",
+      "TriggerWord",
       "ProductName",
-      "TargetDescriptor",
+      "Keyword",
+      "CampCounter",
       "EW"
     ],
     "delimiter": " | ",
@@ -22,7 +25,7 @@
     "custom2_value": ""
   },
   "defaults": {
-    "_note": "Per-campaign fields override these. state=paused is the safety default — campaigns only go live when the operator flips them on after upload (or explicitly asks for enabled). start_date empty = today. Placements are whole-number percentages (0 = no Bidding Adjustment row).",
+    "_note": "Per-campaign fields override these. state=paused is the safety default: campaigns only go live when the operator flips them on after upload (or explicitly asks for enabled). start_date empty = today. Placements are whole-number percentages (0 = no Bidding Adjustment row).",
     "state": "paused",
     "start_date": "",
     "daily_budget": 10.0,
@@ -36,8 +39,9 @@
   },
   "campaigns": [
     {
-      "_note": "One entry per campaign spec; SKW fans out to one campaign per keyword, transpose_keywords chunks keywords into keywords_per_campaign-sized campaigns. campaign_type: SKW (exact, Rank) | Halo (exact, Profit) | BMM (broad, optional +modifier) | Phrase | Auto (4 auto groups) | PAT (ASIN targeting via target_asins; match_type ASIN_EXACT or ASIN_EXPANDED). goal/match_type/bidding_strategy empty = campaign-type default.",
+      "_note": "One entry per campaign spec; SKW fans out to one campaign per keyword, transpose_keywords chunks keywords into keywords_per_campaign-sized campaigns. campaign_type: SKW (exact, Rank) | Halo (exact, Profit) | BMM (broad, optional +modifier) | Phrase | Auto (4 auto groups) | PAT (ASIN targeting via target_asins; match_type ASIN_EXACT or ASIN_EXPANDED). goal/match_type/bidding_strategy empty = campaign-type default. campaign_purpose (optional) overrides the naming-convention.md bidding default and EW trigger word for campaigns whose intent cuts across campaign_type: SHIELD (own-brand SKW/BMM/Phrase, down only), SELF_TARGETING (self-PAT, up and down), CATEGORY (up and down); leave empty for the plain per-type default (Rank SKW=Fixed, Auto=up/down, Halo/BMM/Phrase/PAT=down only).",
       "campaign_type": "<SKW|Halo|BMM|Phrase|Auto|PAT>",
+      "campaign_purpose": "",
       "goal": "",
       "product_name": "<short product label for the campaign name>",
       "target_descriptor": "<targeting label for the name, e.g. generic>",

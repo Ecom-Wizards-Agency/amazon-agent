@@ -23,6 +23,7 @@ One-page answer to "which browser path does this workflow use". The rule behind 
 | Keyword workbook build + SEO writing | `amazon-seo-keyword-workflow`, `amazon-seo` | Local | `build_keyword_workbook.py` | No browser. |
 | Health-claims self-check | `amazon-seo` (`/health-claims-check`) | Local | reference + register checks | Listing text comes from listing capture (CDP) when not already on file. |
 | Campaign creation from brief | `amazon-campaign-builder` (`/create-campaigns`) | Local | `tools/amazon-campaign-builder/` | File-only output; any upload is a separate operator-confirmed action. |
+| Daily/weekly Amazon Ads performance brief | `amazon-ads-monitor` | No browser (MCP) | `tools/amazon-ads-monitor/` (SP Ads API v3), Notion + Slack MCP for brand-context enrichment and delivery | Read-only; never changes campaigns. Falls back to `--source mock` (PREVIEW) with no credentials. |
 | Ad/sales audit data pulls | `amazon-ad-audit` (`/amazon-audit`) | Mixed | SQP + Business Report via CDP report fetcher; ads bulk sheet via Ads console download (Codex interactive) | Workbook + narrative build is local. |
 | AdLabs audit | `amazon-adlabs-audit` (`/adlabs-audit`) | MCP | AdLabs MCP | Read-only. No browser. |
 | FlatFilePro CSV preparation | `amazon-flatfilepro-compliance` (`/flatfilepro-prepare`) | Local | `prepare_flatfilepro_compliance_csv.py` | Label/package evidence comes from the operator. |

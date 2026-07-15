@@ -12,7 +12,7 @@ and a JSON manifest) from same-day Seller Central reports. This is the script be
    cp tools/reshipment/config.TEMPLATE.json tools/reshipment/config.json
    ```
 
-   `config.json` is gitignored — it holds client names and local file paths and must stay local.
+   `config.json` is gitignored. It holds client names and local file paths and must stay local.
 
 2. Download the same-day reports into your `downloads_dir` (default `~/Downloads`) and point each
    client's `fba` / `business` / `inventory` / `restock` field at the filename (relative to
