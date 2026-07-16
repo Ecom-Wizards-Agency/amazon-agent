@@ -104,6 +104,80 @@ Write like the operator talking directly to the client, not a neutral analyst.
     Colons and parentheses are fine. Lead-ins use a colon: `**Problem 1: Title.**`
     and `**Lever 1: Title.**`. Only exceptions: "—" as an empty table cell and
     numeric ranges.
+12. **No reveal framing. State the fact and its size.** The audit is not a story with
+    a twist. Cut build-ups like "here is the headline, and it is an unusual one",
+    "that is rare, and it tells me two things straight away", "and here is the kicker".
+    They read as sensational and they delay the number. Say the unusual thing once,
+    plainly, then immediately give the scale (see analytical check 1). An operator
+    says "you run zero ads, and it is about $1.3k a day, which is small for us", not
+    "what I found here is remarkable".
+13. **Ask the strategic question back.** When a recommendation depends on what the
+    client actually wants (grow rank vs harvest margin, category vs niche), pose it as
+    the conditional it is: "the question behind this is what you want to achieve. If
+    you want to rank, then…". Do not assert a goal the client never stated.
+14. **Short paragraphs. One to three sentences.** The client reads this on screen, often
+    in Google Docs, often skimming before a call. A six-sentence paragraph reads as a wall
+    and the point inside it dies. Land one idea, then break. Let a punchy line stand alone
+    as its own paragraph ("That is the whole problem in one bar. You are sixth."). The
+    operator has hand-edited delivered docs purely to split paragraphs apart, so write it
+    that way the first time.
+
+### The seven analytical checks (run these before writing a line)
+
+These are the moves that separate an audit from a metrics dump. They came out of real
+operator reviews of delivered audits; every one of them was a gap the data already
+contained but the write-up had missed. Run all seven, every time. Checks 6 and 7 were
+added after an audit shipped without noticing that resellers had taken the client's Buy
+Box, which was the single thing the founders had told us on the call was their core
+problem.
+
+1. **Scale calibration.** Never state an absolute (revenue, sessions, units) without a
+   reference the reader can feel. Convert to a **daily rate**, and say plainly how the
+   account compares to the book of business it sits next to. "$40k a month" sounds big;
+   "about $1.3k a day, still a small product for us" is the truth and sets up the whole
+   audit. An uncontextualised big number reads as hype and costs credibility.
+2. **Mechanism, not just metric.** Every finding carries the *why*, not only the number.
+   The rank mechanism specifically: Amazon scores conversion and sales **per keyword**,
+   so traffic that arrives without a keyword (external, social, influencer, direct)
+   builds **no** organic rank. It builds the brand term and nothing else. That is why ads
+   buy long-tail rank: ads attach sales to keywords, and keyword sales buy the rank. State
+   the mechanism or the recommendation is just an assertion.
+3. **Contradiction hunt.** Actively cross the client's positioning/targeting against where
+   the demand actually sits: gender, use case, form factor, price tier, pack size. The two
+   facts usually already live in different sections of your own analysis. Crossing them is
+   the audit's job. The pattern to look for is "they have won a corner, and the corner is
+   tiny."
+4. **Uniqueness test on every claimed strength.** Before crediting an advantage (branded
+   demand, external traffic, a rating, a hero SKU), check whether the competitors have it
+   too. In DataDive: per-competitor `outlierKws` / `outlierSV` for off-niche and branded
+   pull, plus review counts and price. **A strength everyone in the set has is not a moat**,
+   and saying it is one is the fastest way to lose a smart client.
+5. **The shopper's-eye test.** Leave the dashboards and look at the search page. Why would
+   a shopper pick this listing over the row of alternatives sitting next to it, at their
+   price, with their review counts, with their main image? If the honest answer is "they
+   wouldn't", that is the headline, and no bid change fixes it.
+6. **Context before data: read the call notes first.** Search the Notion meeting-notes
+   database (and the ops profile) for the brand **before** writing, and match on the
+   brand's *people and product*, not just its name: the account may be mid-rebrand and the
+   call filed under the old name, and a same-week call for a different prospect can look
+   like a hit. The client's stated core problem often is not visible in the exports you
+   pulled, and an audit that never mentions the thing they are living with reads as though
+   you were not listening. It also supplies facts the data cannot: reseller counts, agency
+   history, trademark status, off-Amazon spend, SKUs about to launch.
+7. **Own the Buy Box before you grade the ads.** Check Buy Box share, active seller count
+   and price **first**, because they invalidate everything downstream. **Sponsored Products
+   only serve while you hold the featured offer**, so a hijacked listing silently caps how
+   much the account is *able* to spend and the ACOS you are reading is measured only on the
+   share that survived. Grading spend or recommending scale on top of that is wrong in a way
+   the client will feel. **Always pull this weekly**: a six-week Business Report average of
+   82% hid a 96% → 57% collapse, and the weekly cut plotted against conversion was the
+   single most persuasive chart in that audit. `run.mjs business` has no granularity flag,
+   so fetch week by week with `--start`/`--end`.
+
+**Price and scale calls are tests, not directives.** Frame them with the metric to watch:
+"worth trying at the current price, but watch conversion rate and **contribution margin
+after ads**". Note explicitly that a lower price can end up *more* profitable through
+volume. Let the numbers decide, and say which numbers.
 
 ### Standard operator plays (fold into Problems/Levers where the data supports them)
 
@@ -133,6 +207,21 @@ These came out of real client walkthroughs; check each one on every audit:
   and note organic holds brand demand as generic pushes lift overall relevance.
 - **POE mining.** Product Opportunity Explorer return reasons + review themes for
   the niche feed the listing-fix lever.
+- **Hijackers are an ads problem, not just a brand-protection one.** When resellers hold the
+  Buy Box the client cannot scale spend (SP stops serving) and cannot trust ACOS, so it
+  outranks every optimisation lever. Sequence: short-term price under the resellers, then a
+  registered trademark, then Transparency (roughly 44 days from activation until
+  unauthorised sellers are out). **Recommend a German trademark**: there is a fast track of
+  about three months, and Transparency is a worldwide program, so a German mark activates it
+  for the US listing. Also check whether the brand's own D2C funnel is arming them: a funnel
+  selling six units at $10 each hands resellers their cost base, which is why "just price
+  below them" only half works.
+- **Creator Connections is a commission channel, not a review engine.** Do not sell it as
+  review velocity. Frame it as volume at a cost you set: 20-30% commission, paid only on the
+  sale, nothing upfront and nothing wasted on traffic that does not convert. Put it beside
+  the account's current ACOS and break-even to show it is competitive with none of the risk,
+  and sequence it after the Buy Box is secure or the client pays creators to send shoppers to
+  a reseller's offer.
 
 ### Micro before → after
 
@@ -210,6 +299,44 @@ The master is assembled by copying each source sheet **cell-by-cell** (value + s
   `sheet_state="hidden"` so the client sees only the presentation tabs; `wb.active=0`.
 - Turn off gridlines on presentation sheets (`sheet_view.showGridLines=False`).
 
+### Report-definition traps (these produce confidently wrong numbers)
+
+Each of these shipped, or nearly shipped, into a real client audit. Verify all four.
+
+- **Never quote a report definition from industry blogs. Check Amazon.** Every SEO blog
+  states that SQP uses a **24-hour attribution window**. Amazon documents no such thing:
+  probing the whole Brand Analytics Metric Glossary returns zero hits for "24", "hour",
+  "window" or "same session". That claim went into a delivered audit as fact. Amazon's real
+  rule is **origination**: Purchases = "the total number of ASIN purchases for the selected
+  time period **originated from the search results page**", and "the purchases and sales
+  totals may not match the total count from your sales reports as these metrics include
+  only those originated from Search results". First-party sources, both login-gated and
+  reachable through the debug CDP Chrome: help article **G8J4CB5ZBF3NX7TP** and
+  **`sellercentral.amazon.com/brand-analytics/metric-glossary`** (content sits in an
+  iframe, and the definitions only render once every "Hide/Show additional metric details"
+  toggle is clicked).
+- **Never compare branded capture to generic capture.** The origination rule is not neutral
+  between them: a branded shopper searches and buys in one motion, while discovery leaves
+  the results page and returns via brand, link or ad, so that sale is never counted against
+  the generic query that started it. Branded is therefore always measured at its best and
+  generic at its worst. Compare **you against the market on the same query type** only. The
+  market denominator carries the identical bias, which is what makes it fair. Expect SQP to
+  explain roughly a third of the business (one audit: 3,711 SQP purchases vs 10,711 BR
+  order items), and treat every capture rate as a floor: Amazon publishes the top 1,000
+  queries and says "not all queries qualify".
+- **DataDive `price` is the Buy Box price at scrape time, and it may not be the client's.**
+  On a hijacked listing it is the reseller's offer. One audit reported the client "priced on
+  the category median at $26.35" when their real price was **$34.95** and $26.35 was a
+  hijacker holding their Buy Box. That inverted the whole positioning read, median versus a
+  40%-above-median premium. **Derive the brand's price from the Business Report ASP**
+  (ordered product sales ÷ units, checked across weeks for stability); treat DataDive's
+  price only as "what a shopper currently sees".
+- **Pin every narrative number to the definition of the figure that ships beside it.** Three
+  different "page 1" definitions coexist in this toolkit: `analyze_audit` counts rank ≤15,
+  `build_figures` counts rank ≤10, and DataDive's own `kwRankedOnP1Percent` uses a looser
+  threshold. One audit shipped "114 keywords on page 1" in prose next to a chart labelled
+  "63%", which are the same claim under two definitions. Quote the shipped figure's number.
+
 ### Method-note caveats to always include
 
 - SQP is a weekly snapshot set (average the available weeks; per-query rates on tiny
@@ -240,6 +367,59 @@ The master is assembled by copying each source sheet **cell-by-cell** (value + s
 - Intent classification is rule-based (brand / own-ASIN / competitor / generic).
   It is audit-grade; review before bulk campaign changes.
 
+## Part 2b: The Standard Figure Set
+
+Five charts earn their place in every audit. They are built client-agnostically by
+`tools/amazon-ad-audit/build_figures.py` straight from the contract inputs, dropped next to
+the narrative `.md`, and referenced by `narrative_scaffold.py`, so the operator writes prose
+around figures that already exist. `build_audit.py` runs it automatically. Each figure is
+**guarded**: if its input is missing it is skipped, never faked, and a missing chart never
+fails the audit.
+
+| Figure | Answers | Needs |
+|---|---|---|
+| `fig_rank_distribution.png` | Where do we rank across the category keyword set? | DataDive niche + `asin_groups` |
+| `fig_visibility_vs_competition.png` | Versus who, in one number: share of category search volume ranked top 10 | DataDive niche + competitors |
+| `fig_reviews_vs_price.png` | The price/review moat. Would a shopper pick us? (analytical check 5) | DataDive competitors |
+| `fig_branded_vs_generic.png` | Where the demand is versus where the purchases go | SQP + `brand_tokens` |
+| `fig_brand_name_leak.png` | Who ranks on the brand's OWN name, and where we sit | DataDive niche + competitors + `brand_tokens` |
+
+**On the brand-name leak chart.** It came out of an audit where copycats and namesakes held
+ranks 1, 2, 3 and 11 on the client's exact product name while the client sat at 18, and the
+market bought 3,420 units on that query against the client's 28. Check 2's mechanism is why
+it earns a standing slot: external, social and influencer traffic builds the **brand term**
+and no category rank, so a brand spending off-Amazon is *creating* branded demand that anyone
+ranking above it will harvest. When this chart renders with somebody else on top, it usually
+outranks every optimisation lever in the deck, and it makes the brand-protection sequence
+(trademark, then Transparency) a measurable argument rather than a nag. It is guarded twice:
+the top branded query must clear `MIN_BRAND_SV` (500) and at least three sellers must rank on
+it, so single-product or no-brand-demand accounts get no empty chart. A brand that owns its
+own name simply shows itself on top, which is a finding worth stating too.
+
+**A note on zero-review clients.** `fig_reviews_vs_price` plots ratings on a log axis, which
+cannot place 0, and a not-yet-rated listing reports `reviewCount: null`. Both used to drop the
+client silently off its own chart, which is precisely the audit where the point matters most.
+Null is normalised to a real 0 and the client is clamped onto the axis floor and labelled
+"no reviews yet". Comparisons and the derived headline still use the true count.
+
+Chart rules (they are why these read clean, so keep them):
+
+- **One measure per chart, categories on the axis.** Identity comes from the axis and direct
+  labels, so colour is *only* emphasis: the accent marks the client, a neutral marks context.
+  **Never a dual axis.** A second measure means a second panel.
+- **Single series means no legend.** The title names it. Never a label on every point: label
+  the subject plus the extremes that carry the argument, and let the rest be context.
+- **Ordered bands take a sequential ramp** (one hue, light to dark), never a categorical
+  palette. Rank bands are ordinal. Absence ("not visible") gets a neutral outside the ramp.
+- **Derive headline numbers in titles from the data, never type them.** A hand-typed "90%"
+  above a bar labelled 91% is the kind of thing a sharp client spots.
+- **Palette and font come from the branding file**, so figures track the brand guide.
+- **Render it and look at it.** The palette can be validated automatically; layout cannot.
+  Collided labels and clipped titles only show up when you open the PNG.
+- **Simpler beats complete.** A chart carrying five segments across fifteen brands and two
+  panels loses to one bar per brand with one number on it. If the detail matters, it belongs
+  in the workbook.
+
 ## Part 3: The Branded Document (agency identity from `_local/branding/`)
 
 The narrative ships as a **brand-styled A4 document**, `.docx` (editable) + `.pdf` (send), rendered from
@@ -258,6 +438,11 @@ that carries the CI.
   faint grid (<6%), white logo grouped with an orange rule + eyebrow, big title, "Prepared for" +
   `prepared_by` byline (default "Victor Uhl, Founder"), "What's inside" = the section names, footer
   `Confidential · <agency URL from branding.json>`. Horizontal rules snap onto the grid.
+- **Content-page header and footer:** full black Ecom Wizards lockup at header left; uppercase
+  `<REPORT LABEL> · <MONTH YYYY>` at header right. The footer is text only: `<Report label> · <Client>`
+  at left, `page X of Y` centered, and `www.ecomwizards.agency` at right. Use Inter and Mist
+  `#9AA5B4`. Never use the standalone rocket mark in the footer. The cover has no duplicated running
+  header or footer.
 - **KPI stat-cards** (spend / ad sales / blended ACoS vs break-even / TACoS) are auto-built from
   `metrics.json` and placed under the verdict/summary section: Cloud card, orange top rule, big Inter stat.
 - **Markdown conventions** the renderer reads: `## H2`, `**Lever N: title.** body` (the legacy
@@ -266,6 +451,8 @@ that carries the CI.
   pipe tables → Ink-header tables. `<!-- ... -->` stubs are dropped.
 - **Page-break hygiene:** widow/orphan control, headings kept with their first lines, KPI-card row / tables
   / figures never split across a page, so no page ends on a lone dangling sentence.
+- **Running-furniture QA:** render every page and confirm the full lockup is proportional on each content
+  page, `page X of Y` resolves consistently, and no header/footer overlaps, clips, or causes bad reflow.
 - **Brand assets are LOCAL/gitignored** (`tools/amazon-ad-audit/brand/`). Regenerate with
   `prepare_brand_assets.py` (headless Chrome for SVG→PNG on macOS). If assets/Chrome are absent the build
   degrades to a plain `md_to_docx` `.docx` with a WARN, never a hard failure.

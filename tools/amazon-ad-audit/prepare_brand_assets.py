@@ -8,8 +8,9 @@ Sources are OPERATOR-LOCAL (pCloud / installed fonts) and never committed — li
 path in CLAUDE.md. Point EW_PCLOUD_ROOT at your local pCloud brand root (or override the individual
 EW_* paths below). Outputs land in tools/amazon-ad-audit/brand/ (gitignored).
 
-Produces: logo_white.png, logo_black.png (transparent, from the SVGs), mark_black.png (rocket mark
-cropped from the black logo, for footers), and Inter-Variable.ttf (copied).
+Produces: logo_white.png and logo_black.png (transparent, from the SVGs), mark_black.png (retained
+for legacy/non-report uses), and Inter-Variable.ttf (copied). Audit content-page headers use the full
+black lockup. The report footer is text only.
 
 macOS has no rsvg/inkscape/cairosvg, so SVG->PNG uses headless Chrome --screenshot (see the
 `ecom-wizards-brand-doc-pipeline` memory). Override any path via env vars.

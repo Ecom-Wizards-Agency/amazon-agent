@@ -53,7 +53,7 @@
     "_note": "Branded rendering (render_branded.py) → A4 .docx + .pdf. Agency identity (palette/fonts/name/URL) comes from _local/branding/branding.json — see tools/amazon-ad-audit/BRANDING.md. first_time=true renders the dark cover page; regular update audits set false (no cover). Requires the local brand/ assets (prepare_brand_assets.py or your own). Falls back to plain md_to_docx if assets/Chrome are missing.",
     "first_time": true,
     "prepared_by": "Victor Uhl, Founder",
-    "cover_subtitle": "Where the money leaks, and the levers to fix it.",
+    "cover_subtitle": "A straight look at the account, with recommendations on where to start.",
     "brand_dir": ""
   }
 }

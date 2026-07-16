@@ -1,7 +1,7 @@
 {
-  "_comment": "TEMPLATE — copy to _local/branding/branding.json (gitignored) and replace every <placeholder>. This is your agency identity for all branded audit outputs (docx/pdf covers/footers + xlsx banners). Schema + layout rules: tools/amazon-ad-audit/BRANDING.md. Without this file the renderers fall back to a built-in Claude- or Codex-style example depending on the agent running.",
-  "agency_name": "<Your Agency Name — appears in bylines, footers, and workbook banners>",
-  "agency_url": "<www.youragency.com — cover footer 'Confidential · <url>'>",
+  "_comment": "TEMPLATE: copy to _local/branding/branding.json (gitignored) and replace every <placeholder>. This is your agency identity for all branded audit outputs (docx/pdf covers, content-page headers/footers, and xlsx banners). Schema + layout rules: tools/amazon-ad-audit/BRANDING.md. Without this file the renderers fall back to a built-in Claude- or Codex-style example depending on the agent running.",
+  "agency_name": "<Your Agency Name: appears in bylines, headers, and workbook banners>",
+  "agency_url": "<www.youragency.com: cover and content-page footer>",
   "prepared_by_default": "<Default 'prepared by' person, e.g. Jane Doe, Founder>",
 
   "palette_doc": {
@@ -30,6 +30,7 @@
     "_comment": "brand_dir empty = tools/amazon-ad-audit/brand/ (gitignored). Filenames are relative to brand_dir.",
     "brand_dir": "",
     "logo_white": "logo_white.png",
+    "logo_black": "logo_black.png",
     "mark": "mark_black.png"
   }
 }

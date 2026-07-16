@@ -22,7 +22,7 @@ Two-agent flow (Codex gathers browser downloads; Claude pulls DataDive, builds, 
 
 4. **Claude pulls DataDive** — via MCP (`get_niche_keywords`, `get_niche_competitors` on the `datadive_niche`), save to the `datadive_niche_json` / `datadive_competitors_json` paths. Re-run `--preflight` → READY.
 
-5. **Build** — `build_audit.py --config <cfg>`. Runs analyze → audit workbook → SQP workbook → master → narrative scaffold.
+5. **Build** — `build_audit.py --config <cfg>`. Runs analyze → audit workbook → SQP workbook → master → **standard figure set** (`build_figures.py`) → narrative scaffold (which references the figures that were produced). Figures are guarded: a missing input skips the chart, never fails the build. Needs matplotlib; without it the build warns and carries on.
 
 6. **QA** — `--validate` gates: Branded+Generic+Competitor spend reconciles to total; no ACOS ratio >1.0 colored green (the historical bug); master tab count correct; narrative numbers trace to `metrics.json`.
 
@@ -30,9 +30,9 @@ Two-agent flow (Codex gathers browser downloads; Claude pulls DataDive, builds, 
 
 8. **Narrative** — write the prose/Problems/Levers into the pre-filled scaffold per `docs/amazon-ad-audit-playbook.md`. Keep lean (no 30-day plan / "what can be reached" / "bottom line" unless config flags them). Reference screenshots inline as `![caption](file.png)`.
 
-9. **Brand render** — the build produces a branded **A4 / Inter** `.docx` + `.pdf` (`render_branded.py`): light body, Signal-Orange accent, KPI cards from metrics, page-break hygiene. **Cover page only for first-time audits** (`branding.first_time` / `--cover` / `--no-cover`). One-time per machine: `prepare_brand_assets.py` populates the gitignored `brand/` assets; without them it falls back to plain `md_to_docx`.
+9. **Brand render** — the build produces a branded **A4 / Inter** `.docx` + `.pdf` (`render_branded.py`): light body, Signal-Orange accent, KPI cards from metrics, page-break hygiene, full black lockup in every content-page header, and a text-only footer with `page X of Y`. **Cover page only for first-time audits** (`branding.first_time` / `--cover` / `--no-cover`). One-time per machine: `prepare_brand_assets.py` populates the gitignored `brand/` assets; without them it falls back to plain `md_to_docx`.
 
-10. **Deliver** — master `.xlsx` + branded `.docx` **+ `.pdf`** to `delivery.drive_folder`. The A4 `.docx` edits in Google Docs (don't convert to a native gdoc — it breaks the cover/cards). Confirm with the operator before a prospect sees it.
+10. **Deliver** — master `.xlsx` + branded `.docx` **+ `.pdf`** to `delivery.drive_folder`. The A4 `.docx` edits in Google Docs (don't convert to a native gdoc — it breaks the cover/cards). Render and inspect every page for logo proportions, page totals, clipping, overlap, and reflow. Confirm with the operator before a prospect sees it.
 
 ## Notes
 

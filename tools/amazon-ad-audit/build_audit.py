@@ -109,6 +109,16 @@ def build(cfg, cfg_path, cover=None) -> int:
     audit_path = build_audit_workbook.build(cfg_path, outdir)
     sqp_path = build_sqp_workbook.build(cfg_path, outdir)
     master_path = build_master_workbook.build(cfg_path, outdir, audit_path, sqp_path)
+
+    # Standard figure set, before the scaffold so it can reference what exists.
+    # Guarded: a missing chart never fails an audit.
+    figures = []
+    try:
+        import build_figures
+        figures = build_figures.build(cfg_path, outdir)
+    except Exception as e:
+        print(f"[build] figures skipped ({e})")
+
     scaffold_md = narrative_scaffold.build(cfg_path, outdir)
 
     # Resolve cover: --cover/--no-cover overrides config branding.first_time (first-time audits only).
@@ -134,7 +144,7 @@ def build(cfg, cfg_path, cover=None) -> int:
             print(f"[build] md_to_docx skipped: {e}")
             docx_path = None
     print("\nArtifacts:")
-    for p in (audit_path, sqp_path, master_path, scaffold_md, docx_path, branded.get("pdf")):
+    for p in (audit_path, sqp_path, master_path, scaffold_md, docx_path, branded.get("pdf"), *figures):
         if p:
             print(f"  {p}")
     _completeness_panel(outdir)
