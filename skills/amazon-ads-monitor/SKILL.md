@@ -98,10 +98,16 @@ firecrawl fallback that costs Firecrawl credits:
      --out output --slack-json <path or ->
    ```
 
-   If the Sellerboard feed is blank/missing for this brand/day, skip to
-   AdLabs as the sole source for the write-up and say so plainly in the
-   report -- do not silently present AdLabs-only figures as if they were
-   cross-checked.
+   If the Sellerboard feed is blank/missing/wrong-type for this
+   brand/day, NEVER drop the brand from the report -- build the write-up
+   from whatever data IS available, in this order: AdLabs profile-level
+   figures for the report date (+ prior day for deltas), then any older
+   Sellerboard CSV in the inbox for trailing-week context, then
+   campaign-level AdLabs detail if something looks off. Label the
+   section plainly ("AdLabs-only, not cross-checked" or "Sellerboard
+   stale through <date>") -- do not silently present fallback figures as
+   if they were cross-checked, and do not reduce the brand to a
+   one-line "no data" note when usable numbers exist elsewhere.
 
 2. **Pull AdLabs ad detail** (for the cross-check + campaign anomalies):
    `start_chat_session` -> `read_resource adlabs://docs/entities` ->
@@ -144,17 +150,44 @@ firecrawl fallback that costs Firecrawl credits:
      the file).
    - This step only reads Notion and Slack (and writes the local
      `brand-goals.json` cache); it never posts to or edits Notion/Slack.
-5. **Deliver.**
-   - **Slack MCP -- send_message**: post the Slack payload (from
-     `--slack-json`, annotated per step 4 if anything needed
-     softening/context) to **#amazon-daily-report** (channel ID from
+5. **Deliver -- THREADED format (operator feedback 2026-07-15: the
+   single-message daily was "messy, hard to read"; use a clean parent
+   summary + one threaded reply per brand, mirroring the weekly).**
+   - **Parent message** to **#amazon-daily-report** (channel ID from
      `slack_channel_id` in the `_local/ads-monitor/` config; resolve by
-     name if unset). Start the message with a `<!here>` mention and a
-     one-line header (e.g. "<!here> Daily Amazon Ads report -- <date>")
-     -- `<!here>` daily, not `<!channel>`, to avoid pinging everyone
-     every day. When running multiple brands in one pass, lead with
-     any brand that has a critical/alert flag or a data-mismatch verdict
-     before the clean ones.
+     name if unset), starting with `<!here>` (daily; `<!channel>` is
+     reserved for the weekly) and the header
+     `<!here> *Daily Amazon Ads Report -- <date>*`. Then exactly two
+     scannable sections, one line per brand, ordered worst-first:
+     - `:rotating_light: *Needs attention*` -- every brand with a
+       critical/alert flag or a true data mismatch. Line format:
+       `*<Brand>* -- <one clause naming the single most important thing, with its number>`
+     - `:white_check_mark: *On track*` -- everything else. Line format:
+       `*<Brand>* -- Sales <ccy><n> (<+/-x% vs 7d avg>), TACOS <x>%, margin <x>%`
+     - No other prose in the parent. Keep it under ~15 lines.
+   - **One threaded reply per brand** (`thread_ts` = parent ts), same
+     worst-first order, each with this fixed structure so every brand
+     reads identically:
+     1. `*<Brand>* (<goal lens>) -- <STATUS>` where STATUS is one of
+        `:rotating_light: ALERT` / `:warning: WATCH` / `:white_check_mark: OK`.
+     2. A compact metrics table (Slack markdown table): rows = Total
+        Sales, Ad Sales, Ad Spend, TACOS, Real ACOS, Orders, Margin;
+        columns = Value, vs prior day, vs 7d avg. Use the brand's own
+        currency symbol (EUR accounts in EUR -- never re-label as $).
+     3. `*Data check:*` the toolkit's cross-check verdict verbatim, plus
+        -- when the only gap is ad sales with spend matching -- one
+        plain-language line that this is the Sellerboard-vs-AdLabs
+        attribution-window difference, not lost data.
+     4. `*Flags:*` each active flag on its own bullet with its numbers,
+        each annotated (not suppressed) when it matches a known
+        intentional change from step 4 context.
+     5. `*Context:*` 1-2 sentences of live brand situation (from step 4)
+        that explain today's numbers.
+     6. `*Suggested follow-up:*` one concrete, read-only suggestion for
+        the operator, or `none` -- never an executed action.
+   - Brands running AdLabs-only (blank/wrong-type Sellerboard feed) get
+     the same thread structure with the fallback stated in the STATUS
+     line and in *Data check* ("AdLabs-only, not cross-checked").
    - Save the markdown report exactly where the toolkit wrote it:
      `output/{brand}/ads-monitor/{date}_daily.md`. Do not duplicate it
      elsewhere.
@@ -225,6 +258,16 @@ docstring for exact signatures.
    `--adlabs-json`. Omitting it is a valid run -- Push/Pause-Optimize
    just come back empty with a note, not an error.
 
+   **Also pull `search_term` for the same week** (same DATE/COMPARE_DATE
+   filters, SP+SB only). Search terms are what make the weekly brief
+   concrete: keep (a) top terms by orders with CVR -- the HARVEST
+   candidates (converting terms not yet running as their own exact), and
+   (b) top terms by spend with 0 orders -- the NEGATE candidates. Save
+   them alongside the entities JSON (e.g.
+   `_local/ads-monitor/inbox/<brand>/searchterms_weekly_<week_end>.json`)
+   with per-term: term, campaign, ad group, match type, impressions,
+   clicks, spend, sales, orders.
+
    **Two AdLabs quirks discovered in testing, both required for a
    correct pull:**
    - **(a) `get_entity_data` returns rows for ALL team profiles,
@@ -273,17 +316,35 @@ docstring for exact signatures.
      current. This step only reads Notion/Slack (and writes the local
      cache); it never posts or edits Notion/Slack during enrichment.
 
-5. **Deliver.**
-   - **Slack MCP -- send_message**: post the weekly Slack payload (from
-     `--slack-json`) to **#amazon-daily-report** (channel ID from
-     `slack_channel_id` in the `_local/ads-monitor/` config; resolve by
-     name if unset) -- the same channel as the daily brief. Start the
-     message with a `<!channel>` mention and a one-line header (e.g.
-     "<!channel> Weekly Amazon Ads analysis -- week ending <date>");
-     weekly posts tag the whole channel. Lead with any
-     brand whose Push/Pause-Optimize list flags something urgent (a
-     Rank/Shield target losing impression share, a self-competition
-     conflict) before the routine ones.
+5. **Deliver -- detailed, threaded (operator feedback 2026-07-14:
+   "more detailed analysis, bullet points, actual keywords/targets to
+   harvest and negatives to negate").**
+   - **Slack MCP -- send_message**: post to **#amazon-daily-report**
+     (channel ID from `slack_channel_id` in the `_local/ads-monitor/`
+     config; resolve by name if unset) as a THREAD. Parent message: the
+     `<!channel>` mention, a one-line header ("<!channel> Weekly Amazon
+     Ads analysis -- week ending <date>"), and a 1-2 line WoW headline
+     per brand -- urgent brands first (Rank/Shield targets losing
+     impression share, self-competition, data mismatches). Then ONE
+     THREADED REPLY PER BRAND (`thread_ts` = parent message ts) with the
+     full detail -- this beats the 5,000-char message limit without
+     thinning the analysis.
+   - Each brand's thread reply uses bullet points and NAMES the exact
+     entity with its week numbers -- never bare counts or campaign-level
+     generalities:
+     - *WoW read*: sales, ad sales, spend, TACOS, Real ACOS, margin
+       with ▲/▼, plus 1-2 sentences of interpretation tied to the
+       brand's lens and situation.
+     - *Harvest* (from the step-2 search_term pull): each converting
+       term worth graduating -- `"term" -- campaign, X orders, CVR y%,
+       ACOS z% -> create SKW exact (Rank or Profit per SV/intent)`.
+     - *Negate*: each wasted term/ASIN -- `"term" -- campaign, $spend,
+       0 orders -> add negative exact in <campaign/ad group>`. Respect
+       the philosophy: never propose negating a Rank/SKW term on ACOS
+       alone.
+     - *Push / Pause-Optimize*: the engine's items with entity name,
+       week metrics, and the specific action (bid direction, placement
+       modifier, budget) -- trimmed to what matters, not all N items.
    - Save the markdown weekly brief exactly where the toolkit wrote it:
      `output/{brand}/ads-monitor/{week_end}_weekly.md`.
 
