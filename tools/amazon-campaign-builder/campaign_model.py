@@ -314,6 +314,9 @@ def _build_campaign(overrides, form, bidding_strategy):
         "state": form["state"],
         "start_date": _format_start_date(form.get("start_date", "")),
         "site_restriction": form.get("site_restriction", "Amazon"),
+        "top_of_search_placement": form.get("top_of_search_placement"),
+        "rest_of_search_placement": form.get("rest_of_search_placement"),
+        "product_pages_placement": form.get("product_pages_placement"),
     }
     for grp in ("close_match", "loose_match", "substitutes", "complements"):
         c[f"auto_{grp}_bid"] = form.get(f"auto_{grp}_bid")
@@ -445,7 +448,10 @@ def build_sp_campaign_rows(campaign, defaults, next_id, today=None):
     })
 
     for key, label in PLACEMENT_LABELS.items():
-        pct = defaults.get(key, 0) or 0
+        pct = campaign.get(key)
+        if pct in (None, ""):
+            pct = defaults.get(key, 0)
+        pct = pct or 0
         if pct > 0:
             rows.append({
                 **_empty_row(),
@@ -569,7 +575,7 @@ def build_bulk_rows(campaigns, defaults, channel="SP", today=None):
     counter = iter(range(1, 10 ** 9))
 
     def next_id():
-        return str(next(counter))
+        return f"T{next(counter)}"
 
     rows = []
     for campaign in campaigns:
