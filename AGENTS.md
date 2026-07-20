@@ -92,6 +92,7 @@ Terminology:
 
 Default routing:
 
+- `amazon-operations-review`: explicitly configured weekly and monthly operational checks for lightweight inventory exceptions, stranded inventory, open or received shipment exceptions, variation alerts, negative-review tracking, SellerSonar fee alerts, returns, Voice of the Customer, and overstock. Installing or loading the skill never creates or starts an automation; setup and activation use separate explicit prompts.
 - `amazon-troubleshooting`: errors, suppressed listings, warnings, Account Health, blocked workflows.
 - `amazon-seo`: keyword research, listing SEO, Ranking Juice, Rufus/semantic optimization, SEO audits, and updating/re-optimizing an existing listing's title/bullets/Item Highlights/backend (load it for any "update the title/bullets/SEO" or "make the listing compliant" request, and run its product-facts intake before writing). Includes the health-claims compliance layer (`/health-claims-check`): category-tiered (regulated vs standard), EU + US regimes, SAS-style per-claim self-check, RJ-preserving rewrite ladder; mandatory self-check for regulated-tier deliverables.
 - `amazon-catalog`: variations, parentage, flat files, listing edits, catalog conflicts.
@@ -108,6 +109,18 @@ Default routing:
 - `amazon-communications`: support cases, buyer messages, courtesy-refund follow-ups (creator replies inside Creator Connections → `amazon-creator-connections`).
 - `amazon-flatfilepro-compliance`: prepare label-based FlatFilePro/flat-file compliance CSVs and audit notes from backend exports, labels, packaging, and case messages.
 - `amazon-flatfilepro-upload-mapper`: operate the FlatFilePro upload flow in the logged-in browser for prepared CSVs, match by SKU, map columns, capture validation issues, and stop before final submit/update.
+
+Operational-check trigger phrases:
+
+- `Set up the operational checks`
+- `Approve and activate operational checks`
+- `Run the weekly operational check now`
+- `Run the monthly operational check now`
+- `Pause the operational checks`
+- `Resume the operational checks`
+- `Show the operational checks setup`
+
+Route these phrases to `amazon-operations-review`. Loading or installing the skill never creates an automation or runs a check. The setup phrase produces a preview only. Only the separate exact approval phrase following a complete pending preview authorizes schedule creation, and activation must not trigger an immediate run.
 
 Inventory planning trigger phrases:
 
