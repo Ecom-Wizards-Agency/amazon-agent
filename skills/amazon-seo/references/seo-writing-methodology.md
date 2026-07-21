@@ -88,6 +88,21 @@ word is.
 
 ## 3. Writing rules
 
+- **No ALL-CAPS in any visible field** (title, Item Highlights, bullets, description).
+  Amazon "Product detail page rules" (Seller Help G200390640): *"Use capital letters
+  only for the first letter of each word. Do not use all capital letters throughout the
+  attribute."* Use **Title Case** for the title, each highlight, and bullet lead labels
+  (`Scalp Nourishing Daily Serum:`), never `SCALP NOURISHING DAILY SERUM:`. Sentence case
+  is fine for bullet/description bodies. Optimise the visible fields for the **shopper's
+  eye** first (readable, scannable); the exact separator/caps style is flexible as long
+  as it reads cleanly and stays within this no-all-caps rule.
+- **Dash separators belong in the TITLE only; Item Highlights use COMMAS.** The spaced
+  **EN-dash ` – `** (U+2013, not a true em-dash) is the standard *title* separator — match
+  the brand's live-title glyph. **Item Highlights are comma-separated Title-Case chips**
+  (see the Item Highlights formatting rule below), NOT dash-separated, so the two fields
+  stay visually distinct in the search grid. The repo's no-spaced-em-dash rule governs
+  **prose** (narratives, notes, chat, commit messages, docs), NOT the title field, so the
+  workbook builder must not strip the dash from title copy.
 - **Title**: keyword-rich, benefit-led, front-load the highest-SV exact terms.
   **Limit: ≤75 characters including spaces** (all marketplaces, all categories
   except media, per Amazon policy effective **2026-07-27**; the old ~200-char limit
@@ -145,9 +160,15 @@ word is.
   **Formatting (apply every time):**
   - **Title Case each highlight**: capitalize the principal words, e.g.
     `Grass-Fed Bovine Collagen`, not `grass-fed bovine collagen`.
-  - **Clean separation**: write distinct highlights as separate chips with one
-    **consistent separator** (`·`, `|`, or `,`; pick one per listing), so each
-    USP reads as its own scannable unit, not a run-on phrase.
+  - **Separate chips with COMMAS, ONE separator per field.** Item Highlights are
+    **comma-separated** (`, `) Title-Case chips; the spaced en-dash ` – ` is reserved for
+    the TITLE, so the two fields read as visually distinct units, not one merged line.
+    Because the comma IS the separator, **no chip may contain an internal comma** —
+    rephrase the chip if it would. Never mix separators in one field. Each chip must read
+    as its own scannable unit, not a run-on phrase. Worked separator (AlphaInfuse
+    serum, per-variation): `1 Month Supply, Lightweight & Non-Greasy Formula, For
+    Thinning or Fine Hair, Thicker & Fuller-Looking, All Hair Types` (leading chip
+    carries the pack size).
   - **Lead with the strongest USP**, then descend; front-loaded highlights are the
     ones shown when the field truncates in the grid.
 
@@ -173,12 +194,14 @@ word is.
 
   Worked example (fictional collagen powder; title already holds *collagen,
   powder, peptides, hydrolyzed, type 1 & 3, 300g, bovine*):
-  `Grass-Fed & Marine-Free · For Skin, Hair & Nails · Keto & Paleo Friendly ·
-  Dissolves In Coffee · 30 Servings, Non-GMO`. Title Cased, `·`-separated,
-  USP-led, no title tokens repeated, all factual attributes (no dosed effect
-  claims).
+  `Grass-Fed & Marine-Free, For Skin Hair & Nails, Keto & Paleo Friendly,
+  Dissolves In Coffee, Non-GMO, 30 Servings`. Title Cased, **comma-separated** (the
+  dash stays in the title), USP-led, no title tokens repeated, all factual attributes
+  (no dosed effect claims). Note **no chip contains an internal comma** — "For Skin
+  Hair & Nails" drops it, and "Non-GMO" / "30 Servings" are their own chips, so the
+  comma stays unambiguous as the separator.
 - **5 bullets** ("About this item"): each a benefit-led micro-PAS (problem → agitate → solve),
-  capitalized lead label; weave in mid-SV terms naturally.
+  **Title-Case lead label (NOT ALL-CAPS)**; weave in mid-SV terms naturally.
 - **Description**: longer copy covering remaining keywords + brand story +
   objection handling. (Often the biggest Ranking-Juice gap because it's empty.)
 - **Backend search terms** (Generic Keywords / Search Terms field): the hidden
