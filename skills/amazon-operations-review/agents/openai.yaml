@@ -1,0 +1,4 @@
+interface:
+  display_name: "Amazon Operations Review"
+  short_description: "Run gated weekly and monthly Amazon checks"
+  default_prompt: "Use $amazon-operations-review to set up the operational checks without running or activating anything yet."
