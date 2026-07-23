@@ -33,7 +33,7 @@ Every skill declares its path in one standardized line right under its title (`B
 
 If an Amazon page shows a login screen, stop and ask the operator to log in first. The agent must not handle passwords, one-time codes, authenticator prompts, cookies, local storage, session stores, or other credentials.
 
-Before every Amazon task, verify the browser session is logged in and confirm the selected account/advertiser, marketplace/country, visible page title/tool, and date range or filters when relevant. If the task names a client, brand, advertiser, seller account, or marketplace, switch to that exact account and marketplace before doing any task work, downloading files, reading reports, or confirming statuses. If the correct account/marketplace is not selected, unavailable, ambiguous, or hidden behind login/session friction, stop and ask the operator before proceeding. Repeat this verification after switching tools, opening a new Amazon area, changing marketplaces, changing advertiser/seller accounts, or returning from a login/session timeout. If the browser is unavailable or not logged in, pause and ask the operator to open it, complete login, or name which browser/session to use.
+Before every Amazon task, verify the browser session is logged in and confirm the selected account/advertiser, marketplace/country, visible page title/tool, and date range or filters when relevant. If the task names a client, brand, advertiser, seller account, or marketplace, switch to that exact account and marketplace before doing any task work, downloading files, reading reports, or confirming statuses. When the requested account and marketplace are visibly selected, continue without asking for an additional account-safety confirmation. Stop only when a different account is active, the requested account is unavailable, the selection is ambiguous, or login/session friction prevents verification. Repeat this verification after switching tools, opening a new Amazon area, changing marketplaces, changing advertiser/seller accounts, or returning from a login/session timeout. If the browser is unavailable or not logged in, pause and ask the operator to open it, complete login, or name which browser/session to use.
 
 Detailed per-screen checkpoint, screenshot, and stop-point procedure: `docs/browser-checkpoints.md`. Per-workflow browser routing (which path each skill uses): `docs/browser-routing-map.md`.
 
@@ -92,7 +92,9 @@ Terminology:
 
 Default routing:
 
+- `amazon-operations-review`: explicitly configured weekly and monthly operational checks for lightweight inventory exceptions, stranded inventory, open or received shipment exceptions, variation alerts, negative-review tracking, SellerSonar fee alerts, returns, Voice of the Customer, and overstock. Installing or loading the skill never creates or starts an automation; setup and activation use separate explicit prompts.
 - `amazon-troubleshooting`: errors, suppressed listings, warnings, Account Health, blocked workflows.
+- `amazon-regulated-product-suppression-appeals`: evidence-controlled appeal packs for serious supplement, cosmetic, OTC/drug, medical-device, restricted-product, packaging, labeling, manual, and unsupported-claims suppressions. Use when the case needs coordinated technical evidence, declarations, catalog-processing proof, preventative controls, training, or a response after denial. Victor is the final troubleshooting approver.
 - `amazon-seo`: keyword research, listing SEO, Ranking Juice, Rufus/semantic optimization, SEO audits, and updating/re-optimizing an existing listing's title/bullets/Item Highlights/backend (load it for any "update the title/bullets/SEO" or "make the listing compliant" request, and run its product-facts intake before writing). Includes the health-claims compliance layer (`/health-claims-check`): category-tiered (regulated vs standard), EU + US regimes, SAS-style per-claim self-check, RJ-preserving rewrite ladder; mandatory self-check for regulated-tier deliverables.
 - `amazon-catalog`: variations, parentage, flat files, listing edits, catalog conflicts.
 - `amazon-ads`: Ads Console, PPC, bidding, budgets, targeting.
@@ -109,6 +111,18 @@ Default routing:
 - `amazon-communications`: support cases, buyer messages, courtesy-refund follow-ups (creator replies inside Creator Connections → `amazon-creator-connections`).
 - `amazon-flatfilepro-compliance`: prepare label-based FlatFilePro/flat-file compliance CSVs and audit notes from backend exports, labels, packaging, and case messages.
 - `amazon-flatfilepro-upload-mapper`: operate the FlatFilePro upload flow in the logged-in browser for prepared CSVs, match by SKU, map columns, capture validation issues, and stop before final submit/update.
+
+Operational-check trigger phrases:
+
+- `Set up the operational checks`
+- `Approve and activate operational checks`
+- `Run the weekly operational check now`
+- `Run the monthly operational check now`
+- `Pause the operational checks`
+- `Resume the operational checks`
+- `Show the operational checks setup`
+
+Route these phrases to `amazon-operations-review`. Loading or installing the skill never creates an automation or runs a check. The setup phrase produces a preview only. Only the separate exact approval phrase following a complete pending preview authorizes schedule creation, and activation must not trigger an immediate run.
 
 Inventory planning trigger phrases:
 
@@ -201,7 +215,8 @@ For any Amazon ad or sales audit, follow `docs/amazon-ad-audit-playbook.md` befo
 Two audit variants exist. Route by data source:
 
 - Prospect/bulk-file audits (ads bulk + Business Report + SQP downloads): `amazon-ad-audit` skill + `tools/amazon-ad-audit/` toolkit (below).
-- Managed accounts connected to AdLabs ("audit/analyze via AdLabs", `/adlabs-audit`): `amazon-adlabs-audit` skill: context-first (AdLabs profile memory + Notion A/B-Tests event log + call summaries), 10-step AdLabs MCP audit per marketplace, Optimization-Group-level ACOS grading, DataDive Rank-Radar verification of rank campaigns, read-only unless the operator explicitly lifts the rule for a specific write.
+- Managed accounts connected to AdLabs ("audit/analyze via AdLabs", `/adlabs-audit`): `amazon-adlabs-audit` skill: context-first (AdLabs profile memory + Notion A/B-Tests event log + call summaries), 10-step AdLabs MCP audit per marketplace, Optimization-Group-level ACOS grading, DataDive Rank-Radar verification of rank campaigns, read-only unless the operator explicitly lifts the rule for a specific write. AdLabs needs **no downloads**: per-ASIN SQP (`search_query`) and the whole Business Report (`product` via the SP-API link) are both live on the MCP. Only margin/break-even comes from outside (Sellerboard).
+- Weekly per-keyword SQP x PPC monitoring (`/supa`): `tools/sqp-supa/` toolkit. Answers the one question the audits cannot: did click share fall because ad spend on that keyword quietly fell? AdLabs-native, one pull per Sunday-Saturday week, per-client config gitignored (`config.<client>-<market>.json`). Not an audit narrative and not a substitute for one.
 - Ongoing weekly MANAGEMENT of an AdLabs-managed account ("run the week", `/ppc-manage`): `amazon-ppc-management` skill. The operating counterpart to the audit (diagnose) and the monitor (observe): stock gate, run-rate pacing governor, Rank Radar graduation, opt-group audit, then AdLabs optimizer/harvest preview -> explicit operator approval per batch -> apply with an audit note. Doctrine and thresholds live in `_local/ads-strategy/strategy.md` v3 + `strategy.json` `management`.
 
 The workbooks and narrative scaffold are built by the client-agnostic toolkit `tools/amazon-ad-audit/` (per-client config from `config.TEMPLATE.json`; see its `WORKFLOW.md` and `NEW-CLIENT.md`). Build steps, roles (Codex downloads exports, Claude pulls DataDive/builds/writes), QA gates, and delivery rules live in the `amazon-ad-audit` skill. Route there for the full run. Client config JSONs are gitignored; deliver the MASTER `.xlsx` + narrative `.docx` to the client's Google Drive audit folder.
@@ -349,7 +364,7 @@ Before any Brand Customer Reviews, promotion/sale-discount, or courtesy-refund o
    Summarize the path, required inputs, likely risk points, and what will be checked.
 
 4. Navigate the browser:
-   Verify the selected account, marketplace, brand, date range, and visible page title before acting. If a login screen appears, stop and ask the operator to log in first.
+   Verify the selected account, marketplace, brand, date range, and visible page title before acting. Continue immediately when the requested account and marketplace are visibly selected. Stop only for a different, unavailable, or ambiguous account selection, or when a login screen prevents verification.
 
 5. Preserve evidence:
    Capture important screenshots, tables, warning banners, filters, selected account, marketplace, ASIN/SKU/campaign/order/shipment/case IDs, and exact error text.

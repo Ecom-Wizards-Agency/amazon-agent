@@ -369,7 +369,7 @@ Each of these shipped, or nearly shipped, into a real client audit. Verify all f
 
 ## Part 2b: The Standard Figure Set
 
-Five charts earn their place in every audit. They are built client-agnostically by
+Six charts earn their place in every audit. They are built client-agnostically by
 `tools/amazon-ad-audit/build_figures.py` straight from the contract inputs, dropped next to
 the narrative `.md`, and referenced by `narrative_scaffold.py`, so the operator writes prose
 around figures that already exist. `build_audit.py` runs it automatically. Each figure is
@@ -378,11 +378,24 @@ fails the audit.
 
 | Figure | Answers | Needs |
 |---|---|---|
-| `fig_rank_distribution.png` | Where do we rank across the category keyword set? | DataDive niche + `asin_groups` |
+| `fig_rank_movement.png` | How did our rank MOVE over the window? The standard rank chart. | `rank_radar_json` |
+| `fig_rank_distribution.png` | Where do we rank across the category keyword set right now? | DataDive niche + `asin_groups` |
 | `fig_visibility_vs_competition.png` | Versus who, in one number: share of category search volume ranked top 10 | DataDive niche + competitors |
 | `fig_reviews_vs_price.png` | The price/review moat. Would a shopper pick us? (analytical check 5) | DataDive competitors |
 | `fig_branded_vs_generic.png` | Where the demand is versus where the purchases go | SQP + `brand_tokens` |
 | `fig_brand_name_leak.png` | Who ranks on the brand's OWN name, and where we sit | DataDive niche + competitors + `brand_tokens` |
+
+**On the rank-movement chart (the standard rank chart).** It shows where each keyword's
+organic rank started and ended over the window: a dumbbell with a direction arrow, red for
+slipped and green for gained, both endpoint ranks labelled, on a real position axis (1 = top)
+with a page-2 marker at 20. The design exists because the earlier version put rank on an
+INVERTED axis, so a tick like "22" read to a client as "we rank 22 overall" when it was one
+keyword's worst position (operator's call, 2026-07-16). Showing the actual
+position with a direction arrow kills that misread and makes better-versus-worse instant. It
+pairs well with the specific hero term as a small week-by-week TABLE (rank against days out of
+stock) when stock is the story, rather than forcing time and keywords onto one chart. Input is
+a DataDive Rank Radar payload (`keyword` + `ranks` over time); guarded to skip when absent, and
+when there are fewer than three ranked keywords.
 
 **On the brand-name leak chart.** It came out of an audit where copycats and namesakes held
 ranks 1, 2, 3 and 11 on the client's exact product name while the client sat at 18, and the

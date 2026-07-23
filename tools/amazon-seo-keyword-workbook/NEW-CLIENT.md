@@ -11,6 +11,7 @@ cp tools/amazon-seo-keyword-workbook/config.TEMPLATE.json \
 ```
 Fill every `<...>` and `TO_RECORD_*`:
 - **`product_anchor`**: client, account, marketplace, product, **anchor ASIN** (must be a DataDive-tracked column in the master CSV), DataDive niche id, POE niche.
+  - If a niche already exists but the anchor ASIN is **not** a tracked column, ADD the ASIN to that existing niche (Codex UI: Niche Tracker → add competitor) instead of running a new dive. That reuses the research, ~1 token, no duplicate niche. Only dive when no niche exists. See the "Anchor not tracked in an existing niche" rule in `skills/amazon-seo-keyword-workflow/SKILL.md`.
 - **`product_facts`**: physical facts from the **label/PDP**: `form`, **`blend_or_single`**, the `ingredients[]` list (names + any branded raw materials, e.g. Fibregum™), `certifications`, and `key_attributes`. These gate the **title framing** (a blend must not lead the title with one ingredient) and compliance (ingredient *names* are factual; ingredient *effects* are health claims). The builder warns if this block is missing.
 - **`related_niche_filter.keep` / `exclude_examples`**: only the genuinely relevant POE related niches; list known drift to drop (validation fails if drift survives).
 - **`triage` tokens**: `brand_tokens` from the DataDive competitors; `form/claim/negative` for this product form + marketplace language. For `claim_tokens`, check `skills/amazon-seo/references/eu-compliance-matrix.md`.

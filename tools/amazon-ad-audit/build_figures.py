@@ -6,6 +6,10 @@ Emits the four charts that earn their place in every audit, straight from the
 contract inputs. Each one is guarded: if its input is missing the figure is
 skipped, never faked.
 
+  fig_rank_movement.png            where each keyword's organic rank started and
+                                   ended over the window (dumbbell + direction arrow,
+                                   real position axis, 1 = top). The STANDARD rank
+                                   chart. (needs rank_radar_json)
   fig_rank_distribution.png        organic rank spread across the DataDive MKL
                                    (needs datadive_niche_json + asin_groups)
   fig_visibility_vs_competition.png  share of category search volume ranked top 10,
@@ -111,6 +115,63 @@ def _best_rank(ranks, asins):
 
 
 # ------------------------------------------------------------------ figures
+def _rank_movement(plt, P, cfg, out):
+    """Standard rank-MOVEMENT chart: where each keyword started and ended over the
+    window. A dumbbell with a direction arrow, red for slipped, green for gained,
+    both endpoint ranks labelled. The axis is real rank position, 1 = top, with a
+    page-2 marker.
+
+    Why this design (operator's call, 2026-07-16): the old "rank movement" chart
+    put rank on an INVERTED axis, so a tick like "22" read as "we rank 22 overall"
+    when it was one keyword's worst position. Showing the actual position with a
+    direction arrow removes that misread and makes better-vs-worse instant.
+
+    Input: a DataDive Rank Radar payload at cfg["inputs"]["rank_radar_json"] —
+    a list of {keyword, searchVolume, ranks:[{date, organicRank}, ...]}. Start =
+    first ranked day, end = last. Guarded: returns None if the input is absent or
+    unreadable, so an audit without a radar simply skips this figure.
+    """
+    rjp = rp((cfg.get("inputs") or {}).get("rank_radar_json"))
+    if not rjp or not rjp.exists():
+        return None
+    try:
+        payload = json.loads(rjp.read_text())
+    except Exception:
+        return None
+    rows = []
+    for k in (payload or []):
+        rk = [x for x in (k.get("ranks") or []) if x.get("organicRank")]
+        if not rk:
+            continue
+        rows.append((k.get("keyword", ""), k.get("searchVolume", 0),
+                     rk[0]["organicRank"], rk[-1]["organicRank"]))
+    if len(rows) < 3:
+        return None
+    rows = sorted(rows, key=lambda r: -r[1])[:cfg.get("rank_movement_top_n", 10)][::-1]
+    GOOD, BAD = "#2E7D32", "#C0341D"
+    slipped = sum(1 for _, _, s, e in rows if e > s)
+    fig, ax = plt.subplots(figsize=(8.2, max(3.6, 0.5 * len(rows) + 1.2)))
+    for i, (kw, sv, s, e) in enumerate(rows):
+        col = BAD if e > s else (GOOD if e < s else P["steel"])
+        ax.annotate("", xy=(e, i), xytext=(s, i),
+                    arrowprops=dict(arrowstyle="-|>", color=col, lw=2.3, shrinkA=6, shrinkB=6), zorder=2)
+        ax.scatter([s], [i], color=P["steel"], s=40, zorder=3)
+        ax.scatter([e], [i], color=col, s=62, zorder=4)
+        ax.text(s, i + .30, str(s), ha="center", va="bottom", fontsize=8, color=P["steel"])
+        ax.text(e, i + .30, str(e), ha="center", va="bottom", fontsize=8.5, color=col, fontweight="bold")
+    ax.axvline(20.5, color=P["hair"], lw=1, ls="--", zorder=1)
+    ax.text(20.5, len(rows) - 0.4, "page 2 ►", ha="left", fontsize=8.5, color=P["steel"])
+    ax.set_yticks(range(len(rows))); ax.set_yticklabels([r[0] for r in rows], fontsize=9)
+    ax.set_xlim(0, max(e for _, _, s, e in rows) + 6)
+    ax.set_xlabel("Organic rank position (1 = top of results)", fontsize=9, color=P["steel"])
+    _title(ax, P, f"Rank slipped on {slipped} of {len(rows)} keywords over the window",
+           f"{cfg.get('client','')} organic rank, start to end. Arrow points to where it is now; "
+           "red slipped, green gained.")
+    _frame(ax, P, xgrid=True)
+    fig.tight_layout(); fig.savefig(out, dpi=200, bbox_inches="tight"); plt.close(fig)
+    return out
+
+
 def _rank_distribution(plt, P, cfg, kws, asins, out):
     b = {"Page 1\n(rank 1-10)": 0, "Rank\n11-20": 0, "Rank\n21-50": 0, "Rank\n51+": 0,
          "Not ranked\nat all": 0}
@@ -376,6 +437,9 @@ def build(config_path, outdir) -> list:
     cp = rp(cfg["inputs"].get("datadive_competitors_json"))
     if cp and cp.exists():
         comps = json.loads(cp.read_text()).get("competitors") or None
+
+    f = _rank_movement(plt, P, cfg, outdir / "fig_rank_movement.png")
+    if f: made.append(f)
 
     if kws and asins:
         made.append(_rank_distribution(plt, P, cfg, kws, asins, outdir / "fig_rank_distribution.png"))

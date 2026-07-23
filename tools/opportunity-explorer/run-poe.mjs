@@ -14,6 +14,15 @@
  * --marketplace is REQUIRED for data commands and is verified against the
  * session's actual marketplace (from the page's GetUserContext) — a mismatch
  * aborts instead of silently pulling another country's data.
+ *
+ * ACCOUNT SAFETY: POE records every niche you open in that account's
+ * "recently viewed niches", so researching one client while logged into another
+ * client's account LEAKS the research to that account's owner. Every data
+ * command now resolves and PRINTS the active account (display name +
+ * partnerAccountId). Pass --expect-account "<name|partnerAccountId>" to HARD
+ * ABORT on a mismatch before any niche is opened. See the POE skill's "Account
+ * Safety" section and memory poe-account-identity-leak-rule.
+ *
  * Output: formatted section files via format-poe.mjs into
  *   --out-dir  (default: output/<client>/opportunity-data/)
  * --verbose additionally saves the raw envelope JSON.
@@ -45,10 +54,11 @@ const opt = (name, dflt) => { const i = argv.indexOf(`--${name}`); return i > -1
 const flag = (name) => argv.includes(`--${name}`);
 
 function usage(code = 1) {
-  console.error("usage: run-poe.mjs doctor | niche --niche-id <id> --marketplace <cc> [--client <slug>] [--out-dir DIR] [--origin URL] [--verbose]");
-  console.error("       run-poe.mjs search --query <kw> --marketplace <cc> [--client <slug>] [--out-dir DIR]");
-  console.error("       run-poe.mjs batch --queries \"kw1,kw2\" --marketplace <cc> --client <slug> [--top N=15 | --all] [--niche-ids id1,id2]");
-  console.error("       run-poe.mjs merchant-niches --marketplace <cc> [--client <slug>]");
+  console.error("usage: run-poe.mjs doctor | niche --niche-id <id> --marketplace <cc> [--client <slug>] [--expect-account NAME] [--out-dir DIR] [--origin URL] [--verbose]");
+  console.error("       run-poe.mjs search --query <kw> --marketplace <cc> [--client <slug>] [--expect-account NAME] [--out-dir DIR]");
+  console.error("       run-poe.mjs batch --queries \"kw1,kw2\" --marketplace <cc> --client <slug> [--expect-account NAME] [--top N=15 | --all] [--niche-ids id1,id2]");
+  console.error("       run-poe.mjs merchant-niches --marketplace <cc> [--client <slug>] [--expect-account NAME]");
+  console.error("  --expect-account matches the active SC account (display name substring, or exact partnerAccountId/merchantId); mismatch ABORTS before any niche is opened.");
   process.exit(code);
 }
 
@@ -60,7 +70,7 @@ async function findOrCreatePoePage(origin) {
     const { Session } = await import("../report-fetcher/cdp.mjs");
     return { targetId: null, session: await Session.open(existing.webSocketDebuggerUrl), temp: false };
   }
-  const { targetId, session } = await createPage(origin + "/opportunity-explorer/explore");
+  const { targetId, session } = await createPage(origin + "/opportunity-explorer");
   return { targetId, session, temp: true };
 }
 
@@ -107,6 +117,67 @@ function assertMarketplace(env, mpExpected) {
   }
 }
 
+// Resolve the ACTIVE Seller Central account from the live POE session: ids from
+// GetUserContext (partnerAccountId/merchantId) plus the account-switcher display
+// name from the DOM. Returns { displayName, partnerAccountId, merchantId, marketplace, err }.
+async function readAccount(origin) {
+  await assertChrome();
+  const { targetId, session, temp } = await findOrCreatePoePage(origin);
+  try {
+    await waitPoeReady(session);
+    const expr = `(async function(){ ${FETCH_SRC}
+      var out = { displayName: null, partnerAccountId: null, merchantId: null, marketplace: null, err: null };
+      try {
+        var c = await fetchPoeContext();
+        var u = (c && c.userContext) || {};
+        out.partnerAccountId = u.partnerAccountId || null;
+        out.merchantId = u.merchantId || null;
+        out.marketplace = (c && c.marketplace) || u.marketplaceSelection || null;
+        if (c && c.error) out.err = c.error;
+      } catch (e) { out.err = String(e); }
+      var el = document.querySelector('[class*="AccountSwitcher" i]')
+            || document.querySelector('[data-testid*="account-switcher" i]')
+            || document.querySelector('[id*="account-switcher" i]');
+      if (el) out.displayName = (el.textContent || "").replace(/\\s+/g, " ").trim().slice(0, 80);
+      return out;
+    })()`;
+    return await evaluate(session, expr, 30000);
+  } finally {
+    session.close();
+    if (temp && targetId) await closePage(targetId);
+  }
+}
+
+// Print the active account for the audit trail, and hard-abort on an
+// --expect-account mismatch BEFORE any niche is opened (so nothing leaks).
+function assertAccount(acct, expected) {
+  const label = acct.displayName || acct.partnerAccountId || "(unknown account)";
+  console.error(`Account: ${label}${acct.partnerAccountId ? ` [partnerAccountId=${acct.partnerAccountId}]` : ""}`);
+  if (!expected) {
+    console.error("NOTE: no --expect-account given. POE research is visible in this account's recently-viewed niches; confirm this is the sanctioned account for this client.");
+    return;
+  }
+  const norm = (s) => String(s || "").toLowerCase().replace(/\s+/g, " ").trim();
+  const want = norm(expected);
+  const cands = [acct.displayName, acct.partnerAccountId, acct.merchantId].map(norm).filter(Boolean);
+  if (!cands.length) {
+    console.error(`ACCOUNT CHECK FAILED: --expect-account "${expected}" was given but the session's account identity could not be resolved${acct.err ? ` (${acct.err})` : ""}. Aborting.`);
+    process.exit(1);
+  }
+  const hit = cands.some((c) => c === want || c.includes(want) || want.includes(c));
+  if (!hit) {
+    console.error(`ACCOUNT MISMATCH: expected "${expected}" but the active session is "${label}" [partnerAccountId=${acct.partnerAccountId || "?"}].`);
+    console.error("Aborting to avoid leaking this client's POE research into the wrong account. Switch the debug Chrome to the correct Seller Central account and re-run.");
+    process.exit(1);
+  }
+}
+
+// One account preflight per command, before any data fetch.
+async function accountPreflight(origin) {
+  const acct = await readAccount(origin);
+  assertAccount(acct, opt("expect-account", null));
+}
+
 function finish(env, { outDir, verbose }) {
   if (env.error) {
     console.error("fetch returned an error:", env.error);
@@ -130,7 +201,12 @@ if (cmd === "doctor") {
   const pages = await listPages();
   const sc = pages.filter((p) => /sellercentral\.amazon\./.test(p.url));
   console.log(`Seller Central tabs: ${sc.length}${sc.length ? " → " + sc.map((p) => p.url.replace(/^https:\/\//, "").slice(0, 60)).join(", ") : ""}`);
-  if (!sc.length) console.log("Open Seller Central in the debug Chrome and log in, then re-run.");
+  if (!sc.length) { console.log("Open Seller Central in the debug Chrome and log in, then re-run."); process.exit(0); }
+  try {
+    const acct = await readAccount(origin);
+    console.log(`Active account: ${acct.displayName || acct.partnerAccountId || "(unresolved)"}${acct.partnerAccountId ? ` [partnerAccountId=${acct.partnerAccountId}]` : ""}${acct.marketplace ? ` marketplace=${acct.marketplace}` : ""}`);
+    console.log("Before pulling POE for a client, confirm this is the sanctioned account and pass --expect-account to enforce it.");
+  } catch (e) { console.log(`Active account: (could not resolve: ${String(e).slice(0, 80)})`); }
   process.exit(0);
 } else if (cmd === "niche") {
   const nicheId = opt("niche-id", null);
@@ -139,6 +215,7 @@ if (cmd === "doctor") {
   const outDir = opt("out-dir", client ? `output/${client}/opportunity-data` : null);
   if (!outDir) { console.error("--client <slug> or --out-dir required"); process.exit(1); }
   const mp = requestedMarketplace(opt("marketplace", null));
+  await accountPreflight(origin);
   const env = await runFetch(`fetchPoeNiche(${JSON.stringify({ nicheId, obfuscatedMarketplaceId: mp })})`, origin);
   assertMarketplace(env, mp);
   finish(env, { outDir, verbose: flag("verbose") });
@@ -149,6 +226,7 @@ if (cmd === "doctor") {
   const outDir = opt("out-dir", client ? `output/${client}/opportunity-data` : null);
   if (!outDir) { console.error("--client <slug> or --out-dir required"); process.exit(1); }
   const mp = requestedMarketplace(opt("marketplace", null));
+  await accountPreflight(origin);
   const env = await runFetch(`fetchPoeSearch(${JSON.stringify({ query, obfuscatedMarketplaceId: mp })})`, origin);
   assertMarketplace(env, mp);
   finish(env, { outDir, verbose: flag("verbose") });
@@ -162,6 +240,7 @@ if (cmd === "doctor") {
   if (!outDir) { console.error("--client <slug> or --out-dir required"); process.exit(1); }
   const top = flag("all") ? Infinity : Number(opt("top", "15"));
   const mp = requestedMarketplace(opt("marketplace", null));
+  await accountPreflight(origin);
 
   // 1) searches (paced inside fetch-poe), union by nicheId, keep search order (UI relevance)
   const byId = new Map();
@@ -194,6 +273,7 @@ if (cmd === "doctor") {
   const client = opt("client", null);
   const outDir = opt("out-dir", client ? `output/${client}/opportunity-data` : ".");
   const mp = requestedMarketplace(opt("marketplace", null));
+  await accountPreflight(origin);
   const env = await runFetch(`fetchPoeMerchantNiches(${JSON.stringify({ obfuscatedMarketplaceId: mp })})`, origin);
   assertMarketplace(env, mp);
   finish(env, { outDir, verbose: flag("verbose") });

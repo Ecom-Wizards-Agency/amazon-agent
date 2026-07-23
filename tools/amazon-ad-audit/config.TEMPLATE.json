@@ -35,7 +35,8 @@
       "<Product line B>": "<path to multi-ASIN SQP .csv>"
     },
     "datadive_niche_json": "<path to saved DataDive niche keywords JSON (Claude pulls via MCP), or empty>",
-    "datadive_competitors_json": "<optional path to DataDive competitors JSON, or empty>"
+    "datadive_competitors_json": "<optional path to DataDive competitors JSON, or empty>",
+    "rank_radar_json": "<optional path to a DataDive Rank Radar payload (keyword + ranks over time) for the standard fig_rank_movement chart, or empty>"
   },
 
   "delivery": {

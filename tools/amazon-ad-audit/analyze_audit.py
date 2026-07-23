@@ -102,15 +102,46 @@ CHANNEL_SHEETS = {
 
 SB_SHEETS = ["SB Multi Ad Group Campaigns", "Sponsored Brands Campaigns"]  # superset first
 
+# Bounds for streaming the ads bulk (see sheet_io): Amazon writes a bogus "A1:A1" dimension
+# that openpyxl read_only clips to, so iter_rows is forced past it with explicit maxima.
+# Generous headroom: bulk sheets have <~80 columns; big accounts run into 6-figure row counts.
+BULK_MAX_COLS = 256
+BULK_MAX_ROWS = 5_000_000
+
 def parse_bulk(cfg, market, path, agg):
-    wb = openpyxl.load_workbook(path, read_only=False, data_only=True)
+    # Ads bulk sheets can be huge (a real account hit 288k rows on "Sponsored Products
+    # Campaigns"). read_only=False + per-cell .cell() access turned that into a ~40-min,
+    # multi-GB parse. Stream with read_only=True + iter_rows instead; reset_dimensions
+    # ignores the (often absent/wrong) stored <dimension> so every row is read. Results are
+    # memoized because the SB sheets get read up to 3x.
+    wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
+    _sheet_cache = {}
 
     def sheet_io(sheet):
+        if sheet in _sheet_cache:
+            return _sheet_cache[sheet]
         ws = wb[sheet]
-        H = [ws.cell(1, c).value for c in range(1, ws.max_column + 1)]
+        ws.reset_dimensions = True
+        # Amazon's bulk export writes a bogus "A1:A1" <dimension>, and openpyxl 3.1.5
+        # read_only clips iter_rows to it on BOTH axes (verified: 288k real <row> elements,
+        # dimension says 1x1) even with reset_dimensions set. Explicit min/max bounds force
+        # the full stream: read the header with a generous column bound, trim trailing empty
+        # header cells to the true width, then stream the data at exactly that width. The row
+        # stream still stops at the real last row (no empty padding).
+        hdr = next(ws.iter_rows(min_row=1, max_row=1, min_col=1, max_col=BULK_MAX_COLS,
+                                values_only=True), ())
+        H = list(hdr)
+        while H and H[-1] is None:              # drop the None cells beyond the real header
+            H.pop()
+        ncol = len(H)
         I = {h: i for i, h in enumerate(H)}
-        rows = [[ws.cell(r, c).value for c in range(1, ws.max_column + 1)] for r in range(2, ws.max_row + 1)]
-        return H, I, rows
+        rows = []
+        if ncol:
+            for r in ws.iter_rows(min_row=2, max_row=BULK_MAX_ROWS, min_col=1, max_col=ncol,
+                                  values_only=True):
+                rows.append(list(r))
+        _sheet_cache[sheet] = (H, I, rows)
+        return _sheet_cache[sheet]
 
     # Amazon lists every Sponsored Brands campaign in BOTH the legacy "Sponsored Brands
     # Campaigns" sheet and the "SB Multi Ad Group Campaigns" sheet — same Campaign IDs,
@@ -164,10 +195,7 @@ def parse_bulk(cfg, market, path, agg):
             agg["channels"][ch]["campaigns"] += len(camp)
 
     # ---- Sponsored Products (full detail) ----
-    ws = wb[SP_SHEET]
-    H = [ws.cell(1, c).value for c in range(1, ws.max_column + 1)]
-    I = {h: i for i, h in enumerate(H)}
-    R = [[ws.cell(r, c).value for c in range(1, ws.max_column + 1)] for r in range(2, ws.max_row + 1)]
+    H, I, R = sheet_io(SP_SHEET)
     def g(row, col): return row[I[col]] if col in I else None
     ENT = lambda e: [r for r in R if g(r, "Entity") == e]
     camp_rows = ENT("Campaign"); ag_rows = ENT("Ad Group")
@@ -257,13 +285,11 @@ def parse_bulk(cfg, market, path, agg):
     for sheet in ("SP Search Term Report",):
         if sheet not in wb.sheetnames:
             continue
-        st = wb[sheet]
-        SH = [st.cell(1, c).value for c in range(1, st.max_column + 1)]
-        SI = {h: i for i, h in enumerate(SH)}
+        SH, SI, SR = sheet_io(sheet)
         if "Customer Search Term" not in SI:
             continue
-        for r in range(2, st.max_row + 1):
-            def sg(col): return st.cell(r, SI[col] + 1).value if col in SI else None
+        for row in SR:
+            def sg(col, _row=row): return _row[SI[col]] if col in SI else None
             term = sg("Customer Search Term")
             if term is None:
                 continue
@@ -282,15 +308,13 @@ def parse_bulk(cfg, market, path, agg):
     for sheet in SB_SHEETS:
         if sheet not in wb.sheetnames:
             continue
-        sbws = wb[sheet]
-        SBH = [sbws.cell(1, c).value for c in range(1, sbws.max_column + 1)]
-        SBI = {h: i for i, h in enumerate(SBH)}
+        SBH, SBI, SBR = sheet_io(sheet)
         if "Entity" not in SBI:
             continue
         cidx = SBI.get("Campaign ID")
-        for r in range(2, sbws.max_row + 1):
-            def bg(col): return sbws.cell(r, SBI[col] + 1).value if col in SBI else None
-            cid_val = sbws.cell(r, cidx + 1).value if cidx is not None else None
+        for row in SBR:
+            def bg(col, _row=row): return _row[SBI[col]] if col in SBI else None
+            cid_val = row[cidx] if cidx is not None else None
             if cid_val is not None and sb_owner.get(cid_val, sheet) != sheet:
                 continue  # this campaign is owned by the other SB sheet — skip (dedupe)
             ent = bg("Entity")

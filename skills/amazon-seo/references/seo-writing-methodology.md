@@ -97,7 +97,7 @@ word is.
   eye** first (readable, scannable); the exact separator/caps style is flexible as long
   as it reads cleanly and stays within this no-all-caps rule.
 - **Dash separators belong in the TITLE only; Item Highlights use COMMAS.** The spaced
-  **EN-dash ` – `** (U+2013, not a true em-dash) is the standard *title* separator — match
+  **EN-dash ` – `** (U+2013, not a true em-dash) is the standard *title* separator. Match
   the brand's live-title glyph. **Item Highlights are comma-separated Title-Case chips**
   (see the Item Highlights formatting rule below), NOT dash-separated, so the two fields
   stay visually distinct in the search grid. The repo's no-spaced-em-dash rule governs
@@ -197,7 +197,7 @@ word is.
   `Grass-Fed & Marine-Free, For Skin Hair & Nails, Keto & Paleo Friendly,
   Dissolves In Coffee, Non-GMO, 30 Servings`. Title Cased, **comma-separated** (the
   dash stays in the title), USP-led, no title tokens repeated, all factual attributes
-  (no dosed effect claims). Note **no chip contains an internal comma** — "For Skin
+  (no dosed effect claims). Note that **no chip contains an internal comma**. "For Skin
   Hair & Nails" drops it, and "Non-GMO" / "30 Servings" are their own chips, so the
   comma stays unambiguous as the separator.
 - **5 bullets** ("About this item"): each a benefit-led micro-PAS (problem → agitate → solve),
