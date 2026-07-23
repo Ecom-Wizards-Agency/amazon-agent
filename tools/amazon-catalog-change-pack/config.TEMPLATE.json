@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "client": "Example Client",
+  "seller_account": "Example Seller",
+  "marketplace": "US",
+  "date": "2026-07-16",
+  "operation": "create_parent",
+  "source": {
+    "category_listings_report": "/absolute/path/to/fresh-category-listings-report.xlsm",
+    "blank_template": "/absolute/path/to/fresh-single-marketplace-template.xlsm",
+    "allow_missing_skus": []
+  },
+  "family": {
+    "variation_theme": "PACKAGE_SIZE_NAME",
+    "variation_attribute": "package_size_name#1.value",
+    "parent": {
+      "sku": "EXAMPLE-PARENT",
+      "product_type": "SKIN_SERUM",
+      "status": "new",
+      "title": "Example Product",
+      "fields": {
+        "brand#1.value": "Example Brand",
+        "product_description#1.value": "Example parent description"
+      }
+    },
+    "children": [
+      {
+        "sku": "EXAMPLE-CHILD-1",
+        "asin": "B000000001",
+        "status": "existing",
+        "variation_value": "1-Month Supply"
+      },
+      {
+        "sku": "EXAMPLE-CHILD-2",
+        "asin": "B000000002",
+        "status": "existing",
+        "variation_value": "2-Month Supply"
+      }
+    ]
+  }
+}
