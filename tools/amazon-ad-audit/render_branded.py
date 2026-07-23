@@ -5,8 +5,9 @@ Client- and agency-agnostic. Consumes the operator-written `*_Sales_Audit_SCAFFO
 the run's `metrics.json` (for the KPI cards), the config (client / market / window / prepared_by /
 first_time), the agency identity from `_local/branding/branding.json` (see BRANDING.md; falls back to a
 Claude/Codex example style), and the local brand assets in `brand/`. Produces a light, readable body,
-a dark **cover page** (first-time audits only), KPI stat-cards, restyled tables, footer with page number,
-and smart page-break hygiene. Degrades gracefully to plain md_to_docx when assets are missing.
+a dark **cover page** (first-time audits only), KPI stat-cards, restyled tables, a full-lockup running
+header, a text-only three-part footer, and smart page-break hygiene. Degrades gracefully to plain
+md_to_docx when assets are missing.
 
 Markdown conventions (superset of md_to_docx.py — which has no image support):
   ## H2                      -> orange rule + section head
@@ -20,7 +21,7 @@ Markdown conventions (superset of md_to_docx.py — which has no image support):
 KPI cards are auto-built from metrics.json and inserted right after the first H2.
 """
 from __future__ import annotations
-import os, re, json, base64, subprocess, html
+import os, re, json, base64, subprocess, html, io
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -29,7 +30,7 @@ import branding as _branding
 
 # palette/fonts — populated from the branding file (agency identity) via _apply_branding()
 INK_H = CLOUD_H = ORANGE_H = MISTLINE_H = STEEL_H = MIST_H = ""
-FONT_NAME = FONT_FILE = MARK_FILE = ""
+FONT_NAME = FONT_FILE = ""
 _B: dict = {}
 _CHROMES = ["/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
             "/Applications/Chromium.app/Contents/MacOS/Chromium",
@@ -37,13 +38,12 @@ _CHROMES = ["/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
 
 
 def _apply_branding(b):
-    global _B, INK_H, CLOUD_H, ORANGE_H, MISTLINE_H, STEEL_H, MIST_H, FONT_NAME, FONT_FILE, MARK_FILE
+    global _B, INK_H, CLOUD_H, ORANGE_H, MISTLINE_H, STEEL_H, MIST_H, FONT_NAME, FONT_FILE
     _B = b
     p = b["palette_doc"]
     INK_H, CLOUD_H, ORANGE_H = p["ink"], p["cloud"], p["accent"]
     MISTLINE_H, STEEL_H, MIST_H = p["mistline"], p["steel"], p["mist"]
     FONT_NAME, FONT_FILE = b["fonts"]["doc_font_name"], b["fonts"]["doc_font_file"]
-    MARK_FILE = b["assets"]["mark"]
 
 
 _apply_branding(_branding.load_branding({}))
@@ -67,6 +67,37 @@ def _bcfg(cfg, key, default=None):
     b = cfg.get("branding", {}) or {}
     v = b.get(key, cfg.get(key))
     return default if v in (None, "") else v
+
+
+def _doc_label(cfg):
+    return _bcfg(cfg, "doc_label", "Amazon Ad & Sales Audit")
+
+
+def _report_month(cfg, M):
+    """Return the deliverable month/year for the running header."""
+    candidates = [str(cfg.get("date", ""))]
+    windows = M.get("windows", {}) or cfg.get("windows", {}) or {}
+    candidates.extend(str(windows.get(k, "")) for k in ("ads", "business_report"))
+    for raw in candidates:
+        dates = re.findall(r'\b(20\d{2})-(\d{2})-(\d{2})\b', raw)
+        if dates:
+            year, month, _ = dates[-1]
+            names = ("", "JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE",
+                     "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER")
+            mi = int(month)
+            if 1 <= mi <= 12:
+                return f"{names[mi]} {year}"
+    return ""
+
+
+def _running_text(cfg, M):
+    label = _doc_label(cfg)
+    month = _report_month(cfg, M)
+    return {
+        "header_right": f"{label.upper()} · {month}" if month else label.upper(),
+        "footer_left": f"{label} · {cfg.get('client', '')}".rstrip(" ·"),
+        "footer_right": _B.get("agency_url", ""),
+    }
 
 
 def _kpi_after(blocks):
@@ -142,7 +173,7 @@ def _cover_kwargs(cfg, M, blocks, brand_dir):
     markets = cfg.get("marketplaces", []) or []
     mname = "UNITED STATES" if markets == ["US"] else " / ".join(markets)
     win = (M.get("windows", {}) or cfg.get("windows", {})).get("business_report", "")
-    sub = _bcfg(cfg, "cover_subtitle", "Where the money leaks, and the levers to fix it.")
+    sub = _bcfg(cfg, "cover_subtitle", "A straight look at the account, with recommendations on where to start.")
     words = sub.split(); lines = []; cur = ""
     for w in words:
         if len(cur) + len(w) + 1 > 30: lines.append(cur); cur = w
@@ -151,7 +182,7 @@ def _cover_kwargs(cfg, M, blocks, brand_dir):
     inside = [(f"{i+1:02d}", t) for i, (k, t) in enumerate([b for b in blocks if b[0] == "h2"])
               if t.lower() != "sources used"][:4]
     by = _bcfg(cfg, "prepared_by", _B.get("prepared_by_default") or "the operator")
-    label = _bcfg(cfg, "doc_label", "Amazon Advertising & Sales Audit")
+    label = _doc_label(cfg)
     return dict(brand_dir=str(brand_dir), title=client,
                 eyebrow=label.upper(), dateline=f"{mname} · {win}".upper(),
                 sub_lines=lines or [sub], prepared_for=client,
@@ -165,8 +196,9 @@ def _cover_kwargs(cfg, M, blocks, brand_dir):
 def _render_docx(blocks, M, cfg, brand_dir, cover_png, out):
     from docx import Document
     from docx.shared import Pt, RGBColor, Inches
-    from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_LINE_SPACING, WD_TAB_ALIGNMENT
+    from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_LINE_SPACING
     from docx.enum.section import WD_SECTION
+    from docx.enum.table import WD_TABLE_ALIGNMENT, WD_CELL_VERTICAL_ALIGNMENT
     from docx.oxml import OxmlElement
     from docx.oxml.ns import qn
     def _rgb(h): return RGBColor(int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16))
@@ -204,6 +236,30 @@ def _render_docx(blocks, M, cfg, brand_dir, cover_png, out):
         b = OxmlElement('w:tcBorders'); t = OxmlElement('w:top')
         t.set(qn('w:val'), 'single'); t.set(qn('w:sz'), str(sz)); t.set(qn('w:color'), h); b.append(t)
         c._tc.get_or_add_tcPr().append(b)
+
+    def no_table_borders(t):
+        b = OxmlElement('w:tblBorders')
+        for e in ('top', 'left', 'bottom', 'right', 'insideH', 'insideV'):
+            x = OxmlElement('w:' + e); x.set(qn('w:val'), 'nil'); b.append(x)
+        t._tbl.tblPr.append(b)
+
+    def compact(p):
+        p.paragraph_format.space_before = Pt(0); p.paragraph_format.space_after = Pt(0)
+
+    def field(p, instruction, display):
+        # Every run in the field carries the footer's own size/colour, not just the cached
+        # display run. Word and Google Docs re-render the field using the field runs'
+        # formatting, so an unstyled begin/instrText/separate/end leaks Normal (10.5pt Ink)
+        # into the footer and the number renders bigger and darker than "page" / "of".
+        def fld_run():
+            r = p.add_run(); font(r); r.font.size = Pt(8); r.font.color.rgb = MIST
+            return r
+        r = fld_run(); begin = OxmlElement('w:fldChar'); begin.set(qn('w:fldCharType'), 'begin'); r._r.append(begin)
+        r = fld_run(); instr = OxmlElement('w:instrText'); instr.set(qn('xml:space'), 'preserve'); instr.text = f' {instruction} '
+        r._r.append(instr)
+        r = fld_run(); separate = OxmlElement('w:fldChar'); separate.set(qn('w:fldCharType'), 'separate'); r._r.append(separate)
+        r = p.add_run(display); font(r); r.font.size = Pt(8); r.font.color.rgb = MIST
+        r = fld_run(); end = OxmlElement('w:fldChar'); end.set(qn('w:fldCharType'), 'end'); r._r.append(end)
 
     def orange_rule():
         p = doc.add_paragraph(); p.paragraph_format.space_after = Pt(3); p.paragraph_format.space_before = Pt(10)
@@ -289,7 +345,9 @@ def _render_docx(blocks, M, cfg, brand_dir, cover_png, out):
         for m in ('top', 'bottom', 'left', 'right'): setattr(sec0, f'{m}_margin', Inches(0))
         sec0.header_distance = Inches(0); sec0.footer_distance = Inches(0)
         cp = doc.add_paragraph(); cp.paragraph_format.space_after = Pt(0); cp.paragraph_format.space_before = Pt(0)
-        cp.paragraph_format.line_spacing_rule = WD_LINE_SPACING.EXACTLY; cp.paragraph_format.line_spacing = Pt(1)
+        # A 1pt exact line makes LibreOffice/Google Docs drop the full-page image. Normal spacing keeps
+        # the editable cover visible while the zero-margin section preserves the intended full bleed.
+        cp.paragraph_format.line_spacing_rule = WD_LINE_SPACING.SINGLE; cp.paragraph_format.line_spacing = 1.0
         cr = cp.add_run(); cr.font.size = Pt(1); cr.add_picture(str(cover_png), width=A4_W)
         doc.add_section(WD_SECTION.NEW_PAGE); body = doc.sections[1]
     else:
@@ -298,20 +356,33 @@ def _render_docx(blocks, M, cfg, brand_dir, cover_png, out):
     body.top_margin = Inches(0.85); body.bottom_margin = Inches(0.8)
     body.left_margin = Inches(0.85); body.right_margin = Inches(0.85)
 
-    # footer: mark + label + page number
-    mark = Path(brand_dir) / MARK_FILE
+    # Running furniture: full lockup in the header, text-only footer.
+    run = _running_text(cfg, M)
+    logo = Path(brand_dir) / _B["assets"].get("logo_black", "logo_black.png")
+    body.header.is_linked_to_previous = False
+    hp0 = body.header.paragraphs[0]; hp0.text = ''; compact(hp0)
+    ht = body.header.add_table(rows=1, cols=2, width=Inches(6.57)); ht.autofit = False
+    ht.alignment = WD_TABLE_ALIGNMENT.CENTER; no_table_borders(ht)
+    hc0, hc1 = ht.rows[0].cells; hc0.width = Inches(2.05); hc1.width = Inches(4.52)
+    for c in (hc0, hc1): c.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
+    hp = hc0.paragraphs[0]; compact(hp)
+    if logo.exists(): hp.add_run().add_picture(str(logo), width=Inches(0.9))
+    elif _B.get("agency_name"): runs(hp, _B["agency_name"], size=8, color=INK, bold=True)
+    hp = hc1.paragraphs[0]; compact(hp); hp.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+    runs(hp, run["header_right"], size=7.5, color=MIST, bold=True, tracking=12)
+
     body.footer.is_linked_to_previous = False
-    fp = body.footer.paragraphs[0]; fp.text = ''
-    if mark.exists(): fp.add_run().add_picture(str(mark), height=Inches(0.16))
-    r2 = fp.add_run(f"   {cfg.get('client','')} · {_bcfg(cfg, 'doc_label', 'Amazon Advertising & Sales Audit')}"); font(r2)
-    r2.font.size = Pt(8); r2.font.color.rgb = STEEL
-    fp.add_run("\t"); fp.paragraph_format.tab_stops.add_tab_stop(Inches(6.55), WD_TAB_ALIGNMENT.RIGHT)
-    pgt = fp.add_run("p. "); font(pgt); pgt.font.size = Pt(8); pgt.font.color.rgb = STEEL
-    fld = OxmlElement('w:fldSimple'); fld.set(qn('w:instr'), 'PAGE'); r = OxmlElement('w:r')
-    rpr = OxmlElement('w:rPr'); rf = OxmlElement('w:rFonts'); rf.set(qn('w:ascii'), FONT_NAME); rf.set(qn('w:hAnsi'), FONT_NAME); rpr.append(rf)
-    sz = OxmlElement('w:sz'); sz.set(qn('w:val'), '16'); rpr.append(sz)
-    col = OxmlElement('w:color'); col.set(qn('w:val'), STEEL_H); rpr.append(col)
-    tt = OxmlElement('w:t'); tt.text = "1"; r.append(rpr); r.append(tt); fld.append(r); fp._p.append(fld)
+    fp0 = body.footer.paragraphs[0]; fp0.text = ''; compact(fp0)
+    ft = body.footer.add_table(rows=1, cols=3, width=Inches(6.57)); ft.autofit = False
+    ft.alignment = WD_TABLE_ALIGNMENT.CENTER; no_table_borders(ft)
+    fc0, fc1, fc2 = ft.rows[0].cells
+    for c, w in zip((fc0, fc1, fc2), (2.55, 1.47, 2.55)):
+        c.width = Inches(w); c.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
+    fp = fc0.paragraphs[0]; compact(fp); runs(fp, run["footer_left"], size=8, color=MIST)
+    fp = fc1.paragraphs[0]; compact(fp); fp.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    runs(fp, "page ", size=8, color=MIST); field(fp, "PAGE", "1"); runs(fp, " of ", size=8, color=MIST); field(fp, "NUMPAGES", "1")
+    fp = fc2.paragraphs[0]; compact(fp); fp.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+    runs(fp, run["footer_right"], size=8, color=MIST)
 
     # render blocks (+ KPI after the verdict/summary h2)
     kpi_idx = _kpi_after(blocks)
@@ -327,6 +398,12 @@ def _render_docx(blocks, M, cfg, brand_dir, cover_png, out):
         elif kind == "num": bullet(payload, num=True)
         elif kind == "table": data_table(payload)
         elif kind == "img": image(*payload)
+    # NUMPAGES has no cached value we can compute here, so it ships as "1". Without this
+    # flag Word and Google Docs render that stale cache and a multi-page audit reads
+    # "page 1 of 1". updateFields makes them recompute the footer counters on open.
+    settings = doc.settings.element
+    if settings.find(qn('w:updateFields')) is None:
+        uf = OxmlElement('w:updateFields'); uf.set(qn('w:val'), 'true'); settings.append(uf)
     doc.save(out)
     return out
 
@@ -375,7 +452,21 @@ def _render_pdf(blocks, M, cfg, brand_dir, cover_png, out):
             if Path(f).exists():
                 parts.append(f'<figure><img src="{imguri(f)}"><figcaption>{html.escape(cap)}</figcaption></figure>')
     bodyhtml = "".join(parts).replace("</ul><ul>", "")
-    client = cfg.get("client", "")
+    run = _running_text(cfg, M)
+    logo = Path(brand_dir) / _B["assets"].get("logo_black", "logo_black.png")
+    logo_content = 'content:"";'
+    if logo.exists():
+        try:
+            from PIL import Image
+            im = Image.open(logo).convert("RGBA")
+            bbox = im.getchannel("A").getbbox()
+            if bbox: im = im.crop(bbox)
+            w = 86; im = im.resize((w, max(1, round(w * im.height / im.width))), Image.Resampling.LANCZOS)
+            buf = io.BytesIO(); im.save(buf, format="PNG")
+            logo_content = f'content:url("data:image/png;base64,{base64.b64encode(buf.getvalue()).decode()}");'
+        except Exception:
+            pass
+    def css_text(s): return str(s).replace('\\', '\\\\').replace('"', '\\"')
     fontcss = (f"@font-face{{font-family:{FONT_NAME};font-weight:100 900;font-style:normal;"
                f"src:url(data:font/ttf;base64,{b64(var)}) format('truetype-variations');}}") if var.exists() else ""
     coverdiv = f'<div class="cover"><img src="{imguri(cover_png)}"></div>' if cover_png else ''
@@ -383,10 +474,13 @@ def _render_pdf(blocks, M, cfg, brand_dir, cover_png, out):
 *{{box-sizing:border-box;}} html,body{{margin:0;padding:0;}}
 body{{font-family:{FONT_NAME},'Helvetica Neue',sans-serif;color:#{INK_H};font-size:10.5pt;line-height:1.55;
  -webkit-print-color-adjust:exact;print-color-adjust:exact;}}
-@page{{size:A4;margin:0.7in 0.75in 0.85in 0.75in;
- @bottom-left{{content:"{client} · {_bcfg(cfg, 'doc_label', 'Amazon Advertising & Sales Audit')}";font-family:{FONT_NAME};font-size:8pt;color:#{MIST_H};}}
- @bottom-right{{content:"{_branding.pdf_footer_right_prefix(_B)}" counter(page);font-family:{FONT_NAME};font-size:8pt;color:#{MIST_H};}}}}
-@page cover{{margin:0;@bottom-left{{content:"";}}@bottom-right{{content:"";}}}}
+@page{{size:A4;margin:0.85in 0.75in 0.85in 0.75in;
+ @top-left{{{logo_content}vertical-align:middle;}}
+ @top-right{{content:"{css_text(run['header_right'])}";font-family:{FONT_NAME};font-size:7.5pt;font-weight:600;letter-spacing:.08em;color:#{MIST_H};vertical-align:bottom;padding-bottom:8pt;}}
+ @bottom-left{{content:"{css_text(run['footer_left'])}";font-family:{FONT_NAME};font-size:8pt;color:#{MIST_H};}}
+ @bottom-center{{content:"page " counter(page) " of " counter(pages);font-family:{FONT_NAME};font-size:8pt;color:#{MIST_H};}}
+ @bottom-right{{content:"{css_text(run['footer_right'])}";font-family:{FONT_NAME};font-size:8pt;color:#{MIST_H};}}}}
+@page cover{{margin:0;@top-left{{content:"";background:none;}}@top-right{{content:"";}}@bottom-left{{content:"";}}@bottom-center{{content:"";}}@bottom-right{{content:"";}}}}
 .cover{{page:cover;break-after:page;position:relative;z-index:5;}}
 .cover img{{display:block;width:8.27in;height:11.69in;}}
 h2,h3,.eyebrow,.lever,.rule{{break-after:avoid;}}

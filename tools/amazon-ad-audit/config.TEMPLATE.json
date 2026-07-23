@@ -35,7 +35,8 @@
       "<Product line B>": "<path to multi-ASIN SQP .csv>"
     },
     "datadive_niche_json": "<path to saved DataDive niche keywords JSON (Claude pulls via MCP), or empty>",
-    "datadive_competitors_json": "<optional path to DataDive competitors JSON, or empty>"
+    "datadive_competitors_json": "<optional path to DataDive competitors JSON, or empty>",
+    "rank_radar_json": "<optional path to a DataDive Rank Radar payload (keyword + ranks over time) for the standard fig_rank_movement chart, or empty>"
   },
 
   "delivery": {
@@ -53,7 +54,7 @@
     "_note": "Branded rendering (render_branded.py) → A4 .docx + .pdf. Agency identity (palette/fonts/name/URL) comes from _local/branding/branding.json — see tools/amazon-ad-audit/BRANDING.md. first_time=true renders the dark cover page; regular update audits set false (no cover). Requires the local brand/ assets (prepare_brand_assets.py or your own). Falls back to plain md_to_docx if assets/Chrome are missing.",
     "first_time": true,
     "prepared_by": "Victor Uhl, Founder",
-    "cover_subtitle": "Where the money leaks, and the levers to fix it.",
+    "cover_subtitle": "A straight look at the account, with recommendations on where to start.",
     "brand_dir": ""
   }
 }

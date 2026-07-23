@@ -210,9 +210,12 @@ firecrawl fallback that costs Firecrawl credits:
 
 A weekly brief (`{week_end}_weekly.md`) shares the daily brief's data
 sources and philosophy but replaces the day-over-day read with a
-week-over-week (WoW) read, then adds three read-only PROPOSAL lists on
-top: **Push**, **Pause/Optimize**, and **Test** (only if pertinent). It
-never executes anything -- see Rules below.
+week-over-week (WoW) read, then adds read-only PROPOSAL lists on top:
+**Push**, **Graduate** (Rank Radar-driven), **Pause/Optimize**, and
+**Test** (only if pertinent), plus a **Run-rate pacing** read when a
+monthly budget is on file. It never executes anything -- see Rules
+below; execution belongs to `amazon-ppc-management` (`/ppc-manage`),
+which consumes this brief.
 
 ### Toolkit
 
@@ -236,6 +239,8 @@ docstring for exact signatures.
      --date <the latest FULLY COMPLETED day> \
      --adlabs-json <path to step 2's normalized entities JSON, or omit> \
      --signal-digest _local/ads-signals/<ISO-year>-W<week>/digest.md \
+     --rank-radar-json <path to step 2b's radar rows JSON, or omit> \
+     --monthly-budget <amount from the client config, or omit> \
      --out output --slack-json <path or ->
    ```
 
@@ -282,6 +287,25 @@ docstring for exact signatures.
      accumulating, its totals (and therefore the whole week's sum) will
      understate reality. Re-pull or shift the week-end back a day if
      you see an implausible drop concentrated entirely in the final day.
+
+   **2b. Pull Rank Radar rows (DataDive MCP) -- the live organic-rank
+   input.** `list_rank_radars` -> `get_rank_radar_data` for the brand's
+   tracked keywords over this week and the prior week; shape each row as
+   `{keyword, rank_now, rank_prev, weeks_stable}` (weeks_stable = consecutive
+   weeks at/below rank 3) and pass the JSON via `--rank-radar-json`. Big
+   radar payloads overflow; parse the saved tool-result file with python.
+   This drives the GRADUATE list (rank 1-3 stable 2+ weeks -> step down
+   toward break-even) and per-keyword rank protection (an
+   improving-rank keyword is never proposed for a cut -- moved to notes).
+   Omitting it is a valid run; the brief states the gap in a note.
+
+   **2c. Run-rate pacing.** Pass the client's monthly ad budget via
+   `--monthly-budget` (from `_local/ads-monitor/` client config). The
+   brief then reads MTD spend vs budget-to-date (on_pace / warn / act /
+   underpace, goal-lens-aware thresholds) and, when acting, restates the
+   fixed cut order: waste -> discovery -> profit; Rank last and ONLY by
+   explicit operator decision. MTD needs Sellerboard history back to the
+   1st of the month -- raise `--window-days` late in the month.
 
 3. **Run the recommendations engine.** This happens inside step 1's CLI
    call (`recommendations.build_recommendations`): it classifies every

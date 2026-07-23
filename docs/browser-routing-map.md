@@ -30,12 +30,14 @@ One-page answer to "which browser path does this workflow use". The rule behind 
 | FlatFilePro upload + column mapping | `amazon-flatfilepro-upload-mapper` (`/flatfilepro-upload`) | Interactive (Codex) | logged-in FlatFilePro session | Human-shaped UI; stop before final apply. |
 | Creator Connections (inbox, tracker, replies, campaigns) | `amazon-creator-connections` (`/creator-connections`) | Interactive (Codex) | Campaign Manager → Brand content → Creator connections | No MCP exists. Stop before any send/publish. |
 | Account health check | `amazon-account-health-check` | Interactive (Codex) | SC Account Health | Needs `Review details` clicks + screenshot evidence. |
+| Weekly/monthly operational checks | `amazon-operations-review` (`/operational-checks`) | Mixed | Seller Central + SellerSonar interactive; Google Drive, Slack, and task connectors | Dormant until explicit setup and activation; shipment checks are exception-only and never submit reconciliation. |
 | Support cases, buyer messages, refunds | `amazon-communications` | Interactive (Codex) | SC case log / messaging | Stop before send. |
 | Shipments, removals, AWD | `amazon-logistics` | Interactive (Codex) | Send to Amazon flows | Stop before creating/confirming shipments. |
 | Inventory planning inputs | `amazon-inventory-planning` | Mixed | fresh SC reports via CDP fetcher where covered; other UI exports Codex interactive | Same-day reports rule applies. |
 | Catalog / parentage flat files | `amazon-catalog` | Mixed | template downloads + uploads Codex interactive; file builds local | Stop before upload. |
 | Ads console operations (bids, budgets, targeting) | `amazon-ads` | Interactive (Codex) | Ads Campaign Manager | Stop before changes. |
 | Troubleshooting / suppressed listings | `amazon-troubleshooting` | Interactive (Codex) | wherever the symptom is | Capture exact error text. |
+| Serious regulated-product suppression appeal packs | `amazon-regulated-product-suppression-appeals` | Mixed | first-party policy research in Chrome; pack generation and validation local | Victor signoff required; submission remains separate. |
 
 ## Constants Across All Paths
 

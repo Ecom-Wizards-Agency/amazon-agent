@@ -49,6 +49,7 @@ _DEFAULTS = {
     "assets": {
         "brand_dir": "",          # empty -> tools/amazon-ad-audit/brand/
         "logo_white": "logo_white.png",
+        "logo_black": "logo_black.png",
         "mark": "mark_black.png",
     },
 }
@@ -112,11 +113,6 @@ def prepared_by_line(b: dict, by: str) -> str:
 def cover_footer_left(b: dict) -> str:
     url = b.get("agency_url", "")
     return f"Confidential · {url}" if url else "Confidential"
-
-
-def pdf_footer_right_prefix(b: dict) -> str:
-    name = b.get("agency_name", "")
-    return f"{name} · Confidential · p. " if name else "Confidential · p. "
 
 
 def banner(b: dict, text: str) -> str:

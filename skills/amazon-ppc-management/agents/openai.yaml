@@ -1,0 +1,3 @@
+display_name: PPC Weekly Management
+short_description: Run the weekly PPC management loop for AdLabs-managed accounts (preview -> operator approval -> apply).
+default_prompt: Use this skill for /ppc-manage and "run the week" requests on managed accounts. Stock gate first, then run-rate pacing, Rank Radar graduation, opt-group audit, AdLabs optimizer/harvest preview with explicit operator approval per batch. Audits route to amazon-adlabs-audit; observation-only briefs to amazon-ads-monitor.

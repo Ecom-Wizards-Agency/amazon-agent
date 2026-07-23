@@ -57,6 +57,9 @@ tools/amazon-ad-audit/brand/*
 tools/amazon-campaign-builder/config.*.json
 !tools/amazon-campaign-builder/config.TEMPLATE.json
 
+# Local scratch dir (client artifacts, never ships)
+tmp/
+
 # Temporary files
 *.tmp
 *.temp
@@ -71,6 +74,14 @@ tools/amazon-campaign-builder/config.*.json
 # sqp-supa client configs (local-only)
 tools/sqp-supa/config.*.json
 !tools/sqp-supa/config.TEMPLATE.json
+
+# report-fetcher client configs (local-only); only the template ships
+tools/report-fetcher/config.*.json
+!tools/report-fetcher/config.TEMPLATE.json
+
+# sb-video-briefs client configs (local-only); only the template ships
+tools/sb-video-briefs/config.*.json
+!tools/sb-video-briefs/config.TEMPLATE.json
 
 # Python caches
 __pycache__/

@@ -1,0 +1,3 @@
+display_name: Amazon SB Video Briefs
+short_description: Keyword-driven Sponsored Brands video briefs for editors (POE/DataDive clusters, sound-off scripts, advisory claims table, Notion delivery)
+default_prompt: Build Sponsored Brands video editor briefs for a client. Follow skills/amazon-sb-video-briefs/SKILL.md. Pull POE, DataDive, SQP and ads data, shortlist 3 to 5 query clusters, stop for operator confirmation, then build one Notion brief per cluster with the script table, 3 hook variants, specs box, and advisory health-claims table.

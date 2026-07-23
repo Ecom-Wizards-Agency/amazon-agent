@@ -65,7 +65,14 @@ export class Session {
   send(method, params = {}) {
     const id = ++this.id;
     return new Promise((resolve, reject) => {
-      this.pending.set(id, { resolve, reject });
+      // Node's built-in global WebSocket does not keep the event loop alive while
+      // idly awaiting an inbound frame, so a slow Runtime.evaluate (awaitPromise
+      // for a multi-second page fetch, e.g. POE data) lets the process exit early
+      // with "unsettled top-level await" (exit 13) before Chrome replies. A ref'd
+      // keepalive timer holds the loop open until the response lands.
+      const keepalive = setInterval(() => {}, 1 << 30);
+      const done = (fn) => (v) => { clearInterval(keepalive); fn(v); };
+      this.pending.set(id, { resolve: done(resolve), reject: done(reject) });
       this.ws.send(JSON.stringify({ id, method, params }));
     });
   }

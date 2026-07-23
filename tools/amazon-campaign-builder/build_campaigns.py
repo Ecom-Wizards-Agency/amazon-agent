@@ -128,13 +128,13 @@ def campaign_forms(cfg):
             "start_date": str(pick("start_date", "")),
             "site_restriction": pick("site_restriction", "Amazon"),
         }
-        for key in ("top_of_search_placement", "rest_of_search_placement", "product_pages_placement"):
-            v = spec.get(key)
-            form[key] = v if v not in ("", None) else None
         for grp in ("close_match", "loose_match", "substitutes", "complements"):
             bid, state = spec.get(f"auto_{grp}_bid"), spec.get(f"auto_{grp}_state")
             form[f"auto_{grp}_bid"] = bid if bid not in ("", None) else None
             form[f"auto_{grp}_state"] = state if state in STATES else None
+        for key in ("top_of_search_placement", "rest_of_search_placement", "product_pages_placement"):
+            v = spec.get(key)
+            form[key] = None if v in ("", None) else int(v)
         forms.append(form)
     return forms
 

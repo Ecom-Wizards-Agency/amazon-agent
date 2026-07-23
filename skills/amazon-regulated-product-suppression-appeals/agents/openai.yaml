@@ -1,0 +1,4 @@
+interface:
+  display_name: "Regulated Product Suppression Appeals"
+  short_description: "Build evidence-controlled suppression appeal packs"
+  default_prompt: "Use $amazon-regulated-product-suppression-appeals to diagnose this serious product suppression and build a validated evidence pack for Victor's signoff."

@@ -25,6 +25,27 @@ def _m(v, cur):
     return f"{sym}{v:,.0f}"
 
 
+# Standard figure set from build_figures.py. Referenced only when the file exists, so a
+# run without DataDive/SQP (or without matplotlib) still emits a clean scaffold.
+FIGURES = {
+    "fig_rank_distribution.png":
+        "Organic rank across the category keyword set. Page 1 is the only band that sells.",
+    "fig_visibility_vs_competition.png":
+        "Share of category search volume where each seller ranks in the top 10.",
+    "fig_reviews_vs_price.png":
+        "Price against social proof. Top-left is the hardest place to sell from.",
+    "fig_branded_vs_generic.png":
+        "Where the demand is, and where the purchases actually go.",
+    "fig_brand_name_leak.png":
+        "Organic rank on the brand's own name. Anything past rank 10 is page 2.",
+}
+
+
+def _fig(outdir, name):
+    """Markdown image line for a figure that was actually produced, else None."""
+    return f"![{FIGURES[name]}]({name})\n" if (Path(outdir) / name).exists() else None
+
+
 def build(config_path, outdir):
     cfg = load_config(config_path)
     outdir = Path(outdir)
@@ -100,7 +121,14 @@ def build(config_path, outdir):
                 continue
             A(f"| {b} | {s['queries']} | {s['sv_share']:.1%} | {s['capture']:.1%} ({s['brand_purch']}/{s['mkt_purch']}) |")
         A("")
+        for f in filter(None, [_fig(outdir, "fig_branded_vs_generic.png"),
+                               _fig(outdir, "fig_brand_name_leak.png")]):
+            A(f)
         A("<!-- operator: the capture number is the story: category demand is large but unconverted. CTR-vs-CVR wall. -->\n")
+        A("<!-- operator: never read branded capture against generic capture. Origination biases them "
+          "differently, so each is only meaningful against the market on its own query type. -->\n")
+        A("<!-- operator: if the brand-leak chart rendered, somebody else is monetising demand this brand "
+          "is paying to create. That usually outranks every optimisation lever. -->\n")
         A("---\n")
 
     # ---- DataDive ----
@@ -113,7 +141,12 @@ def build(config_path, outdir):
             client_asins)
         A("## DataDive: category difficulty & the price/review gap\n")
         A(f"Category median price **{_m(comp['median_price'],cur)}**, median reviews **{comp['median_reviews']:.0f}**, median rating **{comp['median_rating']}**.\n")
-        A("<!-- operator: frame the price/review moat: is the client a premium outlier? what does that do to generic conversion? -->\n")
+        for f in filter(None, [_fig(outdir, "fig_rank_distribution.png"),
+                               _fig(outdir, "fig_visibility_vs_competition.png"),
+                               _fig(outdir, "fig_reviews_vs_price.png")]):
+            A(f)
+        A("<!-- operator: frame the price/review moat: is the client a premium outlier? what does that do to generic conversion? -->")
+        A("<!-- operator: uniqueness test (playbook check 4): before crediting any strength, confirm the competitors do not have it too. -->\n")
         A("---\n")
 
     # ---- Good and Bad ----

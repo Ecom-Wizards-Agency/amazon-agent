@@ -18,5 +18,5 @@
     "doc_font_name": "Inter", "doc_font_file": "Inter-Variable.ttf",
     "xlsx_font_display": "Aptos Display", "xlsx_font_body": "Aptos"
   },
-  "assets": { "brand_dir": "", "logo_white": "logo_white.png", "mark": "mark_black.png" }
+  "assets": { "brand_dir": "", "logo_white": "logo_white.png", "logo_black": "logo_black.png", "mark": "mark_black.png" }
 }

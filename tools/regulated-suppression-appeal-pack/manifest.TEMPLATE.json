@@ -1,0 +1,47 @@
+{
+  "client_slug": "example-client",
+  "case_slug": "regulated-product-suppression",
+  "case_date": "2026-01-01",
+  "marketplace": "Amazon.com US",
+  "issue_type": "other",
+  "status": "Draft",
+  "affected_products": [
+    {
+      "asin": "EXAMPLE-ASIN-01",
+      "skus": ["EXAMPLE-SKU-01"],
+      "variation_value": "",
+      "product_identifier": ""
+    }
+  ],
+  "claims": [],
+  "consistency_checks": [
+    {
+      "subject": "listing, backend, packaging, manual, and linked-content intended use",
+      "status": "not_reviewed",
+      "evidence": []
+    }
+  ],
+  "catalog_correction": {
+    "status": "not_required",
+    "submitted_skus": [],
+    "processing_summary": null,
+    "post_update_verification": null
+  },
+  "victor_signoff": {
+    "approved": false,
+    "approved_at": null,
+    "notes": null
+  },
+  "modules": {
+    "01-appeal": {"required": true, "files": []},
+    "02-technical-evidence-and-claim-register": {"required": true, "files": []},
+    "03-manufacturer-declaration": {"required": false, "files": []},
+    "04-catalog-correction-and-processing-proof": {"required": false, "files": []},
+    "05-compliance-sop": {"required": false, "files": []},
+    "06-training-guide": {"required": false, "files": []},
+    "07-manual-review": {"required": false, "files": []},
+    "08-packaging-and-label-review": {"required": false, "files": []},
+    "09-evidence-index": {"required": true, "files": []},
+    "10-submission-checklist": {"required": true, "files": []}
+  }
+}

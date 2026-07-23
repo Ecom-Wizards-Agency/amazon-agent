@@ -321,6 +321,11 @@ def _build_campaign(overrides, form, bidding_strategy):
     for grp in ("close_match", "loose_match", "substitutes", "complements"):
         c[f"auto_{grp}_bid"] = form.get(f"auto_{grp}_bid")
         c[f"auto_{grp}_state"] = form.get(f"auto_{grp}_state")
+    # Per-campaign placement override; absent = fall back to config defaults
+    # in build_sp_campaign_rows (campaign.get(key) is None there).
+    for key in PLACEMENT_LABELS:
+        if form.get(key) not in (None, ""):
+            c[key] = int(form[key])
     c.update(overrides)
     return c
 
@@ -449,7 +454,7 @@ def build_sp_campaign_rows(campaign, defaults, next_id, today=None):
 
     for key, label in PLACEMENT_LABELS.items():
         pct = campaign.get(key)
-        if pct in (None, ""):
+        if pct is None:
             pct = defaults.get(key, 0)
         pct = pct or 0
         if pct > 0:
@@ -571,11 +576,15 @@ ROW_BUILDERS = {"SP": build_sp_campaign_rows}
 
 
 def build_bulk_rows(campaigns, defaults, channel="SP", today=None):
-    """All campaigns -> flat row list; temp IDs count up from 1 across the file."""
+    """All campaigns -> flat row list; temp IDs count up from tmp-1 across the
+    file. Amazon bulksheet 2.0 REJECTS purely numeric temporary IDs on Create
+    operations ("requires you to specify a temporary Campaign ID (any
+    non-numeric text)" -- live upload failure 2026-07-23), so the counter is
+    prefixed, never a bare number."""
     counter = iter(range(1, 10 ** 9))
 
     def next_id():
-        return f"T{next(counter)}"
+        return f"tmp-{next(counter)}"
 
     rows = []
     for campaign in campaigns:
