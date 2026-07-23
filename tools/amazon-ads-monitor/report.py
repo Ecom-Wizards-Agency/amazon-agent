@@ -420,6 +420,50 @@ def _slack_weekly_headline_line(weekly: WeeklyAnalysis, metrics: Optional[tuple]
     return " • ".join(parts)
 
 
+_PACING_STATUS_LABELS = {
+    "on_pace": "ON PACE",
+    "warn": "OVER PACE (watch)",
+    "act": "OVER PACE (act)",
+    "underpace": "UNDER PACE",
+}
+
+
+def _markdown_pacing_section(pacing) -> list:
+    """`pacing`: a pacing.PacingResult. Returns markdown lines for the
+    weekly brief's run-rate governor read (empty list if pacing is None --
+    no monthly budget on file, which the caller notes instead)."""
+    if pacing is None:
+        return []
+    status_label = _PACING_STATUS_LABELS.get(pacing.status, pacing.status)
+    lines = [
+        "## Run-rate pacing",
+        "",
+        f"**{status_label}** -- pace {pacing.pace:.2f}: MTD ad spend ${pacing.mtd_spend:,.2f} vs "
+        f"${pacing.budget_to_date:,.2f} budget-to-date (day {pacing.day_of_month}/{pacing.days_in_month}, "
+        f"monthly budget ${pacing.monthly_budget:,.2f}).",
+    ]
+    if pacing.guidance:
+        lines.append("")
+        for g in pacing.guidance:
+            lines.append(f"- {g}")
+    for n in pacing.notes:
+        lines.append(f"- _{n}_")
+    lines.append("")
+    return lines
+
+
+def _markdown_graduate_section(graduate: list) -> str:
+    if not graduate:
+        return "_No Rank keywords graduating this week._\n"
+    lines = []
+    for g in graduate:
+        lines.append(
+            f"- **{g.keyword}** (organic rank {g.rank_now}, {g.weeks_stable} weeks stable) -- {g.why}\n"
+            f"  **Action:** {g.action}"
+        )
+    return "\n".join(lines) + "\n"
+
+
 def _markdown_push_section(push: list) -> str:
     if not push:
         return "_No push candidates this week._\n"
@@ -531,6 +575,10 @@ def render_weekly_markdown(
         "",
     ]
 
+    pacing_lines = _markdown_pacing_section(meta.get("pacing"))
+    if pacing_lines:
+        lines += pacing_lines
+
     if flags:
         active_flags, suppressed_flags = flags
         lines += [
@@ -552,6 +600,18 @@ def render_weekly_markdown(
         "",
         _markdown_push_section(recommendations.push),
         "",
+    ]
+
+    graduate = getattr(recommendations, "graduate", None)
+    if graduate:
+        lines += [
+            "## GRADUATE -- rank achieved, step down",
+            "",
+            _markdown_graduate_section(graduate),
+            "",
+        ]
+
+    lines += [
         "## PAUSE / OPTIMIZE -- fix these",
         "",
         _markdown_pause_optimize_section(recommendations.pause_optimize),
@@ -592,8 +652,25 @@ def render_weekly_slack(
     headline_labels = meta.get("headline_labels")
     headline_line = _slack_weekly_headline_line(weekly_analysis, slack_metrics, headline_labels)
 
+    pacing = meta.get("pacing")
+    pacing_line = None
+    if pacing is not None and pacing.pace is not None:
+        status_label = _PACING_STATUS_LABELS.get(pacing.status, pacing.status)
+        pacing_line = (
+            f"Run-rate: *{status_label}* (pace {pacing.pace:.2f}; MTD ${pacing.mtd_spend:,.0f} vs "
+            f"${pacing.budget_to_date:,.0f} budget-to-date)"
+        )
+
     push_lines = _slack_weekly_item_lines(recommendations.push, "No push candidates this week.", max_items)
     pause_lines = _slack_weekly_item_lines(recommendations.pause_optimize, "No pause/optimize candidates this week.", max_items)
+
+    graduate = getattr(recommendations, "graduate", None) or []
+    graduate_lines = []
+    for g in graduate[:max_items]:
+        graduate_lines.append(f"- *{g.keyword}* (rank {g.rank_now}, {g.weeks_stable} wks stable) -> step down toward break-even")
+    remaining_grads = len(graduate) - max_items
+    if remaining_grads > 0:
+        graduate_lines.append(f"...and {remaining_grads} more (see the full report).")
 
     test_lines = []
     for t in recommendations.tests[:max_items]:
@@ -620,9 +697,14 @@ def render_weekly_slack(
     text_fallback_parts = [header_text, f"Goal lens: {lens_label}"]
     if headline_line:
         text_fallback_parts.append(headline_line)
+    if pacing_line:
+        text_fallback_parts.append(pacing_line)
     if flag_summary_line:
         text_fallback_parts.append(f"Today's flags: {flag_summary_line}")
-    text_fallback_parts += ["PUSH:"] + push_lines + ["PAUSE / OPTIMIZE:"] + pause_lines
+    text_fallback_parts += ["PUSH:"] + push_lines
+    if graduate_lines:
+        text_fallback_parts += ["GRADUATE:"] + graduate_lines
+    text_fallback_parts += ["PAUSE / OPTIMIZE:"] + pause_lines
     if test_lines:
         text_fallback_parts += ["New ideas & tests:"] + test_lines
     text_fallback = "\n".join(text_fallback_parts)
@@ -632,13 +714,17 @@ def render_weekly_slack(
         {"type": "context", "elements": [{"type": "mrkdwn", "text": f"Goal lens: *{lens_label}*"}]},
         {"type": "section", "text": {"type": "mrkdwn", "text": headline_line or "No headline data."}},
     ]
+    if pacing_line:
+        blocks.append({"type": "section", "text": {"type": "mrkdwn", "text": pacing_line}})
     if flag_summary_line:
         blocks.append({"type": "section", "text": {"type": "mrkdwn", "text": f"_Today's flags: {flag_summary_line}_"}})
     blocks += [
         {"type": "divider"},
         {"type": "section", "text": {"type": "mrkdwn", "text": "*PUSH*\n" + "\n".join(push_lines)}},
-        {"type": "section", "text": {"type": "mrkdwn", "text": "*PAUSE / OPTIMIZE*\n" + "\n".join(pause_lines)}},
     ]
+    if graduate_lines:
+        blocks.append({"type": "section", "text": {"type": "mrkdwn", "text": "*GRADUATE*\n" + "\n".join(graduate_lines)}})
+    blocks.append({"type": "section", "text": {"type": "mrkdwn", "text": "*PAUSE / OPTIMIZE*\n" + "\n".join(pause_lines)}})
     if test_lines:
         blocks.append({"type": "section", "text": {"type": "mrkdwn", "text": "*New ideas & tests*\n" + "\n".join(test_lines)}})
     blocks.append({

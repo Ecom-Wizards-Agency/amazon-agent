@@ -82,6 +82,10 @@ DEFAULT_THRESHOLDS = {
 # - "downgrade_zero_sales": downgrade a zero-sales-with-spend flag one
 #   level (liquidate: some loss-driving spend to sell through fast is the
 #   plan).
+# - "pacing_overrides": DEFAULT_PACING_THRESHOLDS keys (see pacing.py)
+#   this lens nudges for the month-to-date run-rate governor -- rank-launch
+#   tolerates over-pace longer; profit-maintain/maintain act earlier.
+#   Absent = the plain pacing thresholds.
 GOAL_RANK_LAUNCH = "rank-launch"
 GOAL_SCALE = "scale"
 GOAL_PROFIT_MAINTAIN = "profit-maintain"
@@ -103,6 +107,7 @@ GOAL_LENSES = {
         "threshold_overrides": {"tacos_rise_alert_pct": 0.35, "acos_swing_pct": 0.75},
         "tacos_margin_behavior": "expected_high",
         "impression_rank_critical": True,
+        "pacing_overrides": {"warn_above": 1.20, "act_above": 1.40},
     },
     GOAL_SCALE: {
         "label": "Scale",
@@ -124,6 +129,7 @@ GOAL_LENSES = {
         "tacos_margin_behavior": "alert_on_rise",
         "impression_rank_critical": False,
         "escalate_spend_spike": True,
+        "pacing_overrides": {"warn_above": 1.05, "act_above": 1.15},
     },
     GOAL_DEFEND: {
         "label": "Defend",
@@ -146,6 +152,7 @@ GOAL_LENSES = {
         "tacos_margin_behavior": "alert_on_rise",
         "impression_rank_critical": False,
         "escalate_spend_spike": True,
+        "pacing_overrides": {"warn_above": 1.05, "act_above": 1.15},
     },
     GOAL_LIQUIDATE: {
         "label": "Liquidate",

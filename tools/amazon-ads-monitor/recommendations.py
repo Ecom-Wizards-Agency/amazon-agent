@@ -48,6 +48,8 @@ DEFAULT_REC_THRESHOLDS = {
     "discovery_cvr_push_floor": 0.03,        # Discovery CVR at/above this = converting well enough to consider pushing
     "stalled_spend_max": 1.0,                # weekly spend below this = stalled/redundant candidate
     "stalled_impressions_max": 20,           # weekly impressions below this = stalled/redundant candidate
+    "graduate_rank_max": 3,                  # organic rank at/below this ...
+    "graduate_weeks_stable": 2,              # ... for this many consecutive Rank Radar weeks = graduate
 }
 
 # Non-rank ACOS ceiling per goal lens (mirrors flags.py's GOAL_LENSES
@@ -185,6 +187,18 @@ class PauseOptimizeItem:
 
 
 @dataclass
+class GraduateItem:
+    """A Rank keyword that has DONE ITS JOB: organic rank 1-3 stable long
+    enough that we stop paying above break-even for it. Step down, never
+    cliff-drop (strategy.md v3 'Rank keyword lifecycle')."""
+    keyword: str
+    rank_now: int
+    weeks_stable: int
+    why: str
+    action: str
+
+
+@dataclass
 class TestIdea:
     hypothesis: str
     method: str
@@ -200,12 +214,83 @@ class RecommendationsResult:
     pause_optimize: list
     tests: list
     notes: list  # data-quality / no-fabrication notes, e.g. "no new tests warranted this week"
+    graduate: list = field(default_factory=list)  # GraduateItems (Rank keywords that reached rank 1-3 stable)
+
+
+# ---------------------------------------------------------------------------
+# Rank Radar rows (DataDive) -- the live organic-rank signal that turns
+# "never cut Rank on ACOS alone" from a category rule into a data-backed
+# per-keyword protection, and drives GRADUATE proposals.
+
+def normalize_rank_radar(rows: Optional[list]) -> dict:
+    """`rows`: list of dicts, each roughly `{keyword, rank_now,
+    rank_prev (optional), weeks_stable (optional)}`. Ranks are organic
+    positions (lower = better); `weeks_stable` counts consecutive weeks
+    at/below the graduation rank. Returns {normalized keyword: row dict};
+    rows without a keyword or a numeric rank_now are skipped."""
+    out = {}
+    for r in rows or []:
+        keyword = (r.get("keyword") or "").strip().lower()
+        rank_now = r.get("rank_now")
+        if not keyword or not isinstance(rank_now, (int, float)):
+            continue
+        rank_prev = r.get("rank_prev")
+        out[keyword] = {
+            "keyword": r.get("keyword").strip(),
+            "rank_now": int(rank_now),
+            "rank_prev": int(rank_prev) if isinstance(rank_prev, (int, float)) else None,
+            "weeks_stable": int(r.get("weeks_stable") or 0),
+        }
+    return out
+
+
+def _radar_for(radar: dict, name: Optional[str]) -> Optional[dict]:
+    if not radar or not name:
+        return None
+    return radar.get(name.strip().lower())
+
+
+def _rank_improving(row: dict) -> bool:
+    return row["rank_prev"] is not None and row["rank_now"] < row["rank_prev"]
+
+
+def _graduates(row: dict, thresholds: dict) -> bool:
+    return (
+        row["rank_now"] <= thresholds["graduate_rank_max"]
+        and row["weeks_stable"] >= thresholds["graduate_weeks_stable"]
+    )
+
+
+def _generate_graduate(radar: dict, thresholds: dict) -> list:
+    items = []
+    for row in radar.values():
+        if not _graduates(row, thresholds):
+            continue
+        items.append(GraduateItem(
+            keyword=row["keyword"],
+            rank_now=row["rank_now"],
+            weeks_stable=row["weeks_stable"],
+            why=(
+                f"Organic rank {row['rank_now']} for {row['weeks_stable']} consecutive Rank Radar weeks "
+                f"-- the rank push has done its job; stop paying above break-even here."
+            ),
+            action=(
+                "Step the ToS placement modifier and bid down toward break-even over 2-3 optimizer "
+                "cycles (never cliff-drop -- deranking follows cliff-drops); the keyword moves to the "
+                "Profit role. Re-escalation if rank later slips past 5 is an operator decision."
+            ),
+        ))
+    items.sort(key=lambda g: (g.rank_now, g.keyword))
+    return items
 
 
 # ---------------------------------------------------------------------------
 # PUSH.
 
-def _push_for_entity(e: Entity, goal: Optional[str], thresholds: dict) -> Optional[PushItem]:
+def _push_for_entity(e: Entity, goal: Optional[str], thresholds: dict, radar: Optional[dict] = None) -> Optional[PushItem]:
+    radar_row = _radar_for(radar or {}, e.name)
+    if radar_row and _graduates(radar_row, thresholds):
+        return None  # rank achieved -- the GRADUATE list carries this keyword, don't also propose a push
     if e.category == CATEGORY_RANK:
         if e.impressions <= thresholds["near_zero_impressions_weekly"]:
             return PushItem(
@@ -274,10 +359,10 @@ def _push_for_entity(e: Entity, goal: Optional[str], thresholds: dict) -> Option
     return None
 
 
-def _generate_push(entities: list, goal: Optional[str], thresholds: dict) -> list:
+def _generate_push(entities: list, goal: Optional[str], thresholds: dict, radar: Optional[dict] = None) -> list:
     items = []
     for e in entities:
-        item = _push_for_entity(e, goal, thresholds)
+        item = _push_for_entity(e, goal, thresholds, radar)
         if item is not None:
             items.append(item)
     return items
@@ -324,16 +409,31 @@ def _campaign_totals(entities: list) -> dict:
     return totals
 
 
-def _generate_pause_optimize(entities: list, goal: Optional[str], thresholds: dict) -> tuple:
+def _generate_pause_optimize(entities: list, goal: Optional[str], thresholds: dict, radar: Optional[dict] = None) -> tuple:
     """Returns (items, notes, tags) -- `notes` carries the Rank exception
     call-outs (e.g. a zero-sale Rank target that is deliberately NOT
     proposed for a cut) so the operator still sees it, just not
     mis-classified as a pause/optimize action. `tags` is the set of
-    situational signals this pass actually found (feeds TEST selection)."""
+    situational signals this pass actually found (feeds TEST selection).
+
+    `radar`: normalized Rank Radar rows (see `normalize_rank_radar`). A
+    keyword whose organic rank is IMPROVING is never proposed for a cut,
+    whatever its category -- we're buying position (SUPA's "P3 + rank
+    improving" verdict); the read moves to notes instead."""
     items = []
     notes = []
     tags = set()
+    radar = radar or {}
     ceiling = _non_rank_acos_ceiling(goal, thresholds)
+
+    def _rank_protected(e: Entity) -> Optional[str]:
+        row = _radar_for(radar, e.name)
+        if row and _rank_improving(row):
+            return (
+                f"organic rank improving ({row['rank_prev']} -> {row['rank_now']} per Rank Radar) -- "
+                "we're buying position; don't cut on ACOS alone"
+            )
+        return None
 
     for e in entities:
         if e.entity_type == "campaign":
@@ -341,11 +441,18 @@ def _generate_pause_optimize(entities: list, goal: Optional[str], thresholds: di
 
         # 1. Zero-sale high spend (negative-keyword/target candidate).
         if e.spend >= thresholds["zero_sale_spend_min_weekly"] and e.orders == 0:
+            protection = _rank_protected(e)
             if e.category == CATEGORY_RANK:
+                extra = f" Rank Radar backs this up: {protection}." if protection else ""
                 notes.append(
                     f"'{e.name}' (Rank/SKW, {e.campaign_name}): ${e.spend:,.2f} spend with 0 orders this "
                     "week -- NOT proposed for a cut. Rank/SKW targets may intentionally run at break-even "
-                    "or a loss to drive rank (strategy.md); verify this is the plan before touching it."
+                    "or a loss to drive rank (strategy.md); verify this is the plan before touching it." + extra
+                )
+            elif protection:
+                notes.append(
+                    f"'{e.name}' ({e.category}, {e.campaign_name}): ${e.spend:,.2f} spend with 0 orders this "
+                    f"week -- NOT proposed for a cut: {protection}."
                 )
             else:
                 items.append(PauseOptimizeItem(
@@ -360,12 +467,19 @@ def _generate_pause_optimize(entities: list, goal: Optional[str], thresholds: di
             e.category != CATEGORY_RANK and ceiling is not None
             and e.orders > 0 and e.acos is not None and e.acos > ceiling
         ):
-            items.append(PauseOptimizeItem(
-                entity=e.name, scope=e.campaign_name, category=e.category,
-                why=f"ACOS {_fmt_pct(e.acos)} vs the ~{_fmt_pct(ceiling)} ceiling for a {e.category} target under this goal, despite converting.",
-                action="Lower the bid, tighten match type, or reallocate budget toward the account's Rank/Profit campaigns.",
-            ))
-            tags.add("high_acos_non_rank")
+            protection = _rank_protected(e)
+            if protection:
+                notes.append(
+                    f"'{e.name}' ({e.category}, {e.campaign_name}): ACOS {_fmt_pct(e.acos)} over the "
+                    f"~{_fmt_pct(ceiling)} ceiling -- NOT proposed for a cut: {protection}."
+                )
+            else:
+                items.append(PauseOptimizeItem(
+                    entity=e.name, scope=e.campaign_name, category=e.category,
+                    why=f"ACOS {_fmt_pct(e.acos)} vs the ~{_fmt_pct(ceiling)} ceiling for a {e.category} target under this goal, despite converting.",
+                    action="Lower the bid, tighten match type, or reallocate budget toward the account's Rank/Profit campaigns.",
+                ))
+                tags.add("high_acos_non_rank")
 
     # 3. Discovery share of spend creeping past the goal-aware cap.
     share = _discovery_share_of_spend(entities)
@@ -607,6 +721,8 @@ def build_recommendations(
     test_candidates: Optional[list] = None,
     signal_items: Optional[list] = None,
     config: Optional[dict] = None,
+    rank_radar: Optional[list] = None,
+    pacing=None,
 ) -> RecommendationsResult:
     """Top-level entry point. `raw_entities`: normalized AdLabs weekly
     campaign/target rows (see `normalize_entities`). `signal_items`: parsed
@@ -615,19 +731,41 @@ def build_recommendations(
     -- this function still requires them to map to a `brand_tags` entry
     before surfacing them, so an unrelated signal never leaks in just
     because it survived critical review generically.
+
+    `rank_radar`: DataDive Rank Radar rows (see `normalize_rank_radar`) --
+    drives the GRADUATE list and per-keyword rank protection. Omitted =
+    prior behavior, plus a note when Rank entities are present so the gap
+    is stated, never silent.
+
+    `pacing`: an optional `pacing.PacingResult` -- when the run-rate
+    governor says act, the fixed cut order is restated in the notes so the
+    Pause/Optimize list is read in that order (Rank always last, operator
+    decision only).
     """
     thresholds = _thresholds(config)
     entities = normalize_entities(raw_entities)
+    radar = normalize_rank_radar(rank_radar)
 
-    push = _generate_push(entities, goal, thresholds)
-    pause_optimize, pause_notes, pause_tags = _generate_pause_optimize(entities, goal, thresholds)
+    push = _generate_push(entities, goal, thresholds, radar)
+    pause_optimize, pause_notes, pause_tags = _generate_pause_optimize(entities, goal, thresholds, radar)
+    graduate = _generate_graduate(radar, thresholds)
     brand_tags = _compute_brand_tags(entities, goal, situation, pause_tags)
     tests = select_tests(brand_tags, candidates=test_candidates, signal_items=signal_items)
 
     notes = list(pause_notes)
     if not entities:
         notes.append("No AdLabs campaign/target-level rows supplied this week -- Push/Pause-Optimize lists are empty by construction, not a clean bill of health.")
+    if not radar and any(e.category == CATEGORY_RANK for e in entities):
+        notes.append(
+            "No Rank Radar rows supplied -- graduation and per-keyword rank protection were skipped; "
+            "Rank reads above rest on the category rule alone, not live organic-rank data."
+        )
+    if pacing is not None and getattr(pacing, "status", None) == "act":
+        notes.append(
+            f"Run-rate governor: pace {pacing.pace:.2f} is over the act threshold -- apply the cut order "
+            "waste -> discovery -> profit; Rank last and ONLY by explicit operator decision."
+        )
     if not tests:
         notes.append("No new tests warranted this week.")
 
-    return RecommendationsResult(push=push, pause_optimize=pause_optimize, tests=tests, notes=notes)
+    return RecommendationsResult(push=push, pause_optimize=pause_optimize, tests=tests, notes=notes, graduate=graduate)

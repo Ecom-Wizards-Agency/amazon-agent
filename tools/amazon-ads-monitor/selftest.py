@@ -44,8 +44,9 @@ from datasource import (
     CATEGORY_DISCOVERY, CATEGORY_RANK, DailyRow, MockDataSource,
     SellerboardDataSource, parse_sellerboard_csv, SELLERBOARD_METRICS,
 )
-from flags import evaluate, SEVERITY_CRITICAL, SEVERITY_ALERT, SEVERITY_INFO
+from flags import evaluate, resolve_goal_lens, SEVERITY_CRITICAL, SEVERITY_ALERT, SEVERITY_INFO, SEVERITY_WARN
 from crosscheck import cross_check, render_verdict_line, render_verdict_emoji_line, VERIFIED, MISMATCH, NO_DATA
+from pacing import compute_pacing, pacing_flag, CUT_ORDER_GUIDANCE, UNDERPACE_GUIDANCE
 from recommendations import build_recommendations, parse_signal_digest_markdown
 from report import render_markdown, render_slack, render_weekly_markdown, render_weekly_slack
 import run_monitor
@@ -785,6 +786,11 @@ def test_cli_end_to_end_weekly():
             encoding="utf-8",
         )
 
+        radar_path = Path(tmp, "rank_radar.json")
+        radar_path.write_text(json.dumps([
+            {"keyword": _RANK_ENTITY["name"], "rank_now": 1, "rank_prev": 2, "weeks_stable": 4},
+        ]), encoding="utf-8")
+
         buf = io.StringIO()
         with redirect_stdout(buf):
             exit_code = run_weekly.main([
@@ -795,6 +801,8 @@ def test_cli_end_to_end_weekly():
                 "--situation", "recurring acos spike on broad match",
                 "--adlabs-json", str(adlabs_path),
                 "--signal-digest", str(digest_path),
+                "--rank-radar-json", str(radar_path),
+                "--monthly-budget", "4000",
                 "--out", tmp,
                 "--slack-json", "-",
             ])
@@ -807,6 +815,8 @@ def test_cli_end_to_end_weekly():
             text = out_md.read_text(encoding="utf-8")
             check("weekly_cli_md_has_title", "Amazon Ads Weekly Brief" in text)
             check("weekly_cli_md_has_push_or_pause_entity", (_PROFIT_ENTITY["name"] in text) or (_RANK_ENTITY["name"] in text))
+            check("weekly_cli_md_has_pacing_section", "Run-rate pacing" in text)
+            check("weekly_cli_md_has_graduate_section", "GRADUATE -- rank achieved" in text)
 
         json_start = stdout.find("{")
         check("weekly_cli_prints_slack_json", json_start != -1)
@@ -839,6 +849,152 @@ def test_cli_end_to_end_weekly_csv_only():
             check("weekly_csv_only_no_adlabs_note_present", "No AdLabs campaign/target-level rows supplied" in text)
 
 
+# ---------------------------------------------------------------------------
+# pacing.py: month-to-date run-rate governor math, goal-lens threshold
+# layering, coverage honesty, and the flag severities.
+
+class _SpendDay:
+    """Minimal row for compute_pacing (needs only .date and .spend)."""
+
+    def __init__(self, date, spend):
+        self.date = date
+        self.spend = spend
+
+
+def _spend_days(start: dt.date, days: int, spend_per_day: float):
+    return [_SpendDay(start + dt.timedelta(days=i), spend_per_day) for i in range(days)]
+
+
+def test_pacing_math():
+    as_of = dt.date(2026, 7, 10)  # day 10 of a 31-day month
+    july1 = dt.date(2026, 7, 1)
+
+    # No budget -> pacing does not apply (None), never a fabricated read.
+    check("pacing_none_without_budget", compute_pacing(_spend_days(july1, 10, 130.0), as_of, None) is None)
+
+    # 10 days x $130 = $1,300 MTD vs $1,000 budget-to-date (3,100 * 10/31) -> pace 1.30 -> ACT.
+    over = compute_pacing(_spend_days(july1, 10, 130.0), as_of, 3100.0)
+    check("pacing_budget_to_date_exact", abs(over.budget_to_date - 1000.0) < 1e-9, over.budget_to_date)
+    check("pacing_pace_exact", abs(over.pace - 1.30) < 1e-9, over.pace)
+    check("pacing_act_status", over.status == "act", over.status)
+    check("pacing_act_guidance_is_cut_order", over.guidance == CUT_ORDER_GUIDANCE)
+    check("pacing_act_coverage_complete", over.coverage_complete)
+
+    # Pace 1.15 -> WARN under the neutral lens, ACT under profit-maintain
+    # (its pacing_overrides pull act_above down to 1.15 exclusive... 1.20 > 1.15 -> act).
+    warn = compute_pacing(_spend_days(july1, 10, 115.0), as_of, 3100.0)
+    check("pacing_warn_status_neutral", warn.status == "warn", warn.status)
+    pm_lens = resolve_goal_lens("profit-maintain")
+    pm = compute_pacing(_spend_days(july1, 10, 120.0), as_of, 3100.0, lens=pm_lens)
+    check("pacing_act_under_profit_maintain", pm.status == "act", (pm.status, pm.pace))
+    rl_lens = resolve_goal_lens("rank-launch")
+    rl = compute_pacing(_spend_days(july1, 10, 130.0), as_of, 3100.0, lens=rl_lens)
+    check("pacing_rank_launch_tolerates_130", rl.status == "warn", (rl.status, rl.pace))
+
+    # Under-pace with full coverage -> underpace + the push-order guidance.
+    under = compute_pacing(_spend_days(july1, 10, 50.0), as_of, 3100.0)
+    check("pacing_underpace_status", under.status == "underpace", under.status)
+    check("pacing_underpace_guidance", under.guidance == UNDERPACE_GUIDANCE)
+
+    # Missing days: pace is understated -> NEVER an under-pace verdict on
+    # partial coverage; a note states the gap instead.
+    partial = compute_pacing(_spend_days(dt.date(2026, 7, 6), 5, 100.0), as_of, 3100.0)
+    check("pacing_partial_coverage_flagged", not partial.coverage_complete, partial.days_with_data)
+    check("pacing_partial_no_underpace", partial.status == "on_pace", partial.status)
+    check("pacing_partial_has_note", any("understated" in n for n in partial.notes), partial.notes)
+
+    # Flag severities: act -> ALERT, warn -> WARN, on_pace -> no flag.
+    check("pacing_flag_act_is_alert", pacing_flag(over).severity == SEVERITY_ALERT)
+    check("pacing_flag_warn_is_warn", pacing_flag(warn).severity == SEVERITY_WARN)
+    on_pace = compute_pacing(_spend_days(july1, 10, 100.0), as_of, 3100.0)
+    check("pacing_flag_none_on_pace", pacing_flag(on_pace) is None, on_pace.status)
+
+    return over
+
+
+# ---------------------------------------------------------------------------
+# recommendations.py rank-radar wiring: GRADUATE proposals for rank 1-3
+# stable 2+ weeks, data-backed cut protection for keywords whose organic
+# rank is improving, and the no-radar note when Rank entities are present.
+
+def test_rank_radar_graduation_and_protection():
+    entities = [dict(_PROFIT_ENTITY), dict(_RANK_ENTITY)]
+
+    radar = [
+        # The Rank keyword has DONE ITS JOB: rank 1, four stable weeks ->
+        # GRADUATE, and no longer a push candidate.
+        {"keyword": _RANK_ENTITY["name"], "rank_now": 1, "rank_prev": 1, "weeks_stable": 4},
+        # The Halo target is over the profit-maintain ACOS ceiling BUT its
+        # organic rank is improving (15 -> 8): buying position -> protected
+        # from the cut, surfaced as a note instead.
+        {"keyword": _PROFIT_ENTITY["name"], "rank_now": 8, "rank_prev": 15, "weeks_stable": 0},
+        # Rank 2 but only 1 stable week -> NOT graduating yet.
+        {"keyword": "almost there keyword", "rank_now": 2, "rank_prev": 4, "weeks_stable": 1},
+    ]
+
+    result = build_recommendations(entities, goal="profit-maintain", rank_radar=radar)
+
+    grads = [g.keyword for g in result.graduate]
+    check("radar_graduates_stable_top3", _RANK_ENTITY["name"] in grads, grads)
+    check("radar_no_premature_graduation", "almost there keyword" not in grads, grads)
+    check("radar_graduated_keyword_not_pushed", _RANK_ENTITY["name"] not in _push_names(result), _push_names(result))
+    if result.graduate:
+        g = result.graduate[0]
+        check("radar_graduate_action_steps_down", "2-3 optimizer" in g.action and "cliff-drop" in g.action, g.action)
+
+    check(
+        "radar_improving_rank_protected_from_cut",
+        _PROFIT_ENTITY["name"] not in _pause_names(result),
+        _pause_names(result),
+    )
+    check(
+        "radar_protection_noted_not_silent",
+        any(_PROFIT_ENTITY["name"] in n and "rank improving" in n for n in result.notes),
+        result.notes,
+    )
+
+    # Without radar, the same profit entity IS cut (the baseline rule) and
+    # the missing-radar gap is stated in a note, never silent.
+    no_radar = build_recommendations(entities, goal="profit-maintain")
+    check("radar_baseline_cut_without_radar", _PROFIT_ENTITY["name"] in _pause_names(no_radar), _pause_names(no_radar))
+    check("radar_missing_noted", any("No Rank Radar rows supplied" in n for n in no_radar.notes), no_radar.notes)
+    check("radar_none_graduate_without_radar", no_radar.graduate == [], no_radar.graduate)
+
+    return result
+
+
+def test_pacing_and_graduate_rendering(weekly, over_pacing, radar_result):
+    meta = {
+        "source": "sellerboard",
+        "source_label": "Sellerboard 'Dashboard Totals' (PRIMARY, whole-account truth)",
+        "preview": False,
+        "generated_at": "2026-07-13T00:00:00Z",
+        "slack_channel_id": "C000000000",
+        "goal_lens": {"label": "Profit / Maintain", "description": "Mature ASIN, defending margin."},
+        "pacing": over_pacing,
+    }
+    md = render_weekly_markdown(weekly, radar_result, meta)
+    check("render_md_has_pacing_section", "Run-rate pacing" in md)
+    check("render_md_pacing_shows_act", "OVER PACE (act)" in md)
+    check("render_md_pacing_cut_order", "Rank LAST" in md or "Waste first" in md)
+    check("render_md_has_graduate_section", "GRADUATE -- rank achieved" in md)
+    check("render_md_graduate_names_keyword", _RANK_ENTITY["name"] in md)
+
+    slack = render_weekly_slack(weekly, radar_result, meta)
+    check("render_slack_pacing_line", "Run-rate:" in slack["text"], slack["text"][:200])
+    check(
+        "render_slack_graduate_block",
+        any("GRADUATE" in (b.get("text", {}).get("text", "")) for b in slack["blocks"] if b.get("type") == "section"),
+    )
+
+    # No pacing (no budget on file) and no graduates -> neither section appears.
+    meta_no_pacing = dict(meta, pacing=None)
+    empty_result = build_recommendations([], goal=None)
+    md_plain = render_weekly_markdown(weekly, empty_result, meta_no_pacing)
+    check("render_md_no_pacing_when_absent", "Run-rate pacing" not in md_plain)
+    check("render_md_no_graduate_when_empty", "GRADUATE" not in md_plain)
+
+
 def main() -> int:
     account_rows, campaign_rows = build_fixture()
     analysis = analyze_account("test-acct", REPORT_DATE, account_rows, campaign_rows)
@@ -858,6 +1014,9 @@ def main() -> int:
     test_build_recommendations_goal_differentiated()
     empty_tests_result, signal_driven_result = test_select_tests_empty_and_signal_driven()
     test_weekly_report_rendering(weekly, active, suppressed, empty_tests_result, signal_driven_result)
+    over_pacing = test_pacing_math()
+    radar_result = test_rank_radar_graduation_and_protection()
+    test_pacing_and_graduate_rendering(weekly, over_pacing, radar_result)
     test_cli_end_to_end_weekly()
     test_cli_end_to_end_weekly_csv_only()
 

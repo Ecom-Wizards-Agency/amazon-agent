@@ -41,6 +41,16 @@ campaigns.**
   `profit-maintain`, `defend`, `liquidate`; see `GOAL_LENSES`) that
   adjusts thresholds, severities, and wording -- unknown/omitted goal
   resolves to the neutral lens (unchanged behavior).
+- `pacing.py` -- the month-to-date RUN-RATE GOVERNOR (strategy.md v3):
+  `compute_pacing(account_rows, as_of, monthly_budget, lens)` returns the
+  pace (MTD spend vs budget-to-date), a status (on_pace / warn / act /
+  underpace, thresholds layered defaults -> goal-lens `pacing_overrides`
+  -> config), and, when acting, the FIXED cut order (waste -> discovery
+  -> profit; Rank last and only by explicit operator decision). Partial
+  month coverage is stated in a note and never produces an under-pace
+  verdict. `pacing_flag()` folds the read into the flag sections
+  (act = ALERT). No budget on file = no pacing section, never a
+  fabricated one.
 - `crosscheck.py` -- Sellerboard-vs-AdLabs data-quality cross-check.
   `cross_check(sellerboard_figures, adlabs_figures, tolerance=0.07)`
   compares `ad_spend`/`ad_sales`/`total_sales` for the same report day and
@@ -72,12 +82,25 @@ campaigns.**
   (`select_tests` filters the vetted `DEFAULT_TEST_BACKLOG` plus any
   parsed external-signal digest items, `parse_signal_digest_markdown`,
   down to what this week's actual signals make pertinent -- empty when
-  nothing is, never a fabricated filler test).
+  nothing is, never a fabricated filler test). NEW (strategy.md v3):
+  optional `rank_radar` rows (DataDive Rank Radar,
+  `normalize_rank_radar`) add a fourth list, **graduate** (organic rank
+  1-3 stable 2+ consecutive weeks -> step ToS/bid down toward break-even
+  over 2-3 cycles, never cliff-drop), and a data-backed protection: a
+  keyword whose organic rank is IMPROVING is never proposed for a cut,
+  whatever its category (the read moves to notes). Radar absent with Rank
+  entities present = a stated note, not silence. An optional
+  `pacing` result adds the cut-order note when the governor says act.
 - `run_weekly.py` -- weekly CLI: `--date` (week-end, a fully-completed
   day), `--csv` (Sellerboard CSV path(s), >=14 days), `--account`,
   `--goal`, `--situation`, `--adlabs-json` (normalized weekly AdLabs
   campaign/target rows), `--signal-digest` (a
-  `_local/ads-signals/<ISO-year>-W<week>/digest.md` path), `--out`,
+  `_local/ads-signals/<ISO-year>-W<week>/digest.md` path),
+  `--rank-radar-json` (DataDive Rank Radar rows -> GRADUATE list +
+  per-keyword rank protection), `--monthly-budget` (enables the run-rate
+  pacing section; per-brand amounts live under `monthly_budgets` in
+  `_local/ads-monitor/config.json`; needs Sellerboard history back to the
+  1st of the month -- raise `--window-days` late in a month), `--out`,
   `--window-days`, `--slack-json`, `--no-daily-flags`. Runs end-to-end
   from a Sellerboard CSV alone (AdLabs-free -> empty Push/Pause-Optimize
   with a note, not an error). Writes

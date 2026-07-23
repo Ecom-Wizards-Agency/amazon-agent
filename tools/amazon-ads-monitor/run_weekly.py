@@ -68,6 +68,7 @@ from pathlib import Path
 from analyze import aggregate_week, analyze_account
 from datasource import SellerboardDataSource, SELLERBOARD_METRICS
 from flags import evaluate, resolve_goal_lens, GOAL_LENSES
+from pacing import compute_pacing, pacing_flag
 from recommendations import build_recommendations, parse_signal_digest_markdown
 from report import (
     default_slack_channel,
@@ -110,6 +111,20 @@ def _parse_args(argv=None) -> argparse.Namespace:
         help="Path to this week's _local/ads-signals/<ISO-year>-W<week>/digest.md; parsed via "
              "recommendations.parse_signal_digest_markdown and folded into TEST selection.",
     )
+    p.add_argument(
+        "--rank-radar-json", type=str, default=None,
+        help="Path to a JSON file: a list of DataDive Rank Radar rows "
+             "({keyword, rank_now, rank_prev, weeks_stable} -- see "
+             "recommendations.normalize_rank_radar). Drives the GRADUATE list and per-keyword "
+             "rank protection. Omit = category-rule-only Rank handling, stated in a note.",
+    )
+    p.add_argument(
+        "--monthly-budget", type=float, default=None,
+        help="This account's monthly ad budget (account currency). Enables the run-rate pacing "
+             "read (pace = MTD spend vs budget-to-date, cut order per strategy.md v3). Omit = no "
+             "pacing section. NOTE: MTD needs Sellerboard history back to the 1st of week_end's "
+             "month -- raise --window-days if the month is older than the default window.",
+    )
     p.add_argument("--out", type=str, default="output", help="Base output directory (default: output)")
     p.add_argument("--window-days", type=int, default=21, help="Days of Sellerboard history to fetch before week_end (default: 21 -- covers this+last week plus a daily-flag trailing-7 average)")
     p.add_argument("--slack-json", type=str, default=None, help="Write the Slack payload here ('-' for stdout)")
@@ -140,6 +155,8 @@ def run_account(
     signal_items: list = None,
     situation: str = None,
     include_daily_flags: bool = True,
+    rank_radar: list = None,
+    monthly_budget: float = None,
 ):
     ds = SellerboardDataSource.from_paths({account: csv_paths})
     start = week_end - dt.timedelta(days=window_days)
@@ -152,18 +169,23 @@ def run_account(
             "AdLabs for this brand/week at the skill layer; this CLI run has no account-level figures to report."
         )
 
+    lens = resolve_goal_lens(goal)
+    pacing = compute_pacing(account_rows, week_end, monthly_budget, lens=lens)
+
     weekly_analysis = aggregate_week(account_rows, week_end)
     recommendations = build_recommendations(
         raw_entities or [], goal=goal, situation=situation, signal_items=signal_items,
+        rank_radar=rank_radar, pacing=pacing,
     )
 
     flags_tuple = None
     if include_daily_flags and account_rows:
         daily_analysis = analyze_account(account, week_end, account_rows, [], metrics=SELLERBOARD_METRICS)
         active_flags, suppressed_flags = evaluate(daily_analysis, goal=goal)
+        pace_flag = pacing_flag(pacing, lens)
+        if pace_flag is not None:
+            active_flags = sorted(active_flags + [pace_flag], key=lambda f: f.sort_key())
         flags_tuple = (active_flags, suppressed_flags)
-
-    lens = resolve_goal_lens(goal)
     meta = {
         "source": "sellerboard",
         "source_label": "Sellerboard 'Dashboard Totals' (PRIMARY, whole-account truth)",
@@ -174,6 +196,7 @@ def run_account(
         "weekly_headline_metrics": WEEKLY_HEADLINE_METRICS,
         "weekly_slack_headline_metrics": WEEKLY_SLACK_HEADLINE_METRICS,
         "headline_labels": SELLERBOARD_METRIC_LABEL_OVERRIDES,
+        "pacing": pacing,
     }
     if notes:
         meta["notes"] = notes
@@ -202,11 +225,16 @@ def main(argv=None) -> int:
         if digest_path.exists():
             signal_items = parse_signal_digest_markdown(digest_path.read_text(encoding="utf-8"))
 
+    rank_radar = []
+    if args.rank_radar_json:
+        rank_radar = json.loads(Path(args.rank_radar_json).read_text(encoding="utf-8"))
+
     try:
         weekly_analysis, recommendations, markdown, slack_payload = run_account(
             account, csv_paths, week_end, args.window_days,
             goal=args.goal, raw_entities=raw_entities, signal_items=signal_items,
             situation=args.situation, include_daily_flags=not args.no_daily_flags,
+            rank_radar=rank_radar, monthly_budget=args.monthly_budget,
         )
     except Exception as exc:  # noqa: BLE001 -- surface the error, exit non-zero
         print(f"ERROR [{account}]: {exc}", file=sys.stderr)
@@ -220,7 +248,8 @@ def main(argv=None) -> int:
     if not args.quiet:
         print(
             f"[{account}] week ending {week_end.isoformat()} -> {out_path} "
-            f"(push={len(recommendations.push)} pause_optimize={len(recommendations.pause_optimize)} tests={len(recommendations.tests)})"
+            f"(push={len(recommendations.push)} graduate={len(recommendations.graduate)} "
+            f"pause_optimize={len(recommendations.pause_optimize)} tests={len(recommendations.tests)})"
         )
 
     if args.slack_json:
