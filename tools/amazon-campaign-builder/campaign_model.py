@@ -314,6 +314,9 @@ def _build_campaign(overrides, form, bidding_strategy):
         "state": form["state"],
         "start_date": _format_start_date(form.get("start_date", "")),
         "site_restriction": form.get("site_restriction", "Amazon"),
+        "top_of_search_placement": form.get("top_of_search_placement"),
+        "rest_of_search_placement": form.get("rest_of_search_placement"),
+        "product_pages_placement": form.get("product_pages_placement"),
     }
     for grp in ("close_match", "loose_match", "substitutes", "complements"):
         c[f"auto_{grp}_bid"] = form.get(f"auto_{grp}_bid")
