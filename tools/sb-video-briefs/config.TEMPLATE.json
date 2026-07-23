@@ -1,0 +1,49 @@
+{
+  "_README": "TEMPLATE: copy to config.<client>-<market>.json and fill every <...>. Client configs are local-only (gitignored). Contract for the amazon-sb-video-briefs skill; see skills/amazon-sb-video-briefs/SKILL.md.",
+  "client": {
+    "name": "<CLIENT>",
+    "amazon_account": "<Seller Central account + country, for POE --expect-account>",
+    "marketplace": "<DE|US|IT|...>",
+    "language": "<language of ALL on-screen text and VO>",
+    "target_asins": ["<ASIN>"],
+    "datadive_niche": "<DataDive niche id>",
+    "poe_niche": "<POE niche / hero keyword>"
+  },
+  "economics": {
+    "break_even_acos": "<number, decimal e.g. 0.32; mark ASSUMED if not confirmed>",
+    "break_even_source": "<operator-confirmed | assumed>",
+    "aov": "<optional>"
+  },
+  "product_facts": {
+    "_comment": "Only facts from label/PDP/operator. The script never claims anything not in this block or the live listing. For supplements/cosmetics fill the compliance block too.",
+    "plain_name": "<what a shopper calls it>",
+    "form": "<powder | capsule | device | ...>",
+    "key_facts": ["<fact the video may show or say>"],
+    "forbidden_terms": ["<terms that must never appear on screen, e.g. branded raw materials with visibility bans>"]
+  },
+  "compliance": {
+    "category_tier": "<regulated | standard>",
+    "regime": "<EU | US>",
+    "claims_mode": "advisory",
+    "notes": "<client-specific claim rules, e.g. authorized claim wordings>"
+  },
+  "brand_kit": {
+    "fonts": "<font names + where files live>",
+    "colors": ["<hex>"],
+    "logo_rules": "<placement/clear-space rules or path to brand doc>",
+    "assets_location": "<Drive path to logo/brand assets>"
+  },
+  "footage": {
+    "product_footage_location": "<Drive path or 'none: shot list needed'>",
+    "existing_creatives_location": "<optional: current SB video / listing videos for reference>"
+  },
+  "delivery": {
+    "drive_brief_folder": "<Drive folder (name or ID) where the briefing Google Doc is created, e.g. the client's Ads/Creative folder>",
+    "drive_video_folder": "<Drive folder where finished cuts are uploaded>"
+  },
+  "testing": {
+    "sb_ctr_baseline": "<account SB CTR baseline if known>",
+    "asin_cvr_baseline": "<Business Report CVR for target ASIN, same window>",
+    "min_read_window_days": 14
+  }
+}

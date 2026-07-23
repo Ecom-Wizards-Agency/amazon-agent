@@ -98,6 +98,7 @@ Default routing:
 - `amazon-ads`: Ads Console, PPC, bidding, budgets, targeting.
 - `amazon-campaign-builder`: creating Sponsored Products campaigns from a text brief → bulk-upload `.xlsx` via `tools/amazon-campaign-builder/` (file-only; upload stays operator-confirmed).
 - `amazon-ads-monitor`: automated daily (and weekly) Amazon Ads performance brief with trends, % changes, a Sellerboard-vs-AdLabs data cross-check, and goal-lens-aware philosophy-aware flags, posted to Slack → `tools/amazon-ads-monitor/` (read-only; Sellerboard "Dashboard Totals" CSV + AdLabs cross-check primary, SP Ads API v3 secondary, mock/PREVIEW fallback with no credentials).
+- `amazon-sb-video-briefs`: Sponsored Brands VIDEO creative work: keyword-driven video planning, editor briefings, SB video scripts and hook testing (`/video-brief`). Data-selected query clusters (POE + DataDive + SQP + ads data) → one Google Doc briefing per batch, section per cluster (script tables, 3 hook variants, sound-off rules, specs, advisory health-claims table). Pure PPC structure → `amazon-campaign-builder`/`amazon-ads`; creator sourcing → `amazon-creator-connections`.
 - `amazon-creator-connections`: Creator Connections inbox audits, status-filtered message triage, campaign tracker updates, reply drafting (operator-confirmed sends), campaign prep to the publish checkpoint, tracker gaps, reconciliation.
 - `amazon-reporting`: fetching and formatting Seller/Ads reports, SQP, business reports, analytics workbooks; Business Reports + SQP can be fetched without manual download via `tools/report-fetcher/`. Not for audit narratives (that is `amazon-ad-audit` or `amazon-adlabs-audit`).
 - `amazon-inventory-planning`: weekly FBA inventory overview, reshipment planning, pCloud outputs, Slack staging.
@@ -209,6 +210,12 @@ The workbooks and narrative scaffold are built by the client-agnostic toolkit `t
 To create Sponsored Products campaigns from a plain-text brief ("create SKW campaigns for these keywords", `/create-campaigns`), route to the `amazon-campaign-builder` skill and the client-agnostic toolkit `tools/amazon-campaign-builder/`. The build flow, config scaffolding, and QA gates live in the skill.
 
 The output is a FILE ONLY and campaigns default to `paused`. Uploading the bulk file, enabling campaigns, or pushing via AdLabs `create_entities` are stop-before-risk actions: each needs the operator's explicit instruction for that specific action in the current chat or a matching `_local/local-permissions.md` entry. SP only in v1; SB/SD requests fall back to `amazon-ads`.
+
+## SB Video Brief Standard
+
+For Sponsored Brands video creative work ("build a video brief", "better SB videos", `/video-brief`), route to the `amazon-sb-video-briefs` skill. Core premise: Amazon is pull marketing, so videos are built per query cluster and designed sound-off; Meta-style creative playbooks apply only through the skill's adaptation layer (`references/evolve-to-amazon-adaptation.md`), never raw. Cluster selection comes from data (POE, DataDive, SQP, ads performance), capped at 3 to 5 per batch, with an operator stop at the shortlist.
+
+Briefs deliver as ONE Google Doc per batch (no cover page, section per cluster) in the client's Drive ads/creative folder, per `references/editor-brief-template.md`; the claims pass runs through the `amazon-seo` health-claims layer in advisory mode (per-line operator decisions, recorded in the brief). The skill never launches campaigns, changes bids, or uploads creatives; the per-client config contract lives in `tools/sb-video-briefs/` (gitignored client configs).
 
 ## Creator Connections Standard
 
