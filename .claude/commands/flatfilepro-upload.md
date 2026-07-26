@@ -11,7 +11,7 @@ The user's target is: **$ARGUMENTS**
 
 ## Steps
 
-1. **Precondition: the upload `.xlsx` must already exist.** If it still needs building from an export/labels/SEO copy, use `/flatfilepro-prepare` (the `amazon-flatfilepro-compliance` skill) first.
+1. **Precondition: the upload `.xlsx` must already exist.** If it still needs building from an export/labels/SEO copy, use `/flatfilepro-prepare` (the `amazon-flatfilepro-prep` skill) first.
 
 2. **Load the Chrome control skill first**, then the `amazon-flatfilepro-upload-mapper` skill as source of truth. Check `_local/flatfilepro-upload-mapper/local-notes.md` for the operator's recurring Seller & Marketplace labels / mapping quirks before asking.
 

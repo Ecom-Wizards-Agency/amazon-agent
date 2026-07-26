@@ -9,7 +9,7 @@ Browser: Codex interactive (logged-in FlatFilePro session; stop before final app
 
 ## Core Rule
 
-Use the operator's browser with the logged-in FlatFilePro session, per the Browser Standard in `AGENTS.md` (Chrome is the operator default). This skill is for operating the FlatFilePro upload/mapping UI after the upload file already exists. **FlatFilePro expects `.xlsx`** (operator, 2026-07-26); if you are handed a `.csv`, convert it to `.xlsx` before uploading rather than uploading the CSV. If the file still needs to be created from labels or backend exports, use `amazon-flatfilepro-compliance` first.
+Use the operator's browser with the logged-in FlatFilePro session, per the Browser Standard in `AGENTS.md` (Chrome is the operator default). This skill is for operating the FlatFilePro upload/mapping UI after the upload file already exists. **FlatFilePro expects `.xlsx`** (operator, 2026-07-26); if you are handed a `.csv`, convert it to `.xlsx` before uploading rather than uploading the CSV. If the file still needs to be created from labels or backend exports, use `amazon-flatfilepro-prep` first.
 
 Stop before the final action that applies catalog changes, such as `Done`, `Update`, `Submit`, `Apply`, or any force/update switch, unless the operator explicitly approves that exact final click in the current chat.
 

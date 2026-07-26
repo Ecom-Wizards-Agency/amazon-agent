@@ -26,7 +26,7 @@ One-page answer to "which browser path does this workflow use". The rule behind 
 | Daily/weekly Amazon Ads performance brief | `amazon-ads-monitor` | No browser (MCP) | `tools/amazon-ads-monitor/` (SP Ads API v3), Notion + Slack MCP for brand-context enrichment and delivery | Read-only; never changes campaigns. Falls back to `--source mock` (PREVIEW) with no credentials. |
 | Ad/sales audit data pulls | `amazon-ad-audit` (`/amazon-audit`) | Mixed | SQP + Business Report via CDP report fetcher; ads bulk sheet via Ads console download (Codex interactive) | Workbook + narrative build is local. |
 | AdLabs audit | `amazon-adlabs-audit` (`/adlabs-audit`) | MCP | AdLabs MCP | Read-only. No browser. |
-| FlatFilePro CSV preparation | `amazon-flatfilepro-compliance` (`/flatfilepro-prepare`) | Local | `prepare_flatfilepro_compliance_csv.py` | Label/package evidence comes from the operator. |
+| FlatFilePro CSV preparation | `amazon-flatfilepro-prep` (`/flatfilepro-prepare`) | Local | `prepare_flatfilepro_upload.py` | Label/package evidence comes from the operator. |
 | FlatFilePro upload + column mapping | `amazon-flatfilepro-upload-mapper` (`/flatfilepro-upload`) | Interactive (Codex) | logged-in FlatFilePro session | Human-shaped UI; stop before final apply. |
 | Creator Connections (inbox, tracker, replies, campaigns) | `amazon-creator-connections` (`/creator-connections`) | Interactive (Codex) | Campaign Manager → Brand content → Creator connections | No MCP exists. Stop before any send/publish. |
 | Account health check | `amazon-account-health-check` | Interactive (Codex) | SC Account Health | Needs `Review details` clicks + screenshot evidence. |

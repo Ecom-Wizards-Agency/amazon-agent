@@ -37,7 +37,7 @@ Build requirements from Amazon's exact notice and current first-party policy. Ad
 
 ## Routing
 
-- Catalog correction file: `amazon-catalog` or `amazon-flatfilepro-compliance`
+- Catalog correction file: `amazon-catalog` or `amazon-flatfilepro-prep`
 - FlatFilePro browser mapping: `amazon-flatfilepro-upload-mapper`
 - Seller Support or Account Health wording: `amazon-communications`
 - General error diagnosis: `amazon-troubleshooting`
