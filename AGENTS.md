@@ -83,6 +83,10 @@ Expected pCloud visual archive check:
 
 This project uses one main Amazon operator with specialist skills. Specialist skills are not permanent separate agents; they are focused playbooks the main operator loads when the request matches. Use temporary subagents only for larger tasks where parallel research or QA saves time.
 
+**One copy of every skill, in this repo.** `skills/` is the single source of truth for both runtimes. Claude reads it directly from the working tree. Codex reads it through symlinks: every `~/.codex/skills/amazon-*` entry points at the matching `skills/<name>` directory here (wired 2026-07-26). Never edit a skill inside `~/.codex/skills/`, and never replace one of those symlinks with a real directory: that is exactly how the two runtimes silently drifted for three weeks. Edit the file in this repo and both agents see it immediately.
+
+The one deliberate exception is `amazon-sqp-competitor-check`, which is a **twin pair**, not a copy: the repo file is the Claude-side coordinator and `~/.codex/skills/amazon-sqp-competitor-check/` is the Codex-side browser executor. Keep both, and change them together.
+
 Terminology:
 
 - Main agent (Codex or Claude): the main operator doing the work.
