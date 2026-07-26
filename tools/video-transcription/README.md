@@ -9,7 +9,7 @@ Tooling for turning YouTube videos into timestamped transcripts, built for the [
 
 ## Why this exists rather than the `watch` skill
 
-The `watch` skill always prefers YouTube's auto-captions when they exist and has no force-Whisper flag. Those captions are unusable for this corpus: they mangle the domain vocabulary (`asens` for ASINs, `a cost` for ACOS, `clawed` for Claude, `rorowaz` for ROAS, `PBC` for PPC) and arrive in a rolling window that repeats every line — **427 words/min vs Whisper's 187, i.e. 2.3× the tokens for identical content.** These scripts bypass the caption path entirely.
+The `watch` skill always prefers YouTube's auto-captions when they exist and has no force-Whisper flag. Those captions are unusable for this corpus: they mangle the domain vocabulary (`asens` for ASINs, `a cost` for ACOS, `clawed` for Claude, `rorowaz` for ROAS, `PBC` for PPC) and arrive in a rolling window that repeats every line: **427 words/min vs Whisper's 187, i.e. 2.3× the tokens for identical content.** These scripts bypass the caption path entirely.
 
 ## Files
 
@@ -27,7 +27,7 @@ python3 fixterms.py DIR --apply
 xargs -P 4 -n 1 ./worker.sh < queue.txt
 ```
 
-Credentials are read from `~/.config/watch/.env` (`OPENAI_API_KEY`, `GROQ_API_KEY`) — never hardcoded, never logged.
+Credentials are read from `~/.config/watch/.env` (`OPENAI_API_KEY`, `GROQ_API_KEY`). Never hardcoded, never logged.
 
 ## Backends
 
@@ -37,12 +37,12 @@ Credentials are read from `~/.config/watch/.env` (`OPENAI_API_KEY`, `GROQ_API_KE
 | `diarize` | `gpt-4o-transcribe-diarize` | ✅ | ✅ A/B/C | unpublished, ~3× |
 | `groq` | `whisper-large-v3` | ✅ | ❌ | free tier |
 
-`gpt-4o-transcribe` is deliberately absent: it is the most accurate on jargon but **returns no timestamps at all** — it accepts `verbose_json` and `timestamp_granularities[]` and silently ignores both.
+`gpt-4o-transcribe` is deliberately absent: it is the most accurate on jargon but **returns no timestamps at all**. It accepts `verbose_json` and `timestamp_granularities[]` and silently ignores both.
 
 ## Hard-won gotchas
 
 > [!warning] These cost hours to find. Read before changing anything.
-> - **Upload size, not network flakiness.** The API drops the connection (`RemoteDisconnected`) far below its documented 25 MB cap. Every video over ~19 min failed; every one under ~13 min succeeded. Chunking is set to 10 min / ~4.8 MB. ==Retry logic does not help — the failure is deterministic, so retries just fail slower.==
+> - **Upload size, not network flakiness.** The API drops the connection (`RemoteDisconnected`) far below its documented 25 MB cap. Every video over ~19 min failed; every one under ~13 min succeeded. Chunking is set to 10 min / ~4.8 MB. ==Retry logic does not help. The failure is deterministic, so retries just fail slower.==
 > - **Diarize needs its own, smaller chunks** (240 s / 1.5 MB) and requires `chunking_strategy` or it 400s.
 > - **Video IDs beginning with `-`** (e.g. `-3LbXP57BVs`) parse as CLI flags. Always pass `-- "$id"`. Five such IDs exist in this queue. The same bug bites `grep *.md` when a file is named `-xxx.md`.
 > - **zsh does not word-split unquoted variables** the way bash does. `for id in $IDS` runs once with the whole string.
@@ -55,7 +55,7 @@ Credentials are read from `~/.config/watch/.env` (`OPENAI_API_KEY`, `GROQ_API_KE
 
 | Heard as | Actually | Frequency |
 |---|---|---|
-| "a cost" | ACOS | 140 — ==wrong more often than right== (153 mangled vs 132 correct) |
+| "a cost" | ACOS | 140, ==wrong more often than right== (153 mangled vs 132 correct) |
 | "PBC" | PPC | 64 |
 | "tacos" | TACOS | 11, only with metric context on the line |
 
@@ -64,6 +64,6 @@ Guards preserve real English: `a cost of` and `a cost per` are left alone (8 leg
 ## Open issue
 
 > [!question] Diarize unreliable as of 2026-07-26
-> `gpt-4o-transcribe-diarize` worked on short slices (100 s, 180 s) and correctly separated three speakers, then began returning `HTTP 000` (connection dropped) on every file including ones that had just succeeded — while `whisper-1` returned 200 on the same file at the same moment. Cause unconfirmed: possibly a per-model rate limit, possibly capacity. **Retest before relying on it.**
+> `gpt-4o-transcribe-diarize` worked on short slices (100 s, 180 s) and correctly separated three speakers, then began returning `HTTP 000` (connection dropped) on every file including ones that had just succeeded, while `whisper-1` returned 200 on the same file at the same moment. Cause unconfirmed: possibly a per-model rate limit, possibly capacity. **Retest before relying on it.**
 
 Output convention and corpus: [[Intelligence/video-notes/_transcripts/_index]].
