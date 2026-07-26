@@ -1,4 +1,4 @@
 interface:
   display_name: "FlatFilePro Upload Mapper"
-  short_description: "Map FlatFilePro upload columns in Chrome."
-  default_prompt: "Use this skill when a prepared FlatFilePro .xlsx upload file needs to be uploaded in Chrome, matched by SKU, mapped column-by-column, checked for validation issues, and left at the final confirmation step."
+  short_description: "Upload and map a FlatFilePro .xlsx in Chrome"
+  default_prompt: "Use $amazon-flatfilepro-upload-mapper to upload this .xlsx, match by SKU and map the columns."

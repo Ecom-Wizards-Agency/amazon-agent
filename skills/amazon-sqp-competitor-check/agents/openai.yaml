@@ -1,4 +1,4 @@
 interface:
   display_name: "Amazon SQP Competitor Check"
   short_description: "Compare top ASINs for an SQP keyword"
-  default_prompt: "Use $amazon-sqp-competitor-check to compare our ASIN with the top competitors for selected SQP keywords."
+  default_prompt: "Use $amazon-sqp-competitor-check to compare our ASIN with the top competitors for these SQP keywords."

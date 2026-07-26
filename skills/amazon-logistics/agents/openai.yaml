@@ -1,3 +1,4 @@
-display_name: Amazon Logistics
-short_description: Handle FBA shipments, Send to Amazon, removals, AWD, and inventory operations.
-default_prompt: Use this skill for Amazon FBA logistics, Send to Amazon, shipment reconciliation, removal orders, AWD, inventory health, and seller-fulfilled shipping settings.
+interface:
+  display_name: "Amazon Logistics"
+  short_description: "FBA shipments, Send to Amazon, removals and AWD"
+  default_prompt: "Use $amazon-logistics to plan or reconcile this FBA shipment."

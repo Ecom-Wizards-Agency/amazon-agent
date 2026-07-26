@@ -1,3 +1,4 @@
-display_name: Amazon Catalog
-short_description: Build and validate scoped variation, parentage, and catalog change workflows.
-default_prompt: Use this skill for Amazon catalog management, including guided variation changes, parentage, feed processing reviews, listing edits, Brand Registry conflicts, flat files, and suppressed or inactive listings. Route routine listing-content updates to FlatFilePro.
+interface:
+  display_name: "Amazon Catalog"
+  short_description: "Variation, parentage and catalog change workflows"
+  default_prompt: "Use $amazon-catalog to plan and validate this variation, parentage or catalog change."

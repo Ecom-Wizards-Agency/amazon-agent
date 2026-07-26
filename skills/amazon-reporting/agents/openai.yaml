@@ -1,3 +1,4 @@
-display_name: Amazon Reporting
-short_description: Download and analyze Amazon Seller Central and Ads reports.
-default_prompt: Use this skill for fetching and formatting Seller Central reports, Amazon Ads reports, SQP, business reports, period comparisons, and workbook outputs. Not for audit narratives; route full ad/sales audits to amazon-ad-audit or amazon-adlabs-audit.
+interface:
+  display_name: "Amazon Reporting"
+  short_description: "Download and analyze Seller Central and Ads reports"
+  default_prompt: "Use $amazon-reporting to pull and format the reports needed for this question."

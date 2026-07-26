@@ -1,3 +1,4 @@
-display_name: Amazon SB Video Briefs
-short_description: Keyword-driven Sponsored Brands video briefs for editors (POE/DataDive clusters, sound-off scripts, advisory claims table, branded .docx delivery)
-default_prompt: Build Sponsored Brands video editor briefs for a client. Follow skills/amazon-sb-video-briefs/SKILL.md. Pull POE, DataDive, SQP and ads data, shortlist 3 to 5 query clusters, stop for operator confirmation, then build or refresh the per-product-line Creative Reference doc and deliver one branded .docx briefing per batch with a section per video, three named angles over one shared second half, specs box, and an advisory health-claims table.
+interface:
+  display_name: "Amazon SB Video Briefs"
+  short_description: "Sponsored Brands video briefs for editors"
+  default_prompt: "Use $amazon-sb-video-briefs to build a Sponsored Brands video brief batch for this product line."

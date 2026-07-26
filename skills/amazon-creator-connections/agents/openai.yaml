@@ -1,3 +1,4 @@
-display_name: Amazon Creator Connections
-short_description: Triage the Creator Connections inbox, update campaign trackers, and draft creator replies with operator-confirmed sends.
-default_prompt: Use this skill for Amazon Creator Connections message audits, creator tracker updates, reply drafting (stop before send), campaign preparation up to the publish checkpoint, tracker-gap checks, and full-system reconciliation.
+interface:
+  display_name: "Amazon Creator Connections"
+  short_description: "Triage the Creator Connections inbox and draft replies"
+  default_prompt: "Use $amazon-creator-connections to triage the creator inbox and draft replies for approval."

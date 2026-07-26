@@ -1,3 +1,4 @@
-display_name: Amazon Ads
-short_description: Operate Ads Console, PPC, bulk sheets, and Creator Connections workflows.
-default_prompt: Use this skill for Amazon Ads Campaign Manager, Sponsored Ads, bidding, budgets, targeting, reports, troubleshooting, bulk sheets, and Creator Connections.
+interface:
+  display_name: "Amazon Ads"
+  short_description: "Ads Console, PPC, bulk sheets and campaign operations"
+  default_prompt: "Use $amazon-ads to work on this account's campaigns, bids, budgets or targeting."
