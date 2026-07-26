@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
-"""Create a narrow FlatFilePro upload CSV from reviewed field changes.
+"""Create a narrow FlatFilePro upload file from reviewed field changes.
 
 Inputs:
   --source: FlatFilePro export as .csv/.tsv/.xlsx/.xlsm
   --changes: CSV with columns sku, attribute, value
-  --output: destination CSV
+  --output: destination file. **Give this an .xlsx extension**: FlatFilePro
+            expects .xlsx uploads (operator, 2026-07-26). The writer switches
+            on the extension, so a .csv path still produces CSV for local
+            inspection or diffing, but that is not the upload artifact.
 
 The script validates that every requested attribute exists in the source
 headers and writes only sku plus changed attributes. It does not decide which
@@ -15,6 +18,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import re
 import sys
 from collections import OrderedDict, defaultdict
 from pathlib import Path
@@ -104,6 +108,30 @@ def read_source_rows(path: Path, headers: list[str]) -> dict[str, dict[str, str]
     return out
 
 
+_INDEXED_SEGMENT = re.compile(r"__(\d+)__")
+
+
+def canonical_attribute(header: str) -> str:
+    """Normalise an export header to the attribute name FlatFilePro expects on UPLOAD.
+
+    Some FlatFilePro exports flatten repeat-group attributes as ``name__1__value``
+    (double underscore, **1-based**). The canonical Amazon/FlatFilePro attribute is
+    ``name.0.value`` (dot, **0-based**). Uploading the mangled form means every
+    column has to be renamed by hand at mapping time, so normalise on write.
+
+    Verified 2026-07-26 against two real exports: an ``__N__`` export had **zero**
+    headers matching the canonical vocabulary, while ``__N__ -> .N-1.`` matched 340
+    of 376 (the remainder being product-type-specific attributes absent from the
+    comparison templates).
+
+        item_name__1__value        -> item_name.0.value
+        bullet_point__5__value     -> bullet_point.4.value
+
+    Headers already in canonical form pass through untouched.
+    """
+    return _INDEXED_SEGMENT.sub(lambda m: f".{int(m.group(1)) - 1}.", header)
+
+
 def write_output(
     path: Path,
     rows_by_sku: OrderedDict[str, dict[str, str]],
@@ -121,23 +149,58 @@ def write_output(
 
     source_order = {header: idx for idx, header in enumerate(headers)}
     ordered_attrs = sorted(used_attrs, key=lambda h: source_order.get(h, 10**9))
-    output_headers = ["sku"] + [attr for attr in ordered_attrs if attr != "sku"]
+    # Emit CANONICAL attribute names. The source export may use the mangled
+    # ``name__1__value`` form; FlatFilePro expects ``name.0.value`` on upload.
+    out_name = {attr: canonical_attribute(attr) for attr in ordered_attrs}
+    renamed = {a: c for a, c in out_name.items() if a != c}
+    if renamed:
+        sample = ", ".join(f"{a} -> {c}" for a, c in list(renamed.items())[:4])
+        print(
+            f"normalised {len(renamed)} attribute name(s) to canonical FlatFilePro form: {sample}"
+            + (" …" if len(renamed) > 4 else ""),
+            file=sys.stderr,
+        )
+    output_headers = ["sku"] + [out_name[attr] for attr in ordered_attrs if attr != "sku"]
+
+    def row_for(sku: str, changes: dict[str, str]) -> dict[str, str]:
+        out = {header: "" for header in output_headers}
+        out["sku"] = sku
+        if source_rows is not None:
+            current = source_rows.get(sku, {})
+            # source_rows is keyed by the EXPORT header, so look up by the
+            # original name and write under the canonical one.
+            for attr in ordered_attrs:
+                if attr != "sku" and current.get(attr):
+                    out[out_name[attr]] = current[attr]
+        for attr, value in changes.items():
+            if attr != "sku":
+                out[out_name.get(attr, canonical_attribute(attr))] = value
+        return out
+
+    # FlatFilePro expects .xlsx uploads (operator, 2026-07-26). CSV output is
+    # kept for inspection/diffing, but .xlsx is the format that gets uploaded.
+    if path.suffix.lower() in {".xlsx", ".xlsm"}:
+        try:
+            from openpyxl import Workbook
+        except ModuleNotFoundError as exc:  # pragma: no cover
+            raise SystemExit("openpyxl is required to write .xlsx output.") from exc
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Sheet1"
+        ws.append(output_headers)
+        for sku, changes in rows_by_sku.items():
+            r = row_for(sku, changes)
+            # Force text so Amazon/Excel cannot reinterpret values (e.g. a
+            # numeric-looking SKU or a leading-zero UPC) during the round-trip.
+            ws.append([str(r[h]) if r[h] != "" else None for h in output_headers])
+        wb.save(path)
+        return
 
     with path.open("w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=output_headers)
         writer.writeheader()
         for sku, changes in rows_by_sku.items():
-            out = {header: "" for header in output_headers}
-            out["sku"] = sku
-            if source_rows is not None:
-                current = source_rows.get(sku, {})
-                for attr in output_headers:
-                    if attr != "sku" and current.get(attr):
-                        out[attr] = current[attr]
-            for attr, value in changes.items():
-                if attr != "sku":
-                    out[attr] = value
-            writer.writerow(out)
+            writer.writerow(row_for(sku, changes))
 
 
 def main(argv: list[str]) -> int:

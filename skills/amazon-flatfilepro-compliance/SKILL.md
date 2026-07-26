@@ -1,11 +1,46 @@
 ---
 name: amazon-flatfilepro-compliance
-description: Use to prepare narrow FlatFilePro upload CSVs, audit files, or validation notes from a FlatFilePro export plus label/package evidence (Account Health, food-safety, and label-vs-detail-page mismatch cases). Trigger on FlatFilePro, Flatfire Pro, flat file, backend export, or category listing report work. The upload itself routes to `amazon-flatfilepro-upload-mapper`.
+description: Use to prepare narrow FlatFilePro upload files (.xlsx), audit files, or validation notes from a FlatFilePro export plus label/package evidence (Account Health, food-safety, and label-vs-detail-page mismatch cases). Trigger on FlatFilePro, Flatfire Pro, flat file, backend export, or category listing report work. The upload itself routes to `amazon-flatfilepro-upload-mapper`.
 ---
 
 # Amazon FlatFilePro Compliance
 
-Browser: None (local CSV build from export + label evidence).
+Browser: None (local build from export + label evidence).
+
+## Upload format: .xlsx, not CSV
+
+**FlatFilePro expects `.xlsx` upload files** (operator, 2026-07-26). Give
+`prepare_flatfilepro_compliance_csv.py` an `--output` path ending in `.xlsx` and it
+writes a workbook; the writer switches on the extension. A `.csv` path still works and
+is useful for diffing or eyeballing a change set, but it is **not** the artifact that
+gets uploaded, and handing Codex a CSV just makes it convert the file first.
+
+Two things to check on any `.xlsx` you hand over, because a spreadsheet round-trip is
+where they break: that the **separator glyphs survive** (the title's en-dash ` – ` and
+the Item Highlights' middot ` · `), and that no numeric-looking value was reinterpreted
+(a leading-zero UPC, a SKU that looks like a number, a date-like string). The script
+writes every cell as text to prevent the second one.
+
+## Column names: exports lie, uploads want the canonical form
+
+**Not every FlatFilePro export names its columns the way an upload expects.** Two
+conventions are in circulation for repeat-group attributes:
+
+| Convention | Example | Where it shows up |
+|---|---|---|
+| Canonical (dot, **0-based**) | `item_name.0.value`, `bullet_point.4.value` | what FlatFilePro expects **on upload** |
+| Mangled (double underscore, **1-based**) | `item_name__1__value`, `bullet_point__5__value` | some exports, e.g. the `<Client>-<MKT>-all-<timestamp>.xlsx` flavour |
+
+Copying export headers straight into the upload file is therefore **not** always right,
+even though the prepare script requires `--changes` attributes to match the export
+verbatim. Author the changes file against the **export's** spelling (whatever it is);
+the script now rewrites headers to the canonical form on write and prints what it
+renamed. Verified 2026-07-26: a mangled export had **zero** headers matching the
+canonical vocabulary, so an un-normalised upload means renaming every column by hand at
+mapping time.
+
+Sanity check before handover: every non-`sku` header in the upload file should contain a
+`.N.` segment, never `__N__`.
 
 ## Core Rule
 
@@ -79,13 +114,13 @@ See `references/nutrition-field-policy.md` before using string fields.
 
 Prefer these outputs:
 
-- audit workbook or CSV with old value vs proposed value
-- upload-ready CSV split by product type/template when needed
+- audit workbook or note with old value vs proposed value
+- **upload-ready `.xlsx`** split by product type/template when needed
 - validation note with assumptions, source files, excluded rows, and manual-review items
 
-For CSV creation from reviewed changes, use `scripts/prepare_flatfilepro_compliance_csv.py`. Read `references/flatfilepro-compliance-rules.md` before building complex upload files. When reading physical labels or packaging, map label sections to backend fields with `references/label-to-backend-mapping.md`.
+For upload-file creation from reviewed changes, use `scripts/prepare_flatfilepro_compliance_csv.py` with an `.xlsx` `--output` (the script name is historical; it writes either format). Read `references/flatfilepro-compliance-rules.md` before building complex upload files. When reading physical labels or packaging, map label sections to backend fields with `references/label-to-backend-mapping.md`.
 
-After the CSV is created, use `amazon-flatfilepro-upload-mapper` when the operator asks Codex to upload the file in Chrome, match by SKU, map columns in FlatFilePro, or leave the flow ready for the operator's final click. Keep this skill focused on preparing the CSV and audit.
+After the `.xlsx` is created, use `amazon-flatfilepro-upload-mapper` when the operator asks Codex to upload the file in Chrome, match by SKU, map columns in FlatFilePro, or leave the flow ready for the operator's final click. Keep this skill focused on preparing the file and audit.
 
 ## Communication
 

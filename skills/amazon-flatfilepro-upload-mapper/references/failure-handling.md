@@ -2,10 +2,10 @@
 
 ## Missing Inputs
 
-If the CSV path, target account, or target marketplace is missing and the browser is not already prepared, ask only:
+If the `.xlsx` path, target account, or target marketplace is missing and the browser is not already prepared, ask only:
 
 ```text
-I need the CSV path and target FlatFilePro Seller & Marketplace, unless you already opened the right FlatFilePro upload screen.
+I need the .xlsx path and target FlatFilePro Seller & Marketplace, unless you already opened the right FlatFilePro upload screen.
 ```
 
 Before asking, check `_local/flatfilepro-upload-mapper/local-notes.md` if it exists. Use it only as ignored local memory; do not quote confidential account names back into tracked files.
@@ -35,7 +35,21 @@ If FlatFilePro reports issues:
 Known issue:
 
 - IT marketplace may reject `unit_count.0.type.value = gramm` as invalid for `Volume/peso dell’unita di vendita` with code `90004205`.
-- Treat this as a CSV enum problem, not a mapping problem. Regenerate the IT CSV using the target export enum such as `grams`, then upload/map again.
+- Treat this as an upload-file enum problem, not a mapping problem. Regenerate the IT `.xlsx` using the target export enum such as `grams`, then upload/map again.
+
+## Stale Preview Or Wrong Revision
+
+If the selected filename is correct but a mapped preview value differs from the saved `.xlsx`:
+
+- treat the preview as stale or the wrong import revision
+- do not proceed to the final update
+- reload the Imports page to clear staged mapping state
+- upload the file again under a unique revision filename
+- remap the fields
+- compare every changed SKU-field value with the reopened `.xlsx`
+- report ready only when all expected values match
+
+FlatFilePro can retain stale preview state when another file is uploaded from an already mapped screen. Filename verification alone is not sufficient for a revised file.
 
 ## Risk Boundaries
 
@@ -43,7 +57,7 @@ Allowed after user asks for upload/mapping:
 
 - open FlatFilePro in Chrome
 - switch the visible Seller & Marketplace
-- select/upload the CSV into the FlatFilePro upload flow
+- select/upload the `.xlsx` into the FlatFilePro upload flow
 - choose SKU matching
 - map attributes
 - review preview/validation issues
