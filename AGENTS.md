@@ -113,7 +113,7 @@ Default routing:
 - `amazon-sop-maintenance`: `/create-sop`, `/fix-sop`, verified SOP corrections, new SOP drafts, and SOP-vs-skill routing.
 - `amazon-logistics`: Send to Amazon, FBA shipments, removals, AWD, inventory operations.
 - `amazon-communications`: support cases, buyer messages, courtesy-refund follow-ups (creator replies inside Creator Connections → `amazon-creator-connections`).
-- `amazon-flatfilepro-compliance`: prepare label-based FlatFilePro/flat-file compliance CSVs and audit notes from backend exports, labels, packaging, and case messages.
+- `amazon-flatfilepro-prep`: prepare label-based FlatFilePro/flat-file compliance CSVs and audit notes from backend exports, labels, packaging, and case messages.
 - `amazon-flatfilepro-upload-mapper`: operate the FlatFilePro upload flow in the logged-in browser for prepared CSVs, match by SKU, map columns, capture validation issues, and stop before final submit/update.
 
 Operational-check trigger phrases:
@@ -448,9 +448,11 @@ One durable, non-sensitive access note worth keeping here: the correct Creator C
 
 Before any Slack write, read `_local/slack-posting.md`. This is mandatory even when the destination channel and message are already known.
 
-For Victor's Amazon Agent, all agent-authored Slack posts must go out through the configured Wizards AI Slackbot. Never use the Slack connector to send an agent-authored message through Victor's personal identity, and never add a ChatGPT or Claude attribution. The Slack connector is for reading/searching Slack and for creating personal drafts only when the operator explicitly requests that workflow.
+**When the operator has a posting bot configured, every agent-authored Slack post goes out through it.** Never use the Slack connector to send an agent-authored message under the operator's own personal identity, and never add a ChatGPT or Claude attribution. The Slack connector is for reading/searching Slack and for creating personal drafts only when the operator explicitly requests that workflow.
 
-The Wizards AI writing standard is mandatory:
+If no bot is configured for the current operator, ask how they want the message posted. Do not default to their personal identity.
+
+The house writing standard the helper enforces:
 
 - Post one short, bold, single-line parent message in the channel.
 - Put all details in flat thread replies under that parent.
@@ -459,7 +461,7 @@ The Wizards AI writing standard is mandatory:
 - Use no more than one emoji per message and no sign-off.
 - Do not use a long channel-parent post or bypass the helper's house-style enforcement.
 
-The bot identity, helper script path, and channel allowlist are per-operator configuration and live in `_local/slack-posting.md`. If that file does not exist, the helper is unavailable, the channel is not allowlisted, or the configured bot identity cannot be verified, stop and ask the operator. Do not silently fall back to a personal user account or the Slack connector.
+The bot identity, helper script path, channel allowlist, and any operator-specific deviations from the standard above are per-operator configuration and live in `_local/slack-posting.md`. If that file does not exist, the helper is unavailable, the channel is not allowlisted, or the configured bot identity cannot be verified, stop and ask the operator. Do not silently fall back to a personal user account or the Slack connector.
 
 Generic rules regardless of operator:
 
