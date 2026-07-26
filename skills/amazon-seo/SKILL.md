@@ -67,6 +67,31 @@ Keep these listing fields distinct in keyword workbooks, SEO drafts, and flat-fi
 
 Do not use bullet fields for Item Highlights, do not split an Item Highlight into bullets, and do not collapse normal bullets into the Item Highlights field unless the user explicitly asks for a rewritten single highlight.
 
+### Item Highlights: the four rules that decide whether the field works
+
+Full reasoning and worked examples in `references/seo-writing-methodology.md` (§3 separator
+contract + the Item Highlights section). All four are build-gated in
+`tools/amazon-seo-keyword-workbook/build_keyword_workbook.py`.
+
+1. **Separator: the TITLE takes the spaced en-dash ` – `, Item Highlights take the spaced
+   middot ` · `.** Never a dash or pipe in the highlights. A comma **inside** a chip is fine
+   (`For Skin, Hair & Nails`), because the middot is the separator. Revised 2026-07-26 from
+   comma to middot on readability; the middot is the only candidate mark with no second job
+   on the line.
+2. **Chip 1 is the only chip guaranteed to be read.** Measured on the Amazon mobile app
+   (DE search, 2026-07-26): a live 123-character value truncated after its first chip, about
+   28 characters, and chips 2 and 3 never appeared in search at all. So **chip order beats
+   the separator glyph and beats filling the 125 characters.** Spend chip 1 on the strongest
+   differentiator that is NOT already in the title, and keep it short so a second chip lands
+   inside the visible window.
+3. **Judge the field on its INCREMENTAL SV, never its standalone SV.** Compute what every
+   other searchable field already covers, then measure what the highlights add on top. A
+   field whose tokens are all covered by the title and bullets is worth zero no matter how
+   good it reads. Re-audit after ANY bullet or description edit.
+4. **Relevance gates inclusion.** A high-volume term goes in only if it is genuinely true of
+   the product. The shopper sees this field next to the title, so an untrue term costs trust
+   and CTR, which is the opposite of the field's job.
+
 ## Updating an existing listing's SEO
 
 When the task is "update the title / bullets / Item Highlights / backend" or

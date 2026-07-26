@@ -105,10 +105,27 @@ word is.
   | **Title** | spaced **EN-dash ` – `** (U+2013, not a true em-dash, not a hyphen `-`) | a comma as the *clause* separator |
   | **Item Highlights** | spaced **MIDDOT ` · `** (U+00B7) | ` – `, ` — `, ` - `, ` \| ` |
 
-  **Why they differ:** the two fields render stacked and touching in the search grid. If
-  both use the same glyph the eye reads one continuous list and cannot find the seam, so
-  the rule is not "dash beats dot", it is "the two fields need different marks". Using the
-  same separator in both is the one option that is always worse.
+  **Why they differ (corrected 2026-07-26 against real renderings).** The original
+  rationale was that the two fields merge into one unreadable line. That is wrong, and it
+  is worth writing down so nobody rebuilds the argument. Amazon marks the boundary itself,
+  differently per surface:
+
+  - **Mobile search card**: brand on its own line, then the title in black, then the Item
+    Highlights on a NEW LINE in smaller grey type. No pipe. The seam is typography.
+  - **Mobile PDP**: same split, highlights in grey under the black title. No pipe.
+  - **Desktop PDP**: the two are joined into one string with a ` | ` that Amazon inserts.
+    Verified by comparing the stored fields (neither contains a pipe) with the rendered
+    title.
+
+  So the separator choice is NOT what keeps the fields apart. The reason the two fields
+  still take different marks is narrower and holds anyway: **the mark must not have a
+  second job on the same line.** A hyphen is a clause break, a compound-word joiner
+  (heavy in DE/NL) and, in most brand titles, the title separator too. A comma is the
+  natural grouping mark inside a chip. The middot has no other job, which is also what
+  lets a chip carry its own internal comma list. Worked live example (Acme DE):
+  `Hochdosiertes Rinderkollagen · geschmacksneutral, laktosefrei, löslich, ohne
+  Zusatzstoffe · Made in Germany` needs two punctuation levels; only a non-comma outer
+  mark can express it.
 
   **Why the dash in the title.** A title is clause-shaped (brand, then product, then
   qualifier) and a dash is what reads as a clause break. Not the hyphen `-`, which already
@@ -229,14 +246,32 @@ word is.
     internal comma without ambiguity. Never mix separators in one field. Each chip must read
     as its own scannable unit, not a run-on phrase. **Build-enforced**: a dash or pipe
     separator, or the absence of ` · `, FAILS the workbook QA gate.
-    Worked separator (AlphaInfuse serum, per-variation): `1 Month Supply · Lightweight &
+    Worked separator (Acme serum, per-variation): `1 Month Supply · Lightweight &
     Non-Greasy Formula · For Thinning or Fine Hair · Thicker & Fuller-Looking · All Hair
     Types` (leading chip carries the pack size). Worked separator where the lead chip
-    carries the head keyword instead (Evora body oil): `Body Oils for Women ·
+    carries the head keyword instead (Acme body oil): `Body Oils for Women ·
     Fast-Absorbing & Non-Greasy · For Dry, Crepey-Looking Skin · Warm Vanilla Scent ·
     4 Fl Oz` (under the middot rule that chip keeps its natural internal comma).
   - **Lead with the strongest USP**, then descend; front-loaded highlights are the
     ones shown when the field truncates in the grid.
+  - **HOW HARD IT TRUNCATES (measured 2026-07-26, Amazon mobile app, DE search results).**
+    On a live 123-character Item Highlights value with three middot chips, the mobile
+    search card showed only the FIRST chip before the ellipsis:
+    `Hochdosiertes Rinderkollagen …` (about 28 characters of 123). Chips two and three,
+    which carried the whole free-from block and `Made in Germany`, never appeared in
+    search at all. They only became visible on the PDP.
+
+    Consequence, and it outranks every formatting rule in this section: **chip ORDER
+    matters far more than the separator glyph or the total character count.** Treat chip 1
+    as the only chip guaranteed to be read in mobile search, and spend it on the single
+    strongest differentiator that is NOT already in the title. Everything after chip 1 is
+    PDP copy plus keyword indexing, both of which are real but neither of which wins the
+    click.
+  - **Brand dedup in the mobile search card (same capture).** The card printed the brand
+    on its own line and then the title WITHOUT its leading brand token, even though the
+    stored `item_name` starts with the brand. So a brand-first title neither costs nor
+    gains display space in mobile search; the brand shows regardless. Do not add a second
+    brand mention to compensate.
 
   **Compliance + hygiene (same rules as the title):**
   - **Health-claim conform.** Ingredient/attribute **names** and use-case framing
@@ -271,7 +306,7 @@ word is.
     ("Men's · Undershirt · Vest · Chest · Girdle · Tight · Tops") maximises the coverage
     metric while failing the field's primary job, and the separator gate passes it
     happily. A second warning fires when the IH repeats a token the title already covers.
-    Worked negative case (Shaperluv US men's compression tank, 2026-07-26): an 11-chip
+    Worked negative case (Acme US men's compression tank, 2026-07-26): an 11-chip
     single-word IH was rejected by the operator on sight. Rewritten as five attribute
     phrases it scored **identically**, because the whole increment came from three tokens
     (`tops`, `girdle`, `tight`) that fit inside readable chips or moved to backend. Then
@@ -283,7 +318,7 @@ word is.
     precisely because it reads dated to a male audience.
   - **Per-variation lead chip.** When children differ on a dimension the title no longer
     carries (because the ≤75 cap evicted it), lead each child's IH with **its own
-    variation value**. Shaperluv's colour attribute encodes pack too (`1 Pack Black`,
+    variation value**. That account's colour attribute encodes pack too (`1 Pack Black`,
     `3 Pack White`), so without it a 3-pack was indistinguishable from a 1-pack in the
     search grid at three times the price. Cost nothing in coverage there, because the
     description already carried the colour and size tokens: check that before spending
