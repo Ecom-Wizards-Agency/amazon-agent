@@ -1,31 +1,40 @@
 {
-  "_README": "TEMPLATE: copy to config.<client>-<market>.json and fill every <...>. Client configs are local-only (gitignored). Contract for the amazon-sb-video-briefs skill; see skills/amazon-sb-video-briefs/SKILL.md.",
+  "_README": "TEMPLATE: copy to config.<client>-<market>-<product-line>.json and fill every <...>. Client configs are local-only (gitignored). Contract for the amazon-sb-video-briefs skill; see skills/amazon-sb-video-briefs/SKILL.md. One config per PRODUCT LINE, matching the one-Creative-Reference-doc-per-product-line rule.",
   "client": {
     "name": "<CLIENT>",
+    "product_line": "<PRODUCT LINE, e.g. 'Miracle Manuka'. Scopes the Creative Reference doc and the brief title>",
     "amazon_account": "<Seller Central account + country, for POE --expect-account>",
     "marketplace": "<DE|US|IT|...>",
     "language": "<language of ALL on-screen text and VO>",
     "target_asins": ["<ASIN>"],
     "datadive_niche": "<DataDive niche id>",
-    "poe_niche": "<POE niche / hero keyword>"
+    "poe_niche": "<POE niche / hero keyword>",
+    "adlabs_profile_id": "<AdLabs profile_id, for search_query / target / ad_group pulls>"
   },
   "economics": {
     "break_even_acos": "<number, decimal e.g. 0.32; mark ASSUMED if not confirmed>",
     "break_even_source": "<operator-confirmed | assumed>",
-    "aov": "<optional>"
+    "shelf_median_price": "<market median purchase price on the main shelf, from SQP; drives the price-constraint line in the reference doc>",
+    "our_price_band": "<e.g. '35 to 45 USD'>"
   },
   "product_facts": {
     "_comment": "Only facts from label/PDP/operator. The script never claims anything not in this block or the live listing. For supplements/cosmetics fill the compliance block too.",
     "plain_name": "<what a shopper calls it>",
-    "form": "<powder | capsule | device | ...>",
-    "key_facts": ["<fact the video may show or say>"],
-    "forbidden_terms": ["<terms that must never appear on screen, e.g. branded raw materials with visibility bans>"]
+    "form": "<cream | balm | powder | capsule | device | ...>",
+    "hero_ingredient": "<the mechanism the video can lead on>",
+    "origin": "<country as labelled>",
+    "key_facts": ["<fact the video may show or say, quoted from the live listing>"],
+    "needs_substantiation": ["<claim live in the listing but not yet provable on file, e.g. 'Dermatologist Approved'>"],
+    "forbidden_terms": ["<terms that must never appear on screen>"]
   },
   "compliance": {
     "category_tier": "<regulated | standard>",
     "regime": "<EU | US>",
     "claims_mode": "advisory",
-    "notes": "<client-specific claim rules, e.g. authorized claim wordings>"
+    "standing_authorisations": [
+      {"line": "<authorised wording>", "source": "<who authorised it>", "date": "<YYYY-MM-DD>", "residual_risk": "<what is still exposed>", "fix": "<the listing change that removes it>"}
+    ],
+    "notes": "<client-specific claim rules, e.g. authorised claim wordings>"
   },
   "brand_kit": {
     "fonts": "<font names + where files live>",
@@ -38,12 +47,16 @@
     "existing_creatives_location": "<optional: current SB video / listing videos for reference>"
   },
   "delivery": {
-    "drive_brief_folder": "<Drive folder (name or ID) where the briefing Google Doc is created, e.g. the client's Ads/Creative folder>",
-    "drive_video_folder": "<Drive folder where finished cuts are uploaded>"
+    "drive_creative_folder": "<path on the Google Drive desktop mount where the brief and reference doc live>",
+    "source_markdown_dir": "output/<client>/creative-reference/"
   },
   "testing": {
-    "sb_ctr_baseline": "<account SB CTR baseline if known>",
-    "asin_cvr_baseline": "<Business Report CVR for target ASIN, same window>",
-    "min_read_window_days": 14
+    "_comment": "Pre-register win/kill thresholds ONLY where a like-for-like control exists (same product, same shelf, same ad type). Otherwise the first batch creates the baseline. Never build a threshold from a blended figure that mixes branded and generic cohorts.",
+    "control_exists": "<true|false, per cluster>",
+    "control_ctr": "<CTR of the existing like-for-like creative, if any>",
+    "control_acos": "<ACOS of the existing like-for-like creative, if any>",
+    "stage1_impressions_per_angle": 5000,
+    "stage2_clicks_per_angle": 150,
+    "observed_cpc": "<used to price stage 2 in the brief>"
   }
 }

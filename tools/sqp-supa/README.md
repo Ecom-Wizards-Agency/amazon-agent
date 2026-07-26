@@ -13,7 +13,7 @@ ever say "cut".
 
 **Stock is checked first, because it explains the rest.** Amazon deranks what it
 cannot ship, so an out-of-stock week produces share loss, rank slip and a high
-ACOS that look exactly like a bidding failure and are not one. On the Sheko DE
+ACOS that look exactly like a bidding failure and are not one. On the Acme DE
 run, "kollagen pulver" reads rank 7 → 24 → 8 → 14 against 1 → 5 → 2 → 1 days out
 of stock: the collapse and its cause on one line.
 
@@ -85,7 +85,7 @@ week a fortnight ago.
 - Stock is an ASIN-level fact repeated on every keyword row of that ASIN. That
   redundancy is deliberate: a rank slip and its cause belong in the same eyeline.
 - `out_of_stock_days` is window-scoped, so per-week pulls sum back to the monthly
-  figure (verified on Sheko DE: 1+5+2+1 = 9, matching the 30-day pull). But
+  figure (verified on Acme DE: 1+5+2+1 = 9, matching the 30-day pull). But
   `availability`, `days_of_cover` and `fulfillable_units` are CURRENT snapshots and
   come back identical in every week's export: never read those per week.
 - SQP = top 100 queries per ASIN per week (Amazon's cap in every source).

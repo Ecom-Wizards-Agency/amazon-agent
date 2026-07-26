@@ -23,10 +23,10 @@ If switching is needed:
 
 1. Navigate to FlatFilePro `Upload`.
 2. Click `UPLOAD FILE`.
-3. Select the prepared CSV.
-4. If selecting the local path through Chrome's picker is slow, optionally copy the CSV to Downloads first, then select it from the top of Downloads.
+3. Select the prepared `.xlsx`.
+4. If selecting the local path through Chrome's picker is slow, optionally copy the `.xlsx` to Downloads first, then select it from the top of Downloads.
 5. Choose `SKU` matching unless the user asked for a different basis.
-6. Select the CSV column that contains the SKU.
+6. Select the file column that contains the SKU.
 
 If the operator already selected the file or matched SKU, do not restart. Continue from the current upload/mapping screen.
 
@@ -34,18 +34,18 @@ If the operator already selected the file or matched SKU, do not restart. Contin
 
 Repeat for all remaining relevant file columns:
 
-1. In `Search file columns`, choose the CSV header.
+1. In `Search file columns`, choose the file header.
 2. Copy the exact technical header, for example `safety_warning.2.value`.
 3. In `Search attributes`, paste the technical header.
 4. Select the matching option. Prefer an option where the localized label is followed by the same technical header in parentheses.
 5. Click `MAP ATTRIBUTES`.
 6. Verify the mapped column appears in the preview table.
 
-Do not map random helper columns, validation-note columns, comments, or any field that is not part of the upload CSV.
+Do not map random helper columns, validation-note columns, comments, or any field that is not part of the upload file.
 
-Map only columns that need to be transmitted. If the CSV contains intentionally empty helper/string columns, skip them instead of mapping blank values into Amazon. For nutrition work, string fields should usually be skipped unless the compliance skill intentionally filled them for a case.
+Map only columns that need to be transmitted. If the file contains intentionally empty helper/string columns, skip them instead of mapping blank values into Amazon. For nutrition work, string fields should usually be skipped unless the compliance skill intentionally filled them for a case.
 
-FlatFilePro can briefly fail to show a file column even when it exists in the CSV. If exact search returns no file-column option, search the core family such as `safety` or `unit_count`, then choose the exact technical header from the list. Do not mark the field skipped until this retry has been attempted.
+FlatFilePro can briefly fail to show a file column even when it exists in the file. If exact search returns no file-column option, search the core family such as `safety` or `unit_count`, then choose the exact technical header from the list. Do not mark the field skipped until this retry has been attempted.
 
 ## Preview Checks
 

@@ -81,7 +81,11 @@ def load_strategy(path: str) -> dict:
             "  Claude: refresh values from the Notion strategy playbooks. "
             "Codex: ask the operator — do not guess thresholds.")
     raw = open(path, encoding="utf-8").read()
-    if "<" in re.sub(r'"_comment[^"]*":\s*"[^"]*"', "", raw):
+    # Exempt comments AND *_format values: a naming template legitimately holds
+    # tokens like "<client>-<YYYY>W<ww>-<group>", which are the format itself,
+    # not unfilled placeholders.
+    scan = re.sub(r'"(?:_comment[^"]*|[A-Za-z_]*_format)":\s*"[^"]*"', "", raw)
+    if "<" in scan:
         die(f"strategy file still contains <placeholders>: {path} — fill in real values first.")
     strat = json.loads(raw)
     if strat.get("schema") != SCHEMA_STRATEGY:

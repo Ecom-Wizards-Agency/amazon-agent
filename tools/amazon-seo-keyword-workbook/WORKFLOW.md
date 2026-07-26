@@ -108,9 +108,11 @@ Run the builder and require all validations to pass:
 
 Copy ONLY the QA-passed final `.xlsx` to the client's Google Drive folder (shared drive `Ecom Wizards`, account `<your-google-account>`):
 
-`<your-gdrive-mount>/Geteilte Ablagen/Ecom Wizards/01_Client Sheets/<Client>/Keyword Research/<Country>/`
+`<your-gdrive-mount>/Geteilte Ablagen/Ecom Wizards/01_Client Sheets/<Client>/<Client> - Shared/<Keyword Research>/<Country>/`
 
-Folder convention: **one `Keyword Research` folder per client, with a sub-folder per country**, NOT a folder per run (e.g. `Acme/Keyword Research/ES/Acme ES Collagen Keyword Research 2026-06-15 v2.xlsx`). **If the client has only one country, drop the country sub-folder** and put the workbook directly in `…/<Client>/Keyword Research/`. New versions of the same run replace the old `.xlsx` in place. **Google Drive is the only delivery target. Do NOT also copy to pCloud** (decided 2026-06-12; the file is converted to a Google Sheet on Drive anyway). This applies to every client. Verify a byte-identical MD5 after copying. Do NOT copy the POE/DataDive raw files or the manifest there. They are embedded in the workbook tabs / kept local working files. Keep the `.xlsx` as the canonical workbook; the native Google Sheet copy is the shareable view.
+The workbook is a client deliverable, so it goes inside `<Client> - Shared/`, the only folder the client can see. Everything else under `<Client>/` is internal; never deliver into it (see Google Drive Delivery in `AGENTS.md`).
+
+Folder convention: **one Keyword Research folder per client, with a sub-folder per country**, NOT a folder per run (e.g. `Acme/Acme - Shared/Keyword Research/ES/Acme ES Collagen Keyword Research 2026-06-15 v2.xlsx`). The folder's exact name varies per client (`Keyword Research`, `02 Keyword Research`): list it and reuse the existing one rather than creating a variant. **If the client has only one country, drop the country sub-folder** and put the workbook directly in that folder. New versions of the same run replace the old `.xlsx` in place. **Google Drive is the only delivery target. Do NOT also copy to pCloud** (decided 2026-06-12; the file is converted to a Google Sheet on Drive anyway). This applies to every client. Verify a byte-identical MD5 after copying. Do NOT copy the POE/DataDive raw files or the manifest there. They are embedded in the workbook tabs / kept local working files. Keep the `.xlsx` as the canonical workbook; the native Google Sheet copy is the shareable view.
 
 The build also writes:
 

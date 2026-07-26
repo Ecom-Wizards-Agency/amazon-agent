@@ -21,7 +21,7 @@ Three consequences:
 - Show, don't tell. Stronger on Amazon than on Meta because the sound is off. Drop the phone case, wipe the pan, pour the shake. People cannot disagree with what they see, and demos need no audio.
 - Market sophistication. Amazon niches are usually stage 3 to 5: every competitor already makes the same claim. The counter is the same as in Evolve: a new mechanism, an enlarged mechanism, or identification. Check what the top 10 tiles for the query already say before choosing the claim.
 - Concept, angle, variation, format vocabulary. Keep it. A brief without an angle underneath the concept gets rejected, same rule as Evolve.
-- Marksman then Sniper. Test 3 hook variants on one shared hold to find direction, then iterate deeply on the winner.
+- Marksman then Sniper. Test 3 angles over one shared second half to find direction, then iterate deeply on the winner.
 - Feedback loops. Complete learnings on every video before writing the next brief. The learnings questions are adapted in section 9.
 - The customer's own words. Mine reviews and the query corpus itself. The query is literally the customer typing their desire. Use its exact wording in the on-screen text.
 
@@ -48,7 +48,7 @@ The query replaces the avatar as the unit of targeting. Classify every target cl
 | Attribute long-tail | "collagen powder no additives" | Solution-aware with a stated criterion | Mirror the criterion in frame 1 text, verbatim. Then prove it. |
 | Problem long-tail | "supplement for joint pain"* | Problem-to-solution boundary | Lead with the outcome for that problem, within claims policy. |
 | Competitor brand | "vital proteins collagen" | Product-aware, conquesting | Never name the competitor. Position against the category default: "typical collagen does X, this does Y." |
-| Own brand | "sheko kollagen" | Most-aware | SKIP. Operator rule (2026-07-23): no videos for branded keywords. Branded clusters never enter the shortlist. |
+| Own brand | "acme kollagen" | Most-aware | SKIP. Operator rule (2026-07-23): no videos for branded keywords. Branded clusters never enter the shortlist. |
 
 *Problem queries in health niches are where claims risk concentrates. Flag them in the brief.
 
@@ -83,7 +83,9 @@ Target 15 to 30 seconds. Amazon allows up to 45; almost nothing on a SERP earns 
 | Proof block | 10 to 20s | Make the claim safe to believe | Compressed OCPB: claim already made, now proof (demo, texture, numbers with substantiation, unique numerals) and benefit shown in life. Secondary benefit at most. |
 | Brand lockup | 20 to 30s | Memory and soft CTA | Pack shot, brand mark, variant range if cross-sell matters. The video loops: end on a frame that reads as a clean restart, or cut so the loop is seamless. |
 
-Hook variants: write 3 Frame-1-plus-Differentiator openings (A, B, C) over one shared Proof block and lockup. That is the Marksman batch. Variants must differ in angle, not wording: for example A mirrors the attribute, B shows the outcome, C attacks the category default.
+Angles: write 3 Frame-1-plus-Differentiator openings (Angle 1, 2, 3) over one shared Proof block and lockup. That is the Marksman batch. They must differ in buying criterion, not wording: for example Angle 1 mirrors the attribute, Angle 2 shows the texture or outcome, Angle 3 attacks the category default. Give each a short memorable name.
+
+Vocabulary note: a **cut** is one angle plus the shared second half, so angles and cuts are 1:1. Use Evolve's `ANGLE(S)` wording throughout, never "Hook A/B/C", so Amazon and Meta stay one system.
 
 Writing rules carried over from Evolve, tightened for Amazon:
 
@@ -125,8 +127,17 @@ Claims survive the move down, not up: a line that is compliant as visible listin
 Launch:
 
 - 1 SB video campaign per cluster, exact and phrase on the cluster's queries, nothing else in the campaign. The campaign is the test cell.
-- Run the A, B, C hook variants as separate ads in the campaign where the account supports multiple video ads; otherwise rotate sequentially with equal flighting.
+- **One ad group per angle, named `Angle N - <name>`.** Not three creatives in one ad group. AdLabs has no creative-level entity for Sponsored Brands (`advertised_product` excludes SB, `creative_type` is empty on SB video ad groups), so three creatives sharing an ad group cannot be told apart in reporting. Same keywords and same bids across the three; the ad group name is the only difference.
+- Budget sits at campaign level, so impressions will not split evenly. Read CTR, which is a rate, not click counts. If one angle falls far behind on impressions, pause the leaders until it catches up.
 - Set bids to actually win the video slot: an untested video at a starvation bid produces no learnings.
+
+Read in two stages, because the two halves cost very different amounts:
+
+- **Stage 1, CTR.** Roughly 5,000 impressions per angle. Needs impressions, not clicks, so it is cheap and fast.
+- **Stage 2, CVR and ACOS.** Survivor only, roughly 100 to 150 clicks. Price it at the observed CPC before agreeing to it.
+- SQP click share is profile-level and organic plus paid, so it reads at batch level only, never per angle.
+
+**Pre-register the verdict only where a like-for-like control exists** (same product, same shelf, same ad type). Where none exists, the first batch creates the baseline: leave the verdict open and record the result afterwards. Never build a threshold from a blended figure that mixes branded and generic cohorts, since branded creative inflates the average and would condemn a working generic video.
 
 Read (after meaningful spend, not before roughly 2 weeks or a click volume worth reading):
 
@@ -159,13 +170,17 @@ Learnings questions per video (the adapted checklist):
 
 | Evolve term | In this system |
 |---|---|
-| Avatar | Query cluster (plus a mini-persona: who types this and what they compare) |
-| Angle | The buying criterion the video leads with |
+| Desire / core avatar | Query cluster plus a mini-persona: who types this and what they compare |
+| Sub avatar | The exact target queries. On Amazon the query is the avatar |
+| Angle(s) | Angle 1, 2, 3. The buying criterion each opening leads with |
+| Ad variable | What is isolated across the three. Normally the criterion |
+| Awareness level | Solution Aware, Product Aware or Most Aware only, justified by the query typed |
 | Concept and swing | Unchanged |
-| Variation | Hook variant (A, B, C) over a shared hold |
+| Variation | A cut: one angle plus the shared Part 2. Angles and cuts are 1:1 |
 | Hook rate | VTR |
 | Hold rate | Completion rate, secondary |
-| Marksman | 3 hook variants, one cluster, one campaign |
-| Sniper | Iterations on the winning variant's opening |
-| Growth guide hypothesis | The brief's "why this video exists" block |
-| Learnings questions | Section 9 checklist, run before the next brief |
+| Marksman | 3 angles, one cluster, one campaign, one ad group per angle |
+| Sniper | Iterations on the winning angle's opening |
+| Growth guide hypothesis | The shortlist case. Not carried into the editor brief |
+| Batch tracking | The brief itself. No separate tracker sheet |
+| Learnings questions | Section 9 checklist, written back into the Creative Reference doc |

@@ -1,0 +1,3 @@
+display_name: Amazon FlatFilePro Prep
+short_description: Build narrow FlatFilePro .xlsx upload files from exports and label evidence.
+default_prompt: Use this skill to prepare Amazon FlatFilePro .xlsx upload files and audits from backend exports, product labels, and Account Health case messages. The upload itself routes to amazon-flatfilepro-upload-mapper.

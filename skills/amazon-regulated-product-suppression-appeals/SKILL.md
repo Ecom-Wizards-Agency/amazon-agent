@@ -40,7 +40,7 @@ Keep routine listing errors, isolated catalog defects, and ordinary support repl
    - images, A+ Content, video
    - search terms, intended use, directions, benefits, and other backend attributes
    - packaging, labels, manuals, inserts, and QR-linked content
-5. Route catalog correction work to `amazon-catalog` or `amazon-flatfilepro-compliance`. Route case wording to `amazon-communications`.
+5. Route catalog correction work to `amazon-catalog` or `amazon-flatfilepro-prep`. Route case wording to `amazon-communications`.
 6. Generate the selected documents as DOCX masters and PDF attachment copies.
 7. Validate the pack with:
 

@@ -151,6 +151,7 @@ def parse_markdown(md, base_dir):
             continue
         mL = _LEVER.match(s.strip())
         if mL: blocks.append(("lever", (int(mL.group(1)), mL.group(2).strip().rstrip(".")))); continue
+        if s.startswith("#### "): blocks.append(("h4", s[5:].strip())); continue
         if s.startswith("### "): blocks.append(("h3", s[4:].strip())); continue
         if s.startswith("## "): blocks.append(("h2", s[3:].strip())); continue
         if s.startswith("> "): blocks.append(("note", s[2:].strip())); continue
@@ -323,6 +324,10 @@ def _render_docx(blocks, M, cfg, brand_dir, cover_png, out):
         p = doc.add_paragraph(); p.paragraph_format.space_before = Pt(10); p.paragraph_format.space_after = Pt(5)
         p.paragraph_format.keep_with_next = True; runs(p, text, size=12.5, color=INK, bold=True)
 
+    def h4(text):
+        p = doc.add_paragraph(); p.paragraph_format.space_before = Pt(9); p.paragraph_format.space_after = Pt(4)
+        p.paragraph_format.keep_with_next = True; runs(p, text, size=11, color=ORANGE, bold=True)
+
     def lever(n, title):
         p = doc.add_paragraph(); p.paragraph_format.space_before = Pt(14); p.paragraph_format.space_after = Pt(1)
         p.paragraph_format.keep_with_next = True; runs(p, f"LEVER {n}", size=9, color=ORANGE, bold=True, caps=True, tracking=30)
@@ -384,13 +389,14 @@ def _render_docx(blocks, M, cfg, brand_dir, cover_png, out):
     fp = fc2.paragraphs[0]; compact(fp); fp.alignment = WD_ALIGN_PARAGRAPH.RIGHT
     runs(fp, run["footer_right"], size=8, color=MIST)
 
-    # render blocks (+ KPI after the verdict/summary h2)
-    kpi_idx = _kpi_after(blocks)
+    # render blocks (+ KPI after the verdict/summary h2); -1 disables cards for non-audit docs
+    kpi_idx = _kpi_after(blocks) if (M.get("custom_kpis") or M.get("totals")) else -1
     for i, (kind, payload) in enumerate(blocks):
         if kind == "h2":
             h2(payload)
             if i == kpi_idx: kpi_cards(_kpis(M))
         elif kind == "h3": h3(payload)
+        elif kind == "h4": h4(payload)
         elif kind == "lever": lever(*payload)
         elif kind == "p": para(payload)
         elif kind == "note": note(payload)
@@ -431,13 +437,15 @@ def _render_pdf(blocks, M, cfg, brand_dir, cover_png, out):
                      (f'<div class="ks">{html.escape(s)}</div>' if s else '') + '</div>' for n, l, s in items)
         return f'<div class="kpis">{cs}</div>'
 
-    parts = []; numctr = 0; kpi_idx = _kpi_after(blocks)
+    parts = []; numctr = 0
+    kpi_idx = _kpi_after(blocks) if (M.get("custom_kpis") or M.get("totals")) else -1
     for i, (kind, payload) in enumerate(blocks):
         if kind != "num": numctr = 0
         if kind == "h2":
             parts.append(f'<div class="rule"></div><h2>{html.escape(payload)}</h2>')
             if i == kpi_idx: parts.append(kpi_html(_kpis(M)))
         elif kind == "h3": parts.append(f'<h3>{html.escape(payload)}</h3>')
+        elif kind == "h4": parts.append(f'<h4>{html.escape(payload)}</h4>')
         elif kind == "lever":
             n, t = payload
             parts.append(f'<div class="lever"><div class="eyebrow">LEVER {n}</div><h3 class="lt">{html.escape(t)}</h3></div>')
@@ -483,10 +491,11 @@ body{{font-family:{FONT_NAME},'Helvetica Neue',sans-serif;color:#{INK_H};font-si
 @page cover{{margin:0;@top-left{{content:"";background:none;}}@top-right{{content:"";}}@bottom-left{{content:"";}}@bottom-center{{content:"";}}@bottom-right{{content:"";}}}}
 .cover{{page:cover;break-after:page;position:relative;z-index:5;}}
 .cover img{{display:block;width:8.27in;height:11.69in;}}
-h2,h3,.eyebrow,.lever,.rule{{break-after:avoid;}}
+h2,h3,h4,.eyebrow,.lever,.rule{{break-after:avoid;}}
 tr,figure,table,.kpis,.note{{break-inside:avoid;}}
 h2{{font-weight:700;font-size:19pt;margin:2pt 0 8pt;letter-spacing:-0.01em;}}
 h3{{font-weight:700;font-size:13pt;margin:12pt 0 5pt;}}
+h4{{font-weight:700;font-size:11pt;color:#{ORANGE_H};margin:10pt 0 4pt;}}
 .lever{{margin:16pt 0 4pt;padding-top:8pt;border-top:1px solid #{MISTLINE_H};}}
 .eyebrow{{font-weight:600;font-size:8.5pt;letter-spacing:0.14em;color:#{ORANGE_H};text-transform:uppercase;}}
 h3.lt{{margin:2pt 0 6pt;font-size:14.5pt;}}
