@@ -1,0 +1,30 @@
+{
+  "library": "AdLabs Help",
+  "captured": "2026-07-26",
+  "articles": [
+    {
+      "file": "articles/001-four-essential-bid-formulas.md",
+      "title": "Amazon PPC Bid Optimization: 4 Essential Formulas | AdLabs",
+      "source": "https://adlabs.app/amazon-ppc-bid-optimization-the-4-essential-formulas-for-optimizing-bids-hitting-your-target-acos/",
+      "captured": "2026-07-26"
+    },
+    {
+      "file": "articles/002-placement-bidding-adjustments.md",
+      "title": "Amazon PPC Placement Bidding: How to Calculate Adjustments to Hit Your Target ACOS | AdLabs",
+      "source": "https://adlabs.app/amazon-ppc-placement-bidding-how-to-calculate-adjustments-to-hit-your-target-acos/",
+      "captured": "2026-07-26"
+    },
+    {
+      "file": "articles/003-rpc-bidding-formula-acos-goals.md",
+      "title": "Amazon PPC Bidding Formula to Hit Your ACOS Goals | AdLabs",
+      "source": "https://adlabs.app/achieve-your-acos-goals-on-amazon-ppc-with-this-bidding-formula/",
+      "captured": "2026-07-26"
+    },
+    {
+      "file": "articles/004-bid-optimization-guide.md",
+      "title": "The Complete Guide to Amazon PPC Bid Optimization | AdLabs",
+      "source": "https://adlabs.app/guides/amazon-ppc-bid-optimization-guide/",
+      "captured": "2026-07-26"
+    }
+  ]
+}
