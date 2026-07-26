@@ -96,13 +96,75 @@ word is.
   is fine for bullet/description bodies. Optimise the visible fields for the **shopper's
   eye** first (readable, scannable); the exact separator/caps style is flexible as long
   as it reads cleanly and stays within this no-all-caps rule.
-- **Dash separators belong in the TITLE only; Item Highlights use COMMAS.** The spaced
-  **EN-dash ` – `** (U+2013, not a true em-dash) is the standard *title* separator. Match
-  the brand's live-title glyph. **Item Highlights are comma-separated Title-Case chips**
-  (see the Item Highlights formatting rule below), NOT dash-separated, so the two fields
-  stay visually distinct in the search grid. The repo's no-spaced-em-dash rule governs
-  **prose** (narratives, notes, chat, commit messages, docs), NOT the title field, so the
-  workbook builder must not strip the dash from title copy.
+- **THE SEPARATOR CONTRACT (the two fields must not match; get this backwards and both
+  are wrong).** One line to remember: **the TITLE takes the en-dash, Item Highlights take
+  the middot.**
+
+  | Field | Separator | Never use |
+  |---|---|---|
+  | **Title** | spaced **EN-dash ` – `** (U+2013, not a true em-dash, not a hyphen `-`) | a comma as the *clause* separator |
+  | **Item Highlights** | spaced **MIDDOT ` · `** (U+00B7) | ` – `, ` — `, ` - `, ` \| ` |
+
+  **Why they differ:** the two fields render stacked and touching in the search grid. If
+  both use the same glyph the eye reads one continuous list and cannot find the seam, so
+  the rule is not "dash beats dot", it is "the two fields need different marks". Using the
+  same separator in both is the one option that is always worse.
+
+  **Why the dash in the title.** A title is clause-shaped (brand, then product, then
+  qualifier) and a dash is what reads as a clause break. Not the hyphen `-`, which already
+  lives inside words (`Puncture-Resistant`), so the same character would be doing two jobs
+  in one line. Not the em-dash `—`, which is visually heavy and dominates a 75-character
+  title. The en-dash is the same break with less weight.
+
+  **Why the middot in the highlights.** Chips are list items, not clauses. A dash says "the
+  sentence continues, here is an aside"; a middot says "these are separate things", which
+  is what the field actually contains. Both marks cost 3 characters, so this is about what
+  the mark signals to a reader, not about space.
+
+  **Why not the comma** (this was the rule until 2026-07-26). A comma already has a job
+  inside phrases, so it can never be an unambiguous delimiter. That is why the old rule
+  needed a patch banning commas inside a chip, forcing rewrites like `For Dry, Crepey-Looking
+  Skin` into `For Dry Crepey-Looking Skin`. When a separator makes you reword the content
+  around it, the separator is wrong, and in practice the comma version reads as a run-on.
+  The middot has no such collision, so **a comma inside a chip is now fine** and needs no
+  workaround.
+
+  Sub-rules that follow from it:
+  - **A comma *inside* a title clause is fine** (`for Dry, Sensitive Skin`); what is
+    forbidden is using a comma where the clause break belongs (`Body Oil for Women, After
+    Shower Oil` should be `Body Oil for Women – After Shower Oil`).
+  - **Never mix separators inside one field.** One separator per field, always.
+  - **Never mix separators inside one field.** One separator per field, always.
+  - The repo's no-spaced-em-dash rule governs **prose** (narratives, notes, chat, commit
+    messages, docs), NOT the title field, so the workbook builder must not strip the dash
+    from title copy.
+
+  **Enforced, not remembered.** `build_keyword_workbook.py` ships a QA gate: Item
+  Highlights **FAIL** the build on a dash or pipe separator, or when no ` · ` separator is
+  present at all, and a title that uses a comma as its clause separator raises a
+  **warning**. The gate exists because this rule was prose-only until 2026-07-26 and had
+  drifted into four different conventions across live client files (en-dash, comma, hyphen
+  and `·`), so older `seo_content.*.json` files may fail the gate until their separators
+  are corrected. Note the contract itself was revised on 2026-07-26 from comma to middot
+  (operator decision, on readability), so files written to the comma version need their
+  Item Highlights re-joined with ` · ` on their next rebuild.
+
+- **Bullet contract (operator rule, 2026-07-26).** A bullet is `Label: Sentence`.
+  - **Capitalise the word after the colon.** It opens a sentence, so it is `pH Balance for
+    Women: A daily vaginal probiotic gummy…`, never `: a daily…`. A numeral-led sentence
+    (`30 Gummies, Made to Quality Standards: 30 women's probiotic gummies per bottle`) is
+    correct as-is; capitalise the first *word*, and do not reach past a numeral to
+    uppercase the first letter you find.
+  - **No asterisk inside a bullet.** The asterisk is a disclaimer-linking device. Inside a
+    bullet it renders as literal punctuation in the search grid and in mobile snippets, and
+    it promises a footnote the bullet cannot show. Put the DSHEA or compliance disclaimer in
+    the **description**, as a complete standalone sentence. Removing the asterisk does not
+    remove the disclaimer and does not, on its own, make hedged structure/function copy
+    riskier: what carries the legal weight is the disclaimer being present on the detail
+    page and the claim content itself staying inside structure/function. See
+    `health-claims-compliance.md`.
+  - **Build-enforced**: the build FAILS on a lowercase word after `Label:` or on any
+    asterisk in a bullet.
 - **Title**: keyword-rich, benefit-led, front-load the highest-SV exact terms.
   **Limit: ≤75 characters including spaces** (all marketplaces, all categories
   except media, per Amazon policy effective **2026-07-27**; the old ~200-char limit
@@ -160,15 +222,19 @@ word is.
   **Formatting (apply every time):**
   - **Title Case each highlight**: capitalize the principal words, e.g.
     `Grass-Fed Bovine Collagen`, not `grass-fed bovine collagen`.
-  - **Separate chips with COMMAS, ONE separator per field.** Item Highlights are
-    **comma-separated** (`, `) Title-Case chips; the spaced en-dash ` – ` is reserved for
-    the TITLE, so the two fields read as visually distinct units, not one merged line.
-    Because the comma IS the separator, **no chip may contain an internal comma** —
-    rephrase the chip if it would. Never mix separators in one field. Each chip must read
-    as its own scannable unit, not a run-on phrase. Worked separator (AlphaInfuse
-    serum, per-variation): `1 Month Supply, Lightweight & Non-Greasy Formula, For
-    Thinning or Fine Hair, Thicker & Fuller-Looking, All Hair Types` (leading chip
-    carries the pack size).
+  - **Separate chips with MIDDOTS, ONE separator per field.** See the separator contract in
+    §3: Item Highlights are **middot-separated** (` · `) Title-Case chips; the spaced en-dash
+    ` – ` is reserved for the TITLE, so the two fields read as visually distinct units, not
+    one merged line. The middot carries no grammatical meaning, so a chip may keep its own
+    internal comma without ambiguity. Never mix separators in one field. Each chip must read
+    as its own scannable unit, not a run-on phrase. **Build-enforced**: a dash or pipe
+    separator, or the absence of ` · `, FAILS the workbook QA gate.
+    Worked separator (AlphaInfuse serum, per-variation): `1 Month Supply · Lightweight &
+    Non-Greasy Formula · For Thinning or Fine Hair · Thicker & Fuller-Looking · All Hair
+    Types` (leading chip carries the pack size). Worked separator where the lead chip
+    carries the head keyword instead (Evora body oil): `Body Oils for Women ·
+    Fast-Absorbing & Non-Greasy · For Dry, Crepey-Looking Skin · Warm Vanilla Scent ·
+    4 Fl Oz` (under the middot rule that chip keeps its natural internal comma).
   - **Lead with the strongest USP**, then descend; front-loaded highlights are the
     ones shown when the field truncates in the grid.
 
@@ -191,15 +257,50 @@ word is.
     "Protein" throughout, making a "Protein/Proteinshake" IH 0-increment; it was
     rebuilt around the uncovered, genuinely-true "Eiweißshake"/"Diätshake" compounds
     for +5,276 SV.
+    **NOW BUILD-ENFORCED** (added 2026-07-26): the builder computes this increment and
+    FAILS at 0, so a redundant IH can no longer ship. It had been prose-only guidance,
+    which is exactly how one shipped.
+  - **BUILD-ENFORCED: the ≤75 title and ≤125 IH caps.** Both were prose-only until
+    2026-07-26 and neither was measured, so an over-length field passed every gate.
+    They are now hard FAILs. **Convention the caps depend on: the FIRST LINE of the
+    New Listing cell IS the publishable copy; rationale goes on the lines below it.**
+    The title lead-token gate already assumed this. A cell that opens with prose
+    ("RECOMMENDED (72 chars): '…'") now fails the cap until it is reordered copy-first.
+  - **BUILD-ENFORCED (warning): the keyword-dump shape.** If more than 40% of chips are
+    bare single words and there are ≥4 chips, the build warns. Rationale: a token list
+    ("Men's · Undershirt · Vest · Chest · Girdle · Tight · Tops") maximises the coverage
+    metric while failing the field's primary job, and the separator gate passes it
+    happily. A second warning fires when the IH repeats a token the title already covers.
+    Worked negative case (Shaperluv US men's compression tank, 2026-07-26): an 11-chip
+    single-word IH was rejected by the operator on sight. Rewritten as five attribute
+    phrases it scored **identically**, because the whole increment came from three tokens
+    (`tops`, `girdle`, `tight`) that fit inside readable chips or moved to backend. Then
+    the new increment gate showed even that version bought only 5,665 SV once the bullets
+    were counted, and reallocating to the uncovered `shaping`/`hiding`/`male` cluster took
+    it to 25,734. **Readability and coverage were never in conflict; the dump was just
+    lazy.** Where a high-SV token genuinely will not sit in readable copy, put it in
+    **backend**, not in a field the shopper reads: `girdle` (22,802 SV) went to backend
+    precisely because it reads dated to a male audience.
+  - **Per-variation lead chip.** When children differ on a dimension the title no longer
+    carries (because the ≤75 cap evicted it), lead each child's IH with **its own
+    variation value**. Shaperluv's colour attribute encodes pack too (`1 Pack Black`,
+    `3 Pack White`), so without it a 3-pack was indistinguishable from a 1-pack in the
+    search grid at three times the price. Cost nothing in coverage there, because the
+    description already carried the colour and size tokens: check that before spending
+    the characters.
+  - **Accent folding (fixed 2026-07-26).** The coverage tokeniser strips diacritics on
+    both sides now. Before that, `compresión` shredded into `compresi` + `n`, so every
+    accented keyword read as uncovered and a bogus 1-char `n` token appeared to gate
+    44,418 SV on a US listing with Spanish demand. Any ES/FR/IT workbook built before
+    this date under-reports its coverage.
 
   Worked example (fictional collagen powder; title already holds *collagen,
   powder, peptides, hydrolyzed, type 1 & 3, 300g, bovine*):
-  `Grass-Fed & Marine-Free, For Skin Hair & Nails, Keto & Paleo Friendly,
-  Dissolves In Coffee, Non-GMO, 30 Servings`. Title Cased, **comma-separated** (the
+  `Grass-Fed & Marine-Free · For Skin, Hair & Nails · Keto & Paleo Friendly ·
+  Dissolves In Coffee · Non-GMO · 30 Servings`. Title Cased, **middot-separated** (the
   dash stays in the title), USP-led, no title tokens repeated, all factual attributes
-  (no dosed effect claims). Note that **no chip contains an internal comma**. "For Skin
-  Hair & Nails" drops it, and "Non-GMO" / "30 Servings" are their own chips, so the
-  comma stays unambiguous as the separator.
+  (no dosed effect claims). Note that "For Skin, Hair & Nails" keeps its natural comma:
+  under the middot rule that is no longer ambiguous.
 - **5 bullets** ("About this item"): each a benefit-led micro-PAS (problem → agitate → solve),
   **Title-Case lead label (NOT ALL-CAPS)**; weave in mid-SV terms naturally.
 - **Description**: longer copy covering remaining keywords + brand story +

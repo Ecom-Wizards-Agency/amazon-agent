@@ -47,6 +47,7 @@ import os
 import re
 import shutil
 import sys
+import unicodedata
 from typing import Any
 
 from openpyxl import load_workbook
@@ -1456,6 +1457,22 @@ def excel_name_ok(name: str) -> bool:
 _RJ_TOKEN_RE = re.compile(r"[a-z0-9äöüß%]+")
 
 
+def _fold(text: str) -> str:
+    """Strip diacritics before tokenising, so an accented keyword and an
+    unaccented spelling of it are the same token.
+
+    Without this, the token class silently shreds accented words: 'compresión'
+    tokenises to 'compresi' + 'n', so EVERY accented Spanish keyword scores as
+    uncovered and a bogus 1-char 'n' token appears to gate tens of thousands of
+    SV. Found on Shaperluv US 2026-07-26, where 44,418 SV of Spanish keywords
+    ('camisetas de compresión para hombre' and friends) read as uncovered while
+    the copy did cover them. Both sides of every comparison fold, so this only
+    ever makes matching more accurate; it matters most for the ES/FR/IT
+    workbooks, where accents are everywhere.
+    """
+    return "".join(c for c in unicodedata.normalize("NFKD", text) if not unicodedata.combining(c))
+
+
 def _seo_copy_by_section(wb) -> tuple[dict, str | None]:
     """{section_norm: new_copy} from the SEO Text tab (col A label, col C copy)."""
     seo_tab = next((s for s in ("4.1 SEO Text", "4. SEO Text") if s in wb.sheetnames), None)
@@ -1514,13 +1531,13 @@ def _master_sv_map(wb, master_sheet: str) -> dict:
 
 
 def _rj_tokens(text: str) -> set:
-    return set(_RJ_TOKEN_RE.findall(norm(text)))
+    return set(_RJ_TOKEN_RE.findall(_fold(norm(text))))
 
 
 def _kw_is_covered(kw_norm: str, copy_tokens: set) -> bool:
     """A keyword is covered if every token appears in the copy (exact, or a >=4-char
     stem prefix match — a light German-stem approximation, e.g. ballaststoff(e))."""
-    for t in _RJ_TOKEN_RE.findall(kw_norm):
+    for t in _RJ_TOKEN_RE.findall(_fold(kw_norm)):
         if t in copy_tokens:
             continue
         if len(t) >= 4 and any(ct.startswith(t) or t.startswith(ct) for ct in copy_tokens if len(ct) >= 4):
@@ -1825,7 +1842,7 @@ def run_validations(wb, cfg, counts, related_result, paths, warnings) -> list[di
         mkl_vocab: set = set()
         for kw in master_sv:
             mkl_vocab |= _rj_tokens(kw)
-        lead_tokens = [t for t in _RJ_TOKEN_RE.findall(norm(title_text)) if t not in client_tokens]
+        lead_tokens = [t for t in _RJ_TOKEN_RE.findall(_fold(norm(title_text))) if t not in client_tokens]
         lead = lead_tokens[0] if lead_tokens else ""
         lead_tracked = bool(lead) and (
             lead in mkl_vocab
@@ -1879,7 +1896,7 @@ def run_validations(wb, cfg, counts, related_result, paths, warnings) -> list[di
         if pf and norm(pf.get("blend_or_single")) == "blend" and lead:
             led_by_ing = next(
                 (norm(i.get("name")) for i in (pf.get("ingredients") or [])
-                 if norm(i.get("name")) and lead in _RJ_TOKEN_RE.findall(norm(i.get("name")))),
+                 if norm(i.get("name")) and lead in _RJ_TOKEN_RE.findall(_fold(norm(i.get("name"))))),
                 None,
             )
             if led_by_ing:
@@ -1894,6 +1911,159 @@ def run_validations(wb, cfg, counts, related_result, paths, warnings) -> list[di
             "Semantic / Alexa AI direction present",
             bool(sem and sem.strip()),
             f"present={sem is not None} non_empty={bool(sem and sem.strip())}",
+        )
+
+        # Separator contract (seo-writing-methodology.md §3), revised 2026-07-26:
+        # the spaced EN-dash ' – ' is the TITLE separator; Item Highlights take
+        # the spaced MIDDOT ' · '. The two fields render stacked and touching in
+        # the search grid, so they need DIFFERENT glyphs or the eye cannot find
+        # the seam. Within that, each glyph does the job its shape suggests: the
+        # title is clause-shaped so it takes a dash, the highlights are a list of
+        # chips so they take a list mark. The middot also carries no grammatical
+        # meaning, so unlike the previous comma rule it never collides with the
+        # punctuation inside a chip and no chip has to be reworded around it.
+        ih_val = next((v for k, v in seo_by_section.items() if k.startswith("item highlight")), None)
+        if ih_val and ih_val.strip() and not str(ih_val).strip().startswith("("):
+            ih = str(ih_val).strip()
+            bad_seps = [s for s in (" – ", " — ", " | ", " - ") if s in ih]
+            chips = [c.strip() for c in ih.split(" · ")]
+            add(
+                "Item Highlights use the middot separator (no dash/pipe; the dash belongs to the TITLE)",
+                not bad_seps and len(chips) > 1,
+                (f"separator={'MIDDOT' if len(chips) > 1 else 'NONE'} chips={len(chips)}"
+                 + (f" BAD_SEPARATORS={bad_seps!r} (dashes belong to the TITLE only)" if bad_seps else "")),
+            )
+
+        # --- Hard character caps + Item Highlights QUALITY -------------------
+        # CONVENTION (enforced from here on): in a copy row, the FIRST LINE of the
+        # New Listing cell IS the publishable copy; rationale goes on the lines
+        # after it. The title lead-token gate above already assumes this (it reads
+        # the first token of the cell), so the caps read the same way. An older
+        # seo_content file that opens with prose ("RECOMMENDED (72 chars): '…'")
+        # will fail these caps until its cell is reordered copy-first.
+        def _copy_line(v) -> str:
+            for ln in str(v or "").splitlines():
+                if ln.strip():
+                    return ln.strip()
+            return ""
+
+        CAPS = [  # (section prefix, limit, label)
+            ("title (≤75", 75, "Title (≤75 from 2026-07-27)"),
+            ("title (<=75", 75, "Title (≤75 from 2026-07-27)"),
+            ("item highlight", 125, "Item Highlights (≤125)"),
+        ]
+        for prefix, limit, label in CAPS:
+            v = next((v for k, v in seo_by_section.items() if k.startswith(prefix)), None)
+            if v is None:
+                continue
+            line = _copy_line(v)
+            if not line or line.startswith("("):
+                continue  # placeholder / not-yet-written row
+            add(
+                f"{label} is within Amazon's character cap",
+                len(line) <= limit,
+                f"len={len(line)} limit={limit} copy={line[:60]!r}"
+                + ("" if len(line) <= limit else
+                   "  (the FIRST LINE of the cell must be the publishable copy; put rationale on later lines)"),
+            )
+
+        # Item Highlights QUALITY. The field is shown next to the title in the
+        # search grid, so its first job is CTR: every chip must read as a real
+        # attribute on its own. A list of bare single-word tokens ("Men's · Chest
+        # · Tight · Tops") games the coverage metric while reading as a keyword
+        # dump, and the separator gate alone happily passes it. Two signals catch
+        # that shape, both WARNINGS because a genuine certification-style field
+        # ("Vegan · Bio · Gluten Free") is legitimately single-word.
+        if ih_val and _copy_line(ih_val) and not _copy_line(ih_val).startswith("("):
+            ih_line = _copy_line(ih_val)
+            ih_chips = [c.strip() for c in ih_line.split(" · ") if c.strip()]
+            if ih_chips:
+                singles = [c for c in ih_chips if len(c.split()) == 1]
+                share = len(singles) / len(ih_chips)
+                avg_len = sum(len(c) for c in ih_chips) / len(ih_chips)
+                if share > 0.4 and len(ih_chips) >= 4:
+                    warnings.append(
+                        f"Item Highlights look like a KEYWORD DUMP, not shopper-facing chips: "
+                        f"{len(singles)} of {len(ih_chips)} chips are bare single words "
+                        f"({round(100*share)}%), average chip {avg_len:.0f} chars. Singles: "
+                        f"{singles[:6]}. This field is shown beside the title in search, so each "
+                        f"chip must read as a real attribute. Rewrite as attribute phrases; a "
+                        f"high-SV token that no longer fits belongs in backend instead."
+                    )
+                # Repeating a token the title already covers wastes the field.
+                ttl_line = _copy_line(next(
+                    (v for k, v in seo_by_section.items()
+                     if k.startswith(("title (≤75", "title (<=75"))),
+                    next((v for k, v in seo_by_section.items() if k.startswith("title")), "")))
+                dupes = sorted(_rj_tokens(ih_line) & _rj_tokens(ttl_line))
+                if dupes:
+                    warnings.append(
+                        f"Item Highlights repeat title tokens {dupes[:8]} — a token the title already "
+                        f"covers is already indexed, so the repeat buys nothing. Spend the field on "
+                        f"uncovered USPs (seo-writing-methodology.md, Item Highlights)."
+                    )
+                # INCREMENTAL SV: the methodology calls this a QA gate but it was
+                # never computed, which is how a redundant IH ships unnoticed. An
+                # IH that adds nothing on top of the OTHER searchable fields must
+                # be reallocated to the highest-SV terms still uncovered anywhere.
+                if master_sv:
+                    others = " ".join(
+                        _copy_line(v) for k, v in seo_by_section.items()
+                        if (k.startswith(("title", "bullet", "description"))
+                            or "backend search terms" in k)
+                    )
+                    tri2 = cfg.get("triage", {})
+                    ex = ((tri2.get("brand_tokens") or []) + (tri2.get("form_tokens") or [])
+                          + (tri2.get("negative_tokens") or []))
+                    without = compute_rj_coverage(master_sv, others, ex)["covered_addressable"]
+                    with_ih = compute_rj_coverage(master_sv, others + " " + ih_line, ex)["covered_addressable"]
+                    add(
+                        "Item Highlights add incremental SV over the other searchable fields",
+                        (with_ih - without) > 0,
+                        f"incremental={with_ih - without} addressable SV "
+                        f"(without IH {without}, with IH {with_ih}) — measure the INCREMENT, not the "
+                        f"field's standalone SV; ~0 means the bullets/description/backend already "
+                        f"cover these tokens and the field must be reallocated",
+                    )
+
+        ttl = next((v for k, v in seo_by_section.items() if k.startswith("title")), None)
+        if ttl and ttl.strip():
+            t = str(ttl).strip()
+            if " – " not in t and ", " in t:
+                warnings.append(
+                    "Title appears to use a COMMA as its clause separator; the methodology's title "
+                    "separator is the spaced EN-dash ' – ' (commas inside a clause, e.g. 'Dry, Sensitive "
+                    "Skin', are fine). See seo-writing-methodology.md §3."
+                )
+
+        # Bullet contract (seo-writing-methodology.md §3): a bullet is
+        # 'Label: Sentence'. The word after the colon starts a sentence, so it
+        # is CAPITALISED, and bullets carry NO asterisk. The asterisk is a
+        # disclaimer-linking device; when it lives in a bullet it renders as
+        # literal punctuation in the search grid and in mobile snippets, and it
+        # implies a footnote the bullet itself cannot show. The DSHEA/compliance
+        # disclaimer belongs in the description as a whole sentence instead.
+        bullet_bad_case, bullet_star = [], []
+        for k, v in seo_by_section.items():
+            if not k.startswith("bullet") or not v or not str(v).strip():
+                continue
+            b = str(v).strip()
+            if str(v).strip().startswith("("):
+                continue
+            if "*" in b:
+                bullet_star.append(k)
+            head, sep, rest = b.partition(": ")
+            if sep and rest.split():
+                first = rest.split()[0]
+                # numeral-led sentences ('30 women's gummies per bottle') are fine
+                if first[:1].isalpha() and not first[:1].isupper():
+                    bullet_bad_case.append(f"{k}->{first!r}")
+        add(
+            "Bullets capitalise the word after 'Label:' and carry no asterisk",
+            not bullet_bad_case and not bullet_star,
+            (f"lowercase_after_colon={bullet_bad_case or 'none'} "
+             f"asterisk_in_bullet={bullet_star or 'none'} "
+             "(disclaimer belongs in the description as a full sentence)"),
         )
 
     # Regulated-category nudge: the health-claims self-check must have run
