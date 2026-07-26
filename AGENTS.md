@@ -104,7 +104,7 @@ Default routing:
 - `amazon-ads`: Ads Console, PPC, bidding, budgets, targeting.
 - `amazon-campaign-builder`: creating Sponsored Products campaigns from a text brief → bulk-upload `.xlsx` via `tools/amazon-campaign-builder/` (file-only; upload stays operator-confirmed).
 - `amazon-ads-monitor`: automated daily (and weekly) Amazon Ads performance brief with trends, % changes, a Sellerboard-vs-AdLabs data cross-check, and goal-lens-aware philosophy-aware flags, posted to Slack → `tools/amazon-ads-monitor/` (read-only; Sellerboard "Dashboard Totals" CSV + AdLabs cross-check primary, SP Ads API v3 secondary, mock/PREVIEW fallback with no credentials).
-- `amazon-sb-video-briefs`: Sponsored Brands VIDEO creative work: keyword-driven video planning, editor briefings, SB video scripts and hook testing (`/video-brief`). Data-selected query clusters (POE + DataDive + SQP + ads data) → one Google Doc briefing per batch, section per cluster (script tables, 3 hook variants, sound-off rules, specs, advisory health-claims table). Pure PPC structure → `amazon-campaign-builder`/`amazon-ads`; creator sourcing → `amazon-creator-connections`.
+- `amazon-sb-video-briefs`: Sponsored Brands VIDEO creative work: keyword-driven video planning, editor briefings, SB video scripts and angle testing (`/video-brief`). Data-selected query clusters (POE + DataDive + SQP + ads data) → one branded .docx briefing per batch, section per video, three named angles over one shared second half (script tables, sound-off rules, specs, advisory health-claims table), plus a per-product-line Creative Reference & Asset Library. Pure PPC structure → `amazon-campaign-builder`/`amazon-ads`; creator sourcing → `amazon-creator-connections`.
 - `amazon-creator-connections`: Creator Connections inbox audits, status-filtered message triage, campaign tracker updates, reply drafting (operator-confirmed sends), campaign prep to the publish checkpoint, tracker gaps, reconciliation.
 - `amazon-reporting`: fetching and formatting Seller/Ads reports, SQP, business reports, analytics workbooks; Business Reports + SQP can be fetched without manual download via `tools/report-fetcher/`. Not for audit narratives (that is `amazon-ad-audit` or `amazon-adlabs-audit`).
 - `amazon-inventory-planning`: weekly FBA inventory overview, reshipment planning, pCloud outputs, Slack staging.
@@ -197,7 +197,7 @@ Do not map Item Highlights into bullet fields or create bullet columns when the 
 
 Reusable assembly (client-agnostic): `tools/amazon-seo-keyword-workbook/` turns these raw exports into a styled, validated keyword workbook, driven entirely by a per-client config (copy `config.TEMPLATE.json`; see `NEW-CLIENT.md` and `WORKFLOW.md`). Tab structure, thresholds, and validation details live in the `amazon-seo-keyword-workflow` skill. Route there for the full end-to-end run. On explicit PPC request, the workbook's `5. Campaign Structure` tab is filled via `fill_campaign_structure.py` (`/fill-campaigns`): visual plan only; strategy thresholds and campaign naming live local-only in `_local/ads-strategy/`.
 
-Keyword-research workbook delivery goes to Google Drive only. Do not copy generated keyword-research workbooks to pCloud. Target folder pattern: `Geteilte Ablagen/Ecom Wizards/01_Client Sheets/<Client>/Keyword Research/<Country>/`. One `Keyword Research` folder per client with a sub-folder per country (NOT a folder per run). If the client has only one country, the workbook goes directly in `…/<Client>/Keyword Research/` with no country sub-folder. The workbook becomes a Google Sheet there.
+Keyword-research workbook delivery goes to Google Drive only. Do not copy generated keyword-research workbooks to pCloud. Target folder pattern: `Geteilte Ablagen/Ecom Wizards/01_Client Sheets/<Client>/<Client> - Shared/<Keyword Research>/<Country>/` (see Google Drive Delivery below: the workbook is client-facing, so it goes inside `<Client> - Shared/`, and the Keyword Research folder's exact name varies per client, so reuse the existing one). One Keyword Research folder per client with a sub-folder per country (NOT a folder per run). If the client has only one country, the workbook goes directly in that folder with no country sub-folder. The workbook becomes a Google Sheet there.
 
 Two-agent flow (Codex ↔ Claude): keyword-workbook runs split across the internal/connected browser (POE + DataDive UI exports) and Claude (SEO writing + the builder). To avoid hand-translating between agents, run the builder's preflight: `build_keyword_workbook.py --config <cfg> --preflight`. It reads the config's input contract and prints either a copy-ready Codex handoff (for missing browser/UI inputs) or a READY status. Codex's role here: produce the contract inputs at their paths, capture evidence + caveats, then stop. Do not run the builder or write SEO (that is Claude's half: write the SEO content and run the build). Follow the saved protocol at `<your-vault>/Context/codex-claude-handoff-protocol.md`. Building a different product than the style template clears product-specific curated tabs to placeholders (via `tabs.carry_forward_clear`) so a new-market workbook never ships another product's content.
 
@@ -223,7 +223,7 @@ Two audit variants exist. Route by data source:
 - Weekly per-keyword SQP x PPC monitoring (`/supa`): `tools/sqp-supa/` toolkit. Answers the one question the audits cannot: did click share fall because ad spend on that keyword quietly fell? AdLabs-native, one pull per Sunday-Saturday week, per-client config gitignored (`config.<client>-<market>.json`). Not an audit narrative and not a substitute for one.
 - Ongoing weekly MANAGEMENT of an AdLabs-managed account ("run the week", `/ppc-manage`): `amazon-ppc-management` skill. The operating counterpart to the audit (diagnose) and the monitor (observe): stock gate, run-rate pacing governor, Rank Radar graduation, opt-group audit, then AdLabs optimizer/harvest preview -> explicit operator approval per batch -> apply with an audit note. Doctrine and thresholds live in `_local/ads-strategy/strategy.md` v3 + `strategy.json` `management`.
 
-The workbooks and narrative scaffold are built by the client-agnostic toolkit `tools/amazon-ad-audit/` (per-client config from `config.TEMPLATE.json`; see its `WORKFLOW.md` and `NEW-CLIENT.md`). Build steps, roles (Codex downloads exports, Claude pulls DataDive/builds/writes), QA gates, and delivery rules live in the `amazon-ad-audit` skill. Route there for the full run. Client config JSONs are gitignored; deliver the MASTER `.xlsx` + narrative `.docx` to the client's Google Drive audit folder.
+The workbooks and narrative scaffold are built by the client-agnostic toolkit `tools/amazon-ad-audit/` (per-client config from `config.TEMPLATE.json`; see its `WORKFLOW.md` and `NEW-CLIENT.md`). Build steps, roles (Codex downloads exports, Claude pulls DataDive/builds/writes), QA gates, and delivery rules live in the `amazon-ad-audit` skill. Route there for the full run. Client config JSONs are gitignored; deliver the MASTER `.xlsx` + narrative `.docx` to the audit folder inside `<Client> - Shared/` (see Google Drive Delivery below). Intermediate working files from the audit run are NOT deliverables: they stay in `_Working/account-check/` or local `output/`.
 
 ## Campaign Creation Standard
 
@@ -235,7 +235,9 @@ The output is a FILE ONLY and campaigns default to `paused`. Uploading the bulk 
 
 For Sponsored Brands video creative work ("build a video brief", "better SB videos", `/video-brief`), route to the `amazon-sb-video-briefs` skill. Core premise: Amazon is pull marketing, so videos are built per query cluster and designed sound-off; Meta-style creative playbooks apply only through the skill's adaptation layer (`references/evolve-to-amazon-adaptation.md`), never raw. Cluster selection comes from data (POE, DataDive, SQP, ads performance), capped at 3 to 5 per batch, with an operator stop at the shortlist.
 
-Briefs deliver as ONE Google Doc per batch (no cover page, section per cluster) in the client's Drive ads/creative folder, per `references/editor-brief-template.md`; the claims pass runs through the `amazon-seo` health-claims layer in advisory mode (per-line operator decisions, recorded in the brief). The skill never launches campaigns, changes bids, or uploads creatives; the per-client config contract lives in `tools/sb-video-briefs/` (gitignored client configs).
+Vocabulary is Evolve-aligned so Amazon and Meta stay one system: a batch is one video, its three openings are Angle 1/2/3 (never "Hook A/B/C"), and a cut is one angle plus the shared second half. Cadence is roughly 3 angles per month. Each product line gets its own evergreen Creative Reference & Asset Library (`references/creative-reference-doc.md`) holding the claim master, shelf map, shopper language and asset requests; the brief carries execution only and never restates that evidence.
+
+Briefs and reference docs deliver as branded .docx with NO cover page, rendered via `tools/amazon-ad-audit/render_branded.py` (`cover=False`, no `custom_kpis`, repo `.venv` python) onto the Google Drive desktop mount in the client's creative folder, one canonical file edited in place, per `references/editor-brief-template.md`. The claims pass runs through the `amazon-seo` health-claims layer in advisory mode (per-line operator decisions with source and date, recorded in the brief). Angle tests need one campaign per batch and one ad group per angle, because AdLabs has no creative-level entity for Sponsored Brands. The skill never launches campaigns, changes bids, or uploads creatives; the per-client config contract lives in `tools/sb-video-briefs/` (gitignored client configs, one per product line).
 
 ## Creator Connections Standard
 
@@ -286,6 +288,51 @@ Controlled workflow names:
 - `creator-connections`
 
 Do not create a separate global overview tracker by default. If a workflow needs local context, put `README.md` or `operator-note.md` inside the relevant workflow folder. Use Notion for ongoing team status.
+
+## Google Drive Delivery
+
+Google Drive is for artifacts a HUMAN opens: client deliverables, and internal files the team reviews. It is not an archive for generated exhaust. Everything else stays local under `output/`, `downloads/`, and `evidence/` per Local Output Storage above.
+
+Every client folder in the `Ecom Wizards` shared drive has exactly two zones:
+
+```
+Geteilte Ablagen/Ecom Wizards/01_Client Sheets/<Client>/
+  <Client> - Shared/     CLIENT-VISIBLE. The client has commenter access on this folder.
+  _Working/              Internal. Agent proposals, previews, checks.
+  <other folders>        Internal by default.
+```
+
+The client is shared into `<Client> - Shared/` ONLY, never into `<Client>/`. Anything outside that one folder is invisible to them. This is the whole boundary, so treat the folder name as load-bearing: never write into `<Client> - Shared/` unless the artifact is a finished client deliverable.
+
+**Default is internal.** If an artifact is not on the client-facing list below, it goes to `_Working/<workflow>/`. When unsure, `_Working/`. It is cheap to promote a file later and expensive to unsee one.
+
+Routing:
+
+| Artifact | Location |
+|---|---|
+| Keyword research workbook | `<Client> - Shared/<Keyword Research>/<Country>/` |
+| Audit MASTER `.xlsx` + narrative `.docx`/`.pdf` | `<Client> - Shared/<Audits>/` |
+| Monthly reports, reporting downloads | `<Client> - Shared/<Reports>/` |
+| SB video briefing `.docx` + Creative Reference `.docx` | the client's creative folder, one file per batch and per product line, edited in place |
+| Proposals, previews, fix plans, harvest/routing plans, rank-push plans, account checks | `_Working/<workflow>/` |
+| Ad bulk files | `_Working/ads/` or the client's existing ad-bulk folder |
+| FlatFilePro upload CSVs | NOT in Drive. `output/{client}/catalog/` |
+| Raw Seller Central listing exports (Category Listings Report) | NOT in Drive. `downloads/{client}/catalog/` |
+
+`<workflow>` reuses the controlled names from Local Output Storage: `ads`, `account-check`, `catalog`, `reporting`, `seo`, `inventory`.
+
+Subfolder names inside `<Client> - Shared/` vary per client for historical reasons (`Keyword Research` in one, `02 Keyword Research` in another). Before saving, LIST the folder and reuse the existing one. Never create a spelling or numbering variant next to an existing folder, and never create a new top-level subfolder inside `<Client> - Shared/`. If an artifact does not fit the four categories above, it is not a client deliverable.
+
+Filename convention for everything delivered to Drive:
+
+```
+YYYY-MM-DD_<Client>_<Market>_<Artifact>_v<N>.<ext>
+2026-07-26_Acme_DE-IT_ToS-modifier-preview_v1.xlsx
+```
+
+Date first and ISO always, so folders sort chronologically. Omit `<Market>` only when the artifact genuinely spans all marketplaces. Do not reuse the older `<Client> <Market> - <Artifact> - DD.MM.YYYY` or trailing-date forms.
+
+`_Working/` is a live decision queue, not a landfill. A proposal sitting loose in `_Working/<workflow>/` means "still awaiting a decision". Once it has been applied or rejected, move it to `_Working/_archive/YYYY-MM/`. Do not delete it. The archive is the record of what was proposed and when.
 
 ## Client Profile Memory
 

@@ -1,83 +1,108 @@
-# Editor brief template (Google Doc)
+# Editor brief template
 
-One brief section = one query cluster = one video (with 3 hook variants). The brief must be executable by an editor who knows nothing about Amazon. Every section below is mandatory unless marked optional. Deliver as ONE Google Doc per batch (no cover page) in the client's Drive ads/creative folder: a shared "global rules" block (sections 4 rules, 7, 8 do-not list) on top, then one cluster section per video. Doc title: `<Client> SB Video Briefing <topic>` (no version suffix, no date in the title; the date lives in the header line and versioning in Google Docs history). Open with a 2-line "how the cuts assemble" explainer (one hook + shared second half = one cut; hooks are sequences of CARDS, and the deliverable count is stated: videos x hooks = cuts). Give EACH hook its own sub-heading with a one-line angle description and its own table; never one merged table for all hooks (operator: a merged 8-row table read as "8 hooks"). The row-label column is titled "Card". Label script parts "Part 1: the three hooks" and "Part 2: shared second half", not jargon like "hold/lockup". Prefer a textless ending card: pack shot with logo carries the close. Every card must carry product substance (ingredient, form, origin, physical property); cut filler lines like "fits your routine": the operator rejects cards without informational value.
+One brief = one batch. One section per video. One video = three ANGLES over one shared second half, so three cuts.
+
+The brief must be executable by an editor who knows nothing about Amazon. Every section below is mandatory unless marked optional. Deliver as ONE branded .docx per batch, no cover page, in the client's Drive creative folder.
+
+The brief carries execution only. The evidence behind the angle (shelf map, review mining, cluster data, baselines) lives in the Creative Reference & Asset Library and is never restated here.
+
+## Structure
+
+```
+# <Client> <Product Line>: Sponsored Brands Video Briefing
+<header line>
+<how the cuts assemble>
+
+## Global rules (apply to both videos)
+### Sound-off design
+### Specs (verbatim, non-negotiable)
+### Absolute do-not list
+
+## Video 1: <cluster> (target NN s)
+<desire / core avatar>
+<keywords>
+<awareness>
+<what differs across the three angles>
+### Part 1: the three angles (0 to 10 s)
+#### Angle 1: <name>
+#### Angle 2: <name>
+#### Angle 3: <name>
+### Part 2: shared second half (10 to NN s)
+
+## Video 2: <cluster> (target NN s)
+   ...same shape...
+
+## Claims and compliance (advisory)
+```
 
 ## 1. Header
 
-One line only, operator preference (2026-07-23): the date and the first market (e.g. "2026-07-23. First market: Germany (amazon.de)."). If on-screen text ships in several languages, add one sentence naming them and which is the master. No version/client/product boilerplate block, no "written for an editor" intro.
+One line only: the date and the market. For example "2026-07-26. Market: United States (amazon.com). All on-screen text in English." If on-screen text ships in several languages, add one sentence naming them and which is the master. No version, client or product boilerplate block, no "written for an editor" intro.
 
-## 2. Why this video exists (internal, NOT in the doc)
+## 2. How the cuts assemble
 
-Keep the data case (cluster volume, current spend/CTR/ACOS, hypothesis) in the chat summary and the learnings loop, not in the editor-facing doc. The operator removed this section from the delivered brief: the doc starts with the global rules. The hypothesis still drives the learnings pass; record it in the client config or run notes.
+Two or three lines directly under the header, so nobody miscounts the deliverable:
 
-## 3. The shopper at this query
+> There are N videos. Each video ships as 3 cuts. A cut = one ANGLE (the first 10 seconds) + Part 2 (the shared second half, identical in every cut of that video). Each angle is a short sequence of CARDS; the rows in the tables are cards, not separate angles.
+>
+> Deliverable: N x 3 cuts.
 
-A mini-persona, 4 lines, built from the query plus review mining. Not a full avatar:
+## 3. Global rules
 
-- Who types this and what problem state they are in.
-- What they compare on this shelf (the visible criteria: price, form, count, claims).
-- The exact words they use (verbatim review or query phrases; the editor should reuse these on screen).
-- What they distrust (the sophistication note: which claims every competitor already makes, so we avoid them).
+Three sub-sections, shared by every video in the batch.
 
-## 4. Script table
+**Sound-off design.** Autoplays muted and loops. Reading rule: roughly 1 second per 12 characters plus a beat for the visual, minimum 2.5 s per card; extend the slot rather than shrinking the text, and extend for longer translations. Max 7 words per card, one card at a time, high contrast, safe margins, legible at roughly 300 px wide. Frame 1 is product in action: no logo intro, no fade-in, no title card, no empty pack shot. The last frame must read as a clean restart. Every card must carry product substance; cut filler with no informational value.
 
-One row per shot. Columns:
+**Specs box, verbatim.** 16:9, 1920x1080, MP4 or MOV, max 500 MB, target length per video (Amazon max 45 s). Audio track required at minimum 96 kbps even though default playback is muted. No letterboxing or pillarboxing. No black or blank frames at start or end. No URLs, social handles, QR codes. No price, discount or urgency text. No competitor names or packs on screen. All on-screen text in the marketplace language.
 
-| # | Time | On-screen text (verbatim, final) | Visual direction | VO (optional) | Source footage |
-|---|------|----------------------------------|------------------|---------------|----------------|
+**Absolute do-not list.** Everything banned for this client, in every language: unsubstantiated claims, superlatives, star ratings, review counts, review quotes, prices, competitor names. Plus the categorical bans: no cure, treat, prevent or heal wording, no before-and-after imagery, no shots implying a medical outcome. Close with the editor rule: on-screen text is final copy; the editor fixes typos and layout, never claim wording.
 
-Rules stated in the brief so the editor sees them:
+## 4. Per-video context block
 
-- The video autoplays muted and small. On-screen text carries the message; VO and music are a bonus layer.
-- Card timings follow the reading rule: ~1 second per 12 characters plus a visual beat, minimum 2.5s per card; extend slots rather than shrinking text, and extend for longer translations.
-- Frame 1: product in action, no logo intro, no fade-in, no title card.
-- Max ~7 words per text card, one card at a time, high contrast, safe margins, legible at 300px wide.
-- The video loops. The last frame must read as a clean restart.
-- On-screen text is final copy. The editor never rewrites claim wording; typos and layout only.
+Four short items before the tables, in this order. They come from Evolve's tracker columns and replace a separate tracking sheet.
 
-## 5. Hook variants A / B / C
+- **Desire / core avatar.** Three or four sentences. Who types this, what problem state they are in, what they compare on this shelf, what they have usually already tried.
+- **Keywords.** The exact target queries. This is Evolve's Sub Avatar slot; on Amazon the query is the avatar.
+- **Awareness.** Solution Aware, Product Aware or Most Aware, **with a one-line justification tied to the query**. For example: "Solution Aware. They type 'eczema cream', so the category decision is already made. The video's job is to win the comparison, not to explain what the product is."
+- **What differs across the three angles.** One line naming the isolated variable. Normally the buying criterion.
 
-Only the first block (roughly 0 to 10s) differs. State each variant's angle in one line plus its rows for the script table. The shared remainder (proof block + brand lockup) is listed once.
+## 5. Part 1: the three angles
 
-## 5b. Multi-language text (when the batch ships in several marketplaces)
+Each angle gets its **own sub-heading, its own one-line description of who it is for, and its own table**. Never one merged table for all three: a merged table reads as one long video.
 
-The first market's language is the master script. For each additional language add a compact table after the script: card # | language columns, translations only (same timings, same visuals: text-layer swaps, not re-edits). Use the terminology from that marketplace's keyword research, mirror the local hero query in the first card, and keep every claim decision identical across languages (the banned list applies in all languages, including local variants like bioattivo/bioactif/bioactivo). Watch for false friends and slang in literal translations; adapt rather than translate when a line reads wrong locally.
+| Card | Time | On-screen text (final) | Visual direction |
+|---|---|---|---|
 
-## 6. Assets
+Angles must differ in **criterion**, not wording. Give each a short memorable name ("Without the sticky", "One cream, whole family") so the operator and editor can talk about it.
 
-- Product footage: location (Drive path or Notion embeds) and what exists.
-- B-roll needed: shot list of anything that must be filmed or sourced, marked "have / need".
-- Brand kit: fonts, colors, logo files and logo rules.
-- Music: direction only (no track requirement; it plays muted by default).
+## 6. Part 2: shared second half
 
-## 7. Specs box
+One table, listed once, identical in every cut of that video. It carries the proof block and the lockup. Nothing in Part 2 may duplicate a card used in any angle of the same video.
 
-Copy verbatim into every brief:
+The final card is **textless**: pack shot with the logo on a plain background, held still, reading as a clean restart for the loop.
 
-- 16:9, 1920x1080, MP4 or MOV, max 500MB, max 45s (target the brief's stated length).
-- Audio track required at 96 kbps minimum even though default playback is muted.
-- No letterboxing or pillarboxing. No black or blank frames at start or end.
-- No URLs, social handles, QR codes, or off-Amazon directives.
-- No price, discount, or urgency text. No competitor names.
-- Language: all on-screen text in the marketplace language stated in section 1.
+## 7. Multi-language text (when the batch ships in several marketplaces)
+
+The first market's language is the master. For each additional language add a compact table after the script: card number, then one column per language, translations only. Same timings, same visuals: text-layer swaps, not re-edits. Use the terminology from that marketplace's keyword research, mirror the local hero query in the first card, and keep every claim decision identical across languages. Adapt rather than translate when a literal line reads wrong locally.
 
 ## 8. Claims and compliance (advisory)
 
-The per-line risk table from the health-claims check, covering every on-screen text card and every VO line:
+ONE table for the whole batch, at the end. Sort HIGH and MEDIUM first so the decisions are the first thing read.
 
-| Line | Risk (LOW / MEDIUM / HIGH) | Why | Suggested compliant rewrite |
-|------|----------------------------|-----|------------------------------|
+| Line | Risk | Why | Suggested compliant rewrite | Decision |
+|---|---|---|---|---|
 
-Advisory mode: the operator decides per line before the brief ships; the table documents what was decided. The editor treats the on-screen text in section 4 as final and never resolves claims wording alone.
+Rules:
 
-## 9. Delivery and versioning
+- Cover 100% of on-screen cards and any VO line.
+- Every LOW line's "why" names the live-listing phrase it traces to. If nothing traces, it is not LOW.
+- Every MEDIUM and HIGH line carries a suggested rewrite and a decision.
+- An operator authorisation that runs against the listing must record the source and the date, plus the listing-alignment fix that removes the risk.
+- Close with one line stating which decisions are still open before the edit starts.
 
-- File naming: `<client>-<marketplace>-<cluster-slug>-hook<A|B|C>-v<N>.mp4`.
-- Where to upload finished cuts: a subfolder next to the briefing doc in the client's Drive ads/creative folder.
-- Review flow: first cut of hook A only, then the batch.
+## Not in this document
 
-## 10. Test plan (operator section, optional for the editor)
-
-- Campaign: 1 SB video campaign on the cluster queries, exact and phrase.
-- Read after meaningful spend: CTR vs SB baseline, VTR, CVR vs the ASIN's Business Report CVR, ACOS vs break-even, SQP click share before vs after.
-- Verdict rules and the learnings checklist live in evolve-to-amazon-adaptation.md section 9.
+- **Shelf map and review evidence.** Lives in the Creative Reference & Asset Library.
+- **Assets and shot lists.** Lives in the Creative Reference doc, section 6.
+- **Test plan, baselines, campaign structure.** Operator-facing, not editor-facing.
+- **Why this video exists.** The data case belongs in the shortlist conversation and the learnings loop.
