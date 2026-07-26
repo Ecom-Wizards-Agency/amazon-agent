@@ -124,25 +124,30 @@ def main():
     print(f"- url: https://www.youtube.com/watch?v={a.video_id}")
     print(f"- transcript: {model} via {a.backend}\n")
 
-    # diarize emits ~3x the tokens of whisper and drops the connection on
-    # anything sizeable, so it needs markedly smaller chunks than whisper does.
-    chunk, cap = ((240, 1_500_000) if fmt == "diarized_json" else (CHUNK_SECS, CAP))
+    # diarize's payload ceiling is far lower than whisper's — measured: 0.8 MB
+    # succeeds, 1.1 MB and 2.3 MB both drop the connection, while whisper-1
+    # handles 1.1 MB fine. Keep diarize chunks near 2 minutes / ~1 MB.
+    chunk, cap = ((120, 900_000) if fmt == "diarized_json" else (CHUNK_SECS, CAP))
 
-    # Speaker ids are per-chunk, so remap them to stay stable across a split file.
-    speakers, last = {}, None
-    for part, offset in split(audio, workdir, chunk, cap):
+    # Speaker labels are only meaningful WITHIN a chunk — the model has no way to
+    # tell that chunk 2's "A" is chunk 1's "A". Renumbering across chunks would
+    # invent 26 speakers for a 2-person interview, so keep the raw per-chunk
+    # letter and mark each boundary instead. Identity is stitched back together
+    # by reading the content, not by trusting the letters across a boundary.
+    parts = split(audio, workdir, chunk, cap)
+    last = None
+    for n, (part, offset) in enumerate(parts):
+        if len(parts) > 1:
+            print(f"\n<!-- speaker labels reset here (chunk {n + 1}/{len(parts)}) -->")
+            last = None
         for seg in transcribe(part, url, model, key, fmt).get("segments", []):
             t = int(seg["start"] + offset)
             text = re.sub(r"\s+", " ", seg["text"]).strip()
             if not text:
                 continue
             who = seg.get("speaker")
-            if who is None:
-                print(f"[{t//60:02d}:{t%60:02d}] {text}")
-                continue
-            label = speakers.setdefault((part.name, who), chr(65 + len(speakers)))
-            prefix = f"{label}: " if label != last else ""
-            last = label
+            prefix = "" if who is None or who == last else f"{who}: "
+            last = who
             print(f"[{t//60:02d}:{t%60:02d}] {prefix}{text}")
 
 

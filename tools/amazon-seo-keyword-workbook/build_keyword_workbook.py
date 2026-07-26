@@ -1464,7 +1464,7 @@ def _fold(text: str) -> str:
     Without this, the token class silently shreds accented words: 'compresión'
     tokenises to 'compresi' + 'n', so EVERY accented Spanish keyword scores as
     uncovered and a bogus 1-char 'n' token appears to gate tens of thousands of
-    SV. Found on Shaperluv US 2026-07-26, where 44,418 SV of Spanish keywords
+    SV. Found on a US account 2026-07-26, where 44,418 SV of Spanish keywords
     ('camisetas de compresión para hombre' and friends) read as uncovered while
     the copy did cover them. Both sides of every comparison fold, so this only
     ever makes matching more accurate; it matters most for the ES/FR/IT

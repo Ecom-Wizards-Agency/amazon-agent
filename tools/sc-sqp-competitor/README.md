@@ -2,7 +2,7 @@
 
 Captures the per-query top-10 ASIN comparison table (title, ASIN, brand, median
 price, impressions + share, clicks + share) from Brand Analytics > Search Query
-Performance query-detail pages. Built 2026-07-25 on the Pawsan run; pairs with
+Performance query-detail pages. Built 2026-07-25 on a live client run; pairs with
 skills/amazon-sqp-competitor-check.
 
 ## Fast path (skips ALL UI clicking)

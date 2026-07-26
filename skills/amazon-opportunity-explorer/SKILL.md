@@ -14,9 +14,9 @@ Use this specialist skill when the task involves Amazon Product Opportunity Expl
 POE records every niche you open in that account's "recently viewed niches." Running competitor/keyword research while logged into the WRONG Seller Central account leaks that research to the account's owner (a cross-client confidentiality breach). Verifying the marketplace is not enough: **verify the ACCOUNT IDENTITY before every `run-poe.mjs search|niche|batch`.**
 
 - `run-poe.mjs` now resolves and PRINTS the active account (display name + `partnerAccountId`) on every data command and on `doctor`. **Pass `--expect-account "<name|partnerAccountId>"` for all client work** to hard-abort on a mismatch before any niche is opened (implemented 2026-07-21; matches the account-switcher display name substring or an exact `partnerAccountId`/`merchantId`). Run `run-poe.mjs doctor` first to see which account is active.
-- The identity comes from the DOM account switcher (e.g. "SwissKlipUnited States") plus `GetUserContext` (`partnerAccountId`/`merchantId`).
+- The identity comes from the DOM account switcher (e.g. "AcmeUnited States") plus `GetUserContext` (`partnerAccountId`/`merchantId`).
 - POE data is market-level and identical across accounts, so data pulled under the wrong account is still USABLE, but the recently-viewed footprint cannot be scrubbed and re-pulling elsewhere does not remove it. So get the account right the first time.
-- See memory `poe-account-identity-leak-rule` (2026-07-21 incident: Tmrw research leaked into SwissKlip US).
+- See memory `poe-account-identity-leak-rule` (2026-07-21 incident: one client's research leaked into a different client's US account).
 
 ## Source Order
 
