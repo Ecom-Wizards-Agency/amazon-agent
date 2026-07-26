@@ -443,3 +443,26 @@ For troubleshooting:
 Account-specific notes (account-health snapshots, Creator Connections threads, per-brand quirks) live in the Notion ops profiles, not in this repo. Look them up there per account before acting.
 
 One durable, non-sensitive access note worth keeping here: the correct Creator Connections path is the Campaign Manager account selector, then Brand content > Creator connections.
+
+## Slack Posting Identity
+
+Before any Slack write, read `_local/slack-posting.md`. This is mandatory even when the destination channel and message are already known.
+
+For Victor's Amazon Agent, all agent-authored Slack posts must go out through the configured Wizards AI Slackbot. Never use the Slack connector to send an agent-authored message through Victor's personal identity, and never add a ChatGPT or Claude attribution. The Slack connector is for reading/searching Slack and for creating personal drafts only when the operator explicitly requests that workflow.
+
+The Wizards AI writing standard is mandatory:
+
+- Post one short, bold, single-line parent message in the channel.
+- Put all details in flat thread replies under that parent.
+- Use `DD.MM.YYYY` dates.
+- Use short `•` bullets with bold item or metric labels.
+- Use no more than one emoji per message and no sign-off.
+- Do not use a long channel-parent post or bypass the helper's house-style enforcement.
+
+The bot identity, helper script path, and channel allowlist are per-operator configuration and live in `_local/slack-posting.md`. If that file does not exist, the helper is unavailable, the channel is not allowlisted, or the configured bot identity cannot be verified, stop and ask the operator. Do not silently fall back to a personal user account or the Slack connector.
+
+Generic rules regardless of operator:
+
+- The posting helper enforces a channel allowlist. If it refuses a channel, do not work around it. Ask the operator to extend the allowlist.
+- Bot tokens never go into this repo, Notion, or chat output.
+- The bot's own workflows (ledgers, runbooks) are separate automations. This repo's agents only reuse the posting helper; they do not modify other automations' state.
