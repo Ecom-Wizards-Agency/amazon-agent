@@ -5,7 +5,7 @@ description: Use for Amazon FBA inventory and reshipment PLANNING, especially th
 
 # Amazon Inventory Planning
 
-Browser: Mixed (fresh SC reports via CDP fetcher where covered; other UI exports are Codex interactive).
+Browser: Mixed (connected Amazon MCP/SP-API is the default data path; use CDP or Codex interactive only for missing MCP fields, login/account verification, or historical UI investigation).
 
 Use this skill for recurring or ad hoc FBA inventory overview and reshipment planning. It owns the former "Weekly FBA Inventory Overview" automation workflow.
 
@@ -35,8 +35,9 @@ Important planner files:
 
 ## Core Rules
 
-- Always download fresh Seller Central reports for the current run before planning. "Latest reports" means reports requested/generated today for the selected account and marketplace; do not base a new reshipment plan on older local files, cached output, or previously downloaded reports unless the operator explicitly approves that exception in the current chat.
-- Verify every input report belongs to the selected account/marketplace and today's run before calculation. If a report page only offers an older report, request a new report and wait/download it; if Amazon cannot provide a same-day report, pause and report the blocker instead of silently using older data.
+- Use the connected Amazon MCP/SP-API as the default source for reshipment planning when it provides the required same-day inventory, inbound, reserved, aged/excess, and 30-day demand fields. Do not open Seller Central merely to repeat data already available through MCP.
+- Verify every MCP result belongs to the Ops Manager account and marketplace selected for the run and record its freshness timestamp. If a required field is unavailable or stale, use the narrowest Seller Central report/browser fallback for that field only. Never substitute older local files, cached output, or a previous run unless the operator explicitly approves the exception in the current chat.
+- For any CDP report-fetcher fallback, pass both `--marketplace <code>` and `--expect-account "<Seller Central Name>"`. Abort on a mismatch before fetching. Never rely on the session-default seller when the login contains multiple accounts.
 - Business Report units ordered for the last 30 days are the primary demand source.
 - FBA Inventory 7-day and 30-day shipped units are context/trend fields.
 - Restock sold30 is fallback/supporting signal only where the planner uses it.

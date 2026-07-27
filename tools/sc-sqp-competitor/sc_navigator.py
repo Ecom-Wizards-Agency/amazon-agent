@@ -63,7 +63,16 @@ def pick_account(tab, account, marketplace_label, confirm_label='Konto auswähle
     box = tab.js(f"""
     (() => {{
       const groups = [...document.querySelectorAll('div.full-page-account-switcher-account')];
-      const g = groups.find(x => (x.innerText||'').includes({json.dumps(account)}) && (x.innerText||'').includes({json.dumps(marketplace_label)}));
+      // The first matching div can be the outer agency wrapper, whose innerText contains
+      // every client and marketplace. Require this group's direct account button to match
+      // the requested seller exactly so we cannot select another client's marketplace row.
+      const g = groups.find(x =>
+        [...x.children].some(c =>
+          c.matches?.('button.full-page-account-switcher-account-details')
+          && (c.innerText||'').trim() === {json.dumps(account)}
+        )
+        && (x.innerText||'').includes({json.dumps(marketplace_label)}
+      ));
       if (!g) return null;
       const btn = [...g.querySelectorAll('button.full-page-account-switcher-account-details')]
         .find(b => (b.innerText||'').trim().startsWith({json.dumps(marketplace_label)}));
