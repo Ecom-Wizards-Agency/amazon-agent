@@ -18,14 +18,20 @@ The `watch` skill always prefers YouTube's auto-captions when they exist and has
 | `transcribe.py` | Audio-only download → chunk → transcribe → timestamped markdown on stdout |
 | `fixterms.py` | Repairs whisper-1's systematic Amazon-jargon errors, corpus-wide |
 | `worker.sh` | Single-video wrapper for `xargs -P N` parallel runs; skips completed, cleans audio |
+| `worker_diarize.sh` | Same wrapper against the `diarize` backend |
 
 ```bash
 python3 transcribe.py --out DIR -- VIDEO_ID          # note the --, see gotchas
 python3 transcribe.py --backend diarize --out DIR -- VIDEO_ID
 python3 fixterms.py DIR            # dry run
 python3 fixterms.py DIR --apply
+
+export VT_WORKDIR=/path/to/run            # transcripts land in $VT_WORKDIR/wh and /di
 xargs -P 4 -n 1 ./worker.sh < queue.txt
+xargs -P 4 -n 1 ./worker_diarize.sh < queue.txt
 ```
+
+Both workers find `transcribe.py` next to themselves, so they run from anywhere. `VT_WORKDIR` is the only thing they need told, and it defaults to the current directory. Keep it outside the repo: transcripts are run output, not source.
 
 Credentials are read from `~/.config/watch/.env` (`OPENAI_API_KEY`, `GROQ_API_KEY`). Never hardcoded, never logged.
 
