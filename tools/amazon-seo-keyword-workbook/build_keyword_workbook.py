@@ -2120,6 +2120,83 @@ def clear_placeholder_tab(ws: Worksheet, note: str) -> None:
     apply_style(cell, snap, 2, 1)
 
 
+TEAM_VAULT_ENV = "AMAZON_AGENT_TEAM_VAULT"
+TEAM_VAULT_POINTER = os.path.join(REPO, "_local", "team-vault-path.txt")
+
+
+def team_vault_root() -> str:
+    """Root of the shared team Obsidian vault, or "" when there is none.
+
+    Order: the AMAZON_AGENT_TEAM_VAULT env var, then the gitignored pointer file
+    at _local/team-vault-path.txt. The path is never hardcoded here because this
+    file is public. A candidate only counts when it has a Clients/ folder, so a
+    stale or half-synced path falls back instead of writing into nothing.
+    """
+    candidates = [os.environ.get(TEAM_VAULT_ENV, "")]
+    if os.path.isfile(TEAM_VAULT_POINTER):
+        with open(TEAM_VAULT_POINTER, encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith("#"):
+                    candidates.append(line)
+                    break
+    for candidate in candidates:
+        if not candidate:
+            continue
+        root = os.path.expanduser(candidate)
+        if os.path.isdir(os.path.join(root, "Clients")):
+            return root
+    return ""
+
+
+def vault_client_dir(root: str, client: str) -> str:
+    """Existing client folder in the shared vault, matched case-insensitively.
+
+    Never creates one. A folder invented here syncs to every teammate, and a
+    near-miss spelling next to the real folder is worse than no note at all, so
+    an unmatched client falls back to the repo output tree.
+    """
+    if not root or not client:
+        return ""
+    clients_dir = os.path.join(root, "Clients")
+    wanted = client.strip().casefold()
+    try:
+        entries = sorted(os.listdir(clients_dir))
+    except OSError:
+        return ""
+    for name in entries:
+        full = os.path.join(clients_dir, name)
+        if os.path.isdir(full) and name.casefold() == wanted:
+            return full
+    return ""
+
+
+def resolve_handoff_path(configured: str, cfg: dict, args: dict, warnings: list[str]) -> str:
+    """Where this run's handoff note goes.
+
+    Shared team vault first so teammates and their agents see the run, repo
+    output/ as the fallback. An explicit inputs.handoff_note always wins.
+    """
+    if str(configured or "").strip():
+        return str(configured).strip()
+    out = args.get("out") or ""
+    if not out:
+        return ""
+    filename = f"{os.path.splitext(os.path.basename(out))[0]} Handoff.md"
+    client = (cfg.get("product_anchor") or {}).get("client", "")
+    root = team_vault_root()
+    if root:
+        client_dir = vault_client_dir(root, client)
+        if client_dir:
+            return os.path.join(client_dir, "Handoffs", filename)
+        warnings.append(
+            f"Handoff note: no '{client}' folder under the shared vault's Clients/, "
+            "so the note went to the repo output tree. Create the client's hub note "
+            "in the team vault to have future runs land there."
+        )
+    return os.path.join(os.path.dirname(out), filename)
+
+
 def write_handoff_note(path: str, cfg: dict, args: dict, manifest: dict) -> str:
     if not path:
         return ""
@@ -2268,10 +2345,10 @@ def _codex_handoff_block(cfg: dict, args: dict, missing: list[str]) -> str:
         "",
         "Stop and report: the exact saved paths + the caveats above, then hand back to Claude.",
         "",
-        # Per-run protocol lives in the client's own Obsidian folder (config.inputs.handoff_note),
-        # so each client/run is self-contained rather than appended to one shared file. Falls back
-        # to the reusable Context protocol only when a run-specific note isn't configured.
-        f"Protocol: {(args.get('handoff_note') or '').strip() or '<your-vault>/Context/codex-claude-handoff-protocol.md'}",
+        # Per-run protocol is self-contained rather than appended to one shared file: the shared
+        # team vault when the client has a folder there, otherwise the repo output tree. Falls
+        # back to the reusable Context protocol only when neither resolves.
+        f"Protocol: {resolve_handoff_path(args.get('handoff_note', ''), cfg, args, []) or '<your-vault>/Context/codex-claude-handoff-protocol.md'}",
     ]
     return "\n".join(lines)
 
@@ -2709,7 +2786,10 @@ def main() -> int:
         "validations_all_pass": all(c["pass"] for c in checks),
         "warnings": warnings,
     }
-    handoff_path = write_handoff_note(args.get("handoff_note", ""), cfg, args, manifest)
+    handoff_path = write_handoff_note(
+        resolve_handoff_path(args.get("handoff_note", ""), cfg, args, warnings),
+        cfg, args, manifest,
+    )
     if handoff_path:
         manifest["outputs"]["handoff_note"] = handoff_path
     os.makedirs(os.path.dirname(args["manifest"]), exist_ok=True)

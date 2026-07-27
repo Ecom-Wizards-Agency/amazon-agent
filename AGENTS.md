@@ -321,7 +321,7 @@ Routing:
 
 `<workflow>` reuses the controlled names from Local Output Storage: `ads`, `account-check`, `catalog`, `reporting`, `seo`, `inventory`.
 
-Subfolder names inside `<Client> - Shared/` vary per client for historical reasons (`Keyword Research` in one, `02 Keyword Research` in another). Before saving, LIST the folder and reuse the existing one. Never create a spelling or numbering variant next to an existing folder, and never create a new top-level subfolder inside `<Client> - Shared/`. The four rows above are where AGENTS deliver, not a complete inventory of what the client sees: a client folder may also hold team-managed folders such as `Creative Assets`, which are legitimately client-facing. Leave those alone. If an artifact you generated does not fit the four rows, it is not a client deliverable and belongs in `_Working/`.
+Subfolder names inside `<Client> - Shared/` vary per client for historical reasons (`Keyword Research` in one, `02 Keyword Research` in another). Before saving, LIST the folder and reuse the existing one. Never create a spelling or numbering variant next to an existing folder, and never create a new top-level subfolder inside `<Client> - Shared/`. The four rows above are where AGENTS deliver, not a complete inventory of what the client sees. The rule for anything else in the folder: if you did not create it, leave it exactly as it is. Do not move, rename, reorganize, or flag it as misplaced. A client folder legitimately holds team-managed folders that no agent ever writes to, `Creative Assets` being one example, and the absence of a folder from the four rows says nothing about whether it belongs. If an artifact you generated does not fit the four rows, it is not a client deliverable and belongs in `_Working/`.
 
 Filename convention for everything delivered to Drive:
 
@@ -443,7 +443,7 @@ For cross-agent tasks, finish by saving a handoff note in the relevant client/pr
 
 If the next agent is known, name it directly in the prompt. If no next agent is known, write a neutral "Next operator prompt".
 
-For keyword-workbook runs the handoff is auto-generated: `build_keyword_workbook.py --config <cfg> --preflight` emits a copy-ready Codex task for missing inputs (or a READY status). Saved protocol: `<your-vault>/Context/codex-claude-handoff-protocol.md`; the reusable template lives at `<your-vault>/Resources/templates/cross-agent-handoff-template.md`. Per-run handoff notes are written to the repo's `output/<client>/seo/` (gitignored), NOT into a vault. Client folders left the personal vault on 27.07.2026.
+For keyword-workbook runs the handoff is auto-generated: `build_keyword_workbook.py --config <cfg> --preflight` emits a copy-ready Codex task for missing inputs (or a READY status). Saved protocol: `<your-vault>/Context/codex-claude-handoff-protocol.md`; the reusable template lives at `<your-vault>/Resources/templates/cross-agent-handoff-template.md`. Per-run handoff notes resolve automatically, shared vault first: `<team-vault>/Clients/<Client>/Handoffs/` when the client already has a folder in the shared team vault, otherwise the repo's gitignored `output/<client>/seo/`. Point the builder at the vault with the `AMAZON_AGENT_TEAM_VAULT` env var or `_local/team-vault-path.txt`; an explicit `inputs.handoff_note` still overrides both. Never write into a personal vault, and never create a new client folder in the shared vault just to place a note. Client folders left the personal vault on 27.07.2026.
 
 ## Repository Hygiene (Public Release)
 
