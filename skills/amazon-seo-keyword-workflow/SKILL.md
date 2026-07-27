@@ -124,11 +124,23 @@ Use `--preflight` first. If a DataDive `1%` export or metadata is missing, stop 
 - Blend guard: if `product_facts.blend_or_single == "blend"`, the title must not lead with a single ingredient name (warning).
 - `1. Root Keywords` columns are `Important | Root Keyword | Frequency | Broad Search Volume | Root Score | Category`. The Important column is the AD-TARGETING signal (operator priority): in tiered mode (`root_importance.ad_min_sv`/`ad_min_score` set) roots get ⭐⭐ when score ≥ ad_min_score AND Broad SV ≥ ad_min_sv AND Category is not Brand/Claim/Form/Off-niche. These seed the SKW/rank campaigns; ⭐ marks relevant-but-below-SV-floor roots. Category uses the same triage tokens + core/POE vocabulary as the Never-Ever ladder. Legacy configs (only `min_score`) keep the old binary ⭐.
 - Final workbook style is preserved.
-- Manifest and Obsidian handoff note are generated.
+- Manifest and cross-agent handoff note are generated (see Handoff Note Location for where the note lands).
 
 ## Handoff Note Location
 
-Every run gets its **own** handoff/protocol note, never appended to one shared cross-client file. Set `inputs.handoff_note` in the config to a per-run path under the repo's gitignored `output/<client>/seo/<date>-<product>-<market>-keyword-workbook-<vN>-handoff.md` (vault destinations were retired 27.07.2026). The builder writes the note there and points the preflight Codex block's `Protocol:` line at that same per-run note (falling back to the reusable `…/Context/codex-claude-handoff-protocol.md` only when `handoff_note` is unset).
+Every run gets its **own** handoff/protocol note, never appended to one shared cross-client file. You do not have to configure the path: the builder resolves it, preferring the shared team vault so teammates and their agents see the run.
+
+| Condition | Where the note lands |
+|---|---|
+| `inputs.handoff_note` is set | exactly there (explicit override always wins) |
+| Shared vault reachable **and** the client already has a folder | `<team-vault>/Clients/<Client>/Handoffs/<workbook name> Handoff.md` |
+| Otherwise | next to the workbook, in the gitignored `output/<client>/seo/` |
+
+The vault root comes from the `AMAZON_AGENT_TEAM_VAULT` env var or `_local/team-vault-path.txt`, and only counts when it actually contains a `Clients/` folder. The note filename inherits the workbook filename, so the version carries over on its own.
+
+The builder never creates a client folder in the shared vault. That vault syncs to every teammate, so a folder invented by a script, or a near-miss spelling next to the real one, is worse than no note. An unmatched client falls back to `output/` and the run warns you to create the client's hub note in the vault first.
+
+The preflight Codex block's `Protocol:` line points at whatever path this resolves to, falling back to the reusable `…/Context/codex-claude-handoff-protocol.md` only when nothing resolves.
 
 ## Campaign Structure Fill (on request)
 

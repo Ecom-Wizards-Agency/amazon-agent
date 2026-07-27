@@ -84,4 +84,4 @@ Only one-word rows classified as `Never Ever` are written to the final tab. Miss
 - Styled workbook `.xlsx`
 - Manifest JSON
 - Optional Drive copy via `--drive-dir`
-- Obsidian handoff note when `handoff_note` is configured
+- Cross-agent handoff note, always. It goes to the shared team vault's `Clients/<Client>/Handoffs/` when that vault is reachable and the client has a folder there, otherwise next to the workbook. Set `inputs.handoff_note` to override. Point the builder at the vault with the `AMAZON_AGENT_TEAM_VAULT` env var or a `_local/team-vault-path.txt` holding the vault root.

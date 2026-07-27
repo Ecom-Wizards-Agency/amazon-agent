@@ -117,7 +117,7 @@ Folder convention: **one Keyword Research folder per client, with a sub-folder p
 The build also writes:
 
 - manifest JSON
-- Obsidian handoff note
+- cross-agent handoff note (shared team vault when reachable, otherwise next to the workbook)
 - copy-ready Claude/Codex prompt
 
 ## 7. (Optional, on explicit PPC request) Fill Campaign Structure

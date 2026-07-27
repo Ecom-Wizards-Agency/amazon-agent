@@ -41,6 +41,6 @@ The user's target is: **$ARGUMENTS**
 
 5. **Build + QA.** Once inputs are present, run the builder without `--preflight` and require every QA gate listed in the skill to pass. Fix any FAIL before delivery.
 
-6. **Deliver + handoff.** Review the `.xlsx`, then deliver **only the final Excel** to the client's Google Drive keyword folder per the delivery rules in the skill (Google Drive only, never pCloud; verify a byte-identical MD5). Surface the auto-generated manifest, Obsidian handoff note, and copy-ready Claude/Codex prompt.
+6. **Deliver + handoff.** Review the `.xlsx`, then deliver **only the final Excel** to the client's Google Drive keyword folder per the delivery rules in the skill (Google Drive only, never pCloud; verify a byte-identical MD5). Surface the auto-generated manifest, the handoff note and where it landed (shared team vault or the repo output tree), and the copy-ready Claude/Codex prompt.
 
 Follow the connected-browser checkpoint, evidence, and stop-before-risk rules from `AGENTS.md` throughout.

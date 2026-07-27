@@ -443,7 +443,7 @@ For cross-agent tasks, finish by saving a handoff note in the relevant client/pr
 
 If the next agent is known, name it directly in the prompt. If no next agent is known, write a neutral "Next operator prompt".
 
-For keyword-workbook runs the handoff is auto-generated: `build_keyword_workbook.py --config <cfg> --preflight` emits a copy-ready Codex task for missing inputs (or a READY status). Saved protocol: `<your-vault>/Context/codex-claude-handoff-protocol.md`; the reusable template lives at `<your-vault>/Resources/templates/cross-agent-handoff-template.md`. Per-run handoff notes are written to the repo's `output/<client>/seo/` (gitignored), NOT into a vault. Client folders left the personal vault on 27.07.2026.
+For keyword-workbook runs the handoff is auto-generated: `build_keyword_workbook.py --config <cfg> --preflight` emits a copy-ready Codex task for missing inputs (or a READY status). Saved protocol: `<your-vault>/Context/codex-claude-handoff-protocol.md`; the reusable template lives at `<your-vault>/Resources/templates/cross-agent-handoff-template.md`. Per-run handoff notes resolve automatically, shared vault first: `<team-vault>/Clients/<Client>/Handoffs/` when the client already has a folder in the shared team vault, otherwise the repo's gitignored `output/<client>/seo/`. Point the builder at the vault with the `AMAZON_AGENT_TEAM_VAULT` env var or `_local/team-vault-path.txt`; an explicit `inputs.handoff_note` still overrides both. Never write into a personal vault, and never create a new client folder in the shared vault just to place a note. Client folders left the personal vault on 27.07.2026.
 
 ## Repository Hygiene (Public Release)
 
