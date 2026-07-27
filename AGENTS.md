@@ -443,7 +443,7 @@ For cross-agent tasks, finish by saving a handoff note in the relevant client/pr
 
 If the next agent is known, name it directly in the prompt. If no next agent is known, write a neutral "Next operator prompt".
 
-For keyword-workbook runs the handoff is auto-generated: `build_keyword_workbook.py --config <cfg> --preflight` emits a copy-ready Codex task for missing inputs (or a READY status). Saved protocol + templates: `<your-vault>/Context/codex-claude-handoff-protocol.md` and the per-client template under `Projects/Clients/<client>/cross-agent-handoff-template.md`.
+For keyword-workbook runs the handoff is auto-generated: `build_keyword_workbook.py --config <cfg> --preflight` emits a copy-ready Codex task for missing inputs (or a READY status). Saved protocol: `<your-vault>/Context/codex-claude-handoff-protocol.md`; the reusable template lives at `<your-vault>/Resources/templates/cross-agent-handoff-template.md`. Per-run handoff notes are written to the repo's `output/<client>/seo/` (gitignored), NOT into a vault. Client folders left the personal vault on 27.07.2026.
 
 ## Repository Hygiene (Public Release)
 

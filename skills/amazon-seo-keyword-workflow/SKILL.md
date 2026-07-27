@@ -128,7 +128,7 @@ Use `--preflight` first. If a DataDive `1%` export or metadata is missing, stop 
 
 ## Handoff Note Location
 
-Every run gets its **own** handoff/protocol note saved inside that client's Obsidian folder, never appended to one shared cross-client file. Set `inputs.handoff_note` in the config to a per-run path under `…/Projects/Clients/<client>/<date>-<product>-<market>-keyword-workbook-<vN>-handoff.md`. The builder writes the note there and points the preflight Codex block's `Protocol:` line at that same per-run note (falling back to the reusable `…/Context/codex-claude-handoff-protocol.md` only when `handoff_note` is unset).
+Every run gets its **own** handoff/protocol note, never appended to one shared cross-client file. Set `inputs.handoff_note` in the config to a per-run path under the repo's gitignored `output/<client>/seo/<date>-<product>-<market>-keyword-workbook-<vN>-handoff.md` (vault destinations were retired 27.07.2026). The builder writes the note there and points the preflight Codex block's `Protocol:` line at that same per-run note (falling back to the reusable `…/Context/codex-claude-handoff-protocol.md` only when `handoff_note` is unset).
 
 ## Campaign Structure Fill (on request)
 
