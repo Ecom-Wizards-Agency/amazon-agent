@@ -46,7 +46,7 @@ def _fig(outdir, name):
     return f"![{FIGURES[name]}]({name})\n" if (Path(outdir) / name).exists() else None
 
 
-def build(config_path, outdir):
+def build(config_path, outdir, force=False):
     cfg = load_config(config_path)
     outdir = Path(outdir)
     M = json.loads((outdir / "metrics.json").read_text())
@@ -193,6 +193,15 @@ def build(config_path, outdir):
 
     md = "\n".join(L)
     out = outdir / f"{_slug(CLIENT)}_{_slug(markets)}_Sales_Audit_SCAFFOLD.md"
+    # Do NOT clobber an authored narrative. The documented workflow is "write the prose into
+    # the pre-filled scaffold, then re-run the build to regenerate the branded .docx/.pdf",
+    # which every rebuild would otherwise silently destroy. A file still carrying the
+    # `<!-- operator:` prompts is untouched boilerplate and is safe to regenerate; once those
+    # are gone somebody has written into it. Pass force=True (or delete the file) to override.
+    if out.exists() and "<!-- operator:" not in out.read_text() and not force:
+        print(f"[narrative] KEPT authored {out.name} (no operator markers left; not regenerating). "
+              f"Delete it or pass --force-scaffold to rebuild the boilerplate.")
+        return out
     out.write_text(md)
     print("[narrative] wrote", out.name, f"({len(md.split())} words)")
     # optional docx
@@ -213,4 +222,4 @@ def _slug(s):
 
 
 if __name__ == "__main__":
-    build(sys.argv[1], sys.argv[2])
+    build(sys.argv[1], sys.argv[2], force="--force-scaffold" in sys.argv)

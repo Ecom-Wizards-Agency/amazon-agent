@@ -119,7 +119,7 @@ def build(cfg, cfg_path, cover=None) -> int:
     except Exception as e:
         print(f"[build] figures skipped ({e})")
 
-    scaffold_md = narrative_scaffold.build(cfg_path, outdir)
+    scaffold_md = narrative_scaffold.build(cfg_path, outdir, force="--force-scaffold" in sys.argv)
 
     # Resolve cover: --cover/--no-cover overrides config branding.first_time (first-time audits only).
     if cover is None:

@@ -95,8 +95,13 @@ const BR_EXACT = {
 
 // ASIN + Reporting Date come from the batch (Amazon returns neither as a column).
 const REQUIRED_SQP = new Set(SQP_HEADERS.filter((h) => h !== "Reporting Date" && h !== "ASIN"));
-const REQUIRED_BR = new Set(["(Child) ASIN", "Ordered Product Sales", "Units Ordered",
+const REQUIRED_BR = new Set(["Ordered Product Sales", "Units Ordered",
   "Sessions - Total", "Unit Session Percentage", "Featured Offer (Buy Box) Percentage"]);
+// Exactly which ASIN identifier exists depends on the report variant: the by-child report
+// carries BOTH "(Parent) ASIN" and "(Child) ASIN" (which is what makes it the parent->child
+// map), while the by-parent report carries only "(Parent) ASIN". Requiring the child column
+// outright made `--report parent` unformattable.
+const REQUIRED_BR_ONE_OF = ["(Child) ASIN", "(Parent) ASIN"];
 
 function colId(col) {
   if (typeof col === "string") return col;
@@ -195,6 +200,7 @@ function formatBusiness(doc) {
   const cols = columnsFrom(doc);
   const map = buildMap(cols, BR_MATCH, BR_EXACT);
   const missing = [...REQUIRED_BR].filter((h) => !map[h]);
+  if (!REQUIRED_BR_ONE_OF.some((h) => map[h])) missing.push(REQUIRED_BR_ONE_OF.join(" or "));
   if (missing.length) {
     fail("Business: could not map required columns " + JSON.stringify(missing) +
       "\n  source columns seen: " + cols.map(colKey).join(" | "));
