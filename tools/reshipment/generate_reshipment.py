@@ -102,8 +102,17 @@ def add_item(items, asin, **updates):
 
 def calculate(client, cfg):
     report_days = cfg["report_days"]
-    target_days = cfg["target_days"]
-    multiplier = cfg["multiplier"]
+    target_days = client.get("target_days", cfg["target_days"])
+    multiplier = client.get("multiplier", cfg["multiplier"])
+    fba_exclude_patterns = [
+        re.compile(pattern, re.IGNORECASE)
+        for pattern in client.get("fba_exclude_patterns", [])
+    ]
+    fba_exclude_asins = {
+        str(asin).strip().upper()
+        for asin in client.get("fba_exclude_asins", [])
+        if str(asin).strip()
+    }
     run_date = cfg["run_date"]
     output_root = cfg["output_root"]
 
@@ -181,7 +190,12 @@ def calculate(client, cfg):
             item.get("restock_fc_transfer", 0) + item.get("restock_fc_processing", 0) + item.get("restock_customer_order", 0),
         )
         required = demand / report_days * multiplier * target_days
-        reship = int(math.ceil(max(0, required - available - inbound - reserved)))
+        product_identity = f"{item.get('title', '')} {item.get('sku', '')}"
+        fba_excluded = (
+            asin.strip().upper() in fba_exclude_asins
+            or any(pattern.search(product_identity) for pattern in fba_exclude_patterns)
+        )
+        reship = 0 if fba_excluded else int(math.ceil(max(0, required - available - inbound - reserved)))
         excess = item.get("estimated_excess", 0)
         if not excess and demand > 0 and available > (demand / report_days * 120):
             excess = int(max(0, available - demand / report_days * 90))
@@ -203,6 +217,7 @@ def calculate(client, cfg):
                 "FBA Units 7d": item.get("fba_units_7", 0),
                 "FBA Units 30d": item.get("fba_units_30", 0),
                 "Restock Units 30d": item.get("restock_units_30", 0),
+                "FBA Eligibility": "FBM only - bundle/multipack" if fba_excluded else "Eligible",
             }
         )
 
@@ -249,29 +264,27 @@ def calculate(client, cfg):
     send_rows = [r for r in rows if r["Reshipment Units"] > 0]
     excess_rows = [r for r in rows if r["Estimated Excess Units"] > 0]
     parts = [
-        f"{client['brand']} Inventory Overview - {client['country']}",
-        "",
         f"Source: {client['notes']} Demand multiplier: {multiplier}x. Output saved: `{csv_path.name}` / `{xlsx_path.name}`.",
     ]
     if send_rows:
-        parts.extend(["", "**Reshipment**"])
-        for row in send_rows[:30]:
+        parts.extend(["", "*Reshipment*"])
+        for row in send_rows[:10]:
             parts.append(
                 f"`{row['ASIN']}` {short(row['Product Name'])} - {row['Reshipment Units']:,} units needed | Available: {row['Available']:,} | Inbound: {row['Inbound']:,} | Reserved: {row['Reserved']:,}"
             )
-        if len(send_rows) > 30:
-            parts.append(f"Plus {len(send_rows) - 30} more low-volume rows in the workbook.")
+        if len(send_rows) > 10:
+            parts.append(f"Plus {len(send_rows) - 10} more low-volume rows in the workbook.")
         parts.append(f"Total: {sum(r['Reshipment Units'] for r in send_rows):,} units")
     else:
-        parts.extend(["", "**Reshipment**", "No positive reshipment quantities from today’s source data."])
+        parts.extend(["", "*Reshipment*", "No positive reshipment quantities from today’s source data."])
     if excess_rows:
-        parts.extend(["", "**Excess Inventory / Plan Sales**"])
-        for row in excess_rows[:20]:
+        parts.extend(["", "*Excess Inventory / Plan Sales*"])
+        for row in excess_rows[:6]:
             parts.append(
                 f"`{row['ASIN']}` {short(row['Product Name'])} - {row['Estimated Excess Units']:,} excess units | Available: {row['Available']:,} | 30d demand: {row['Demand 30d']:,}"
             )
-        if len(excess_rows) > 20:
-            parts.append(f"Plus {len(excess_rows) - 20} more excess rows in the workbook.")
+        if len(excess_rows) > 6:
+            parts.append(f"Plus {len(excess_rows) - 6} more excess rows in the workbook.")
         parts.append(f"Total: {sum(r['Estimated Excess Units'] for r in excess_rows):,} excess units")
     slack_path.write_text("\n".join(parts) + "\n", encoding="utf-8")
 

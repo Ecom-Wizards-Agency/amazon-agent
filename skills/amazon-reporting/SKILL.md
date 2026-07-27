@@ -37,12 +37,20 @@ Hands-off (preferred; needs Chrome on the debug port; an agent with shell/`@comp
 
 ```bash
 tools/report-fetcher/launch-chrome-debug.sh        # one-time; dedicated debug Chrome; log into Seller Central in it
-node tools/report-fetcher/run.mjs doctor           # verify connection + that the profile is signed in
+node tools/report-fetcher/run.mjs doctor           # connection + login + WHICH SELLER each tab is on
 node tools/report-fetcher/run.mjs all --config tools/report-fetcher/config.<client>.json --plan
-node tools/report-fetcher/run.mjs all --config tools/report-fetcher/config.<client>.json --verbose
+node tools/report-fetcher/run.mjs all --config tools/report-fetcher/config.<client>.json \
+  --expect-account "<Client Name>" --verbose
 ```
 
-Or explicit flags: `run.mjs sqp --asins B0..,B0.. --weeks YYYY-MM-DD --range weekly|monthly|quarterly --out ... [--split]`; `business --start .. --end .. --out ...`; `scp`/`tst --weeks .. --out ...`. SQP fetches one ASIN per call (uncapped SV) and writes one combined file per group (or `--split` per ASIN). `--verbose` captures `<out>.raw.json` + column ids for troubleshooting; `--plan` prints the plan without fetching. Full options in `tools/report-fetcher/README.md`.
+**Account gate (mandatory).** One login can hold several sellers and the debug Chrome can have several
+regions open. `doctor` prints the seller name + merchant id per tab; confirm the client before trusting a
+number, and pass `--expect-account "<Client Name>"` so a wrong-seller pull aborts instead of producing a
+correct-looking file. `--account <merchant-id>` pins it explicitly. Region is derived from `--marketplace`
+(US `.com`, EU `.de` + siblings, AU `.com.au`, ...), not from whichever tab is first. This class of bug is
+silent: the file has the right dates, shape and headers, and the wrong company's numbers.
+
+Or explicit flags: `run.mjs sqp --asins B0..,B0.. --weeks YYYY-MM-DD --range weekly|monthly|quarterly --out ... [--split]`; `business --start .. --end .. [--report child|parent|sku] --out ...`; `scp`/`tst --weeks .. --out ...`. **`--weeks` takes the period-END date (weekly = the Saturday).** SQP fetches one ASIN per call (uncapped SV) and writes one combined file per group (or `--split` per ASIN). `--verbose` captures `<out>.raw.json` + column ids for troubleshooting; `--plan` prints the plan without fetching. Full options in `tools/report-fetcher/README.md`.
 
 Manual fallback (no debug port): `evaluate` the source of `fetch-seller-reports.js` in a logged-in tab, call `fetchSqp`/`fetchBusinessReport`/`fetchScp`/`fetchTst`, save the JSON, then `node tools/report-fetcher/format-seller-reports.mjs <json> <out.csv>`.
 

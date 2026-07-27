@@ -59,8 +59,35 @@ first run). Each SQP ASIN is fetched with a single-ASIN call (uncapped Search Qu
 The runner opens its own background tab, writes the CSV, closes the tab; it never disturbs
 your other tabs. The canonical copy-paste Codex prompt is in `CODEX-PROMPT.md`.
 
-**Regions (US / EU).** The runner uses whichever region the debug Chrome is signed into
-(auto-detected from the logged-in tab) and the `--marketplace` code for the report payload.
+## Account safety (read this)
+
+One Amazon login often holds several sellers, and the debug Chrome can have several regions
+open at once. The runner opens its own tab, so it must be told **which seller** to use. It now
+inherits the account from your Seller Central tab (`mons_sel_dir_*`) and prints it on every run:
+
+```
+Region: sellercentral.amazon.com for --marketplace us (ignoring other open host(s): sellercentral.amazon.com.au)
+Account: <SELLER NAME> / United States · amzn1.merchant.d.<MERCHANT-ID>
+```
+
+- `run.mjs doctor` lists every open Seller Central tab with its **seller name + merchant id**.
+- `--expect-account "<name or merchant-id>"` aborts **before fetching** on a mismatch. Use it in
+  anything scripted or delegated; a wrong-account pull is otherwise indistinguishable from a right one.
+  It judges the account the browser is actually signed into, so `--account` cannot satisfy it.
+- `--account <merchant-id>` is a **hint, not a guaranteed switch.** Seller Central resolves the seller
+  server-side, so supplying an id the session is not already on may be ignored and you get the tab's
+  seller anyway (verified 2026-07-27). The runner warns when the two disagree. **The reliable way to
+  change account is to switch it in the debug Chrome and re-run.**
+
+Before this existed the runner inherited the **session default** seller, which is not necessarily
+the one your tab is displaying. That silently returned another client's Business Report with the
+correct dates and shape. If you have historical pulls whose account you cannot confirm, re-pull them.
+
+**Regions (US / EU / AU / …).** The region is chosen from `--marketplace` via the host table in
+`run.mjs` (US → `.com`, DE/IT/ES/FR/NL/SE/PL/BE/IE/TR/UK → `.de` and its siblings, AU → `.com.au`,
+JP → `.co.jp`, and so on), **not** from whichever Seller Central tab happens to be first. If no open
+tab serves the requested marketplace the run aborts and names the host to open. `--origin` still
+force-overrides. The `--marketplace` code is also what goes into the report payload.
 For EU, sign the debug Chrome into an EU Seller Central (**one `.de` login covers
 DE/IT/ES/FR/NL/…**) and pass the marketplace, e.g. `--marketplace de` (or `it`/`es`/`fr`). US uses `.com` with
 `--marketplace us`. If the debug Chrome has tabs from more than one region open, force the

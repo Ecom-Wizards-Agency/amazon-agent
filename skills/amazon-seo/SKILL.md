@@ -19,9 +19,9 @@ Naming note: the operator noted that Amazon's Rufus AI naming is moving/has move
    - `<your-knowledge-base>/Skills/rufus-optimization.md`
    - `<your-knowledge-base>/Skills/amazon-image-strategy.md` when OEI/POE image strategy or visual search context matters
    - `<your-knowledge-base>/Skills/direct-response-copywriter.md` when persuasion/voice matters
-   - relevant client/project notes under `<your-knowledge-base>/Projects/Clients/`
+   - the client's hub note in the team vault (`Clients/<Name>/<Name>.md`) and prior handoff notes under the repo's `output/<client>/seo/`
 
-   Note: these knowledge-base skill files are a user-specific local reference and may not exist at the `Code/knowledge-base` path. The operator's current local copies live in an Obsidian vault: `<your-vault>/Skills/` (e.g. `amazon-seo-writer.md`, `keyword-classifier-and-filter.md`, `rufus-optimization.md`, `oei-product-strategy.md`). This path is user-specific. Team members should point to their own local knowledge-base/Obsidian copy. Do not commit the vault to GitHub. This is a reference source only, not a "check Obsidian for everything" rule.
+   Note: these knowledge-base skill files are a user-specific local reference and may not exist at the `Code/knowledge-base` path. The operator's old vault copies were archived on 27.07.2026, so the in-repo condensations below are now the primary source. This path note is user-specific. Team members should point to their own local knowledge-base/Obsidian copy. Do not commit the vault to GitHub. This is a reference source only, not a "check Obsidian for everything" rule.
 
    In-repo condensations (use these when the vault is unavailable; they make the skill self-contained):
    - `skills/amazon-seo/references/seo-writing-methodology.md`: keyword classification, Ranking-Juice placement priority, title/bullet/description/backend rules, Rufus/Alexa semantic layer, audit pass.

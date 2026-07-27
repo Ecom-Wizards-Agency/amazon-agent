@@ -3,12 +3,12 @@
 Captured from My Amazon Guy SOP Library on `2026-05-12T07:07:49Z`.
 
 This runtime tree is curated for Amazon work. Categories irrelevant to the
-agent were removed (AI ChatGPT prompts, Product Development, parts of
-Business Analysis); Walmart is parked under `_archive/` and excluded from
-search. The complete 535-file capture with all assets lives in the pCloud
-visual archive (see `docs/mag-sops-assets.md`).
+agent were removed: AI ChatGPT prompts, Product Development, parts of
+Business Analysis, and the Walmart SOPs (dropped 2026-07-27). The complete
+535-file capture with all assets lives in the pCloud visual archive
+(see `docs/mag-sops-assets.md`).
 
-Active SOP entries: **475** (plus 43 archived)
+Active SOP entries: **475** (plus 0 archived)
 
 ## Amazon Advertising (43)
 
@@ -505,51 +505,3 @@ Active SOP entries: **475** (plus 43 archived)
 - [Vendor Central SOP: Tracking the status of your Catalog Feed Submission](vendor-central/vendor-central-sop-tracking-the-status-of-your-catalog-feed-submission.md)
 - [Vendor Central SOP: Viewing Resolved Disputes](vendor-central/vendor-central-sop-viewing-resolved-disputes.md)
 - [Vendor Central SOP: Viewing the Performance of a Vine-Enrolled Product on Vendor Central](vendor-central/vendor-central-sop-viewing-the-performance-of-a-vine-enrolled-product-on-vendor-central.md)
-
-## Archived (excluded from search)
-
-### Walmart (43)
-
-- [Supplemental Article: Maximizing Sales with Walmart’s Price Incentives Program](_archive/walmart/supplemental-article-maximizing-sales-with-walmart-s-price-incentives-program.md)
-- [Walmart SOP: Adding Multiple Items by Matching Walmart's Catalog](_archive/walmart/walmart-sop-adding-multiple-items-by-matching-walmart-s-catalog.md)
-- [Walmart SOP: Catalog Performance Report in Walmart Seller Center](_archive/walmart/walmart-sop-catalog-performance-report-in-walmart-seller-center.md)
-- [Walmart SOP: Category Path Update for Multiple Items](_archive/walmart/walmart-sop-category-path-update-for-multiple-items.md)
-- [Walmart SOP: Convert Seller-Fulfilled Items to Walmart-Fulfilled Manually](_archive/walmart/walmart-sop-convert-seller-fulfilled-items-to-walmart-fulfilled-manually.md)
-- [Walmart SOP: Convert Seller-Fulfilled Items to Walmart-Fulfilled via Template](_archive/walmart/walmart-sop-convert-seller-fulfilled-items-to-walmart-fulfilled-via-template.md)
-- [Walmart SOP: Create Multiple Items in Walmart via Flat File (Seller Fulfilled Type)](_archive/walmart/walmart-sop-create-multiple-items-in-walmart-via-flat-file-seller-fulfilled-type.md)
-- [Walmart SOP: Create Ticket to Walmart Seller Support](_archive/walmart/walmart-sop-create-ticket-to-walmart-seller-support.md)
-- [Walmart SOP: Create a Single Item in Walmart Manually (Seller Fulfilled Type)](_archive/walmart/walmart-sop-create-a-single-item-in-walmart-manually-seller-fulfilled-type.md)
-- [Walmart SOP: Create an Offer for an Existing Item in Walmart](_archive/walmart/walmart-sop-create-an-offer-for-an-existing-item-in-walmart.md)
-- [Walmart SOP: Generating a Buy Box Report](_archive/walmart/walmart-sop-generating-a-buy-box-report.md)
-- [Walmart SOP: Generating a Search Query Report for Walmart PPC Optimization](_archive/walmart/walmart-sop-generating-a-search-query-report-for-walmart-ppc-optimization.md)
-- [Walmart SOP: How To Construct Master Keyword List (MKL) Through Helium10 Cerebro Reverse Product Lookup](_archive/walmart/walmart-sop-how-to-construct-master-keyword-list-mkl-through-helium10-cerebro-reverse-product-lookup.md)
-- [Walmart SOP: How To Update a Listing Manually in Walmart](_archive/walmart/walmart-sop-how-to-update-a-listing-manually-in-walmart.md)
-- [Walmart SOP: How to Appeal an Account Suspension or Suppression on Walmart Marketplace](_archive/walmart/walmart-sop-how-to-appeal-an-account-suspension-or-suppression-on-walmart-marketplace.md)
-- [Walmart SOP: How to Back Up Your Walmart Items Data](_archive/walmart/walmart-sop-how-to-back-up-your-walmart-items-data.md)
-- [Walmart SOP: How to Delete a User from a Walmart’s Seller Center Account](_archive/walmart/walmart-sop-how-to-delete-a-user-from-a-walmart-s-seller-center-account.md)
-- [Walmart SOP: How to Enroll in Walmart-funded Incentives Program](_archive/walmart/walmart-sop-how-to-enroll-in-walmart-funded-incentives-program.md)
-- [Walmart SOP: How to Manage Duplicate Listings in Seller Center](_archive/walmart/walmart-sop-how-to-manage-duplicate-listings-in-seller-center.md)
-- [Walmart SOP: How to Manage Notifications in Seller Center](_archive/walmart/walmart-sop-how-to-manage-notifications-in-seller-center.md)
-- [Walmart SOP: How to Pause Marketplace Orders in Walmart](_archive/walmart/walmart-sop-how-to-pause-marketplace-orders-in-walmart.md)
-- [Walmart SOP: How to Split Customer Orders in Seller Center](_archive/walmart/walmart-sop-how-to-split-customer-orders-in-seller-center.md)
-- [Walmart SOP: Managing Item Enrollment in Walmart-fulfilled Incentives Program](_archive/walmart/walmart-sop-managing-item-enrollment-in-walmart-fulfilled-incentives-program.md)
-- [Walmart SOP: Optimizing Bids](_archive/walmart/walmart-sop-optimizing-bids.md)
-- [Walmart SOP: Protecting Your Brand from Unauthorized Sellers on Walmart Marketplace](_archive/walmart/walmart-sop-protecting-your-brand-from-unauthorized-sellers-on-walmart-marketplace.md)
-- [Walmart SOP: Reactivating Items in Seller Center](_archive/walmart/walmart-sop-reactivating-items-in-seller-center.md)
-- [Walmart SOP: Requesting Review Removal on Walmart Marketplace](_archive/walmart/walmart-sop-requesting-review-removal-on-walmart-marketplace.md)
-- [Walmart SOP: Requesting for GTIN/UPC Exemption on Walmart](_archive/walmart/walmart-sop-requesting-for-gtin-upc-exemption-on-walmart.md)
-- [Walmart SOP: Shelving Path or Category Path Update for Single Item](_archive/walmart/walmart-sop-shelving-path-or-category-path-update-for-single-item.md)
-- [Walmart SOP: Ticketing Walmart Support for Content and Image Update (Multiple Listings)](_archive/walmart/walmart-sop-ticketing-walmart-support-for-content-and-image-update-multiple-listings.md)
-- [Walmart SOP: Ticketing Walmart Support for Content and Image Update (Single Listing)](_archive/walmart/walmart-sop-ticketing-walmart-support-for-content-and-image-update-single-listing.md)
-- [Walmart SOP: Tracking Item Setup and Maintenance Activity in Walmart Seller Center](_archive/walmart/walmart-sop-tracking-item-setup-and-maintenance-activity-in-walmart-seller-center.md)
-- [Walmart SOP: Update Bulk Items in Walmart (Seller Fulfilled Type)](_archive/walmart/walmart-sop-update-bulk-items-in-walmart-seller-fulfilled-type.md)
-- [Walmart SOP: WFS Inventory Report](_archive/walmart/walmart-sop-wfs-inventory-report.md)
-- [Walmart SOP: WFS Shipment Creation](_archive/walmart/walmart-sop-wfs-shipment-creation.md)
-- [Walmart SOP: Walmart Advertising](_archive/walmart/walmart-sop-walmart-advertising.md)
-- [Walmart SOP: Walmart Items Copy and Images Guideline and Requirement](_archive/walmart/walmart-sop-walmart-items-copy-and-images-guideline-and-requirement.md)
-- [Walmart SOP: Walmart Keyword Research](_archive/walmart/walmart-sop-walmart-keyword-research.md)
-- [Walmart SOP: Walmart Listing Optimization Audit and Fix (Growth Opportunities)](_archive/walmart/walmart-sop-walmart-listing-optimization-audit-and-fix-growth-opportunities.md)
-- [Walmart SOP: Walmart Parentage via Maintenance Spec Sheet (flat file)Spec Sheet](_archive/walmart/walmart-sop-walmart-parentage-via-maintenance-spec-sheet-flat-file-spec-sheet.md)
-- [Walmart SOP: Walmart Reduced Price Promotion](_archive/walmart/walmart-sop-walmart-reduced-price-promotion.md)
-- [Walmart SOP: Walmart Sales Report](_archive/walmart/walmart-sop-walmart-sales-report.md)
-- [Walmart SOP: Walmart Seller Center Account Audit](_archive/walmart/walmart-sop-walmart-seller-center-account-audit.md)

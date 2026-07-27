@@ -17,7 +17,7 @@ Fill every `<...>` and `TO_RECORD_*`:
 - **`triage` tokens**: `brand_tokens` from the DataDive competitors; `form/claim/negative` for this product form + marketplace language. For `claim_tokens`, check `skills/amazon-seo/references/eu-compliance-matrix.md`.
 - **`never_ever`**: `relevant_words` (protect real product intent), `explicit_never_words` (force-negate junk), marketplace `stop_words`.
 - **`stale_data_guard.forbidden_terms`**: distinctive terms from the *template's* product so it can't leak into the new workbook (e.g. German collagen terms in an Italian fibre workbook).
-- **`inputs{}`**: the paths for every source file (the contract; CLI flags still override). Set **`handoff_note`** to a per-run path inside this client's Obsidian folder (`…/Projects/Clients/<client>/<date>-<product>-<market>-keyword-workbook-<vN>-handoff.md`) so each run's cross-agent handoff is self-contained, not appended to one shared file. The builder saves the note there and points the preflight Codex `Protocol:` line at it.
+- **`inputs{}`**: the paths for every source file (the contract; CLI flags still override). Set **`handoff_note`** to a per-run path under the repo's gitignored output tree (`output/<client>/seo/<date>-<product>-<market>-keyword-workbook-<vN>-handoff.md`) so each run's cross-agent handoff is self-contained, not appended to one shared file. (Do NOT point it at an Obsidian vault: client folders were removed from the personal vault on 27.07.2026.) The builder saves the note there and points the preflight Codex `Protocol:` line at it.
 - **`datadive_exports`**: record Core 30% + Expanded 1% metadata **at export time** (placeholder `TO_RECORD_*` values fail validation by design).
 
 ## 2. Preflight (auto-generates the Codex handoff)

@@ -59,7 +59,7 @@ python3 "tools/search_amazon_libraries.py" "send to amazon shipment" --library a
 
 ## SOP Drafts And MAG SOP Visual Archive
 
-The runtime `MAG SOPs/` folder is the markdown-only version; the GitHub/runtime project keeps it searchable and lightweight. Heavy images, GIFs, screenshots, zip files, generated evidence, outputs, and client work artifacts do not belong in the runtime source tree. The runtime tree is also curated for Amazon work: the AI ChatGPT-prompt and Product Development categories and two Business Analysis SOPs were removed (2026-07-08), and the Walmart SOPs live under `MAG SOPs/_archive/` (excluded from the index and the search helper). The complete 535-file capture stays in the pCloud visual archive. Search local/GitHub markdown SOPs first. Also search `sop-drafts/` for matching workflow drafts, especially when the task involves recent learnings, support cases, troubleshooting, shipping defects, communications, or processes that the operator says were recently improved.
+The runtime `MAG SOPs/` folder is the markdown-only version; the GitHub/runtime project keeps it searchable and lightweight. Heavy images, GIFs, screenshots, zip files, generated evidence, outputs, and client work artifacts do not belong in the runtime source tree. The runtime tree is also curated for Amazon work: the AI ChatGPT-prompt and Product Development categories and two Business Analysis SOPs were removed (2026-07-08), and the 43 Walmart SOPs were dropped entirely (2026-07-27) as the agency does not operate Walmart. The complete 535-file capture stays in the pCloud visual archive. Search local/GitHub markdown SOPs first. Also search `sop-drafts/` for matching workflow drafts, especially when the task involves recent learnings, support cases, troubleshooting, shipping defects, communications, or processes that the operator says were recently improved.
 
 Treat `sop-drafts/` as emerging internal procedure: useful and intentionally available to the agent, but not fully final. If a draft conflicts with a promoted MAG SOP or first-party Amazon docs, prefer first-party Amazon docs for rules/current UI, prefer promoted SOPs for settled agency procedure, and use the draft as a recent-learning signal to flag or propose the better path.
 
@@ -321,7 +321,7 @@ Routing:
 
 `<workflow>` reuses the controlled names from Local Output Storage: `ads`, `account-check`, `catalog`, `reporting`, `seo`, `inventory`.
 
-Subfolder names inside `<Client> - Shared/` vary per client for historical reasons (`Keyword Research` in one, `02 Keyword Research` in another). Before saving, LIST the folder and reuse the existing one. Never create a spelling or numbering variant next to an existing folder, and never create a new top-level subfolder inside `<Client> - Shared/`. If an artifact does not fit the four categories above, it is not a client deliverable.
+Subfolder names inside `<Client> - Shared/` vary per client for historical reasons (`Keyword Research` in one, `02 Keyword Research` in another). Before saving, LIST the folder and reuse the existing one. Never create a spelling or numbering variant next to an existing folder, and never create a new top-level subfolder inside `<Client> - Shared/`. The four rows above are where AGENTS deliver, not a complete inventory of what the client sees: a client folder may also hold team-managed folders such as `Creative Assets`, which are legitimately client-facing. Leave those alone. If an artifact you generated does not fit the four rows, it is not a client deliverable and belongs in `_Working/`.
 
 Filename convention for everything delivered to Drive:
 
@@ -443,7 +443,7 @@ For cross-agent tasks, finish by saving a handoff note in the relevant client/pr
 
 If the next agent is known, name it directly in the prompt. If no next agent is known, write a neutral "Next operator prompt".
 
-For keyword-workbook runs the handoff is auto-generated: `build_keyword_workbook.py --config <cfg> --preflight` emits a copy-ready Codex task for missing inputs (or a READY status). Saved protocol + templates: `<your-vault>/Context/codex-claude-handoff-protocol.md` and the per-client template under `Projects/Clients/<client>/cross-agent-handoff-template.md`.
+For keyword-workbook runs the handoff is auto-generated: `build_keyword_workbook.py --config <cfg> --preflight` emits a copy-ready Codex task for missing inputs (or a READY status). Saved protocol: `<your-vault>/Context/codex-claude-handoff-protocol.md`; the reusable template lives at `<your-vault>/Resources/templates/cross-agent-handoff-template.md`. Per-run handoff notes are written to the repo's `output/<client>/seo/` (gitignored), NOT into a vault. Client folders left the personal vault on 27.07.2026.
 
 ## Repository Hygiene (Public Release)
 

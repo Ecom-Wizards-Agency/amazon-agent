@@ -15,15 +15,15 @@ Do not include Globex, Umbrella, or Stark unless the operator explicitly expands
 
 ## Channel Rules
 
-Post only in the internal Slack `#amazon` staging channel for review:
+Post only in the internal Slack `#amazon-check` channel for review:
 
-- Channel id: `<slack-channel-id>`
+- Channel id: `<slack-channel-id>` (the real id lives in the local reshipment config, not in this file)
+- Send through `~/Automations/wizards-ai/slack.sh` as Wizards AI. Do not use a personal Slack identity or the Slack connector for posting.
 - Do not post to client channels unless the operator explicitly approves a client-channel send after reviewing the staging output.
-- If a future run is client-facing and the client channel is unknown, skip that brand and ask the operator at the end.
 
 ## Browser And Login Rules
 
-For this workflow, use the teammate's preferred connected browser with an existing Seller Central session unless the operator says otherwise. If desktop-control tools are available, use them to operate the connected browser. If browser automation is unavailable, pause and ask which connected browser/session to use.
+Use the connected Amazon MCP/SP-API as the default source for reshipment planning. The browser is a fallback for fields the MCP does not provide, account/login verification when needed, and narrow historical investigations such as tracing a specific receipt or shipment. Do not open or switch Seller Central accounts merely to repeat data already available through MCP.
 
 Never interact with 1Password, password managers, credential vaults, passkeys, OTP/2FA fields, CAPTCHA, or credential autofill prompts. If login, password, passkey, OTP, CAPTCHA, or 1Password action is required, pause and ask the operator to complete it manually.
 
@@ -65,15 +65,25 @@ Use unless the operator gives account-specific overrides:
 | `minimumMonthlyThreshold` | 100 |
 | `groupMode` | child ASIN |
 
+## Account-Specific FBA Eligibility
+
+- Read `Agent Safety Notes` and `Recurring Workflow Notes` from the live Ops Manager profile before calculation.
+- Apply product-level FBM-only exclusions before calculating or posting FBA reshipment quantities.
+- Some accounts keep bundles and multipacks, including 2-pack, 3-pack, and 4-pack offers, on FBM by policy. Where the Ops Manager profile says so, never recommend, include, or send those offers to FBA.
+- Report titles can omit pack-count wording, so title text alone is not sufficient. Apply title/SKU detection plus the exact ASIN denylist stored in that account's live Ops Manager `Agent Safety Notes`. Exact ASIN exclusions take precedence over report text.
+- Encode both in the run config as `clients[].fba_exclude_patterns` and `clients[].fba_exclude_asins`. Keep the account names and ASINs in the local config, never in this tracked reference.
+- Excluded products remain visible in the full inventory workbook with `FBA Eligibility` labeled `FBM only - bundle/multipack` and zero FBA reshipment units.
+
 ## Seller Central Reports
 
 For each account, switch Seller Central account via `/account-switcher/default/merchantMarketplace` and select the correct account/container and marketplace.
 
-Fresh-report requirement:
+Fresh-data requirement:
 
-- Start every run by requesting/downloading new reports for the selected account and marketplace. Do not use archived local reports, cached planner outputs, previous Downloads files, or any older "latest available" report as the basis for a new reshipment plan unless the operator explicitly approves that exception in the current chat.
-- Treat "latest reports" as same-day reports from the current run. Match the report requested/generated date to the run date and verify the browser header account/marketplace before downloading and before calculation.
-- If Seller Central shows only older reports, request a new report in the UI and wait until it is ready. If Amazon cannot generate a same-day report, pause and summarize the blocker for that account instead of substituting older data.
+- Start every run with a fresh same-day MCP/SP-API pull for the selected Ops Manager account and marketplace. Record the source freshness timestamp. Do not use archived local reports, cached planner outputs, previous Downloads files, or an older "latest available" result unless the operator explicitly approves that exception in the current chat.
+- Use Seller Central reports only for required fields that are missing or stale in MCP. Match any fallback report's requested/generated date to the run date and verify the browser account/marketplace before downloading and calculating.
+- When using `tools/report-fetcher/run.mjs`, always pass the requested `--marketplace` and the exact Ops Manager `Seller Central Name` through `--expect-account`. The command must abort before fetching if either the regional host or seller account is wrong.
+- If neither MCP nor Seller Central can provide a required same-day field, pause and summarize the blocker for that account instead of substituting older data.
 - For US/EU timezone differences, use the Seller Central visible requested/generated date plus the local download timestamp as evidence. If the marketplace date appears one day behind because of Amazon timezone behavior, note that explicitly in the operator summary and keep the newly requested/downloaded file isolated from older files.
 
 Gather:
@@ -114,7 +124,7 @@ Keep duplicate downloads only when they clearly belong to the run and label with
 
 ## Slack Staging Format
 
-Use one inventory overview parent thread per brand-market in `#amazon`. Parent title:
+Use one inventory overview parent thread per brand-market in `#amazon-check`. This is preferred over one combined all-client thread because each account remains easy to scan, copy, link, and share. Parent title:
 
 `BRAND Inventory Overview - Country`
 
@@ -123,12 +133,30 @@ Examples:
 - `Acme Inventory Overview - US`
 - `Example Brand Inventory Overview - Germany`
 
-Only create a Slack thread if at least one section has actionable items. If there are no send-stock items and no excess-inventory items, skip Slack.
+Create an individual brand-market thread only when it has at least one positive reshipment quantity. Do not create an individual thread for an account with zero reshipment units, even if it has excess inventory.
 
-Thread replies:
+The thread contains separate flat replies in this exact order:
 
-1. `Reshipment`: only ASINs whose status is send-stock and reshipment quantity is greater than zero. Each line starts with the ASIN in backticks, then a short product name, then `- X units needed | Available: A | Inbound: I | Reserved: R`. Final line is the total.
-2. `Excess Inventory / Plan Sales`: products needing sales planning, including available/excess/aged stock and days of cover where available.
+1. `*How it was calculated*`: state the same-day sources and the formula. Demand is Business Report units ordered over 30 days. Required units = `(30d demand ÷ 30) × scaling multiplier × effective coverage days`. Reshipment = round up `max(0, required units - available - inbound - reserved)`. State that FBA 7d/30d and Restock data are validation/fallback context.
+2. `*Reshipment*`: the copy-ready list. Include only ASINs with a positive reshipment quantity. Each line starts with the ASIN in backticks, then a short product name, then `- X units needed | Available: A | Inbound: I | Reserved: R`.
+3. Show the 10 highest-quantity reshipment rows. If more exist, add `Plus N more low-volume rows in the workbook.` Then add `Total: X units`.
+4. `*Excess Inventory / Plan Sales*`: always a separate reply when actionable. Never combine excess units with the reshipment reply. Show the 6 highest excess rows, note the remaining count, and add the total.
+
+Do not replace the account threads with aggregate replies such as `Run status`, `Send stock`, `Completed safely`, or cross-account totals. Slack is for the per-account copyable list. Put blockers, scope summaries, and login notes in the Codex task unless they directly qualify an account's source line.
+
+After the individual reshipment threads, create one short channel parent for all included accounts with zero positive reshipment quantities:
+
+```text
+*No reshipment needed for:*
+• Brand 1 Market
+• Brand 2 Market
+```
+
+Use real Slack line breaks, not escaped `\n` text. Post this parent through `tools/reshipment/post_slack_no_reshipment.py` so formatting is preserved.
+
+Do not include blocked, incomplete, excluded, or unverified accounts in this list. They belong in the Codex task summary.
+
+Client-channel delivery is v2 and is not active. Until Victor explicitly approves v2, post only to `#amazon-check`.
 
 Shorten product names aggressively so the differentiator is visible in Slack.
 
