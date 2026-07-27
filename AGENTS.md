@@ -321,7 +321,7 @@ Routing:
 
 `<workflow>` reuses the controlled names from Local Output Storage: `ads`, `account-check`, `catalog`, `reporting`, `seo`, `inventory`.
 
-Subfolder names inside `<Client> - Shared/` vary per client for historical reasons (`Keyword Research` in one, `02 Keyword Research` in another). Before saving, LIST the folder and reuse the existing one. Never create a spelling or numbering variant next to an existing folder, and never create a new top-level subfolder inside `<Client> - Shared/`. If an artifact does not fit the four categories above, it is not a client deliverable.
+Subfolder names inside `<Client> - Shared/` vary per client for historical reasons (`Keyword Research` in one, `02 Keyword Research` in another). Before saving, LIST the folder and reuse the existing one. Never create a spelling or numbering variant next to an existing folder, and never create a new top-level subfolder inside `<Client> - Shared/`. The four rows above are where AGENTS deliver, not a complete inventory of what the client sees: a client folder may also hold team-managed folders such as `Creative Assets`, which are legitimately client-facing. Leave those alone. If an artifact you generated does not fit the four rows, it is not a client deliverable and belongs in `_Working/`.
 
 Filename convention for everything delivered to Drive:
 
