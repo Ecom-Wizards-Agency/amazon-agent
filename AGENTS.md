@@ -237,7 +237,7 @@ For Sponsored Brands video creative work ("build a video brief", "better SB vide
 
 Vocabulary is Evolve-aligned so Amazon and Meta stay one system: a batch is one video, its three openings are Angle 1/2/3 (never "Hook A/B/C"), and a cut is one angle plus the shared second half. Cadence is roughly 3 angles per month. Each product line gets its own evergreen Creative Reference & Asset Library (`references/creative-reference-doc.md`) holding the claim master, shelf map, shopper language and asset requests; the brief carries execution only and never restates that evidence.
 
-Briefs and reference docs deliver as branded .docx with NO cover page, rendered via `tools/amazon-ad-audit/render_branded.py` (`cover=False`, no `custom_kpis`, repo `.venv` python) onto the Google Drive desktop mount in the client's creative folder, one canonical file edited in place, per `references/editor-brief-template.md`. The claims pass runs through the `amazon-seo` health-claims layer in advisory mode (per-line operator decisions with source and date, recorded in the brief). Angle tests need one campaign per batch and one ad group per angle, because AdLabs has no creative-level entity for Sponsored Brands. The skill never launches campaigns, changes bids, or uploads creatives; the per-client config contract lives in `tools/sb-video-briefs/` (gitignored client configs, one per product line).
+Briefs and reference docs deliver as branded .docx with NO cover page, rendered via `tools/amazon-ad-audit/render_branded.py` (`cover=False`, no `custom_kpis`, repo `.venv` python) onto the Google Drive desktop mount in the client's creative folder, one canonical file edited in place, per `references/editor-brief-template.md`. The claims pass runs through the `amazon-seo` health-claims layer in advisory mode (per-line operator decisions with source and date, recorded in the brief). Angle tests need one campaign per keyword and one ad group per angle (the batch), because AdLabs has no creative-level entity for Sponsored Brands. The skill never launches campaigns, changes bids, or uploads creatives; the per-client config contract lives in `tools/sb-video-briefs/` (gitignored client configs, one per product line).
 
 ## Creator Connections Standard
 
@@ -315,7 +315,7 @@ Routing:
 | Keyword research workbook | `<Client> - Shared/<Keyword Research>/<Country>/` |
 | Audit MASTER `.xlsx` + narrative `.docx`/`.pdf` | `<Client> - Shared/<Audits>/` |
 | Monthly reports, reporting downloads | `<Client> - Shared/<Reports>/` |
-| SB video briefing `.docx` + Creative Reference `.docx` | the client's creative folder, one file per batch and per product line, edited in place |
+| SB video briefing `.docx` + Creative Reference `.docx` | `<Client> - Shared/<Creative>/` (one file per batch and per product line, edited in place) |
 | Proposals, previews, fix plans, harvest/routing plans, rank-push plans, account checks | `_Working/<workflow>/` |
 | Ad bulk files | `_Working/ads/` or the client's existing ad-bulk folder |
 | FlatFilePro upload CSVs | NOT in Drive. `output/{client}/catalog/` |

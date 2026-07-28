@@ -65,14 +65,24 @@ Close with the design translation: which complaints are filmable and claim-free.
 
 ## 5. How angle tests are measured
 
-The structural constraints, stated once so no brief has to repeat them: no creative-level entity for SB in AdLabs, one ad group per angle, same keywords and bids across angles, budget sits at campaign level so read CTR not click counts, CTR first and CVR second, SQP reads at batch level only. Plus the cadence.
+Open with the constraint, so the structure reads as forced rather than chosen: AdLabs has no creative-level entity for Sponsored Brands (`advertised_product` excludes SB, `creative_type` returns empty on SB video ad groups), so three video creatives inside one ad group are invisible to reporting.
+
+Then the five bullets, stated once so no brief has to repeat them:
+
+- One campaign per keyword. One ad group per angle (batch) inside it.
+- Same keywords and same bids across the angles. The ad group name is the only difference.
+- Budget sits at campaign level, so impressions will not split evenly. Read CTR, which is a rate, not click counts. If one angle sits far behind the others on impressions, pause the leaders until it catches up.
+- CTR is the first read and is cheap. Conversion rate and ACOS are the second read, on the survivor only, because they need clicks rather than impressions.
+
+Keep this section to the structure alone. Internal operating detail (cadence, the SQP batch-level caveat, stage thresholds) lives in the skill and the brief, not in a document the client and editor read.
 
 ## 6. Footage inventory and asset requests
 
-- **Have.** What footage exists and where it lives.
-- **Need.** A numbered shot list written as a production work order, each item saying what it kills or proves.
+A links section. Paste the Drive links to the footage, the brand kit and any other asset directly under the heading; do not narrate them.
 
-Open gaps stay listed here until they arrive. They surface in the brief only as a constraint on a specific card.
+Leave the heading in place even when empty. It is where assets land as they arrive, and an empty heading is a visible reminder that they have not.
+
+Open gaps do not get written up here as prose. They surface in the brief, as a constraint on the specific card that needs them.
 
 ## Rendering
 

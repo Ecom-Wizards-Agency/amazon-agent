@@ -47,7 +47,7 @@ Per client and product line, before cluster selection:
 6. Script: build the brief per `references/editor-brief-template.md`. Three angles over one shared Part 2 per video. Every angle leads on a different buying criterion; that is the isolated variable. All on-screen text is final copy in the marketplace language.
 7. Claims pass (advisory): run the health-claims-check flow over every on-screen card and any VO line. One claims table for the whole batch, sorted with HIGH and MEDIUM first. Every line traces to a live-listing phrase or is flagged. Record operator decisions inline, with the source and date for anything authorised against the listing. Verify claim-critical label facts against the packaging artwork when it is reachable, and if a banned term is PRINTED on the pack, add a legibility framing rule for label close-ups.
 8. Deliver: render branded via `tools/amazon-ad-audit/render_branded.py` with no cover page, and place on the Drive mount (see Delivery Rule).
-9. Campaign structure: one campaign per batch, one ad group per angle. See Measurement below. Campaign creation itself routes to amazon-campaign-builder; this skill stops at the naming and the read plan.
+9. Campaign structure: one campaign per keyword, one ad group per angle (the batch). See Measurement below. Campaign creation itself routes to amazon-campaign-builder; this skill stops at the naming and the read plan.
 10. Learnings loop: when results exist, run the verdict rules and learnings checklist (adaptation reference, section 9), then write what changed back into the **Creative Reference doc**, not into a tracker.
 
 ## Measurement (structural, not a preference)
@@ -56,7 +56,7 @@ AdLabs has no creative-level entity for Sponsored Brands: `advertised_product` a
 
 So every angle test is built the same way:
 
-- One campaign per batch, following the account's existing campaign convention. One ad group per angle inside it, named `Angle N - <name>`. Never leave the Amazon default `Ad group - <timestamp>` name: it makes every AdLabs pull unreadable.
+- One campaign per keyword, following the account's existing campaign convention. One ad group per angle (the batch) inside it, named `Angle N - <name>`. Never leave the Amazon default `Ad group - <timestamp>` name: it makes every AdLabs pull unreadable.
 - Same keywords, same match types, same bids across the angles. The ad group name is the only difference.
 - Budget sits at campaign level, so impressions will not split evenly. Read CTR, which is a rate, not click counts. If one angle sits far behind on impressions, pause the leaders until it catches up.
 - **Stage 1 is CTR**, roughly 5,000 impressions per angle. Cheap, needs impressions not clicks.
@@ -82,7 +82,7 @@ So every angle test is built the same way:
 
 Briefs and Creative Reference docs deliver as **branded .docx, no cover page**, rendered with `tools/amazon-ad-audit/render_branded.py`. Two ways in, both fine: call `render_branded.render(cfg, outdir, md_path, cover=False)` from python, or run the CLI and simply omit `--cover`. Do not write `--cover=False` on the CLI: it is a bare switch and argparse rejects an explicit value. Leave `custom_kpis` out of `metrics.json` so the KPI card strip is suppressed. Run it with the repo `.venv` python, which has python-docx.
 
-Place them on the Google Drive desktop mount in the client's creative folder. ONE canonical file per batch and per product line, title WITHOUT a version suffix, edited IN PLACE: the link never changes and Drive keeps version history. The operator edits the file directly, so ALWAYS re-read the live file before revising and never resurrect content the operator removed.
+Place them on the Google Drive desktop mount at `01_Client Sheets/<Client>/<Client> - Shared/Creative/` (client-facing, so inside the `- Shared` folder; reuse the existing folder name if it differs). ONE canonical file per batch and per product line, title WITHOUT a version suffix, edited IN PLACE: the link never changes and Drive keeps version history. The operator edits the file directly, so ALWAYS re-read the live file before revising and never resurrect content the operator removed.
 
 Naming:
 
