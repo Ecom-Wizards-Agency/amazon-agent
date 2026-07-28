@@ -7,6 +7,9 @@
   "amazon_account": "<seller account + country>",
   "currency": "USD",
   "breakeven_acos": 0.50,
+  "client_price": null,
+  "client_dtc_price": null,
+  "client_price_note": "Optional but strongly recommended. The client's REAL selling price. DataDive reports the BUY BOX price, so during a hijack or stock-out it is a third party's and puts the client in the wrong place on the price/rating chart. Leave null to derive ASP from the Business Report (sales / units). client_dtc_price adds the brand's own-website price as a reference line.",
 
   "brand_tokens": ["<brand>", "<common misspelling/transposition>"],
   "brand_tokens_note": "Substring, case-insensitive. Include real misspellings that carry brand intent; do NOT include dictionary words that merely resemble the brand.",

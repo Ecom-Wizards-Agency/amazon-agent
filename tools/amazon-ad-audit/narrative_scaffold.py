@@ -32,8 +32,8 @@ FIGURES = {
         "Organic rank across the category keyword set. Page 1 is the only band that sells.",
     "fig_visibility_vs_competition.png":
         "Share of category search volume where each seller ranks in the top 10.",
-    "fig_reviews_vs_price.png":
-        "Price against social proof. Top-left is the hardest place to sell from.",
+    "fig_price_vs_rating.png":
+        "Price against rating. Bubble size is the number of ratings.",
     "fig_demand_segments.png":
         "Where the demand is, split so the winnable part is visible.",
     "fig_purchases_vs_market.png":
@@ -146,7 +146,7 @@ def build(config_path, outdir, force=False):
         A(f"Category median price **{_m(comp['median_price'],cur)}**, median reviews **{comp['median_reviews']:.0f}**, median rating **{comp['median_rating']}**.\n")
         for f in filter(None, [_fig(outdir, "fig_rank_distribution.png"),
                                _fig(outdir, "fig_visibility_vs_competition.png"),
-                               _fig(outdir, "fig_reviews_vs_price.png")]):
+                               _fig(outdir, "fig_price_vs_rating.png")]):
             A(f)
         A("<!-- operator: frame the price/review moat: is the client a premium outlier? what does that do to generic conversion? -->")
         A("<!-- operator: uniqueness test (playbook check 4): before crediting any strength, confirm the competitors do not have it too. -->\n")

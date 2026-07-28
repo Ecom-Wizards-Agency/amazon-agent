@@ -15,7 +15,15 @@ skipped, never faked.
   fig_visibility_vs_competition.png  share of category search volume ranked top 10,
                                    you vs every seller in the niche
                                    (needs datadive_niche_json + datadive_competitors_json)
-  fig_reviews_vs_price.png         the review/price moat, you highlighted
+  fig_price_vs_rating.png          price against RATING, review count as bubble size,
+                                   you highlighted. Replaces the old price-vs-review-count
+                                   scatter: review count needed a log axis that rendered
+                                   as 10^1..10^4 (unreadable to a non-technical audience),
+                                   and a "social proof" chart that omitted the rating hid
+                                   the number usually doing the damage. The client's price
+                                   comes from config.client_price or Business Report ASP,
+                                   NEVER from DataDive, which reports the Buy Box price.
+                                   Optional config.client_dtc_price draws a reference line.
                                    (needs datadive_competitors_json)
   fig_demand_segments.png          GRAPH 1: where the demand is, across four EXCLUSIVE
                                    segments (branded / competitor / generic-core /
@@ -254,66 +262,145 @@ def _visibility_vs_competition(plt, P, cfg, kws, comps, asins, out):
     return out
 
 
-def _reviews_vs_price(plt, P, cfg, comps, asins, out):
-    # A not-yet-rated listing reports reviewCount null, which is the whole story for a
-    # new launch: it must appear on this chart, not be filtered off it. Normalise null
-    # to a real 0 and keep it. `_x` is the plotting position only: the axis is log, which
-    # cannot place 0, so 0 reviews is clamped onto the axis floor while every comparison
-    # and label below still uses the true count.
+def _money(v, cfg):
+    sym = "\u20ac" if (cfg.get("currency") or "USD").upper() in ("EUR", "\u20ac") else "$"
+    return f"{sym}{v:,.0f}" if float(v).is_integer() else f"{sym}{v:,.2f}"
+
+
+def _client_price(cfg, asins):
+    """The client's REAL selling price, never DataDive's.
+
+    DataDive reports the BUY BOX price. During a hijack or a stock-out that is a third
+    party's price, so using it puts the client in the wrong place on a price chart. A
+    live audit had the client plotted at $50 against a true $33.39, which turned them
+    from the third most expensive listing into a lone outlier.
+
+    Order: explicit `config.client_price`, else ASP derived from the Business Report
+    (ordered product sales / units ordered), else None and the caller falls back with a
+    printed warning."""
+    v = cfg.get("client_price")
+    if v:
+        return float(v), "config client_price"
+    p = rp((cfg.get("inputs") or {}).get("business_report_csv"))
+    if p and p.exists():
+        sales = units = 0.0
+        for r in csv.DictReader(open(p, encoding="utf-8-sig")):
+            if (r.get("(Child) ASIN") or "").strip().lower() in asins:
+                try:
+                    sales += float((r.get("Ordered Product Sales") or "0").replace(",", "").replace("$", ""))
+                    units += float(r.get("Units Ordered") or 0)
+                except ValueError:
+                    continue
+        if units:
+            return sales / units, "Business Report ASP"
+    return None, None
+
+
+def _price_vs_rating(plt, P, cfg, comps, asins, out):
+    """Price against RATING, with review count as bubble size.
+
+    Replaces the old price-vs-review-count scatter, which had two problems for a
+    prospect audience. Review count spans three orders of magnitude so the axis had to
+    be logarithmic, and it rendered as 10^1..10^4, which is unreadable to anyone who is
+    not already comfortable with logs. And a chart captioned "social proof" showed only
+    review VOLUME, never the rating, which is usually the number actually hurting the
+    listing. Moving count to bubble size removes the log axis entirely and frees both
+    axes to be things anyone reads at a glance: stars and money."""
+    from matplotlib.ticker import FuncFormatter
     pts = []
     for c in comps:
-        p = c.get("price")
-        if p is None or p <= 0:
+        pr, rt = c.get("price"), c.get("rating")
+        if pr is None or pr <= 0 or rt is None or rt <= 0:
             continue
-        c = dict(c, reviewCount=c.get("reviewCount") or 0)
-        c["_x"] = max(c["reviewCount"], 1)
-        pts.append(c)
+        pts.append(dict(c, reviewCount=c.get("reviewCount") or 0))
     if len(pts) < 3:
         return None
+
+    own = [c for c in pts if c.get("asin") in asins]
+    real, src = _client_price(cfg, asins)
+    if own and real:
+        if abs(own[0]["price"] - real) > 0.01:
+            print(f"[fig] client price {own[0]['price']:.2f} from DataDive (Buy Box) "
+                  f"replaced with {real:.2f} from {src}")
+        for c in own:
+            c["price"] = real
+    elif own:
+        print("[fig] WARN: using DataDive's price for the client. It is the BUY BOX price, "
+              "so a hijack or stock-out will misplace them. Set config.client_price.")
+
+    ratings = [c["rating"] for c in pts]
     med_p = sorted(c["price"] for c in pts)[len(pts) // 2]
-    med_r = sorted(c["reviewCount"] for c in pts)[len(pts) // 2]
-    fig, ax = plt.subplots(figsize=(9, 5.0))
+    # Clip the view to where the field actually sits. One 1.0-rated listing on 3 reviews
+    # would otherwise flatten the 4.0-4.5 cluster that carries the comparison; it stays
+    # in the data and gets called out in the subtitle instead of distorting the axis.
+    lo_view = min(r for r in ratings if r >= 3.0) if any(r >= 3.0 for r in ratings) else min(ratings)
+    lo_view = min(lo_view, min([c["rating"] for c in own], default=lo_view))
+    clipped = [c for c in pts if c["rating"] < lo_view - 0.001]
+    shown = [c for c in pts if c not in clipped]
+
+    def bub(n):
+        return 60 + (float(n) ** 0.5) * 9        # area by sqrt so 30k does not swamp 300
+
+    fig, ax = plt.subplots(figsize=(9, 5.2))
     ax.axhline(med_p, color=P["hair"], lw=1.2, zorder=1)
-    ax.axvline(max(med_r, 1), color=P["hair"], lw=1.2, zorder=1)
-    mine = [c for c in pts if c.get("asin") in asins]
-    others = [c for c in pts if c.get("asin") not in asins]
-    # label the client plus the extremes that carry the argument; labelling every
-    # point collides and is the anti-pattern
+    ax.annotate(f"category median {_money(med_p, cfg)}", (0.995, med_p),
+                xycoords=("axes fraction", "data"), textcoords="offset points",
+                xytext=(0, 5), ha="right", fontsize=8, color=P["steel"], zorder=2)
+    dtc = cfg.get("client_dtc_price")
+    if dtc:
+        ax.axhline(float(dtc), color=P["accent"], lw=1.1, ls="--", alpha=.55, zorder=1)
+        ax.annotate(f"your own website {_money(float(dtc), cfg)}", (0.995, float(dtc)),
+                    xycoords=("axes fraction", "data"), textcoords="offset points",
+                    xytext=(0, 5), ha="right", fontsize=8, color=P["accent"], zorder=2)
+
+    for c in shown:
+        me = c.get("asin") in asins
+        ax.scatter(c["rating"], c["price"], s=bub(c["reviewCount"]) * (1.5 if me else 1),
+                   color=P["accent"] if me else P["steel"], alpha=1 if me else .45,
+                   edgecolor="white", linewidth=1.5, zorder=3)
+    # Label the client plus the extremes that carry the argument. Labelling everything collides.
+    others = [c for c in shown if c.get("asin") not in asins]
     notable = set()
     if others:
-        notable |= {max(others, key=lambda c: c["reviewCount"])["asin"],
-                    max(others, key=lambda c: c["price"])["asin"],
-                    min(others, key=lambda c: c["price"])["asin"]}
-    for c in pts:
-        is_me = c.get("asin") in asins
-        ax.scatter(c["_x"], c["price"], s=190 if is_me else 90,
-                   color=P["accent"] if is_me else P["steel"], alpha=1 if is_me else .5,
-                   edgecolor="white", linewidth=1.6, zorder=3)
-        if is_me or c.get("asin") in notable:
-            # say "no reviews yet" outright rather than let a clamped point read as one review
-            lab = c.get("brand", "")
-            if is_me and c["reviewCount"] == 0:
-                lab = f"{lab} (no reviews yet)".strip()
-            ax.annotate(lab, (c["_x"], c["price"]),
-                        textcoords="offset points", xytext=(10, 7),
-                        fontsize=9.5 if is_me else 8,
-                        fontweight="bold" if is_me else "normal",
-                        color=P["ink"] if is_me else P["steel"], zorder=4)
-    if mine:
-        m = mine[0]
-        cheaper = sum(1 for c in others if c["price"] < m["price"])
-        fewer = sum(1 for c in others if c["reviewCount"] > m["reviewCount"])
-        head = ("You are the most expensive listing with the fewest reviews"
-                if cheaper == len(others) and fewer == len(others)
-                else "Where you sit on price and social proof")
-    else:
-        head = "Price and social proof across the niche"
-    _title(ax, P, head, "Every competitor in the niche. Top-left is the hardest place to sell from.")
-    ax.set_xlabel("Ratings count", fontsize=9, color=P["steel"])
+        notable |= {max(others, key=lambda c: c["price"])["asin"],
+                    max(others, key=lambda c: c["rating"])["asin"],
+                    max(others, key=lambda c: c["reviewCount"])["asin"]}
+        if own:
+            notable |= {c["asin"] for c in others if c["price"] >= own[0]["price"]}
+    for c in shown:
+        me = c.get("asin") in asins
+        if not (me or c.get("asin") in notable):
+            continue
+        lab = c.get("brand", "")
+        if me:
+            lab = f"{lab}\n{c['rating']:.1f}\u2605 · {_money(c['price'], cfg)} · {c['reviewCount']:,.0f} ratings"
+        # Rivals label above-right, the client BELOW its bubble. A rival on the same
+        # rating sits within a few points of the client and the two labels overprinted.
+        ax.annotate(lab, (c["rating"], c["price"]), textcoords="offset points",
+                    xytext=(14, -34) if me else (12, 9),
+                    fontsize=9.5 if me else 8,
+                    fontweight="bold" if me else "normal",
+                    color=P["ink"] if me else P["steel"], zorder=4)
+
+    ax.set_xlabel("Customer rating (stars)", fontsize=9, color=P["steel"])
     ax.set_ylabel("Price", fontsize=9, color=P["steel"])
-    ax.set_xscale("log")
-    if any(c["reviewCount"] == 0 for c in pts):
-        ax.set_xlim(left=0.55)          # keep a clamped 0-review marker off the spine
+    ax.set_xlim(lo_view - 0.18, max(ratings) + 0.28)
+    ax.xaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:.1f}\u2605"))
+    ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _: _money(v, cfg)))
+
+    sub = "Bubble size is the number of ratings."
+    if clipped:
+        names = ", ".join(sorted({c.get("brand", "?") for c in clipped}))
+        sub += f" {names} sits below {lo_view:.1f}\u2605 and is off the scale here."
+    if own:
+        m = own[0]
+        cheaper = sum(1 for c in others if c["price"] < m["price"])
+        better = sum(1 for c in others if c["rating"] > m["rating"])
+        head = (f"You charge more than {cheaper} of {len(others)} rivals "
+                f"and are rated below {better} of them.")
+    else:
+        head = "Price against rating across the niche"
+    _title(ax, P, head, sub)
     _frame(ax, P)
     fig.tight_layout(); fig.savefig(out, dpi=200, bbox_inches="tight"); plt.close(fig)
     return out
@@ -570,7 +657,7 @@ def build(config_path, outdir) -> list:
                                  outdir / "fig_brand_name_leak.png")
             if f: made.append(f)
     if comps:
-        f = _reviews_vs_price(plt, P, cfg, comps, asins, outdir / "fig_reviews_vs_price.png")
+        f = _price_vs_rating(plt, P, cfg, comps, asins, outdir / "fig_price_vs_rating.png")
         if f: made.append(f)
     f = _demand_segments(plt, P, cfg, outdir / "fig_demand_segments.png")
     if f: made.append(f)
