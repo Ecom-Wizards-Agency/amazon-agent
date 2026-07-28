@@ -12,6 +12,9 @@
   "brand_tokens_note": "Substring, case-insensitive. Include real misspellings that carry brand intent; do NOT include dictionary words that merely resemble the brand.",
   "competitor_tokens": ["<competitor brand 1>", "<competitor brand 2>"],
 
+  "core_tokens": ["<category phrase the product actually competes on>"],
+  "core_tokens_note": "Optional. Splits GENERIC into winnable CORE vs undifferentiated HEAD for the SQP demand figures. Without it every generic term counts as core, i.e. the old two-way behaviour. Include the category language a shopper uses for THIS product ('under eye brightener'); leave OUT the shelf above it ('makeup', 'beauty'). Head terms are real demand but no single listing wins them, so counting them as addressable overstates the category by an order of magnitude and makes category share look far worse than it is.",
+
   "asin_groups": {
     "<Product line A>": ["<ASIN>", "<ASIN>"],
     "<Product line B>": ["<ASIN>"]

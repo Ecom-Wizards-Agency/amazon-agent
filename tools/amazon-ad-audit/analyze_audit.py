@@ -52,6 +52,7 @@ def load_config(path):
     cfg["_brand_re"] = re.compile("|".join(re.escape(t.lower()) for t in cfg.get("brand_tokens", []) if t), re.I) if cfg.get("brand_tokens") else None
     cfg["_comp_re"] = re.compile("|".join(re.escape(t.lower()) for t in cfg.get("competitor_tokens", []) if t), re.I) if cfg.get("competitor_tokens") else None
     cfg["_own_asins"] = {a.lower() for asins in (cfg.get("asin_groups") or {}).values() for a in asins}
+    cfg["_core_re"] = re.compile("|".join(re.escape(t.lower()) for t in cfg.get("core_tokens", []) if t), re.I) if cfg.get("core_tokens") else None
     return cfg
 
 _ASIN_RE = re.compile(r"^b0[a-z0-9]{8}$")
@@ -68,6 +69,29 @@ def classify(cfg, term):
     if cfg["_comp_re"] and cfg["_comp_re"].search(t):
         return "Competitor"
     return "Generic"
+
+DEMAND_SEGMENTS = ["Branded", "Competitor", "Core", "Head"]
+
+def classify_demand(cfg, term):
+    """Four-way EXCLUSIVE demand segmentation for the SQP demand charts.
+
+    Branded and Competitor follow classify(). Generic then splits in two, because
+    lumping them together is what makes a category look 20x bigger than it is:
+      Core = matches cfg['core_tokens'], the category language this product actually
+             competes on ("under eye brightener", "eye corrector"). Winnable.
+      Head = the undifferentiated remainder ("makeup", "beauty") that no single
+             listing wins. Real demand, but not addressable, so it must never sit
+             inside the number you measure your category share against.
+    With no core_tokens configured every Generic term falls to Core, which keeps the
+    old two-way behaviour rather than silently reclassifying an existing client."""
+    it = classify(cfg, term)
+    if it != "Generic":
+        return it
+    rx = cfg.get("_core_re")
+    if not rx:
+        return "Core"
+    return "Core" if rx.search((term or "").lower()) else "Head"
+
 
 def classify_target(cfg, text):
     """Classify an SB keyword or product-target EXPRESSION (not a search term).

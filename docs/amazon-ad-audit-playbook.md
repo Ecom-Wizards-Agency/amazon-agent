@@ -382,7 +382,8 @@ fails the audit.
 | `fig_rank_distribution.png` | Where do we rank across the category keyword set right now? | DataDive niche + `asin_groups` |
 | `fig_visibility_vs_competition.png` | Versus who, in one number: share of category search volume ranked top 10 | DataDive niche + competitors |
 | `fig_reviews_vs_price.png` | The price/review moat. Would a shopper pick us? (analytical check 5) | DataDive competitors |
-| `fig_branded_vs_generic.png` | Where the demand is versus where the purchases go | SQP + `brand_tokens` |
+| `fig_demand_segments.png` | Where the demand is, across four exclusive segments (branded / competitor / generic-core / generic-head) | SQP + `brand_tokens`; `core_tokens` to split generic |
+| `fig_purchases_vs_market.png` | Purchases, you against the market, same measure on both bars | SQP + `brand_tokens` |
 | `fig_brand_name_leak.png` | Who ranks on the brand's OWN name, and where we sit | DataDive niche + competitors + `brand_tokens` |
 
 **On the rank-movement chart (the standard rank chart).** It shows where each keyword's

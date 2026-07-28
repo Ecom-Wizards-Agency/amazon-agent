@@ -17,8 +17,18 @@ skipped, never faked.
                                    (needs datadive_niche_json + datadive_competitors_json)
   fig_reviews_vs_price.png         the review/price moat, you highlighted
                                    (needs datadive_competitors_json)
-  fig_branded_vs_generic.png       SQP demand vs purchase capture by intent
-                                   (needs sqp_csvs + brand_tokens)
+  fig_demand_segments.png          GRAPH 1: where the demand is, across four EXCLUSIVE
+                                   segments (branded / competitor / generic-core /
+                                   generic-head). Splitting generic is the point: folding
+                                   competitor brands and unwinnable head terms into one
+                                   bar overstates the addressable category ~20x.
+                                   (needs sqp_csvs + brand_tokens; core_tokens to split)
+  fig_purchases_vs_market.png      GRAPH 2: purchases, YOU against THE MARKET, same four
+                                   segments and the SAME measure on both bars. Not a
+                                   per-segment capture rate: origination biases branded
+                                   and generic rates differently so they are not
+                                   comparable to each other, but counts are.
+                                   (needs sqp_csvs)
   fig_brand_name_leak.png          who ranks on the brand's OWN name. Copycats and
                                    namesakes farm branded demand the brand is paying
                                    to create, and external traffic only builds the
@@ -365,53 +375,162 @@ def _brand_name_leak(plt, P, cfg, kws, comps, asins, out):
     return out
 
 
-def _branded_vs_generic(plt, P, cfg, out):
-    from matplotlib.ticker import FuncFormatter
-    agg = defaultdict(lambda: dict(sv=0, pa=0, pt=0))
+def _focus(cfg):
+    """Which product line the demand figures speak for.
+
+    A multi-line catalogue makes an account-wide demand chart misleading: the biggest
+    'winnable' term ends up being whichever line has the most search volume, even when
+    the business barely sells there. `sqp_focus_group` names one entry in asin_groups
+    and the figures then describe that line only, which is stated on the chart itself.
+    Returns (group_name, {asins}) or (None, None) for the whole account."""
+    g = cfg.get("sqp_focus_group")
+    groups = cfg.get("asin_groups") or {}
+    if not g or g not in groups:
+        return None, None
+    return g, {a.lower() for a in groups[g]}
+
+
+def _sqp_segments(cfg):
+    """Aggregate SQP into the four exclusive demand segments.
+    Market metrics (search volume, total purchases) are counted ONCE per query+week;
+    our purchases accumulate across every ASIN that appeared on that query, which is
+    correct: several of our ASINs can sell on one query, but the market total for it
+    is a single number."""
+    from analyze_audit import classify_demand, DEMAND_SEGMENTS
+    agg = {k: dict(sv=0.0, pt=0.0, pa=0.0, q=defaultdict(float), qa=defaultdict(float))
+           for k in DEMAND_SEGMENTS}
     seen = set()
+    fgroup, fasins = _focus(cfg)
     for _grp, path in (cfg["inputs"].get("sqp_csvs") or {}).items():
+        if fgroup and _grp != fgroup:
+            continue
         p = rp(path)
         if not p or not p.exists():
             continue
         for r in csv.DictReader(open(p, encoding="utf-8-sig")):
-            q = r["Search Query"].strip()
-            it = classify(cfg, q)
-            b = "Branded" if it == "Branded" else "Generic"
-            key = (q.lower(), r["Reporting Date"])
-            d = agg[b]
-            if key not in seen:                       # market metrics once per query+week
+            q = (r.get("Search Query") or "").strip()
+            if not q:
+                continue
+            if fasins and (r.get("ASIN") or "").strip().lower() not in fasins:
+                continue
+            d = agg[classify_demand(cfg, q)]
+            key = (q.lower(), r.get("Reporting Date"))
+            if key not in seen:
                 seen.add(key)
-                d["sv"] += float(r["Search Query Volume"] or 0)
-                d["pt"] += float(r["Purchases: Total Count"] or 0)
-            d["pa"] += float(r["Purchases: ASIN Count"] or 0)
-    if not agg or not agg.get("Generic", {}).get("sv"):
+                sv = float(r.get("Search Query Volume") or 0)
+                d["sv"] += sv
+                d["q"][q.lower()] += sv          # for the on-chart example query
+                d["pt"] += float(r.get("Purchases: Total Count") or 0)
+            pa = float(r.get("Purchases: ASIN Count") or 0)
+            d["pa"] += pa
+            d["qa"][q.lower()] += pa
+    return agg
+
+
+def _example(agg, seg, width=26):
+    """A real query from the segment, so the prospect can see what the bar MEANS.
+    Prefer the highest-volume query the brand actually SELLS on: the plain volume
+    leader can be a term the business has no presence in, which reads as a mislabel
+    rather than an example. Derived from data, never typed, so it cannot drift."""
+    d = agg.get(seg, {})
+    sold = {k: v for k, v in (d.get("q") or {}).items() if (d.get("qa") or {}).get(k, 0) > 0}
+    qs = sold or (d.get("q") or {})
+    if not qs:
+        return ""
+    q = max(qs.items(), key=lambda kv: kv[1])[0]
+    return q if len(q) <= width else q[: width - 1] + "\u2026"
+
+
+def _scope_note(fig, cfg):
+    """Say on the chart which line it describes, so a hero-line number is never read
+    as an account-wide one."""
+    g, _ = _focus(cfg)
+    if not g:
+        return
+    fig.text(0.005, -0.06, f"We concentrated on the hero line: {g}.",
+             fontsize=8.5, style="italic", color=_palette()["steel"], ha="left")
+
+
+_SEG_LABELS = {
+    "Branded": "Branded\n(your name)",
+    "Competitor": "Competitor\n(their names)",
+    "Core": "Generic: core\n(winnable)",
+    "Head": "Generic: head\n(undifferentiated)",
+}
+
+
+def _demand_segments(plt, P, cfg, out):
+    """GRAPH 1 — where the demand is, split so the winnable part is visible.
+    The old two-way version folded competitor brands AND unwinnable head terms into
+    one 'Generic' bar, which overstated the addressable category by an order of
+    magnitude and made category share look far worse than it is."""
+    from matplotlib.ticker import FuncFormatter
+    from analyze_audit import DEMAND_SEGMENTS
+    agg = _sqp_segments(cfg)
+    if not any(agg[k]["sv"] for k in DEMAND_SEGMENTS):
         return None
-    cats = ["Branded\n(your name)", "Generic\n(the category)"]
-    sv = [agg["Branded"]["sv"], agg["Generic"]["sv"]]
-    cap = [(agg[b]["pa"] / agg[b]["pt"] * 100 if agg[b]["pt"] else 0) for b in ("Branded", "Generic")]
-    # colour follows the entity across panels, never its rank
-    cols = [P["steel"], P["accent"]]
-    fig, (a1, a2) = plt.subplots(1, 2, figsize=(9, 3.5))
-    a1.bar(cats, sv, color=cols, width=0.55)
-    for i, v in enumerate(sv):
-        a1.text(i, v * 1.02, f"{v:,.0f}", ha="center", va="bottom", fontsize=10.5,
+    segs = [k for k in DEMAND_SEGMENTS if agg[k]["sv"] > 0]
+    vals = [agg[k]["sv"] for k in segs]
+    # Accent marks the segment the audit acts on; the rest is context.
+    cols = [P["accent"] if k == "Core" else P["steel"] for k in segs]
+    fig, ax = plt.subplots(figsize=(9, 3.6))
+    labs = [f'{_SEG_LABELS[k]}\ne.g. "{_example(agg, k)}"' for k in segs]
+    ax.bar(labs, vals, color=cols, width=0.6)
+    for i, v in enumerate(vals):
+        ax.text(i, v * 1.02, f"{v:,.0f}", ha="center", va="bottom", fontsize=10.5,
                 fontweight="bold", color=P["ink"])
-    a1.set_title("Where the demand is", fontsize=11, fontweight="bold", color=P["ink"], loc="left")
-    a1.set_ylabel("Search volume", fontsize=9, color=P["steel"])
-    a1.set_ylim(0, max(sv) * 1.18)
-    a1.yaxis.set_major_formatter(FuncFormatter(lambda v, _: "0" if v == 0 else f"{v/1000:.0f}K"))
-    _frame(a1, P, ygrid=True)
-    a2.bar(cats, cap, color=cols, width=0.55)
-    for i, v in enumerate(cap):
-        a2.text(i, v + 2, f"{v:.1f}%", ha="center", va="bottom", fontsize=10.5,
-                fontweight="bold", color=P["ink"])
-    a2.set_title("Where the purchases go", fontsize=11, fontweight="bold", color=P["ink"], loc="left")
-    a2.set_ylabel("Your share of category purchases", fontsize=9, color=P["steel"])
-    a2.set_ylim(0, 100)
-    _frame(a2, P, ygrid=True)
-    # State the measurement, not a verdict. The verdict belongs in the operator's prose.
-    fig.suptitle(f"Branded demand is {sv[0]:,.0f} searches. The category is {sv[1]:,.0f}.",
+    ax.set_ylabel("Searches in the window", fontsize=9, color=P["steel"])
+    ax.set_ylim(0, max(vals) * 1.18)
+    ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _: "0" if v == 0 else f"{v/1000:.0f}K"))
+    _frame(ax, P, ygrid=True)
+    core = agg["Core"]["sv"]; tot = sum(vals)
+    # State the measurement, not a verdict: "Only X of Y" reads as a judgement and
+    # inverts whenever the core segment turns out to be large.
+    fig.suptitle(f"Winnable category demand is {core:,.0f} searches, "
+                 f"{core/tot:.0%} of everything searched.",
                  fontsize=12.5, fontweight="bold", color=P["ink"], x=0.005, ha="left", y=1.04)
+    _scope_note(fig, cfg)
+    fig.tight_layout()
+    fig.savefig(out, dpi=200, bbox_inches="tight"); plt.close(fig)
+    return out
+
+
+def _purchases_vs_market(plt, P, cfg, out):
+    """GRAPH 2 — us against the market, on the SAME measure.
+    Purchases both sides, so the comparison is like-for-like. Deliberately NOT a
+    capture percentage per segment: origination biases branded and generic rates
+    differently, so those rates are not comparable to each other. Counts are."""
+    import numpy as np
+    from matplotlib.ticker import FuncFormatter
+    from analyze_audit import DEMAND_SEGMENTS
+    agg = _sqp_segments(cfg)
+    segs = [k for k in DEMAND_SEGMENTS if agg[k]["pt"] > 0]
+    if not segs:
+        return None
+    mkt = [agg[k]["pt"] for k in segs]
+    ours = [agg[k]["pa"] for k in segs]
+    x = np.arange(len(segs)); w = 0.38
+    fig, ax = plt.subplots(figsize=(9, 3.8))
+    ax.bar(x - w / 2, mkt, w, label="Market", color=P["steel"])
+    ax.bar(x + w / 2, ours, w, label="You", color=P["accent"])
+    for i, (m, o) in enumerate(zip(mkt, ours)):
+        ax.text(i - w / 2, m, f"{m:,.0f}", ha="center", va="bottom", fontsize=9.5,
+                fontweight="bold", color=P["ink"])
+        share = (o / m * 100) if m else 0
+        ax.text(i + w / 2, o, f"{o:,.0f}\n({share:.1f}%)", ha="center", va="bottom",
+                fontsize=9.5, fontweight="bold", color=P["ink"])
+    ax.set_xticks(x)
+    ax.set_xticklabels([f'{_SEG_LABELS[k]}\ne.g. "{_example(agg, k)}"' for k in segs])
+    ax.set_ylabel("Purchases in the window", fontsize=9, color=P["steel"])
+    ax.set_ylim(0, max(mkt) * 1.22)
+    ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _: "0" if v == 0 else f"{v/1000:.0f}K"))
+    ax.legend(frameon=False, fontsize=9, loc="upper right")
+    _frame(ax, P, ygrid=True)
+    ci = segs.index("Core") if "Core" in segs else None
+    head = (f"On winnable category demand the market bought {agg['Core']['pt']:,.0f}. You sold {agg['Core']['pa']:,.0f}."
+            if ci is not None else "Purchases: you against the market.")
+    fig.suptitle(head, fontsize=12.5, fontweight="bold", color=P["ink"], x=0.005, ha="left", y=1.04)
+    _scope_note(fig, cfg)
     fig.tight_layout()
     fig.savefig(out, dpi=200, bbox_inches="tight"); plt.close(fig)
     return out
@@ -453,7 +572,9 @@ def build(config_path, outdir) -> list:
     if comps:
         f = _reviews_vs_price(plt, P, cfg, comps, asins, outdir / "fig_reviews_vs_price.png")
         if f: made.append(f)
-    f = _branded_vs_generic(plt, P, cfg, outdir / "fig_branded_vs_generic.png")
+    f = _demand_segments(plt, P, cfg, outdir / "fig_demand_segments.png")
+    if f: made.append(f)
+    f = _purchases_vs_market(plt, P, cfg, outdir / "fig_purchases_vs_market.png")
     if f: made.append(f)
 
     for m in made:
