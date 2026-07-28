@@ -206,7 +206,8 @@ function accountParamsFrom(url) {
 // Codex) can eyeball WHICH CLIENT a pull belongs to instead of decoding a merchant id. Mirrors
 // the account-safety pattern in ../opportunity-explorer/run-poe.mjs.
 const ACCT_NAME_JS = `(function(){
-  var sels = ['[data-testid*="account-switcher" i]','[id*="account-switcher" i]',
+  var sels = ['[data-test="current-account"]','.dropdown-account-switcher-header',
+              '[data-testid*="account-switcher" i]','[id*="account-switcher" i]',
               '[class*="partner-switcher" i]','[data-testid*="partner-switcher" i]',
               '#sc-mkt-picker-switcher-select','[aria-label*="account" i][role="button"]'];
   for (var i=0;i<sels.length;i++){

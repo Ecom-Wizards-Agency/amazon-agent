@@ -126,8 +126,8 @@ Claims survive the move down, not up: a line that is compliant as visible listin
 
 Launch:
 
-- 1 SB video campaign per cluster, exact and phrase on the cluster's queries, nothing else in the campaign. The campaign is the test cell.
-- **One ad group per angle, named `Angle N - <name>`.** Not three creatives in one ad group. AdLabs has no creative-level entity for Sponsored Brands (`advertised_product` excludes SB, `creative_type` is empty on SB video ad groups), so three creatives sharing an ad group cannot be told apart in reporting. Same keywords and same bids across the three; the ad group name is the only difference.
+- 1 SB video campaign per keyword, nothing else in the campaign. The campaign is the test cell.
+- **One ad group per angle (the batch), named `Angle N - <name>`.** Not three creatives in one ad group. AdLabs has no creative-level entity for Sponsored Brands (`advertised_product` excludes SB, `creative_type` is empty on SB video ad groups), so three creatives sharing an ad group cannot be told apart in reporting. Same keywords and same bids across the three; the ad group name is the only difference.
 - Budget sits at campaign level, so impressions will not split evenly. Read CTR, which is a rate, not click counts. If one angle falls far behind on impressions, pause the leaders until it catches up.
 - Set bids to actually win the video slot: an untested video at a starvation bid produces no learnings.
 
@@ -179,7 +179,7 @@ Learnings questions per video (the adapted checklist):
 | Variation | A cut: one angle plus the shared Part 2. Angles and cuts are 1:1 |
 | Hook rate | VTR |
 | Hold rate | Completion rate, secondary |
-| Marksman | 3 angles, one cluster, one campaign, one ad group per angle |
+| Marksman | 3 angles over one shared second half, one campaign per keyword, one ad group per angle |
 | Sniper | Iterations on the winning angle's opening |
 | Growth guide hypothesis | The shortlist case. Not carried into the editor brief |
 | Batch tracking | The brief itself. No separate tracker sheet |

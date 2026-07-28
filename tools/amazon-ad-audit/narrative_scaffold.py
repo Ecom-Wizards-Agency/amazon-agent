@@ -32,10 +32,12 @@ FIGURES = {
         "Organic rank across the category keyword set. Page 1 is the only band that sells.",
     "fig_visibility_vs_competition.png":
         "Share of category search volume where each seller ranks in the top 10.",
-    "fig_reviews_vs_price.png":
-        "Price against social proof. Top-left is the hardest place to sell from.",
-    "fig_branded_vs_generic.png":
-        "Where the demand is, and where the purchases actually go.",
+    "fig_price_vs_rating.png":
+        "Price against rating. Bubble size is the number of ratings.",
+    "fig_demand_segments.png":
+        "Where the demand is, split so the winnable part is visible.",
+    "fig_purchases_vs_market.png":
+        "Purchases, you against the market, on the same measure.",
     "fig_brand_name_leak.png":
         "Organic rank on the brand's own name. Anything past rank 10 is page 2.",
 }
@@ -121,7 +123,8 @@ def build(config_path, outdir, force=False):
                 continue
             A(f"| {b} | {s['queries']} | {s['sv_share']:.1%} | {s['capture']:.1%} ({s['brand_purch']}/{s['mkt_purch']}) |")
         A("")
-        for f in filter(None, [_fig(outdir, "fig_branded_vs_generic.png"),
+        for f in filter(None, [_fig(outdir, "fig_demand_segments.png"),
+                               _fig(outdir, "fig_purchases_vs_market.png"),
                                _fig(outdir, "fig_brand_name_leak.png")]):
             A(f)
         A("<!-- operator: the capture number is the story: category demand is large but unconverted. CTR-vs-CVR wall. -->\n")
@@ -143,7 +146,7 @@ def build(config_path, outdir, force=False):
         A(f"Category median price **{_m(comp['median_price'],cur)}**, median reviews **{comp['median_reviews']:.0f}**, median rating **{comp['median_rating']}**.\n")
         for f in filter(None, [_fig(outdir, "fig_rank_distribution.png"),
                                _fig(outdir, "fig_visibility_vs_competition.png"),
-                               _fig(outdir, "fig_reviews_vs_price.png")]):
+                               _fig(outdir, "fig_price_vs_rating.png")]):
             A(f)
         A("<!-- operator: frame the price/review moat: is the client a premium outlier? what does that do to generic conversion? -->")
         A("<!-- operator: uniqueness test (playbook check 4): before crediting any strength, confirm the competitors do not have it too. -->\n")

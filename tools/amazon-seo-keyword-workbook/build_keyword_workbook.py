@@ -2149,8 +2149,31 @@ def team_vault_root() -> str:
     return ""
 
 
+def _hub_note_slug(clients_dir: str, name: str) -> str:
+    """The canonical `slug:` from a client folder's hub-note frontmatter, or ""."""
+    hub = os.path.join(clients_dir, name, f"{name}.md")
+    try:
+        with open(hub, encoding="utf-8") as f:
+            head = f.read(2048)
+    except OSError:
+        return ""
+    if not head.startswith("---"):
+        return ""
+    for line in head.splitlines()[1:]:
+        if line.strip() == "---":
+            break
+        if line.startswith("slug:"):
+            return line.split(":", 1)[1].strip().casefold()
+    return ""
+
+
 def vault_client_dir(root: str, client: str) -> str:
-    """Existing client folder in the shared vault, matched case-insensitively.
+    """Existing client folder in the shared vault for this client slug.
+
+    Resolution order: the `slug:` in each folder's hub-note frontmatter (the
+    canonical mapping, so a slug can live under a differently-named folder), then a
+    case-insensitive folder-name match with spaces treated as hyphens, so a
+    hyphenated slug still finds its spaced folder name without frontmatter.
 
     Never creates one. A folder invented here syncs to every teammate, and a
     near-miss spelling next to the real folder is worse than no note at all, so
@@ -2164,10 +2187,13 @@ def vault_client_dir(root: str, client: str) -> str:
         entries = sorted(os.listdir(clients_dir))
     except OSError:
         return ""
-    for name in entries:
-        full = os.path.join(clients_dir, name)
-        if os.path.isdir(full) and name.casefold() == wanted:
-            return full
+    folders = [n for n in entries if os.path.isdir(os.path.join(clients_dir, n))]
+    for name in folders:
+        if _hub_note_slug(clients_dir, name) == wanted:
+            return os.path.join(clients_dir, name)
+    for name in folders:
+        if name.casefold().replace(" ", "-") == wanted:
+            return os.path.join(clients_dir, name)
     return ""
 
 

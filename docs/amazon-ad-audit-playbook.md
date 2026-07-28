@@ -381,8 +381,9 @@ fails the audit.
 | `fig_rank_movement.png` | How did our rank MOVE over the window? The standard rank chart. | `rank_radar_json` |
 | `fig_rank_distribution.png` | Where do we rank across the category keyword set right now? | DataDive niche + `asin_groups` |
 | `fig_visibility_vs_competition.png` | Versus who, in one number: share of category search volume ranked top 10 | DataDive niche + competitors |
-| `fig_reviews_vs_price.png` | The price/review moat. Would a shopper pick us? (analytical check 5) | DataDive competitors |
-| `fig_branded_vs_generic.png` | Where the demand is versus where the purchases go | SQP + `brand_tokens` |
+| `fig_price_vs_rating.png` | The price/rating moat. Would a shopper pick us? (analytical check 5) | DataDive competitors; `client_price` or a Business Report for the real own price |
+| `fig_demand_segments.png` | Where the demand is, across four exclusive segments (branded / competitor / generic-core / generic-head) | SQP + `brand_tokens`; `core_tokens` to split generic |
+| `fig_purchases_vs_market.png` | Purchases, you against the market, same measure on both bars | SQP + `brand_tokens` |
 | `fig_brand_name_leak.png` | Who ranks on the brand's OWN name, and where we sit | DataDive niche + competitors + `brand_tokens` |
 
 **On the rank-movement chart (the standard rank chart).** It shows where each keyword's
@@ -409,11 +410,21 @@ the top branded query must clear `MIN_BRAND_SV` (500) and at least three sellers
 it, so single-product or no-brand-demand accounts get no empty chart. A brand that owns its
 own name simply shows itself on top, which is a finding worth stating too.
 
-**A note on zero-review clients.** `fig_reviews_vs_price` plots ratings on a log axis, which
-cannot place 0, and a not-yet-rated listing reports `reviewCount: null`. Both used to drop the
-client silently off its own chart, which is precisely the audit where the point matters most.
-Null is normalised to a real 0 and the client is clamped onto the axis floor and labelled
-"no reviews yet". Comparisons and the derived headline still use the true count.
+**Why price sits against RATING, not review count.** Review count spans three orders of
+magnitude, so it needed a log axis, and that axis rendered as `10^1..10^4`. Prospects do not
+read exponents. Worse, a chart captioned "social proof" that plots only review VOLUME hides the
+rating, which is usually the number actually doing the damage. Count is now bubble size, which
+removes the log axis entirely and leaves both axes as things anyone reads at a glance: stars and
+money. A not-yet-rated listing reports `reviewCount: null`; it is normalised to 0 so the client
+still appears, as the smallest bubble, on precisely the audit where the point matters most.
+
+**Never plot the client at DataDive's price.** DataDive reports the BUY BOX price, so during a
+hijack or stock-out it is a third party's. One audit had the client at $50 against a true $33.39,
+which turned them from the third most expensive listing into a lone outlier. The figure takes the
+client's price from `config.client_price`, else Business Report ASP (sales / units), and warns
+when it has to fall back. `config.client_dtc_price` adds the brand's own-website price as a
+reference line, which is what makes an inflated Buy Box legible as "above what they charge
+themselves".
 
 Chart rules (they are why these read clean, so keep them):
 
