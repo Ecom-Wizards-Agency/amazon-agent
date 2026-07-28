@@ -29,9 +29,13 @@ python3 fixterms.py DIR --apply
 export VT_WORKDIR=/path/to/run            # transcripts land in $VT_WORKDIR/wh and /di
 xargs -P 4 -n 1 ./worker.sh < queue.txt
 xargs -P 4 -n 1 ./worker_diarize.sh < queue.txt
+
+VT_SUBDIR=ls xargs -P 6 -n 1 ./worker.sh < livestreams.txt   # same worker, own folder
 ```
 
-Both workers find `transcribe.py` next to themselves, so they run from anywhere. `VT_WORKDIR` is the only thing they need told, and it defaults to the current directory. Keep it outside the repo: transcripts are run output, not source.
+Both workers find `transcribe.py` next to themselves, so they run from anywhere. `VT_WORKDIR` is the only thing they need told, and it defaults to the current directory. Keep it outside the repo: transcripts are run output, not source. `VT_SUBDIR` overrides the output folder (`wh` / `di`), so a second batch that needs its own directory is an env var rather than a copied script.
+
+**A transcript with no segments is a FAILURE, not a result.** `transcribe.py` can exit 0 having produced no timestamped lines. The workers check the artifact rather than the exit code: an empty result is reported as `EMPTY <id>`, exits non-zero, and is never saved. The completed-work skip applies the same test, so an empty file already on disk is retried instead of being skipped forever, which is how a video can silently never get transcribed across every rerun.
 
 Credentials are read from `~/.config/watch/.env` (`OPENAI_API_KEY`, `GROQ_API_KEY`). Never hardcoded, never logged.
 
