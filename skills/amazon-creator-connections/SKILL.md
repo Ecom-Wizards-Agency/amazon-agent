@@ -53,6 +53,12 @@ Creator Connections lives behind Amazon Ads login and currently has no direct MC
    - Never send samples just because a creator asks.
    - Watch for ghosting risk, repeated identical messages, guaranteed-review wording, missing product match, missing proof, or recipient/content-creator mismatch.
 
+6. Background-check first.
+   - Before asking a creator for proof or fulfillment details, check what is visible from the creator profile, Amazon storefront, recent shoppable videos, Earns Revenue badge, attached product cards, media kit, and public social/portfolio links.
+   - Populate the tracker qualification gate from verifiable public/visible evidence first.
+   - If the creator qualifies from the background check, ask only for the basic fulfillment details needed to send the sample: full name, complete shipping address, email, phone, and final product/ASIN confirmation.
+   - Ask for extra proof only when the visible background check cannot verify enough activity, fit, or performance to make a sample decision.
+
 ## How to use
 
 Use natural requests:
