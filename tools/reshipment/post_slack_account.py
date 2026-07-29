@@ -3,18 +3,13 @@
 
 import argparse
 import json
-import subprocess
 from pathlib import Path
 
+import slack_helper
 
-def run_helper(helper: Path, *args: str) -> dict:
-    result = subprocess.run(
-        [str(helper), *args],
-        check=True,
-        capture_output=True,
-        text=True,
-    )
-    return json.loads(result.stdout)
+
+def run_helper(_helper, *args: str) -> dict:
+    return json.loads(slack_helper.run_helper(*args))
 
 
 def main() -> None:
@@ -24,7 +19,7 @@ def main() -> None:
     parser.add_argument("--message-file", required=True)
     args = parser.parse_args()
 
-    helper = Path.home() / "Automations" / "wizards-ai" / "slack.sh"
+    helper = None  # resolved per-OS by slack_helper
     message = Path(args.message_file).read_text(encoding="utf-8").strip()
     if "\n*Reshipment*\nNo positive reshipment quantities" in message:
         raise SystemExit(

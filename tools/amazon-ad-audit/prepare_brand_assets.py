@@ -30,7 +30,32 @@ LOGO_SVG_DIR = os.environ.get("EW_LOGO_SVG_DIR",
 INTER_TTF = os.environ.get("EW_INTER_TTF",
     f"{PC}/3_Learning/3.3_TheFutur/The Perfect Proposal/Templates/01_Full Template/"
     "InDesign-Template/Document fonts/Inter-VariableFont_slnt,wght.ttf")
-CHROME = os.environ.get("EW_CHROME", "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
+
+def _find_chrome() -> str:
+    """First Chrome/Edge that actually exists. render_branded.py resolves the
+    same way; keep the two lists in step. EW_CHROME overrides everything."""
+    override = os.environ.get("EW_CHROME", "")
+    if override:
+        return override
+    candidates = [
+        "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+        "/Applications/Chromium.app/Contents/MacOS/Chromium",
+        "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
+        r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+        r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
+        os.path.expandvars(r"%LOCALAPPDATA%\Google\Chrome\Application\chrome.exe"),
+        r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
+        r"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
+        "/usr/bin/google-chrome", "/usr/bin/chromium", "/usr/bin/chromium-browser",
+    ]
+    for p in candidates:
+        if p and Path(p).exists():
+            return p
+    # Fall back to the macOS path so the failure message names something real.
+    return candidates[0]
+
+
+CHROME = _find_chrome()
 
 
 def _svg_to_png(svg, out, w=2452, h=872):
