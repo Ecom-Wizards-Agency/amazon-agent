@@ -1,4 +1,4 @@
 interface:
   display_name: "Amazon Creator Connections"
-  short_description: "Triage the Creator Connections inbox and draft replies"
-  default_prompt: "Use $amazon-creator-connections to triage the creator inbox and draft replies for approval."
+  short_description: "Launch, audit, score, track, and report Amazon Creator Connections workflows"
+  default_prompt: "Use $amazon-creator-connections to run the Creator Connections workflow: verify campaigns/messages, update the tracker, score sample candidates, draft approved replies, and summarize next actions."
