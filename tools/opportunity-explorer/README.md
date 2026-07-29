@@ -40,28 +40,54 @@ tools/report-fetcher/launch-chrome-debug.sh      # dedicated debug Chrome; sign 
 node tools/opportunity-explorer/run-poe.mjs doctor
 
 # find the niche (keyword search; also produces the related-niches files)
-node tools/opportunity-explorer/run-poe.mjs search --query "manuka honey" --marketplace us --client <slug>
+node tools/opportunity-explorer/run-poe.mjs search --query "kollagen pulver" --marketplace de --client <slug>
 
 # full niche download (all tabs, one call)
-node tools/opportunity-explorer/run-poe.mjs niche --niche-id <nicheId> --marketplace us --client <slug> [--verbose]
+node tools/opportunity-explorer/run-poe.mjs niche --niche-id <nicheId> --marketplace de --client <slug> [--verbose]
 
 # coverage workflow: search several seed keywords, dedupe, download every kept niche in full
 node tools/opportunity-explorer/run-poe.mjs batch --queries "kollagen pulver,collagen" \
   --marketplace de --client <slug> --origin https://sellercentral.amazon.de [--top 15 | --all]
 ```
 
+```bash
+# mirror a client's captures into the shared pCloud archive
+node tools/opportunity-explorer/run-poe.mjs archive --client <slug> [--dry-run]
+```
+
+POE serves trailing windows only, so a capture that is lost cannot be fetched
+again. `output/<slug>/opportunity-data/` is the hot working copy on one machine;
+`archive` mirrors it to
+`<pcloud>/1_Delivery/1.1_Clients/<Client>/_Data/opportunity-data/<mp>/<date>_<niche>/`
+so the history survives that machine. Copies are MD5-verified, already-archived
+files are skipped, and names that do not parse land in `_unsorted/<source-folder>/`
+instead of being guessed into a niche folder. The source-folder key matters for
+clients captured per product (`output/<slug>/<product>/opportunity-data/`), where
+every product folder emits the same filenames and a flat `_unsorted/` would have
+them overwrite each other. Point `--out-dir` at each product folder in turn for
+those clients. A destination that already holds DIFFERENT content is reported as a
+collision and never overwritten. The pCloud root comes from `EW_PCLOUD_ROOT` or
+`_local/pcloud-path.txt`; `<Client>` resolves from the slug via the team vault hub
+notes (see `pcloud-archive.mjs`). An unmatched client reports and skips rather than
+creating a folder that would sync to the whole team.
+
 Search coverage is complete by construction: `getNiches` returns the ENTIRE
 matching grid per keyword (hundreds of niches, no pagination/cap). `batch`
 unions multiple queries and reports what it skipped when `--top` limits the
-download. EU marketplaces: pass `--origin https://sellercentral.amazon.<tld>`
-and sign into that domain once in the debug Chrome (per-domain login).
-Verified on US and DE (see `references/poe-gap-matrix.md`). Note: CRI/PDR
-topic names arrive localized per marketplace language.
+download. Data commands infer the canonical Seller Central origin from
+`--marketplace`, so `--marketplace de` uses `sellercentral.amazon.de` and
+`--marketplace us` uses `sellercentral.amazon.com`. `--origin` remains available
+as an explicit override. `doctor` checks the origins of the Seller Central tabs
+that are actually open instead of silently defaulting to the US domain. If more
+than one regional origin is open, it prints one result per origin. Verified on US
+and DE (see `references/poe-gap-matrix.md`). Note: CRI/PDR topic names arrive
+localized per marketplace language.
 
 `--marketplace` is required and verified against the session's actual
 marketplace. A mismatch aborts. Output goes to
 `output/<client>/opportunity-data/` (or `--out-dir`). `--verbose` keeps the raw
-envelope JSON.
+envelope JSON. Account verification and the data request share one POE page
+session, preventing a second unprimed background tab from stalling the fetch.
 
 ### Path A: Codex / internal-browser evaluate
 
