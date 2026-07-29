@@ -52,7 +52,15 @@ export class Session {
         }
       }
     };
+    ws.onclose = () => s._rejectPending("CDP WebSocket closed");
+    ws.onerror = () => s._rejectPending("CDP WebSocket error");
     return s;
+  }
+
+  _rejectPending(message) {
+    const pending = [...this.pending.values()];
+    this.pending.clear();
+    for (const { reject } of pending) reject(new Error(message));
   }
 
   // Streaming event hook (used by long-running listeners, e.g. the POE endpoint
@@ -88,7 +96,10 @@ export class Session {
     });
   }
 
-  close() { try { this.ws.close(); } catch (_) {} }
+  close() {
+    this._rejectPending("CDP session closed");
+    try { this.ws.close(); } catch (_) {}
+  }
 }
 
 // Create a fresh page at `url`, return {targetId, session}. Uses the browser-level
@@ -117,9 +128,25 @@ export async function closePage(targetId) {
 // Run an async expression in the page main world and return its (JSON) value.
 export async function evaluate(session, expression, timeoutMs = 120000) {
   await session.send("Runtime.enable");
-  const r = await session.send("Runtime.evaluate", {
-    expression, awaitPromise: true, returnByValue: true, timeout: timeoutMs,
+  let hardTimer;
+  const hardTimeoutMs = timeoutMs + 5000;
+  const timeout = new Promise((_, reject) => {
+    hardTimer = setTimeout(() => {
+      reject(new Error(`CDP Runtime.evaluate timed out after ${hardTimeoutMs} ms`));
+      session.close();
+    }, hardTimeoutMs);
   });
+  let r;
+  try {
+    r = await Promise.race([
+      session.send("Runtime.evaluate", {
+        expression, awaitPromise: true, returnByValue: true, timeout: timeoutMs,
+      }),
+      timeout,
+    ]);
+  } finally {
+    clearTimeout(hardTimer);
+  }
   if (r.exceptionDetails) {
     throw new Error("page evaluate threw: " + (r.exceptionDetails.exception?.description || r.exceptionDetails.text));
   }
