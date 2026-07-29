@@ -15,7 +15,15 @@ Use for: “run a sweep,” “check new messages,” “who replied,” “who 
    - latest creator message
    - whether we already replied
    - whether the creator provided full details, proof, or content links
-4. Classify the update:
+4. Run the creator background check before requesting proof or fulfillment details:
+   - Amazon storefront or creator profile link
+   - visible recent shoppable videos/posts
+   - Earns Revenue badge, if visible
+   - attached product cards and relevance to the campaign product
+   - media kit, portfolio, or public social links when available
+   - basic spam/ghosting risk signals
+5. Populate the tracker qualification columns from the background check. If the creator passes the visible fit check, request only the basic fulfillment details still missing: full name, complete shipping address, email, phone, and final ASIN/product confirmation.
+6. Classify the update:
    - new inquiry
    - verification sent
    - verification confirmed
@@ -28,9 +36,9 @@ Use for: “run a sweep,” “check new messages,” “who replied,” “who 
    - content posted
    - paused product
    - unqualified/ghosted/declined
-5. Update the tracker row or create one in the correct tab.
-6. Draft any needed creator replies, but do not send unless approved in the current chat or covered by standing permission.
-7. If Slack reporting is requested or automated, post only new updates/material status changes.
+7. Update the tracker row or create one in the correct tab.
+8. Draft any needed creator replies, but do not send unless approved in the current chat or covered by standing permission.
+9. If Slack reporting is requested or automated, post only new updates/material status changes.
 
 ## `campaign`: prepare or launch a campaign
 
@@ -122,8 +130,8 @@ Summarize in plain language:
 
 - The system launches Creator Connections campaigns from the front end.
 - It tracks every creator in campaign-level Google Sheet tabs.
-- It uses a qualification gate before sample approval.
-- It asks for missing details/proof before sending samples.
+- It uses a background-check and qualification gate before sample approval.
+- It asks for basic fulfillment details only after visible creator fit is strong enough, and asks for proof only when the background check cannot verify enough.
 - It prepares MCF sample details only after approval.
 - It tracks sample sent, delivery, posted content, links, and follow-ups.
 - It posts clean Slack sweep updates for internal visibility.
