@@ -1,113 +1,166 @@
 ---
 name: amazon-creator-connections
-description: Use for Amazon Creator Connections work: auditing/triaging the creator message inbox, mapping messages to products and campaign tracker tabs, drafting creator replies (operator-confirmed sends), preparing campaigns up to the publish checkpoint, creating/reconciling tracker tabs, and finding tracker gaps. Trigger on requests like go through the Creator Connections messages, run the message audit, update the creator tracker, answer the creators, prepare a Creator Connections campaign, or reconcile the creator system.
+description: Use for Amazon Creator Connections operations: launching Creator Connections campaigns, auditing and triaging creator inboxes, mapping creators to campaign-level Google Sheet trackers, scoring creators before sample approval, drafting/sending operator-approved creator replies, tracking sample fulfillment/MCF, monitoring posted content, posting daily/weekly Slack sweep updates, reconciling product switches, and maintaining campaign tracker tabs. Trigger on requests like run a Creator Connections sweep, check new creator messages, create/update a campaign tracker, launch a Creator Connections campaign, score sample candidates, prepare MCF sample details, update the priority sample lane, post a Slack sweep, or explain the Creator Connections system.
 ---
 
 # Amazon Creator Connections
 
-Browser: CDP (Ads console, no MCP; drain the infinite-scroll thread list; stop before any send/publish).
+Browser: Codex interactive
 
-## Core Rule
+Use this skill for the Creator Connections operating system across brands. It is a front-end/browser workflow, supported by a campaign-level Google Sheet tracker and Slack sweep updates. It does not require an Amazon Ads API.
 
-Creator Connections lives behind the Amazon Ads login and has no MCP. All inbox, campaign, and tracker-verification work happens in the browser, per the Browser Standard in `AGENTS.md` (whichever agent holds the logged-in browser). Reading messages, updating the tracker sheet, and drafting replies are normal work. **Sending any creator message and publishing any campaign are stop-before-risk actions**: each needs the operator's explicit approval of that exact action in the current chat, or a matching `_local/local-permissions.md` standing permission.
+Creator Connections lives behind Amazon Ads login and currently has no direct MCP/API. Use the connected browser for Amazon Ads/Creator Connections and use Google Sheets/Slack connectors where available for tracker and reporting work.
 
-Do not process message threads whose status marks them inactive (declined/expired/closed: the "red" threads). The skip rule is client-confirmed and stored in local memory; until it is confirmed, follow the first-run discovery step below and skip nothing silently.
+## What this system can do
+
+- Launch or prepare Creator Connections campaigns from a reference campaign, with matching naming convention, product-specific description, dates, budget, commission, and ASIN/product details.
+- Create or update campaign-level tracker tabs that can be shared with clients.
+- Sweep Creator Connections messages for new inquiries, replies, address confirmations, sample requests, product switches, posted content, and follow-ups.
+- Map every creator to the correct product/campaign by exact ASIN or product URL first, then visible campaign context, then explicit product name.
+- Keep undecided or ambiguous creators in an `Undecided` holding tab until they confirm their final product/ASIN.
+- Score creators against the qualification gate before recommending samples.
+- Draft creator replies for verification, proof requests, product-switch clarification, paused-product messaging, content follow-ups, sample confirmations, and thank-you messages.
+- Prepare MCF sample fulfillment details after the operator approves and the creator has passed the gate.
+- Update trackers with sample decisions, MCF/order details, posted content links, notes, follow-up dates, and qualification evidence.
+- Post daily/weekly Slack sweep updates with only new updates and material status changes.
+- Explain the whole workflow to a manager/client in plain language.
+
+## Core rules
+
+1. Verify before acting.
+   - Verify account/brand, marketplace, campaign, creator thread, product/ASIN, and tracker tab before updating or sending.
+   - Never guess a product match.
+   - Always double-check the creator identity before replying or preparing sample details.
+
+2. Draft before sending unless explicitly approved.
+   - Creator messages, campaign publishing, sample approval, and MCF order creation are stop-before-risk actions.
+   - Present drafts first unless the operator explicitly says to send that exact message/action in the current chat or a standing permission in `_local/local-permissions.md` covers it.
+   - For edge cases, always draft first: ambiguous product, product switch, repeated/spammy outreach, paused-product messaging, legal/payment claims, unusual fulfillment, or anything that could create client risk.
+
+3. Keep private data out of code and PRs.
+   - Creator names, addresses, emails, phone numbers, tracker URLs, Slack links, and real client data belong in the live tracker, browser, Slack, or `_local/` only.
+   - Do not put private data in tracked repo files, skill examples, tests, or PR descriptions.
+
+4. One active row per creator per final product/campaign.
+   - Update existing rows when possible.
+   - If a creator swaps products, move/track them under the latest confirmed product after confirmation.
+   - Do not leave redundant active rows in old product tabs.
+   - If the creator has not chosen a final product/ASIN, put them in `Undecided`.
+
+5. Tight sample gate.
+   - Prefer 10/10 before samples.
+   - A-tier candidates can be surfaced for manager/operator review only when product match is exact, risk is low, and missing items are clearly understood.
+   - Never send samples just because a creator asks.
+   - Watch for ghosting risk, repeated identical messages, guaranteed-review wording, missing product match, missing proof, or recipient/content-creator mismatch.
+
+## How to use
+
+Use natural requests:
+
+- “Run today’s Creator Connections sweep.”
+- “Check who is ready for samples.”
+- “Draft verification messages for first-base candidates.”
+- “Create a tracker tab for this active campaign.”
+- “Prepare sample details for this approved creator.”
+- “Post the sweep to Slack.”
+- “Launch a campaign for this ASIN using the reference campaign.”
+- “Explain the Creator Connections workflow to my manager.”
+
+Before starting operational work, identify:
+
+- brand/client and marketplace
+- Amazon Ads account/profile
+- tracker Google Sheet
+- campaign or product/ASIN scope
+- message scope: new since last sweep, last 24 hours, last 7 days, or all messages
+
+Use `_local/creator-connections/<client>-config.json` when available so the operator does not need to repeat these details.
 
 ## Modes
 
-Default mode is the message audit. The others are documented in `references/workflows.md`:
+Default mode is `audit`. Read the relevant reference file before acting:
 
-- `audit`: triage inbox messages, match to products, update tracker tabs, draft replies (default).
-- `campaign`: prepare a new campaign from a reference campaign; stop before publish.
-- `tracker`: create a campaign-level tracker tab from a live campaign.
-- `gaps`: find campaigns/ASINs with no matching tracker tab.
-- `reconcile`: full-system audit across campaigns, messages, samples, content, and tabs.
+- `audit`: read `references/workflows.md`, `references/tracker-schema.md`, and `references/reply-playbook.md`.
+- `campaign`: prepare a new campaign; read `references/workflows.md`.
+- `tracker`: create/repair tracker tabs; read `references/tracker-schema.md`.
+- `gaps`: find campaigns or message products missing tracker tabs; read `references/workflows.md`.
+- `reconcile`: full-system audit across campaigns, messages, samples, content, and tabs; read `references/workflows.md`.
+- `samples`: prepare sample/MCF lane work; read `references/sample-and-slack-ops.md`.
+- `slack`: daily/weekly sweep updates; read `references/sample-and-slack-ops.md`.
 
-## Required Inputs
+## Local memory
 
-If needed information is missing, ask briefly:
+Per-client settings live in `_local/creator-connections/<client>-config.json`. `_local/` is gitignored.
 
-```text
-I need the client/brand, marketplace, Amazon Ads account label, the tracker Google Sheet URL, and the message scope (since the previous tracker update / last 24 hours / last 7 days / all messages), unless a local config already covers this client.
-```
-
-Scope options (from the original builder): since the previous tracker update, the last 24 hours, the last 7 days, or all available messages. Default to "since the previous tracker update" when the tracker shows a last-updated marker; otherwise ask.
-
-## Local Memory
-
-Per-client settings live in `_local/creator-connections/<client>-config.json` (the `_local/` folder is gitignored; never copy real brand names, account labels, sheet URLs, creator names, or addresses into tracked files). Check it before asking for inputs; create it after the first run. Template:
+Use this shape:
 
 ```json
 {
   "client": "<client name>",
-  "brand": "<brand as shown in Creator Connections>",
+  "brand": "<brand shown in Creator Connections>",
   "advertiser": "<Amazon Ads account label>",
-  "marketplace": "<e.g. United States>",
-  "profiles": ["<message profile(s), if the account has more than one>"],
-  "tracker_sheet_url": "<Google Sheet URL>",
+  "marketplace": "United States",
+  "profiles": ["<message profile names>"],
+  "tracker_sheet_url": "<private tracker URL>",
+  "slack_channel_id": "<internal Slack channel ID>",
   "status_filter": {
     "confirmed": false,
     "skip_statuses": [],
-    "process_statuses": [],
-    "notes": "Filled and operator-confirmed during the first supervised run"
+    "process_statuses": []
   },
   "reply_policy": {
     "auto_send": false,
-    "notes": "Sends stay operator-approved per batch until a matching _local/local-permissions.md entry exists"
+    "notes": "Routine sends require current approval unless standing permission exists."
   }
 }
 ```
 
-Recurring quirks (UI oddities, tracker conventions, reply-tone tweaks) go in `_local/creator-connections/local-notes.md`.
+Put recurring UI quirks, approved wording, and client-specific exceptions in `_local/creator-connections/local-notes.md`.
 
-## Navigation
+## Browser and navigation
 
-Use the Creator Connections route from `AGENTS.md` (Amazon Ads Account Selection): Campaign Manager → top-right account selector → `Brand content` → `Creator connections`. Never start from the direct account chooser. Run the standard connected-browser checkpoint (logged in, correct account/brand, marketplace, visible page title) before touching anything.
+Use the connected browser for Amazon Ads. Run the browser checkpoint before changing anything:
 
-## Message Triage (status filter)
+- logged in
+- correct Amazon Ads account/brand
+- correct marketplace
+- correct campaign or Creator Connections page
+- visible page title/context matches the task
 
-**Amazon has no status filter in this inbox.** Verified 31.07.2026: no native `<select>`, no search/filter input, no status buttons, no query parameter. The only list-level signal is the unread indicator. "Status filter" below therefore means **our own classification applied after reading**, not an Amazon control. Do not go looking for a filter widget; there isn't one.
+Navigate through Amazon Ads where possible:
 
-**Draining the thread list is mandatory.** The list is incremental infinite-scroll and is NOT virtualised: the initial load mounts 100 threads in `data-testid="CHANNEL-SCROLL-CONTAINER"`, and scrolling to the boundary appends another 100 while the earlier ones stay mounted. **A single DOM read silently returns only the newest ~100 threads and looks complete.** Loop instead: read mounted threads, scroll near the bottom, wait for the child count to grow, repeat until a scroll to the bottom yields no new rows. Report the final mounted count alongside the thread count so a truncated read is visible.
+Campaign Manager → account selector → Brand content → Creator connections.
 
-Profile and thread selection are JavaScript-only state; the URL stays at `/bi?entityId=…`, so threads cannot be addressed or resumed by URL. There is no relevant iframe or shadow DOM. **Opening an unread thread may mark it read** (untested), so a strictly read-only audit should stay on already-read threads or declare that side effect up front.
+If authentication is unavailable, stop and ask the operator to log in. Do not use stale browser data for live sweeps or Slack posts.
 
-1. Enumerate the message threads in scope, newest first, **after fully draining the scroll list**. Record thread count before filtering.
-2. Read each thread's visible status indicator (pill/label/color). Expect the unread dot to be the only reliable one; declined/expired/closed pills were not visible in the current UI.
-3. **If `status_filter.confirmed` is false (first supervised run):** screenshot one example of every distinct status pill/color to `evidence/<client>/creator-connections/`, list which statuses look inactive (declined, expired, closed, rejected offers), propose the skip/process mapping to the operator, and only apply it after the operator confirms. Save the confirmed rule into the client config.
-4. **If confirmed:** skip threads matching `skip_statuses`, process the rest. Always report skipped-vs-processed counts by status in the handoff. Skipped threads are listed, never silently dropped.
+## Matching and tracker update order
 
-## Match + Track
+Match creator inquiry to product/campaign in this order:
 
-Match each processed inquiry in this order: exact ASIN or Amazon product URL; visible campaign reference; explicit product name. Flag ambiguous or multi-product threads for manager review. Do not guess.
+1. exact ASIN or Amazon product URL in the thread
+2. visible campaign context
+3. explicit product name
+4. manager/operator decision
 
-Update the correct campaign-level tab in the tracker sheet. Preserve the exact columns, dropdowns, formatting, and the one-row-per-creator-per-campaign rule (`references/tracker-schema.md`). Capture verified full names and addresses when present, sample status and date only when shipment is confirmed, the product, Content Posted Yes/No, verified content links, and concise evidence notes. Identify inquiries whose product has no tracker tab and flag them for `gaps` mode.
+If multiple products appear, or if the creator switches products, hold until final product/ASIN is confirmed. Use the `Undecided` tab for unresolved product matches.
 
-## Reply Drafting
+## Handoff report
 
-For each processed thread that needs an answer (sample requests, creator questions, content submissions, follow-ups), draft a reply using `references/reply-playbook.md` plus the thread and tracker context. Then:
-
-1. Present the full batch to the operator: thread/creator, thread status, the draft, and why it's needed.
-2. **STOP before sending.** Send only the drafts the operator explicitly approves in the current chat, or those covered by a matching `_local/local-permissions.md` standing permission (scope must name Creator Connections replies for this client; mention in the operator note when a standing permission was used).
-3. After approved sends, record the reply in the tracker Notes and re-verify each thread shows the sent message.
-
-The intended maturity path: first runs are fully operator-approved; once the operator trusts the drafts, they add a standing-permission entry for routine reply types and sends become a routine. No new mechanism needed.
-
-## Handoff Report
-
-When finished, tell the operator:
+Finish with:
 
 - account/brand, marketplace, and scope covered
-- threads found / processed / skipped (by status) / flagged for manager review
-- tracker tabs and rows updated, plus products with no tracker tab
-- replies drafted vs sent (and under which approval)
-- evidence saved under `evidence/<client>/creator-connections/`
-- anything blocked and the next exact action
+- threads processed/skipped/flagged
+- tracker tabs and rows updated
+- replies drafted vs sent
+- sample-ready priority lane and blockers
+- Slack links if posted
+- exact next actions
 
-Keep the report concise. If work continues in another agent, leave the standard cross-agent handoff per `AGENTS.md`.
+Keep reports concise and operational.
 
 ## References
 
-- `references/workflows.md`: the campaign / tracker / gaps / reconcile modes.
-- `references/reply-playbook.md`: reply templates and tone rules.
-- `references/tracker-schema.md`: tracker columns, dropdowns, and tab conventions.
+- `references/workflows.md`: campaign, tracker, gaps, audit, and reconcile workflows.
+- `references/tracker-schema.md`: tracker columns, statuses, qualification gate, and tab rules.
+- `references/reply-playbook.md`: approved message patterns and draft/send rules.
+- `references/sample-and-slack-ops.md`: sample/MCF workflow, priority lane, and Slack sweep format.
