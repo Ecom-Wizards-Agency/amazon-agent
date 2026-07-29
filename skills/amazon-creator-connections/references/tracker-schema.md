@@ -98,6 +98,8 @@ When adding or changing a status, keep a matching color. Do not leave new status
 
 Use a 10-point score as a decision aid, not an automatic approval.
 
+Populate these fields from an internal background check whenever possible before asking the creator for proof. Check the visible Amazon storefront/profile, recent shoppable videos, Earns Revenue badge, attached product cards, media kit, portfolio, and public social links. If the visible evidence is strong enough, ask only for missing basic fulfillment details rather than requesting proof screenshots.
+
 Suggested scoring:
 
 - Recent active posting: 0–2

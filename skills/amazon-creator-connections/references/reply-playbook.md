@@ -15,22 +15,20 @@ Draft replies from the live thread and tracker context. Always verify the creato
 
 ## Standard asks
 
-### First-base verification
+### First-base verification after background check
 
-Use when the creator has basic interest but missing full details/proof.
+Use when the creator has passed the visible background check and is missing basic fulfillment details. Do not ask for proof by default if the storefront/profile, recent shoppable videos, Earns Revenue badge, media kit, or public links already provide enough confidence.
 
 ```text
 Hi {first name}, thanks for reaching out and for your interest in {product}.
 
-Before we review this for a sample, could you please send the missing details below?
+We reviewed your creator profile and would love to confirm the remaining details for sample review.
 
 Full name
 Email address
 Phone number
 Complete shipping address
 Confirmed product + ASIN
-Amazon storefront link
-Recent Amazon video links or performance proof
 
 We’re prioritizing creators who provide complete details and have a clear product match, so this helps us review properly on our side.
 ```
@@ -53,14 +51,13 @@ Email address
 Phone number
 Complete shipping address
 Confirmed product + ASIN
-Recent Amazon video links or performance proof
 
 Once those are complete, we can review properly on our side.
 ```
 
-### Proof request
+### Proof request only when background check is incomplete
 
-Use when the creator provided details and ASIN but still needs proof/recent content.
+Use only when visible storefront/profile checks cannot verify enough activity, performance, or fit.
 
 ```text
 Hi {first name}, thanks for sending this over.
