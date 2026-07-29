@@ -291,50 +291,75 @@ Controlled workflow names:
 
 Do not create a separate global overview tracker by default. If a workflow needs local context, put `README.md` or `operator-note.md` inside the relevant workflow folder. Use Notion for ongoing team status.
 
+## Which System Holds What
+
+Six systems, one job each. Decide by what kind of thing the file is, not by which tool produced it. Agreed 29.07.2026, full reasoning in the team vault `Decisions/2026-07-29-file-storage-split.md`.
+
+| System | Holds | Ask yourself |
+|---|---|---|
+| Google Drive | Things a human opens: sheets, docs, finished deliverables, client file exchange | Will a person open it? |
+| pCloud | Heavy binaries and raw exports: PSD/AI sources, raw photos, renders, video, fonts, packaging, POE and raw report data | Is it big, binary, or a raw export? |
+| Notion | Briefs, specs, product info, live status and tasks | Is it a task or a brief? |
+| Figma | Live design work. Cloud-native, so link it, never export frames just to have a local file | Is someone designing in it right now? |
+| Team vault | What we know: run notes, decisions, playbooks, SOPs. Markdown only, links out, never copies binaries in | Is it something we learned? |
+| This repo `output/` | The current run's working copy. Local, gitignored, prunable once archived | Is it scratch for this run? |
+
+### pCloud archive
+
+`output/{slug}/{workflow}/` is the hot working copy. The durable per-client archive is pCloud:
+
+```
+<pcloud>/1_Delivery/1.1_Clients/<Client>/_Data/<workflow>/
+```
+
+`_Data/` subfolders reuse the controlled workflow names above, so the two trees mirror each other mechanically. The pCloud root comes from the `EW_PCLOUD_ROOT` env var or the gitignored `_local/pcloud-path.txt`, never a hardcoded path (this file is public). `<Client>` resolves from the slug through the team vault hub notes, the same two-step rule as run and handoff notes: frontmatter `slug:` first, then a case-insensitive folder-name match. Vault and pCloud folder names were aligned on 29.07.2026, so the vault folder name IS the pCloud folder name. Never create a client folder in pCloud to place an archive; report and skip.
+
+Archive POE runs with `node tools/opportunity-explorer/run-poe.mjs archive --client <slug>` (`--dry-run` to preview). This matters more than for other workflows: POE serves trailing windows only, so a capture that is lost cannot be fetched again. Copies are MD5-verified, already-archived files are skipped, and filenames that do not parse land in `_unsorted/` rather than being guessed into a niche folder.
+
+Do not write into a client's `(external)` folder in pCloud. That folder is shared with the client; everything outside it is internal.
+
 ## Google Drive Delivery
 
 Google Drive is for artifacts a HUMAN opens: client deliverables, and internal files the team reviews. It is not an archive for generated exhaust. Everything else stays local under `output/`, `downloads/`, and `evidence/` per Local Output Storage above.
 
-Every client folder in the `Ecom Wizards` shared drive has exactly two zones:
+Every client folder in the `Ecom Wizards` shared drive has exactly two zones, a matched pair:
 
 ```
 Geteilte Ablagen/Ecom Wizards/01_Client Sheets/<Client>/
   <Client> - Shared/     CLIENT-VISIBLE. The client has commenter access on this folder.
-  _Working/              Internal. Agent proposals, previews, checks.
+  <Client> - Internal/   Internal. Flat, no workflow subfolders.
   <other folders>        Internal by default.
 ```
 
 The client is shared into `<Client> - Shared/` ONLY, never into `<Client>/`. Anything outside that one folder is invisible to them. This is the whole boundary, so treat the folder name as load-bearing: never write into `<Client> - Shared/` unless the artifact is a finished client deliverable.
 
-**Default is internal.** If an artifact is not on the client-facing list below, it goes to `_Working/<workflow>/`. When unsure, `_Working/`. It is cheap to promote a file later and expensive to unsee one.
+**Default is internal.** If an artifact is not on the client-facing list below, it does not belong in `<Client> - Shared/`. It is cheap to promote a file later and expensive to unsee one.
 
-Routing:
+**Agents deliver to `- Shared/`. Agents do not route work into `- Internal/`.** Anything an agent generates that is not a finished deliverable stays in this repo under `output/{client}/{workflow}/` per Local Output Storage above. `<Client> - Internal/` exists for the files a human needs to open in Sheets or comment on, and it is a human's decision to put something there. Follow the team SOP, or leave it in the repo.
+
+What agents deliver to Drive:
 
 | Artifact | Location |
 |---|---|
 | Keyword research workbook | `<Client> - Shared/<Keyword Research>/<Country>/` |
 | Audit MASTER `.xlsx` + narrative `.docx`/`.pdf` | `<Client> - Shared/<Audits>/` |
 | Monthly reports, reporting downloads | `<Client> - Shared/<Reports>/` |
-| SB video briefing `.docx` + Creative Reference `.docx` | `<Client> - Shared/<Creative>/` (one file per batch and per product line, edited in place) |
-| Proposals, previews, fix plans, harvest/routing plans, rank-push plans, account checks | `_Working/<workflow>/` |
-| Ad bulk files | `_Working/ads/` or the client's existing ad-bulk folder |
+| SB video briefing `.docx` + Creative Reference `.docx` | `<Client> - Shared/<Video Briefings>/` (one file per batch and per product line, edited in place) |
 | FlatFilePro upload CSVs | NOT in Drive. `output/{client}/catalog/` |
 | Raw Seller Central listing exports (Category Listings Report) | NOT in Drive. `downloads/{client}/catalog/` |
 
-`<workflow>` reuses the controlled names from Local Output Storage: `ads`, `account-check`, `catalog`, `reporting`, `seo`, `inventory`.
-
-Subfolder names inside `<Client> - Shared/` vary per client for historical reasons (`Keyword Research` in one, `02 Keyword Research` in another). Before saving, LIST the folder and reuse the existing one. Never create a spelling or numbering variant next to an existing folder, and never create a new top-level subfolder inside `<Client> - Shared/`. The four rows above are where AGENTS deliver, not a complete inventory of what the client sees. The rule for anything else in the folder: if you did not create it, leave it exactly as it is. Do not move, rename, reorganize, or flag it as misplaced. A client folder legitimately holds team-managed folders that no agent ever writes to, `Creative Assets` being one example, and the absence of a folder from the four rows says nothing about whether it belongs. If an artifact you generated does not fit the four rows, it is not a client deliverable and belongs in `_Working/`.
+Subfolder names inside `<Client> - Shared/` vary per client for historical reasons (`Keyword Research` in one, `02 Keyword Research` in another). Before saving, LIST the folder and reuse the existing one. Never create a spelling or numbering variant next to an existing folder, and never create a new top-level subfolder inside `<Client> - Shared/`. The four rows above are where AGENTS deliver, not a complete inventory of what the client sees. The rule for anything else in the folder: if you did not create it, leave it exactly as it is. Do not move, rename, reorganize, or flag it as misplaced. A client folder legitimately holds team-managed folders that no agent ever writes to, `Creative Assets` being one example, and the absence of a folder from the four rows says nothing about whether it belongs. If an artifact you generated does not fit the four rows, it is not a client deliverable. Leave it in `output/`.
 
 Filename convention for everything delivered to Drive:
 
 ```
 YYYY-MM-DD_<Client>_<Market>_<Artifact>_v<N>.<ext>
-2026-07-26_Acme_DE-IT_ToS-modifier-preview_v1.xlsx
+2026-07-29_Acme_DE-IT_Preview_v1.xlsx
 ```
 
-Date first and ISO always, so folders sort chronologically. Omit `<Market>` only when the artifact genuinely spans all marketplaces. Do not reuse the older `<Client> <Market> - <Artifact> - DD.MM.YYYY` or trailing-date forms.
+Date first and ISO always, so folders sort chronologically. Keep the client name even though the folder already carries it, because the file has to stay identifiable after it is downloaded or forwarded. Omit `<Market>` only when the artifact genuinely spans all marketplaces. Do not reuse the older `<Client> <Market> - <Artifact> - DD.MM.YYYY` or trailing-date forms. `<Artifact>` comes from the controlled list in the team SOP; if nothing fits, add it there rather than inventing one here.
 
-`_Working/` is a live decision queue, not a landfill. A proposal sitting loose in `_Working/<workflow>/` means "still awaiting a decision". Once it has been applied or rejected, move it to `_Working/_archive/YYYY-MM/`. Do not delete it. The archive is the record of what was proposed and when.
+> The **team vault `SOPs/google-drive-structure.md` is the source of truth** for Drive structure, the `- Internal/` decision queue, archiving, permissions, and onboarding or converting a client. This section carries only what an agent needs at the moment it writes a file. It deliberately does not restate the rest, because the previous duplicate copy drifted from the SOP within two days. If the two ever disagree, the SOP wins.
 
 ## Client Profile Memory
 
