@@ -32,6 +32,15 @@ Ads Tool" > Web Settings):
 
 The redirect_uri must also be listed as an Allowed Return URL in that same
 Web Settings screen, or Amazon rejects the consent page.
+
+Prerequisite that is easy to miss: API approval alone does not give the LWA
+app advertising scopes. The "Assign API access" step at
+https://advertising.amazon.com/developer/overview links the approval to the
+security profile. Until that is done, the consent page fails with "This LWA
+app doesn't have access to the Amazon Ads API scopes" and the profile shows
+only profile/profile:name scopes. Assign it while signed in as the SAME
+Amazon user account that requested API access; a mismatch can only be undone
+by ads-api-onboarding@amazon.com.
 """
 
 import json
