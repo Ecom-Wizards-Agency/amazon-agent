@@ -46,7 +46,7 @@
   },
 
   "delivery": {
-    "drive_folder": "<path to the client's Google Drive audit folder>",
+    "drive_folder": "{drive}/04_Sales Audits/<Client>   (token resolves per machine; never an absolute path)",
     "google_sheet_convert": false
   },
 

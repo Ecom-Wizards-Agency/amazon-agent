@@ -81,6 +81,29 @@ def team_vault_root() -> str:
     return root("team-vault")
 
 
+TOKENS = {"{drive}": "drive", "{pcloud}": "pcloud", "{vault}": "team-vault"}
+
+
+def expand_tokens(path: str) -> str:
+    """Replace a leading {drive} / {pcloud} / {vault} token with the resolved root.
+
+    This is how per-client configs stay portable: store
+    "{drive}/04_Sales Audits/Luhxe" instead of an absolute
+    "/Users/<name>/Library/CloudStorage/GoogleDrive-.../Geteilte Ablagen/...".
+    A path with no token is returned unchanged, so old configs keep working.
+
+    Raises SystemExit if a token is used but that root is unconfigured — silently
+    dropping it would write the deliverable into a stray relative folder.
+    """
+    if not path:
+        return path
+    text = str(path)
+    for token, name in TOKENS.items():
+        if text.startswith(token):
+            return os.path.join(require(name), text[len(token):].lstrip("/\\"))
+    return text
+
+
 def require(name: str) -> str:
     """Same as root(), but exits with the fix instead of returning ""."""
     value = root(name)

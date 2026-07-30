@@ -20,12 +20,17 @@ warnings.filterwarnings("ignore")
 import openpyxl
 
 REPO = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(REPO / "tools"))
+import ew_paths  # noqa: E402
 
 def rp(p):
-    """Resolve a config path: ~ expansion, repo-relative fallback."""
+    """Resolve a config path: {drive}/{pcloud}/{vault} token, ~ expansion, then
+    repo-relative fallback. Configs should use the token form — an absolute
+    Drive path only ever resolves on the machine it was written on."""
     if not p:
         return None
-    q = Path(str(p)).expanduser()
+    p = ew_paths.expand_tokens(str(p))
+    q = Path(p).expanduser()
     if not q.is_absolute() and not q.exists():
         alt = REPO / str(p)
         if alt.exists():

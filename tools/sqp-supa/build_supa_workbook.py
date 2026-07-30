@@ -45,8 +45,14 @@ FLAG_FILL = {
 
 
 # ------------------------------------------------------------------ loading
+sys.path.insert(0, str(REPO / "tools"))
+import ew_paths  # noqa: E402
+
+
 def rp(p):
-    q = Path(str(p)).expanduser()
+    """{drive}/{pcloud}/{vault} token, then ~ expansion, then repo-relative.
+    Configs use the token form so they resolve on any machine."""
+    q = Path(ew_paths.expand_tokens(str(p))).expanduser()
     return q if q.is_absolute() else REPO / q
 
 

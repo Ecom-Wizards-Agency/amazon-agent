@@ -39,7 +39,7 @@
   },
   "output": {
     "dir": "output/<client>/reporting",
-    "drive_folder": "path on the Drive desktop mount, set per client"
+    "drive_folder": "{drive}/<folder>  — token, not an absolute path; resolved via tools/ew_paths.py"
   },
   "max_rows_per_asin": 150,
   "actions_cap": 40
