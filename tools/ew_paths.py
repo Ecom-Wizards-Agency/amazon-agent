@@ -1,23 +1,28 @@
 #!/usr/bin/env python3
-"""Resolve the operator-local roots: Google Drive, pCloud, the team vault.
+"""Read the operator-local roots: Google Drive, pCloud, the team vault.
 
-Why this exists: per-client configs used to hard-code absolute paths like
-`/Users/victoruhl/Library/CloudStorage/GoogleDrive-.../Geteilte Ablagen/...`.
-Those break on *any* second machine, Mac included, which is the real reason this
-repo had only ever run on one computer. Resolve the root here and keep only the
-relative part in configs.
+This module deliberately does NOT go looking for those folders. Finding them is
+`company-setup`'s job — it knows that Drive lives under
+~/Library/CloudStorage/GoogleDrive-<account> on macOS but a drive letter or
+~/My Drive on Windows, and that the shared-drives folder name is localized. It
+detects once and writes the answer into `_local/*-path.txt` here. This repo is
+the Amazon Agent; where a machine keeps its files is not its business.
 
-Resolution order, same shape as `pcloud-archive.mjs` already uses:
-  1. env var          (EW_DRIVE_ROOT / EW_PCLOUD_ROOT / AMAZON_AGENT_TEAM_VAULT)
-  2. pointer file     (_local/drive-path.txt, pcloud-path.txt, team-vault-path.txt)
-  3. auto-detection   (Drive only — the mount location is predictable per OS)
+So the contract is: setup writes, tools read. Adding detection back here would
+put the same guess in two places, and the copy that is wrong is always the one
+running on somebody else's machine.
 
-Everything returns "" when unavailable rather than raising, so a caller can fail
-closed with a useful message instead of writing to a wrong path.
+Resolution order, per root:
+  1. env var       (EW_DRIVE_ROOT / EW_PCLOUD_ROOT / AMAZON_AGENT_TEAM_VAULT)
+  2. pointer file  (_local/drive-path.txt / pcloud-path.txt / team-vault-path.txt)
 
-CLI:
-    python3 tools/ew_paths.py            # show every resolved root
-    python3 tools/ew_paths.py drive      # print one root, exit 1 if unresolved
+Everything returns "" when unconfigured or unmounted, rather than raising, so a
+caller can fail closed with a useful message instead of writing to a wrong path.
+Per-client configs should store only the part BELOW the resolved root: absolute
+"/Users/<name>/..." paths break on every machine but the one they were written on.
+
+    python3 tools/ew_paths.py               # show every resolved root
+    python3 tools/ew_paths.py drive         # print one, exit 1 if unresolved
 """
 import os
 import sys
@@ -26,10 +31,14 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 LOCAL = REPO / "_local"
 
-# Google Drive for Desktop localizes the shared-drives folder. Ecom Wizards
-# accounts are German, hence "Geteilte Ablagen"; keep English for other setups.
-SHARED_DRIVE_NAMES = ("Geteilte Ablagen", "Shared drives")
-TEAM_DRIVE = "Ecom Wizards"
+# (env var, pointer file, a child that proves the path is really mounted)
+SOURCES = {
+    "drive": ("EW_DRIVE_ROOT", "drive-path.txt", ""),
+    "pcloud": ("EW_PCLOUD_ROOT", "pcloud-path.txt", "1_Delivery/1.1_Clients"),
+    "team-vault": ("AMAZON_AGENT_TEAM_VAULT", "team-vault-path.txt", "Clients"),
+}
+SETUP_HINT = ("Run the company-setup bootstrap (--role amazon-operator) to write "
+              "the pointer files, or set the env var for this run.")
 
 
 def _first_line(path: Path) -> str:
@@ -39,97 +48,65 @@ def _first_line(path: Path) -> str:
             if t and not t.startswith("#"):
                 return t
     except OSError:
-        pass  # a missing pointer file is normal
+        pass  # a missing pointer file is normal on a fresh clone
     return ""
 
 
-def _expand(p: str) -> str:
-    return os.path.expandvars(os.path.expanduser(p)) if p else ""
-
-
-def _configured(env_var: str, pointer: str) -> str:
+def root(name: str) -> str:
+    """Resolved root for "drive" / "pcloud" / "team-vault", or ""."""
+    env_var, pointer, proof = SOURCES[name]
     for candidate in (os.environ.get(env_var, ""), _first_line(LOCAL / pointer)):
-        root = _expand(candidate)
-        if root and Path(root).exists():
-            return root
-    return ""
-
-
-def _detect_drive() -> str:
-    """Find a Google Drive for Desktop mount holding the Ecom Wizards shared drive."""
-    roots = []
-    if sys.platform == "darwin":
-        cloud = Path.home() / "Library" / "CloudStorage"
-        roots += sorted(cloud.glob("GoogleDrive-*")) if cloud.exists() else []
-    elif sys.platform.startswith("win"):
-        # Drive mounts either as a lettered drive or under the user profile.
-        roots += [Path(f"{c}:\\") for c in "GHIJKLMNOPQRSTUVWXYZ"]
-        roots += [Path.home() / "My Drive", Path.home() / "Google Drive"]
-    else:
-        roots += [Path.home() / "GoogleDrive", Path.home() / "google-drive"]
-
-    for root in roots:
-        try:
-            if not root.exists():
-                continue
-        except OSError:
-            continue  # unmapped Windows drive letters raise rather than return False
-        for shared in SHARED_DRIVE_NAMES:
-            if (root / shared / TEAM_DRIVE).exists():
-                return str(root)
-        if (root / TEAM_DRIVE).exists():  # already pointed at the shared-drives level
-            return str(root)
+        if not candidate:
+            continue
+        path = Path(os.path.expandvars(os.path.expanduser(candidate)))
+        # A configured path that is not mounted is worse than none: it would be
+        # created as a plain local folder and the files would never sync.
+        if path.exists() and (not proof or (path / proof).exists()):
+            return str(path)
     return ""
 
 
 def drive_root() -> str:
-    """Root of the Google Drive mount, or "" when not configured/mounted."""
-    return _configured("EW_DRIVE_ROOT", "drive-path.txt") or _detect_drive()
-
-
-def drive_shared() -> str:
-    """The `<drive>/<shared-drives>/Ecom Wizards` folder, or ""."""
-    root = drive_root()
-    if not root:
-        return ""
-    for shared in SHARED_DRIVE_NAMES:
-        p = Path(root) / shared / TEAM_DRIVE
-        if p.exists():
-            return str(p)
-    p = Path(root) / TEAM_DRIVE
-    return str(p) if p.exists() else ""
+    """The 'Ecom Wizards' shared drive on this machine, or ""."""
+    return root("drive")
 
 
 def pcloud_root() -> str:
-    """Root of the pCloud Amazon Wizards share, or "". When the mount is absent,
-    the `pcloud-api` company skill is the mount-independent path."""
-    return _configured("EW_PCLOUD_ROOT", "pcloud-path.txt")
+    """The pCloud 'Amazon Wizards' share, or "". When the mount is absent, the
+    `pcloud-api` company skill is the mount-independent path."""
+    return root("pcloud")
 
 
 def team_vault_root() -> str:
-    """Root of the shared team vault, or ""."""
-    root = _configured("AMAZON_AGENT_TEAM_VAULT", "team-vault-path.txt")
-    return root if root and (Path(root) / "Clients").exists() else ""
+    return root("team-vault")
 
 
-ROOTS = {"drive": drive_root, "drive-shared": drive_shared,
-         "pcloud": pcloud_root, "team-vault": team_vault_root}
+def require(name: str) -> str:
+    """Same as root(), but exits with the fix instead of returning ""."""
+    value = root(name)
+    if not value:
+        env_var, pointer, _ = SOURCES[name]
+        sys.exit(f"{name} root is not configured or not mounted.\n"
+                 f"  checked: ${env_var}, then _local/{pointer}\n  {SETUP_HINT}")
+    return value
 
 
 def main() -> int:
     if len(sys.argv) > 1:
         name = sys.argv[1]
-        if name not in ROOTS:
-            print(f"unknown root: {name} (try: {', '.join(ROOTS)})", file=sys.stderr)
+        if name not in SOURCES:
+            print(f"unknown root: {name} (try: {', '.join(SOURCES)})", file=sys.stderr)
             return 2
-        value = ROOTS[name]()
+        value = root(name)
         if not value:
-            print(f"{name}: not configured or not mounted", file=sys.stderr)
+            env_var, pointer, _ = SOURCES[name]
+            print(f"{name}: not configured or not mounted "
+                  f"(${env_var} / _local/{pointer})", file=sys.stderr)
             return 1
         print(value)
         return 0
-    for name, fn in ROOTS.items():
-        print(f"{name:14} {fn() or '(not configured or not mounted)'}")
+    for name in SOURCES:
+        print(f"{name:12} {root(name) or '(not configured or not mounted)'}")
     return 0
 
 
