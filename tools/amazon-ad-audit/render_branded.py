@@ -193,8 +193,13 @@ def _cover_kwargs(cfg, M, blocks, brand_dir):
         if len(cur) + len(w) + 1 > 30: lines.append(cur); cur = w
         else: cur = (cur + " " + w).strip()
     if cur: lines.append(cur)
+    # How many H2s the cover's "What's inside" list shows. Default 4 keeps every
+    # previously rendered cover byte-identical; raise it via branding.cover_inside_max
+    # when the document has more sections worth advertising than the cover currently
+    # admits (the block sits in generous whitespace, so 7-8 still fits an A4 cover).
+    inside_max = int(_bcfg(cfg, "cover_inside_max", 4) or 4)
     inside = [(f"{i+1:02d}", t) for i, (k, t) in enumerate([b for b in blocks if b[0] == "h2"])
-              if t.lower() != "sources used"][:4]
+              if t.lower() not in ("sources used", "method notes")][:inside_max]
     by = _bcfg(cfg, "prepared_by", _B.get("prepared_by_default") or "the operator")
     label = _doc_label(cfg)
     return dict(brand_dir=str(brand_dir), title=client,

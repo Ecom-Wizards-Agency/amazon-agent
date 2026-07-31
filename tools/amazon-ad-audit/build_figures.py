@@ -177,8 +177,11 @@ def _rank_movement(plt, P, cfg, out):
         ax.scatter([e], [i], color=col, s=62, zorder=4)
         ax.text(s, i + .30, str(s), ha="center", va="bottom", fontsize=8, color=P["steel"])
         ax.text(e, i + .30, str(e), ha="center", va="bottom", fontsize=8.5, color=col, fontweight="bold")
-    ax.axvline(20.5, color=P["hair"], lw=1, ls="--", zorder=1)
-    ax.text(20.5, len(rows) - 0.4, "page 2 ►", ha="left", fontsize=8.5, color=P["steel"])
+    # Mark the top-10 boundary, NOT a "page 2" line. Amazon's first results page runs to
+    # about rank 48, so a divider at 20 labelled "page 2" states something untrue; what
+    # actually matters is whether the keyword still sits in the band shoppers scroll.
+    ax.axvline(10.5, color=P["hair"], lw=1, ls="--", zorder=1)
+    ax.text(10.5, len(rows) - 0.4, " outside the top 10 ►", ha="left", fontsize=8.5, color=P["steel"])
     ax.set_yticks(range(len(rows))); ax.set_yticklabels([r[0] for r in rows], fontsize=9)
     ax.set_xlim(0, max(e for _, _, s, e in rows) + 6)
     ax.set_xlabel("Organic rank position (1 = top of results)", fontsize=9, color=P["steel"])
@@ -191,22 +194,32 @@ def _rank_movement(plt, P, cfg, out):
 
 
 def _rank_distribution(plt, P, cfg, kws, asins, out):
-    b = {"Page 1\n(rank 1-10)": 0, "Rank\n11-20": 0, "Rank\n21-50": 0, "Rank\n51+": 0,
+    # Rank 1-4 is split out because it is the band that actually carries sales: it is what
+    # fits above the fold on mobile. Lumping it into a single "top 10" hides the difference
+    # between ranking 2nd and ranking 9th, which is most of the difference in the category.
+    # Never label the first band "page 1" while showing 11-20 and 21-50 separately: Amazon's
+    # first results page runs to about rank 48, so the page-1 total is bands 1 through 4.
+    b = {"Rank\n1-4": 0, "Rank\n5-10": 0, "Rank\n11-20": 0, "Rank\n21-50": 0, "Rank\n51+": 0,
          "Not ranked\nat all": 0}
     for k in kws:
         r = _best_rank(k.get("asinRanks") or {}, asins)
         if r is None: b["Not ranked\nat all"] += 1
-        elif r <= 10: b["Page 1\n(rank 1-10)"] += 1
+        elif r <= 4: b["Rank\n1-4"] += 1
+        elif r <= 10: b["Rank\n5-10"] += 1
         elif r <= 20: b["Rank\n11-20"] += 1
         elif r <= 50: b["Rank\n21-50"] += 1
         else: b["Rank\n51+"] += 1
     labels, vals = list(b), list(b.values())
     fig, ax = plt.subplots(figsize=(9, 4.1))
-    bars = ax.bar(labels, vals, color=[P["accent"]] + [P["steel"]] * 4, width=0.62)
+    bars = ax.bar(labels, vals, color=[P["accent"], P["ink"]] + [P["steel"]] * 4, width=0.62)
     for bar, v in zip(bars, vals):
         ax.text(bar.get_x() + bar.get_width() / 2, v + max(vals) * 0.02, f"{v}",
                 ha="center", va="bottom", fontsize=10.5, fontweight="bold", color=P["ink"])
-    _title(ax, P, f"Only {vals[0]} of {len(kws)} category keywords put you on page 1",
+    # State the count, do not grade it. "Only 319 of 500" reads as a criticism of what is
+    # often a strong result, and the narrative is where the verdict belongs. Headline the
+    # 1-4 band, since that is the one that decides whether the ranking converts.
+    _title(ax, P, f"You rank 1-4 for {vals[0]} of {len(kws)} category keywords, "
+                  f"and 1-10 for {vals[0] + vals[1]}",
            f"{cfg.get('client','')} organic rank across the relevant keyword set "
            f"(DataDive, {cfg.get('windows', {}).get('datadive', '')})")
     ax.set_ylabel("Keywords", fontsize=9, color=P["steel"])
@@ -454,8 +467,11 @@ def _brand_name_leak(plt, P, cfg, kws, comps, asins, out):
     me = next((r for r in rows if r["is_me"]), None)
     head = (f'{win["brand"]} ranks #{win["rank"]} on "{top["keyword"]}". You are {me["rank"]}th.'
             if me and not win["is_me"] else f'Organic rank on "{top["keyword"]}"')
+    # Do NOT claim rank 10 is the page break: page 1 runs to about rank 48 (see
+    # _rank_distribution). Say what is true and what matters, which is that every brand
+    # on this chart is on the same page as the brand whose name was typed.
     _title(ax, P, head, f'Your own brand name. {int(top.get("searchVolume") or 0):,} searches. '
-                        f'Anything past rank 10 is page 2.')
+                        f'Every brand shown here sits on page 1 of it, alongside you.')
     ax.set_xlabel("Organic rank (lower is better)", fontsize=9, color=P["steel"])
     _frame(ax, P, xgrid=True)
     fig.tight_layout(); fig.savefig(out, dpi=200, bbox_inches="tight"); plt.close(fig)

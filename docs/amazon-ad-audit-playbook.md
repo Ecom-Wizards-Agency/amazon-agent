@@ -72,10 +72,10 @@ Never pad.
 - **Never touch the data.** Numbers, tables, and calculations stay exactly as
   computed. Only prose, framing, and section count get trimmed.
 - **State the intent-split coverage explicitly** at the traffic-mix table (e.g.
-  "covers 97% of spend: SP by search term, SB by target"). Never present the
-  Branded/Generic/Competitor rows as if they sum to 100% of spend; show the
-  unclassified remainder (SB video/reach + SD) as its own row. If a reader adds the
-  rows and lands below 100%, the doc must have already told them why.
+  "SP and SB by customer search term, covering 97.8% of spend"). Never present the
+  Branded/Generic/Competitor rows as if they sum to 100% of spend; name the
+  unclassified remainder (SD, which has no search term). If a reader adds the rows and
+  lands below 100%, the doc must have already told them why.
 
 ### The voice
 
@@ -122,11 +122,11 @@ Write like the operator talking directly to the client, not a neutral analyst.
     operator has hand-edited delivered docs purely to split paragraphs apart, so write it
     that way the first time.
 
-### The seven analytical checks (run these before writing a line)
+### The nine analytical checks (run these before writing a line)
 
 These are the moves that separate an audit from a metrics dump. They came out of real
 operator reviews of delivered audits; every one of them was a gap the data already
-contained but the write-up had missed. Run all seven, every time. Checks 6 and 7 were
+contained but the write-up had missed. Run all nine, every time. Checks 6 and 7 were
 added after an audit shipped without noticing that resellers had taken the client's Buy
 Box, which was the single thing the founders had told us on the call was their core
 problem.
@@ -173,6 +173,25 @@ problem.
    82% hid a 96% → 57% collapse, and the weekly cut plotted against conversion was the
    single most persuasive chart in that audit. `run.mjs business` has no granularity flag,
    so fetch week by week with `--start`/`--end`.
+
+8. **Split intent by what the shopper typed, never by what the campaign targeted.** An
+   SB campaign aimed at a rival's ASIN still serves against *searches*, so target-based
+   classification credits it as conquesting regardless of who actually saw it. Measured on
+   one account, of $14.7k of SB ASIN targeting **53% reached generic queries, 45% reached
+   the brand's own name, and 2% reached someone typing a competitor**. By target it read as
+   $16.6k of conquesting at 24.6% ACOS, "the second most efficient bucket"; by search term
+   it was **$6.9k at 45.4%, the weakest bucket**, and it inverted a whole growth lever.
+   Before writing any conquesting number, confirm `metrics.st_method` says search-term.
+9. **Test whether branded spend is buying anything.** High paid impression share plus high
+   organic rank plus high SQP click share is the signature of overpaying, and it deserves
+   a number rather than a hunch. Match the SP+SB search-term rows to the hero ASIN's own
+   SQP grid on the branded queries present in **both**, then report **paid clicks ÷ total
+   clicks** and **ad orders ÷ total purchases**. One account: **43.1% of branded clicks
+   were paid and 51.8% of branded purchases came through an ad, while ranking first
+   organically**. Pair it with the SP Search-Term Impression Share report (there: 91.8%
+   spend-weighted on branded, 100% on the top four) to show there is no position left to
+   win. Then give the cut a guardrail: branded **click share and purchase share**, watched
+   weekly, never SQP impression share.
 
 **Price and scale calls are tests, not directives.** Frame them with the metric to watch:
 "worth trying at the current price, but watch conversion rate and **contribution margin
@@ -331,16 +350,43 @@ Each of these shipped, or nearly shipped, into a real client audit. Verify all f
   40%-above-median premium. **Derive the brand's price from the Business Report ASP**
   (ordered product sales ÷ units, checked across weeks for stability); treat DataDive's
   price only as "what a shopper currently sees".
-- **Pin every narrative number to the definition of the figure that ships beside it.** Three
-  different "page 1" definitions coexist in this toolkit: `analyze_audit` counts rank ≤15,
-  `build_figures` counts rank ≤10, and DataDive's own `kwRankedOnP1Percent` uses a looser
-  threshold. One audit shipped "114 keywords on page 1" in prose next to a chart labelled
-  "63%", which are the same claim under two definitions. Quote the shipped figure's number.
+- **Pin every narrative number to the definition of the figure that ships beside it.**
+  Several "page 1" definitions coexist: `analyze_audit` counts rank ≤15, DataDive's own
+  `kwRankedOnP1Percent` uses a looser threshold, and the rank chart used to *label rank
+  1-10 as "page 1"* while showing 11-20 and 21-50 as separate bands, which contradicts
+  itself. One audit shipped "114 keywords on page 1" next to a chart labelled "63%", the
+  same claim under two definitions; another shipped "92.8% on page 1" next to a chart
+  reading "Only 319 of 500 put you on page 1". The chart now bands **1-4 / 5-10 / 11-20 /
+  21-50 / 51+ / not ranked**, so page 1 is the first four bands added up and prose and
+  chart reconcile by inspection. Quote the shipped figure's number.
+- **Report rank 1-4 separately, and lead with it.** It is what fits above the fold, and it
+  is where the sales are. A single "top 10" count hides the difference between ranking 2nd
+  and 9th, which is most of the difference in the category. Never let a chart title grade
+  the result either: "Only 319 of 500" reads as criticism of what was in fact a strong
+  position, and the verdict belongs in the narrative, not the axis.
 
 ### Method-note caveats to always include
 
 - SQP is a weekly snapshot set (average the available weeks; per-query rates on tiny
-  denominators are noisy, so lead with impression share + purchase capture).
+  denominators are noisy, so lead with purchase capture).
+- **SQP impression share is not share of voice, and must never be quoted as one.**
+  `Impressions: Total Count` counts an impression for *every* product shown on the query,
+  so on a page of ~48 results a single ASIN structurally cannot hold much of it. One brand
+  sat at **5.5% impression share on its own name while taking 57.4% of the clicks and
+  71.1% of the purchases**. Use click share and purchase share as the position measure.
+  The real paid share-of-voice number comes from the **SP Search-Term Impression Share
+  report**, not from SQP.
+- **SQP week coverage biases every four-week total, and it is not neutral across segments.**
+  A query only appears in a week where the ASIN drew impressions. On one account branded
+  queries averaged **2.84 of 4 weeks** and generic **2.33**, so a straight sum quietly
+  favours branded. Therefore: **average search volume per query across the weeks it
+  appears** (`analyze_audit` does this via `mean(...)`), never sum it. Purchases are summed,
+  which is safe for *ratios* because your count and the market's come from the same rows
+  (presence-adjusting moved generic capture only 2.14% → 2.19%), but the **absolute market
+  totals are floors** and more so for the sparser segment (62,541 → 76,271 adjusted).
+  **Say this in the document, in the client's language, not only in the method notes.**
+  The operator asked for it explicitly: the reader needs to know the figure is an average
+  of the weeks each term actually appeared in, some two, some three, some four.
 - DataDive MKL is capped at 500 visible rows of the full niche. Keep outliers
   visible; don't imply full coverage.
 - SP "Bidding Adjustment" rows carry placement-level campaign totals. **Never** sum
@@ -351,13 +397,15 @@ Each of these shipped, or nearly shipped, into a real client audit. Verify all f
   "SB Multi Ad Group Campaigns") with the SAME campaigns. Dedupe by Campaign ID and
   count SB once, or ad spend/sales inflate. Always sanity-check the total against the
   Ads console; internal spend-reconciliation alone will not catch a double-count.
-- Intent split uses **two methods by channel**: SP by customer search term (complete),
-  SB/SB-Multi by keyword text + product-target expression (SB search-term reporting
-  covers only ~half of SB spend). State the resulting coverage %; the unclassified
-  remainder (SB video/reach + SD) is a labeled row, not hidden.
-- **PAT rows classify by target:** own ASIN → Branded (defense), foreign ASIN →
-  Competitor (conquesting). This flips a naive "generic is fine" read when a lot of
-  spend is ASIN conquesting.
+- Intent split is by **customer search term for both SP and SB**. The bulk file carries an
+  `SB Search Term Report`, and on a real account it covered **100%** of SB spend, not the
+  "~half" this playbook used to assert. `analyze_audit` now prefers it whenever it accounts
+  for ≥90% of SB channel spend and falls back to target classification below that, recording
+  which ran in `metrics.st_method`. State the resulting coverage %; the unclassified
+  remainder (SD, which targets audiences and product pages) is a labeled row, not hidden.
+- **PAT rows with no typed query classify by target:** own ASIN → Branded (defense),
+  foreign ASIN → Competitor (conquesting). Only use this where the row genuinely has no
+  search term, never as a substitute for one that does (see check 8).
 - **SQP revenue gap:** Brand Analytics may have no SQP for some ASINs; the
   completeness gate reports the uncovered revenue share. Say plainly which
   high-revenue ASINs are missing and that capture figures are floors on the covered set.
@@ -366,6 +414,11 @@ Each of these shipped, or nearly shipped, into a real client audit. Verify all f
   uncontrolled and per-product ad stats blur.
 - Intent classification is rule-based (brand / own-ASIN / competitor / generic).
   It is audit-grade; review before bulk campaign changes.
+- **RAS (Retail Ad Service) absence is not a finding.** It places ads on non-Amazon
+  retailer sites and is a deliberate opt-in, so "missing RAS" is noise in a channel-gap
+  list and the old note calling it a lost "brand defence or retargeting motion" was simply
+  wrong (that is SB and SD). Only SB and SD count as missing motions. When RAS *is*
+  running, report its spend/sales/ACOS like any other channel from `channel_totals`.
 
 ## Part 2b: The Standard Figure Set
 
@@ -482,3 +535,31 @@ that carries the CI.
   degrades to a plain `md_to_docx` `.docx` with a WARN, never a hard failure.
 - **Delivery:** the A4 `.docx` is the Google-Docs-editable file (opens in Docs preserving layout). Do **not**
   convert to a native Google Doc (the full-bleed cover + KPI cards + font break). Send the `.pdf`.
+
+### Re-delivering after the operator has edited the file
+
+The operator edits the delivered `.docx` **in place on Drive**: rewriting paragraphs,
+deleting whole sections, and adding first-person opinion. Treat that file as the source
+of truth for wording from that moment on.
+
+**Before any rebuild, pull it back.** Copy the Drive `.docx`, extract `word/document.xml`
+to text, and diff it against the scaffold. Then carry the operator's version into
+`*_SCAFFOLD.md` so the next render reproduces it. The scaffold is protected from
+regeneration (`KEPT authored …`), so the only way their wording survives is if it lives
+in the `.md`.
+
+Rules once you have it:
+
+- **Never restore a paragraph they deleted**, and never rewrite a sentence they wrote.
+  Fix an outright typo, and say that you did.
+- **Correct a number even inside their sentence.** Wording is theirs; arithmetic is ours.
+  If their edit introduces a factual error (one wrote "This is SP only" over a table that
+  was SP **and** SB), fix it and flag it plainly rather than shipping it.
+- **Archive their copy** to `evidence/<slug>/operator-edits/` before overwriting anything.
+- **Bump the version** and delete the superseded file from Drive, so there is no chance of
+  sending the wrong one. Verify by md5 against the local build *and* through the Drive API,
+  not just the mount, which lags.
+
+Editing their `.docx` directly instead of re-rendering is only worth it for a text-only
+change. Anything touching a figure, a table or the document title is safer through the
+scaffold, because the cover, KPI cards and tables are all regenerated.

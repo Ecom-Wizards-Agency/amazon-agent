@@ -56,7 +56,8 @@ def build(config_path, outdir):
     gen_acos = STB.get("Generic", {}).get("acos") or 0
     best_pl = min(P.items(), key=lambda x: (x[1]["acos"] if x[1]["acos"] else 9)) if P else (None, {})
     worst_pl = max(P.items(), key=lambda x: (x[1]["acos"] if x[1]["acos"] else 0) * (x[1]["spend"] > 0)) if P else (None, {})
-    missing_ch = [c for c in ("SB", "SD", "RAS") if c not in channels]
+    # RAS absence is not a gap (see analyze_audit); only SB/SD count as missing motions.
+    missing_ch = [c for c in ("SB", "SD") if c not in channels]
 
     # ================= TAB 1: Executive Summary =================
     ws = wb.create_sheet("Executive Summary")
@@ -143,7 +144,7 @@ def build(config_path, outdir):
     ch_meta = [("SP", "Sponsored Products", "100% of ad spend." if sp_only else "Core search spend."),
                ("SB", "Sponsored Brands", "No headline brand defense / brand-store driver."),
                ("SD", "Sponsored Display", "No retargeting of non-converting first-click traffic."),
-               ("RAS", "Sponsored TV / RAS", "Not running.")]
+               ("RAS", "Retail Ad Service", "Not running. Off-Amazon retailer placements; optional, not a gap.")]
     ct = M.get("channel_totals", {})
     rr = 5
     for key, nm, gapnote in ch_meta:

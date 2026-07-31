@@ -15,7 +15,7 @@ from openpyxl.styles import PatternFill
 from openpyxl.utils import get_column_letter
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ew_audit_style as ew
-from ew_audit_style import C, TL, F, header_row, numf, RIGHT, LEFT, WRAP, CENTER, BORDER, gap_fill, title_block as _tb
+from ew_audit_style import C, TL, F, header_row, numf, RIGHT, LEFT, LEFT_DATA, WRAP, CENTER, BORDER, gap_fill, title_block as _tb
 from analyze_audit import rp, load_config, classify
 
 INT = ew.INT; PCT = ew.PCT; PCT2 = ew.PCT2; RO = ew.RO
@@ -198,7 +198,7 @@ def build(config_path, outdir):
             if fm:
                 cell.number_format = fm; cell.alignment = RIGHT
             if c == 2:
-                cell.alignment = LEFT
+                cell.alignment = LEFT_DATA
             if c == 10:
                 cell.fill = gap_fill(row[9])
             if c == 13:
@@ -224,7 +224,7 @@ def build(config_path, outdir):
             if fm:
                 cell.number_format = fm; cell.alignment = RIGHT
             if c == 2:
-                cell.alignment = LEFT
+                cell.alignment = LEFT_DATA
             if c == 5:
                 cell.fill = PatternFill("solid", fgColor=(TL["bad"] if r[6] < 0.02 else TL["warn"] if r[6] < 0.05 else TL["ok"]))
         rr += 1
@@ -256,7 +256,7 @@ def build(config_path, outdir):
             if fm:
                 cell.number_format = fm; cell.alignment = RIGHT
             if c in (2, 9):
-                cell.alignment = LEFT
+                cell.alignment = LEFT_DATA
             if c == 8 and v is not None:
                 f = ew.acos_fill(v, M.get("breakeven", 0.50))
                 if f:
@@ -287,7 +287,7 @@ def build(config_path, outdir):
                 if fm:
                     cell.number_format = fm; cell.alignment = RIGHT
                 if c == 2:
-                    cell.alignment = LEFT
+                    cell.alignment = LEFT_DATA
                 if c == 6 and isinstance(rk, int):
                     cell.fill = PatternFill("solid", fgColor=(TL["good"] if rk <= 10 else TL["ok"] if rk <= 20 else TL["warn"]))
             rr += 1

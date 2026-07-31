@@ -38,6 +38,7 @@ Use the repo-native API-first downloader (house pattern of `tools/report-fetcher
 - One-command CDP runner: `tools/opportunity-explorer/run-poe.mjs` (shares the report-fetcher debug Chrome; `--marketplace` verified against the session).
 - API contract + verification: `tools/opportunity-explorer/references/poe-endpoints.md`, `poe-gap-matrix.md`.
 - Per-niche export completeness checklist: `references/poe-niche-export-checklist.md` (also used by the keyword-workbook workflow).
+- Breadth run (`/niche-scout`): seed by angle, discover 20 to 40 niches, filter for relevance, weight them against each other, and read `nichePdr` ACROSS niches rather than one: `references/niche-discovery-and-scoring.md`. Use whenever the question is "where is the winnable demand", not "what is in this one niche". `merchant-niches` alone returns only the brand's own auto-assigned niches and is too narrow to answer it.
 
 Default model: API-first over the shared CDP debug Chrome (Browser Standard in `AGENTS.md`): run `run-poe.mjs` from the terminal (path A, works for both agents; it launches or reuses the debug Chrome). Fallback when the debug profile lacks the needed Seller Central login: evaluate `fetch-poe.js` in an already logged-in Seller Central page in the connected/internal browser (path B). Both produce identical files. The legacy DOM extractor (`extract-opportunity-explorer.js` + `format-opportunity-explorer-export.mjs`) is a DEPRECATED fallback only; its manual navigation steps live in `references/opportunity-explorer-workflow.md`.
 

@@ -45,6 +45,10 @@ _thin = Side(style="thin", color=C["hairline"])
 BORDER = Border(left=_thin, right=_thin, top=_thin, bottom=_thin)
 RIGHT = Alignment(horizontal="right")
 LEFT = Alignment(horizontal="left", vertical="center")
+# Data cells only. RIGHT leaves `vertical` unset, which Excel renders as bottom, so a
+# vertically centred text column sits half a line above the numbers beside it. Banner
+# and title rows keep LEFT (centred) because they are tall single-line merged cells.
+LEFT_DATA = Alignment(horizontal="left", vertical="bottom")
 CENTER = Alignment(horizontal="center", vertical="center")
 WRAP = Alignment(wrap_text=True, vertical="top")
 
@@ -126,7 +130,7 @@ def datarow(ws, rr, vals, fmts, acos_cols=(), roas_cols=(), left_cols=(1,), brea
         if fm:
             cell.number_format = fm; cell.alignment = RIGHT
         if c in left_cols:
-            cell.alignment = LEFT
+            cell.alignment = LEFT_DATA
         if c in acos_cols:
             f = acos_fill(v, breakeven)
             if f:

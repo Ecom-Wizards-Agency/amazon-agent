@@ -12,7 +12,7 @@ from openpyxl.styles import Alignment, PatternFill
 from openpyxl.utils import get_column_letter
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ew_audit_style as ew
-from ew_audit_style import C, TL, F, BORDER, RIGHT, LEFT, WRAP, copy_sheet
+from ew_audit_style import C, TL, F, BORDER, RIGHT, LEFT, LEFT_DATA, WRAP, copy_sheet
 from analyze_audit import load_config
 
 INT = ew.INT; PCT = ew.PCT; RO = ew.RO
@@ -107,7 +107,7 @@ def build(config_path, outdir, audit_path, sqp_path):
             if fm:
                 cell.number_format = fm; cell.alignment = RIGHT
             if c == 1:
-                cell.alignment = LEFT
+                cell.alignment = LEFT_DATA
             if c == 4:
                 f = acos_fill(v)
                 if f:
@@ -126,7 +126,7 @@ def build(config_path, outdir, audit_path, sqp_path):
             if fm:
                 cell.number_format = fm; cell.alignment = RIGHT
             if c == 1:
-                cell.alignment = LEFT
+                cell.alignment = LEFT_DATA
             if c == 4:
                 f = acos_fill(v)
                 if f:

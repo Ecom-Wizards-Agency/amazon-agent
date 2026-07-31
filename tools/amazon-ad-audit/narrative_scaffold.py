@@ -29,7 +29,7 @@ def _m(v, cur):
 # run without DataDive/SQP (or without matplotlib) still emits a clean scaffold.
 FIGURES = {
     "fig_rank_distribution.png":
-        "Organic rank across the category keyword set. Page 1 is the only band that sells.",
+        "Organic rank across the category keyword set. Rank 1-4 is what sells; page 1 runs to rank 48.",
     "fig_visibility_vs_competition.png":
         "Share of category search volume where each seller ranks in the top 10.",
     "fig_price_vs_rating.png":

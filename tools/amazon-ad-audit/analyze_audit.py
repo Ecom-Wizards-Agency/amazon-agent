@@ -307,10 +307,9 @@ def parse_bulk(cfg, market, path, agg):
                                       orders=nf(g(r, "Orders")), acos=acos(sp, sa)))
 
     # ---- SP intent split from the Search Term Report (what customers typed) ----
-    # SP search-term reporting is complete; SB's is not (only ~half of SB spend maps
-    # to a customer search term — the rest is product-targeting / category / video),
-    # so SB is classified by its TARGETS below instead. Mixing methods is deliberate:
-    # SP by search term (gold standard) + SB by target (only way to near-full coverage).
+    # A customer search term is the gold standard: it is what the shopper asked for,
+    # which is what an intent split is meant to measure. SB falls back to its TARGETS
+    # only when its search-term report does not cover the channel (see below).
     for sheet in ("SP Search Term Report",):
         if sheet not in wb.sheetnames:
             continue
@@ -330,11 +329,60 @@ def parse_bulk(cfg, market, path, agg):
                                        bucket=b, spend=spd, sales=sad, orders=o, clicks=cl, impr=im,
                                        acos=acos(spd, sad), cvr=(o / cl if cl else 0), source="SP·search-term"))
 
-    # ---- SB intent split from TARGETS (keyword text + product-target expr) ----
+    # ---- SB intent split: search term when it covers the channel, else TARGETS ----
+    # Classifying SB by target silently mislabels conquesting. An SB campaign targeting
+    # a rival ASIN still serves against searches, and on the Heusom 2026-07 run 53% of
+    # that spend reached generic queries and 45% reached the brand's OWN name — only 2%
+    # reached someone typing a competitor. Read by target it looked like $16.6k of
+    # efficient conquesting at 24.6% ACOS; read by search term it was $6.9k at 45.4%,
+    # the weakest bucket rather than the second best. So prefer the SB Search Term
+    # Report whenever it accounts for the channel, and fall back to targets only when
+    # it does not (older exports, or accounts whose SB spend is mostly video).
+    sb_owner = agg.get("_sb_owner", {})
+    sb_channel_spend = agg.get("channels", {}).get("SB", {}).get("spend", 0.0)
+    sb_st_sheet = "SB Search Term Report"
+    sb_st_spend = 0.0
+    if sb_st_sheet in wb.sheetnames:
+        _, _SI, _SR = sheet_io(sb_st_sheet)
+        if "Customer Search Term" in _SI and "Spend" in _SI:
+            sb_st_spend = sum(nf(r[_SI["Spend"]]) for r in _SR)
+    # 90% is the bar: below it the report is not describing the channel and the target
+    # fallback, imperfect as it is, at least covers all of the spend.
+    sb_by_search_term = bool(sb_channel_spend) and sb_st_spend >= 0.90 * sb_channel_spend
+    agg["sb_intent_method"] = "search-term" if sb_by_search_term else "target"
+    agg["sb_st_coverage"] = (sb_st_spend / sb_channel_spend) if sb_channel_spend else 0.0
+
+    if sb_by_search_term:
+        SBH, SBI, SBR = sheet_io(sb_st_sheet)
+        for row in SBR:
+            def sg2(col, _row=row): return _row[SBI[col]] if col in SBI else None
+            term = (str(sg2("Customer Search Term") or "")).strip()
+            if term:
+                b = classify(cfg, term); label = term
+            else:
+                # No typed query on the row (product targeting served on a detail page):
+                # fall back to the target expression, which is the honest read there.
+                label = (str(sg2("Product Targeting Expression") or "") + " " +
+                         str(sg2("Keyword Text") or "")).strip()
+                if not label:
+                    continue
+                b = classify_target(cfg, label)
+            spd, sad = nf(sg2("Spend")), nf(sg2("Sales"))
+            o, cl, im = nf(sg2("Orders")), nf(sg2("Clicks")), nf(sg2("Impressions"))
+            d = agg["st_bucket"].setdefault(b, {"spend": 0.0, "sales": 0.0, "orders": 0.0, "clicks": 0.0, "impr": 0.0})
+            d["spend"] += spd; d["sales"] += sad; d["orders"] += o; d["clicks"] += cl; d["impr"] += im
+            agg["st_rows"].append(dict(market=market, term=label[:120], kw=sg2("Keyword Text"),
+                                       match=sg2("Match Type"), bucket=b, spend=spd, sales=sad, orders=o,
+                                       clicks=cl, impr=im, acos=acos(spd, sad), cvr=(o / cl if cl else 0),
+                                       source="SB·search-term"))
+    # Targets are only walked when the search-term read did not happen. Assigning to
+    # SB_SHEETS itself would make the module-level name local to this whole function
+    # and break its two earlier uses, so route through a local instead.
+    sb_target_sheets = () if sb_by_search_term else SB_SHEETS
+
     # Dedupe across the two SB sheets by the owner map so overlapping campaigns'
     # targets aren't counted twice.
-    sb_owner = agg.get("_sb_owner", {})
-    for sheet in SB_SHEETS:
+    for sheet in sb_target_sheets:
         if sheet not in wb.sheetnames:
             continue
         SBH, SBI, SBR = sheet_io(sheet)
@@ -468,7 +516,15 @@ def build_metrics(cfg, agg, outdir):
                     ad_dependency=(all_sales / br_total if br_total else 0)),
         searchterm_bucket=STB,
         st_coverage=(sum(v["spend"] for v in STB.values()) / all_spend if all_spend else 0),
-        st_method="SP classified by customer search term; SB/SB-Multi by keyword + product-target expression (SB search-term reporting covers only ~half of SB spend). Remainder = SB video/reach + SD.",
+        st_method=("SP classified by customer search term; SB by customer search term "
+                   f"({agg.get('sb_st_coverage', 0):.0%} of SB spend covered by its search-term report). "
+                   "Rows with no typed query fall back to the target expression. Remainder = SD, which "
+                   "targets audiences and product pages and carries no search term."
+                   if agg.get("sb_intent_method") == "search-term" else
+                   "SP classified by customer search term; SB/SB-Multi by keyword + product-target "
+                   f"expression, because SB's search-term report covers only {agg.get('sb_st_coverage', 0):.0%} "
+                   "of SB spend. Target-based SB intent OVERSTATES conquesting: an ASIN-targeted SB ad "
+                   "still serves against searches, most of which are not for that rival's name."),
         placement=placement,
         bid_hygiene=dict(total_bids=agg["bids"]["total"], round_bids=agg["bids"]["round"],
                          round_pct=(agg["bids"]["round"] / agg["bids"]["total"] if agg["bids"]["total"] else 0)),
@@ -491,7 +547,10 @@ def build_metrics(cfg, agg, outdir):
         intent_coverage_low=bool(intent_cov < 0.90),
         sqp_revenue_gap=sqp_gap,
         sqp_uncovered_groups=sorted(uncovered, key=lambda g: -uncovered[g]),
-        channels_missing=[c for c in ("SB", "SD", "RAS") if c not in channel_totals],
+        # RAS (Retail Ad Service, ads on non-Amazon retailer sites) is a deliberate
+        # opt-in, not a gap. Its absence is never a finding; when it IS running it is
+        # reported like any other channel from channel_totals.
+        channels_missing=[c for c in ("SB", "SD") if c not in channel_totals],
         multi_parent_ad_groups=agg["structure"].get("multi_parent_ad_groups", 0),
     )
 
@@ -523,7 +582,11 @@ def build_metrics(cfg, agg, outdir):
         dd = agg["dd"]["keywords"]
         advertised = set(str(r["keyword"]).lower().strip() for r in agg["kw_targets"] if r["bucket"] == "Generic")
         metrics["datadive"] = dict(n_kw=len(dd),
-                                   ranked_p1=len([d for d in dd if d["rank"] and d["rank"] <= 15]),
+                                   # Named for its actual threshold, not "p1". It was called
+                                   # ranked_p1 while counting rank <=15, which invites anyone
+                                   # reading metrics.json to quote it as a page-1 figure next to
+                                   # a chart that bands 1-4/5-10/11-20/21-50. Page 1 is rank <=48.
+                                   ranked_top15=len([d for d in dd if d["rank"] and d["rank"] <= 15]),
                                    advertised_and_ranked_top10=len([d for d in dd if d["kw"] and d["kw"].lower().strip() in advertised and d["rank"] and d["rank"] <= 10]))
         _wcsv(clean / "datadive_keywords.csv", sorted(dd, key=lambda x: -(x["sv"] or 0)), ["kw", "sv", "rel", "rank"])
 
