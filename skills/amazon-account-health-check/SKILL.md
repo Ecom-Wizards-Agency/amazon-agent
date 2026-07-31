@@ -5,7 +5,7 @@ description: Use for the daily Amazon account health check across Seller Central
 
 # Amazon Account Health Check
 
-Browser: Codex interactive (SC Account Health; Review-details clicks + screenshot evidence).
+Browser: CDP (SC Account Health; Review-details clicks + screenshot evidence).
 
 Use this skill for recurring or ad hoc daily account health checks.
 

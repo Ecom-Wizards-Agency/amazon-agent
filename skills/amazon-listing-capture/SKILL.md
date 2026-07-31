@@ -5,7 +5,7 @@ description: Use to capture live Amazon listing copy (title, bullet points, cano
 
 # Amazon Listing Capture
 
-Browser: CDP (extractor evaluated over `cdp.mjs`; PDPs need no login). Fallback: Codex interactive evaluate.
+Browser: CDP (extractor evaluated over `cdp.mjs`; PDPs need no login). Fallback: evaluate in the extension browser.
 
 Capture live listing copy (title + bullets + link) for a set of ASINs and write it to the
 listing-reference JSON that `tools/amazon-seo-keyword-workbook/build_keyword_workbook.py`
@@ -13,8 +13,8 @@ listing-reference JSON that `tools/amazon-seo-keyword-workbook/build_keyword_wor
 
 This replaces a legacy ZeroWork workflow. The old capture artifacts are intentionally
 not shipped because they can contain account-specific tables, screenshots, and example
-ASINs. It is **Codex's job** via the connected/internal browser. Amazon blocks headless
-scraping and `AGENTS.md` mandates the connected browser. Never inspect cookies, storage,
+ASINs. Capture runs over the **CDP debug Chrome**. Amazon blocks headless scraping and
+`AGENTS.md` mandates a real logged-in browser session. Never inspect cookies, storage,
 tokens, or credentials.
 
 ## Inputs

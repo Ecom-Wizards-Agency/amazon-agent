@@ -96,10 +96,10 @@ def main() -> int:
         if fm.get("name") and fm["name"] != d.name:
             errors.append(f"{skill_md.relative_to(ROOT)}: frontmatter name `{fm['name']}` != dir `{d.name}`")
         body = skill_md.read_text(encoding="utf-8")
-        decls = re.findall(r"^Browser: (CDP|Codex interactive|None|Mixed)\b", body, re.M)
+        decls = re.findall(r"^Browser: (CDP|Extension|None|Mixed)\b", body, re.M)
         if len(decls) != 1:
             errors.append(
-                f"{skill_md.relative_to(ROOT)}: needs exactly one `Browser: CDP|Codex interactive|None|Mixed` line (found {len(decls)})"
+                f"{skill_md.relative_to(ROOT)}: needs exactly one `Browser: CDP|Extension|None|Mixed` line (found {len(decls)})"
             )
         oy = d / "agents" / "openai.yaml"
         if not oy.exists():

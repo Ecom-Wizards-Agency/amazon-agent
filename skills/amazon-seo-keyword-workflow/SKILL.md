@@ -5,7 +5,7 @@ description: Use for the end-to-end keyword-research workbook BUILD pipeline: Da
 
 # Amazon SEO Keyword Workflow
 
-Browser: Mixed (build is local; DataDive via MCP; the Expanded 1% MKL download is Codex interactive).
+Browser: Mixed (build is local; DataDive via MCP; the full keyword pool via three read-only DataDive endpoints in the extension browser).
 
 Use this when the operator asks for a full Amazon SEO keyword workbook, not only listing copy.
 
@@ -13,7 +13,7 @@ Use this when the operator asks for a full Amazon SEO keyword workbook, not only
 
 `/seo-standby` means the operator is starting a keyword-research workbook flow but the actionable instructions are expected from Claude. Acknowledge standby, load this workflow if needed, and wait. Do not open DataDive, Seller Central, Amazon listings, run the builder, write SEO, create Drive outputs, edit listings, commit/push, or inspect browser credentials/session data until the operator provides Claude's concrete handoff.
 
-When Claude's handoff arrives, Codex's job is to gather the requested browser/UI inputs, save the exact contract paths, report saved paths plus caveats, and stop.
+When the handoff arrives, the browser half of the run is: gather the requested browser/UI inputs, save them to the exact contract paths, report saved paths plus caveats, and stop. One agent can now do both halves in a single session; the split below is a checklist, not a runtime boundary.
 
 ## Load Order
 
@@ -36,9 +36,25 @@ When Claude's handoff arrives, Codex's job is to gather the requested browser/UI
 - POE Reviews, Returns, Related Niches, and structured overview JSON.
 - Listing reference JSON with product family, ASINs, listing status, title/bullets/description, ingredients, and pack size.
 
-### DataDive: MCP-first (only ONE file needs the browser download)
+### DataDive: MCP-first, and the full pool needs no UI export at all
 
-Generate **roots**, **Core 30% MKL**, and **competitors** from the DataDive MCP. Do NOT send Codex to the browser for them. Only the **Expanded 1% MKL** still requires the UI download, because the MCP returns only the ~visible/tracked set (== the 30% view), not the 1% expansion tail. Validated byte-for-data-identical to the UI exports on a validation run (roots 222/222, Core 257/257, 0 mismatches; a full rebuild from the generated CSVs passed all QA gates with identical Ranking-Juice coverage). See [[datadive-mcp-vs-download]].
+Generate **roots**, **Core 30% MKL**, and **competitors** from the DataDive MCP. Do NOT open the browser for them. Validated byte-for-data-identical to the UI exports on a validation run (roots 222/222, Core 257/257, 0 mismatches; a full rebuild from the generated CSVs passed all QA gates with identical Ranking-Juice coverage). See [[datadive-mcp-vs-download]].
+
+**The old "Expanded 1% MKL" was a misnomer and its UI route is retired.** It was never a larger MKL export. The MKL is a capped, curated subset (500 on a capped niche; the frontend warns about a 600 ceiling in one inclusion flow), so lowering Min. Relevancy to 1% does not add rows once the niche is at the cap, and on a capped niche the UI simply cannot reach the tail. Changing that setting is also a `POST /niche_settings/{nicheId}/mkl_okl` that **mutates shared niche state for every teammate**. Do not do it.
+
+Instead pull the **complete keyword pool** with three read-only GETs in the operator's logged-in DataDive session (extension browser), then filter locally:
+
+```
+GET https://app.datadive.tools/mkl/{nicheId}?includeAsinCatalog=true   -> data.keywords
+GET https://app.datadive.tools/outlier/{nicheId}                       -> data.keywords
+GET https://app.datadive.tools/residue-kw-list/{nicheId}               -> data.keywords
+```
+
+The three sets are a clean partition with zero overlap, and every row carries the same fields (`keyword`, `searchVolume`, `relevancy`, `cpr8dayGiveaways`, `asinRanks`, `sponsoredAsinRanks`, `amazonUrl`). Merge them and filter `relevancy >= 0.01` for the 1% equivalent, or any other threshold. **No settings change, no Dive tokens, no download-event problem.**
+
+Validated 31.07.2026 on niche `rJdlqdE49c`: 500 + 127 + 2,662 = **3,289 unique keywords**, matching `get_niche_competitors.numKeywords` exactly. Cross-check that equality every run before trusting the merge. Team vault run note: `Runs/2026-07-31-runtime-consolidation-test.md`.
+
+`Update Niche` is the separate re-dive path. It is **not** needed for the tail; treat it as quota-bearing and never trigger it for this workflow.
 
 Procedure (Claude, before the build):
 1. Call `get_niche_roots`, `get_niche_keywords`, `get_niche_competitors` for the niche; save each raw JSON response to a file.
@@ -49,7 +65,7 @@ Procedure (Claude, before the build):
      --roots-json <roots.json> --keywords-json <keywords.json> --competitors-json <comps.json> \
      --out-roots "<roots_csv path>" --out-core "<master_csv path>" --out-competitors "<competitors_csv path>"
    ```
-Notes: the Core file's `Sugg. bid & range` column is left blank (the builder never reads it; it only matters for PPC builds). `--preflight` marks these three as `(MCP)` rather than `(CODEX)`, so the Codex task only asks for the Expanded 1% MKL + POE + listing capture.
+Notes: the Core file's `Sugg. bid & range` column is left blank (the builder never reads it; it only matters for PPC builds). `--preflight` marks these three as `(MCP)` rather than `(BROWSER)`, so the browser task only asks for the full keyword pool + POE + listing capture.
 
 Record DataDive export metadata for both Core and Expanded MKL: Min Relevancy, Min SV/Max SV if changed, visible keyword count, visible search volume, export timestamp, niche ID, marketplace, and hero keyword. **Capture these at export time, while the grid is on screen**; do not backfill later.
 
@@ -59,7 +75,7 @@ DataDive UI export locations (so Codex doesn't hunt for them):
 - Core/Expanded MKL: always record Min Rel, visible keyword count, visible search volume, and export timestamp at export time.
 - Before fallback or rank injection, confirm the Core MKL has the exact anchor ASIN as a real DataDive column.
 - **Anchor not tracked in an existing niche: ADD the ASIN, do NOT re-dive.** When a niche already exists for the product's market but our anchor ASIN is not one of its tracked columns (the usual case for a niche someone dived around competitors), do not spend a full `create_niche_dive`. Instead add just our ASIN to that existing niche so it gains a rank column and the existing roots/MKL/competitor research is reused (≈1 dive token vs ~10, and one niche instead of a duplicate). The DataDive **MCP has no add-ASIN action**, so this is a Codex UI step: DataDive → Niche Tracker → add competitor ASIN → let it re-research; the ASIN then appears in `get_niche_keywords.asinRanks`. Only `create_niche_dive` (spending a full dive, ideally seeded on OUR ASIN) when **no** niche exists for the product yet. Verify with `get_niche_competitors`/`get_niche_keywords` that the anchor is a tracked column after the add, before rank injection. See [[keyword-research-config-scaffolding]].
-- **DataDive export buttons may emit no detectable download event for Codex** (confirmed 2026-06-12). Fallback: the operator clicks the exports manually; Codex maps the files in `~/Downloads` by filename/timestamp/rows/headers (Core 30% includes a `Sugg. bid & range` column; Expanded 1% has far more rows) and reports row counts + headers. Claude then cross-checks the counts against the DataDive MCP niche statistics (`get_niche_competitors` → numVisibleKeywords/totalSvOfVisibleKeywords for 30%, numKeywords/totalSvOfKeywords for 1%) before accepting.
+- **If you do fall back to a UI export, do not trust the download event.** DataDive's export buttons emit no detectable download event in some browser runtimes (confirmed 2026-06-12, still true for Codex on 31.07.2026; the Chrome extension handled it cleanly). Robust pattern: snapshot `~/Downloads`, click Export, then poll for a new `niche-{id}-data*.zip` and validate it by timestamp, size, ZIP members, headers, and row counts. Cross-check against `get_niche_competitors` (`numVisibleKeywords`/`totalSvOfVisibleKeywords` for the visible set, `numKeywords`/`totalSvOfKeywords` for the full pool) before accepting. Prefer the three read-only endpoints above, which avoid this entirely.
 - POE inputs come from the API-first downloader: `tools/opportunity-explorer/run-poe.mjs` (`search` → related-niches JSON; `niche` → Products/SearchTerms CSVs + sentiment-labeled CRI + Returns + overview JSON, all builder-ready and locale-independent). One `.de` login covers every EU marketplace (`--origin https://sellercentral.amazon.de --marketplace de|it|es|fr|…`); US uses the `.com` origin. Whoever has the debug Chrome (Claude via CDP, or Codex via internal-browser evaluate of `fetch-poe.js`) can produce these; no manual tab clicking. Capture context (account, marketplace, niche, last-updated) comes from the overview JSON.
 - **⚠️ ALWAYS pass `--origin https://sellercentral.amazon.de` for any EU client, on `doctor` too.** `origin` DEFAULTS to `https://sellercentral.amazon.com`, so a bare `run-poe.mjs doctor` reads the account context from the `.com` page and reports whatever account is active there (typically an unrelated US account) even when a `.de` tab is open and the EU client is the selected merchant. It looks like the "wrong account", and the account-safety abort will misfire. The debug Chrome is a **separate profile** from your normal Chrome: switching accounts in your everyday Chrome does nothing; switch the merchant in the port-9222 debug Chrome's account picker, then `doctor --origin https://sellercentral.amazon.de` should report the expected EU merchant, e.g. `<Merchant Name> [partnerAccountId=<partner-account-id>] marketplace=A1PA6795UKMFR9`. Confirmed 2026-07-21. (Note: EU cross-market still uses the `.de` login origin with a different `--marketplace`; do NOT derive origin from the marketplace domain.) POE also requires the account to actually have Opportunity Explorer / Brand Analytics access. If `search`/`niche` hang with an "unsettled top-level await" while `readAccount` succeeds, the account likely lacks OEI access for that marketplace.
 - **POE niche selection: Codex picks and pulls, no pause for Claude.** (Operator 2026-07-26.) Once the correct Seller Central account is selected, Codex runs the POE keyword search, takes the closest matching niche itself, and downloads the full set in the same session. Do NOT stop to have Claude choose the niche ID. The account check is the only gate that still blocks; niche choice is not. Report the chosen niche (id + label + T90 SV) and any close runners-up in the handback so Claude can re-pull if the pick was wrong, which is cheaper than a round-trip on every run. If the search returns no plausible niche at all, say so and stop.

@@ -5,7 +5,7 @@ description: Use for Amazon catalog management: variations, parentage, flat file
 
 # Amazon Catalog
 
-Browser: Mixed (file builds are local; template downloads/uploads are Codex interactive; stop before upload).
+Browser: Mixed (file builds are local; template downloads/uploads run over CDP; stop before upload).
 
 ## Workflow
 

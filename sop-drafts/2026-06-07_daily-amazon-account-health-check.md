@@ -11,7 +11,7 @@ Create a fast daily routine for checking each Amazon account, using `#sellersona
 
 ## Preconditions
 
-- The operator has a locally saved preferred browser for live runs: either the built-in Codex in-app browser or a Chromium browser connected through the Chrome extension (Chrome, Brave; the extension typically requires the US VPN). The preferred browser is used for every browser step; the other approved browser is the fallback.
+- The operator has a locally saved preferred browser for live runs: either the CDP debug Chrome (port 9222) or a Chromium browser connected through the Chrome extension (Chrome, Brave). The preferred browser is used for every browser step; the other approved browser is the fallback. No VPN is required for either.
 - Step 1 of every live run is opening the preferred browser and confirming Seller Central is logged in before any account checks begin. If the preferred browser is logged out, try the fallback browser before declaring the run blocked.
 - Parallel tabs are allowed only across regions (for example one US Seller Central tab plus one Europe tab); never two tabs within the same regional Seller Central domain, because they share one session and account selector.
 - One regional login covers every marketplace in that region: stay on the active session's Seller Central domain (whichever regional domain the operator logged in on, such as DE, UK, or IT) and switch country/account only through the in-app marketplace/account switcher. Never switch country by changing the Seller Central URL/domain - a domain change forces a new login. Open deep links such as `/cu/case-lobby` on the active session's domain.
@@ -231,8 +231,8 @@ Severity maps to default routing: Critical findings are escalation candidates; H
 
 ## Open Questions Or Assumptions
 
-- Seller Central in the internal browser is the source of truth for account health.
-- The operator's locally saved preferred browser (built-in Codex browser, or Chrome/Brave via the Chrome extension with US VPN) is used for all runs; the other approved browser is the fallback.
+- Seller Central in the logged-in browser is the source of truth for account health.
+- The operator's locally saved preferred browser (CDP debug Chrome, or Chrome/Brave via the Chrome extension) is used for all runs; the other approved browser is the fallback. No VPN required.
 - `#sellersonar` is the fastest first pass for alert discovery.
 - SellerSonar dashboard is a drill-down tool and is not mandatory for every clean account.
 - `#sellersonar-now` is intentionally out of scope.

@@ -74,7 +74,7 @@ def preflight(cfg, cfg_path) -> int:
               f"write the narrative, or change anything in the ad account.")
         print(f"Account: {cfg.get('amazon_account')} · Window: ads {w.get('ads')} · BR {w.get('business_report')} "
               f"· SQP weeks {', '.join(w.get('sqp_weeks', []))}")
-        print("Save each file to the EXACT path below (@Chrome extension for downloads, US VPN):")
+        print("Save each file to the EXACT path below (download via the Chrome extension or the CDP debug Chrome; no VPN needed):")
         for label, p, _ in codex:
             print(f"  - {label}: {p}")
         print("Sources: ads bulk = Ads console > Bulk Operations (SP required; SB/SD/RAS if running); "

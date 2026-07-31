@@ -44,9 +44,9 @@ The local project should stay aligned with the GitHub repo's lightweight runtime
 
 The complete visual MAG SOP archive (all captured SOPs plus every screenshot/GIF asset) lives outside the GitHub/runtime project in pCloud. Paths, expected contents, and the curation note live in `docs/mag-sops-assets.md`. Use local/GitHub markdown SOPs first; use the pCloud visual archive only when visual confirmation, screenshots, GIFs, or layout references are needed. Do not commit the archive or any personal sync folder into GitHub.
 
-## Local Browser Preference
+## Browser Choice
 
-GitHub stores browser-neutral defaults. Each teammate can optionally create an ignored local `local-browser-preference.md` file from `docs/local-browser-preference.example.md`. The agent reads that local preference when present; otherwise it uses the browser defined by the Browser Standard in `AGENTS.md`. Browser choice never overrides account/marketplace verification or stop-before-risk rules.
+Routing is by session, not by agent, and lives in the Browser Standard in `AGENTS.md`: the CDP debug Chrome (port 9222) by default, the Chrome extension when the task needs the operator's own logged-in session. The per-workflow table is `docs/browser-routing-map.md`. Browser choice never overrides account/marketplace verification or stop-before-risk rules.
 
 ## Client Profiles
 

@@ -2298,11 +2298,12 @@ def write_handoff_note(path: str, cfg: dict, args: dict, manifest: dict) -> str:
 # --------------------------------------------------------------------------- #
 # DataDive inputs the MCP can supply — Claude generates these from saved MCP JSON
 # via datadive_mcp_to_csv.py (get_niche_roots / get_niche_keywords / get_niche_competitors),
-# so they are NOT part of the Codex browser task. Validated byte-for-data-identical to the
-# UI exports on a validation run (roots 222/222, Core 257/257, 0 mismatches). The Expanded
-# 1% MKL stays in CODEX because the MCP returns only the ~visible/tracked set, not the 1% tail.
+# so they are NOT part of the browser task. Validated byte-for-data-identical to the
+# UI exports on a validation run (roots 222/222, Core 257/257, 0 mismatches). The full
+# keyword pool stays in BROWSER: it is three read-only DataDive endpoints merged locally
+# (/mkl, /outlier, /residue-kw-list), NOT a UI export and NOT a Min. Relevancy change.
 MCP_INPUT_KEYS = ["roots_csv", "master_csv", "competitors_csv"]
-CODEX_INPUT_KEYS = [
+BROWSER_INPUT_KEYS = [
     "expanded_mkl_csv",
     "poe_products_csv", "poe_search_terms_csv", "related_niches_json",
     "poe_reviews_json", "poe_returns_json", "poe_structured_json", "listing_reference_json",
@@ -2392,20 +2393,20 @@ def run_preflight(cfg: dict, args: dict) -> int:
     print(f"PREFLIGHT — {pa.get('client')} · {pa.get('product')}")
     print(f"  marketplace={pa.get('marketplace')}  niche={pa.get('datadive_niche')}  anchor={pa.get('asin')}")
     print("=" * 64)
-    present = [k for k in MCP_INPUT_KEYS + CODEX_INPUT_KEYS + SETUP_INPUT_KEYS if os.path.exists(args[k])]
+    present = [k for k in MCP_INPUT_KEYS + BROWSER_INPUT_KEYS + SETUP_INPUT_KEYS if os.path.exists(args[k])]
     missing_mcp = [k for k in MCP_INPUT_KEYS if not os.path.exists(args[k])]
-    missing_codex = [k for k in CODEX_INPUT_KEYS if not os.path.exists(args[k])]
+    missing_browser = [k for k in BROWSER_INPUT_KEYS if not os.path.exists(args[k])]
     missing_setup = [k for k in SETUP_INPUT_KEYS if not os.path.exists(args[k])]
 
     print("PRESENT:")
     for k in present:
         print(f"  [x] {k}")
-    if missing_mcp or missing_codex or missing_setup:
+    if missing_mcp or missing_browser or missing_setup:
         print("MISSING:")
         for k in missing_mcp:
             print(f"  [ ] (MCP)    {k}  -> {args[k]}")
-        for k in missing_codex:
-            print(f"  [ ] (CODEX)  {k}  -> {args[k]}")
+        for k in missing_browser:
+            print(f"  [ ] (BROWSER)  {k}  -> {args[k]}")
         for k in missing_setup:
             print(f"  [ ] (setup)  {k}  -> {args[k]}")
 
@@ -2422,9 +2423,9 @@ def run_preflight(cfg: dict, args: dict) -> int:
             "       --roots-json <roots.json> --keywords-json <keywords.json> --competitors-json <comps.json> \\\n"
             f"       --out-roots \"{args['roots_csv']}\" --out-core \"{args['master_csv']}\" --out-competitors \"{args['competitors_csv']}\"\n"
         )
-    if missing_codex:
-        print("\nSTATUS: WAITING ON CODEX. Paste the block below into Codex (do not hand-write it):\n")
-        print(_codex_handoff_block(cfg, args, missing_codex))
+    if missing_browser:
+        print("\nSTATUS: WAITING ON BROWSER INPUTS. Use the block below as the browser-half checklist:\n")
+        print(_codex_handoff_block(cfg, args, missing_browser))
     elif missing_mcp:
         pass
     elif missing_setup:
@@ -2501,7 +2502,7 @@ def main() -> int:
         print("ERROR: missing source files:", file=sys.stderr)
         for k in missing:
             print(f"   {k}: {args[k]}", file=sys.stderr)
-        print("\nRun with --preflight to generate the Codex handoff for the missing inputs.", file=sys.stderr)
+        print("\nRun with --preflight to generate the browser-half checklist for the missing inputs.", file=sys.stderr)
         return 2
 
     print(f"Loading template: {args['template']}")

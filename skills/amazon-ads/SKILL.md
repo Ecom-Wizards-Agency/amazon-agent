@@ -5,7 +5,7 @@ description: Use for day-to-day Amazon Ads Console work: bidding, budgets, place
 
 # Amazon Ads
 
-Browser: Codex interactive (Ads Campaign Manager; stop before changes).
+Browser: CDP (Ads Campaign Manager; stop before changes).
 
 ## Workflow
 

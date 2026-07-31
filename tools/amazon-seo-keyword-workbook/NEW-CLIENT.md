@@ -25,9 +25,9 @@ Fill every `<...>` and `TO_RECORD_*`:
 .venv/bin/python tools/amazon-seo-keyword-workbook/build_keyword_workbook.py \
   --config tools/amazon-seo-keyword-workbook/config.<client>-<product>-<market>.json --preflight
 ```
-- Preflight tags each missing input `(MCP)`, `(CODEX)`, or `(setup)`.
-- **`(MCP)` (Claude generates, no browser download):** roots, Core 30% MKL, and competitors come from the DataDive MCP. Call `get_niche_roots` / `get_niche_keywords` / `get_niche_competitors`, save each raw JSON, confirm `len(keywords) == numVisibleKeywords`, then run `datadive_mcp_to_csv.py` to write the three contract CSVs. (Validated identical to the UI exports; see the `datadive-mcp-vs-download` memory.)
-- **`(CODEX)` (connected browser):** the **Expanded 1% MKL** (the ONE DataDive download that is NOT MCP-reproducible; do not substitute the 30% file), POE Products/Search Terms CSVs, POE related-niches/reviews/returns/structured JSON, and a listing-reference JSON. Codex saves to the contract paths, stops, and reports.
+- Preflight tags each missing input `(MCP)`, `(BROWSER)`, or `(setup)`.
+- **`(MCP)` (generated locally, no browser):** roots, Core 30% MKL, and competitors come from the DataDive MCP. Call `get_niche_roots` / `get_niche_keywords` / `get_niche_competitors`, save each raw JSON, confirm `len(keywords) == numVisibleKeywords`, then run `datadive_mcp_to_csv.py` to write the three contract CSVs. (Validated identical to the UI exports; see the `datadive-mcp-vs-download` memory.)
+- **`(BROWSER)`:** the **full DataDive keyword pool** (three read-only GETs merged locally, NOT a UI export and NOT a settings change: see the `amazon-seo-keyword-workflow` skill), POE Products/Search Terms CSVs, POE related-niches/reviews/returns/structured JSON, and a listing-reference JSON. Save to the contract paths, then report.
 
 ## 3. Write the SEO content
 ```bash

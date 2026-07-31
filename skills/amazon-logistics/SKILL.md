@@ -5,7 +5,7 @@ description: Use for executing Amazon FBA and inventory operations: Send to Amaz
 
 # Amazon Logistics
 
-Browser: Codex interactive (Send to Amazon flows; stop before creating/confirming shipments).
+Browser: CDP (Send to Amazon flows; stop before creating/confirming shipments).
 
 ## Workflow
 

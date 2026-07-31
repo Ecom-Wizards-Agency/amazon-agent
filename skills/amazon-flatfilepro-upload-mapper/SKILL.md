@@ -5,13 +5,17 @@ description: Use when a prepared Amazon FlatFilePro or Flatfire Pro upload file 
 
 # Amazon FlatFilePro Upload Mapper
 
-Browser: Codex interactive (logged-in FlatFilePro session; stop before final apply).
+Browser: CDP (logged-in FlatFilePro session; hidden native file input, MUI autocomplete mapping; stop before Update Listings).
 
 ## Core Rule
 
 Use the operator's browser with the logged-in FlatFilePro session, per the Browser Standard in `AGENTS.md` (Chrome is the operator default). This skill is for operating the FlatFilePro upload/mapping UI after the upload file already exists. **FlatFilePro expects `.xlsx`** (operator, 2026-07-26); if you are handed a `.csv`, convert it to `.xlsx` before uploading rather than uploading the CSV. If the file still needs to be created from labels or backend exports, use `amazon-flatfilepro-prep` first.
 
 Stop before the final action that applies catalog changes, such as `Done`, `Update`, `Submit`, `Apply`, or any force/update switch, unless the operator explicitly approves that exact final click in the current chat.
+
+**The hard stop is the preview screen headed "Make your changes and click submit below."** Leave it visible with the mapped chips and preview grid loaded, and do NOT click **Update Listings**. That button is not a confirmation step: it posts the bulk update and Amazon begins processing the catalog change. Never toggle the small force switch beside it either, which relabels the button **Force Update**. Verified 31.07.2026.
+
+Mechanics worth knowing before driving it: the file chooser is a normal hidden `<input type="file">` behind a styled label, so a programmatic attach works and no OS dialog appears. **The upload starts immediately on the change event**, so verify the exact path before attaching, not after. Column mapping uses Material UI autocomplete fields (not drag-and-drop, not native `<select>`), driven by typing, arrow keys, and Enter. No step requires a trusted user gesture. Budget roughly 15-40 interactions per run, or 8-15 when `Automap` handles the technical headers.
 
 ## Required Inputs
 

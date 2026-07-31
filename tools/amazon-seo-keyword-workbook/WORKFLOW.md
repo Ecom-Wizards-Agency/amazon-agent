@@ -6,7 +6,7 @@
 
 ## 1. Gather DataDive Exports
 
-**MCP-first:** generate **roots**, **Core 30% MKL**, and **competitors** from the DataDive MCP via `datadive_mcp_to_csv.py`. Only the **Expanded 1% MKL** needs a UI download (the MCP returns only the ~visible/tracked set == the 30% view, not the 1% tail). Validated identical to the UI exports; see the `datadive-mcp-vs-download` memory and the `amazon-seo-keyword-workflow` skill.
+**MCP-first:** generate **roots**, **Core 30% MKL**, and **competitors** from the DataDive MCP via `datadive_mcp_to_csv.py`. Validated identical to the UI exports; see the `datadive-mcp-vs-download` memory and the `amazon-seo-keyword-workflow` skill. The **full keyword pool** (formerly called the "Expanded 1% MKL") needs no UI download either: merge three read-only endpoints (`/mkl/{id}?includeAsinCatalog=true`, `/outlier/{id}`, `/residue-kw-list/{id}`) and filter `relevancy` locally. Never change the niche's Min. Relevancy setting; it mutates shared state for the whole team.
 
 - **roots CSV**: MCP `get_niche_roots` → generator (or Roots grid's leftmost **Export** tab for **Normalized Root**).
 - **Core MKL CSV at `30% Min Rel.`**: MCP `get_niche_keywords` → generator (confirm `len(keywords)==numVisibleKeywords` first).

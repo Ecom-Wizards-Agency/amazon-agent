@@ -1,11 +1,11 @@
 ---
 name: amazon-reporting
-description: Use for fetching and formatting Amazon reports (`/fetch-reports`): Seller Central Business Reports, SQP, SCP, Ads reports, search term reports, bulk downloads, period comparisons, and Excel/CSV workbook outputs. Not for audit narratives: route full ad/sales audits to `amazon-ad-audit` or `amazon-adlabs-audit`.
+description: "Use for fetching and formatting Amazon reports (`/fetch-reports`): Seller Central Business Reports, SQP, SCP, Ads reports, search term reports, bulk downloads, period comparisons, and Excel/CSV workbook outputs. Not for audit narratives: route full ad/sales audits to `amazon-ad-audit` or `amazon-adlabs-audit`."
 ---
 
 # Amazon Reporting
 
-Browser: CDP (report fetcher `run.mjs` over the shared debug Chrome). Fallback: evaluate in a logged-in tab (Codex).
+Browser: Mixed (CDP for scripted Seller Central fetches; CDP interactive for Ads Console exports until a dedicated Ads runner is implemented).
 
 ## Source Order
 
@@ -24,6 +24,44 @@ Browser: CDP (report fetcher `run.mjs` over the shared debug Chrome). Fallback: 
 3. Use internal analytics references for workbook generation and interpretation.
 4. Save deliverables under `output/{client}/reporting/` with dates in filenames unless the user specifies pCloud/Drive. `{client}` is the normalized lowercase-kebab client slug from `AGENTS.md`, with marketplace in filenames, not folder names.
 5. Stop before creating scheduled reports, changing report settings, or downloading sensitive reports to an unclear destination.
+
+## Amazon Ads Console exports
+
+For Ads bulk files, Sponsored Products Search Term Impression Share, Sponsored Brands
+Campaign Placement, or another report created in the Ads Console, read
+`references/ads-console-downloads.md` before acting.
+
+Before creating Ads exports, set the Campaign Manager to the SQP-aligned analysis window
+and compare `Total cost` for `All but archived` against `Enabled`. Use that comparison to
+decide whether to create a second, smaller Enabled-only bulk file. Keep the broader
+Enabled-and-Paused file as the coverage source.
+
+Queue every required Sponsored Ads report near the beginning of the reporting workflow.
+Submit the bulk jobs immediately after the cost comparison, then continue other report
+work while Amazon generates the files. Refresh and check both report locations every five
+minutes until the requested files are ready.
+
+A campaign bulk file is ready only when its Bulk Operations row shows `Success` and
+exposes a row-level download link. For a Sponsored Ads report, open the exact report
+definition and download the matching `Completed` run from its history. The report list
+alone is not completion evidence.
+
+After a bulk download completes, replace Amazon's opaque alphanumeric filename segment
+with the verified advertiser name and preserve the original start and end dates. An exact
+destination filename supplied by the task takes precedence. Record the original filename
+in the evidence note when its job identifier may be useful for traceability.
+
+The 2026-07-30 live feasibility check proved that the shared CDP debug Chrome can:
+
+- open the authenticated Ads Console and verify the visible account and country;
+- list existing report definitions and bulk-operation jobs;
+- resolve completed authenticated download links;
+- save both report and bulk `.xlsx` files without the Chrome extension.
+
+This is feasibility evidence, not a production runner. Until a dedicated Ads CDP runner
+is implemented and validated, drive the Ads console interactively over the CDP debug
+Chrome for operational Ads report and bulk-export work. Downloads are captured with
+`Browser.setDownloadBehavior`, or read from `~/Downloads` after the click.
 
 ## Fetch reports without manual download (Business Reports + SQP)
 

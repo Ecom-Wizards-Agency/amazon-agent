@@ -5,7 +5,7 @@ description: Use for Amazon Creator Connections work: auditing/triaging the crea
 
 # Amazon Creator Connections
 
-Browser: Codex interactive (Ads console, no MCP; stop before any send/publish).
+Browser: CDP (Ads console, no MCP; drain the infinite-scroll thread list; stop before any send/publish).
 
 ## Core Rule
 
@@ -66,8 +66,14 @@ Use the Creator Connections route from `AGENTS.md` (Amazon Ads Account Selection
 
 ## Message Triage (status filter)
 
-1. Enumerate the message threads in scope, newest first. Record thread count before filtering.
-2. Read each thread's visible status indicator (pill/label/color).
+**Amazon has no status filter in this inbox.** Verified 31.07.2026: no native `<select>`, no search/filter input, no status buttons, no query parameter. The only list-level signal is the unread indicator. "Status filter" below therefore means **our own classification applied after reading**, not an Amazon control. Do not go looking for a filter widget; there isn't one.
+
+**Draining the thread list is mandatory.** The list is incremental infinite-scroll and is NOT virtualised: the initial load mounts 100 threads in `data-testid="CHANNEL-SCROLL-CONTAINER"`, and scrolling to the boundary appends another 100 while the earlier ones stay mounted. **A single DOM read silently returns only the newest ~100 threads and looks complete.** Loop instead: read mounted threads, scroll near the bottom, wait for the child count to grow, repeat until a scroll to the bottom yields no new rows. Report the final mounted count alongside the thread count so a truncated read is visible.
+
+Profile and thread selection are JavaScript-only state; the URL stays at `/bi?entityId=…`, so threads cannot be addressed or resumed by URL. There is no relevant iframe or shadow DOM. **Opening an unread thread may mark it read** (untested), so a strictly read-only audit should stay on already-read threads or declare that side effect up front.
+
+1. Enumerate the message threads in scope, newest first, **after fully draining the scroll list**. Record thread count before filtering.
+2. Read each thread's visible status indicator (pill/label/color). Expect the unread dot to be the only reliable one; declined/expired/closed pills were not visible in the current UI.
 3. **If `status_filter.confirmed` is false (first supervised run):** screenshot one example of every distinct status pill/color to `evidence/<client>/creator-connections/`, list which statuses look inactive (declined, expired, closed, rejected offers), propose the skip/process mapping to the operator, and only apply it after the operator confirms. Save the confirmed rule into the client config.
 4. **If confirmed:** skip threads matching `skip_statuses`, process the rest. Always report skipped-vs-processed counts by status in the handoff. Skipped threads are listed, never silently dropped.
 

@@ -5,7 +5,7 @@ description: Use to create Amazon Sponsored Products campaigns from a plain-text
 
 # Amazon Campaign Builder (v2: SP create + update)
 
-Browser: None (file-only build; any upload is a separate operator-confirmed Codex interactive action).
+Browser: None (file-only build; any upload is a separate operator-confirmed CDP action).
 
 Use this when the operator asks to create/build/set up Sponsored Products campaigns ("create SKW campaigns for these keywords", "build me an auto + PAT set for this SKU", "make the launch campaigns as a bulk file", "build campaigns from this keyword workbook"), **or** to change existing live campaigns ("pause these keywords", "raise this campaign's budget to $30", "archive this old campaign", "add these negatives to this ad group"). It ports the Ecom Wizards Amazon Ads Bulk Creator app's generation logic into a repo-native, config-driven builder, plus a new update-mode with no web-app equivalent.
 

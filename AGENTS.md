@@ -27,9 +27,13 @@ The agent should be able to:
 
 CDP-first for scripted workflows: the repo keeps a dedicated debug Chrome profile (`~/.amazon-agent/chrome-debug`, DevTools port 9222, localhost-only), launched or reused idempotently via `tools/report-fetcher/launch-chrome-debug.sh`. It runs alongside the normal browser, its Amazon logins persist across runs, and scripts drive it directly over CDP with no extension round-trips, which makes it faster and more reliable than operating a normal browser UI. Current Chrome (136+) silently ignores the debug port on the default profile, so this dedicated profile is the only working CDP path. Every workflow that has a script/CDP runner (report fetcher `run.mjs`, POE downloader `run-poe.mjs`, listing capture, future fetchers) uses the debug Chrome by default, for both agents. All account/marketplace verification and login rules below apply to the debug profile exactly like any other browser session.
 
-Interactive UI work (FlatFilePro mapping, Creator Connections inbox, visual checks, anything without a script path) is Codex's job. Codex uses the internal Codex browser, or the operator's Chrome extension for downloads and extension-dependent flows. When Claude hits an interactive step, it hands off to Codex per the Cross-Agent Handoff section instead of driving a browser, unless the operator explicitly asks Claude to use the connected browser in the current chat. If `local-browser-preference.md` exists in the project root, read it before browser work and honor it. The file is local-only and ignored by Git. Everywhere this document says "the browser," it means whichever of these applies to the current agent and task.
+Interactive UI work (FlatFilePro mapping, Creator Connections inbox, visual checks, anything without a script path) runs over the same CDP debug Chrome. CDP is not limited to scripted fetches: it dispatches real mouse and key events, captures screenshots as evidence, polls for late-loading elements, attaches local files to file inputs (`DOM.setFileInputFiles`), and captures downloads to a chosen folder (`Browser.setDownloadBehavior`). Verified 31.07.2026, including a live Seller Central account switch driven entirely from the terminal.
 
-Every skill declares its path in one standardized line right under its title (`Browser: CDP|Codex interactive|None|Mixed`, enforced by `tools/lint_agent_docs.py`). Trust that line when a skill is loaded; the full per-workflow table is `docs/browser-routing-map.md`.
+Use the **Chrome extension** instead when the task must run inside the operator's own logged-in session rather than the debug profile. DataDive is the standing example: the debug profile has no DataDive login, and creating one risks displacing the operator's. The two profiles hold independent sessions and do not interfere.
+
+Choose by session, not by agent: **CDP when the agent should work in its own sandbox, the extension when the task needs the operator's live session.** Everywhere this document says "the browser," it means whichever of these applies to the current task.
+
+Every skill declares its path in one standardized line right under its title (`Browser: CDP|Extension|None|Mixed`, enforced by `tools/lint_agent_docs.py`). Trust that line when a skill is loaded; the full per-workflow table is `docs/browser-routing-map.md`.
 
 If an Amazon page shows a login screen, stop and ask the operator to log in first. The agent must not handle passwords, one-time codes, authenticator prompts, cookies, local storage, session stores, or other credentials.
 
@@ -85,7 +89,7 @@ This project uses one main Amazon operator with specialist skills. Specialist sk
 
 **One copy of every skill, in this repo.** `skills/` is the single source of truth for both runtimes. Claude reads it directly from the working tree. Codex reads it through symlinks: every `~/.codex/skills/amazon-*` entry points at the matching `skills/<name>` directory here (wired 2026-07-26). Never edit a skill inside `~/.codex/skills/`, and never replace one of those symlinks with a real directory: that is exactly how the two runtimes silently drifted for three weeks. Edit the file in this repo and both agents see it immediately.
 
-The one deliberate exception is `amazon-sqp-competitor-check`, which is a **twin pair**, not a copy: the repo file is the Claude-side coordinator and `~/.codex/skills/amazon-sqp-competitor-check/` is the Codex-side browser executor. Keep both, and change them together.
+**There are no exceptions any more.** `amazon-sqp-competitor-check` used to be a deliberate twin pair (repo file = coordinator, `~/.codex/skills/` copy = browser executor). The two halves were merged into the single repo skill on 31.07.2026 and the Codex-side directory was replaced with a symlink like every other skill. All 25 `~/.codex/skills/amazon-*` entries are now symlinks and none is a real directory, so the drift failure mode is structurally impossible rather than merely forbidden.
 
 Terminology:
 

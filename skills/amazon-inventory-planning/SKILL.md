@@ -5,7 +5,7 @@ description: Use for Amazon FBA inventory and reshipment PLANNING, especially th
 
 # Amazon Inventory Planning
 
-Browser: Mixed (connected Amazon MCP/SP-API is the default data path; use CDP or Codex interactive only for missing MCP fields, login/account verification, or historical UI investigation).
+Browser: Mixed (connected Amazon MCP/SP-API is the default data path; use CDP only for missing MCP fields, login/account verification, or historical UI investigation).
 
 Use this skill for recurring or ad hoc FBA inventory overview and reshipment planning. It owns the former "Weekly FBA Inventory Overview" automation workflow.
 

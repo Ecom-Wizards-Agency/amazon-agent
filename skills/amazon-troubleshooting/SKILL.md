@@ -5,7 +5,7 @@ description: Use when something is broken or blocked on Amazon: exact error mess
 
 # Amazon Troubleshooting
 
-Browser: Codex interactive (wherever the symptom is; capture exact error text).
+Browser: CDP (wherever the symptom is; capture exact error text).
 
 ## Workflow
 
