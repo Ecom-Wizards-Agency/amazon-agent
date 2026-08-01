@@ -209,7 +209,7 @@ output with the reason.
 | A2 | Buy Box share, seller count and price, **weekly** | `run.mjs business --start/--end` per week | `product`: `FEATURED_OFFER_PERCENT`, `BUY_BOX_VIEWS` |
 | A3 | Organic rank bands and movement; cost-per-rank on every rank campaign | DataDive niche + Rank Radar | same, DataDive MCP |
 | A4 | SQP demand and intent split; click share, purchase capture, CVR against market | SQP `.csv` per group | `search_query`, `ASIN_*` beside `TOTAL_*` |
-| A5 | **Funnel decomposition** (the tripwire) | SQP, presence-adjusted per week | `search_query`: `ASIN_CTR`, `ASIN_CART_ADD_SHARE`, `ASIN_CONVERSION_RATE` |
+| A5 | **Funnel decomposition** (the tripwire) | SQP, per average week (see the method notes) | `search_query`: `ASIN_CTR`, `ASIN_CART_ADD_SHARE`, `ASIN_CONVERSION_RATE` |
 | A6 | Demand trajectory: is the niche draining, and is the brand draining faster | DataDive niche + SQP week series | same, plus `search_query` per week |
 | A7 | Channel mix and placement mechanism (base bid times multiplier) | ads bulk | `campaign`, `placement` entities |
 | A8 | Search-term waste and harvest, 1-gram and 2-gram | ads bulk search terms | `target` + search-term entities, profile-derived aCTC and CVR benchmarks |
@@ -233,9 +233,11 @@ scraped price sitting far above the brand's own, and `advertisedKws: 0` on the c
 
 **A5, the tripwire.** Always compute it. It is arithmetic on data both paths already hold, and it
 is the cheapest signal that the problem is not in the ads. Index click rate, cart-adds per click
-and purchases per cart-add as your count divided by the market total on the same queries, per
-week, then sum. That isolates **which step** differs from the market instead of reporting one
-blended conversion rate.
+and purchases per cart-add as your count divided by the market total **on the same queries and the
+same weeks**, averaged per query across the weeks it appeared, then summed within the segment. That
+puts both sides of every ratio on one basis and isolates **which step** differs from the market
+instead of reporting one blended conversion rate. See the method notes for why a window sum is
+never the right total here.
 
 **Read it as three shares, and let the shape name the asset.** This is the diagnosis, not just
 the trigger:

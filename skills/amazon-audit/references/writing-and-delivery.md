@@ -347,13 +347,23 @@ a table or the title is safer through the scaffold.
 
 ## Method-note caveats to always include
 
-- **SQP week coverage biases every multi-week total, and not neutrally across segments.** A query only
-  appears in a week where the ASIN drew impressions. On one account branded queries averaged 2.84 of 4
-  weeks and generic 2.33, so a straight sum quietly favours branded. **Average search volume per query
-  across the weeks it appears, never sum it.** Purchases are summed, which is safe for ratios because
-  your count and the market's come from the same rows, but absolute market totals are floors, more so
-  for the sparser segment. **Say this in the document in the client's language**, not only in the
-  method notes.
+- **Every SQP figure is a per-average-week number, never a window sum.** Amazon caps SQP at 100
+  queries per ASIN per week, so the query set churns and a query only appears in a week where the
+  ASIN surfaced. On one account the average query appeared in **1.88 of 4 weeks and 62% appeared
+  exactly once**, so a window sum is not a four-week total of a stable query set: its size depends
+  on how often each query happened to surface, and it invites the reader to divide by four and be
+  wrong. **Average search volume and purchases per query across the weeks it appeared, then sum
+  those averages within the segment** (`analyze_audit.build_metrics`, changed 02.08.2026 after
+  Resilia). Both sides of every ratio now sit on one basis.
+  - **Verdicts do not move, headline counts do.** On Resilia branded capture went 85.1% to 84.6%
+    and core generic 15.3% to 15.2%, because the same bias sits in numerator and denominator. The
+    headline count went 97,033 to 25,345. Never quote an old window-sum total beside a new average.
+  - **Known limit:** absence is treated as censoring rather than zero demand, which is right under
+    the query cap but mildly generous on the churn-heavy long tail. Cross-checked against
+    sum-divided-by-weeks it agrees within 5% on branded and core generic, and diverges 70% on
+    undifferentiated head terms, the one segment an audit does not act on.
+  - **Say this in the document in the client's language**, not only in the method notes: the reader
+    needs to know the figure is a typical week, not a four-week total.
 - **Sponsored Brands appears in two bulk sheets** with the same campaigns. Dedupe by Campaign ID and
   count SB once, or ad spend and sales inflate; this once added about $112k of phantom ad sales.
 - **SP "Bidding Adjustment" rows carry placement-level campaign totals.** Never sum them with keyword
