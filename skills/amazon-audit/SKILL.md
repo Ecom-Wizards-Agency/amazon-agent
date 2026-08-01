@@ -1,6 +1,6 @@
 ---
 name: amazon-audit
-description: Use for every Amazon ad or sales audit, whether the brand is an AdLabs-managed client or a prospect audited from downloaded files. Trigger on `/amazon-audit`, ad audit, sales audit, account audit, monthly account review, or analyze this AdLabs account. Auto-detects the data source, then asks one question for the report posture (deep / monthly / actions). Self-contained: narrative voice, workbook standard, figure set and branded-document contract all live here. Read-only.
+description: Use for every Amazon ad or sales audit, whether the brand is an AdLabs-managed client or a prospect audited from downloaded files. Trigger on `/amazon-audit`, ad audit, sales audit, account audit, monthly account review, or analyze this AdLabs account. Asks the job first (first-time audit, monthly review, or actions only), detects the data source silently, then asks only what is not already on file. Self-contained: narrative voice, workbook standard, figure set and branded-document contract all live here. Read-only.
 ---
 
 # Amazon Ad / Sales Audit
@@ -57,7 +57,36 @@ For week-over-week per-keyword SQP against PPC spend, pair with `/supa` (`tools/
 
 ## 0. Which audit is this
 
-### Detect the data source. Do not ask.
+Three stages: ask the job, resolve what is already known, then ask only what is left. Never fire
+every field at the operator regardless of the job. Most of what a recurring client needs is
+already on file, and asking for it again invites an answer that contradicts what is stored.
+
+### Stage 1. Ask the job. Before any lookup.
+
+This is operator intent, and no lookup can infer it, so it comes first. Ask this and nothing else.
+
+| Ask it as | Internal key | For |
+|---|---|---|
+| First-time audit | `deep` | New client onboarding or a prospect pitch |
+| Monthly review | `monthly` | A client we already run |
+| Actions only | `actions` | Just the prioritized change list |
+
+The rest of this file and both lens references use the internal key, so read `monthly` wherever
+the posture is named later.
+
+**The labels name the job, never the data source.** Onboarding a new managed client is a
+first-time audit on an AdLabs account, so a source-shaped label would collide with "first-time"
+on a case that happens often. The source is detected in stage 2 and never asked.
+
+Skip this stage entirely when the arguments already say it.
+
+| Job | Voice | Default scope | Deliverable |
+|---|---|---|---|
+| `deep` | Full narrative, blunt, organic-first | Lens A + Lens B | MASTER `.xlsx` + branded `.docx` **with cover** |
+| `monthly` | Lean, internal, learnings-forward, no roasting | Lens A + tripwire | Inline report **and** branded `.docx`, **no cover**. Workbook on request |
+| `actions` | None | Lens A only | Prioritized action list with spend impact and GoTo links |
+
+### Stage 2. Detect and pre-fill. Silent, no questions.
 
 Run the AdLabs startup sequence and look for the brand:
 
@@ -65,36 +94,52 @@ Run the AdLabs startup sequence and look for the brand:
    `chat_session_id` on every later call.
 2. `get_entity_data(teams)`, then `get_entity_data(profiles, team_id)`.
 
-- Profile found: **MCP path** (section 2A). The brand is a managed client.
-- Not found: **download path** (section 2B). The brand is a prospect with no live connection.
-- MCP unavailable, or the name match is ambiguous: ask, folded into the question below.
+- Profile found: **MCP path** (`references/source-adlabs.md`). The brand is a managed client.
+- Not found: **download path** (`references/source-bulk.md`). A prospect with no live connection.
+- MCP unavailable, or the name match is ambiguous: ask, folded into stage 3.
 
-**Name the detected source in the confirmation message** so the operator can override it in one
-word. Connection status drives the data source and nothing else: the analysis is identical.
+Connection status drives the data source and nothing else: the analysis is identical either way.
 
-### Then ask the posture. Once, in a single message.
+Then **resolve what is already known instead of asking for it**:
 
-Skip anything the arguments or the conversation already supply. Never carry a previous client's
-values as placeholders.
+- AdLabs profile memory, `context_and_prompts(get_context, PROFILE, <profile_id>)`: brand terms,
+  product-fact negatives, break-even, strategy doctrine.
+- The client ops profile, `node tools/client-profiles/find-client-profile.mjs <slug>`: account
+  naming, marketplaces, stakeholders, restrictions.
+- The per-client config where one exists: ASINs, product groups, brand and competitor tokens,
+  `core_tokens`.
 
-| Posture | For | Voice | Default scope | Deliverable |
-|---|---|---|---|---|
-| `deep` | Onboarding or a prospect pitch | Full narrative, blunt, organic-first | Lens A + Lens B | MASTER `.xlsx` + branded `.docx` **with cover** |
-| `monthly` | Recurring managed-client review | Lean, internal, learnings-forward, no roasting | Lens A + tripwire | Inline report **and** branded `.docx`, **no cover**. Workbook on request |
-| `actions` | "Just tell me what to change" | None | Lens A only | Prioritized action list with spend impact and GoTo links |
+### Stage 3. Ask only what stage 2 did not resolve.
 
-Also capture, in the same message: marketplaces, date window (default last 30 days, compare to
-the preceding period), break-even ACOS (real margin if known, otherwise confirm we assume and
-flag), brand tokens including real misspellings and which sub-brands count as branded, and
-competitor brand names.
+Never carry a previous client's values as placeholders.
 
-Scope defaults from posture so this stays one question. Override in one word.
+**First-time audit** asks the full brief, because nothing is on file: client and marketplaces,
+product lines and ASINs, DataDive niche (URL or ID), break-even ACOS (real margin if known,
+otherwise confirm we assume and flag it), brand tokens including real misspellings and which
+sub-brands count as branded, and competitor brands.
+
+**Monthly review** asks three things:
+
+1. Which marketplaces this cycle. Default to every profile found.
+2. Date window. Default last 30 days against the preceding period.
+3. Anything not in the tracker we should know: stock event, promo, price change, launch.
+
+Then **state what stage 2 auto-filled** (break-even, brand tokens, competitors, ASINs, product
+groups, targets) so a wrong value can be corrected in one word. Do **not** ask whether the Lens B
+quarterly pass is due: compute it and report it.
+
+**Actions only** asks marketplaces and window, and nothing else.
 
 ---
 
 ## 1. Context first, before any data pull
 
 Flag explicitly what is missing rather than assuming a clean window.
+
+Stage 2 already read the AdLabs profile memory and the client ops profile for the **brief** values
+(break-even, brand tokens, targets). This step reads for a different purpose: what happened, what
+we learned, and what to do next. Reuse what stage 2 already pulled rather than fetching it twice,
+and never turn any of it into a question.
 
 ### `deep`: read the call notes, then move on
 
