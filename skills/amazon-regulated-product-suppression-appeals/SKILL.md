@@ -41,7 +41,8 @@ Keep routine listing errors, isolated catalog defects, and ordinary support repl
    - search terms, intended use, directions, benefits, and other backend attributes
    - packaging, labels, manuals, inserts, and QR-linked content
 5. Route catalog correction work to `amazon-catalog` or `amazon-flatfilepro-prep`. Route case wording to `amazon-communications`.
-6. Generate the selected documents as DOCX masters and PDF attachment copies.
+6. Generate the selected documents as DOCX masters, then deliver each one as a Google Doc with `python3 tools/gdrive-deliver/deliver_doc.py <docx> "<drive folder>"`. The Doc is where the pack gets edited and reviewed; the PDF Amazon receives is downloaded from it at submission time (File > Download > PDF). Do not render PDFs.
+   These documents stay **unbranded**. They go to Amazon Seller Support, where a plain, clean file reads as a compliance record and agency branding does not belong.
 7. Validate the pack with:
 
 ```bash

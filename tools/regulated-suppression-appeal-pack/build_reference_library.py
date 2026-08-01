@@ -826,7 +826,7 @@ def build_checklist(doc: Document, d: CaseData) -> None:
         "Document Hygiene Gate",
         bullets=[
             "No unresolved placeholders, comments, tracked changes, hidden text, or personal metadata.",
-            "DOCX and PDF versions render cleanly.",
+            "The Google Doc and the PDF downloaded from it both render cleanly.",
             "The evidence index lists every attachment.",
             "The appeal does not overstate regulatory or technical conclusions.",
         ],

@@ -30,7 +30,7 @@ _DEFAULTS = {
     "agency_url": "",
     "prepared_by_default": "",
     "palette_doc": {
-        # document (docx/pdf/cover) palette, hex without '#'
+        # document (docx/cover) palette, hex without '#'
         "ink": "1F2430", "cloud": "F4F5F7", "accent": "3B6EF6",
         "mistline": "E3E6EB", "steel": "5C6470", "mist": "9AA3B0",
         "cover_bg": "141821", "cover_slate": "2C3442", "white": "FFFFFF",
