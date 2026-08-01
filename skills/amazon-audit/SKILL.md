@@ -453,11 +453,24 @@ skipped Lens B is a disclosure, never a silence.
   comparable to each other, because origination biases them. Chart searches by segment and
   purchases against the market, the same measure on both bars. Never chart branded capture % beside
   generic capture %, even with a caveat underneath: the picture wins over the footnote.
-- **Split generic in two.** A two-way branded-versus-generic cut is the single most misleading
-  thing in an SQP section. `config.core_tokens` splits generic into the winnable **core** (category
-  language for this product) and the **head**. On a real audit the two-way cut implied 3.1M of
-  addressable demand against 161k of actual winnable demand, roughly 20x, which turned a 7.0%
-  category share into a 1.4% one. Competitor brands come out of generic for the same reason.
+- **Split generic in two, in the table as well as the charts.** A two-way branded-versus-generic
+  cut is the single most misleading thing in an SQP section. `config.core_tokens` splits generic
+  into the winnable **core** (category language for this product) and the **head**. On a real audit
+  the two-way cut implied 3.1M of addressable demand against 161k of actual winnable demand, roughly
+  20x, which turned a 7.0% category share into a 1.4% one. Competitor brands come out of generic for
+  the same reason. Note which way the error runs: the client's capture rate barely moves, so this
+  never flatters or damages their performance. What it inflates is **the size of the prize**, which
+  is the number a prospect uses to decide whether to hire us.
+- **Say out loud why the head is excluded, naming the client's own keywords.** Do not leave it as a
+  method note. Both figures are true, and a combined number is not wrong on its face; the damage is
+  in what it implies. Tell the reader that quoting a share of the whole category would invite them
+  to read the remainder as available to them, that it is not, and that no single listing wins terms
+  like the head example. Name a real core term and a real head term from their own data, state the
+  multiple between combined and core, and say every target in the document is set against the core.
+  `narrative_scaffold` pre-fills this paragraph with the client's actual terms, so it ships by
+  default; never delete it to save space. Then add the honest caveat: the line between core and head
+  is our judgement from a keyword list they can inspect and argue with. **If the operator cannot say
+  this on the call, the lead leaves with a number twice its real size.**
 - **Zero ad waste is a finding, not a clean bill of health.** When the search-term sweep returns
   almost nothing above break-even, stop looking there. Say plainly that the PPC is well run, then
   go find the real story in stock, Buy Box, rating, missing channels or under-scaled prospecting.
