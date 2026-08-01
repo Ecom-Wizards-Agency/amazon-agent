@@ -53,6 +53,7 @@ def build(config_path, outdir, force=False):
     outdir = Path(outdir)
     M = json.loads((outdir / "metrics.json").read_text())
     SS = json.loads((outdir / "clean" / "sqp_summary.json").read_text()) if (outdir / "clean" / "sqp_summary.json").exists() else {}
+    SD = json.loads((outdir / "clean" / "sqp_demand.json").read_text()) if (outdir / "clean" / "sqp_demand.json").exists() else {}
     cur = M.get("currency", "USD"); T = M["totals"]; STB = M["searchterm_bucket"]; P = M["placement"]
     BE = M.get("breakeven", 0.50); CLIENT = M.get("client", "Client")
     markets = ", ".join(M.get("marketplaces", []) or [])
@@ -115,14 +116,22 @@ def build(config_path, outdir, force=False):
     # ---- Demand / SQP ----
     if SS:
         A("## Demand: what shoppers are actually doing (SQP)\n")
-        A("| Intent | Queries | SV share | Purchase capture (brand ÷ market) |")
-        A("|---|---|---|---|")
-        for b in ("Branded", "Generic", "Competitor"):
-            s = SS.get(b)
-            if not s:
-                continue
-            A(f"| {b} | {s['queries']} | {s['sv_share']:.1%} | {s['capture']:.1%} ({s['brand_purch']}/{s['mkt_purch']}) |")
+        # Four-way where core_tokens exist, three-way otherwise. Never present a bare
+        # branded-vs-generic split: it measures the client's share against a market that
+        # includes head terms no listing wins, and the figures beside it are already
+        # four-way, so the table would contradict its own charts.
+        LABEL = {"Branded": "Branded (your name)", "Competitor": "Competitor (their names)",
+                 "Core": "Generic: core (winnable)", "Head": "Generic: head (undifferentiated)"}
+        rows, src = (list(SD.items()), SD) if SD else ([(b, SS[b]) for b in ("Branded", "Generic", "Competitor") if b in SS], SS)
+        A("| Segment | Queries | Avg weekly SV | SV share | Purchases in a typical week: you vs market |")
+        A("|---|---|---|---|---|")
+        for key, s in rows:
+            A(f"| {LABEL.get(key, key)} | {s['queries']} | {s['avg_wk_sv']:,.0f} | {s['sv_share']:.1%} "
+              f"| {s['brand_purch']:,} of {s['mkt_purch']:,} ({s['capture']:.1%}) |")
         A("")
+        if SD:
+            A("All product groups, every figure an average week. The charts below narrow to the "
+              "hero line, so their totals are a subset of this table.\n")
         for f in filter(None, [_fig(outdir, "fig_demand_segments.png"),
                                _fig(outdir, "fig_purchases_vs_market.png"),
                                _fig(outdir, "fig_brand_name_leak.png")]):

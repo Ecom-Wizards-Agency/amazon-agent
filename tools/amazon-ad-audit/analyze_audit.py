@@ -584,6 +584,36 @@ def build_metrics(cfg, agg, outdir):
         (clean / "sqp_summary.json").write_text(json.dumps(sqp_summary, indent=2))
         metrics["sqp_summary"] = sqp_summary
 
+        # FOUR-WAY demand cut. This is what the narrative table and the figures both read.
+        # sqp_summary above is a two-way generic cut, which is the single most misleading
+        # thing an SQP section can do: it lumps the category language this product actually
+        # competes on together with undifferentiated head terms no single listing wins, and
+        # then invites the client to measure their share against the inflated total. On
+        # Heusom the two-way generic read 419,400 searches a week against a winnable 204,726,
+        # so the addressable market was overstated 2.05x on the page the audit calls its most
+        # important table. classify_demand splits Generic into Core and Head
+        # via core_tokens; with no core_tokens configured every Generic term falls to Core,
+        # so an existing client's numbers do not silently move.
+        bd = defaultdict(lambda: dict(queries=0, avg_wk_sv=0.0, mkt_purch=0.0, brand_purch=0.0))
+        for q, weekmap in sqp["mkt_wk"].items():
+            seg = classify_demand(cfg, q)
+            b = bd[seg]; b["queries"] += 1
+            b["avg_wk_sv"] += mean([weekmap[w]["sv"] for w in weekmap]) if weekmap else 0
+            b["mkt_purch"] += mean([weekmap[w]["pur"] for w in weekmap]) if weekmap else 0
+        for (group, ql), weekmap in sqp["grp_wk"].items():
+            if not weekmap:
+                continue
+            seg = classify_demand(cfg, sqp["grp_qtext"].get((group, ql), ql))
+            bd[seg]["brand_purch"] += mean([weekmap[w]["pur"] for w in weekmap])
+        tot_d = sum(bd[s]["avg_wk_sv"] for s in bd) or 1
+        sqp_demand = {s: dict(queries=bd[s]["queries"], avg_wk_sv=bd[s]["avg_wk_sv"],
+                              sv_share=bd[s]["avg_wk_sv"] / tot_d,
+                              brand_purch=int(bd[s]["brand_purch"]), mkt_purch=int(bd[s]["mkt_purch"]),
+                              capture=(bd[s]["brand_purch"] / bd[s]["mkt_purch"] if bd[s]["mkt_purch"] else 0))
+                      for s in DEMAND_SEGMENTS if s in bd}
+        (clean / "sqp_demand.json").write_text(json.dumps(sqp_demand, indent=2))
+        metrics["sqp_demand"] = sqp_demand
+
     # DataDive summary
     if agg.get("dd"):
         dd = agg["dd"]["keywords"]
