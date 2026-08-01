@@ -129,9 +129,31 @@ def build(config_path, outdir, force=False):
             A(f"| {LABEL.get(key, key)} | {s['queries']} | {s['avg_wk_sv']:,.0f} | {s['sv_share']:.1%} "
               f"| {s['brand_purch']:,} of {s['mkt_purch']:,} ({s['capture']:.1%}) |")
         A("")
-        if SD:
+        if SD and "Core" in SD and "Head" in SD:
             A("All product groups, every figure an average week. The charts below narrow to the "
               "hero line, so their totals are a subset of this table.\n")
+            # WHY the head row is excluded from the opportunity, in the client's own keywords.
+            # This paragraph is pre-filled rather than left as a stub because the operator has to
+            # be able to say it out loud on the call. Quoting a share of the WHOLE category
+            # invites the reader to believe the remainder is available to them; it is not, and if
+            # nobody says so the lead walks away with a number twice its real size.
+            core, head = SD["Core"], SD["Head"]
+            both_sv = core["avg_wk_sv"] + head["avg_wk_sv"]
+            ex_c = f' such as "{core["example"]}"' if core.get("example") else ""
+            ex_h = f' such as "{head["example"]}"' if head.get("example") else ""
+            A(f"**Why we split the category in two, rather than quoting one number.** Core is the "
+              f"language somebody uses when they are shopping for what you sell{ex_c}. Head is the "
+              f"browsing layer above it{ex_h}: real demand, genuinely searched, but no single "
+              f"listing ever wins it.")
+            A(f"Both are true numbers. The problem is what a combined figure implies. If we told you "
+              f"you hold {(core['brand_purch'] + head['brand_purch']) / (core['mkt_purch'] + head['mkt_purch']):.1%} "
+              f"of a {both_sv:,.0f}-search category, you would reasonably read the rest as available "
+              f"to you. It is not. The share you can actually compete for is the core, "
+              f"{core['avg_wk_sv']:,.0f} searches a week, which is "
+              f"{both_sv / core['avg_wk_sv']:.1f}x smaller than the headline. Every target and every "
+              f"projection in this document is set against the core, not the combined figure.\n")
+            A("Where we drew that line is our judgement, from a keyword list we can show you. If you "
+              "think a term sits on the wrong side, say so and the number moves.\n")
         for f in filter(None, [_fig(outdir, "fig_demand_segments.png"),
                                _fig(outdir, "fig_purchases_vs_market.png"),
                                _fig(outdir, "fig_brand_name_leak.png")]):

@@ -595,21 +595,39 @@ def build_metrics(cfg, agg, outdir):
         # via core_tokens; with no core_tokens configured every Generic term falls to Core,
         # so an existing client's numbers do not silently move.
         bd = defaultdict(lambda: dict(queries=0, avg_wk_sv=0.0, mkt_purch=0.0, brand_purch=0.0))
+        seg_q = defaultdict(dict)   # segment -> display query -> avg weekly SV
+        seg_sold = defaultdict(set)  # segment -> display queries the brand actually sells on
+        disp = {ql: q for (_g, ql), q in sqp["grp_qtext"].items()}
         for q, weekmap in sqp["mkt_wk"].items():
             seg = classify_demand(cfg, q)
             b = bd[seg]; b["queries"] += 1
-            b["avg_wk_sv"] += mean([weekmap[w]["sv"] for w in weekmap]) if weekmap else 0
+            sv = mean([weekmap[w]["sv"] for w in weekmap]) if weekmap else 0
+            b["avg_wk_sv"] += sv
             b["mkt_purch"] += mean([weekmap[w]["pur"] for w in weekmap]) if weekmap else 0
+            seg_q[seg][disp.get(q, q)] = sv
         for (group, ql), weekmap in sqp["grp_wk"].items():
             if not weekmap:
                 continue
             seg = classify_demand(cfg, sqp["grp_qtext"].get((group, ql), ql))
-            bd[seg]["brand_purch"] += mean([weekmap[w]["pur"] for w in weekmap])
+            ours = mean([weekmap[w]["pur"] for w in weekmap])
+            bd[seg]["brand_purch"] += ours
+            if ours > 0:
+                seg_sold[seg].add(sqp["grp_qtext"].get((group, ql), ql))
+
+        def _seg_example(seg):
+            """A real query from the segment, so the reader sees what the row MEANS.
+            Prefer the biggest term the brand actually sells on; the plain volume leader
+            can be one the business has no presence in, which reads as a mislabel. Same
+            rule build_figures uses for its axis labels, so chart and prose cannot drift."""
+            qs = {k: v for k, v in seg_q.get(seg, {}).items() if k in seg_sold.get(seg, ())} or seg_q.get(seg, {})
+            return max(qs.items(), key=lambda kv: kv[1])[0] if qs else ""
+
         tot_d = sum(bd[s]["avg_wk_sv"] for s in bd) or 1
         sqp_demand = {s: dict(queries=bd[s]["queries"], avg_wk_sv=bd[s]["avg_wk_sv"],
                               sv_share=bd[s]["avg_wk_sv"] / tot_d,
                               brand_purch=int(bd[s]["brand_purch"]), mkt_purch=int(bd[s]["mkt_purch"]),
-                              capture=(bd[s]["brand_purch"] / bd[s]["mkt_purch"] if bd[s]["mkt_purch"] else 0))
+                              capture=(bd[s]["brand_purch"] / bd[s]["mkt_purch"] if bd[s]["mkt_purch"] else 0),
+                              example=_seg_example(s))
                       for s in DEMAND_SEGMENTS if s in bd}
         (clean / "sqp_demand.json").write_text(json.dumps(sqp_demand, indent=2))
         metrics["sqp_demand"] = sqp_demand
