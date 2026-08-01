@@ -560,14 +560,21 @@ def build_metrics(cfg, agg, outdir):
         latest = sqp["weeks"][-1] if sqp["weeks"] else None
         bi = defaultdict(lambda: dict(queries=0, avg_wk_sv=0.0, mkt_purch=0.0, brand_purch=0.0))
         # market SV / purchases by intent (deduped per query)
+        # PURCHASES ARE PER-WEEK AVERAGES, matching avg_wk_sv, so every SQP figure in
+        # metrics.json sits on one basis. They used to be window sums while the search
+        # volume beside them was a weekly mean, so the two could not be read together.
+        # Amazon's 100-query-per-ASIN cap churns the query set week to week, which means
+        # a window sum is not a clean four-week total and must not be divided by four.
         from statistics import mean
         for q, weekmap in sqp["mkt_wk"].items():
             intent = classify(cfg, q)
             b = bi[intent]; b["queries"] += 1
             b["avg_wk_sv"] += mean([weekmap[w]["sv"] for w in weekmap]) if weekmap else 0
-            b["mkt_purch"] += sum(weekmap[w]["pur"] for w in weekmap)
+            b["mkt_purch"] += mean([weekmap[w]["pur"] for w in weekmap]) if weekmap else 0
         for (group, ql), weekmap in sqp["grp_wk"].items():
-            bi[sqp["grp_intent"][(group, ql)]]["brand_purch"] += sum(weekmap[w]["pur"] for w in weekmap)
+            if not weekmap:
+                continue
+            bi[sqp["grp_intent"][(group, ql)]]["brand_purch"] += mean([weekmap[w]["pur"] for w in weekmap])
         tot_avg = sum(bi[i]["avg_wk_sv"] for i in bi) or 1
         sqp_summary = {i: dict(queries=bi[i]["queries"], avg_wk_sv=bi[i]["avg_wk_sv"],
                                sv_share=bi[i]["avg_wk_sv"] / tot_avg,
