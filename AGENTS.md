@@ -218,7 +218,7 @@ Source priority:
 
 ## Ad / Sales Audit Standard
 
-**One skill owns every Amazon ad or sales audit: `amazon-audit`** (`/amazon-audit`, `/adlabs-audit`). It is self-contained. The analysis lens, narrative structure, operator voice, workbook layout, figure set and branded-document contract all live in `skills/amazon-audit/SKILL.md`, not in a separate playbook doc. Route there for the full run and do not restate its rules elsewhere.
+**One skill owns every Amazon ad or sales audit: `amazon-audit`** (`/amazon-audit`, with the posture as an argument: `deep`, `monthly` or `actions`). It is self-contained. The analysis lens, narrative structure, operator voice, workbook layout, figure set and branded-document contract all live in `skills/amazon-audit/SKILL.md`, not in a separate playbook doc. Route there for the full run and do not restate its rules elsewhere.
 
 It resolves three things, in this order:
 
