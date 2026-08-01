@@ -510,15 +510,28 @@ def _focus(cfg):
 
 
 def _sqp_segments(cfg):
-    """Aggregate SQP into the four exclusive demand segments.
+    """Aggregate SQP into the four exclusive demand segments, PER AVERAGE WEEK.
+
     Market metrics (search volume, total purchases) are counted ONCE per query+week;
     our purchases accumulate across every ASIN that appeared on that query, which is
     correct: several of our ASINs can sell on one query, but the market total for it
-    is a single number."""
+    is a single number.
+
+    Every metric returned is a per-week average, never a window sum. Amazon caps SQP at
+    100 queries per ASIN per week, so the query set CHURNS: on Resilia 2026-07 the
+    average query appeared in 1.88 of the 4 weeks and 62% of queries appeared exactly
+    once. Summing across weeks therefore does not produce a four-week total of anything
+    stable, it produces a number whose size depends on how many weeks each query
+    happened to surface in, and it invites the reader to divide by four and be wrong.
+    Averaging each query over the weeks it actually appeared, then summing those
+    averages within the segment, is the same method analyze_audit already uses for
+    avg_wk_sv, so every SQP figure in the audit now sits on one basis. Ratios are
+    unaffected either way: the bias cancels between numerator and denominator."""
+    from statistics import mean
     from analyze_audit import classify_demand, DEMAND_SEGMENTS
-    agg = {k: dict(sv=0.0, pt=0.0, pa=0.0, q=defaultdict(float), qa=defaultdict(float))
-           for k in DEMAND_SEGMENTS}
-    seen = set()
+    mkt = defaultdict(dict)                       # query -> week -> (sv, purchases)
+    ours = defaultdict(lambda: defaultdict(float))  # query -> week -> our purchases
+    disp = {}
     fgroup, fasins = _focus(cfg)
     for _grp, path in (cfg["inputs"].get("sqp_csvs") or {}).items():
         if fgroup and _grp != fgroup:
@@ -532,17 +545,27 @@ def _sqp_segments(cfg):
                 continue
             if fasins and (r.get("ASIN") or "").strip().lower() not in fasins:
                 continue
-            d = agg[classify_demand(cfg, q)]
-            key = (q.lower(), r.get("Reporting Date"))
-            if key not in seen:
-                seen.add(key)
-                sv = float(r.get("Search Query Volume") or 0)
-                d["sv"] += sv
-                d["q"][q.lower()] += sv          # for the on-chart example query
-                d["pt"] += float(r.get("Purchases: Total Count") or 0)
-            pa = float(r.get("Purchases: ASIN Count") or 0)
-            d["pa"] += pa
-            d["qa"][q.lower()] += pa
+            ql = q.lower(); wk = r.get("Reporting Date")
+            disp.setdefault(ql, q)
+            if wk not in mkt[ql]:
+                mkt[ql][wk] = (float(r.get("Search Query Volume") or 0),
+                               float(r.get("Purchases: Total Count") or 0))
+            ours[ql][wk] += float(r.get("Purchases: ASIN Count") or 0)
+    agg = {k: dict(sv=0.0, pt=0.0, pa=0.0, q=defaultdict(float), qa=defaultdict(float))
+           for k in DEMAND_SEGMENTS}
+    for ql, weekmap in mkt.items():
+        d = agg[classify_demand(cfg, disp[ql])]
+        sv = mean([v[0] for v in weekmap.values()])
+        pt = mean([v[1] for v in weekmap.values()])
+        # Average our purchases over the SAME weeks the market side used, counting a
+        # week we did not sell in as a zero. Averaging only over weeks we sold would
+        # flatter every capture rate on the chart.
+        pa = mean([ours[ql].get(w, 0.0) for w in weekmap])
+        d["sv"] += sv
+        d["q"][ql] += sv                          # for the on-chart example query
+        d["pt"] += pt
+        d["pa"] += pa
+        d["qa"][ql] += pa
     return agg
 
 
@@ -598,14 +621,14 @@ def _demand_segments(plt, P, cfg, out):
     for i, v in enumerate(vals):
         ax.text(i, v * 1.02, f"{v:,.0f}", ha="center", va="bottom", fontsize=10.5,
                 fontweight="bold", color=P["ink"])
-    ax.set_ylabel("Searches in the window", fontsize=9, color=P["steel"])
+    ax.set_ylabel("Searches in an average week", fontsize=9, color=P["steel"])
     ax.set_ylim(0, max(vals) * 1.18)
     ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _: "0" if v == 0 else f"{v/1000:.0f}K"))
     _frame(ax, P, ygrid=True)
     core = agg["Core"]["sv"]; tot = sum(vals)
     # State the measurement, not a verdict: "Only X of Y" reads as a judgement and
     # inverts whenever the core segment turns out to be large.
-    fig.suptitle(f"Winnable category demand is {core:,.0f} searches, "
+    fig.suptitle(f"Winnable category demand is {core:,.0f} searches a week, "
                  f"{core/tot:.0%} of everything searched.",
                  fontsize=12.5, fontweight="bold", color=P["ink"], x=0.005, ha="left", y=1.04)
     _scope_note(fig, cfg)
@@ -640,13 +663,13 @@ def _purchases_vs_market(plt, P, cfg, out):
                 fontsize=9.5, fontweight="bold", color=P["ink"])
     ax.set_xticks(x)
     ax.set_xticklabels([f'{_SEG_LABELS[k]}\ne.g. "{_example(agg, k)}"' for k in segs])
-    ax.set_ylabel("Purchases in the window", fontsize=9, color=P["steel"])
+    ax.set_ylabel("Purchases in an average week", fontsize=9, color=P["steel"])
     ax.set_ylim(0, max(mkt) * 1.22)
     ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _: "0" if v == 0 else f"{v/1000:.0f}K"))
     ax.legend(frameon=False, fontsize=9, loc="upper right")
     _frame(ax, P, ygrid=True)
     ci = segs.index("Core") if "Core" in segs else None
-    head = (f"On winnable category demand the market bought {agg['Core']['pt']:,.0f}. You sold {agg['Core']['pa']:,.0f}."
+    head = (f"On winnable category demand the market buys {agg['Core']['pt']:,.0f} a week. You sell {agg['Core']['pa']:,.0f}."
             if ci is not None else "Purchases: you against the market.")
     fig.suptitle(head, fontsize=12.5, fontweight="bold", color=P["ink"], x=0.005, ha="left", y=1.04)
     _scope_note(fig, cfg)
