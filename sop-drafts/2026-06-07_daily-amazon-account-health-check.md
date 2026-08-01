@@ -17,7 +17,7 @@ Create a fast daily routine for checking each Amazon account, using `#sellersona
 - One regional login covers every marketplace in that region: stay on the active session's Seller Central domain (whichever regional domain the operator logged in on, such as DE, UK, or IT) and switch country/account only through the in-app marketplace/account switcher. Never switch country by changing the Seller Central URL/domain - a domain change forces a new login. Open deep links such as `/cu/case-lobby` on the active session's domain.
 - If a Seller Central page shows a login screen in both approved browsers, the run is blocked: the assistant stops and asks the operator to log in. The assistant must not handle passwords, one-time codes, authenticator prompts, cookies, local storage, session stores, or other credentials.
 - The local findings ledger (`findings.json` next to the automation) is readable; it carries open findings, their dispositions, and links to their follow-up tasks between runs. It is private automation memory, never committed to GitHub; the task system remains the human source of truth.
-- The account list for the day is known from the current task, Notion ops profiles, or `_local/client-profiles/profiles.json`.
+- The account list for the day is known from the current task or the shared team-vault Amazon ops profiles.
 - The operator can read the Slack channel `#sellersonar`.
 - The operator knows where to record the daily result. Default is a concise operator note in the current chat unless the operator names a Slack, Notion, or other destination.
 - Local evidence and output folders exist or can be created under:
@@ -237,8 +237,8 @@ Severity maps to default routing: Critical findings are escalation candidates; H
 - SellerSonar dashboard is a drill-down tool and is not mandatory for every clean account.
 - `#sellersonar-now` is intentionally out of scope.
 - Daily output defaults to the current chat/operator note unless the operator names a Slack, Notion, or other destination.
-- Client-specific owner, recurring schedule, and live follow-up status should live in Notion or the active task system, not in this SOP draft.
+- Durable account scope and routing should live in the shared team-vault Amazon ops profiles. Client-specific owners, schedules, and live follow-up status should live in Notion or the active task system, not in this SOP draft.
 
 ## Promotion Notes
 
-After review, promote this routine into the durable MAG/internal SOP library or link it from the Amazon Agent account-check workflow. If promoted, keep the process generic and put client-specific account lists, owners, schedules, and escalations in Notion ops profiles.
+After review, promote this routine into the durable MAG/internal SOP library or link it from the Amazon Agent account-check workflow. If promoted, keep the process generic. Put durable client-specific account lists and routing in team-vault Amazon ops profiles; put owners, schedules, and live escalations in Notion or the active task system.

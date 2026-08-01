@@ -22,8 +22,8 @@ A brand's stage/goal changes what "anomalous" even means (per
 `_local/ads-monitor/sellerboard-feeds.json` `_context_rules`: "Apply
 GOAL-BASED lenses ... thresholds, which flags matter, and recommendations
 must adapt per the brand's profile, not one-size-fits-all"). `evaluate()`
-takes an optional `goal` string (from the brand's Notion "Amazon Agent
-Ops Profiles" row); unknown/missing goals default to the neutral lens
+takes an optional `goal` string (from the brand's shared team-vault Amazon
+Ops profile); unknown/missing goals default to the neutral lens
 (today's plain thresholds, unchanged behavior). See `GOAL_LENSES` below
 for the presets and exactly what each one changes.
 """
@@ -524,7 +524,7 @@ def evaluate(analysis: AnalysisResult, config: Optional[dict] = None, goal: Opti
 
     `goal`: the brand's goal/stage string (rank-launch, scale,
     profit-maintain, defend, maintain, liquidate, inactive) from its
-    Notion "Amazon Agent Ops Profiles" row. Unknown/missing goals resolve to the neutral lens
+    shared team-vault Amazon Ops profile. Unknown/missing goals resolve to the neutral lens
     (`resolve_goal_lens`), which leaves every threshold and severity
     exactly as before -- passing no `goal` is fully backward compatible.
     """

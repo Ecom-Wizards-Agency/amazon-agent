@@ -15,7 +15,7 @@ Do not commit:
 - Seller account names, client names, account lists, marketplaces tied to clients, or test-run results.
 - Slack channel IDs, Notion database IDs, user IDs, assignee names, local workspace paths, or local automation files.
 - Credentials, MFA data, cookies, browser session data, payment details, tax details, or downloaded reports.
-- Generated profile caches such as `_local/client-profiles/profiles.json`.
+- Copies or exports of shared team-vault profile data. Keep only the local vault path pointer, never a second profile cache.
 
 ## First-Run Questions
 

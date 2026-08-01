@@ -14,6 +14,7 @@ import csv
 import json
 import math
 import re
+import subprocess
 from collections import defaultdict
 from pathlib import Path
 
@@ -27,13 +28,34 @@ except Exception:
 # Repo root = two levels up from this file (tools/reshipment/generate_reshipment.py).
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_CONFIG = Path(__file__).resolve().parent / "config.json"
+PROFILE_LOOKUP = REPO_ROOT / "tools" / "client-profiles" / "find-client-profile.mjs"
+
+
+def load_shared_profile(profile_key):
+    result = subprocess.run(
+        ["node", str(PROFILE_LOOKUP), profile_key],
+        cwd=REPO_ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        detail = result.stderr.strip() or result.stdout.strip() or "unknown lookup error"
+        raise ValueError(f"Could not load shared profile {profile_key!r}: {detail}")
+    payload = json.loads(result.stdout)
+    exact = [
+        profile
+        for profile in payload.get("matches", [])
+        if profile.get("profile_key") == profile_key
+    ]
+    if len(exact) != 1:
+        raise ValueError(f"Expected one exact shared profile for {profile_key!r}, found {len(exact)}")
+    return exact[0]
 
 
 def load_config(config_path):
     cfg = json.loads(Path(config_path).read_text(encoding="utf-8"))
     cfg.setdefault("report_days", 30)
-    cfg.setdefault("target_days", 45 + 7 + 14)
-    cfg.setdefault("multiplier", 1.2)
     cfg.setdefault("downloads_dir", "~/Downloads")
     cfg.setdefault("output_root", str(REPO_ROOT))
     cfg["downloads"] = Path(cfg["downloads_dir"]).expanduser()
@@ -45,7 +67,38 @@ def load_config(config_path):
         p = Path(value).expanduser()
         return p if p.is_absolute() else cfg["downloads"] / value
 
+    forbidden_overrides = {"target_days", "multiplier", "fba_exclude_patterns", "fba_exclude_asins"}
+    if forbidden_overrides.intersection(cfg):
+        raise ValueError("Stable reshipment settings must come from the shared Amazon Ops profile, not top-level config")
+
     for client in cfg.get("clients", []):
+        present_overrides = sorted(forbidden_overrides.intersection(client))
+        if present_overrides:
+            raise ValueError(
+                f"{client.get('key', 'Client')} duplicates shared profile fields in config: {', '.join(present_overrides)}"
+            )
+        profile_key = client.get("profile_key")
+        if not profile_key:
+            raise ValueError(f"{client.get('key', 'Client')} requires profile_key")
+        profile = load_shared_profile(profile_key)
+        reshipment = profile.get("reshipment") or {}
+        if reshipment.get("enabled") is not True:
+            raise ValueError(f"Shared profile {profile_key!r} is not enabled for reshipment planning")
+        target_days = reshipment.get("effective_coverage_days")
+        multiplier = reshipment.get("scaling_multiplier")
+        if not isinstance(target_days, (int, float)) or not isinstance(multiplier, (int, float)):
+            raise ValueError(f"Shared profile {profile_key!r} lacks complete numeric reshipment settings")
+        client["target_days"] = target_days
+        client["multiplier"] = multiplier
+        client["minimum_monthly_sales_for_fba"] = reshipment.get("minimum_monthly_sales_for_fba")
+        client["fba_exclude_patterns"] = reshipment.get("fba_exclude_patterns", [])
+        client["fba_exclude_asins"] = reshipment.get("fba_exclude_asins", [])
+        client["profile_source"] = profile.get("source_file")
+        client["profile_components"] = {
+            "target_stock_days": reshipment.get("target_stock_days"),
+            "lead_time_days": reshipment.get("lead_time_days"),
+            "amazon_booking_buffer_days": reshipment.get("amazon_booking_buffer_days"),
+        }
         for field in ("fba", "business", "inventory", "restock"):
             client[field] = resolve(client.get(field))
     return cfg
@@ -102,8 +155,9 @@ def add_item(items, asin, **updates):
 
 def calculate(client, cfg):
     report_days = cfg["report_days"]
-    target_days = client.get("target_days", cfg["target_days"])
-    multiplier = client.get("multiplier", cfg["multiplier"])
+    target_days = client["target_days"]
+    multiplier = client["multiplier"]
+    minimum_monthly_sales = client.get("minimum_monthly_sales_for_fba")
     fba_exclude_patterns = [
         re.compile(pattern, re.IGNORECASE)
         for pattern in client.get("fba_exclude_patterns", [])
@@ -195,7 +249,15 @@ def calculate(client, cfg):
             asin.strip().upper() in fba_exclude_asins
             or any(pattern.search(product_identity) for pattern in fba_exclude_patterns)
         )
-        reship = 0 if fba_excluded else int(math.ceil(max(0, required - available - inbound - reserved)))
+        below_fba_threshold = (
+            isinstance(minimum_monthly_sales, (int, float))
+            and demand < minimum_monthly_sales
+        )
+        reship = (
+            0
+            if (fba_excluded or below_fba_threshold)
+            else int(math.ceil(max(0, required - available - inbound - reserved)))
+        )
         excess = item.get("estimated_excess", 0)
         if not excess and demand > 0 and available > (demand / report_days * 120):
             excess = int(max(0, available - demand / report_days * 90))
@@ -217,7 +279,13 @@ def calculate(client, cfg):
                 "FBA Units 7d": item.get("fba_units_7", 0),
                 "FBA Units 30d": item.get("fba_units_30", 0),
                 "Restock Units 30d": item.get("restock_units_30", 0),
-                "FBA Eligibility": "FBM only - bundle/multipack" if fba_excluded else "Eligible",
+                "FBA Eligibility": (
+                    "FBM only - bundle/multipack"
+                    if fba_excluded
+                    else "Below monthly FBA threshold"
+                    if below_fba_threshold
+                    else "Eligible"
+                ),
             }
         )
 
@@ -264,7 +332,7 @@ def calculate(client, cfg):
     send_rows = [r for r in rows if r["Reshipment Units"] > 0]
     excess_rows = [r for r in rows if r["Estimated Excess Units"] > 0]
     parts = [
-        f"Source: {client['notes']} Demand multiplier: {multiplier}x. Output saved: `{csv_path.name}` / `{xlsx_path.name}`.",
+        f"Source: {client['notes']} Shared profile: {client['profile_key']} ({target_days} effective coverage days, {multiplier}x demand multiplier). Output saved: `{csv_path.name}` / `{xlsx_path.name}`.",
     ]
     if send_rows:
         parts.extend(["", "*Reshipment*"])
@@ -291,6 +359,12 @@ def calculate(client, cfg):
     manifest = {
         "account": client["key"],
         "date": run_date,
+        "profileKey": client["profile_key"],
+        "profileSource": client["profile_source"],
+        "planningComponents": client["profile_components"],
+        "effectiveCoverageDays": target_days,
+        "scalingMultiplier": multiplier,
+        "minimumMonthlySalesForFba": minimum_monthly_sales,
         "sources": source_files,
         "csv": str(csv_path),
         "xlsx": str(xlsx_path),
@@ -307,10 +381,40 @@ def calculate(client, cfg):
 
 def main():
     parser = argparse.ArgumentParser(description="Generate FBA reshipment / inventory-overview workbooks.")
-    parser.add_argument("--config", default=str(DEFAULT_CONFIG), help="Path to the run config JSON (default: tools/reshipment/config.json).")
+    parser.add_argument(
+        "--config",
+        default=str(DEFAULT_CONFIG),
+        help="Path to the run config JSON (default: tools/reshipment/config.json).",
+    )
+    parser.add_argument(
+        "--check-config",
+        action="store_true",
+        help="Resolve and validate shared profiles without reading reports or writing outputs.",
+    )
     args = parser.parse_args()
 
     cfg = load_config(args.config)
+    if args.check_config:
+        print(
+            json.dumps(
+                [
+                    {
+                        "key": client["key"],
+                        "profileKey": client["profile_key"],
+                        "profileSource": client["profile_source"],
+                        "planningComponents": client["profile_components"],
+                        "effectiveCoverageDays": client["target_days"],
+                        "scalingMultiplier": client["multiplier"],
+                        "minimumMonthlySalesForFba": client[
+                            "minimum_monthly_sales_for_fba"
+                        ],
+                    }
+                    for client in cfg.get("clients", [])
+                ],
+                indent=2,
+            )
+        )
+        return
     manifests = [calculate(client, cfg) for client in cfg.get("clients", [])]
     bundle = cfg["output_root"] / "output" / f"reshipment-plans-{cfg['run_date']}" / "summary.json"
     bundle.parent.mkdir(parents=True, exist_ok=True)

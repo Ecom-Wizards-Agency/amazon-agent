@@ -1,29 +1,47 @@
 ---
-description: Run an Amazon ad/sales audit (ads bulk + Business Report + SQP + DataDive → MASTER workbook + narrative)
-argument-hint: "[client-market] (new audit each time, e.g. acme-us)"
+description: Run an Amazon ad/sales audit (auto-detects AdLabs vs downloaded files, then asks the report posture)
+argument-hint: "[client-market] [deep|monthly|actions] (e.g. acme-us, or 'acme us monthly')"
 ---
 
-# Ad / Sales Audit
+# Amazon Ad / Sales Audit
 
-Drive the end-to-end Amazon ad/sales audit. Do not duplicate logic here. Route into the `amazon-ad-audit` skill and the `tools/amazon-ad-audit/` toolkit, and follow `docs/amazon-ad-audit-playbook.md` for the narrative.
+Drive the audit. Do not duplicate logic here. Route into the `amazon-audit` skill, which is
+self-contained: the lens, the narrative standard, the workbook design and the branded-document
+contract all live in `skills/amazon-audit/SKILL.md`.
 
 The user's target is: **$ARGUMENTS**
 
 ## Steps
 
-1. **Confirm the brief. Ask first.** Collect with a single AskUserQuestion (one field per question), skipping only what `$ARGUMENTS`/the conversation already supplies. Never carry a prior client's values as placeholders.
-   **Required:** client/brand · marketplace(s) · product lines + ASINs · DataDive niche (URL or ID) · break-even ACOS (real margin if known, else confirm we assume-and-flag). **Also capture:** brand tokens (+ real misspellings), competitor brand names.
+1. **Load the skill** `amazon-audit` as the source of truth.
 
-2. **Load the skill** `amazon-ad-audit` as source of truth; read the playbook `docs/amazon-ad-audit-playbook.md`.
+2. **Detect the data source. Do not ask.** Run the AdLabs startup sequence (`start_chat_session`,
+   `get_entity_data(teams)`, `get_entity_data(profiles, team_id)`) and look for the brand. Found
+   means the MCP path; not found means the download path. **Name the detected source** in the next
+   message so the operator can override it in one word.
 
-3. **Scaffold the config**: copy `tools/amazon-ad-audit/config.TEMPLATE.json` → `config.<client>-<market>.json` and fill it. Do not reuse another client's config values.
+3. **Confirm the brief with a single AskUserQuestion**, skipping whatever `$ARGUMENTS` or the
+   conversation already supplies. Never carry a prior client's values as placeholders.
+   **Posture** defaults to `deep` from this command: full narrative, cover page, MASTER workbook.
+   **Also capture:** client and marketplaces, product lines and ASINs, date window, DataDive niche
+   (URL or ID), break-even ACOS (real margin if known, else confirm we assume and flag), brand
+   tokens including real misspellings, competitor brand names.
 
-4. **Preflight**: `build_audit.py --config <cfg> --preflight`. If browser inputs are missing, hand the emitted Codex download task to Codex and stop. Claude pulls the DataDive niche via MCP to the config paths.
+4. **Context first** per the skill. On `deep` that is the call notes, matched on people and product
+   rather than the name alone. Flag anything missing rather than assuming a clean window.
 
-5. **Build + QA**: once READY, `--config <cfg>` to build (analyze → audit + SQP workbooks → MASTER → narrative scaffold), then `--validate` (all gates must pass).
+5. **Run the lens.** Lens A on every run, including the funnel tripwire. Lens B as well on `deep`.
+   Every Lens A row must produce a number or be named with its reason.
 
-6. **Write the narrative** into the pre-filled scaffold per the playbook (operator voice, lean; Problems + Growth Levers; screenshots inline as `![caption](file.png)`). The build renders a branded **A4 / Inter** `.docx` + `.pdf` (EW CI, `render_branded.py`). **Cover page for first-time audits only** (`branding.first_time` / `--cover` / `--no-cover`); regular updates skip the cover. One-time per machine: `prepare_brand_assets.py` for the gitignored `brand/` assets.
+6. **Build.** On the download path: scaffold the config, `--preflight`, hand the Codex download
+   task over, pull DataDive over MCP, then build and `--validate` until every gate passes. On the
+   MCP path, build to the same depth without `build_audit.py`.
 
-7. **Deliver** the MASTER `.xlsx` + branded `.docx` **+ `.pdf`** to the client's Google Drive audit folder; confirm with the operator before a prospect sees it. The A4 `.docx` edits in Google Docs (don't convert to a native gdoc; it breaks the cover/cards).
+7. **Write the narrative** into the scaffold per the skill: operator voice, organic-first, lean,
+   `Problem N` and `Lever N`, screenshots inline as `![caption](file.png)`.
 
-Break-even ACOS is an assumption until margin is confirmed. Flag it, and every ACOS verdict updates on the real number.
+8. **Deliver** the MASTER `.xlsx` and the branded `.docx` to the client's Drive audit folder via
+   the desktop mount. Confirm with the operator before a prospect sees anything.
+
+Break-even ACOS is an assumption until margin is confirmed. Flag it, and every ACOS verdict
+updates on the real number. Stop before any account-changing action; this is analysis only.

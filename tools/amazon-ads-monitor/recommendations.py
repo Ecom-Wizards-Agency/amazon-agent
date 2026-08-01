@@ -676,8 +676,8 @@ def parse_signal_digest_markdown(text: str) -> list:
 # ---------------------------------------------------------------------------
 # Brand-tag computation (drives TEST selection) + top-level entry point.
 
-# Free-text -> tag keyword map for the brand's `situation` string (from
-# `_local/ads-monitor/brand-goals.json`). Deliberately small and literal --
+# Free-text -> tag keyword map for the brand's current `situation` string
+# (seeded from its shared Amazon Ops profile). Deliberately small and literal --
 # this is a light nudge for TEST selection, not an NLP layer.
 _SITUATION_KEYWORD_TAGS = {
     "hijack": "hijacker_mentioned",

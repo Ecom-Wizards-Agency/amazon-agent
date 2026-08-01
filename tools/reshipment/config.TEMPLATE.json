@@ -1,27 +1,15 @@
 {
   "run_date": "2026-01-01",
   "report_days": 30,
-  "target_days": 66,
-  "multiplier": 1.2,
   "downloads_dir": "~/Downloads",
   "output_root": ".",
   "clients": [
     {
       "key": "Acme US",
+      "profile_key": "acme-us",
       "brand": "Acme",
       "market": "US",
       "country": "United States",
-      "target_days": 66,
-      "multiplier": 1.0,
-      "fba_exclude_patterns": [
-        "\\bbundle\\b",
-        "\\bmulti[- ]?pack\\b",
-        "\\b(?:2|3|4)\\s*(?:-|x)?\\s*(?:pack|pk|count|ct)\\b",
-        "\\bpack\\s+of\\s+(?:2|3|4)\\b"
-      ],
-      "fba_exclude_asins": [
-        "B000000000"
-      ],
       "fba": "FBA-Inventory.csv",
       "business": "BusinessReport.csv",
       "inventory": "Inventory-Report.txt",

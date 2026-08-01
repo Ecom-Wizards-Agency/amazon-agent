@@ -110,7 +110,7 @@ Default routing:
 - `amazon-ads-monitor`: automated daily (and weekly) Amazon Ads performance brief with trends, % changes, a Sellerboard-vs-AdLabs data cross-check, and goal-lens-aware philosophy-aware flags, posted to Slack → `tools/amazon-ads-monitor/` (read-only; Sellerboard "Dashboard Totals" CSV + AdLabs cross-check primary, SP Ads API v3 secondary, mock/PREVIEW fallback with no credentials).
 - `amazon-sb-video-briefs`: Sponsored Brands VIDEO creative work: keyword-driven video planning, editor briefings, SB video scripts and angle testing (`/video-brief`). Data-selected query clusters (POE + DataDive + SQP + ads data) → one branded .docx briefing per batch, section per video, three named angles over one shared second half (script tables, sound-off rules, specs, advisory health-claims table), plus a per-product-line Creative Reference & Asset Library. Pure PPC structure → `amazon-campaign-builder`/`amazon-ads`; creator sourcing → `amazon-creator-connections`.
 - `amazon-creator-connections`: Creator Connections inbox audits, status-filtered message triage, campaign tracker updates, reply drafting (operator-confirmed sends), campaign prep to the publish checkpoint, tracker gaps, reconciliation.
-- `amazon-reporting`: fetching and formatting Seller/Ads reports, SQP, business reports, analytics workbooks; Business Reports + SQP can be fetched without manual download via `tools/report-fetcher/`. Not for audit narratives (that is `amazon-ad-audit` or `amazon-adlabs-audit`).
+- `amazon-reporting`: fetching and formatting Seller/Ads reports, SQP, business reports, analytics workbooks; Business Reports + SQP can be fetched without manual download via `tools/report-fetcher/`. Not for audit narratives (that is `amazon-audit`).
 - `amazon-inventory-planning`: weekly FBA inventory overview, reshipment planning, pCloud outputs, Slack staging.
 - `amazon-opportunity-explorer`: Product Opportunity Explorer/OEI/POE exports, image strategy, product strategy, Alexa/Rufus semantic insights.
 - `amazon-listing-capture`: capture live listing copy (title/bullets/link) for anchor + competitors via the connected-browser extractor; feeds the keyword-workbook ASINs tab; replaces the legacy ZeroWork scrape.
@@ -218,16 +218,20 @@ Source priority:
 
 ## Ad / Sales Audit Standard
 
-For any Amazon ad or sales audit, follow `docs/amazon-ad-audit-playbook.md` before writing the narrative or building the workbook. It is the repeatable, GitHub-shareable standard for the audit narrative structure + operator voice and the master-workbook layout (single MASTER file merging the Ad Audit + SQP Intelligence tabs under a built one-page Overview). Keep it client-agnostic and public-safe.
+**One skill owns every Amazon ad or sales audit: `amazon-audit`** (`/amazon-audit`, `/adlabs-audit`). It is self-contained. The analysis lens, narrative structure, operator voice, workbook layout, figure set and branded-document contract all live in `skills/amazon-audit/SKILL.md`, not in a separate playbook doc. Route there for the full run and do not restate its rules elsewhere.
 
-Two audit variants exist. Route by data source:
+It resolves three things, in this order:
 
-- Prospect/bulk-file audits (ads bulk + Business Report + SQP downloads): `amazon-ad-audit` skill + `tools/amazon-ad-audit/` toolkit (below).
-- Managed accounts connected to AdLabs ("audit/analyze via AdLabs", `/adlabs-audit`): `amazon-adlabs-audit` skill: context-first (AdLabs profile memory + Notion A/B-Tests event log + call summaries), 10-step AdLabs MCP audit per marketplace, Optimization-Group-level ACOS grading, DataDive Rank-Radar verification of rank campaigns, read-only unless the operator explicitly lifts the rule for a specific write. AdLabs needs **no downloads**: per-ASIN SQP (`search_query`) and the whole Business Report (`product` via the SP-API link) are both live on the MCP. Only margin/break-even comes from outside (Sellerboard).
-- Weekly per-keyword SQP x PPC monitoring (`/supa`): `tools/sqp-supa/` toolkit. Answers the one question the audits cannot: did click share fall because ad spend on that keyword quietly fell? AdLabs-native, one pull per Sunday-Saturday week, per-client config gitignored (`config.<client>-<market>.json`). Not an audit narrative and not a substitute for one.
+- **Data source, auto-detected, never asked.** Look the brand up in AdLabs. A managed client with a profile runs live on the MCP with no downloads: per-ASIN SQP (`search_query`) and the whole Business Report (`product` via the SP-API link) are both there, as is stock. A prospect with no profile runs from downloaded ads bulk + Business Report + SQP via the `tools/amazon-ad-audit/` toolkit. Only margin/break-even comes from outside either path (Sellerboard).
+- **Posture, the one question asked up front.** `deep` for onboarding or a prospect pitch (full narrative, cover page, MASTER workbook). `monthly` for a recurring managed review (lean, internal, learnings-forward, no cover, inline report plus branded `.docx`). `actions` for the prioritized change list only.
+- **Scope, defaulted from posture.** Lens A (performance: stock, Buy Box, organic rank, SQP, funnel, ads, structure, budgets) runs on every audit. Lens B (shopper and creative: POE reviews and returns, live creative capture, listing compliance) runs on `deep`, on a quarterly pass for managed clients, or whenever Lens A's funnel tripwire fires.
+
+Neighbouring workflows that are NOT this skill:
+
+- Weekly per-keyword SQP x PPC monitoring (`/supa`): `tools/sqp-supa/` toolkit. Answers the one question the audit cannot: did click share fall because ad spend on that keyword quietly fell? AdLabs-native, one pull per Sunday-Saturday week, per-client config gitignored (`config.<client>-<market>.json`). Not an audit narrative and not a substitute for one.
 - Ongoing weekly MANAGEMENT of an AdLabs-managed account ("run the week", `/ppc-manage`): `amazon-ppc-management` skill. The operating counterpart to the audit (diagnose) and the monitor (observe): stock gate, run-rate pacing governor, Rank Radar graduation, opt-group audit, then AdLabs optimizer/harvest preview -> explicit operator approval per batch -> apply with an audit note. Doctrine and thresholds live in `_local/ads-strategy/strategy.md` v3 + `strategy.json` `management`.
 
-The workbooks and narrative scaffold are built by the client-agnostic toolkit `tools/amazon-ad-audit/` (per-client config from `config.TEMPLATE.json`; see its `WORKFLOW.md` and `NEW-CLIENT.md`). Build steps, roles (Codex downloads exports, Claude pulls DataDive/builds/writes), QA gates, and delivery rules live in the `amazon-ad-audit` skill. Route there for the full run. Client config JSONs are gitignored; deliver the MASTER `.xlsx` + narrative `.docx` to the audit folder inside `<Client> - Shared/` (see Google Drive Delivery below). Intermediate working files from the audit run are NOT deliverables: they stay in `_Working/account-check/` or local `output/`.
+The workbooks and narrative scaffold are built by the client-agnostic toolkit `tools/amazon-ad-audit/` (per-client config from `config.TEMPLATE.json`; see its `WORKFLOW.md` and `NEW-CLIENT.md`). Note the toolkit directory keeps its original name; only the skill was renamed. Build steps, roles (Codex downloads exports, Claude pulls DataDive/builds/writes), QA gates, and delivery rules live in the `amazon-audit` skill. Client config JSONs are gitignored; deliver the MASTER `.xlsx` + narrative `.docx` to the audit folder inside `<Client> - Shared/` (see Google Drive Delivery below). Intermediate working files from the audit run are NOT deliverables: they stay in `_Working/account-check/` or local `output/`.
 
 ## Campaign Creation Standard
 
@@ -367,24 +371,13 @@ Date first and ISO always, so folders sort chronologically. Keep the client name
 
 ## Client Profile Memory
 
-Shared operational client context lives in Notion, with a local ignored cache for fast lookup.
+Shared operational client context lives in the private team vault at `Clients/{Name}/Amazon Ops.md`. Resolve the vault through `AMAZON_AGENT_TEAM_VAULT` or `_local/team-vault-path.txt`, then use `node tools/client-profiles/find-client-profile.mjs <brand-or-profile>`. Each file may contain one or more brand-marketplace profiles such as `Acme US`, `Globex US`, or `Example Brand DE`.
 
-Notion source of truth:
+Use client profiles for account labels, marketplaces, stakeholders, listing URLs, fulfillment method, production/shipping timing, reshipment inputs, recurring workflow preferences, and safety notes. The lookup derives effective reshipment coverage from target stock days, lead time, and Amazon booking buffer. Do not store that total separately.
 
-- Database: `Amazon Agent Ops Profiles`
-- URL: `<notion-database-url>`
-- Data source: `<notion-data-source>`
-- Linked brand source: Partner Success, `<partner-success-data-source>`
+Do not store secrets, passwords, login emails, cookies, tokens, payment details, tax IDs, private keys, browser session data, or mutable runner state in team-vault profiles. The local path pointer is configuration only; do not create another local profile-data cache.
 
-Local cache path:
-
-- `_local/client-profiles/profiles.json`
-
-For client-specific Amazon work, check the local profile cache first when it exists, then check the Notion ops profile if the cache is missing, stale, incomplete, or conflicts with the user's request. Each profile is one brand-marketplace pair such as `Acme US`, `Globex US`, or `Example Brand DE`.
-
-Use client profiles for account labels, marketplaces, stakeholders, listing URLs, fulfillment method, production/shipping timing, recurring workflow preferences, and safety notes. Do not store secrets, passwords, cookies, tokens, payment details, tax IDs, private keys, or browser session data in Notion profiles or local cache.
-
-The agent must not silently change shared client facts. If a profile needs correction, draft the proposed update with evidence and wait for approval before changing Notion. Refresh the local cache after approved Notion updates.
+The agent must not silently change shared client facts. In a human-supervised session, verify the proposed correction against the narrow source, update the vault profile with its evidence link, and run `node tools/client-profiles/find-client-profile.mjs --validate`. Unattended runs read profiles but never edit them.
 
 ## Shared Knowledge (Notion, for non-repo runtimes)
 
@@ -399,7 +392,7 @@ Find these pages by exact title via the Notion connector search (direct URLs sta
 - "Conflicts and Test Backlog"
 - "Brand Identity / Alias Resolver"
 
-Per-brand Goal/Stage and Situation live as fields on the `Amazon Agent Ops Profiles` database rows. When `_local/` is present it is the fast path; otherwise read these Notion pages. Keep the two in sync; when they disagree, the operator decides. Never put secrets (feed tokens, API keys) in Notion.
+Per-brand Goal/Stage and Situation live in the client's team-vault `Amazon Ops.md`; Notion remains the source for meeting notes and the shared methodology pages above. Never put secrets such as feed tokens or API keys in either system.
 
 ## Team Knowledge Recall (Playbooks and Research)
 
@@ -533,7 +526,7 @@ Verify the artifact, not the exit code:
 
 ## Current Known Account Notes
 
-Account-specific notes (account-health snapshots, Creator Connections threads, per-brand quirks) live in the Notion ops profiles, not in this repo. Look them up there per account before acting.
+Durable account-specific notes and per-brand quirks live in the client's team-vault hub and `Amazon Ops.md`, not in this repo. Live tasks and meeting notes remain in Notion. Look up the relevant private source before acting.
 
 One durable, non-sensitive access note worth keeping here: the correct Creator Connections path is the Campaign Manager account selector, then Brand content > Creator connections.
 

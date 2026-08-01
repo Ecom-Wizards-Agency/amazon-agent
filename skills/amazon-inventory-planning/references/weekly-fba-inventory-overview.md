@@ -50,28 +50,19 @@ Follow the GitHub/local planner rule:
 - Restock sold30 is only a fallback/supporting signal where the planner uses it for missing FBA detail.
 - If Business Report units and FBA/Restock sold30 differ, prefer Business Report units for demand.
 
-## Default Planning Settings
+## Shared Planning Settings
 
-Use unless the operator gives account-specific overrides:
+Resolve every account's team-vault `Amazon Ops.md` profile before calculation. The profile supplies target stock days, lead time, Amazon booking buffer, scaling multiplier, minimum monthly FBA threshold, and any FBM-only exclusions. Effective coverage days are derived by the lookup tool as target + lead time + booking buffer.
 
-| Setting | Value |
-| --- | --- |
-| `targetDaysOfStock` | 45 |
-| `productionDays` | 0 |
-| `transitDays` | 7 |
-| `amazonBookingDays` | 14 |
-| `scalingMultiplier` | 1.0 |
-| `reportDays` | 30 |
-| `minimumMonthlyThreshold` | 100 |
-| `groupMode` | child ASIN |
+Do not use a generic local default when the profile is missing, incomplete, or disabled. Stop that account and report the exact missing setting. `reportDays` remains a run input, normally 30; group mode remains child ASIN.
 
 ## Account-Specific FBA Eligibility
 
-- Read `Agent Safety Notes` and `Recurring Workflow Notes` from the live Ops Manager profile before calculation.
+- Read `agent_safety_notes`, `recurring_workflow_notes`, and the structured reshipment fields from the shared team-vault profile before calculation.
 - Apply product-level FBM-only exclusions before calculating or posting FBA reshipment quantities.
-- Some accounts keep bundles and multipacks, including 2-pack, 3-pack, and 4-pack offers, on FBM by policy. Where the Ops Manager profile says so, never recommend, include, or send those offers to FBA.
-- Report titles can omit pack-count wording, so title text alone is not sufficient. Apply title/SKU detection plus the exact ASIN denylist stored in that account's live Ops Manager `Agent Safety Notes`. Exact ASIN exclusions take precedence over report text.
-- Encode both in the run config as `clients[].fba_exclude_patterns` and `clients[].fba_exclude_asins`. Keep the account names and ASINs in the local config, never in this tracked reference.
+- Some accounts keep bundles and multipacks, including 2-pack, 3-pack, and 4-pack offers, on FBM by policy. Where the shared profile says so, never recommend, include, or send those offers to FBA.
+- Report titles can omit pack-count wording, so title text alone is not sufficient. Apply the structured `fba_exclude_patterns` plus `fba_exclude_asins` from the shared profile. Exact ASIN exclusions take precedence over report text.
+- Do not duplicate either exclusion list in the local run config.
 - Excluded products remain visible in the full inventory workbook with `FBA Eligibility` labeled `FBM only - bundle/multipack` and zero FBA reshipment units.
 
 ## Seller Central Reports

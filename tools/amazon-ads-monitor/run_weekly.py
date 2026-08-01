@@ -103,7 +103,7 @@ def _parse_args(argv=None) -> argparse.Namespace:
     )
     p.add_argument(
         "--goal", type=str, default=None,
-        help=f"Brand goal/stage lens from its Notion 'Amazon Agent Ops Profiles' row, one of: {', '.join(sorted(GOAL_LENSES))}.",
+        help=f"Brand goal/stage lens from its shared team-vault Amazon Ops profile, one of: {', '.join(sorted(GOAL_LENSES))}.",
     )
     p.add_argument("--situation", type=str, default=None, help="Free-text brand situation this week (feeds TEST selection's light keyword tagging, e.g. mentions of a hijacker or a recurring ACOS spike)")
     p.add_argument(

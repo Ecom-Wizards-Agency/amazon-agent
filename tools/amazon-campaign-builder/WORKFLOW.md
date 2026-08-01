@@ -86,7 +86,7 @@ contract; nothing in the code is client-specific.
   is a stop-before-risk action needing explicit operator instruction in the current chat (or
   a matching `_local/local-permissions.md` standing permission).
 - For AdLabs-managed accounts the operator may instead ask for a gated AdLabs push: that
-  follows the `amazon-adlabs-audit` write policy (explicit per-write lift, batch-by-batch
+  follows the `amazon-audit` write policy (explicit per-write lift, batch-by-batch
   what-will-change summary, tags). It is not part of this toolkit.
 - Run `python3 tools/amazon-campaign-builder/selftest.py` after any change to either toolkit.
   It must stay green (synthetic fixtures, no network/Amazon access).

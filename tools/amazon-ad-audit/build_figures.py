@@ -359,8 +359,13 @@ def _price_vs_rating(plt, P, cfg, comps, asins, out):
     ax.annotate(f"category median {_money(med_p, cfg)}", (0.995, med_p),
                 xycoords=("axes fraction", "data"), textcoords="offset points",
                 xytext=(0, 5), ha="right", fontsize=8, color=P["steel"], zorder=2)
+    # The website line only earns its place when the website charges something DIFFERENT.
+    # When the two prices match it lands exactly on the client's own bubble, and its label
+    # overprints whichever rival is nearest that price (Resilia 2026-07: "your own website
+    # $29.99" straight through "Clean Nutraceuticals"). Same number, twice, plus a collision.
     dtc = cfg.get("client_dtc_price")
-    if dtc:
+    amz = (own[0]["price"] if own else None)
+    if dtc and not (amz is not None and abs(float(dtc) - amz) <= 0.01):
         ax.axhline(float(dtc), color=P["accent"], lw=1.1, ls="--", alpha=.55, zorder=1)
         ax.annotate(f"your own website {_money(float(dtc), cfg)}", (0.995, float(dtc)),
                     xycoords=("axes fraction", "data"), textcoords="offset points",
@@ -398,6 +403,13 @@ def _price_vs_rating(plt, P, cfg, comps, asins, out):
     ax.set_xlabel("Customer rating (stars)", fontsize=9, color=P["steel"])
     ax.set_ylabel("Price", fontsize=9, color=P["steel"])
     ax.set_xlim(lo_view - 0.18, max(ratings) + 0.28)
+    # Bubbles are sized in points, so matplotlib's data-range autoscale does not know how
+    # tall they are and slices the biggest one flat against the top spine -- which is
+    # always the client's, since their marker is drawn 1.5x. Add headroom explicitly.
+    prices = [c["price"] for c in shown] + ([float(dtc)] if dtc else [])
+    lo_p, hi_p = min(prices), max(prices)
+    pad = max((hi_p - lo_p) * 0.12, 1.0)
+    ax.set_ylim(lo_p - pad, hi_p + pad)
     ax.xaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:.1f}\u2605"))
     ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _: _money(v, cfg)))
 
@@ -468,10 +480,14 @@ def _brand_name_leak(plt, P, cfg, kws, comps, asins, out):
     head = (f'{win["brand"]} ranks #{win["rank"]} on "{top["keyword"]}". You are {me["rank"]}th.'
             if me and not win["is_me"] else f'Organic rank on "{top["keyword"]}"')
     # Do NOT claim rank 10 is the page break: page 1 runs to about rank 48 (see
-    # _rank_distribution). Say what is true and what matters, which is that every brand
-    # on this chart is on the same page as the brand whose name was typed.
-    _title(ax, P, head, f'Your own brand name. {int(top.get("searchVolume") or 0):,} searches. '
-                        f'Every brand shown here sits on page 1 of it, alongside you.')
+    # _rank_distribution). Say what is true and what matters, which is how many rivals
+    # sit on page 1 of the brand's OWN name. Count it rather than asserting it: the
+    # chart routinely includes a brand past rank 48, and "every brand shown here sits
+    # on page 1" is then simply false.
+    on_p1 = sum(1 for r in rows if r["rank"] <= 48 and not r["is_me"])
+    tail = (f'{on_p1} other brands sit on page 1 of it alongside you.' if on_p1
+            else 'No other brand reaches page 1 of it.')
+    _title(ax, P, head, f'Your own brand name. {int(top.get("searchVolume") or 0):,} searches. {tail}')
     ax.set_xlabel("Organic rank (lower is better)", fontsize=9, color=P["steel"])
     _frame(ax, P, xgrid=True)
     fig.tight_layout(); fig.savefig(out, dpi=200, bbox_inches="tight"); plt.close(fig)

@@ -1,6 +1,6 @@
 ---
 name: amazon-reporting
-description: "Use for fetching and formatting Amazon reports (`/fetch-reports`): Seller Central Business Reports, SQP, SCP, Ads reports, search term reports, bulk downloads, period comparisons, and Excel/CSV workbook outputs. Not for audit narratives: route full ad/sales audits to `amazon-ad-audit` or `amazon-adlabs-audit`."
+description: "Use for fetching and formatting Amazon reports (`/fetch-reports`): Seller Central Business Reports, SQP, SCP, Ads reports, search term reports, bulk downloads, period comparisons, and Excel/CSV workbook outputs. Not for audit narratives: route full ad/sales audits to `amazon-audit`."
 ---
 
 # Amazon Reporting

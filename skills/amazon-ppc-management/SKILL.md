@@ -1,13 +1,13 @@
 ---
 name: amazon-ppc-management
-description: Weekly PPC management loop for AdLabs-managed accounts. Trigger on `/ppc-manage` or "run the weekly ads management" for a client. Stock gate, run-rate pacing, Rank Radar graduation, opt-group audit, then AdLabs optimizer/harvest preview -> operator approval -> staged lever-batch applies (snapshot, cooldown, revert). Audits stay in `amazon-adlabs-audit` (diagnose); this skill operates.
+description: Weekly PPC management loop for AdLabs-managed accounts. Trigger on `/ppc-manage` or "run the weekly ads management" for a client. Stock gate, run-rate pacing, Rank Radar graduation, opt-group audit, then AdLabs optimizer/harvest preview -> operator approval -> staged lever-batch applies (snapshot, cooldown, revert). Audits stay in `amazon-audit` (diagnose); this skill operates.
 ---
 
 # Amazon PPC Management (weekly loop, AdLabs-managed accounts)
 
 Browser: None (AdLabs MCP + DataDive MCP; Sellerboard CSV via the ads-monitor inbox convention).
 
-Use this when the operator asks to RUN a managed account's week: adjust bids, budgets, opt-groups, harvests. It is the operating counterpart to `amazon-adlabs-audit` (diagnose) and `amazon-ads-monitor` (observe). Prospects and bulk-file accounts route to `amazon-ad-audit`; this skill requires a live AdLabs connection.
+Use this when the operator asks to RUN a managed account's week: adjust bids, budgets, opt-groups, harvests. It is the operating counterpart to `amazon-audit` (diagnose) and `amazon-ads-monitor` (observe). Prospects and bulk-file accounts also route to `amazon-audit`; this skill requires a live AdLabs connection.
 
 Doctrine source of truth: `_local/ads-strategy/strategy.md` v3 (Run-rate governor, Opt-group standard, Rank keyword lifecycle, Optimizer cadence) and `_local/ads-strategy/strategy.json` `management` bands. Never guess thresholds; if the local file is missing, ask the operator.
 

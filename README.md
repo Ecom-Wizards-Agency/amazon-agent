@@ -50,15 +50,9 @@ Routing is by session, not by agent, and lives in the Browser Standard in `AGENT
 
 ## Client Profiles
 
-Shared operational client context lives in Notion, not GitHub:
+Shared operational client context lives in the private, Obsidian-synced agency vault, not GitHub. Each client has `Clients/{Name}/Amazon Ops.md`, containing one or more brand-marketplace profiles such as `Acme US` or `Example Brand DE`.
 
-- Notion database: `Amazon Agent Ops Profiles`
-- Database URL: `<notion-database-url>`
-- Data source: `<notion-data-source>`
-
-Each row is one brand-marketplace profile, such as `Acme US` or `Example Brand DE`, linked back to the existing Partner Success brand database.
-
-For fast local lookup, each teammate can keep an ignored cache at `_local/client-profiles/profiles.json`. Treat that cache as generated from Notion and disposable. If it is missing, stale, or conflicts with Notion, use Notion as the source of truth. See `docs/client-profiles.md` and `tools/client-profiles/`.
+Amazon Agent reads those files directly through `AMAZON_AGENT_TEAM_VAULT` or `_local/team-vault-path.txt`; it does not maintain a second profile-data cache. See `docs/client-profiles.md` and `tools/client-profiles/`.
 
 ## What Does Not Belong In GitHub
 

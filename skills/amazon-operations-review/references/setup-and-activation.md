@@ -26,7 +26,7 @@ Collect or resolve the following without running an operational check:
 - Browser preference and fallback.
 - Empty Review Management template tab to copy when a configured client-market tab is missing.
 
-Use the local client-profile cache first, then Notion when the cache is missing, stale, incomplete, or conflicting. Do not silently change shared client facts.
+Use the shared team-vault `Clients/{Name}/Amazon Ops.md` profile through the client-profile lookup tool. Use Notion for live tasks and meeting notes. Do not silently change shared client facts or create a private profile-data cache.
 
 ## Setup Command
 
