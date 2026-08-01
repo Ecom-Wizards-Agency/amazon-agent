@@ -125,10 +125,16 @@ def _kpis(M):
     if M.get("custom_kpis"):  # non-audit docs: [[number, label, sub-or-null], ...] in metrics.json
         return [(str(n), l, s) for n, l, s in M["custom_kpis"]]
     T = M["totals"]; cur = M.get("currency", "USD"); be = M.get("breakeven", 0.5)
+    # TACoS divides ad spend by TOTAL sales, which only the Business Report supplies.
+    # Without it br_total_sales is 0 and the ratio computes as 0 -- so the card claimed a
+    # flawless "0% TACoS" on exactly the accounts where the number was unknown. An audit
+    # may not state a metric it could not measure; say so on the card instead.
+    tacos = ((f"{T['tacos']*100:.0f}%", "TACoS", None) if T.get("br_total_sales")
+             else ("n/a", "TACoS", "no Business Report"))
     return [(_money(T["spend"], cur), "Ad spend / month", None),
             (_money(T["sales"], cur), "Ad sales", None),
             (f"{T['acos']*100:.0f}%", "Blended ACoS", f"vs ~{be*100:.0f}% break-even"),
-            (f"{T['tacos']*100:.0f}%", "TACoS", None)]
+            tacos]
 
 
 # ------------------------------ markdown -> blocks ------------------------------
@@ -137,6 +143,11 @@ _LEVER_INLINE = re.compile(r'^\*\*\s*lever\s+(\d+)\s*[:\-—–]\s*(.+?)\.?\s*\*
 # Heading form: ### Lever N: Title   (or a bare "Lever N — Title" line)
 _LEVER = re.compile(r'^(?:###\s*)?lever\s+(\d+)\s*[:\-—–]\s*(.+?)\.?$', re.I)
 _IMG = re.compile(r'^!\[(.*?)\]\((.*?)\)$')
+# Inline markdown the branded renderer understands: **bold** and `code`. Keyword and
+# search-term names are written as `code` in the narratives, so without this the
+# backticks printed literally in the docx and the PDF.
+_INLINE = re.compile(r'\*\*(.+?)\*\*|`([^`]+)`')
+_CODE = re.compile(r'`([^`]+)`')
 _COMMENT = re.compile(r'<!--.*?-->', re.S)
 
 
@@ -234,12 +245,30 @@ def _render_docx(blocks, M, cfg, brand_dir, cover_png, out):
         for a in ('w:ascii', 'w:hAnsi', 'w:cs'): rf.set(qn(a), FONT_NAME)
 
     def runs(p, text, size=10.5, color=INK, bold=False, italic=False, caps=False, tracking=None):
-        for i, part in enumerate(re.split(r'\*\*(.+?)\*\*', text)):
-            if part == '': continue
-            r = p.add_run(part.upper() if caps else part); font(r)
-            r.font.size = Pt(size); r.font.color.rgb = color; r.bold = bold or (i % 2 == 1); r.italic = italic
+        def emit(chunk, is_bold, is_code):
+            if chunk == '': return
+            r = p.add_run(chunk.upper() if caps else chunk); font(r)
+            r.font.size = Pt(size); r.font.color.rgb = color
+            r.bold = bold or is_bold; r.italic = italic or is_code
             if tracking is not None:
                 rp = r._element.get_or_add_rPr(); sp = OxmlElement('w:spacing'); sp.set(qn('w:val'), str(tracking)); rp.append(sp)
+        def emit_bold(chunk):
+            # `code` nests inside **bold** all the time, because the Problem headings are
+            # written as **Problem N: `keyword` does X.** Without this second pass the
+            # backticks printed literally inside the bolded run.
+            at = 0
+            for c in _CODE.finditer(chunk):
+                emit(chunk[at:c.start()], True, False)
+                emit(c.group(1), True, True)
+                at = c.end()
+            emit(chunk[at:], True, False)
+        pos = 0
+        for m in _INLINE.finditer(text):
+            emit(text[pos:m.start()], False, False)
+            if m.group(1) is not None: emit_bold(m.group(1))
+            else: emit(m.group(2), False, True)
+            pos = m.end()
+        emit(text[pos:], False, False)
 
     def para(text, **k):
         p = doc.add_paragraph(); runs(p, text, **k); return p
@@ -442,7 +471,12 @@ def _render_pdf(blocks, M, cfg, brand_dir, cover_png, out):
     def imguri(p): return f"data:image/png;base64,{b64(p)}"
 
     def inl(t):
-        return re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', html.escape(t))
+        # Second pass inside the bold group for the same reason as the .docx path:
+        # **Problem N: `keyword` does X.** would otherwise keep its backticks.
+        return _INLINE.sub(
+            lambda m: (f"<strong>{_CODE.sub(r'<em>\1</em>', m.group(1))}</strong>"
+                       if m.group(1) is not None else f"<em>{m.group(2)}</em>"),
+            html.escape(t))
 
     def table_html(rows):
         head = "".join(f"<th>{inl(c)}</th>" for c in rows[0])
@@ -459,14 +493,18 @@ def _render_pdf(blocks, M, cfg, brand_dir, cover_png, out):
     kpi_idx = _kpi_after(blocks) if (M.get("custom_kpis") or M.get("totals")) else -1
     for i, (kind, payload) in enumerate(blocks):
         if kind != "num": numctr = 0
+        # Headings and lever titles go through inl(), not bare html.escape(): a lever is
+        # routinely titled with the keyword it acts on ("Collapse `resilia` into one
+        # campaign"), and escaping alone left the backticks visible in the PDF while the
+        # .docx rendered them correctly. inl() escapes internally, so this is still safe.
         if kind == "h2":
-            parts.append(f'<div class="rule"></div><h2>{html.escape(payload)}</h2>')
+            parts.append(f'<div class="rule"></div><h2>{inl(payload)}</h2>')
             if i == kpi_idx: parts.append(kpi_html(_kpis(M)))
-        elif kind == "h3": parts.append(f'<h3>{html.escape(payload)}</h3>')
-        elif kind == "h4": parts.append(f'<h4>{html.escape(payload)}</h4>')
+        elif kind == "h3": parts.append(f'<h3>{inl(payload)}</h3>')
+        elif kind == "h4": parts.append(f'<h4>{inl(payload)}</h4>')
         elif kind == "lever":
             n, t = payload
-            parts.append(f'<div class="lever"><div class="eyebrow">LEVER {n}</div><h3 class="lt">{html.escape(t)}</h3></div>')
+            parts.append(f'<div class="lever"><div class="eyebrow">LEVER {n}</div><h3 class="lt">{inl(t)}</h3></div>')
         elif kind == "p": parts.append(f'<p>{inl(payload)}</p>')
         elif kind == "note": parts.append(f'<div class="note">{inl(payload)}</div>')
         elif kind == "bul": parts.append(f'<ul><li>{inl(payload)}</li></ul>')

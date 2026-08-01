@@ -1031,7 +1031,7 @@ class AdLabsDataSource(DataSource):
     campaign-level rows from the AdLabs response to pass as
     `campaign_rows` into `analyze.analyze_account()` alongside the
     Sellerboard account rows -- `analyze.py`/`report.py` don't care which
-    adapter produced a row. See also `amazon-adlabs-audit` for the
+    adapter produced a row. See also `amazon-audit` for the
     existing AdLabs MCP audit flow this can borrow call patterns from.
     """
 

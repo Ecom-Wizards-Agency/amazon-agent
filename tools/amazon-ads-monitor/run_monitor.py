@@ -71,7 +71,7 @@ def _parse_args(argv=None) -> argparse.Namespace:
     )
     p.add_argument(
         "--goal", type=str, default=None,
-        help=f"Brand goal/stage lens from its Notion 'Amazon Agent Ops Profiles' row, one of: {', '.join(sorted(GOAL_LENSES))}. "
+        help=f"Brand goal/stage lens from its shared team-vault Amazon Ops profile, one of: {', '.join(sorted(GOAL_LENSES))}. "
              "Adjusts flag thresholds/severity/wording (see flags.py GOAL_LENSES). Unknown/omitted -> neutral lens (unchanged behavior).",
     )
     p.add_argument(

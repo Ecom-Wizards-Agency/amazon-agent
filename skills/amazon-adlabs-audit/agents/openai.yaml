@@ -1,4 +1,0 @@
-interface:
-  display_name: "AdLabs PPC Audit"
-  short_description: "Read-only PPC audit of an AdLabs-managed account"
-  default_prompt: "Use $amazon-adlabs-audit to run a read-only PPC audit of this managed account, marketplace by marketplace."

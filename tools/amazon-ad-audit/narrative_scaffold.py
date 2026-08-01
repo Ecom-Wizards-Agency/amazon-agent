@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Amazon Ad/Sales Audit narrative scaffold generator.
-Emits a Markdown draft following docs/amazon-ad-audit-playbook.md's section skeleton,
+Emits a Markdown draft following skills/amazon-audit/SKILL.md's section skeleton,
 with KPIs/tables PRE-FILLED from metrics.json + sqp_summary.json and prose/problem/lever
 bodies left as `<!-- operator: ... -->` stubs for the operator to write in the agency voice.
 Honors config.narrative flags (include_levers, include_30day_plan, include_what_can_be_reached).

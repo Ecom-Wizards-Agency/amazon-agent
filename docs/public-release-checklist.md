@@ -47,3 +47,4 @@ Because Codex holds the shared runtime for git work in the two-agent model, the 
 ## Change log of verified-safe additions
 
 - 2026-07-02: `skills/amazon-adlabs-audit/SKILL.md`, `.claude/commands/adlabs-audit.md`, and the `agent.md` routing edit scanned clean (no brand/PII/currency/ID leakage); brand-agnostic and ready to publish.
+- 2026-08-01: `skills/amazon-audit/SKILL.md` (the merge of `amazon-ad-audit`, `amazon-adlabs-audit` and `docs/amazon-ad-audit-playbook.md` into one self-contained skill) plus both rewritten slash commands. Those three source files are deleted; git history retains them. Rescan needed before the next public push: the merged file carries anonymised worked examples inherited from the playbook (dollar figures and percentages with no brand attached) and internal path shapes (`_local/ppc-manage/`, team-vault `Clients/<Name>/`), which were already public-safe in the sources but should be re-read as one document rather than three.

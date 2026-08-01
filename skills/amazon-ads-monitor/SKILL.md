@@ -1,6 +1,6 @@
 ---
 name: amazon-ads-monitor
-description: Use to produce and post the automated daily (and weekly) Amazon Ads performance brief -- previous-day trends, % changes vs prior day and trailing-7-day average, a Sellerboard-vs-AdLabs data cross-check, and goal-aware philosophy-aware flags -- to Slack. Trigger on requests like run the ads monitor, daily ads brief, post the ads report, Amazon Ads daily report, or a scheduled daily/weekly run. Read-only: never creates, changes, pauses, or archives campaigns. For interactive Console work use amazon-ads; for bulk create/update use amazon-campaign-builder; for full audit narratives use amazon-ad-audit or amazon-adlabs-audit.
+description: Use to produce and post the automated daily (and weekly) Amazon Ads performance brief -- previous-day trends, % changes vs prior day and trailing-7-day average, a Sellerboard-vs-AdLabs data cross-check, and goal-aware philosophy-aware flags -- to Slack. Trigger on requests like run the ads monitor, daily ads brief, post the ads report, Amazon Ads daily report, or a scheduled daily/weekly run. Read-only: never creates, changes, pauses, or archives campaigns. For interactive Console work use amazon-ads; for bulk create/update use amazon-campaign-builder; for full audit narratives use amazon-audit.
 ---
 
 # Amazon Ads Monitor
@@ -125,31 +125,31 @@ firecrawl fallback that costs Firecrawl credits:
 4. **Brand context -- RE-DERIVE EVERY RUN (MCP, done here, not in the
    Python toolkit).** Situations change daily (hijackers, listing
    takedowns, buy-box loss, offboarding, launches), so never trust a
-   cached snapshot on its own -- rebuild the brand's context from the live
-   sources every run, in this order:
-   - **Seed:** read the brand's lens + situation from
-     `_local/ads-monitor/brand-goals.json` (a fallback cache only), then
-     verify/refresh it against the live sources below. Lenses: rank-launch,
-     scale, profit-maintain, defend, maintain, liquidate, inactive (see
+   durable profile on its own -- rebuild the brand's current context from
+   the live sources every run, in this order:
+   - **Seed:** read the brand's lens + situation from its shared team-vault
+     `Amazon Ops.md`, then verify/refresh it against the live sources below.
+     Lenses: rank-launch, scale, profit-maintain, defend, maintain,
+     liquidate, inactive (see
      `flags.py` `GOAL_LENSES`). Unknown -> omit `--goal` (neutral lens).
-   - **Notion MCP -- Ops Profiles + meeting database**: `search` + `fetch`
-     the brand's row in the "Amazon Agent Ops Profiles" database (goal/
-     stage if the field exists) AND the Notion **meeting database** for the
-     brand's most recent meeting notes -- meeting notes carry the freshest
-     operational context and usually predate any profile-field update.
+   - **Team-vault profile + Notion meeting database**: read the brand's
+     `Clients/{Name}/Amazon Ops.md` through the client-profile lookup tool
+     for goal/stage and its durable situation, then use Notion `search` +
+     `fetch` for the brand's most recent meeting notes. Meeting notes carry
+     the freshest live context and may predate a profile-field update.
    - **Slack MCP -- read_channel**: read the brand's `#<brand>-ew-amazon`
      channel and `#amazon-check` for the report window plus a few days of
      look-back for launches, promos, price/stock changes, or incidents.
-   - **Reconcile + persist:** if the live sources show the lens or
-     situation changed since `brand-goals.json`, use the live version for
-     this run AND update `brand-goals.json` (the situation string, and the
-     lens if it changed) so the cache stays current for the next run. Pass
-     the resolved lens as `--goal`. If a flag matches a known intentional
-     change from Slack/meeting notes, annotate it in the Slack/markdown
+   - **Reconcile:** if the live sources show the lens or situation changed,
+     use the live version for this run and flag the proposed durable profile
+     update in the operator note. Only a human-supervised session may write
+     that update to `Amazon Ops.md`; do not create or update a local context
+     cache. Pass the resolved lens as `--goal`. If a flag matches a known
+     intentional change from Slack/meeting notes, annotate it in the Slack/markdown
      write-up rather than presenting it as a surprise (don't suppress it in
      the file).
-   - This step only reads Notion and Slack (and writes the local
-     `brand-goals.json` cache); it never posts to or edits Notion/Slack.
+   - This step reads the shared profile, Notion, and Slack. It never posts or
+     edits the shared profile, Notion, or Slack during enrichment.
 5. **Deliver -- THREADED format (operator feedback 2026-07-15: the
    single-message daily was "messy, hard to read"; use a clean parent
    summary + one threaded reply per brand, mirroring the weekly).**
@@ -202,7 +202,7 @@ firecrawl fallback that costs Firecrawl credits:
 - `firecrawl_scrape` (fallback CSV fetch only, formats `["markdown"]`).
 - AdLabs: `start_chat_session`, `read_resource`, `get_entity_data`
   (and `query` for anything the entity-data shape doesn't cover).
-- Notion: `search`, `fetch` (Amazon Agent Ops Profiles row lookup).
+- Notion: `search`, `fetch` (meeting-note context).
 - Slack: `read_channel` (brand + `#amazon-check` context), `send_message`
   (posting the final report to `#amazon-daily-report`).
 
@@ -326,19 +326,18 @@ docstring for exact signatures.
      parses it and folds any digest item that maps to this week's actual
      signals into the Test list. A digest with no pertinent item for
      this brand contributes nothing -- that's correct, not a bug.
-   - **Goal lens -- RE-DERIVE EVERY RUN:** seed from
-     `_local/ads-monitor/brand-goals.json` (fallback cache only), then
-     refresh it against the live sources: the brand's row in the Notion
-     **Amazon Agent Ops Profiles** database AND the Notion **meeting
-     database** (most recent meeting notes -- the freshest operational
-     context), plus its Slack channel (`#<brand>-ew-amazon` +
+   - **Goal lens -- RE-DERIVE EVERY RUN:** seed from the brand's shared
+     team-vault `Amazon Ops.md`, then refresh it against the Notion
+     **meeting database** (most recent
+     meeting notes -- the freshest operational context), plus its Slack
+     channel (`#<brand>-ew-amazon` +
      `#amazon-check`, Slack MCP `read_channel`). Pass the resolved lens as
      `--goal` and a short situation string as `--situation` (the latter
      lightly tags Test selection -- e.g. a hijacker or a recurring ACOS
      spike). If the live sources show the lens/situation changed, use the
-     live version this run AND update `brand-goals.json` so the cache stays
-     current. This step only reads Notion/Slack (and writes the local
-     cache); it never posts or edits Notion/Slack during enrichment.
+     live version this run and flag a proposed durable profile update in the
+     operator note. Do not create a local context cache. This step reads the
+     shared profile, Notion, and Slack; it never edits them during enrichment.
 
 5. **Deliver -- detailed, threaded (operator feedback 2026-07-14:
    "more detailed analysis, bullet points, actual keywords/targets to
@@ -397,7 +396,7 @@ specific change named, never execute it from this skill.
   investigation) -> `amazon-ads`.
 - Bulk campaign create/update -> `amazon-campaign-builder`.
 - Full audit narratives (prospect/bulk-file or AdLabs-managed) ->
-  `amazon-ad-audit` / `amazon-adlabs-audit`.
+  `amazon-audit`.
 
 ## Rules
 
@@ -419,18 +418,16 @@ specific change named, never execute it from this skill.
   differ from every other brand's. The real mappings live only in
   `_local/ads-monitor/brand-aliases.json` and the Notion "Brand Identity /
   Alias Resolver" page, never in this repo.
-  Before matching a Sellerboard feed to a Notion Ops Profile row, a Slack
+  Before matching a Sellerboard feed to a shared Amazon Ops profile, a Slack
   channel, or an AdLabs profile, normalize the name (lowercase, strip
   spaces/hyphens) and resolve it through this alias map -- never assume the
   same spelling carries across systems, or you will silently report the
   wrong brand's context.
 - **Context is re-derived every run, never assumed.** Each daily and
   weekly run rebuilds the brand's lens + situation from live Slack
-  (`#<brand>-ew-amazon` + `#amazon-check`) and Notion (Ops Profiles + the
-  meeting database); `_local/ads-monitor/brand-goals.json` is only a
-  fallback seed and is updated in place when the live sources show a
-  change. A stale cached situation must never override what the live
-  channels/meeting notes say today.
+  (`#<brand>-ew-amazon` + `#amazon-check`), the shared team-vault Amazon
+  Ops profile, and Notion meeting notes. A stale durable situation must
+  never override what the live channels/meeting notes say today.
 - **Never echo Sellerboard feed tokens.** `sellerboard-feeds.json` is
   SECRET; reference a brand's feed by slug/name in chat, never paste the
   full URL with its embedded token.

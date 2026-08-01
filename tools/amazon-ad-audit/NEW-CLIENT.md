@@ -47,7 +47,7 @@ All gates must PASS (spend reconciliation, no >100% ACOS colored green, master t
 
 ## 5. Write the narrative
 
-Open the `.md` scaffold — KPIs and tables are pre-filled. Write the prose, Problems, and Growth Levers per `docs/amazon-ad-audit-playbook.md` (operator voice, second person, keep it lean — no 30-day plan / "what can be reached" / "bottom line" unless the config flags them on). Reference screenshots inline with `![caption](file.png)` (paths relative to the `.md`). Re-run the build to regenerate the branded `.docx` + `.pdf`.
+Open the `.md` scaffold — KPIs and tables are pre-filled. Write the prose, Problems, and Growth Levers per `skills/amazon-audit/SKILL.md` (operator voice, second person, keep it lean — no 30-day plan / "what can be reached" / "bottom line" unless the config flags them on). Reference screenshots inline with `![caption](file.png)` (paths relative to the `.md`). Re-run the build to regenerate the branded `.docx` + `.pdf`.
 
 ## 5b. Branding (agency identity from `_local/branding/` — see BRANDING.md)
 

@@ -37,7 +37,7 @@ reports. Get `_local/` from the Amazon Agent Team Pack (shared privately), not f
 - `_local/ads-strategy/` : rank-first strategy + PPC naming convention (source of truth, from Notion)
 - `_local/ads-knowledge/` : distilled PPC knowledge base + vetted test backlog
 - `_local/ads-signals/`  : news/creator sources + the weekly signal digest
-- `_local/ads-monitor/`  : `sellerboard-feeds.json` (SECRET tokens), `brand-goals.json`, config,
+- `_local/ads-monitor/`  : `sellerboard-feeds.json` (SECRET tokens), config,
   `inbox/` (delivered CSVs), `samples/`
 Each teammate keeps their own `_local/` plus their own connector credentials.
 

@@ -1,75 +1,58 @@
 # Amazon Agent Client Profiles
 
-Notion is the shared source of truth for operational client context. Local files are only generated cache for fast agent lookup.
+The private, Obsidian-synced agency vault is the shared source of truth for durable operational client context. Amazon Agent reads it directly and does not keep a local copy of profile data.
 
-## Notion Source
+## Canonical Source
 
-- Database: Amazon Agent Ops Profiles
-- Database URL: <notion-database-url>
-- Data source: `<notion-data-source>`
-- Parent: Brands
-- Linked brand source: Partner Success, `<partner-success-data-source>`
+Each client has one file:
 
-Each ops profile is one brand-marketplace pair, such as `Acme US` or `Example Brand DE`. Keep broad business context in Partner Success. Put agent-operational Amazon details in Amazon Agent Ops Profiles.
+```text
+Clients/{Name}/Amazon Ops.md
+```
+
+The note contains exactly one fenced JSON block with `schema_version: 1`, a canonical `client_slug`, and one or more brand-marketplace objects in `profiles`. The surrounding Markdown explains the editing contract to teammates.
+
+Resolve the vault through either:
+
+- `AMAZON_AGENT_TEAM_VAULT`
+- The first non-comment line in `_local/team-vault-path.txt`
+
+The environment variable or pointer is machine-local configuration. It stores only the path to the synced vault, not profile facts.
 
 ## Core Fields
 
-- `Profile Name`
-- `Brand`
-- `Status`
-- `Marketplace`
-- `Seller Central Name`
-- `Amazon Ads/PPC Name`
-- `SellerBoard Email`
-- `Main Stakeholders`
-- `Website`
-- `Live Amazon URL`
-- `Fulfillment Method`
-- `Production/Shipping Timing`
-- `Ship-From Details or Source`
-- `Slack Destination`
-- `Recurring Workflow Notes`
-- `Agent Safety Notes`
-- `Local Cache Key`
-- `Last Cache Sync`
-- `Source Notes`
+- `profile_key`, `profile_name`, aliases, status, and marketplace
+- Seller Central and Amazon Ads account labels
+- Stakeholders, website, listing or storefront URL, and Slack destination
+- Fulfillment method, goal/stage, situation, and recurring workflow notes
+- Production and shipping timing plus ship-from context
+- Reshipment target days, lead-time days, Amazon booking buffer, scaling multiplier, and minimum-volume threshold
+- Safety notes and evidence links
 
-## Local Cache
+Never store credentials, passwords, login emails, cookies, tokens, payment details, tax IDs, private keys, street-level warehouse addresses, browser sessions, raw reports, queues, or machine state.
 
-Local cache belongs under:
+## Lookup And Validation
 
-```text
-_local/client-profiles/
+```bash
+node tools/client-profiles/find-client-profile.mjs alphainfuse
+node tools/client-profiles/find-client-profile.mjs "Shaperluv US"
+node tools/client-profiles/find-client-profile.mjs --validate
 ```
 
-The cache is ignored by Git. It may contain client operational facts pulled from Notion, but it must not contain secrets, passwords, cookies, tokens, payment details, tax IDs, private keys, or browser session data.
+For an enabled reshipment profile, the lookup derives:
 
-Use `_local/client-profiles/profiles.json` as the primary cache file when present. The cache should include:
+```text
+effective_coverage_days = target_stock_days + lead_time_days + amazon_booking_buffer_days
+```
 
-- Notion database URL and data source ID
-- `synced_at`
-- `profiles[]`
-- Each profile's Notion URL, profile name, local cache key, marketplace, account names, timing notes, workflow notes, and safety notes
+Do not save the derived total in the vault. The validator rejects it so a stale total cannot disagree with its components.
 
 ## Agent Lookup Order
 
-For client-specific Amazon work:
+1. Read the matching team-vault `Amazon Ops.md` through the lookup tool.
+2. Read the client hub for broader durable context.
+3. Use Notion for live tasks and meeting notes.
+4. Use Slack for recent events and evidence.
+5. Use Amazon docs and MAG SOPs for workflow rules and procedures.
 
-1. Check `_local/client-profiles/profiles.json`.
-2. If the profile is missing or stale, check the Notion `Amazon Agent Ops Profiles` database.
-3. Use Partner Success only for broader client/business context.
-4. Use Amazon docs and MAG SOPs for current workflow rules and procedure.
-
-Treat local cache as disposable. Notion wins when values conflict.
-
-## Update Flow
-
-The agent should not silently change shared client facts. When it learns a better value, it should draft a proposed update with:
-
-- Profile affected
-- Current Notion value
-- Proposed replacement
-- Evidence/source
-- Risk level
-
-A teammate approves the Notion change. Local caches refresh after approval.
+If a value conflicts with the user's current evidence, do not silently choose one. In a human-supervised session, update the shared profile with a source link and validate it. Unattended runs must not edit profiles.

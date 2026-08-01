@@ -1,4 +1,0 @@
-interface:
-  display_name: "Amazon Ad / Sales Audit"
-  short_description: "End-to-end ad/sales audit: MASTER workbook and narrative"
-  default_prompt: "Use $amazon-ad-audit to build a full ad/sales audit for this brand from the downloaded export files."

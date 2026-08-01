@@ -14,7 +14,7 @@ required field is unavailable or stale through MCP. This is the script behind th
    cp tools/reshipment/config.TEMPLATE.json tools/reshipment/config.json
    ```
 
-   `config.json` is gitignored. It holds client names and local file paths and must stay local.
+   `config.json` is gitignored. It holds run-specific local file paths and a `profile_key` for each account. Stable planning inputs are loaded from the shared team-vault profile and must not be copied into this config.
 
 2. Download the same-day reports into your `downloads_dir` (default `~/Downloads`) and point each
    client's `fba` / `business` / `inventory` / `restock` field at the filename (relative to
@@ -26,6 +26,12 @@ required field is unavailable or stale through MCP. This is the script behind th
 python3 tools/reshipment/generate_reshipment.py --config tools/reshipment/config.json
 ```
 
+Validate profile resolution without reading reports or writing outputs:
+
+```bash
+python3 tools/reshipment/generate_reshipment.py --config tools/reshipment/config.json --check-config
+```
+
 Outputs are written under `<output_root>/output/<client key>/inventory/` (which is gitignored).
 
 ## Config fields
@@ -34,13 +40,11 @@ Outputs are written under `<output_root>/output/<client key>/inventory/` (which 
 |-------|---------|
 | `run_date` | Date stamp used in output filenames (`YYYY-MM-DD`). |
 | `report_days` | Demand lookback window (default 30). |
-| `target_days` | Coverage target the reshipment quantity aims for (default 66 = 45 + 7 + 14). |
-| `multiplier` | Demand multiplier, e.g. a Prime Day uplift (default 1.2). |
 | `downloads_dir` | Folder holding the downloaded reports (default `~/Downloads`). |
 | `output_root` | Where the `output/` tree is created (default the repo root). |
-| `clients[]` | One entry per brand-marketplace: `key`, `brand`, `market`, `country`, report paths, optional per-account `target_days` / `multiplier`, optional `restock_country`, and `notes`. |
-| `clients[].fba_exclude_patterns` | Optional case-insensitive regular expressions for products that must remain FBM. Matching rows receive zero FBA reshipment units and are labeled in `FBA Eligibility`. |
-| `clients[].fba_exclude_asins` | Optional exact ASIN denylist for products that must remain FBM. Use this when report titles can omit bundle or pack-count wording. Exact ASIN exclusions take precedence over report text. |
+| `clients[]` | One entry per brand-marketplace: `key`, canonical `profile_key`, `brand`, `market`, `country`, report paths, optional `restock_country`, and run-source `notes`. |
+
+The resolved shared profile supplies target stock days, lead time, Amazon booking buffer, scaling multiplier, minimum monthly FBA threshold, and any product-level FBM exclusions. The tool refuses local duplicates of these fields. It records the profile source and resolved planning components in every manifest.
 
 Requires `openpyxl` for the XLSX output (CSV/Slack/manifest are written even without it).
 
