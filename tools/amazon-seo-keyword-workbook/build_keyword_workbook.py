@@ -2374,8 +2374,8 @@ def _codex_handoff_block(cfg: dict, args: dict, missing: list[str]) -> str:
         "",
         # Per-run protocol is self-contained rather than appended to one shared file: the shared
         # team vault when the client has a folder there, otherwise the repo output tree. Falls
-        # back to the reusable Context protocol only when neither resolves.
-        f"Protocol: {resolve_handoff_path(args.get('handoff_note', ''), cfg, args, []) or '<your-vault>/Context/codex-claude-handoff-protocol.md'}",
+        # back to the repo's handoff format when neither resolves.
+        f"Protocol: {resolve_handoff_path(args.get('handoff_note', ''), cfg, args, []) or 'docs/handoff-template.md'}",
     ]
     return "\n".join(lines)
 
