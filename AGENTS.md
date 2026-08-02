@@ -477,6 +477,10 @@ Before committing doc or skill changes, run `python3 tools/lint_agent_docs.py`. 
 
 This repo is being prepared as a public-safe, reusable workspace. Before any commit that will be pushed to a public remote, follow `docs/public-release-checklist.md`: git identity (never publish a personal machine identity), no client/local data staged, public-safe content scan, no secrets, and the branch → PR flow. This applies to whichever agent performs the push (Claude or Codex); the pushing agent re-runs the checklist rather than trusting a handoff. Do not push unless the operator has explicitly asked for that specific push.
 
+## Session Completion
+
+Before the final response of a meaningful attended work session, invoke the installed `session-capture` skill. It owns the Daily, Lessons, and decision-link rules. Claude Code may satisfy this through its opt-in `SessionEnd` hook. Codex has no equivalent hook and must invoke the skill manually. Short answers and read-only checks with no durable outcome need no capture.
+
 ## Safety Rules
 
 Never inspect browser cookies, local storage, passwords, session stores, API secrets, bearer tokens, refresh tokens, bank details, tax IDs, payment identifiers, or private keys.
