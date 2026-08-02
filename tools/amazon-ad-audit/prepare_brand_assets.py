@@ -4,8 +4,8 @@
 Operator-local helper with Ecom Wizards default source paths (override via env vars).
 Agency identity (palette/fonts/strings) lives in _local/branding/branding.json — see BRANDING.md.
 
-Sources are OPERATOR-LOCAL (pCloud / installed fonts) and never committed — like the MAG-SOP local
-path in CLAUDE.md. Point EW_PCLOUD_ROOT at your local pCloud brand root (or override the individual
+Sources are OPERATOR-LOCAL (pCloud / installed fonts) and never committed, like the MAG-SOP local
+path in AGENTS.md. Point EW_PCLOUD_ROOT at your local pCloud brand root (or override the individual
 EW_* paths below). Outputs land in tools/amazon-ad-audit/brand/ (gitignored).
 
 Produces: logo_white.png and logo_black.png (transparent, from the SVGs), mark_black.png (retained
