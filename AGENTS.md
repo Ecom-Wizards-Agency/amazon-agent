@@ -255,6 +255,15 @@ Two stop-gates: **sending any creator message** and **publishing any campaign** 
 
 ## Local Output Storage
 
+**Local policy overrides these generic defaults.** Before choosing a durable
+destination or deciding whether to retain a local artifact, read
+`_local/storage-routing.md` when it exists. That setup-managed file may override
+the saving, delivery, retention and cleanup paths below. An explicit safe target
+from the operator for the current task wins over both. Security, permission and
+client-visibility guardrails never become optional. If the local policy path
+exists but is unreadable or stale, stop and report it instead of silently using
+the generic defaults.
+
 Never save generated files, exports, evidence, screenshots, review trackers, working notes, or client-specific output inside SOP or help-library folders. SOP folders should contain SOP/source documentation only.
 
 The base local artifact folders are present after clone through `.gitkeep` files, but real files inside them are ignored and must not sync to GitHub. New generated work should use lowercase `output/`; uppercase `Output/` is only a legacy ignored alias.
@@ -299,36 +308,17 @@ Controlled workflow names:
 
 Do not create a separate global overview tracker by default. If a workflow needs local context, put `README.md` or `operator-note.md` inside the relevant workflow folder. Use Notion for ongoing team status.
 
-## Which System Holds What
+## Durable Storage
 
-Six systems, one job each. Decide by what kind of thing the file is, not by which tool produced it. Agreed 29.07.2026, full reasoning in the team vault `Decisions/2026-07-29-file-storage-split.md`.
-
-| System | Holds | Ask yourself |
-|---|---|---|
-| Google Drive | Things a human opens: sheets, docs, finished deliverables, client file exchange | Will a person open it? |
-| pCloud | Heavy binaries and raw exports: PSD/AI sources, raw photos, renders, video, fonts, packaging, POE and raw report data | Is it big, binary, or a raw export? |
-| Notion | Briefs, specs, product info, live status and tasks | Is it a task or a brief? |
-| Figma | Live design work. Cloud-native, so link it, never export frames just to have a local file | Is someone designing in it right now? |
-| Team vault | What we know: run notes, decisions, playbooks, SOPs. Markdown only, links out, never copies binaries in | Is it something we learned? |
-| This repo `output/` | The current run's working copy. Local, gitignored, prunable once archived | Is it scratch for this run? |
-
-### pCloud archive
-
-`output/{slug}/{workflow}/` is the hot working copy. The durable per-client archive is pCloud:
-
-```
-<pcloud>/1_Delivery/1.1_Clients/<Client>/_Data/<workflow>/
-```
-
-`_Data/` subfolders reuse the controlled workflow names above, so the two trees mirror each other mechanically. The pCloud root comes from the `EW_PCLOUD_ROOT` env var or the gitignored `_local/pcloud-path.txt`, never a hardcoded path (this file is public). `<Client>` resolves from the slug through the team vault hub notes, the same two-step rule as run and handoff notes: frontmatter `slug:` first, then a case-insensitive folder-name match. Vault and pCloud folder names were aligned on 29.07.2026, so the vault folder name IS the pCloud folder name. Never create a client folder in pCloud to place an archive; report and skip.
-
-Archive POE runs with `node tools/opportunity-explorer/run-poe.mjs archive --client <slug>` (`--dry-run` to preview). This matters more than for other workflows: POE serves trailing windows only, so a capture that is lost cannot be fetched again. Copies are MD5-verified, already-archived files are skipped, and filenames that do not parse land in `_unsorted/` rather than being guessed into a niche folder.
-
-Do not write into a client's `(external)` folder in pCloud. That folder is shared with the client; everything outside it is internal.
+This repository supplies temporary `downloads/`, `output/` and `evidence/`
+defaults only. Durable destinations and run-close cleanup belong to the operator's
+local storage policy. When no local policy is installed, keep files in the
+gitignored defaults and report that no durable route was available rather than
+guessing or copying the same artifact to several systems.
 
 ## Google Drive Delivery
 
-Google Drive is for artifacts a HUMAN opens: client deliverables, and internal files the team reviews. It is not an archive for generated exhaust. Everything else stays local under `output/`, `downloads/`, and `evidence/` per Local Output Storage above.
+Google Drive is for artifacts a HUMAN opens: client deliverables, and internal files the team reviews. It is not an archive for generated exhaust. Everything else follows the installed local storage policy; without one, it stays in the generic `output/`, `downloads/`, and `evidence/` defaults above.
 
 Every client folder in the `Ecom Wizards` shared drive has exactly two zones, a matched pair:
 
@@ -343,7 +333,7 @@ The client is shared into `<Client> - Shared/` ONLY, never into `<Client>/`. Any
 
 **Default is internal.** If an artifact is not on the client-facing list below, it does not belong in `<Client> - Shared/`. It is cheap to promote a file later and expensive to unsee one.
 
-**Agents deliver to `- Shared/`. Agents do not route work into `- Internal/`.** Anything an agent generates that is not a finished deliverable stays in this repo under `output/{client}/{workflow}/` per Local Output Storage above. `<Client> - Internal/` exists for the files a human needs to open in Sheets or comment on, and it is a human's decision to put something there. Follow the team SOP, or leave it in the repo.
+**Agents deliver to `- Shared/`. Agents do not route work into `- Internal/`.** Anything an agent generates that is not a finished deliverable follows the local storage policy, or stays under `output/{client}/{workflow}/` when no policy is installed. `<Client> - Internal/` exists for files a human needs to open in Sheets or comment on, and it is a human's decision to put something there.
 
 What agents deliver to Drive:
 
@@ -351,12 +341,12 @@ What agents deliver to Drive:
 |---|---|
 | Keyword research workbook | `<Client> - Shared/<Keyword Research>/<Country>/` |
 | Audit MASTER `.xlsx` + narrative Google Doc | `<Client> - Shared/<Audits>/` |
-| Monthly reports, reporting downloads | `<Client> - Shared/<Reports>/` |
+| Human-facing monthly reports | `<Client> - Shared/<Reports>/` |
 | SB video briefing + Creative Reference Google Docs | `<Client> - Shared/<Video Briefings>/` (one file per batch and per product line, edited in place) |
 | FlatFilePro upload CSVs | NOT in Drive. `output/{client}/catalog/` |
-| Raw Seller Central listing exports (Category Listings Report) | NOT in Drive. `downloads/{client}/catalog/` |
+| Raw Seller Central listing exports (Category Listings Report) | NOT in Drive. Generic working path: `downloads/{client}/catalog/`; apply the installed local archive/cleanup policy at run close. |
 
-Subfolder names inside `<Client> - Shared/` vary per client for historical reasons (`Keyword Research` in one, `02 Keyword Research` in another). Before saving, LIST the folder and reuse the existing one. Never create a spelling or numbering variant next to an existing folder, and never create a new top-level subfolder inside `<Client> - Shared/`. The four rows above are where AGENTS deliver, not a complete inventory of what the client sees. The rule for anything else in the folder: if you did not create it, leave it exactly as it is. Do not move, rename, reorganize, or flag it as misplaced. A client folder legitimately holds team-managed folders that no agent ever writes to, `Creative Assets` being one example, and the absence of a folder from the four rows says nothing about whether it belongs. If an artifact you generated does not fit the four rows, it is not a client deliverable. Leave it in `output/`.
+Subfolder names inside `<Client> - Shared/` vary per client for historical reasons (`Keyword Research` in one, `02 Keyword Research` in another). Before saving, LIST the folder and reuse the existing one. Never create a spelling or numbering variant next to an existing folder, and never create a new top-level subfolder inside `<Client> - Shared/`. The delivery rows above are not a complete inventory of what the client sees. The rule for anything else in the folder: if you did not create it, leave it exactly as it is. Do not move, rename, reorganize, or flag it as misplaced. A client folder legitimately holds team-managed folders that no agent ever writes to, `Creative Assets` being one example, and the absence of a folder from the delivery rows says nothing about whether it belongs. If an artifact you generated does not fit a delivery row, follow the installed local policy or leave it in `output/` when none is installed.
 
 Filename convention for everything delivered to Drive:
 
