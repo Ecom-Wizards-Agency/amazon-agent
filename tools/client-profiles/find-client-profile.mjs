@@ -93,6 +93,36 @@ function withDerivedPlanning(profile) {
   return output;
 }
 
+function validateWorkOwners(workOwners, sourceFile, errors) {
+  if (workOwners == null) return;
+  if (typeof workOwners !== "object" || Array.isArray(workOwners)) {
+    errors.push(`${sourceFile}: work_owners must be an object`);
+    return;
+  }
+
+  for (const role of ["design", "ads"]) {
+    const assignment = workOwners[role];
+    if (assignment == null) continue;
+    if (typeof assignment !== "object" || Array.isArray(assignment)) {
+      errors.push(`${sourceFile}: work_owners.${role} must be an object`);
+      continue;
+    }
+    for (const field of ["primary", "backup"]) {
+      const value = assignment[field];
+      if (value !== null && (typeof value !== "string" || !value.trim())) {
+        errors.push(`${sourceFile}: work_owners.${role}.${field} must be a non-empty string or null`);
+      }
+    }
+  }
+
+  if (
+    typeof workOwners.confirmed_on !== "string" ||
+    !/^\d{4}-\d{2}-\d{2}$/.test(workOwners.confirmed_on)
+  ) {
+    errors.push(`${sourceFile}: work_owners.confirmed_on must be an ISO date (YYYY-MM-DD)`);
+  }
+}
+
 function loadProfiles() {
   const vaultPath = resolveTeamVault();
   const files = findProfileFiles(vaultPath);
@@ -119,6 +149,8 @@ function loadProfiles() {
       errors.push(`${sourceFile}: profiles must be a non-empty array`);
       continue;
     }
+
+    validateWorkOwners(document.work_owners, sourceFile, errors);
 
     for (const finding of findSensitiveContent(document)) errors.push(`${sourceFile}: ${finding}`);
 
@@ -155,6 +187,7 @@ function loadProfiles() {
       profiles.push({
         ...withDerivedPlanning(profile),
         client_slug: document.client_slug,
+        work_owners: document.work_owners ?? null,
         source_file: sourceFile,
       });
     }
@@ -174,6 +207,10 @@ function searchableText(profile) {
     profile.seller_central_name,
     profile.amazon_ads_ppc_name,
     profile.main_stakeholders,
+    profile.work_owners?.design?.primary,
+    profile.work_owners?.design?.backup,
+    profile.work_owners?.ads?.primary,
+    profile.work_owners?.ads?.backup,
   ]
     .filter(Boolean)
     .join(" ")

@@ -20,4 +20,6 @@ node tools/client-profiles/find-client-profile.mjs --validate
 
 The lookup parses the fenced JSON block in every `Amazon Ops.md` file. For reshipment-enabled profiles it derives `effective_coverage_days` from target stock days, lead time, and Amazon booking buffer.
 
-The validator rejects duplicate keys, malformed profiles, stored derived totals, sensitive field names, and email addresses. Profile files must not contain credentials, login emails, tokens, cookies, or machine state.
+Brand-wide work ownership is returned on every matching marketplace profile from the optional root-level `work_owners` object. `design` and `ads` each hold a `primary` and `backup` employee name (or `null`), plus a shared `confirmed_on` date and optional note. Keeping this at the document root avoids copying the same people across every marketplace.
+
+The validator rejects duplicate keys, malformed profiles, malformed work-owner assignments, stored derived totals, sensitive field names, and email addresses. Profile files must not contain credentials, login emails, tokens, cookies, or machine state.
