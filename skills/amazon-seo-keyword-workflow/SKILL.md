@@ -156,7 +156,7 @@ The vault root comes from the `AMAZON_AGENT_TEAM_VAULT` env var or `_local/team-
 
 The builder never creates a client folder in the shared vault. That vault syncs to every teammate, so a folder invented by a script, or a near-miss spelling next to the real one, is worse than no note. An unmatched client falls back to `output/` and the run warns you to create the client's hub note in the vault first.
 
-The preflight Codex block's `Protocol:` line points at whatever path this resolves to, falling back to the reusable `…/Context/codex-claude-handoff-protocol.md` only when nothing resolves.
+The preflight Codex block's `Protocol:` line points at whatever path this resolves to, falling back to the repo's `docs/handoff-template.md` only when nothing resolves.
 
 ## Campaign Structure Fill (on request)
 
