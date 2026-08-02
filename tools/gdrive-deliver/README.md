@@ -8,15 +8,23 @@ detached copy. The renderer still produces `.docx` because python-docx is what g
 branded contract in `tools/amazon-ad-audit/BRANDING.md`. That file is now an intermediate:
 it gets converted on delivery and then deleted.
 
-## Setup, once per machine
+## Two ways to convert, no setup required for either
 
-```bash
-composio link googledrive
-```
+The conversion needs an API surface that can set the target mimeType. Neither channel we
+already have does: the Drive desktop mount only copies bytes, and the Drive MCP's `copy_file`
+takes `fileId`, `parentId` and `title` with no `mimeType`, so a copy comes back the same type
+it went in.
 
-Sign in as the account that owns the `Ecom Wizards` shared drive. Until that connection
-exists the script stops after staging the `.docx` and tells you what to run, so a missing
-connection degrades to the old behaviour instead of losing the file.
+**Browser, nothing to set up.** The script stages the file, then prints a direct link to it
+and the three steps: open it, `File > Save as Google Docs`, bin the `.docx`. That is the same
+importer the API path uses, running in the session you are already signed into. Fine for
+attended work, which is most delivery.
+
+**Scripted, one command once per machine.** `composio link googledrive`, signed in as the
+account that reaches the shared drive. Then the whole thing runs unattended. Each person
+links their own Google account, so this does not centralize anything.
+
+Without the link the script exits 2 with the browser instructions and deletes nothing.
 
 ## Use
 
