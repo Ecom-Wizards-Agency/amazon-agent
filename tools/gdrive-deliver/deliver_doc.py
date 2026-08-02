@@ -169,8 +169,14 @@ def main() -> int:
 
     name = a.name or a.docx.stem
     try:
+        # Every client folder lives in the Ecom Wizards shared drive, and Drive v3 hides
+        # shared-drive items from calls that do not set supportsAllDrives. Composio does set it
+        # for us today: tested both ways into the shared drive on 02.08.2026 and the copy
+        # succeeded either way. It is passed explicitly so delivery does not depend on an
+        # undocumented default that could change without us noticing.
         copied = unwrap(composio("GOOGLEDRIVE_COPY_FILE_ADVANCED", {
             "fileId": file_id, "name": name, "mimeType": DOC_MIME, "parents": [parent_id],
+            "supportsAllDrives": True,
         }))
     except NoConnection:
         # No linked Google account on this machine. The file is already in the right folder,
@@ -193,7 +199,8 @@ def main() -> int:
         raise SystemExit(f"[deliver] conversion returned no file id:\n{json.dumps(copied)[:800]}")
 
     meta = unwrap(composio("GOOGLEDRIVE_GET_FILE_METADATA",
-                           {"fileId": doc_id, "fields": "id,name,mimeType,webViewLink,parents"}))
+                           {"fileId": doc_id, "fields": "id,name,mimeType,webViewLink,parents",
+                            "supportsAllDrives": True}))
     if meta.get("mimeType") != DOC_MIME:
         raise SystemExit(f"[deliver] {name} came back as {meta.get('mimeType')}, not a Google Doc. "
                          "Nothing was deleted; inspect it in Drive.")

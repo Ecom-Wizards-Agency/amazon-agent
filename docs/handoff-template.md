@@ -25,8 +25,17 @@ with `AMAZON_AGENT_TEAM_VAULT` or `_local/team-vault-path.txt`.
 **No YAML frontmatter.** A handoff is transient work state, not vault knowledge, and `handoff`
 is deliberately absent from the vault type vocabulary. The header lines below carry everything.
 
-One file per handoff, and the newest one for a client wins. Do not open a second file to amend
-a handoff nobody has acted on yet; edit it.
+**One file per task, not per exchange.** A task that bounces Claude to Codex and back is still one
+handoff file. The receiving agent rewrites it in place when it hands the task back: update the
+header, replace sections 1 to 3 with what the next agent must now do, and fold what it just did
+into section 4. The file is a baton, not a transcript.
+
+That means a handoff is always current rather than a pile of stale instructions somebody has to
+read in order. The record of what happened lives in the run note (`Clients/<Client>/Runs/`), which
+is where a reader should look for history. If the handoff and the run note disagree, the run note
+is the account of what happened and the handoff is only what to do next.
+
+Open a new file only for a genuinely new task.
 
 ## The shape
 
@@ -35,10 +44,11 @@ Copy this. Keep the section order and the numbering.
 ```markdown
 # Handoff: <one line, what this is>
 
-Date: DD.MM.YYYY
+Updated: DD.MM.YYYY
 From: <Claude | Codex>
 Next agent: <Codex | Claude | any>
 Status: <ready | blocked on X>
+Round: <1, 2, ... incremented each time the task changes hands>
 
 ## 1. Do this next
 
