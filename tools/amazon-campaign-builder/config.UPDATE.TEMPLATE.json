@@ -1,0 +1,99 @@
+{
+  "_README": "Per-client Amazon SP campaign UPDATE change-set. Copy to config.UPDATE.<client>-<market>.json (gitignored; only this TEMPLATE is committed). Unlike create mode, every row this produces points at a REAL live entity, so uploading the result WILL change, pause or archive real campaigns. Run: python3 tools/amazon-campaign-builder/update_campaigns.py --config <this file> --preflight → --preview (plain-English list of every planned change, writes nothing) → then without a flag to build. Output is a FILE plus a mandatory _REVIEW.md; uploading it in Campaign Manager > Bulk Operations is a separate operator-confirmed action.",
+  "_IDS": "Every ID below comes from `export_file` and nowhere else. Amazon bulksheets IDs are purely numeric; anything with a non-digit is rejected as a temp ID. Never take an ID from the console UI, a screenshot, or a previous session's memory, and re-download the export before each batch because a stale one gets IDs and current values wrong.",
+  "client": "<Client display name>",
+  "brand": "<Brand for the output filename, e.g. Acme>",
+  "marketplace": "US",
+  "date": "",
+  "export_file": "<path to a bulksheets download of the 'Sponsored Products Campaigns' tab, e.g. downloads/acme/ads/acme-us-bulk-2026-08-02.xlsx>",
+  "allow_end_date_clear": false,
+  "changes": {
+    "_note": "Delete every section you are not using. A placeholder left in place fails preflight by design rather than shipping a row you did not mean. Archives cascade: archiving a campaign covers its ad groups, keywords, targets and negatives, and the builder skips the children instead of writing redundant rows. No-op changes (setting a field to what it already is) are dropped and reported as SKIPPED.",
+
+    "archive_campaigns": [],
+    "archive_ad_groups": [],
+
+    "campaigns": [
+      {
+        "_note": "One entry per campaign to edit. Omit any field you are not changing. state: enabled|paused. bidding_strategy: Down only|Up and down|Fixed bids. placements are whole-number percentages, 0 clears the adjustment. end_date sets a date; clearing an existing one needs clear_end_date true AND allow_end_date_clear true above, because an accidental clear silently un-ends a campaign. A campaign that belongs to a portfolio keeps its Portfolio ID automatically, so an update never drops it out of the portfolio.",
+        "campaign_id": "<numeric Campaign ID from the export>",
+        "name": "",
+        "daily_budget": null,
+        "bidding_strategy": "",
+        "state": "",
+        "end_date": "",
+        "clear_end_date": false,
+        "placements": {
+          "top_of_search_placement": null,
+          "rest_of_search_placement": null,
+          "product_pages_placement": null
+        }
+      }
+    ],
+
+    "ad_groups": [
+      {
+        "_note": "Omit any field you are not changing. state: enabled|paused.",
+        "ad_group_id": "<numeric Ad Group ID from the export>",
+        "name": "",
+        "default_bid": null,
+        "state": ""
+      }
+    ],
+
+    "keywords": {
+      "_note": "pause/enable/archive take bare Keyword IDs. `replace` archives the old keyword and creates its replacement in the same ad group, which is how you change a keyword's text or match type: Amazon has no edit for either. `add` attaches new keywords to an EXISTING campaign and ad group. match_type: EXACT|BROAD|PHRASE.",
+      "pause": [],
+      "enable": [],
+      "archive": [],
+      "replace": [
+        {
+          "old_keyword_id": "<numeric Keyword ID from the export>",
+          "new_text": "",
+          "new_match_type": "",
+          "new_bid": null,
+          "state": ""
+        }
+      ],
+      "add": [
+        {
+          "campaign_id": "<numeric Campaign ID from the export>",
+          "ad_group_id": "<numeric Ad Group ID from the export>",
+          "text": "<keyword>",
+          "match_type": "EXACT",
+          "bid": null,
+          "state": ""
+        }
+      ]
+    },
+
+    "negatives": {
+      "_note": "Negatives can only be archived, never paused. `add` level: campaign|ad_group; leave level empty and it infers ad_group when an ad_group_id is present, campaign when it is not. match_type: NEGATIVE_EXACT|NEGATIVE_PHRASE.",
+      "archive": [],
+      "add": [
+        {
+          "campaign_id": "<numeric Campaign ID from the export>",
+          "ad_group_id": "",
+          "level": "",
+          "text": "<negative keyword>",
+          "match_type": "NEGATIVE_EXACT"
+        }
+      ]
+    },
+
+    "targets": {
+      "_note": "Product targeting (PAT). `expanded` true writes asin-expanded=\"...\", false writes asin=\"...\".",
+      "archive": [],
+      "add": [
+        {
+          "campaign_id": "<numeric Campaign ID from the export>",
+          "ad_group_id": "<numeric Ad Group ID from the export>",
+          "asin": "<ASIN>",
+          "expanded": false,
+          "bid": null,
+          "state": ""
+        }
+      ]
+    }
+  }
+}
