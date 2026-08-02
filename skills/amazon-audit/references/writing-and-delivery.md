@@ -300,11 +300,9 @@ branded contract, but those files are intermediates. Deliver each with
 which converts it in Drive and then deletes the Office file local and remote. There is no PDF
 renderer. Anybody who needs a PDF downloads one from the Doc.
 
-Conversion was tested on 02.08.2026 against a full audit and an SB video briefing: the full-bleed
-cover, running header, three-zone footer with live `page X of Y`, Inter, KPI cards, table styling
-and figures all survive. An earlier version of this file claimed conversion broke the cover, the
-cards and the font. That was measured and is wrong. The MASTER workbook was tested the same day:
-all 17 tabs, freeze panes, merged cells, number formats and fills survive.
+An earlier version of this file claimed conversion broke the cover, the KPI cards and the font.
+That was measured on 02.08.2026 and is wrong. What does and does not survive is recorded once, in
+`tools/gdrive-deliver/README.md`, which is also where the delivery routes and their limits live.
 
 **Ownership after delivery.** A native Google file has no "upload a new version" path, and
 re-importing over one that has been commented on detaches those comments. So: the agent owns the
@@ -313,12 +311,9 @@ a delivered file. Corrections after delivery are edited into the Doc or Sheet in
 the comments and the version history. Read the live file first and confirm with the operator, since
 the client can see it.
 
-**Getting the binaries there.** The Google Drive MCP `create_file` only takes content inline as
-base64, so a 1 MB file is roughly 1.5M tokens and the call fails. `deliver.py` handles both
-deliverables instead: pass a mount folder path and it copies the bytes in over Drive for Desktop,
-or pass a Drive folder id and it uploads through the API on a machine with no mount. Only the
-converted MASTER Sheet and the Doc go in the client folder, never raw source files. Keep the build
-script beside the output for reruns. Confirm with the operator before a prospect sees anything.
+**What goes in the client folder:** only the converted MASTER Sheet and the Doc, never raw source
+files. Keep the build script beside the output for reruns. Confirm with the operator before a
+prospect sees anything.
 
 **Attach the GoTo links** per flagged dataset on the MCP path. They are session-generated and expire,
 so describe the filters in the deliverable as well.
