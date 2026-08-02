@@ -17,7 +17,12 @@ stops. Do not make the operator translate between Codex and Claude.
 |---|---|
 | Client has a team-vault folder | `<team-vault>/Clients/<Client>/Handoffs/YYYY-MM-DD-<topic>.md` |
 | No vault folder for that client | `output/<client>/<workflow>/YYYY-MM-DD-<topic>-handoff.md` |
+| Not client work (tooling, infra, migrations) | `<team-vault>/Handoffs/YYYY-MM-DD-<topic>.md` |
 | Keyword-workbook runs | auto-generated: `build_keyword_workbook.py --config <cfg> --preflight` |
+
+The root `Handoffs/` row mirrors the vault's existing root `Runs/`, which already covers work that
+spans clients rather than belonging to one. It was added after the first handoff written to this
+format turned out to be a cross-repo migration with nowhere to live.
 
 Never in a personal vault, and never a new client folder just to hold one. Resolve the vault
 with `AMAZON_AGENT_TEAM_VAULT` or `_local/team-vault-path.txt`.
