@@ -371,7 +371,9 @@ Date first and ISO always, so folders sort chronologically. Keep the client name
 
 We do not render PDFs anywhere. Whoever needs one downloads it from the Doc, which also covers Amazon case attachments.
 
-**After first delivery the Doc belongs to a human.** There is no "upload a new version" path for a native Doc, and re-importing over one that has been commented on detaches the comments. Re-render and re-deliver freely before the client has seen it. After that, edit the Doc.
+**After first delivery the Doc belongs to a human.** There is no "upload a new version" path for a native Doc, and re-importing over one that has been commented on detaches the comments. Re-render and re-deliver freely before the client has seen it. After that, never re-render over it.
+
+Text changes after delivery are made **in the Doc**, which preserves comments and version history. An agent may do that directly (`GOOGLEDOCS_REPLACE_ALL_TEXT` for unambiguous strings, `GOOGLEDOCS_UPDATE_DOCUMENT_SECTION_MARKDOWN` for a bounded range, after reading the current text), or in the browser. Two rules: read the live Doc first, because the operator may have edited it and a blind global replace hits every occurrence; and a delivered Doc is client-visible, so confirm with the operator before editing one. Anything beyond text (restyling, new KPI cards, changed tables or figures) comes from the renderer and means a new document, not an edit.
 
 > The **team vault `SOPs/google-drive-structure.md` is the source of truth** for Drive structure, the `- Internal/` decision queue, archiving, permissions, and onboarding or converting a client. This section carries only what an agent needs at the moment it writes a file. It deliberately does not restate the rest, because the previous duplicate copy drifted from the SOP within two days. If the two ever disagree, the SOP wins.
 

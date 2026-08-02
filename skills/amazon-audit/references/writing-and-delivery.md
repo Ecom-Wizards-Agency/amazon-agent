@@ -307,6 +307,8 @@ cards and the font. That was measured and is wrong.
 **Ownership after delivery.** A native Doc has no "upload a new version" path, and re-importing over
 a Doc that has been commented on detaches those comments. So: the agent owns the Doc up to first
 delivery and may re-render freely, and a human owns it after. Never re-render over a delivered Doc.
+Text corrections after delivery are edited into the Doc instead, which keeps the comments and the
+version history. Read the live Doc first and confirm with the operator, since the client can see it.
 
 **Uploading the binaries.** The Google Drive MCP `create_file` only takes content inline as base64,
 so a 1 MB file is roughly 1.5M tokens and the call fails. Copy files into the local Google Drive for
