@@ -289,34 +289,36 @@ rebuild and verify by looking at the rendered pages: captions drift from figures
 
 | Posture | Ships |
 |---|---|
-| `deep` | MASTER `.xlsx` + branded Google Doc with cover, to the client's Drive audit folder |
+| `deep` | MASTER workbook as a Google Sheet + branded Google Doc with cover, to the client's Drive audit folder |
 | `monthly` | Inline consolidated report **and** branded Google Doc, no cover. Workbook on request |
 | `actions` | Prioritized action list inline: bids to cut, negatives, budgets, reallocations, each with spend impact in the profile currency and a GoTo link |
 
-**The deliverable is a native Google Doc.** The renderer produces `.docx` because python-docx is
-what gives us the branded contract, but that file is an intermediate. Deliver it with
-`python3 tools/gdrive-deliver/deliver_doc.py <docx> "<drive folder>" --name "<delivery filename>"`,
-which converts it in Drive and then deletes the `.docx` local and remote. There is no PDF renderer.
-Anybody who needs a PDF downloads one from the Doc.
+**The deliverables are native Google files**, the narrative a Doc and the MASTER workbook a Sheet.
+The renderers produce `.docx` and `.xlsx` because python-docx and openpyxl are what give us the
+branded contract, but those files are intermediates. Deliver each with
+`python3 tools/gdrive-deliver/deliver.py <file> "<drive folder>" --name "<delivery filename>"`,
+which converts it in Drive and then deletes the Office file local and remote. There is no PDF
+renderer. Anybody who needs a PDF downloads one from the Doc.
 
 Conversion was tested on 02.08.2026 against a full audit and an SB video briefing: the full-bleed
 cover, running header, three-zone footer with live `page X of Y`, Inter, KPI cards, table styling
 and figures all survive. An earlier version of this file claimed conversion broke the cover, the
-cards and the font. That was measured and is wrong.
+cards and the font. That was measured and is wrong. The MASTER workbook was tested the same day:
+all 17 tabs, freeze panes, merged cells, number formats and fills survive.
 
-**Ownership after delivery.** A native Doc has no "upload a new version" path, and re-importing over
-a Doc that has been commented on detaches those comments. So: the agent owns the Doc up to first
-delivery and may re-render freely, and a human owns it after. Never re-render over a delivered Doc.
-Text corrections after delivery are edited into the Doc instead, which keeps the comments and the
-version history. Read the live Doc first and confirm with the operator, since the client can see it.
+**Ownership after delivery.** A native Google file has no "upload a new version" path, and
+re-importing over one that has been commented on detaches those comments. So: the agent owns the
+file up to first delivery and may re-render freely, and a human owns it after. Never re-render over
+a delivered file. Corrections after delivery are edited into the Doc or Sheet instead, which keeps
+the comments and the version history. Read the live file first and confirm with the operator, since
+the client can see it.
 
-**Uploading the binaries.** The Google Drive MCP `create_file` only takes content inline as base64,
-so a 1 MB file is roughly 1.5M tokens and the call fails. Copy files into the local Google Drive for
-Desktop mount instead and let Drive sync them, then verify with `search_files parentId=<folder>`.
-That is what `deliver_doc.py` does for the document; the MASTER `.xlsx` still goes over the mount by
-hand. Delete or replace by operating on the mount file, and MD5-verify local against Drive. Only the
-MASTER `.xlsx` and the Doc go in the client folder, never raw source files. Keep the build script
-beside the output for reruns. Confirm with the operator before a prospect sees anything.
+**Getting the binaries there.** The Google Drive MCP `create_file` only takes content inline as
+base64, so a 1 MB file is roughly 1.5M tokens and the call fails. `deliver.py` handles both
+deliverables instead: pass a mount folder path and it copies the bytes in over Drive for Desktop,
+or pass a Drive folder id and it uploads through the API on a machine with no mount. Only the
+converted MASTER Sheet and the Doc go in the client folder, never raw source files. Keep the build
+script beside the output for reruns. Confirm with the operator before a prospect sees anything.
 
 **Attach the GoTo links** per flagged dataset on the MCP path. They are session-generated and expire,
 so describe the filters in the deliverable as well.
