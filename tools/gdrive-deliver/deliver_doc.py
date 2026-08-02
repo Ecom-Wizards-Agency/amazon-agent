@@ -41,6 +41,25 @@ class NoConnection(Exception):
     """Composio has no Google account linked on this machine."""
 
 
+def mount_account(path: Path) -> str | None:
+    """The Google account that owns the Drive mount `path` sits in.
+
+    Drive for Desktop names its mount `GoogleDrive-<email>`, so the destination folder
+    states whose Drive it is. That is what makes the identity check below possible without
+    asking anybody to configure their own address anywhere.
+    """
+    for part in path.resolve().parts:
+        if part.startswith("GoogleDrive-") and "@" in part:
+            return part.split("GoogleDrive-", 1)[1]
+    return None
+
+
+def linked_account() -> str:
+    """The Google account Composio is linked as on this machine. Raises NoConnection."""
+    about = unwrap(composio("GOOGLEDRIVE_GET_ABOUT", {"fields": "user"}))
+    return (about.get("user") or {}).get("emailAddress", "")
+
+
 def drive_id(path: Path) -> str | None:
     """The Drive file/folder id the desktop client stamps on every synced item.
 
@@ -112,6 +131,27 @@ def main() -> int:
         raise SystemExit(f"[deliver] no such file: {a.docx}")
     if not a.folder.is_dir():
         raise SystemExit(f"[deliver] destination folder does not exist: {a.folder}")
+
+    # Whose Drive are we writing into, and who would we be acting as? Composio keeps its
+    # connections server-side under the API key in ~/.composio, so a key copied between
+    # machines would silently make everybody deliver as whoever linked Google first. Rather
+    # than rely on people setting that up correctly, refuse to act as the wrong account.
+    owner = mount_account(a.folder)
+    scripted = True
+    try:
+        acting_as = linked_account()
+    except NoConnection:
+        scripted = False
+        acting_as = ""
+    if scripted and owner and acting_as and owner.lower() != acting_as.lower():
+        raise SystemExit(
+            f"[deliver] Refusing to deliver. This folder is in {owner}'s Drive, but Composio on "
+            f"this machine is linked as {acting_as}.\n"
+            f"[deliver] The Doc would be created and owned by the wrong person. Fix it with "
+            f"`composio link googledrive` signed in as {owner}, or deliver through the browser, "
+            f"which always uses the Google session you are actually signed into.")
+    if scripted and acting_as:
+        print(f"[deliver] acting as {acting_as}")
 
     # A folder created moments ago has no Drive id yet either, so poll it the same way
     # rather than reporting "not in a Drive mount" for a folder that plainly is.

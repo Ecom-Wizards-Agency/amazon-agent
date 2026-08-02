@@ -8,6 +8,27 @@ detached copy. The renderer still produces `.docx` because python-docx is what g
 branded contract in `tools/amazon-ad-audit/BRANDING.md`. That file is now an intermediate:
 it gets converted on delivery and then deleted.
 
+## Whose Google account this acts as
+
+The short answer: **it cannot act as somebody else's.** The script reads the account that owns
+the Drive mount straight off the path (Drive for Desktop names it `GoogleDrive-<email>`), asks
+Composio which account it is linked as, and refuses to deliver if the two differ:
+
+```
+[deliver] Refusing to deliver. This folder is in victor@ecomwizards.agency's Drive, but
+Composio on this machine is linked as danica@ecomwizards.agency.
+```
+
+That check exists because Composio keeps connections **server-side, under the API key in
+`~/.composio/user_data.json`**. Each person logging in with their own Composio account gets
+their own connections, which is the normal case. But an API key copied between machines, or
+put in 1Password as a shared company credential, would silently make every machine deliver as
+whoever linked Google first. Do not share the key. The check is what makes that a loud failure
+instead of a quiet one.
+
+The browser path has no such failure mode at all: it uses the Google session the person is
+signed into, so it is always their own account.
+
 ## Two ways to convert, no setup required for either
 
 The conversion needs an API surface that can set the target mimeType. Neither channel we
