@@ -58,4 +58,4 @@ The build renders a branded **A4 / Inter** `.docx` (`render_branded.py`) from th
 
 ## 6. Deliver
 
-Copy the master `.xlsx` to `delivery.drive_folder` (Google Drive). Deliver the branded audit `.docx` with `python3 tools/gdrive-deliver/deliver_doc.py <docx> "<drive folder>" --name "<YYYY-MM-DD_Client_Market_Artifact_vN>"`, which converts it to a **native Google Doc** and then deletes the `.docx` local and remote. The prospect gets the Doc link, and can download a PDF from it if they want one. Verify with the operator before anything goes to a prospect.
+Deliver both the master `.xlsx` and the branded audit `.docx` to `delivery.drive_folder` with `python3 tools/gdrive-deliver/deliver.py <file> "<drive folder>" --name "<YYYY-MM-DD_Client_Market_Artifact_vN>"`, which converts them to a **native Google Sheet** and a **native Google Doc** and then deletes the Office files local and remote. The prospect gets the Doc link, and can download a PDF from it if they want one. Verify with the operator before anything goes to a prospect.

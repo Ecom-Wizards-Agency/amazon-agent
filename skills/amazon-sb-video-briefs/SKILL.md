@@ -5,7 +5,7 @@ description: Use for Amazon Sponsored Brands VIDEO creative work, keyword-driven
 
 # Amazon SB Video Briefs
 
-Browser: Mixed. CDP (`run-poe.mjs` over the shared debug Chrome) for POE pulls; DataDive and AdLabs via MCP with no browser; delivery as a branded native Google Doc via `tools/gdrive-deliver/deliver_doc.py`.
+Browser: Mixed. CDP (`run-poe.mjs` over the shared debug Chrome) for POE pulls; DataDive and AdLabs via MCP with no browser; delivery as a branded native Google Doc via `tools/gdrive-deliver/deliver.py`.
 
 Turn search data into Sponsored Brands video briefs a video editor can execute without knowing Amazon. Core premise: Amazon is pull marketing. The shopper typed a query and is comparing tiles on a SERP. Videos are built per query cluster, designed sound-off, and tested with a fixed feedback loop. Meta-playbook techniques are used only through the adaptation layer, never raw.
 
@@ -46,7 +46,7 @@ Per client and product line, before cluster selection:
 5. Classify each confirmed cluster with the query-to-awareness map (adaptation reference, section 4). Mine reviews and query phrasing for the shopper's own words.
 6. Script: build the brief per `references/editor-brief-template.md`. Three angles over one shared Part 2 per video. Every angle leads on a different buying criterion; that is the isolated variable. All on-screen text is final copy in the marketplace language.
 7. Claims pass (advisory): run the health-claims-check flow over every on-screen card and any VO line. One claims table for the whole batch, sorted with HIGH and MEDIUM first. Every line traces to a live-listing phrase or is flagged. Record operator decisions inline, with the source and date for anything authorised against the listing. Verify claim-critical label facts against the packaging artwork when it is reachable, and if a banned term is PRINTED on the pack, add a legibility framing rule for label close-ups.
-8. Deliver: render branded via `tools/amazon-ad-audit/render_branded.py` with no cover page, then convert and place with `tools/gdrive-deliver/deliver_doc.py` (see Delivery Rule).
+8. Deliver: render branded via `tools/amazon-ad-audit/render_branded.py` with no cover page, then convert and place with `tools/gdrive-deliver/deliver.py` (see Delivery Rule).
 9. Campaign structure: one campaign per keyword, one ad group per angle (the batch). See Measurement below. Campaign creation itself routes to amazon-campaign-builder; this skill stops at the naming and the read plan.
 10. Learnings loop: when results exist, run the verdict rules and learnings checklist (adaptation reference, section 9), then write what changed back into the **Creative Reference doc**, not into a tracker.
 
@@ -82,7 +82,7 @@ So every angle test is built the same way:
 
 Briefs and Creative Reference docs deliver as **branded native Google Docs, no cover page**, rendered as `.docx` with `tools/amazon-ad-audit/render_branded.py`. Two ways in, both fine: call `render_branded.render(cfg, outdir, md_path, cover=False)` from python, or run the CLI and simply omit `--cover`. Do not write `--cover=False` on the CLI: it is a bare switch and argparse rejects an explicit value. Leave `custom_kpis` out of `metrics.json` so the KPI card strip is suppressed. Run it with the repo `.venv` python, which has python-docx.
 
-Deliver them with `python3 tools/gdrive-deliver/deliver_doc.py <docx> "<folder>" --name "<title>"` into `01_Client Sheets/<Client>/<Client> - Shared/Creative/` (client-facing, so inside the `- Shared` folder; reuse the existing folder name if it differs). That converts the `.docx` to a Google Doc and deletes it afterwards. ONE canonical Doc per batch and per product line, title WITHOUT a version suffix: the link never changes and Docs keeps version history.
+Deliver them with `python3 tools/gdrive-deliver/deliver.py <docx> "<folder>" --name "<title>"` into `01_Client Sheets/<Client>/<Client> - Shared/Creative/` (client-facing, so inside the `- Shared` folder; reuse the existing folder name if it differs). That converts the `.docx` to a Google Doc and deletes it afterwards. ONE canonical Doc per batch and per product line, title WITHOUT a version suffix: the link never changes and Docs keeps version history.
 
 Up to first delivery the Doc is the agent's and re-rendering over it is fine. After that it is the operator's: they edit it directly, and re-importing a fresh render would detach their comments. So once delivered, ALWAYS re-read the live Doc and edit it in place rather than re-rendering, and never resurrect content the operator removed.
 

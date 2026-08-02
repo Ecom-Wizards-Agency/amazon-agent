@@ -32,7 +32,7 @@ Two-agent flow (Codex gathers browser downloads; Claude pulls DataDive, builds, 
 
 9. **Brand render** — the build produces a branded **A4 / Inter** `.docx` (`render_branded.py`): light body, Signal-Orange accent, KPI cards from metrics, page-break hygiene, full black lockup in every content-page header, and a text-only footer with `page X of Y`. **Cover page only for first-time audits** (`branding.first_time` / `--cover` / `--no-cover`). One-time per machine: `prepare_brand_assets.py` populates the gitignored `brand/` assets; without them it falls back to plain `md_to_docx`.
 
-10. **Deliver** — master `.xlsx` to `delivery.drive_folder`, and the branded `.docx` through `tools/gdrive-deliver/deliver_doc.py`, which converts it to a **native Google Doc** and then deletes the `.docx` local and remote. Inspect every page of the Doc for logo proportions, page totals, clipping, overlap, and reflow. Confirm with the operator before a prospect sees it. The agent owns the Doc up to first delivery; after that a human owns it and re-rendering over it is not allowed.
+10. **Deliver** — master `.xlsx` and branded `.docx` both through `tools/gdrive-deliver/deliver.py` into `delivery.drive_folder`, which converts them to a **native Google Sheet** and a **native Google Doc** and then deletes the Office files local and remote. Inspect every page of the Doc for logo proportions, page totals, clipping, overlap, and reflow. Confirm with the operator before a prospect sees it. The agent owns the Doc up to first delivery; after that a human owns it and re-rendering over it is not allowed.
 
 ## Notes
 
