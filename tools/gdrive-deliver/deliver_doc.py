@@ -37,6 +37,10 @@ DOC_MIME = "application/vnd.google-apps.document"
 ITEM_ID_XATTR = "com.google.drivefs.item-id#S"
 
 
+class NoConnection(Exception):
+    """Composio has no Google account linked on this machine."""
+
+
 def drive_id(path: Path) -> str | None:
     """The Drive file/folder id the desktop client stamps on every synced item.
 
@@ -78,10 +82,9 @@ def composio(slug: str, payload: dict) -> dict:
     # the .docx is already staged in the right folder, only the conversion did not happen.
     if result.get("successful") is False:
         err = result.get("error") or json.dumps(result)[:400]
-        hint = ("\n[deliver] The .docx is staged in the destination folder and nothing was deleted. "
-                "Run `composio link googledrive`, then re-run this command."
-                if "connection" in str(err).lower() else "")
-        raise SystemExit(f"[deliver] {slug} failed: {err}{hint}")
+        if "connection" in str(err).lower():
+            raise NoConnection(str(err))
+        raise SystemExit(f"[deliver] {slug} failed: {err}")
     return result
 
 
@@ -110,10 +113,13 @@ def main() -> int:
     if not a.folder.is_dir():
         raise SystemExit(f"[deliver] destination folder does not exist: {a.folder}")
 
-    parent_id = drive_id(a.folder)
-    if not parent_id:
-        raise SystemExit(f"[deliver] {a.folder} is not inside a synced Google Drive mount "
-                         "(no Drive id on the folder).")
+    # A folder created moments ago has no Drive id yet either, so poll it the same way
+    # rather than reporting "not in a Drive mount" for a folder that plainly is.
+    try:
+        parent_id = wait_for_upload(a.folder, timeout=60)
+    except SystemExit:
+        raise SystemExit(f"[deliver] {a.folder} has no Drive id. Either it is not inside a synced "
+                         "Google Drive mount, or Drive for Desktop is not running.")
 
     staged = a.folder / a.docx.name
     shutil.copy2(a.docx, staged)
@@ -122,9 +128,26 @@ def main() -> int:
     print(f"[deliver] Drive id {file_id}")
 
     name = a.name or a.docx.stem
-    copied = unwrap(composio("GOOGLEDRIVE_COPY_FILE_ADVANCED", {
-        "fileId": file_id, "name": name, "mimeType": DOC_MIME, "parents": [parent_id],
-    }))
+    try:
+        copied = unwrap(composio("GOOGLEDRIVE_COPY_FILE_ADVANCED", {
+            "fileId": file_id, "name": name, "mimeType": DOC_MIME, "parents": [parent_id],
+        }))
+    except NoConnection:
+        # No linked Google account on this machine. The file is already in the right folder,
+        # so the conversion is the only missing step and a logged-in browser does it just as
+        # well: same importer, same result. Hand the operator the exact steps rather than
+        # making the delivery depend on a one-time CLI login.
+        print(f"\n[deliver] No Google account linked to Composio on this machine, so the\n"
+              f"conversion could not be scripted. {staged.name} is staged in the destination\n"
+              f"folder and nothing was deleted. Finish it either way:\n\n"
+              f"  In the browser (no setup, uses the session you are already signed into):\n"
+              f"    1. open https://docs.google.com/document/d/{file_id}/edit\n"
+              f"    2. File > Save as Google Docs\n"
+              f"    3. rename the new Doc to: {name}\n"
+              f"    4. bin {staged.name} and delete {a.docx}\n\n"
+              f"  Or once, to script it from here on:  composio link googledrive\n",
+              file=sys.stderr)
+        return 2
     doc_id = copied.get("id")
     if not doc_id:
         raise SystemExit(f"[deliver] conversion returned no file id:\n{json.dumps(copied)[:800]}")
