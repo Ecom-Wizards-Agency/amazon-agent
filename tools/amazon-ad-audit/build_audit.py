@@ -125,7 +125,7 @@ def build(cfg, cfg_path, cover=None) -> int:
     if cover is None:
         cover = bool((cfg.get("branding", {}) or {}).get("first_time", False))
 
-    # Branded deliverable (EW CI, A4, Inter): .docx + .pdf. Falls back to plain md_to_docx if unavailable.
+    # Branded deliverable (EW CI, A4, Inter): .docx. Falls back to plain md_to_docx if unavailable.
     branded = {}
     try:
         import render_branded
@@ -144,7 +144,7 @@ def build(cfg, cfg_path, cover=None) -> int:
             print(f"[build] md_to_docx skipped: {e}")
             docx_path = None
     print("\nArtifacts:")
-    for p in (audit_path, sqp_path, master_path, scaffold_md, docx_path, branded.get("pdf"), *figures):
+    for p in (audit_path, sqp_path, master_path, scaffold_md, docx_path, *figures):
         if p:
             print(f"  {p}")
     _completeness_panel(outdir)

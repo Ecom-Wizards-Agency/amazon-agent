@@ -32,7 +32,7 @@
 
 - No unresolved placeholders exist in final submission documents.
 - No comments, tracked changes, hidden text, custom properties, personal author metadata, unintended external relationships, or client leakage remain.
-- Every DOCX and PDF renders cleanly.
+- Every document renders cleanly as a Google Doc, and the PDF downloaded from it is clean and unbranded.
 - Every attachment appears in the evidence index with its purpose.
 
 ## Approval

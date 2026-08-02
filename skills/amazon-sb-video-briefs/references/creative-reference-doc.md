@@ -6,7 +6,7 @@ The standing document behind every brief. It holds what stays true between tests
 
 **Evergreen.** No performance numbers, no baselines, no dated decision log. Anything that changes with a reporting window belongs in the brief. If a section would be stale in six weeks, it does not go here.
 
-Delivered as a branded .docx, no cover, alongside the briefs in the client's Drive creative folder. Named `<Client> <Market> - <Product Line> - Creative Reference & Asset Library.docx`.
+Delivered as a branded Google Doc, no cover, alongside the briefs in the client's Drive creative folder. Named `<Client> <Market> - <Product Line> - Creative Reference & Asset Library`.
 
 ## Structure
 

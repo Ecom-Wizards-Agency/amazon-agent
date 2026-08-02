@@ -228,7 +228,7 @@ def build(config_path, outdir, force=False):
     md = "\n".join(L)
     out = outdir / f"{_slug(CLIENT)}_{_slug(markets)}_Sales_Audit_SCAFFOLD.md"
     # Do NOT clobber an authored narrative. The documented workflow is "write the prose into
-    # the pre-filled scaffold, then re-run the build to regenerate the branded .docx/.pdf",
+    # the pre-filled scaffold, then re-run the build to regenerate the branded .docx",
     # which every rebuild would otherwise silently destroy. A file still carrying the
     # `<!-- operator:` prompts is untouched boilerplate and is safe to regenerate; once those
     # are gone somebody has written into it. Pass force=True (or delete the file) to override.

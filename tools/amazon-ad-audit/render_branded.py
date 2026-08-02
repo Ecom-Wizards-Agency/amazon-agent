@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Branded audit renderer: narrative markdown + metrics -> A4 .docx + .pdf.
+"""Branded audit renderer: narrative markdown + metrics -> A4 .docx.
 
 Client- and agency-agnostic. Consumes the operator-written `*_Sales_Audit_SCAFFOLD.md` (the narrative),
 the run's `metrics.json` (for the KPI cards), the config (client / market / window / prepared_by /
@@ -21,7 +21,7 @@ Markdown conventions (superset of md_to_docx.py — which has no image support):
 KPI cards are auto-built from metrics.json and inserted right after the first H2.
 """
 from __future__ import annotations
-import os, re, json, base64, subprocess, html, io
+import re, json
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -32,22 +32,6 @@ import branding as _branding
 INK_H = CLOUD_H = ORANGE_H = MISTLINE_H = STEEL_H = MIST_H = ""
 FONT_NAME = FONT_FILE = ""
 _B: dict = {}
-_CHROMES = [
-    # macOS
-    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-    "/Applications/Chromium.app/Contents/MacOS/Chromium",
-    "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
-    # Windows: both Program Files roots, plus the per-user install Chrome
-    # increasingly defaults to. Edge is always present, so it is the fallback
-    # that makes a fresh Windows box work with no install at all.
-    r"C:\Program Files\Google\Chrome\Application\chrome.exe",
-    r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
-    os.path.expandvars(r"%LOCALAPPDATA%\Google\Chrome\Application\chrome.exe"),
-    r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
-    r"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
-    # Linux
-    "/usr/bin/google-chrome", "/usr/bin/chromium", "/usr/bin/chromium-browser",
-]
 
 
 def _apply_branding(b):
@@ -60,12 +44,6 @@ def _apply_branding(b):
 
 
 _apply_branding(_branding.load_branding({}))
-
-
-def _chrome():
-    for p in [os.environ.get("EW_CHROME", ""), os.environ.get("BRAND_CHROME", "")] + _CHROMES:
-        if p and Path(p).exists(): return p
-    return None
 
 
 def _money(v, cur="USD"):
@@ -145,7 +123,7 @@ _LEVER = re.compile(r'^(?:###\s*)?lever\s+(\d+)\s*[:\-—–]\s*(.+?)\.?$', re.I
 _IMG = re.compile(r'^!\[(.*?)\]\((.*?)\)$')
 # Inline markdown the branded renderer understands: **bold** and `code`. Keyword and
 # search-term names are written as `code` in the narratives, so without this the
-# backticks printed literally in the docx and the PDF.
+# backticks printed literally in the docx.
 _INLINE = re.compile(r'\*\*(.+?)\*\*|`([^`]+)`')
 _CODE = re.compile(r'`([^`]+)`')
 _COMMENT = re.compile(r'<!--.*?-->', re.S)
@@ -291,6 +269,18 @@ def _render_docx(blocks, M, cfg, brand_dir, cover_png, out):
             x = OxmlElement('w:' + e); x.set(qn('w:val'), 'nil'); b.append(x)
         t._tbl.tblPr.append(b)
 
+    def col_widths(t, widths):
+        # Setting cell widths alone is not enough: python-docx lays a table out with an equal
+        # tblGrid, and both Word and Google Docs size the columns from that grid unless the
+        # table is explicitly fixed-layout. Without this the running header and footer columns
+        # stayed equal thirds, which is what wrapped a long footer label onto a second line.
+        tl = OxmlElement('w:tblLayout'); tl.set(qn('w:type'), 'fixed'); t._tbl.tblPr.append(tl)
+        for col, w in zip(t.columns, widths):
+            col.width = Inches(w)
+        for row in t.rows:
+            for c, w in zip(row.cells, widths):
+                c.width = Inches(w)
+
     def compact(p):
         p.paragraph_format.space_before = Pt(0); p.paragraph_format.space_after = Pt(0)
 
@@ -415,7 +405,8 @@ def _render_docx(blocks, M, cfg, brand_dir, cover_png, out):
     hp0 = body.header.paragraphs[0]; hp0.text = ''; compact(hp0)
     ht = body.header.add_table(rows=1, cols=2, width=Inches(6.57)); ht.autofit = False
     ht.alignment = WD_TABLE_ALIGNMENT.CENTER; no_table_borders(ht)
-    hc0, hc1 = ht.rows[0].cells; hc0.width = Inches(2.05); hc1.width = Inches(4.52)
+    col_widths(ht, (2.05, 4.52))
+    hc0, hc1 = ht.rows[0].cells
     for c in (hc0, hc1): c.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
     hp = hc0.paragraphs[0]; compact(hp)
     if logo.exists(): hp.add_run().add_picture(str(logo), width=Inches(0.9))
@@ -427,9 +418,13 @@ def _render_docx(blocks, M, cfg, brand_dir, cover_png, out):
     fp0 = body.footer.paragraphs[0]; fp0.text = ''; compact(fp0)
     ft = body.footer.add_table(rows=1, cols=3, width=Inches(6.57)); ft.autofit = False
     ft.alignment = WD_TABLE_ALIGNMENT.CENTER; no_table_borders(ft)
+    # The left zone carries "<doc label> · <client>", which on a long label ("Sponsored Brands
+    # Video Briefing · AlphaInfuse") wrapped to a second line in Google Docs and broke the
+    # single-baseline footer rule. The right zone only ever holds the agency URL, so it gives
+    # the width up.
+    col_widths(ft, (3.05, 1.27, 2.25))
     fc0, fc1, fc2 = ft.rows[0].cells
-    for c, w in zip((fc0, fc1, fc2), (2.55, 1.47, 2.55)):
-        c.width = Inches(w); c.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
+    for c in (fc0, fc1, fc2): c.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
     fp = fc0.paragraphs[0]; compact(fp); runs(fp, run["footer_left"], size=8, color=MIST)
     fp = fc1.paragraphs[0]; compact(fp); fp.alignment = WD_ALIGN_PARAGRAPH.CENTER
     runs(fp, "page ", size=8, color=MIST); field(fp, "PAGE", "1"); runs(fp, " of ", size=8, color=MIST); field(fp, "NUMPAGES", "1")
@@ -461,131 +456,11 @@ def _render_docx(blocks, M, cfg, brand_dir, cover_png, out):
     return out
 
 
-# ------------------------------ PDF (HTML + Chrome) ------------------------------
-def _render_pdf(blocks, M, cfg, brand_dir, cover_png, out):
-    chrome = _chrome()
-    if not chrome: raise RuntimeError("no headless Chrome for PDF")
-    var = Path(brand_dir) / FONT_FILE
-
-    def b64(p): return base64.b64encode(Path(p).read_bytes()).decode()
-    def imguri(p): return f"data:image/png;base64,{b64(p)}"
-
-    def inl(t):
-        # Second pass inside the bold group for the same reason as the .docx path:
-        # **Problem N: `keyword` does X.** would otherwise keep its backticks.
-        return _INLINE.sub(
-            lambda m: (f"<strong>{_CODE.sub(r'<em>\1</em>', m.group(1))}</strong>"
-                       if m.group(1) is not None else f"<em>{m.group(2)}</em>"),
-            html.escape(t))
-
-    def table_html(rows):
-        head = "".join(f"<th>{inl(c)}</th>" for c in rows[0])
-        body = "".join("<tr>" + "".join(f"<td>{inl(c)}</td>" for c in r) + "</tr>" for r in rows[1:])
-        return f"<table><thead><tr>{head}</tr></thead><tbody>{body}</tbody></table>"
-
-    def kpi_html(items):
-        cs = "".join(f'<div class="kpi"><div class="kn">{html.escape(n)}</div>'
-                     f'<div class="kl">{html.escape(l)}</div>' +
-                     (f'<div class="ks">{html.escape(s)}</div>' if s else '') + '</div>' for n, l, s in items)
-        return f'<div class="kpis">{cs}</div>'
-
-    parts = []; numctr = 0
-    kpi_idx = _kpi_after(blocks) if (M.get("custom_kpis") or M.get("totals")) else -1
-    for i, (kind, payload) in enumerate(blocks):
-        if kind != "num": numctr = 0
-        # Headings and lever titles go through inl(), not bare html.escape(): a lever is
-        # routinely titled with the keyword it acts on ("Collapse `resilia` into one
-        # campaign"), and escaping alone left the backticks visible in the PDF while the
-        # .docx rendered them correctly. inl() escapes internally, so this is still safe.
-        if kind == "h2":
-            parts.append(f'<div class="rule"></div><h2>{inl(payload)}</h2>')
-            if i == kpi_idx: parts.append(kpi_html(_kpis(M)))
-        elif kind == "h3": parts.append(f'<h3>{inl(payload)}</h3>')
-        elif kind == "h4": parts.append(f'<h4>{inl(payload)}</h4>')
-        elif kind == "lever":
-            n, t = payload
-            parts.append(f'<div class="lever"><div class="eyebrow">LEVER {n}</div><h3 class="lt">{inl(t)}</h3></div>')
-        elif kind == "p": parts.append(f'<p>{inl(payload)}</p>')
-        elif kind == "note": parts.append(f'<div class="note">{inl(payload)}</div>')
-        elif kind == "bul": parts.append(f'<ul><li>{inl(payload)}</li></ul>')
-        elif kind == "num":
-            numctr += 1; parts.append(f'<div class="numline"><span class="nnum">{numctr}</span>{inl(payload)}</div>')
-        elif kind == "table": parts.append(table_html(payload))
-        elif kind == "img":
-            f, cap = payload
-            if Path(f).exists():
-                parts.append(f'<figure><img src="{imguri(f)}"><figcaption>{html.escape(cap)}</figcaption></figure>')
-    bodyhtml = "".join(parts).replace("</ul><ul>", "")
-    run = _running_text(cfg, M)
-    logo = Path(brand_dir) / _B["assets"].get("logo_black", "logo_black.png")
-    logo_content = 'content:"";'
-    if logo.exists():
-        try:
-            from PIL import Image
-            im = Image.open(logo).convert("RGBA")
-            bbox = im.getchannel("A").getbbox()
-            if bbox: im = im.crop(bbox)
-            w = 86; im = im.resize((w, max(1, round(w * im.height / im.width))), Image.Resampling.LANCZOS)
-            buf = io.BytesIO(); im.save(buf, format="PNG")
-            logo_content = f'content:url("data:image/png;base64,{base64.b64encode(buf.getvalue()).decode()}");'
-        except Exception:
-            pass
-    def css_text(s): return str(s).replace('\\', '\\\\').replace('"', '\\"')
-    fontcss = (f"@font-face{{font-family:{FONT_NAME};font-weight:100 900;font-style:normal;"
-               f"src:url(data:font/ttf;base64,{b64(var)}) format('truetype-variations');}}") if var.exists() else ""
-    coverdiv = f'<div class="cover"><img src="{imguri(cover_png)}"></div>' if cover_png else ''
-    CSS = f"""{fontcss}
-*{{box-sizing:border-box;}} html,body{{margin:0;padding:0;}}
-body{{font-family:{FONT_NAME},'Helvetica Neue',sans-serif;color:#{INK_H};font-size:10.5pt;line-height:1.55;
- -webkit-print-color-adjust:exact;print-color-adjust:exact;}}
-@page{{size:A4;margin:0.85in 0.75in 0.85in 0.75in;
- @top-left{{{logo_content}vertical-align:middle;}}
- @top-right{{content:"{css_text(run['header_right'])}";font-family:{FONT_NAME};font-size:7.5pt;font-weight:600;letter-spacing:.08em;color:#{MIST_H};vertical-align:bottom;padding-bottom:8pt;}}
- @bottom-left{{content:"{css_text(run['footer_left'])}";font-family:{FONT_NAME};font-size:8pt;color:#{MIST_H};}}
- @bottom-center{{content:"page " counter(page) " of " counter(pages);font-family:{FONT_NAME};font-size:8pt;color:#{MIST_H};}}
- @bottom-right{{content:"{css_text(run['footer_right'])}";font-family:{FONT_NAME};font-size:8pt;color:#{MIST_H};}}}}
-@page cover{{margin:0;@top-left{{content:"";background:none;}}@top-right{{content:"";}}@bottom-left{{content:"";}}@bottom-center{{content:"";}}@bottom-right{{content:"";}}}}
-.cover{{page:cover;break-after:page;position:relative;z-index:5;}}
-.cover img{{display:block;width:8.27in;height:11.69in;}}
-h2,h3,h4,.eyebrow,.lever,.rule{{break-after:avoid;}}
-tr,figure,table,.kpis,.note{{break-inside:avoid;}}
-h2{{font-weight:700;font-size:19pt;margin:2pt 0 8pt;letter-spacing:-0.01em;}}
-h3{{font-weight:700;font-size:13pt;margin:12pt 0 5pt;}}
-h4{{font-weight:700;font-size:11pt;color:#{ORANGE_H};margin:10pt 0 4pt;}}
-.lever{{margin:16pt 0 4pt;padding-top:8pt;border-top:1px solid #{MISTLINE_H};}}
-.eyebrow{{font-weight:600;font-size:8.5pt;letter-spacing:0.14em;color:#{ORANGE_H};text-transform:uppercase;}}
-h3.lt{{margin:2pt 0 6pt;font-size:14.5pt;}}
-.rule{{width:64px;height:4px;background:#{ORANGE_H};margin:16pt 0 8pt;border-radius:2px;}}
-p{{margin:0 0 7pt;orphans:2;widows:2;}} strong{{font-weight:700;}}
-ul{{margin:0 0 8pt;padding-left:16pt;}} li{{margin:0 0 4pt;}}
-.numline{{margin:0 0 6pt;padding-left:14pt;}} .nnum{{color:#{ORANGE_H};font-weight:800;margin-right:8px;}}
-.note{{border-left:3px solid #{ORANGE_H};background:#{CLOUD_H};padding:8pt 12pt;margin:0 0 10pt;
- font-size:9.5pt;color:#{STEEL_H};font-style:italic;border-radius:0 4px 4px 0;}}
-table{{width:100%;border-collapse:collapse;margin:4pt 0 12pt;font-size:8.6pt;font-variant-numeric:tabular-nums;}}
-th{{background:#{INK_H};color:#fff;font-weight:600;text-align:left;padding:6px 8px;}}
-td{{padding:5px 8px;border-bottom:1px solid #{MISTLINE_H};}} tbody tr:nth-child(even){{background:#{CLOUD_H};}}
-.kpis{{display:flex;gap:10px;margin:6pt 0 12pt;}}
-.kpi{{flex:1;background:#{CLOUD_H};border:1px solid #{MISTLINE_H};border-top:3px solid #{ORANGE_H};border-radius:6px;padding:10px 12px;}}
-.kn{{font-weight:800;font-size:22pt;letter-spacing:-0.02em;line-height:1;}}
-.kl{{font-weight:600;font-size:7.5pt;letter-spacing:0.08em;text-transform:uppercase;color:#{STEEL_H};margin-top:5px;}}
-.ks{{font-size:8.5pt;color:#{ORANGE_H};margin-top:2px;}}
-figure{{margin:8pt 0 10pt;text-align:center;}}
-figure img{{max-width:100%;border:1px solid #{MISTLINE_H};border-radius:4px;}}
-figcaption{{font-size:8.5pt;color:#{STEEL_H};font-style:italic;margin-top:5px;}}"""
-    doc = f'<!doctype html><html><head><meta charset="utf-8"><style>{CSS}</style></head><body>{coverdiv}<div class="wrap">{bodyhtml}</div></body></html>'
-    htmlp = Path(out).with_suffix(".html"); htmlp.write_text(doc)
-    subprocess.run([chrome, "--headless=new", "--disable-gpu", "--no-pdf-header-footer",
-                    f"--print-to-pdf={out}", htmlp.as_uri()], check=True,
-                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    htmlp.unlink(missing_ok=True)
-    return out
-
-
 # ------------------------------ entry ------------------------------
 def render(cfg, outdir, scaffold_md, cover=False, brand_dir=None):
-    """Render branded .docx (+ .pdf) from the narrative markdown. Returns dict of outputs.
+    """Render the branded .docx from the narrative markdown. Returns dict of outputs.
     Raises on hard failure; callers should fall back to md_to_docx."""
-    outdir = Path(outdir).resolve(); scaffold_md = Path(scaffold_md)  # absolute so headless-Chrome file:// URI works
+    outdir = Path(outdir).resolve(); scaffold_md = Path(scaffold_md)
     _apply_branding(_branding.load_branding(cfg))
     brand_dir = Path(brand_dir or _bcfg(cfg, "brand_dir") or _B["assets"]["brand_dir"] or (HERE / "brand"))
     M = json.loads((outdir / "metrics.json").read_text())
@@ -606,12 +481,6 @@ def render(cfg, outdir, scaffold_md, cover=False, brand_dir=None):
 
     _render_docx(blocks, M, cfg, brand_dir, cover_png, out_docx)
     result["docx"] = out_docx; print("[brand] wrote", out_docx.name)
-    try:
-        out_pdf = outdir / f"{stem}_BRANDED.pdf"
-        _render_pdf(blocks, M, cfg, brand_dir, cover_png, out_pdf)
-        result["pdf"] = out_pdf; print("[brand] wrote", out_pdf.name)
-    except Exception as e:
-        print(f"[brand] PDF skipped: {e}")
     return result
 
 

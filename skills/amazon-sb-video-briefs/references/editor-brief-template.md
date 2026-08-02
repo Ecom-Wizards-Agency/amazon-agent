@@ -2,7 +2,7 @@
 
 One brief = one batch. One section per video. One video = three ANGLES over one shared second half, so three cuts.
 
-The brief must be executable by an editor who knows nothing about Amazon. Every section below is mandatory unless marked optional. Deliver as ONE branded .docx per batch, no cover page, in the client's Drive creative folder.
+The brief must be executable by an editor who knows nothing about Amazon. Every section below is mandatory unless marked optional. Deliver as ONE branded Google Doc per batch, no cover page, in the client's Drive creative folder.
 
 The brief carries execution only. The evidence behind the angle (shelf map, review mining, cluster data, baselines) lives in the Creative Reference & Asset Library and is never restated here.
 

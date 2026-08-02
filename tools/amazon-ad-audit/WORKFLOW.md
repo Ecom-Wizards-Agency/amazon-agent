@@ -30,9 +30,9 @@ Two-agent flow (Codex gathers browser downloads; Claude pulls DataDive, builds, 
 
 8. **Narrative** — write the prose/Problems/Levers into the pre-filled scaffold per `skills/amazon-audit/SKILL.md`. Keep lean (no 30-day plan / "what can be reached" / "bottom line" unless config flags them). Reference screenshots inline as `![caption](file.png)`.
 
-9. **Brand render** — the build produces a branded **A4 / Inter** `.docx` + `.pdf` (`render_branded.py`): light body, Signal-Orange accent, KPI cards from metrics, page-break hygiene, full black lockup in every content-page header, and a text-only footer with `page X of Y`. **Cover page only for first-time audits** (`branding.first_time` / `--cover` / `--no-cover`). One-time per machine: `prepare_brand_assets.py` populates the gitignored `brand/` assets; without them it falls back to plain `md_to_docx`.
+9. **Brand render** — the build produces a branded **A4 / Inter** `.docx` (`render_branded.py`): light body, Signal-Orange accent, KPI cards from metrics, page-break hygiene, full black lockup in every content-page header, and a text-only footer with `page X of Y`. **Cover page only for first-time audits** (`branding.first_time` / `--cover` / `--no-cover`). One-time per machine: `prepare_brand_assets.py` populates the gitignored `brand/` assets; without them it falls back to plain `md_to_docx`.
 
-10. **Deliver** — master `.xlsx` + branded `.docx` **+ `.pdf`** to `delivery.drive_folder`. The A4 `.docx` edits in Google Docs (don't convert to a native gdoc — it breaks the cover/cards). Render and inspect every page for logo proportions, page totals, clipping, overlap, and reflow. Confirm with the operator before a prospect sees it.
+10. **Deliver** — master `.xlsx` to `delivery.drive_folder`, and the branded `.docx` through `tools/gdrive-deliver/deliver_doc.py`, which converts it to a **native Google Doc** and then deletes the `.docx` local and remote. Inspect every page of the Doc for logo proportions, page totals, clipping, overlap, and reflow. Confirm with the operator before a prospect sees it. The agent owns the Doc up to first delivery; after that a human owns it and re-rendering over it is not allowed.
 
 ## Notes
 

@@ -32,8 +32,9 @@ INTER_TTF = os.environ.get("EW_INTER_TTF",
     "InDesign-Template/Document fonts/Inter-VariableFont_slnt,wght.ttf")
 
 def _find_chrome() -> str:
-    """First Chrome/Edge that actually exists. render_branded.py resolves the
-    same way; keep the two lists in step. EW_CHROME overrides everything."""
+    """First Chrome/Edge that actually exists. This is the only Chrome dependency left in
+    the toolkit, for SVG to PNG; the renderer stopped needing one when the PDF path went.
+    EW_CHROME overrides everything."""
     override = os.environ.get("EW_CHROME", "")
     if override:
         return override

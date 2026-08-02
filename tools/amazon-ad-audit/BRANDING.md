@@ -1,6 +1,6 @@
 # Branding — the one place this is documented
 
-All branded output (audit `.docx`/`.pdf`, covers, the three audit `.xlsx` workbooks) takes its
+All branded output (the audit `.docx`, covers, the three audit `.xlsx` workbooks) takes its
 agency identity from ONE local file; the repo ships only the mechanism. Do not scatter branding
 rules across other READMEs, configs, or memories — extend this file.
 
@@ -28,6 +28,10 @@ Consumers: `render_branded.py` + `brand_cover.py` (docs), `ew_audit_style.py` �
 `build_audit_workbook.py` / `build_sqp_workbook.py` / `build_master_workbook.py` (xlsx banners,
 "Prepared by"), `narrative_scaffold.py` (byline), `md_to_docx.py` (fallback renderer).
 
+Everything here survives conversion to a native Google Doc, which is how documents are
+delivered. Verified 02.08.2026 on a full audit and an SB video briefing: cover, header
+lockup, footer fields, Inter, KPI cards, table styling and figures all import intact.
+
 ## Document layout rules (agency-independent quality bar)
 
 - Cover subtitles should say what the document is. Keep them plain and factual.
@@ -49,15 +53,17 @@ Consumers: `render_branded.py` + `brand_cover.py` (docs), `ew_audit_style.py` �
 - Put the full black agency lockup at the left of every content-page header. Preserve its proportions and required clear space. Do not substitute the standalone mark.
 - Put `<REPORT LABEL> · <MONTH YYYY>` at the right of every content-page header in uppercase Inter and the configured Mist gray.
 - Use a text-only three-column footer on every content page: `<Report label> · <Client>` at left, `page X of Y` centered, and the agency website at right.
-- Use real `PAGE` and `NUMPAGES` fields in DOCX. Use total-page counters in PDF. Keep the same Inter size, color, and baseline across all three footer zones.
+- Use real `PAGE` and `NUMPAGES` fields. They import as live Google Docs page numbers. Keep the same Inter size, color, and baseline across all three footer zones.
+- Give the header and footer tables a fixed layout with explicit column widths. python-docx lays a table out as equal thirds otherwise, and both Word and Docs size the columns from that grid, which wraps a long footer label onto a second line and breaks the shared baseline.
 - Do not show the standalone rocket mark in the footer.
 - Verify the cover and every rendered content page. Check logo proportions, resolved page totals, clipping, overlap, and content reflow before delivery.
 
 ## Toolchain notes (macOS)
 
-- SVG → PNG and HTML → PDF go through **headless Chrome** (no rsvg/inkscape/cairosvg present).
-  Chrome binary override: env `EW_CHROME` or `BRAND_CHROME`.
-- QA on generated pages: `sips` for image checks + `pypdf` for PDF page counts.
-- PDF running headers and footers are `@page` margin boxes. The cover uses a separate blank-margin-box page rule.
-- The variable font is embedded base64 into the PDF HTML; if the font file is missing the PDF
-  falls back to system fonts instead of failing.
+- SVG → PNG goes through **headless Chrome** (no rsvg/inkscape/cairosvg present), in
+  `prepare_brand_assets.py`. Chrome binary override: env `EW_CHROME` or `BRAND_CHROME`.
+- QA on generated pages: `sips` for image checks. Page counts come from the delivered
+  Google Doc, which resolves `NUMPAGES` on open.
+- There is no PDF renderer. Deliverables are `.docx` rendered by `render_branded.py` and then
+  converted to a native Google Doc on delivery (`tools/gdrive-deliver/`). When somebody needs
+  a PDF, they download it from the Doc.

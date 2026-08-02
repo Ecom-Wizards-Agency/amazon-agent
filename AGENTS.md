@@ -108,7 +108,7 @@ Default routing:
 - `amazon-ads`: Ads Console, PPC, bidding, budgets, targeting.
 - `amazon-campaign-builder`: creating Sponsored Products campaigns from a text brief → bulk-upload `.xlsx` via `tools/amazon-campaign-builder/` (file-only; upload stays operator-confirmed).
 - `amazon-ads-monitor`: automated daily (and weekly) Amazon Ads performance brief with trends, % changes, a Sellerboard-vs-AdLabs data cross-check, and goal-lens-aware philosophy-aware flags, posted to Slack → `tools/amazon-ads-monitor/` (read-only; Sellerboard "Dashboard Totals" CSV + AdLabs cross-check primary, SP Ads API v3 secondary, mock/PREVIEW fallback with no credentials).
-- `amazon-sb-video-briefs`: Sponsored Brands VIDEO creative work: keyword-driven video planning, editor briefings, SB video scripts and angle testing (`/video-brief`). Data-selected query clusters (POE + DataDive + SQP + ads data) → one branded .docx briefing per batch, section per video, three named angles over one shared second half (script tables, sound-off rules, specs, advisory health-claims table), plus a per-product-line Creative Reference & Asset Library. Pure PPC structure → `amazon-campaign-builder`/`amazon-ads`; creator sourcing → `amazon-creator-connections`.
+- `amazon-sb-video-briefs`: Sponsored Brands VIDEO creative work: keyword-driven video planning, editor briefings, SB video scripts and angle testing (`/video-brief`). Data-selected query clusters (POE + DataDive + SQP + ads data) → one branded briefing per batch, section per video, three named angles over one shared second half (script tables, sound-off rules, specs, advisory health-claims table), plus a per-product-line Creative Reference & Asset Library. Pure PPC structure → `amazon-campaign-builder`/`amazon-ads`; creator sourcing → `amazon-creator-connections`.
 - `amazon-creator-connections`: Creator Connections inbox audits, status-filtered message triage, campaign tracker updates, reply drafting (operator-confirmed sends), campaign prep to the publish checkpoint, tracker gaps, reconciliation.
 - `amazon-reporting`: fetching and formatting Seller/Ads reports, SQP, business reports, analytics workbooks; Business Reports + SQP can be fetched without manual download via `tools/report-fetcher/`. Not for audit narratives (that is `amazon-audit`).
 - `amazon-inventory-planning`: weekly FBA inventory overview, reshipment planning, pCloud outputs, Slack staging.
@@ -223,7 +223,7 @@ Source priority:
 It resolves three things, in this order:
 
 - **Data source, auto-detected, never asked.** Look the brand up in AdLabs. A managed client with a profile runs live on the MCP with no downloads: per-ASIN SQP (`search_query`) and the whole Business Report (`product` via the SP-API link) are both there, as is stock. A prospect with no profile runs from downloaded ads bulk + Business Report + SQP via the `tools/amazon-ad-audit/` toolkit. Only margin/break-even comes from outside either path (Sellerboard).
-- **Posture, the one question asked up front.** `deep` for onboarding or a prospect pitch (full narrative, cover page, MASTER workbook). `monthly` for a recurring managed review (lean, internal, learnings-forward, no cover, inline report plus branded `.docx`). `actions` for the prioritized change list only.
+- **Posture, the one question asked up front.** `deep` for onboarding or a prospect pitch (full narrative, cover page, MASTER workbook). `monthly` for a recurring managed review (lean, internal, learnings-forward, no cover, inline report plus a branded Google Doc). `actions` for the prioritized change list only.
 - **Scope, defaulted from posture.** Lens A (performance: stock, Buy Box, organic rank, SQP, funnel, ads, structure, budgets) runs on every audit. Lens B (shopper and creative: POE reviews and returns, live creative capture, listing compliance) runs on `deep`, on a quarterly pass for managed clients, or whenever Lens A's funnel tripwire fires.
 
 Neighbouring workflows that are NOT this skill:
@@ -231,7 +231,7 @@ Neighbouring workflows that are NOT this skill:
 - Weekly per-keyword SQP x PPC monitoring (`/supa`): `tools/sqp-supa/` toolkit. Answers the one question the audit cannot: did click share fall because ad spend on that keyword quietly fell? AdLabs-native, one pull per Sunday-Saturday week, per-client config gitignored (`config.<client>-<market>.json`). Not an audit narrative and not a substitute for one.
 - Ongoing weekly MANAGEMENT of an AdLabs-managed account ("run the week", `/ppc-manage`): `amazon-ppc-management` skill. The operating counterpart to the audit (diagnose) and the monitor (observe): stock gate, run-rate pacing governor, Rank Radar graduation, opt-group audit, then AdLabs optimizer/harvest preview -> explicit operator approval per batch -> apply with an audit note. Doctrine and thresholds live in `_local/ads-strategy/strategy.md` v3 + `strategy.json` `management`.
 
-The workbooks and narrative scaffold are built by the client-agnostic toolkit `tools/amazon-ad-audit/` (per-client config from `config.TEMPLATE.json`; see its `WORKFLOW.md` and `NEW-CLIENT.md`). Note the toolkit directory keeps its original name; only the skill was renamed. Build steps, roles (Codex downloads exports, Claude pulls DataDive/builds/writes), QA gates, and delivery rules live in the `amazon-audit` skill. Client config JSONs are gitignored; deliver the MASTER `.xlsx` + narrative `.docx` to the audit folder inside `<Client> - Shared/` (see Google Drive Delivery below). Intermediate working files from the audit run are NOT deliverables: they stay in `_Working/account-check/` or local `output/`.
+The workbooks and narrative scaffold are built by the client-agnostic toolkit `tools/amazon-ad-audit/` (per-client config from `config.TEMPLATE.json`; see its `WORKFLOW.md` and `NEW-CLIENT.md`). Note the toolkit directory keeps its original name; only the skill was renamed. Build steps, roles (Codex downloads exports, Claude pulls DataDive/builds/writes), QA gates, and delivery rules live in the `amazon-audit` skill. Client config JSONs are gitignored; deliver the MASTER `.xlsx` + the narrative as a native Google Doc to the audit folder inside `<Client> - Shared/` (see Google Drive Delivery below). Intermediate working files from the audit run are NOT deliverables: they stay in `_Working/account-check/` or local `output/`.
 
 ## Campaign Creation Standard
 
@@ -245,7 +245,7 @@ For Sponsored Brands video creative work ("build a video brief", "better SB vide
 
 Vocabulary is Evolve-aligned so Amazon and Meta stay one system: a batch is one video, its three openings are Angle 1/2/3 (never "Hook A/B/C"), and a cut is one angle plus the shared second half. Cadence is roughly 3 angles per month. Each product line gets its own evergreen Creative Reference & Asset Library (`references/creative-reference-doc.md`) holding the claim master, shelf map, shopper language and asset requests; the brief carries execution only and never restates that evidence.
 
-Briefs and reference docs deliver as branded .docx with NO cover page, rendered via `tools/amazon-ad-audit/render_branded.py` (`cover=False`, no `custom_kpis`, repo `.venv` python) onto the Google Drive desktop mount in the client's creative folder, one canonical file edited in place, per `references/editor-brief-template.md`. The claims pass runs through the `amazon-seo` health-claims layer in advisory mode (per-line operator decisions with source and date, recorded in the brief). Angle tests need one campaign per keyword and one ad group per angle (the batch), because AdLabs has no creative-level entity for Sponsored Brands. The skill never launches campaigns, changes bids, or uploads creatives; the per-client config contract lives in `tools/sb-video-briefs/` (gitignored client configs, one per product line).
+Briefs and reference docs deliver as branded **native Google Docs** with NO cover page, rendered via `tools/amazon-ad-audit/render_branded.py` (`cover=False`, no `custom_kpis`, repo `.venv` python) and converted on delivery with `tools/gdrive-deliver/deliver_doc.py` into the client's creative folder, one canonical file per `references/editor-brief-template.md`. The agent owns that Doc up to first delivery and may re-render over it freely; after delivery a human owns it and edits happen in the Doc, because re-importing detaches comments. The claims pass runs through the `amazon-seo` health-claims layer in advisory mode (per-line operator decisions with source and date, recorded in the brief). Angle tests need one campaign per keyword and one ad group per angle (the batch), because AdLabs has no creative-level entity for Sponsored Brands. The skill never launches campaigns, changes bids, or uploads creatives; the per-client config contract lives in `tools/sb-video-briefs/` (gitignored client configs, one per product line).
 
 ## Creator Connections Standard
 
@@ -350,9 +350,9 @@ What agents deliver to Drive:
 | Artifact | Location |
 |---|---|
 | Keyword research workbook | `<Client> - Shared/<Keyword Research>/<Country>/` |
-| Audit MASTER `.xlsx` + narrative `.docx`/`.pdf` | `<Client> - Shared/<Audits>/` |
+| Audit MASTER `.xlsx` + narrative Google Doc | `<Client> - Shared/<Audits>/` |
 | Monthly reports, reporting downloads | `<Client> - Shared/<Reports>/` |
-| SB video briefing `.docx` + Creative Reference `.docx` | `<Client> - Shared/<Video Briefings>/` (one file per batch and per product line, edited in place) |
+| SB video briefing + Creative Reference Google Docs | `<Client> - Shared/<Video Briefings>/` (one file per batch and per product line, edited in place) |
 | FlatFilePro upload CSVs | NOT in Drive. `output/{client}/catalog/` |
 | Raw Seller Central listing exports (Category Listings Report) | NOT in Drive. `downloads/{client}/catalog/` |
 
@@ -365,7 +365,13 @@ YYYY-MM-DD_<Client>_<Market>_<Artifact>_v<N>.<ext>
 2026-07-29_Acme_DE-IT_Preview_v1.xlsx
 ```
 
-Date first and ISO always, so folders sort chronologically. Keep the client name even though the folder already carries it, because the file has to stay identifiable after it is downloaded or forwarded. Omit `<Market>` only when the artifact genuinely spans all marketplaces. Do not reuse the older `<Client> <Market> - <Artifact> - DD.MM.YYYY` or trailing-date forms. `<Artifact>` comes from the controlled list in the team SOP; if nothing fits, add it there rather than inventing one here.
+Date first and ISO always, so folders sort chronologically. Keep the client name even though the folder already carries it, because the file has to stay identifiable after it is downloaded or forwarded. Omit `<Market>` only when the artifact genuinely spans all marketplaces. Do not reuse the older `<Client> <Market> - <Artifact> - DD.MM.YYYY` or trailing-date forms. `<Artifact>` comes from the controlled list in the team SOP; if nothing fits, add it there rather than inventing one here. A Google Doc carries the same name without the extension.
+
+**Documents deliver as native Google Docs, never as `.docx`.** A `.docx` in Drive cannot be commented on the way a Doc can, and "Open with Google Docs" hands the client a detached copy. Renderers still produce `.docx` because python-docx is what carries the branded contract, so that file is an intermediate: convert it with `python3 tools/gdrive-deliver/deliver_doc.py <docx> "<drive folder>" --name "<delivery filename>"`, which stages it on the mount, converts it in Drive, verifies the result, then deletes the `.docx` both locally and in Drive. One-time per machine: `composio link googledrive`. Nothing is deleted unless the conversion verified, so a missing connection leaves the `.docx` in the folder rather than losing it.
+
+We do not render PDFs anywhere. Whoever needs one downloads it from the Doc, which also covers Amazon case attachments.
+
+**After first delivery the Doc belongs to a human.** There is no "upload a new version" path for a native Doc, and re-importing over one that has been commented on detaches the comments. Re-render and re-deliver freely before the client has seen it. After that, edit the Doc.
 
 > The **team vault `SOPs/google-drive-structure.md` is the source of truth** for Drive structure, the `- Internal/` decision queue, archiving, permissions, and onboarding or converting a client. This section carries only what an agent needs at the moment it writes a file. It deliberately does not restate the rest, because the previous duplicate copy drifted from the SOP within two days. If the two ever disagree, the SOP wins.
 
