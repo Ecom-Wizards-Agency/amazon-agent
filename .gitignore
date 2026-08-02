@@ -56,6 +56,7 @@ tools/amazon-ad-audit/brand/*
 # Campaign builder: client campaign configs stay LOCAL ONLY; only the template ships.
 tools/amazon-campaign-builder/config.*.json
 !tools/amazon-campaign-builder/config.TEMPLATE.json
+!tools/amazon-campaign-builder/config.UPDATE.TEMPLATE.json
 
 # Local scratch dir (client artifacts, never ships)
 tmp/
