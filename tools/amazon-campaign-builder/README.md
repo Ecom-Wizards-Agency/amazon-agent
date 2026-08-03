@@ -15,6 +15,12 @@ below.
 `config.UPDATE.<client>-<market>.json` files are gitignored; only the `.TEMPLATE.json` files
 are committed.
 
+Create-mode campaign specs may set `child_state` separately from `state`. Leave it empty to
+make ad groups, product ads, targets, keywords, and negatives inherit the campaign state.
+Set `state: "paused"` with `child_state: "enabled"` when a file should be fully configured
+but only the Campaign rows should remain paused. Explicit Auto targeting-group states still
+take precedence.
+
 **Output is a file only.** This tool never uploads or touches live campaigns. Uploading via
 Campaign Manager → Bulk Operations (or any AdLabs push) is a separate, operator-confirmed
 action (stop-before-risk applies). **Update mode is the one exception to "nothing is live
@@ -133,7 +139,9 @@ remembered/hardcoded ID from a prior session. The reference is explicit that thi
 a hard upload error.
 
 **Supported operations:** campaign daily budget / bidding strategy / state / end date;
-ad-group default bid / name / state; pause/archive keywords & targets; add new
+ad-group default bid / name / state; pause/enable product ads, keywords, and product
+targets; enable paused ad-group negative keywords; archive keywords, targets, and
+negatives; add new
 keywords/negatives/PAT ASINs to existing ad groups; placement % modifiers; archive
 campaigns/ad groups.
 
@@ -175,6 +183,7 @@ The web app emits vocabulary the bulksheets 2.0 upload parser doesn't document. 
 | Bidding strategy | `Down only`/`Up and down`/`Fixed bids` | `Dynamic bids - down only`/`Dynamic bids - up and down`/`Fixed bid` |
 | PAT expanded | `similar-product="…"` | `asin-expanded="…"` |
 | Placement | `Placement Rest of Search` | `Placement Rest Of Search` |
+| Create temporary IDs | Numeric counters (`1`, `2`, …) | Non-numeric text IDs (`tmp-1`, `tmp-2`, …), as required by Amazon |
 
 Config files keep the app's short enums (`EXACT`, `Down only`, `NEGATIVE_EXACT`); the mapping happens at row-build time. Operation values: this toolkit uses `Create`/`Update`/`Archive` (capitalized, matching the English-locale bulksheets template and the already-verified create-mode output). The reference's generic examples show lowercase `create`/`update`/`archive`; verify against a live upload if this ever becomes ambiguous in practice.
 

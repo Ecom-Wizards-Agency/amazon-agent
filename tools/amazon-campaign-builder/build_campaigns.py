@@ -98,8 +98,10 @@ def campaign_forms(cfg):
 
         ctype = spec.get("campaign_type", "")
         goals = CAMPAIGN_TYPE_GOALS.get(ctype, ["Discovery"])
-        keywords = spec.get("target_asins") if ctype == "PAT" and spec.get("target_asins") \
-            else spec.get("keywords", [])
+        target_categories = spec.get("target_categories", [])
+        target_asins = spec.get("target_asins", [])
+        keywords = target_categories if ctype == "PAT" and target_categories \
+            else target_asins if ctype == "PAT" and target_asins else spec.get("keywords", [])
         if isinstance(keywords, str):
             keywords = [k for k in re.split(r"\n", keywords)]
         form = {
@@ -111,6 +113,7 @@ def campaign_forms(cfg):
             "sku": spec.get("sku", ""),
             "asin": spec.get("asin", ""),
             "keywords_raw": "\n".join(str(k) for k in keywords),
+            "target_mode": "CATEGORY" if ctype == "PAT" and target_categories else "ASIN",
             "keywords_per_campaign": int(spec.get("keywords_per_campaign") or 0),
             "transpose_keywords": bool(spec.get("transpose_keywords")),
             "swap_name_order": bool(spec.get("swap_name_order")),
@@ -122,9 +125,11 @@ def campaign_forms(cfg):
             "bidding_strategy": pick("bidding_strategy", ""),
             "portfolio_id": str(pick("portfolio_id", "")),
             "negative_keywords": spec.get("negative_keywords", []),
+            "negative_target_asins": spec.get("negative_target_asins", []),
             "negative_match_type": spec.get("negative_match_type") or "NEGATIVE_EXACT",
             "negative_level": spec.get("negative_level") or "ad_group",
             "state": pick("state", "paused"),
+            "child_state": pick("child_state", ""),
             "start_date": str(pick("start_date", "")),
             "site_restriction": pick("site_restriction", "Amazon"),
         }
@@ -173,11 +178,22 @@ def preflight(cfg):
         if ctype in ("SKW", "Halo", "BMM", "Phrase") and not kws:
             issues.append(f"{tag}: keywords[] is required for {ctype}")
         if ctype == "PAT" and not kws:
-            issues.append(f"{tag}: target_asins[] is required for PAT")
+            issues.append(f"{tag}: target_asins[] or target_categories[] is required for PAT")
         if ctype == "PAT":
-            bad = [a for a in kws if not ASIN_RE.match(a.strip().upper())]
-            if bad:
-                issues.append(f"{tag}: target_asins entries not ASIN-shaped: {', '.join(bad[:5])}")
+            if form.get("target_mode") == "CATEGORY":
+                bad = [c for c in kws if not str(c).strip().isdigit()]
+                if bad:
+                    issues.append(f"{tag}: target_categories entries must be numeric category IDs: "
+                                  f"{', '.join(bad[:5])}")
+            else:
+                bad = [a for a in kws if not ASIN_RE.match(a.strip().upper())]
+                if bad:
+                    issues.append(f"{tag}: target_asins entries not ASIN-shaped: {', '.join(bad[:5])}")
+        bad_negative_asins = [a for a in form["negative_target_asins"]
+                              if not ASIN_RE.match(str(a).strip().upper())]
+        if bad_negative_asins:
+            issues.append(f"{tag}: negative_target_asins entries not ASIN-shaped: "
+                          f"{', '.join(bad_negative_asins[:5])}")
         if form["goal"] not in GOALS:
             issues.append(f"{tag}: goal must be one of {'/'.join(GOALS)}")
         elif form["goal"] not in CAMPAIGN_TYPE_GOALS[ctype]:
@@ -199,10 +215,17 @@ def preflight(cfg):
                              f"naming-convention.md default '{expected}' for purpose {purpose} (QC-enforced table)")
         if form["state"] not in STATES:
             issues.append(f"{tag}: state must be enabled|paused")
+        if form["child_state"] and form["child_state"] not in STATES:
+            issues.append(f"{tag}: child_state must be enabled|paused (or empty to inherit state)")
         if not MIN_BID <= form["keyword_bid"] <= MAX_BID:
             issues.append(f"{tag}: keyword_bid {form['keyword_bid']} outside [{MIN_BID}, {MAX_BID}]")
         if form["daily_budget"] < MIN_BUDGET:
             issues.append(f"{tag}: daily_budget {form['daily_budget']} below Amazon's minimum {MIN_BUDGET}")
+        for placement_key in ("top_of_search_placement", "rest_of_search_placement",
+                              "product_pages_placement"):
+            pct = form[placement_key]
+            if pct is not None and not 0 <= pct <= 900:
+                issues.append(f"{tag}: {placement_key} {pct} outside [0, 900]")
         if form["negative_match_type"] not in NEGATIVE_MATCH_TYPES:
             issues.append(f"{tag}: negative_match_type must be one of {'/'.join(NEGATIVE_MATCH_TYPES)}")
         if form["negative_level"] not in NEGATIVE_LEVELS:
@@ -227,9 +250,9 @@ def preflight(cfg):
                          f"requires a Never-Ever/negative-phrase list at ad-group level from day one")
         purpose_for_qc = form["campaign_purpose"] or CAMPAIGN_TYPE_DEFAULT_PURPOSE.get(ctype, "")
         if ctype == "PAT" and form["match_type"] == "ASIN_EXPANDED" and purpose_for_qc == "SELF_TARGETING":
-            notes.append(f"{tag}: Self-Targeting Expanded needs a negative product list of the targeted ASINs "
-                         f"(naming-convention.md QC #7); this toolkit doesn't model Negative Product Targeting "
-                         f"yet; add it via an update-mode change-set after the initial build")
+            if not form["negative_target_asins"]:
+                notes.append(f"{tag}: Self-Targeting Expanded needs negative_target_asins for the exact own-ASIN "
+                             f"targets (naming-convention.md QC #7)")
         if form["start_date"]:
             try:
                 sd = datetime.strptime(form["start_date"], "%Y-%m-%d").date()
@@ -267,10 +290,12 @@ def summarize(cfg, campaigns):
         if c["targeting_type"] == "AUTO":
             targets = "4 auto groups"
         elif c["campaign_type"] == "PAT":
-            targets = f"{len(c['asins'])} ASIN target(s)"
+            targets = (f"{len(c['categories'])} category target(s)" if c.get("categories")
+                       else f"{len(c['asins'])} ASIN target(s)")
         else:
             targets = f"{len(c['keywords'])} keyword(s) [{AMAZON_MATCH[c['match_type']]}]"
-        negs = f", {len(c['negative_keywords'])} neg ({c['negative_level']})" if c["negative_keywords"] else ""
+        n_neg = len(c["negative_keywords"]) + len(c.get("negative_target_asins", []))
+        negs = f", {n_neg} negative(s)" if n_neg else ""
         lines.append(f"{c['campaign_name']}\n"
                      f"    {c['campaign_type']} · {c['targeting_type']} · {c['state']} · "
                      f"budget {c['daily_budget']:.2f} · bid {c['keyword_bid']:.2f} · "
@@ -310,12 +335,13 @@ def write_review(cfg, campaigns, rows, xlsx):
     ]
     for c in campaigns:
         targets = ("4 auto groups" if c["targeting_type"] == "AUTO"
+                   else f"{len(c['categories'])} categories" if c.get("categories")
                    else f"{len(c['asins'])} ASINs" if c["campaign_type"] == "PAT"
                    else f"{len(c['keywords'])} kw ({AMAZON_MATCH[c['match_type']]})")
         lines.append(f"| {c['campaign_name']} | {c['campaign_type']} | {c['state']} | "
                      f"{c['daily_budget']:.2f} | {c['keyword_bid']:.2f} | "
                      f"{AMAZON_BIDDING[c['bidding_strategy']]} | {targets} | "
-                     f"{len(c['negative_keywords'])} ({c['negative_level']}) |")
+                     f"{len(c['negative_keywords']) + len(c.get('negative_target_asins', []))} |")
     lines += [
         "",
         "## Upload (operator action, not automated)",
@@ -402,7 +428,8 @@ def validate(cfg, override_out=None):
             fails.append(f"row {i}: Operation != 'Create'")
         if ent != "Campaign" and str(r["Campaign ID"]) not in camp_ids:
             fails.append(f"row {i} ({ent}): Campaign ID {r['Campaign ID']} has no Campaign row")
-        if ent in ("Product Ad", "Keyword", "Negative Keyword", "Product Targeting") \
+        if ent in ("Product Ad", "Keyword", "Negative Keyword", "Product Targeting",
+                   "Negative Product Targeting") \
                 and (str(r["Campaign ID"]), str(r["Ad Group ID"])) not in ag_ids:
             fails.append(f"row {i} ({ent}): Ad Group ID {r['Ad Group ID']} has no Ad Group row "
                          f"in campaign {r['Campaign ID']}")
@@ -410,6 +437,11 @@ def validate(cfg, override_out=None):
             fails.append(f"row {i}: State '{r['State']}' invalid")
 
         if ent == "Campaign":
+            if str(r["Campaign ID"]).isdigit():
+                fails.append(
+                    f"row {i}: Create Campaign ID '{r['Campaign ID']}' is numeric; "
+                    "Amazon requires a non-numeric temporary ID"
+                )
             name = r["Campaign Name"]
             if name in camp_names:
                 fails.append(f"row {i}: duplicate campaign name '{name}' (also row {camp_names[name]}); "
@@ -429,6 +461,11 @@ def validate(cfg, override_out=None):
             elif sd < today:
                 fails.append(f"row {i}: Start Date {sd} is in the past")
         elif ent == "Ad Group":
+            if str(r["Ad Group ID"]).isdigit():
+                fails.append(
+                    f"row {i}: Create Ad Group ID '{r['Ad Group ID']}' is numeric; "
+                    "Amazon requires a non-numeric temporary ID"
+                )
             if len(str(r["Ad Group Name"])) > MAX_AD_GROUP_NAME:
                 fails.append(f"row {i}: ad group name > {MAX_AD_GROUP_NAME} chars")
             if not MIN_BID <= float(r["Ad Group Default Bid"] or 0) <= MAX_BID:
@@ -461,12 +498,13 @@ def validate(cfg, override_out=None):
             if len(words) > 10 or len(str(r["Keyword Text"])) > 80:
                 warns.append(f"row {i}: negative '{r['Keyword Text']}' over Amazon's "
                              f"10-word/80-char cap")
-        elif ent == "Product Targeting":
+        elif ent in ("Product Targeting", "Negative Product Targeting"):
             expr = str(r["Product Targeting Expression"])
-            ok = expr in AUTO_EXPRESSIONS or re.match(r'^(asin|asin-expanded)="[A-Z0-9]{10}"$', expr)
+            ok = expr in AUTO_EXPRESSIONS or re.match(
+                r'^(asin|asin-expanded)="[A-Z0-9]{10}"$|^category="[0-9]+"$', expr)
             if not ok:
                 fails.append(f"row {i}: Product Targeting Expression '{expr}' invalid")
-            if not MIN_BID <= float(r["Bid"] or 0) <= MAX_BID:
+            if ent == "Product Targeting" and not MIN_BID <= float(r["Bid"] or 0) <= MAX_BID:
                 fails.append(f"row {i}: Bid outside [{MIN_BID}, {MAX_BID}]")
 
     # cross-campaign self-competition + completeness
