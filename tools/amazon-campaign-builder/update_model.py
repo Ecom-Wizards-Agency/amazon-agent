@@ -18,7 +18,8 @@ critical rules") for the rules enforced here. In short:
   - Archiving a Campaign/Ad Group cascades to its children. This module drops any
     explicit child Archive request whose parent is archived in the same change-set,
     logging the skip to the review trail instead of emitting a redundant row.
-  - Negatives can only be archived, never paused.
+  - Campaign-level negatives can only be archived, never paused. Ad-group negatives
+    may be enabled when a create batch left them paused under a paused campaign.
 
 This module only reads a .xlsx (never writes) and returns row dicts + a plain-English
 review trail; update_campaigns.py does the file I/O and CLI. Nothing here touches a
@@ -65,6 +66,7 @@ class ExportIndex:
     def __init__(self):
         self.campaigns = {}    # Campaign ID -> row dict
         self.ad_groups = {}    # Ad Group ID -> row dict
+        self.product_ads = {}  # Ad ID -> row dict
         self.keywords = {}     # Keyword ID -> row dict (Entity == Keyword)
         self.negatives = {}    # Keyword ID -> row dict (Negative Keyword / Campaign Negative Keyword)
         self.targets = {}      # Product Targeting ID -> row dict (Entity == Product Targeting)
@@ -86,6 +88,10 @@ class ExportIndex:
     def keyword_parents(self, keyword_id):
         k = self.keywords.get(_s(keyword_id))
         return (_s(k.get("Campaign ID")), _s(k.get("Ad Group ID"))) if k else ("", "")
+
+    def product_ad_parents(self, ad_id):
+        ad = self.product_ads.get(_s(ad_id))
+        return (_s(ad.get("Campaign ID")), _s(ad.get("Ad Group ID"))) if ad else ("", "")
 
     def negative_parents(self, negative_id):
         n = self.negatives.get(_s(negative_id))
@@ -111,7 +117,20 @@ def read_export(path, sheet_name=None):
     rows = list(ws.iter_rows(values_only=True))
     if not rows:
         raise ValueError(f"'{name}' tab is empty in {path}")
-    header = [str(h).strip() if h is not None else "" for h in rows[0]]
+    raw_header = [str(h).strip() if h is not None else "" for h in rows[0]]
+    canonical_by_lower = {column.lower(): column for column in SP_COLUMNS}
+    header = [canonical_by_lower.get(column.lower(), column) for column in raw_header]
+    entity_names = {
+        "campaign": "Campaign",
+        "bidding adjustment": "Bidding Adjustment",
+        "ad group": "Ad Group",
+        "product ad": "Product Ad",
+        "keyword": "Keyword",
+        "negative keyword": "Negative Keyword",
+        "campaign negative keyword": "Campaign Negative Keyword",
+        "product targeting": "Product Targeting",
+        "negative product targeting": "Negative Product Targeting",
+    }
 
     idx = ExportIndex()
     for raw in rows[1:]:
@@ -120,11 +139,14 @@ def read_export(path, sheet_name=None):
         if not any(str(v).strip() for v in row.values()):
             continue
         idx.raw_rows.append(row)
-        ent = _s(row.get("Entity"))
+        ent = entity_names.get(_s(row.get("Entity")).lower(), _s(row.get("Entity")))
+        row["Entity"] = ent
         if ent == "Campaign":
             idx.campaigns[_s(row.get("Campaign ID"))] = row
         elif ent == "Ad Group":
             idx.ad_groups[_s(row.get("Ad Group ID"))] = row
+        elif ent == "Product Ad":
+            idx.product_ads[_s(row.get("Ad ID"))] = row
         elif ent == "Keyword":
             idx.keywords[_s(row.get("Keyword ID"))] = row
         elif ent in ("Negative Keyword", "Campaign Negative Keyword"):
@@ -345,6 +367,32 @@ def build_change_set_rows(changes, export, *, allow_end_date_clear=False):
         review.append(f"ARCHIVE Ad Group {agid} ({row['Ad Group Name']}); cascades to its "
                       f"Keywords, Product Targeting, and Negatives")
 
+    # ---------------------------------------------------- product ads
+    product_ads = changes.get("product_ads", {})
+    for action, target_state in (("pause", "paused"), ("enable", "enabled")):
+        for ad_id in product_ads.get(action, []):
+            ad_id = _s(ad_id)
+            if ad_id not in export.product_ads:
+                errors.append(f"product_ads.{action}: Ad ID {ad_id!r} not found in the export")
+                continue
+            camp, ag = export.product_ad_parents(ad_id)
+            parent, parent_kind = parent_archived(camp, ag)
+            if parent:
+                review.append(f"SKIPPED (parent archived): Product Ad {ad_id} {action}, because "
+                              f"its {parent_kind} {parent} is archived in this file")
+                continue
+            exrow = export.product_ads[ad_id]
+            if _s(exrow.get("State")) == target_state:
+                review.append(f"SKIPPED (no-op): Product Ad {ad_id} is already {target_state}")
+                continue
+            row = _empty_row("Update")
+            row["Entity"] = "Product Ad"
+            row["Campaign ID"], row["Ad Group ID"], row["Ad ID"] = camp, ag, ad_id
+            row["State"] = target_state
+            rows.append(row)
+            review.append(f"UPDATE Product Ad {ad_id}: State "
+                          f"'{exrow.get('State','')}' -> '{target_state}'")
+
     # ---------------------------------------------------- keywords
     kw = changes.get("keywords", {})
     for action, target_state in (("pause", "paused"), ("enable", "enabled")):
@@ -451,8 +499,35 @@ def build_change_set_rows(changes, export, *, allow_end_date_clear=False):
         review.append(f"ADD Keyword '{add.get('text','')}' ({row['Match Type']}) to Ad Group "
                       f"{ag} (Campaign {camp})")
 
-    # ---------------------------------------------------- negatives (archive-only, 4.7)
+    # ---------------------------------------------------- negatives
     neg = changes.get("negatives", {})
+    for negid in {_s(n) for n in neg.get("enable", [])}:
+        if negid not in export.negatives:
+            errors.append(f"negatives.enable: Negative Keyword ID {negid!r} not found in the export")
+            continue
+        exrow = export.negatives[negid]
+        if exrow.get("Entity") == "Campaign Negative Keyword":
+            errors.append(f"negatives.enable: Campaign Negative Keyword {negid} cannot be "
+                          f"state-updated; campaign-level negatives are archive-only")
+            continue
+        camp, ag = export.negative_parents(negid)
+        parent, parent_kind = parent_archived(camp, ag)
+        if parent:
+            review.append(f"SKIPPED (parent archived): Negative {negid} enable, because its "
+                          f"{parent_kind} {parent} is archived in this file")
+            continue
+        if _s(exrow.get("State")) == "enabled":
+            review.append(f"SKIPPED (no-op): Negative {negid} "
+                          f"({exrow.get('Keyword Text','')}) is already enabled")
+            continue
+        row = _empty_row("Update")
+        row["Entity"] = "Negative Keyword"
+        row["Campaign ID"], row["Ad Group ID"], row["Keyword ID"] = camp, ag, negid
+        row["State"] = "enabled"
+        rows.append(row)
+        review.append(f"UPDATE Negative Keyword {negid} ({exrow.get('Keyword Text','')}): "
+                      f"State '{exrow.get('State','')}' -> 'enabled'")
+
     for negid in {_s(n) for n in neg.get("archive", [])}:
         if negid not in export.negatives:
             errors.append(f"negatives.archive: Negative Keyword ID {negid!r} not found in the export")
@@ -503,6 +578,34 @@ def build_change_set_rows(changes, export, *, allow_end_date_clear=False):
 
     # ---------------------------------------------------- product targeting (PAT)
     tgt = changes.get("targets", {})
+    for action, target_state in (("pause", "paused"), ("enable", "enabled")):
+        for tid in tgt.get(action, []):
+            tid = _s(tid)
+            if tid not in export.targets:
+                errors.append(f"targets.{action}: Product Targeting ID {tid!r} not found in the export")
+                continue
+            camp, ag = export.target_parents(tid)
+            parent, parent_kind = parent_archived(camp, ag)
+            if parent:
+                review.append(f"SKIPPED (parent archived): Target {tid} {action}, because its "
+                              f"{parent_kind} {parent} is archived in this file")
+                continue
+            exrow = export.targets[tid]
+            if _s(exrow.get("State")) == target_state:
+                review.append(f"SKIPPED (no-op): Target {tid} "
+                              f"({exrow.get('Product Targeting Expression','')}) is already "
+                              f"{target_state}")
+                continue
+            row = _empty_row("Update")
+            row["Entity"] = "Product Targeting"
+            row["Campaign ID"], row["Ad Group ID"] = camp, ag
+            row["Product Targeting ID"] = tid
+            row["State"] = target_state
+            rows.append(row)
+            review.append(f"UPDATE Product Targeting {tid} "
+                          f"({exrow.get('Product Targeting Expression','')}): State "
+                          f"'{exrow.get('State','')}' -> '{target_state}'")
+
     for tid in {_s(t) for t in tgt.get("archive", [])}:
         if tid not in export.targets:
             errors.append(f"targets.archive: Product Targeting ID {tid!r} not found in the export")

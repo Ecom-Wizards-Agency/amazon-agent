@@ -213,6 +213,7 @@ def build(cfg, override_out=None):
 # ----------------------------------------------------------------- QA gates
 PRIMARY_ID_COL = {
     "Campaign": "Campaign ID", "Ad Group": "Ad Group ID",
+    "Product Ad": "Ad ID",
     "Keyword": "Keyword ID", "Negative Keyword": "Keyword ID",
     "Campaign Negative Keyword": "Keyword ID",
     "Product Targeting": "Product Targeting ID",
@@ -221,6 +222,7 @@ PRIMARY_ID_COL = {
 }
 EXPORT_INDEX_FOR_ENTITY = {
     "Campaign": "campaigns", "Ad Group": "ad_groups", "Keyword": "keywords",
+    "Product Ad": "product_ads",
     "Negative Keyword": "negatives", "Campaign Negative Keyword": "negatives",
     "Product Targeting": "targets", "Negative Product Targeting": "neg_targets",
     "Bidding Adjustment": "campaigns",
@@ -297,10 +299,16 @@ def validate(cfg, override_out=None):
                              f"group from the export")
 
         # gate: no-op Update rows dropped (defensive re-check on the built file)
-        if op == "Update" and ent in ("Campaign", "Ad Group", "Keyword"):
+        if op == "Update" and ent in (
+            "Campaign", "Ad Group", "Product Ad", "Keyword",
+            "Negative Keyword", "Product Targeting",
+        ):
             fields = {"Campaign": ("Campaign Name", "Daily Budget", "Bidding Strategy", "State"),
                       "Ad Group": ("Ad Group Name", "Ad Group Default Bid", "State"),
-                      "Keyword": ("State",)}[ent]
+                      "Product Ad": ("State",),
+                      "Keyword": ("State",),
+                      "Negative Keyword": ("State",),
+                      "Product Targeting": ("State",)}[ent]
             if not any(str(r.get(f, "")).strip() for f in fields):
                 fails.append(f"row {i} ({ent} Update): no-op row; every editable field is "
                              f"blank; drop rows that change nothing")

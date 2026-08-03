@@ -41,6 +41,12 @@
       }
     ],
 
+    "product_ads": {
+      "_note": "pause/enable take bare Ad IDs from the fresh export. Use this when the campaign exists but a product ad child needs its state corrected.",
+      "pause": [],
+      "enable": []
+    },
+
     "keywords": {
       "_note": "pause/enable/archive take bare Keyword IDs. `replace` archives the old keyword and creates its replacement in the same ad group, which is how you change a keyword's text or match type: Amazon has no edit for either. `add` attaches new keywords to an EXISTING campaign and ad group. match_type: EXACT|BROAD|PHRASE.",
       "pause": [],
@@ -68,7 +74,8 @@
     },
 
     "negatives": {
-      "_note": "Negatives can only be archived, never paused. `add` level: campaign|ad_group; leave level empty and it infers ad_group when an ad_group_id is present, campaign when it is not. match_type: NEGATIVE_EXACT|NEGATIVE_PHRASE.",
+      "_note": "Campaign-level negatives can only be archived. A paused ad-group negative may be enabled by real Keyword ID. `add` level: campaign|ad_group; leave level empty and it infers ad_group when an ad_group_id is present, campaign when it is not. match_type: NEGATIVE_EXACT|NEGATIVE_PHRASE.",
+      "enable": [],
       "archive": [],
       "add": [
         {
@@ -82,7 +89,9 @@
     },
 
     "targets": {
-      "_note": "Product targeting (PAT). `expanded` true writes asin-expanded=\"...\", false writes asin=\"...\".",
+      "_note": "Product targeting (PAT). pause/enable/archive take bare Product Targeting IDs from the fresh export. `expanded` true writes asin-expanded=\"...\", false writes asin=\"...\".",
+      "pause": [],
+      "enable": [],
       "archive": [],
       "add": [
         {

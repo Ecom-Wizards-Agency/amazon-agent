@@ -49,7 +49,7 @@ from datetime import date
 
 # ----------------------------------------------------------------- domain constants (1:1 app)
 CAMPAIGN_TYPES = ("SKW", "Halo", "BMM", "Phrase", "Auto", "PAT")
-GOALS = ("Discovery", "Rank", "Profit")
+GOALS = ("Discovery", "Rank", "Profit", "Brand")
 MATCH_TYPES = ("EXACT", "BROAD", "PHRASE", "ASIN_EXACT", "ASIN_EXPANDED", "AUTO")
 NEGATIVE_MATCH_TYPES = ("NEGATIVE_EXACT", "NEGATIVE_PHRASE")
 NEGATIVE_LEVELS = ("ad_group", "campaign")
@@ -58,12 +58,12 @@ STATES = ("enabled", "paused")
 SITE_RESTRICTIONS = ("Amazon", "Amazon Business")
 
 CAMPAIGN_TYPE_GOALS = {
-    "SKW": ["Rank"],
+    "SKW": ["Rank", "Brand"],
     "Halo": ["Profit"],
-    "BMM": ["Discovery"],
-    "Phrase": ["Discovery"],
+    "BMM": ["Discovery", "Brand"],
+    "Phrase": ["Discovery", "Brand"],
     "Auto": ["Discovery"],
-    "PAT": ["Discovery", "Rank", "Profit"],
+    "PAT": ["Discovery", "Rank", "Profit", "Brand"],
 }
 
 CAMPAIGN_TYPE_MATCH = {
@@ -308,10 +308,12 @@ def _build_campaign(overrides, form, bidding_strategy):
         "keyword_bid": form["keyword_bid"],
         "bidding_strategy": bidding_strategy,
         "negative_keywords": form.get("negative_keywords", []),
+        "negative_target_asins": form.get("negative_target_asins", []),
         "negative_match_type": form.get("negative_match_type", "NEGATIVE_EXACT"),
         "negative_level": form.get("negative_level", "ad_group"),
         "portfolio_id": form.get("portfolio_id", ""),
         "state": form["state"],
+        "child_state": form.get("child_state") or form["state"],
         "start_date": _format_start_date(form.get("start_date", "")),
         "site_restriction": form.get("site_restriction", "Amazon"),
         "top_of_search_placement": form.get("top_of_search_placement"),
@@ -355,7 +357,7 @@ def generate_campaigns(form, naming_settings, today=None):
             "counter": counter,
         }
 
-    def push(c, kws, asins):
+    def push(c, kws, asins, categories=None):
         c = {**c, "trigger_word": trigger_word,
              "keyword_text": kws[0] if len(kws) == 1 else (c.get("target_descriptor") or "")}
         name = generate_campaign_name(naming, c, today)
@@ -369,11 +371,15 @@ def generate_campaigns(form, naming_settings, today=None):
             "keywords": kws,
             "match_type": match_type,
             "asins": asins,
+            "categories": categories or [],
             "target_descriptor": c["target_descriptor"],
         }, form, bidding))
 
     if form["campaign_type"] == "PAT":
-        push(ctx(form.get("target_descriptor", ""), 1), [], raw_keywords)
+        if form.get("target_mode") == "CATEGORY":
+            push(ctx(form.get("target_descriptor", ""), 1), [], [], raw_keywords)
+        else:
+            push(ctx(form.get("target_descriptor", ""), 1), [], raw_keywords)
         return campaigns
 
     if form["campaign_type"] == "Auto":
@@ -434,6 +440,7 @@ def build_sp_campaign_rows(campaign, defaults, next_id, today=None):
     start_date = _parse_date_to_export(campaign.get("start_date") or "", today)
     portfolio_id = campaign.get("portfolio_id") or defaults.get("portfolio_id", "")
     sites = "Amazon Business" if campaign.get("site_restriction") == "Amazon Business" else ""
+    child_state = campaign.get("child_state") or campaign["state"]
 
     campaign_id = next_id()
     ad_group_id = next_id()
@@ -474,7 +481,7 @@ def build_sp_campaign_rows(campaign, defaults, next_id, today=None):
         "Ad Group ID": ad_group_id,
         "Campaign Name": campaign["campaign_name"],
         "Ad Group Name": campaign["ad_group_name"],
-        "State": campaign["state"],
+        "State": child_state,
         "Ad Group Default Bid": _money(campaign["keyword_bid"]),
     })
 
@@ -492,7 +499,7 @@ def build_sp_campaign_rows(campaign, defaults, next_id, today=None):
             "Ad Group ID": ad_group_id,
             "Campaign Name": campaign["campaign_name"],
             "Ad Group Name": campaign["ad_group_name"],
-            "State": campaign["state"],
+            "State": child_state,
             "SKU": "" if defaults.get("vendor_central_mode") else sku,
             "ASIN": asin,
         })
@@ -509,13 +516,18 @@ def build_sp_campaign_rows(campaign, defaults, next_id, today=None):
                 "Ad Group ID": ad_group_id,
                 "Campaign Name": campaign["campaign_name"],
                 "Ad Group Name": campaign["ad_group_name"],
-                "State": state if state is not None else campaign["state"],
+                "State": state if state is not None else child_state,
                 "Bid": _money(bid if bid is not None else campaign["keyword_bid"]),
                 "Product Targeting Expression": expression,
             })
     elif campaign["campaign_type"] == "PAT":
         expanded = campaign["match_type"] == "ASIN_EXPANDED"
-        for target_asin in campaign["asins"]:
+        expressions = [f'category="{category_id}"' for category_id in campaign.get("categories", [])]
+        expressions.extend(
+            f'asin-expanded="{target_asin}"' if expanded else f'asin="{target_asin}"'
+            for target_asin in campaign["asins"]
+        )
+        for expression in expressions:
             rows.append({
                 **_empty_row(),
                 "Entity": "Product Targeting",
@@ -523,10 +535,9 @@ def build_sp_campaign_rows(campaign, defaults, next_id, today=None):
                 "Ad Group ID": ad_group_id,
                 "Campaign Name": campaign["campaign_name"],
                 "Ad Group Name": campaign["ad_group_name"],
-                "State": campaign["state"],
+                "State": child_state,
                 "Bid": _money(campaign["keyword_bid"]),
-                "Product Targeting Expression": (
-                    f'asin-expanded="{target_asin}"' if expanded else f'asin="{target_asin}"'),
+                "Product Targeting Expression": expression,
             })
     else:
         for kw in campaign["keywords"]:
@@ -537,11 +548,23 @@ def build_sp_campaign_rows(campaign, defaults, next_id, today=None):
                 "Ad Group ID": ad_group_id,
                 "Campaign Name": campaign["campaign_name"],
                 "Ad Group Name": campaign["ad_group_name"],
-                "State": campaign["state"],
+                "State": child_state,
                 "Bid": _money(campaign["keyword_bid"]),
                 "Keyword Text": kw,
                 "Match Type": AMAZON_MATCH[campaign["match_type"]],
             })
+
+    for negative_asin in campaign.get("negative_target_asins", []):
+        rows.append({
+            **_empty_row(),
+            "Entity": "Negative Product Targeting",
+            "Campaign ID": campaign_id,
+            "Ad Group ID": ad_group_id,
+            "Campaign Name": campaign["campaign_name"],
+            "Ad Group Name": campaign["ad_group_name"],
+            "State": child_state,
+            "Product Targeting Expression": f'asin="{str(negative_asin).strip().upper()}"',
+        })
 
     neg_match = AMAZON_NEG_MATCH[campaign.get("negative_match_type") or "NEGATIVE_EXACT"]
     neg_level = campaign.get("negative_level") or "ad_group"
@@ -552,7 +575,7 @@ def build_sp_campaign_rows(campaign, defaults, next_id, today=None):
                 "Entity": "Campaign Negative Keyword",
                 "Campaign ID": campaign_id,
                 "Campaign Name": campaign["campaign_name"],
-                "State": campaign["state"],
+                "State": child_state,
                 "Keyword Text": nkw,
                 "Match Type": neg_match,
             })
@@ -564,7 +587,7 @@ def build_sp_campaign_rows(campaign, defaults, next_id, today=None):
                 "Ad Group ID": ad_group_id,
                 "Campaign Name": campaign["campaign_name"],
                 "Ad Group Name": campaign["ad_group_name"],
-                "State": campaign["state"],
+                "State": child_state,
                 "Keyword Text": nkw,
                 "Match Type": neg_match,
             })

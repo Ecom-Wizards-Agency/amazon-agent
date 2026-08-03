@@ -111,6 +111,29 @@ def test_create_legacy():
     rc_build = bc.build(loaded, str(out))
     check("build+validate PASS", rc_build == 0, "build/validate returned non-zero")
     check("output file exists", out.exists())
+    built = openpyxl.load_workbook(out, data_only=True)["Sponsored Products Campaigns"]
+    campaign_ids = [
+        str(row[3])
+        for row in built.iter_rows(min_row=2, values_only=True)
+        if row[1] == "Campaign"
+    ]
+    ad_group_ids = [
+        str(row[4])
+        for row in built.iter_rows(min_row=2, values_only=True)
+        if row[1] == "Ad Group"
+    ]
+    check(
+        "Create Campaign IDs are unique non-numeric temporary text",
+        len(campaign_ids) == len(set(campaign_ids))
+        and all(value and not value.isdigit() for value in campaign_ids),
+        str(campaign_ids),
+    )
+    check(
+        "Create Ad Group IDs are unique non-numeric temporary text",
+        len(ad_group_ids) == len(set(ad_group_ids))
+        and all(value and not value.isdigit() for value in ad_group_ids),
+        str(ad_group_ids),
+    )
 
 
 # =================================================================== B. create/EW
@@ -121,7 +144,8 @@ def test_create_ew():
         "defaults": {"daily_budget": 10.0, "keyword_bid": 0.5, "state": "paused"},
         "campaigns": [
             {"campaign_type": "SKW", "product_name": "Widget", "sku": ["SKU-1"],
-             "keywords": ["red widget"]},
+             "keywords": ["red widget"], "top_of_search_placement": 55,
+             "child_state": "enabled"},
             {"campaign_type": "SKW", "campaign_purpose": "SHIELD", "product_name": "Widget",
              "sku": ["SKU-1"], "keywords": ["acme widget"]},
             {"campaign_type": "Halo", "product_name": "Widget", "target_descriptor": "long-tail",
@@ -132,6 +156,10 @@ def test_create_ew():
             {"campaign_type": "PAT", "product_name": "Widget", "sku": ["SKU-1"],
              "target_asins": ["B000000001"],
              "bidding_strategy": "Up and down"},  # deliberate override -> should NOTE in preflight
+            {"campaign_type": "PAT", "goal": "Brand", "product_name": "Widget",
+             "target_descriptor": "category", "sku": ["SKU-1"],
+             "target_categories": ["123456"],
+             "negative_target_asins": ["B000000002", "B000000003"]},
         ],
     }
     cfg_path = TMP / "cfg_ew.json"
@@ -149,11 +177,15 @@ def test_create_ew():
     auto = campaigns[3]
     self_pat = campaigns[4]
     comp_pat = campaigns[5]
+    brand_category_pat = campaigns[6]
 
     check("Rank SKW name uses trigger word 'SKW' and Keyword slot",
           rank_skw["campaign_name"] == "Rank | SP | Exact | SKW | Widget | red widget | EW",
           rank_skw["campaign_name"])
     check("Rank SKW bidding = Fixed bids (purpose default)", rank_skw["bidding_strategy"] == "Fixed bids")
+    check("campaign-level placement override is retained",
+          rank_skw["top_of_search_placement"] == 55,
+          str(rank_skw["top_of_search_placement"]))
     check("Shield SKW trigger word is 'Shield', not 'SKW'",
           "Shield" in shield_skw["campaign_name"], shield_skw["campaign_name"])
     check("Shield SKW bidding = Down only (purpose override)", shield_skw["bidding_strategy"] == "Down only")
@@ -170,6 +202,11 @@ def test_create_ew():
           self_pat["bidding_strategy"] == "Up and down")
     check("Competitor PAT bidding stays Down only by default (unaffected by the override test below)",
           True)  # comp_pat has an explicit override tested via the NOTE below
+    check("Brand goal is accepted for PAT category targeting",
+          brand_category_pat["goal"] == "Brand"
+          and brand_category_pat["categories"] == ["123456"]
+          and not brand_category_pat["asins"],
+          str({key: brand_category_pat[key] for key in ("goal", "categories", "asins")}))
 
     for c in campaigns:
         check(f"ad group name != campaign name ({c['campaign_type']})",
@@ -193,6 +230,53 @@ def test_create_ew():
     out = TMP / "ew.xlsx"
     rc_build = bc.build(loaded, str(out))
     check("build+validate PASS", rc_build == 0)
+    built = openpyxl.load_workbook(out, data_only=True)["Sponsored Products Campaigns"]
+    placement_rows = [
+        row for row in built.iter_rows(values_only=True)
+        if row[1] == "Bidding Adjustment" and row[23] == "Placement Top"
+    ]
+    check("campaign-level placement override is written to the bulk file",
+          any(row[24] == 55 for row in placement_rows),
+          str([(row[23], row[24]) for row in placement_rows]))
+    rows = list(built.iter_rows(min_row=2, values_only=True))
+    rank_campaign_id = next(
+        row[3] for row in rows
+        if row[1] == "Campaign" and row[9] == rank_skw["campaign_name"]
+    )
+    rank_rows = [row for row in rows if row[3] == rank_campaign_id]
+    rank_campaign_rows = [row for row in rank_rows if row[1] == "Campaign"]
+    rank_child_rows = [
+        row for row in rank_rows
+        if row[1] in {"Ad Group", "Product Ad", "Keyword"}
+    ]
+    check("child_state override keeps the Campaign paused",
+          len(rank_campaign_rows) == 1 and rank_campaign_rows[0][14] == "paused",
+          str([(row[1], row[14]) for row in rank_campaign_rows]))
+    check("child_state override enables all stateful child rows",
+          len(rank_child_rows) == 3 and all(row[14] == "enabled" for row in rank_child_rows),
+          str([(row[1], row[14]) for row in rank_child_rows]))
+    brand_campaign_id = next(
+        row[3] for row in rows
+        if row[1] == "Campaign" and row[9] == brand_category_pat["campaign_name"]
+    )
+    brand_rows = [row for row in rows if row[3] == brand_campaign_id]
+    expression_col = cm.SP_COLUMNS.index("Product Targeting Expression")
+    category_rows = [
+        row for row in brand_rows
+        if row[1] == "Product Targeting"
+        and row[expression_col] == 'category="123456"'
+    ]
+    negative_target_rows = [
+        row for row in brand_rows if row[1] == "Negative Product Targeting"
+    ]
+    check("PAT category targeting writes the Amazon category expression",
+          len(category_rows) == 1,
+          str([(row[1], row[expression_col]) for row in brand_rows]))
+    check("negative ASIN targeting writes one row per excluded ASIN",
+          len(negative_target_rows) == 2
+          and {row[expression_col] for row in negative_target_rows}
+          == {'asin="B000000002"', 'asin="B000000003"'},
+          str([(row[1], row[expression_col]) for row in negative_target_rows]))
 
 
 # =================================================================== C. keyword-file input
@@ -312,12 +396,31 @@ def _write_export_fixture(path):
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = cm.SHEET_NAMES["SP"]
-    ws.append(cm.SP_COLUMNS)
+    fresh_style_headers = {
+        "Ad Group ID": "Ad group ID",
+        "Campaign Name": "Campaign name",
+        "Ad Group Name": "Ad group name",
+        "Start Date": "Start date",
+        "End Date": "End date",
+        "Targeting Type": "Targeting type",
+        "Daily Budget": "Daily budget",
+        "Keyword Text": "Keyword text",
+        "Match Type": "Match type",
+        "Bidding Strategy": "Bidding strategy",
+        "Product Targeting Expression": "Product targeting expression",
+    }
+    ws.append([fresh_style_headers.get(column, column) for column in cm.SP_COLUMNS])
 
     def row(**kw):
         r = {c: "" for c in cm.SP_COLUMNS}
         r["Product"] = "Sponsored Products"
         r.update(kw)
+        r["Entity"] = {
+            "Ad Group": "Ad group",
+            "Product Ad": "Product ad",
+            "Negative Keyword": "Negative keyword",
+            "Product Targeting": "Product targeting",
+        }.get(r["Entity"], r["Entity"])
         ws.append([r[c] for c in cm.SP_COLUMNS])
 
     def camp(cid, name, portfolio="", end_date=""):
@@ -334,21 +437,29 @@ def _write_export_fixture(path):
         row(Entity="Keyword", **{"Campaign ID": cid, "Ad Group ID": agid, "Keyword ID": kwid,
             "Keyword Text": text, "Match Type": match, "Bid": bid, "State": state})
 
-    def negative(cid, agid, negid, text, match="negativeExact"):
-        row(Entity="Negative Keyword", **{"Campaign ID": cid, "Ad Group ID": agid,
-            "Keyword ID": negid, "Keyword Text": text, "Match Type": match, "State": "enabled"})
+    def product_ad(cid, agid, adid, sku, state="enabled"):
+        row(Entity="Product Ad", **{"Campaign ID": cid, "Ad Group ID": agid,
+            "Ad ID": adid, "SKU": sku, "State": state})
 
-    def target(cid, agid, tid, expr, bid=0.5):
+    def negative(cid, agid, negid, text, match="negativeExact", state="enabled"):
+        row(Entity="Negative Keyword", **{"Campaign ID": cid, "Ad Group ID": agid,
+            "Keyword ID": negid, "Keyword Text": text, "Match Type": match, "State": state})
+
+    def target(cid, agid, tid, expr, bid=0.5, state="enabled"):
         row(Entity="Product Targeting", **{"Campaign ID": cid, "Ad Group ID": agid,
             "Product Targeting ID": tid, "Product Targeting Expression": expr, "Bid": bid,
-            "State": "enabled"})
+            "State": state})
 
     camp("111111111", "Rank | SP | Exact | Widget | red widget | EW", portfolio="999999")
     ad_group("111111111", "222222222", "SP | Exact | Widget | red widget", bid=0.5)
+    product_ad("111111111", "222222222", "666666666", "SKU-1", state="paused")
     keyword("111111111", "222222222", "333333333", "old keyword", "exact", bid=0.5)
     keyword("111111111", "222222222", "333333334", "pause me", "broad", bid=0.4)
     negative("111111111", "222222222", "444444444", "bad term")
+    negative("111111111", "222222222", "444444445", "recover me", state="paused")
     target("111111111", "222222222", "555555555", 'asin="B000000001"', bid=0.6)
+    target("111111111", "222222222", "555555556", 'asin="B000000002"',
+           bid=0.4, state="paused")
 
     camp("111111112", "Discovery | SP | Broad | Widget | widget | EW")  # no portfolio
     ad_group("111111112", "222222223", "SP | Broad | Widget | widget", bid=0.3)
@@ -373,6 +484,9 @@ def _good_change_set(export_file):
             "ad_groups": [
                 {"ad_group_id": "222222223", "default_bid": 0.35},
             ],
+            "product_ads": {
+                "enable": ["666666666"],
+            },
             "keywords": {
                 "pause": ["333333334"],
                 "replace": [{"old_keyword_id": "333333333", "new_text": "new keyword",
@@ -381,11 +495,13 @@ def _good_change_set(export_file):
                         "text": "widget accessory", "match_type": "PHRASE", "bid": 0.4}],
             },
             "negatives": {
+                "enable": ["444444445"],
                 "archive": ["444444444"],
                 "add": [{"campaign_id": "111111111", "ad_group_id": "222222222",
                         "text": "cheap knockoff", "match_type": "NEGATIVE_PHRASE"}],
             },
             "targets": {
+                "enable": ["555555556"],
                 "archive": ["555555555"],
                 "add": [{"campaign_id": "111111111", "ad_group_id": "222222222",
                         "asin": "B000000099", "bid": 0.5}],
@@ -404,6 +520,7 @@ def test_update_good():
     export = um.read_export(str(export_path))
     check("export index has 3 campaigns", len(export.campaigns) == 3, str(len(export.campaigns)))
     check("export index has 3 ad groups", len(export.ad_groups) == 3)
+    check("export index has 1 product ad", len(export.product_ads) == 1)
     check("export index has 3 keywords", len(export.keywords) == 3)
 
     cfg = _good_change_set(str(export_path))
@@ -433,6 +550,11 @@ def test_update_good():
     placement_rows = [r for r in rows if r["Entity"] == "Bidding Adjustment"]
     check("placement update row emitted", len(placement_rows) == 1 and placement_rows[0]["Percentage"] == 50)
 
+    product_ad_enable = [r for r in rows if r["Entity"] == "Product Ad"
+                         and r["Operation"] == "Update" and r["Ad ID"] == "666666666"]
+    check("paused Product Ad is enabled with a real-ID sparse Update row",
+          len(product_ad_enable) == 1 and product_ad_enable[0]["State"] == "enabled")
+
     archive_rows = [r for r in rows if r["Operation"] == "Archive"]
     check("Campaign 111111113 archived", any(
         r["Entity"] == "Campaign" and r["Campaign ID"] == "111111113" for r in archive_rows))
@@ -451,9 +573,16 @@ def test_update_good():
           not um.looks_like_real_id(replace_create[0]["Keyword ID"]))
 
     neg_archive = [r for r in rows if "Negative" in r["Entity"] and r["Operation"] == "Archive"]
-    check("negative archived (never paused; no negative Update rows at all)",
-          len(neg_archive) == 1 and not any(
-              "Negative" in r["Entity"] and r["Operation"] == "Update" for r in rows))
+    neg_enable = [r for r in rows if r["Entity"] == "Negative Keyword"
+                  and r["Operation"] == "Update" and r["Keyword ID"] == "444444445"]
+    check("negative archive remains supported", len(neg_archive) == 1)
+    check("paused ad-group Negative Keyword can be enabled",
+          len(neg_enable) == 1 and neg_enable[0]["State"] == "enabled")
+    target_enable = [r for r in rows if r["Entity"] == "Product Targeting"
+                     and r["Operation"] == "Update"
+                     and r["Product Targeting ID"] == "555555556"]
+    check("paused Product Targeting can be enabled",
+          len(target_enable) == 1 and target_enable[0]["State"] == "enabled")
 
     out = TMP / "update_good.xlsx"
     rc_build = uc.build(loaded, str(out))
