@@ -51,7 +51,9 @@ dominates, so bids climb while realized CPC stays capped).
 **Audit versus operate.** This skill DIAGNOSES. The weekly loop that actually moves bids,
 budgets and opt-groups is `amazon-ppc-management` (`/ppc-manage`). When the ask is "run the
 week" or "apply the changes", route there. When the ask is what is wrong and why, stay here.
-For week-over-week per-keyword SQP against PPC spend, pair with `/supa` (`tools/sqp-supa/`).
+For week-over-week per-keyword SQP against PPC spend, pair with `/supa`. Without that slash
+command, run the same build from `tools/sqp-supa/build_supa_workbook.py`; the method lives in
+`tools/sqp-supa/README.md`.
 
 ---
 
