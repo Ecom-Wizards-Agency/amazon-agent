@@ -66,7 +66,7 @@ python3 tools/amazon-ads-monitor/run_weekly.py \
 - Rank Radar rows come from the DataDive MCP (`list_rank_radars` -> `get_rank_radar_data`), shaped to `{keyword, rank_now, rank_prev, weeks_stable}` per tracked keyword. Big radar payloads overflow; parse the saved tool-result file with python.
 - `--monthly-budget` from the client config (`_local/ads-monitor/`); needs Sellerboard history back to the 1st of the month (raise `--window-days` late in the month).
 - The brief now carries: Run-rate pacing (on_pace / warn / act / underpace), PUSH, **GRADUATE** (rank 1-3 stable 2+ weeks -> step down), PAUSE/OPTIMIZE with rank-improving keywords protected into notes.
-- When the question is "did click share fall because spend fell", run `/supa` for the per-keyword SQP x PPC read; its P/O/E flags feed the same decisions.
+- When the question is "did click share fall because spend fell", run `/supa` for the per-keyword SQP x PPC read, or call `tools/sqp-supa/build_supa_workbook.py` directly where no slash command exists (method: `tools/sqp-supa/README.md`); its P/O/E flags feed the same decisions.
 
 ## 3. Opt-group audit (the unit of strategy)
 

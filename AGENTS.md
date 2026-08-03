@@ -89,7 +89,7 @@ This project uses one main Amazon operator with specialist skills. Specialist sk
 
 **One copy of every skill, in this repo.** `skills/` is the single source of truth for both runtimes. Claude reads it directly from the working tree. Codex reads it through symlinks: every `~/.codex/skills/amazon-*` entry points at the matching `skills/<name>` directory here (wired 2026-07-26). Never edit a skill inside `~/.codex/skills/`, and never replace one of those symlinks with a real directory: that is exactly how the two runtimes silently drifted for three weeks. Edit the file in this repo and both agents see it immediately.
 
-**There are no exceptions any more.** `amazon-sqp-competitor-check` used to be a deliberate twin pair (repo file = coordinator, `~/.codex/skills/` copy = browser executor). The two halves were merged into the single repo skill on 31.07.2026 and the Codex-side directory was replaced with a symlink like every other skill. All 25 `~/.codex/skills/amazon-*` entries are now symlinks and none is a real directory, so the drift failure mode is structurally impossible rather than merely forbidden.
+**There are no exceptions any more.** `amazon-sqp-competitor-check` used to be a deliberate twin pair (repo file = coordinator, `~/.codex/skills/` copy = browser executor). The two halves were merged into the single repo skill on 31.07.2026 and the Codex-side directory was replaced with a symlink like every other skill. Every `~/.codex/skills/amazon-*` entry is a symlink and none is a real directory, so the drift failure mode is structurally impossible rather than merely forbidden.
 
 Terminology:
 
