@@ -18,8 +18,11 @@ the logic there.
 
     python3 tools/report-fetcher/launch-chrome-debug.py
 
-Env: CDP_PORT (9222) · CDP_PROFILE · CHROME_BIN · CDP_START_URL
+Env: CDP_PORT (9222) · CDP_PROFILE · CHROME_BIN · CDP_START_URL ·
+CDP_BROWSER_MODE (headed)
 """
+import argparse
+import json
 import os
 import subprocess
 import sys
@@ -32,6 +35,7 @@ PORT = os.environ.get("CDP_PORT", "9222")
 PROFILE = Path(os.environ.get("CDP_PROFILE",
                               str(Path.home() / ".amazon-agent" / "chrome-debug")))
 START_URL = os.environ.get("CDP_START_URL", "https://sellercentral.amazon.com")
+STATE_FILE = PROFILE / ".amazon-agent-browser.json"
 
 CHROMES = [
     # macOS
@@ -78,15 +82,100 @@ def find_chrome() -> str:
              "CHROME_BIN to the browser executable.")
 
 
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--mode",
+        choices=("headed", "headless", "recovery", "stop", "status"),
+        default=os.environ.get("CDP_BROWSER_MODE", "headed"),
+        help="headed is the backwards-compatible default; recovery is a visible operator session",
+    )
+    return parser.parse_args()
+
+
+def read_state() -> dict:
+    try:
+        return json.loads(STATE_FILE.read_text(encoding="utf-8"))
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
+
+
+def process_matches(pid: int) -> bool:
+    if pid <= 0:
+        return False
+    if sys.platform.startswith("win"):
+        return True
+    result = subprocess.run(
+        ["ps", "-p", str(pid), "-o", "command="],
+        capture_output=True, text=True, check=False,
+    )
+    return result.returncode == 0 and f"--user-data-dir={PROFILE}" in result.stdout
+
+
+def stop_managed_browser(state: dict) -> None:
+    pid = int(state.get("pid") or 0)
+    if not process_matches(pid):
+        raise RuntimeError(
+            f"Debug port {PORT} is active, but its managed Chrome process could not be verified. "
+            "Close only the dedicated browser and retry."
+        )
+    if sys.platform.startswith("win"):
+        subprocess.run(["taskkill", "/PID", str(pid), "/T"], check=False,
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    else:
+        os.kill(pid, 15)
+    for _ in range(40):
+        time.sleep(0.25)
+        if not port_is_up(attempts=1):
+            STATE_FILE.unlink(missing_ok=True)
+            return
+    raise RuntimeError(f"Dedicated Chrome on port {PORT} did not stop cleanly")
+
+
+def protect_profile() -> None:
+    PROFILE.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    PROFILE.mkdir(parents=True, exist_ok=True, mode=0o700)
+    if not sys.platform.startswith("win"):
+        os.chmod(PROFILE.parent, 0o700)
+        os.chmod(PROFILE, 0o700)
+
+
 def main() -> None:
-    if port_is_up():
-        print(f"Debug port {PORT} already up. "
-              "Ready -> node tools/report-fetcher/run.mjs doctor")
+    options = parse_args()
+    state = read_state()
+    if options.mode == "status":
+        print(json.dumps({"port": PORT, "profile": str(PROFILE),
+                          "running": port_is_up(), "managed": bool(state),
+                          "mode": state.get("mode"), "pid": state.get("pid")}))
         return
 
+    if options.mode == "stop":
+        if port_is_up():
+            if not state:
+                raise RuntimeError(
+                    f"Debug port {PORT} is active, but its browser is not managed by this launcher."
+                )
+            stop_managed_browser(state)
+        else:
+            STATE_FILE.unlink(missing_ok=True)
+        print(f"Dedicated Chrome on port {PORT} is stopped.")
+        return
+
+    requested = options.mode
+    if port_is_up():
+        if state.get("mode") == requested:
+            print(f"Debug port {PORT} already up in {requested} mode.")
+            return
+        if not state:
+            raise RuntimeError(
+                f"Debug port {PORT} is already used by an unmanaged dedicated Chrome. "
+                f"Close that one profile before switching to {requested} mode."
+            )
+        stop_managed_browser(state)
+
     chrome = find_chrome()
-    PROFILE.mkdir(parents=True, exist_ok=True)
-    print(f"Launching debug Chrome (separate profile at {PROFILE}; "
+    protect_profile()
+    print(f"Launching {requested} debug Chrome (separate profile at {PROFILE}; "
           "your normal Chrome is untouched)...")
     # Detach so the browser outlives this process on every platform.
     kwargs = {"stdout": subprocess.DEVNULL, "stderr": subprocess.DEVNULL}
@@ -94,9 +183,20 @@ def main() -> None:
         kwargs["creationflags"] = getattr(subprocess, "DETACHED_PROCESS", 0)
     else:
         kwargs["start_new_session"] = True
-    subprocess.Popen([chrome, f"--remote-debugging-port={PORT}",
-                      f"--user-data-dir={PROFILE}", "--no-first-run",
-                      "--no-default-browser-check", START_URL], **kwargs)
+    command = [chrome, f"--remote-debugging-port={PORT}",
+               "--remote-debugging-address=127.0.0.1",
+               f"--user-data-dir={PROFILE}", "--no-first-run",
+               "--no-default-browser-check"]
+    if requested == "headless":
+        command.append("--headless")
+    command.append(START_URL)
+    process = subprocess.Popen(command, **kwargs)
+    STATE_FILE.write_text(json.dumps({
+        "pid": process.pid, "mode": requested, "port": PORT,
+        "profile": str(PROFILE), "started_at": int(time.time()),
+    }), encoding="utf-8")
+    if not sys.platform.startswith("win"):
+        os.chmod(STATE_FILE, 0o600)
 
     for _ in range(20):  # up to ~10s; a cold profile is slower than the old sleep 2
         time.sleep(0.5)
@@ -106,8 +206,9 @@ def main() -> None:
         print(f"Warning: debug port {PORT} did not open within 10s. "
               "If a normal Chrome window appeared instead, close it and retry.")
 
-    print("Sign into Seller Central in the NEW window "
-          "(first run only - the login persists in this profile).")
+    if requested != "headless":
+        print("Sign into Seller Central in the NEW window "
+              "(first run only - the login persists in this profile).")
     print("Next: node tools/report-fetcher/run.mjs doctor")
 
 
