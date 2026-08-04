@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import { join } from "node:path";
 
 function run(command, args, options = {}) {
   const result = spawnSync(command, args, {
@@ -47,9 +48,9 @@ export function parseLoginItem(document) {
 export function loadViewOnlyLogin(config, { includeOtp = false } = {}) {
   if (!assertAuthPolicy(config)) return null;
   const auth = config.authentication;
-  const token = run("security", [
-    "find-generic-password", "-s", auth.keychain_service,
-    "-a", auth.keychain_account, "-w",
+  const helper = join(process.env.HOME, ".amazon-agent", "bin", "wizards-keychain");
+  const token = run(helper, [
+    "get", auth.keychain_service, auth.keychain_account,
   ]);
   const env = { ...process.env, OP_SERVICE_ACCOUNT_TOKEN: token };
   const raw = run("op", ["item", "get", auth.item_reference, "--format", "json"], { env });
