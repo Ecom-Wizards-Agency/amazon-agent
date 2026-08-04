@@ -1,3 +1,8 @@
+---
+description: Fill the workbook's Campaign Structure tab (visual plan only, never touches Amazon)
+argument-hint: "[client + built workbook .xlsx] (e.g. 'acme-us, output/acme/seo/2026-08-04_workbook.xlsx')"
+---
+
 # /fill-campaigns: fill the workbook's Campaign Structure tab (visual plan only)
 
 Fill the `5. Campaign Structure` tab of a built keyword-research workbook per the local ads

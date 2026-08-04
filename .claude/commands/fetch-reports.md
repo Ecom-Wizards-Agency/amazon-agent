@@ -1,3 +1,8 @@
+---
+description: Pull Seller Central reports hands-off, Business / SQP / SCP / TST (read-only)
+argument-hint: "[client + which reports + ASINs + timeframe] (e.g. 'acme us sqp monthly, last 3 periods')"
+---
+
 # /fetch-reports: pull Seller Central reports (Business / SQP / SCP / TST)
 
 Fetch Seller Central reports hands-off with `tools/report-fetcher/`: no manual download,

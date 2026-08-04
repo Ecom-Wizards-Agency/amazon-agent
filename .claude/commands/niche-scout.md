@@ -1,3 +1,8 @@
+---
+description: Discover, filter and score POE niches for a brand (breadth run, read-only)
+argument-hint: "[client + marketplace + product + positioning] (e.g. 'acme us, pet nail grinder, premium pet brand')"
+---
+
 # /niche-scout: discover, filter and score POE niches for a brand
 
 Go wide in Product Opportunity Explorer: 12 to 18 seed queries, 20 to 40 candidate niches,
