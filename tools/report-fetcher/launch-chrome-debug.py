@@ -90,6 +90,12 @@ def parse_args() -> argparse.Namespace:
         default=os.environ.get("CDP_BROWSER_MODE", "headed"),
         help="headed is the backwards-compatible default; recovery is a visible operator session",
     )
+    parser.add_argument(
+        "--adopt-existing",
+        action="store_true",
+        help=("adopt a legacy launcher process only after verifying its port and "
+              "user-data-dir; required before changing its mode"),
+    )
     return parser.parse_args()
 
 
@@ -110,6 +116,46 @@ def process_matches(pid: int) -> bool:
         capture_output=True, text=True, check=False,
     )
     return result.returncode == 0 and f"--user-data-dir={PROFILE}" in result.stdout
+
+
+def find_matching_process() -> tuple[int, str] | None:
+    """Find a legacy debug Chrome for this exact port and profile.
+
+    Older launcher versions did not write STATE_FILE. We never infer ownership
+    from an open port alone: both command-line flags must match before an
+    explicit --adopt-existing can take control of that process.
+    """
+    if sys.platform.startswith("win"):
+        return None
+    result = subprocess.run(
+        ["ps", "ax", "-o", "pid=,command="],
+        capture_output=True, text=True, check=False,
+    )
+    port_flag = f"--remote-debugging-port={PORT}"
+    profile_flag = f"--user-data-dir={PROFILE}"
+    for line in result.stdout.splitlines():
+        try:
+            pid_text, command = line.strip().split(None, 1)
+        except ValueError:
+            continue
+        if port_flag in command and profile_flag in command and "--type=" not in command:
+            mode = "headless" if "--headless" in command else "headed"
+            return int(pid_text), mode
+    return None
+
+
+def write_state(pid: int, mode: str, *, adopted: bool = False) -> dict:
+    protect_profile()
+    state = {
+        "pid": pid, "mode": mode, "port": PORT,
+        "profile": str(PROFILE), "started_at": int(time.time()),
+    }
+    if adopted:
+        state["adopted"] = True
+    STATE_FILE.write_text(json.dumps(state), encoding="utf-8")
+    if not sys.platform.startswith("win"):
+        os.chmod(STATE_FILE, 0o600)
+    return state
 
 
 def stop_managed_browser(state: dict) -> None:
@@ -144,9 +190,12 @@ def main() -> None:
     options = parse_args()
     state = read_state()
     if options.mode == "status":
+        legacy = find_matching_process() if not state and port_is_up() else None
         print(json.dumps({"port": PORT, "profile": str(PROFILE),
                           "running": port_is_up(), "managed": bool(state),
-                          "mode": state.get("mode"), "pid": state.get("pid")}))
+                          "mode": state.get("mode") or (legacy[1] if legacy else None),
+                          "pid": state.get("pid") or (legacy[0] if legacy else None),
+                          "adoptable": bool(legacy)}))
         return
 
     if options.mode == "stop":
@@ -163,6 +212,16 @@ def main() -> None:
 
     requested = options.mode
     if port_is_up():
+        if not state and options.adopt_existing:
+            legacy = find_matching_process()
+            if not legacy:
+                raise RuntimeError(
+                    f"Debug port {PORT} is active, but no Chrome process matches profile {PROFILE}."
+                )
+            pid, detected_mode = legacy
+            adopted_mode = "recovery" if requested == "recovery" and detected_mode == "headed" else detected_mode
+            state = write_state(pid, adopted_mode, adopted=True)
+            print(f"Adopted legacy Chrome pid {pid} on port {PORT} ({adopted_mode} mode).")
         if state.get("mode") == requested:
             print(f"Debug port {PORT} already up in {requested} mode.")
             return
@@ -191,12 +250,7 @@ def main() -> None:
         command.append("--headless")
     command.append(START_URL)
     process = subprocess.Popen(command, **kwargs)
-    STATE_FILE.write_text(json.dumps({
-        "pid": process.pid, "mode": requested, "port": PORT,
-        "profile": str(PROFILE), "started_at": int(time.time()),
-    }), encoding="utf-8")
-    if not sys.platform.startswith("win"):
-        os.chmod(STATE_FILE, 0o600)
+    write_state(process.pid, requested)
 
     for _ in range(20):  # up to ~10s; a cold profile is slower than the old sleep 2
         time.sleep(0.5)

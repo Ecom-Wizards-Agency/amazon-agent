@@ -4,6 +4,7 @@ import { spawnSync } from "node:child_process";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { aggregateAwd, aggregateFba, classifyAuthPage, combineInventory, parseCsv } from "./lib.mjs";
+import { assertAuthPolicy, loadViewOnlyLogin } from "./auth.mjs";
 
 let assertChrome, closePage, createPage, evaluate, listPages, Session;
 
@@ -70,6 +71,10 @@ function args(argv) {
 
 function isoDate(date) { return date.toISOString().slice(0, 10); }
 function reportDate(date) { return isoDate(date).replaceAll("-", "/"); }
+function locationForPicker() {
+  const returnTo = "/myinventory/inventory";
+  return `https://sellercentral.amazon.com/account-switcher/default/merchantMarketplace?returnTo=${encodeURIComponent(returnTo)}`;
+}
 
 async function waitFor(session, expression, description, attempts = 80) {
   for (let i = 0; i < attempts; i++) {
@@ -91,13 +96,84 @@ async function trustedClick(session, expression, description) {
   }
 }
 
-async function selectAccount(session, profile, allowedOrigins) {
+async function replaceInput(session, selector, value, description) {
+  const expression = `(()=>{const e=document.querySelector(${JSON.stringify(selector)});if(!e)return null;
+    e.scrollIntoView({block:"center"});e.focus();const r=e.getBoundingClientRect();
+    return{x:r.x+r.width/2,y:r.y+r.height/2}})()`;
+  const box = await evaluate(session, expression);
+  if (!box) throw new Error(`Could not find ${description}`);
+  await trustedClick(session, expression, description);
+  await session.send("Input.dispatchKeyEvent", {
+    type: "keyDown", key: "a", code: "KeyA", modifiers: 4,
+  });
+  await session.send("Input.dispatchKeyEvent", {
+    type: "keyUp", key: "a", code: "KeyA", modifiers: 4,
+  });
+  await session.send("Input.insertText", { text: value });
+}
+
+async function submitAuthForm(session) {
+  await trustedClick(session, `(()=>{const e=document.querySelector('button[type="submit"],input[type="submit"],#signInSubmit,#continue');
+    if(!e)return null;e.scrollIntoView({block:"center"});const r=e.getBoundingClientRect();
+    return{x:r.x+r.width/2,y:r.y+r.height/2}})()`, "authentication submit button");
+  await sleep(1200);
+}
+
+async function tryServiceAccountLogin(session, config) {
+  if (!assertAuthPolicy(config)) return await inspectAuthState(
+    session, config.inventory_questions?.allowed_auth_origins || []);
+  const allowed = config.inventory_questions?.allowed_auth_origins || [];
+  let login;
+  for (let step = 0; step < 5; step++) {
+    const state = await inspectAuthState(session, allowed);
+    if (state === "authenticated" || state === "human_challenge") return state;
+    const origin = await evaluate(session, "location.origin");
+    if (!allowed.includes(origin)) return "human_challenge";
+    if (!login) login = loadViewOnlyLogin(config);
+    const hasEmail = await evaluate(session,
+      `!!document.querySelector('input[type="email"],input[name="email"],#ap_email,#ap_email_login')`);
+    if (hasEmail) {
+      await replaceInput(session,
+        'input[type="email"],input[name="email"],#ap_email,#ap_email_login',
+        login.username, "Amazon login email");
+      await submitAuthForm(session);
+      continue;
+    }
+    if (state === "password_required") {
+      await replaceInput(session, 'input[type="password"],input[name="password"]',
+        login.password, "Amazon login password");
+      await submitAuthForm(session);
+      continue;
+    }
+    if (state === "totp_required") {
+      const otpLogin = loadViewOnlyLogin(config, { includeOtp: true });
+      await replaceInput(session,
+        'input[name="otpCode"],input[name="code"],input[autocomplete="one-time-code"]',
+        otpLogin.otp, "Amazon one-time password");
+      await submitAuthForm(session);
+      continue;
+    }
+    return state;
+  }
+  return await inspectAuthState(session, allowed);
+}
+
+async function selectAccount(session, profile, config) {
+  const allowedOrigins = config.inventory_questions?.allowed_auth_origins || [];
   await waitFor(session, `document.readyState === "complete"`, "account picker");
   await waitFor(session, `document.querySelectorAll("button.full-page-account-switcher-account-details").length > 0
     || /signin|auth|mfa|captcha|\/ap\/cvf/.test(location.href)
     || !!document.querySelector('input[type="password"],input[autocomplete="one-time-code"],input[name="guess"]')`,
     "account picker or authentication state", 120);
-  const authState = await inspectAuthState(session, allowedOrigins);
+  let authState = await inspectAuthState(session, allowedOrigins);
+  if (authState !== "authenticated" && config.authentication?.enabled) {
+    authState = await tryServiceAccountLogin(session, config);
+    if (authState === "authenticated") {
+      await session.send("Page.enable");
+      await session.send("Page.navigate", { url: locationForPicker() });
+      await waitFor(session, `document.readyState === "complete"`, "account picker after login", 120);
+    }
+  }
   if (authState !== "authenticated") throw authenticationError(authState);
   const account = JSON.stringify(profile.account_name);
   const marketplace = JSON.stringify(profile.marketplace_label);
@@ -275,9 +351,10 @@ async function main() {
   const inventory = config.inventory_questions || {};
   const profile = inventory.profiles?.[options.profile];
   if (!profile) throw new Error(`Unknown inventory profile ${options.profile}`);
-  if (inventory.auto_reauth) {
-    throw new Error("AUTO_REAUTH_DISABLED_BY_POLICY: credentials must be completed by an operator");
+  if (inventory.auto_reauth && !config.authentication?.enabled) {
+    throw new Error("AUTO_REAUTH_NOT_CONFIGURED: enable the scoped service-account configuration first");
   }
+  if (config.authentication?.enabled) assertAuthPolicy(config);
   process.env.CDP_PORT = String(inventory.cdp_port || 9223);
   process.env.CDP_PROFILE = (inventory.cdp_profile || "~/.amazon-agent/wizards-ai-chrome").replace(/^~/, process.env.HOME);
   ({ assertChrome, closePage, createPage, evaluate, listPages, Session }
@@ -293,8 +370,7 @@ async function main() {
     await assertChrome();
   }
 
-  const returnTo = "/myinventory/inventory";
-  const picker = `https://sellercentral.amazon.com/account-switcher/default/merchantMarketplace?returnTo=${encodeURIComponent(returnTo)}`;
+  const picker = locationForPicker();
   const started = Date.now();
   // Reuse the dedicated bot tab when it is already on Manage Products. Seller
   // Central carries delegated-account selection in tab context; opening a new
@@ -309,7 +385,7 @@ async function main() {
   const auditDir = resolve(options["audit-dir"] || join(AMAZON_AGENT, "output/wizards-inventory/audit"));
   let result;
   try {
-    if (created) await selectAccount(session, profile, inventory.allowed_auth_origins || []);
+    if (created) await selectAccount(session, profile, config);
     else await waitFor(session, `!!document.querySelector("meta[name=anti-csrftoken-a2z]")`, "inventory application", 120);
     const fba = await fetchFba(session, profile);
     let awd;
