@@ -1,6 +1,6 @@
 ---
 name: amazon-opportunity-explorer
-description: Use for Amazon Product Opportunity Explorer (OEI/POE) workflows, Niche Scout exports, product opportunity analysis, image strategy from OEI data, product development strategy from OEI data, and connecting Opportunity Explorer insights to Amazon SEO, Rufus/Alexa AI semantic strategy, image text, and listing differentiation.
+description: Use for Amazon Product Opportunity Explorer (OEI/POE) workflows, the POE downloader, Niche Scout exports, wide niche discovery and scoring across seed queries, product opportunity analysis, image strategy from OEI data, product development strategy from OEI data, and connecting Opportunity Explorer insights to Amazon SEO, Rufus/Alexa AI semantic strategy, image text, and listing differentiation.
 ---
 
 # Amazon Opportunity Explorer

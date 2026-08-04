@@ -1,4 +1,4 @@
 interface:
   display_name: "Amazon Opportunity Explorer"
-  short_description: "Turn POE exports into image and product strategy"
-  default_prompt: "Use $amazon-opportunity-explorer to pull this niche from Product Opportunity Explorer and read the demand."
+  short_description: "Download POE niches, scout the category, turn both into image and product strategy"
+  default_prompt: "Use $amazon-opportunity-explorer to download this niche from Product Opportunity Explorer and read the demand, or to run the wide niche scout across 12 to 18 seed queries when the question is where the winnable demand is."
