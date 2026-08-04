@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { assertAuthPolicy, parseLoginItem } from "../auth.mjs";
+import { assertAuthPolicy, parseItemReference, parseLoginItem } from "../auth.mjs";
 
 function config() {
   return {
@@ -31,4 +31,11 @@ test("login item parsing returns only username and password", () => {
     { id: "password", value: "secret" },
     { label: "notesPlain", value: "ignored" },
   ] }), { username: "viewer@example.test", password: "secret" });
+});
+
+test("item references split into explicit vault and item arguments", () => {
+  assert.deepEqual(
+    parseItemReference("op://Wizards AI Automation/Amazon - Wizards AI"),
+    { vault: "Wizards AI Automation", item: "Amazon - Wizards AI" },
+  );
 });

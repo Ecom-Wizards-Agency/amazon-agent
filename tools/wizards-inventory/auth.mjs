@@ -45,6 +45,18 @@ export function parseLoginItem(document) {
   return { username, password };
 }
 
+export function parseItemReference(reference) {
+  if (typeof reference !== "string" || !reference.startsWith("op://")) {
+    throw new Error("1Password item reference must start with op://");
+  }
+  const location = reference.slice(5);
+  const separator = location.indexOf("/");
+  if (separator < 1 || separator === location.length - 1) {
+    throw new Error("1Password item reference must contain vault and item names");
+  }
+  return { vault: location.slice(0, separator), item: location.slice(separator + 1) };
+}
+
 export function loadViewOnlyLogin(config, { includeOtp = false } = {}) {
   if (!assertAuthPolicy(config)) return null;
   const auth = config.authentication;
@@ -53,10 +65,12 @@ export function loadViewOnlyLogin(config, { includeOtp = false } = {}) {
     "get", auth.keychain_service, auth.keychain_account,
   ]);
   const env = { ...process.env, OP_SERVICE_ACCOUNT_TOKEN: token };
-  const raw = run("op", ["item", "get", auth.item_reference, "--format", "json"], { env });
+  const location = parseItemReference(auth.item_reference);
+  const itemArguments = ["item", "get", location.item, "--vault", location.vault];
+  const raw = run("op", [...itemArguments, "--format", "json"], { env });
   const login = parseLoginItem(JSON.parse(raw));
   if (includeOtp) {
-    login.otp = run("op", ["item", "get", auth.item_reference, "--otp"], { env });
+    login.otp = run("op", [...itemArguments, "--otp"], { env });
   }
   return login;
 }

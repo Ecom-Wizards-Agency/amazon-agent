@@ -18,6 +18,12 @@ function authenticationError(status) {
   return error;
 }
 
+function selectionError(status, message) {
+  const error = new Error(message);
+  error.operationStatus = status;
+  return error;
+}
+
 async function inspectAuthState(session, allowedOrigins = []) {
   const page = await evaluate(session, `(()=>({
     url:location.href,
@@ -195,14 +201,16 @@ async function selectAccount(session, profile, config) {
       .find(e=>(e.innerText||"").trim()===${parent});if(!e)return null;
       e.scrollIntoView({block:"center"});const r=e.getBoundingClientRect();return{x:r.x+r.width/2,y:r.y+r.height/2,expanded:!!e.querySelector("[class*=expanded]")}})()`;
     const parentHit = await evaluate(session, parentBox);
-    if (!parentHit) throw new Error(`Could not find agency account ${profile.parent_account_name}`);
+    if (!parentHit) throw selectionError(
+      "account_unavailable", `Could not find agency account ${profile.parent_account_name}`);
     if (!parentHit.expanded) await trustedClick(session, parentBox, `agency account ${profile.parent_account_name}`);
     for (let i = 0; i < 20 && !accountHit; i++) {
       accountHit = await evaluate(session, accountBox);
       if (!accountHit) await sleep(250);
     }
   }
-  if (!accountHit) throw new Error(`Account ${profile.account_name} is not available`);
+  if (!accountHit) throw selectionError(
+    "account_unavailable", `Account ${profile.account_name} is not available`);
   const marketplaceBox = `(()=>{const norm=s=>(s||"").replace(/\\s*\\((aktuell|current)\\)\\s*$/i,"").trim();
     const groups=[...document.querySelectorAll("div.full-page-account-switcher-account")];
     const g=groups.find(x=>[...x.children].some(c=>c.matches?.("button.full-page-account-switcher-account-details")&&norm(c.innerText)===${account}));
@@ -222,7 +230,8 @@ async function selectAccount(session, profile, config) {
       if (!marketplaceHit) await sleep(250);
     }
   }
-  if (!marketplaceHit) throw new Error(`Could not find marketplace ${profile.marketplace_label}`);
+  if (!marketplaceHit) throw selectionError(
+    "marketplace_unavailable", `Could not find marketplace ${profile.marketplace_label}`);
   if (marketplaceHit.current) {
     await session.send("Page.enable");
     await session.send("Page.navigate", { url: "https://sellercentral.amazon.com/amazonsell/manage-products?ref=myi&pageSize=100&pageIndex=0" });
@@ -416,6 +425,7 @@ async function main() {
       double_count_rule: "AWD ending balance is counted once. AWD departed units and FBA inbound are movement buckets and are not added to stored inventory.",
     };
   } catch (error) {
+    if (error.operationStatus) throw error;
     if (!error.authStatus) {
       try {
         const authState = await inspectAuthState(session, inventory.allowed_auth_origins || []);
@@ -446,12 +456,12 @@ async function main() {
 }
 
 main().catch((error) => {
-  const status = error.authStatus || "error";
+  const status = error.authStatus || error.operationStatus || "error";
   const result = {
     schema_version: 1,
     checked_at: new Date().toISOString(),
     status,
-    error: status === "error" ? error.message : "Seller Central authentication requires recovery",
+    error: error.authStatus ? "Seller Central authentication requires recovery" : error.message,
   };
   try {
     const options = args(process.argv.slice(2));
