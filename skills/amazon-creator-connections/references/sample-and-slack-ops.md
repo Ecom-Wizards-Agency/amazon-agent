@@ -40,7 +40,7 @@ Slack is an internal audit surface, not a source of truth. The tracker and actio
 - Do not post if the helper is unavailable, the channel is not allowlisted, the run uses stale data, or a current instruction/standing permission is absent.
 - Never include addresses, emails, phones, or private tracker links.
 
-When permitted, use one short parent and flat thread replies for material changes only. Suggested categories:
+When permitted, use one short parent and flat thread replies for material changes only. The daily parent is a PII-free tracker-progress notification: current pipeline snapshot, today's net movement, verified posted-content links, the 10/10 priority sample lane, and genuine exceptions only. Tag the configured operator mention in the parent so the owner receives the notification. Suggested categories:
 
 - 🆕 New / First-Base Candidates
 - 🔎 Background Checked / Missing to 10
@@ -53,4 +53,4 @@ When permitted, use one short parent and flat thread replies for material change
 - ⚫ Paused Product
 - 📌 Action Needed
 
-The automated daily summary uses the local posting helper only. A weekly summary is prepared each Monday but is posted only through the same helper and authority check. Never bypass the helper or impersonate the operator through the Slack connector.
+The automated daily summary uses the local posting helper only. A weekly summary is prepared each Monday and posted only through the same helper and authority check. Create one parent post titled with the brand and prior-week date range, then post the complete client-ready summary as a reply in that parent thread. Do not create additional standalone weekly-summary posts. Never bypass the helper or impersonate the operator through the Slack connector.
