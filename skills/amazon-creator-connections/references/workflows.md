@@ -1,6 +1,6 @@
 # Creator Connections Workflows
 
-Every workflow inherits the main skill rules: verify account/brand/product first, protect private data, preserve the tracker, and stop before risky actions unless approved.
+Every workflow inherits the main skill rules: verify account/brand/product first, protect private data, preserve the tracker, resolve the Creator Record ID, and stop before risky actions unless approved.
 
 ## `audit`: daily or ad hoc message sweep
 
@@ -8,8 +8,9 @@ Use for: “run a sweep,” “check new messages,” “who replied,” “who 
 
 1. Open the correct brand’s Creator Connections messages.
 2. Use the requested scope. Default to new/updated threads since the last tracker or Slack sweep.
-3. For each thread, verify:
+3. For each thread, verify and resolve:
    - creator display name
+   - Creator Record ID or a safe new-record decision
    - campaign context
    - exact ASIN/product, if present
    - latest creator message
@@ -36,9 +37,9 @@ Use for: “run a sweep,” “check new messages,” “who replied,” “who 
    - content posted
    - paused product
    - unqualified/ghosted/declined
-7. Update the tracker row or create one in the correct tab.
+7. Update the tracker row or create one in the correct tab. Append an audit-log entry and add any due work to the daily action queue.
 8. Draft any needed creator replies, but do not send unless approved in the current chat or covered by standing permission.
-9. If Slack reporting is requested or automated, post only new updates/material status changes.
+9. If Slack reporting is requested or automated, use only the configured posting helper and post only new updates/material status changes.
 
 ## `campaign`: prepare or launch a campaign
 
@@ -54,7 +55,7 @@ Inputs: brand/account, product ASIN, reference campaign, campaign dates, budget,
    - main selling points
 2. Use the reference campaign’s naming convention and structure.
 3. Create a product-specific campaign description based only on the listing and approved product info.
-4. Use the approved commission range or client-provided commission. Common Creator Connections structure is 15–20%, but do not invent a number if the operator/client has specified one.
+4. Use the client-provided commission and budget. Do not assume a default range or number.
 5. Create or confirm the campaign-level tracker tab.
 6. Prepare campaign fields in Creator Connections.
 7. Stop before publish and show the operator the campaign setup for final approval.
@@ -124,7 +125,7 @@ Use for: “audit everything,” “make sure all campaigns and trackers are cle
 
 ## `explain`: explain the system
 
-Use for: “what can this repo/skill do,” “explain this to Victor/my boss/client.”
+Use for: “what can this repo/skill do,” “explain this to my manager/client.”
 
 Summarize in plain language:
 

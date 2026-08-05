@@ -1,142 +1,56 @@
 # Sample Fulfillment and Slack Operations
 
-Use this reference for priority sample lane, MCF preparation, and Slack sweep updates.
+Read `lifecycle-execution-guardrails.md` before acting. It owns identity, score, MCF, follow-up, and escalation rules.
 
-## Priority sample lane
+## Sample lane
 
-Separate creators into clear lanes:
+Classify only through the active Creator Record ID:
 
-### Ready for sample
+- **Approved for Sample:** exact score of 10/10, final ASIN, verified identity, full recipient details, low risk, no duplicate sample, and no MCF blocker.
+- **Verification / hold:** any missing requirement or conflicting detail. Queue a tailored request for only the missing information.
+- **Do not send:** high risk, closed, paused, unresponsive after cadence, or an unresolved identity/product conflict.
 
-Creator can be prepared for MCF only when:
+Never use a name, email fragment, address, or old tracker row alone as the MCF target.
 
-- exact product/ASIN is confirmed
-- sample decision is `Send` or operator says to proceed
-- full name is present
-- complete address is present
-- phone/email are present when needed for MCF
-- proof/revenue/recent content gate is passed or operator approved exception
-- no unresolved recipient mismatch
-- no major spam/review-manipulation risk
+## MCF execution
 
-### Awaiting final confirmation
+An MCF order is an external paid action. It requires the current operator instruction or matching local standing permission.
 
-Use for strong candidates with one final blocker, such as:
+1. Lock the Creator Record ID for the pre-flight so another queue item cannot target the same creator/product.
+2. Resolve the live tracker headers and read the exact selected row, registry entry, and latest thread.
+3. Apply every MCF pre-flight check in `lifecycle-execution-guardrails.md`.
+4. Capture a pre-flight screenshot/evidence reference that visibly shows the recipient, selected SKU/ASIN, exactly one unit, shipping selection, and estimated fee.
+5. Create the order only after all controls pass. Re-read the confirmation screen and match order ID, recipient, product, quantity, and dates to the locked record.
+6. Update the tracker and action log, then send the standard confirmation only after confirmed fulfillment.
 
-- missing phone
-- recipient/content creator mismatch
-- final ASIN confirmation needed
-- proof accepted but shipment details incomplete
+The order ID is `CC-{BRAND}-{PRODUCTCODE}-{CREATOR}-{ASIN}-{YYMMDD}`. Standard shipping is the default only when permitted by the client policy. Never use expedited shipping without an explicit rule.
 
-Keep `Sample Decision = Hold` until confirmed.
+## Content and performance
 
-### Not ready
+When content is posted, open the link and verify it belongs to the resolved creator and, where visible, the selected product. Write the verified link to the campaign row and action log.
 
-Use for:
+For a creator-supplied performance update, reply only when message authority is present. Thank the creator, acknowledge the update, and state that performance is being tracked on the brand side. Do not promise future work or results.
 
-- no exact ASIN
-- unclear product match
-- weak/no proof
-- incomplete details
-- repeated spammy outreach
-- guaranteed 5-star-review wording
-- high risk
+## Slack reporting
 
-## MCF preparation
+Slack is an internal audit surface, not a source of truth. The tracker and action log remain authoritative.
 
-Preparing an MCF order is allowed after the operator approves the creator/sample. Creating the order is a stop-before-risk action unless the operator explicitly says to create it.
+- Read `_local/slack-posting.md` before every Slack write.
+- Agent-authored posts must use the configured posting helper and bot identity. The Slack connector is read-only or for personal drafts requested by the operator.
+- Do not post if the helper is unavailable, the channel is not allowlisted, the run uses stale data, or a current instruction/standing permission is absent.
+- Never include addresses, emails, phones, or private tracker links.
 
-Before MCF:
-
-1. Verify creator row and latest thread.
-2. Verify exact ASIN/SKU and unit count.
-3. Verify full name, street, city, state/province, ZIP/postal code, phone, and email.
-4. Confirm sample quantity, usually 1 unit unless operator says otherwise.
-5. Use a structured custom order ID:
-   - `CC-{BRAND}-{PRODUCTCODE}-{CREATOR}-{ASIN}-{YYMMDD}`
-6. Stop for final visual check before clicking Create order unless operator has explicitly approved.
-
-After MCF order confirmation:
-
-- Update tracker:
-  - Status: `Sample Sent`
-  - Fulfillment Method: `MCF`
-  - Address Confirmed Date
-  - Sample Approved By
-  - Sample Sent Date
-  - MCF Order ID
-  - Delivery Status
-  - Follow-up Date
-  - Notes
-- Send the standard sample confirmation message only after the order is confirmed.
-
-## Fees
-
-MCF can create fulfillment/shipping fees charged to the seller/account. If the operator asks, confirm estimated fees on the MCF page before order creation.
-
-## Posted content tracking
-
-When a creator posts content:
-
-1. Open and verify the link.
-2. Confirm the product/ASIN shown/tagged when visible.
-3. Update:
-   - Content Posted = Yes
-   - Posted Link(s)
-   - Status = Content Posted
-   - Notes
-4. Send thank-you message if approved.
-5. Track performance later from campaign reporting when available.
-
-## Daily Slack sweep
-
-Post to the internal Creator Connections Slack channel only when there are new updates or material status changes.
-
-Use one parent message:
-
-```text
-{Brand} Creator Connections Sweep: {Month Day, Weekday}
-```
-
-Put details inside the thread as a reply.
-
-Keep Slack PII-free:
-
-- no addresses
-- no phone numbers
-- no emails
-- no private tracker URLs unless approved
-
-Use clear categories:
+When permitted, use one short parent and flat thread replies for material changes only. Suggested categories:
 
 - 🆕 New / First-Base Candidates
+- 🔎 Background Checked / Missing to 10
 - ✅ Verification Confirmed / Ready for Review
 - 📦 Priority Sample Lane / Fulfillment Updates
+- 🚚 Sample Sent / Delivery Watch
 - 🎥 Content Posted / Links Logged
-- 🔄 Product Switch / Needs Review
+- 📈 Performance Updates
+- 🔁 Product Switch / Needs Confirmation
 - ⚫ Paused Product
-- 🚫 Filtered Out / Not Sample Candidate
 - 📌 Action Needed
 
-Only include new updates or changed statuses. Do not repeat unchanged items.
-
-## Weekly Slack summary
-
-Every Monday, create a client-facing-ready internal summary for the prior Monday–Sunday period.
-
-Include:
-
-- short overview
-- key movement this week
-- sample/fulfillment highlights
-- content posted/performance updates
-- follow-ups/next actions
-
-Do not include the tracker link unless explicitly requested.
-
-## Common guardrails
-
-- Do not post Slack updates based on stale data if Amazon login is unavailable.
-- Do not include sensitive creator contact details in Slack.
-- Do not mark someone sample-ready while waiting for final ASIN, phone, recipient confirmation, or proof.
-- Keep product switches and undecided creators out of product tabs until confirmed.
+The automated daily summary uses the local posting helper only. A weekly summary is prepared each Monday but is posted only through the same helper and authority check. Never bypass the helper or impersonate the operator through the Slack connector.
