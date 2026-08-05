@@ -27,6 +27,15 @@ export function assertAuthPolicy(config) {
   if (!auth.keychain_service || !auth.keychain_account || !auth.item_reference) {
     throw new Error("AUTH_POLICY_REFUSED: incomplete service-account configuration");
   }
+  const approvedOrigins = new Set([
+    "https://sellercentral.amazon.com", "https://www.amazon.com",
+    "https://sellercentral.amazon.de", "https://www.amazon.de",
+    "https://sellercentral.amazon.com.au", "https://www.amazon.com.au",
+  ]);
+  const configuredOrigins = inventory.allowed_auth_origins || [];
+  if (!configuredOrigins.length || configuredOrigins.some((origin) => !approvedOrigins.has(origin))) {
+    throw new Error("AUTH_POLICY_REFUSED: authentication origins must be approved Amazon domains");
+  }
   return true;
 }
 
@@ -73,4 +82,11 @@ export function loadViewOnlyLogin(config, { includeOtp = false } = {}) {
     login.otp = run("op", [...itemArguments, "--otp"], { env });
   }
   return login;
+}
+
+export function authenticationFormStep(fields, state) {
+  if (fields?.password) return "credentials";
+  if (fields?.email) return "email";
+  if (fields?.otp || state === "totp_required") return "otp";
+  return "none";
 }

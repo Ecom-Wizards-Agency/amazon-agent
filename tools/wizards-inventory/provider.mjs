@@ -4,13 +4,16 @@ import { spawnSync } from "node:child_process";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { aggregateAwd, aggregateFba, classifyAuthPage, combineInventory, parseCsv } from "./lib.mjs";
-import { assertAuthPolicy, loadViewOnlyLogin } from "./auth.mjs";
+import { assertAuthPolicy, authenticationFormStep, loadViewOnlyLogin } from "./auth.mjs";
 
 let assertChrome, closePage, createPage, evaluate, listPages, Session;
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const AMAZON_AGENT = resolve(HERE, "../..");
 const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
+const trace = (...parts) => {
+  if (process.env.WIZARDS_AUTH_TRACE === "1") console.error("[wizards-auth]", ...parts);
+};
 
 function authenticationError(status) {
   const error = new Error(`Seller Central authentication state: ${status}`);
@@ -84,7 +87,14 @@ function locationForPicker() {
 
 async function waitFor(session, expression, description, attempts = 80) {
   for (let i = 0; i < attempts; i++) {
-    if (await evaluate(session, expression)) return;
+    try {
+      if (await evaluate(session, expression)) return;
+    } catch (error) {
+      // Runtime.evaluate can lose its execution context while Seller Central
+      // commits a navigation. That is a transient page transition, not an
+      // authentication failure, so keep polling until the target settles.
+      if (!/context|navigation|target|session/i.test(error.message)) throw error;
+    }
     await sleep(250);
   }
   throw new Error(`Timed out waiting for ${description}`);
@@ -130,33 +140,53 @@ async function tryServiceAccountLogin(session, config) {
     session, config.inventory_questions?.allowed_auth_origins || []);
   const allowed = config.inventory_questions?.allowed_auth_origins || [];
   let login;
-  for (let step = 0; step < 5; step++) {
+  for (let step = 0; step < 8; step++) {
     const state = await inspectAuthState(session, allowed);
+    if (process.env.WIZARDS_AUTH_TRACE === "1") {
+      const location = await evaluate(session, `({origin:location.origin,path:location.pathname,ready:document.readyState,title:document.title})`);
+      trace("step", step, "state", state, JSON.stringify(location));
+    }
     if (state === "authenticated" || state === "human_challenge") return state;
     const origin = await evaluate(session, "location.origin");
     if (!allowed.includes(origin)) return "human_challenge";
     if (!login) login = loadViewOnlyLogin(config);
-    const hasEmail = await evaluate(session,
-      `!!document.querySelector('input[type="email"],input[name="email"],#ap_email,#ap_email_login')`);
-    if (hasEmail) {
+    const fields = await evaluate(session, `(()=>({
+      email:!!document.querySelector('input[type="email"],input[name="email"],#ap_email,#ap_email_login'),
+      password:!!document.querySelector('input[type="password"],input[name="password"]'),
+      otp:!!document.querySelector('input[name="otpCode"],input[name="code"],input[autocomplete="one-time-code"]')
+    }))()`);
+    trace("fields", JSON.stringify(fields));
+    const formStep = authenticationFormStep(fields, state);
+    // Seller Central currently renders email and password on the same form.
+    // Submitting after email alone leaves the page unchanged, so password must
+    // win over the email-only branch whenever both fields are present.
+    if (formStep === "credentials") {
+      if (fields.email) {
+        await replaceInput(session,
+          'input[type="email"],input[name="email"],#ap_email,#ap_email_login',
+          login.username, "Amazon login email");
+      }
+      await replaceInput(session, 'input[type="password"],input[name="password"]',
+        login.password, "Amazon login password");
+      await submitAuthForm(session);
+      await waitFor(session, `document.readyState === "complete"`, "authentication page", 120);
+      continue;
+    }
+    if (formStep === "email") {
       await replaceInput(session,
         'input[type="email"],input[name="email"],#ap_email,#ap_email_login',
         login.username, "Amazon login email");
       await submitAuthForm(session);
+      await waitFor(session, `document.readyState === "complete"`, "authentication page", 120);
       continue;
     }
-    if (state === "password_required") {
-      await replaceInput(session, 'input[type="password"],input[name="password"]',
-        login.password, "Amazon login password");
-      await submitAuthForm(session);
-      continue;
-    }
-    if (state === "totp_required") {
+    if (formStep === "otp") {
       const otpLogin = loadViewOnlyLogin(config, { includeOtp: true });
       await replaceInput(session,
         'input[name="otpCode"],input[name="code"],input[autocomplete="one-time-code"]',
         otpLogin.otp, "Amazon one-time password");
       await submitAuthForm(session);
+      await waitFor(session, `document.readyState === "complete"`, "authentication result", 120);
       continue;
     }
     return state;
@@ -164,16 +194,33 @@ async function tryServiceAccountLogin(session, config) {
   return await inspectAuthState(session, allowed);
 }
 
+async function ensureInventorySession(session, config) {
+  await waitFor(session, `!!document.querySelector("meta[name=anti-csrftoken-a2z]")
+    || /signin|auth|mfa|captcha|\\/ap\\/cvf/.test(location.href)
+    || !!document.querySelector('input[type="password"],input[autocomplete="one-time-code"],input[name="guess"]')`,
+    "inventory application or regional authentication", 120);
+  let state = await inspectAuthState(
+    session, config.inventory_questions?.allowed_auth_origins || []);
+  if (state !== "authenticated" && config.authentication?.enabled) {
+    state = await tryServiceAccountLogin(session, config);
+  }
+  if (state !== "authenticated") throw authenticationError(state);
+  await waitFor(session, `!!document.querySelector("meta[name=anti-csrftoken-a2z]")`,
+    "inventory application", 120);
+}
+
 async function selectAccount(session, profile, config) {
   const allowedOrigins = config.inventory_questions?.allowed_auth_origins || [];
   await waitFor(session, `document.readyState === "complete"`, "account picker");
   await waitFor(session, `document.querySelectorAll("button.full-page-account-switcher-account-details").length > 0
-    || /signin|auth|mfa|captcha|\/ap\/cvf/.test(location.href)
+    || /signin|auth|mfa|captcha|\\/ap\\/cvf/.test(location.href)
     || !!document.querySelector('input[type="password"],input[autocomplete="one-time-code"],input[name="guess"]')`,
     "account picker or authentication state", 120);
   let authState = await inspectAuthState(session, allowedOrigins);
+  trace("account-picker state", authState);
   if (authState !== "authenticated" && config.authentication?.enabled) {
     authState = await tryServiceAccountLogin(session, config);
+    trace("post-login state", authState);
     if (authState === "authenticated") {
       await session.send("Page.enable");
       await session.send("Page.navigate", { url: locationForPicker() });
@@ -236,7 +283,7 @@ async function selectAccount(session, profile, config) {
     await session.send("Page.enable");
     await session.send("Page.navigate", { url: "https://sellercentral.amazon.com/amazonsell/manage-products?ref=myi&pageSize=100&pageIndex=0" });
     await waitFor(session, `location.pathname.includes("/amazonsell/manage-products")`, "current account inventory page", 120);
-    await waitFor(session, `!!document.querySelector("meta[name=anti-csrftoken-a2z]")`, "inventory application", 120);
+    await ensureInventorySession(session, config);
     return;
   }
   await trustedClick(session, marketplaceBox, `marketplace ${profile.marketplace_label}`);
@@ -246,12 +293,13 @@ async function selectAccount(session, profile, config) {
     const e=all.find(e=>e.tagName==="BUTTON"&&labels.includes((e.textContent||"").trim())&&e.getBoundingClientRect().width>0);
     if(!e)return null;const r=e.getBoundingClientRect();return{x:r.x+r.width/2,y:r.y+r.height/2}})()`, "account confirmation");
   await waitFor(session, `!location.pathname.includes("account-switcher")`, "selected Seller Central account", 120);
-  await waitFor(session, `!!document.querySelector("meta[name=anti-csrftoken-a2z]")`, "inventory application", 120);
+  await ensureInventorySession(session, config);
 }
 
 async function fetchFba(session, profile) {
   const listings = [];
   let total = 1;
+  let identity = null;
   for (let from = 0; from < total; from += 100) {
     const payload = { operationName: "WizardsInventory", variables: { pagination: { from, size: 100 } }, query: FBA_QUERY };
     const page = await evaluate(session, `(async()=>{const token=document.querySelector("meta[name=anti-csrftoken-a2z]")?.content;
@@ -261,14 +309,15 @@ async function fetchFba(session, profile) {
     if (page.errors?.length) throw new Error(`FBA GraphQL: ${page.errors.map((e) => e.message).join("; ")}`);
     const root = page.data?.listingsV2;
     if (!root) throw new Error("FBA GraphQL response shape changed");
-    if (root.configContext?.merchantId !== profile.seller_id
+    identity ||= root.configContext || {};
+    if ((profile.seller_id && root.configContext?.merchantId !== profile.seller_id)
       || root.configContext?.marketplaceId !== profile.marketplace_id) {
-      throw new Error(`ACCOUNT_MISMATCH: expected ${profile.seller_id}/${profile.marketplace_id}, got ${root.configContext?.merchantId}/${root.configContext?.marketplaceId}`);
+      throw new Error(`ACCOUNT_MISMATCH: expected ${profile.seller_id || "selected account"}/${profile.marketplace_id}, got ${root.configContext?.merchantId}/${root.configContext?.marketplaceId}`);
     }
     total = Number(root.count || 0);
     listings.push(...(root.listings || []));
   }
-  return aggregateFba(listings);
+  return { summary: aggregateFba(listings), identity };
 }
 
 async function fetchAwd(session, profile) {
@@ -388,21 +437,35 @@ async function main() {
   // is the hard safety check before any numbers are accepted.
   const existing = (await listPages()).find((page) =>
     page.url.startsWith("https://sellercentral.amazon.com/amazonsell/manage-products"));
-  const created = existing ? null : await createPage(picker);
+  trace("inventory tab", existing ? "reused" : "created");
+  // Create a stable blank target and navigate only after the CDP session is
+  // attached. Creating the target directly at the picker races the first
+  // Runtime.evaluate against Chrome's navigation and can be misreported as a
+  // logged-out session before the authentication helper ever runs.
+  const created = existing ? null : await createPage("about:blank");
   const targetId = created?.targetId || null;
   const session = created?.session || await Session.open(existing.webSocketDebuggerUrl);
   const auditDir = resolve(options["audit-dir"] || join(AMAZON_AGENT, "output/wizards-inventory/audit"));
   let result;
   try {
-    if (created) await selectAccount(session, profile, config);
+    if (created) {
+      await session.send("Page.enable");
+      await session.send("Page.navigate", { url: picker });
+      await selectAccount(session, profile, config);
+    }
     else await waitFor(session, `!!document.querySelector("meta[name=anti-csrftoken-a2z]")`, "inventory application", 120);
-    const fba = await fetchFba(session, profile);
+    const fbaResult = await fetchFba(session, profile);
+    const fba = fbaResult.summary;
     let awd;
     const warnings = [];
-    try { awd = await fetchAwd(session, profile); }
-    catch (error) {
+    if (profile.include_awd) {
+      try { awd = await fetchAwd(session, profile); }
+      catch (error) {
+        awd = null;
+        warnings.push(`AWD unavailable: ${error.message}`);
+      }
+    } else {
       awd = null;
-      warnings.push(`AWD unavailable: ${error.message}`);
     }
     if (awd && Math.abs(fba.awd_buyable_in_transit_signal - awd.stored) > 0) {
       warnings.push(`Current AWD signal is ${fba.awd_buyable_in_transit_signal.toLocaleString("en-US")} versus ${awd.stored.toLocaleString("en-US")} in the delayed ledger`);
@@ -412,29 +475,39 @@ async function main() {
       request_id: `${profile.key}-${Date.now()}`,
       profile: profile.key,
       account: profile.account_name,
+      display_name: profile.display_name,
       marketplace: profile.marketplace,
-      seller_id: profile.seller_id,
+      seller_id: fbaResult.identity?.merchantId || profile.seller_id,
       checked_at: new Date().toISOString(),
       duration_ms: Date.now() - started,
-      status: awd ? "complete" : "partial",
+      status: profile.include_awd && !awd ? "partial" : "complete",
       source: { fba: "Seller Central Manage Products GraphQL", awd: awd ? "Seller Central AWD Inventory Ledger" : null },
       fba,
       awd,
-      totals: awd ? combineInventory(fba, awd) : null,
+      totals: awd ? combineInventory(fba, awd) : {
+        stored: fba.stored, available_network: fba.available,
+        fba_stored: fba.stored, fba_available: fba.available,
+        awd_stored: 0, reserved_fba: fba.reserved.total,
+        inbound_fba: fba.inbound, unfulfillable_fba: fba.unfulfillable,
+      },
       warnings,
       double_count_rule: "AWD ending balance is counted once. AWD departed units and FBA inbound are movement buckets and are not added to stored inventory.",
     };
   } catch (error) {
+    trace("provider error", error.message);
     if (error.operationStatus) throw error;
     if (!error.authStatus) {
       try {
         const authState = await inspectAuthState(session, inventory.allowed_auth_origins || []);
         if (authState !== "authenticated") throw authenticationError(authState);
-        if (/HTTP (401|403)|anti-CSRF marker missing/i.test(error.message)) {
+        if (/HTTP 401|anti-CSRF marker missing/i.test(error.message)) {
           throw authenticationError("login_required");
         }
+        if (/HTTP 403/i.test(error.message)) {
+          throw selectionError("permission_denied", "The view-only Seller Central user lacks permission to read Manage Inventory");
+        }
       } catch (authCheckError) {
-        if (authCheckError.authStatus) throw authCheckError;
+        if (authCheckError.authStatus || authCheckError.operationStatus) throw authCheckError;
       }
     }
     if (error.authStatus) throw error;
