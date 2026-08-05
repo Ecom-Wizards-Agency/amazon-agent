@@ -1,166 +1,116 @@
 # Creator Connections Tracker Schema
 
-The tracker is a client-shareable Google Sheet with one tab per campaign plus an `Undecided` tab for unconfirmed product matches.
+This is the sole tracker schema. Preserve the live sheet's formatting, merges, dropdown validation, chip colors, and campaign metadata. Campaign tabs are client-shareable. Private creator contact details remain only in the live sheet and local browser context.
 
-Preserve the sheet structure exactly. Do not restyle or reorder columns unless the operator asks.
+## Tab structure
 
-## Header structure
+- Rows 1 to 8: campaign metadata.
+- Row 9: grouped headers.
+- Row 10: column headers.
+- Row 11 onward: creator records.
+- One tab per campaign, plus `Undecided` for unresolved product choice and three internal control tabs: `Creator Registry`, `Creator Action Log`, and `Daily Action Queue`.
 
-Rows 1–8 contain campaign or tab metadata.
+## Campaign tab columns
 
-Rows 9–10 contain merged category headers and column headers.
+The live header order is authoritative. Resolve columns by header name at runtime. Do not hard-code letters or prior positions.
 
-Do not include dropdowns in rows 1–10 unless the existing sheet already does. Data rows start at row 11.
+### Record control
 
-## Core tabs
+1. Creator Record ID
 
-- Campaign tabs: one tab per campaign/product/date range.
-- `Undecided`: creators who have not confirmed final product/ASIN.
-- Brand-level dashboards are optional and should not replace campaign-level tabs.
+### Creator and campaign activity
 
-## Column groups
-
-Use the approved column order:
-
-### Creator + campaign activity
-
-1. Creator Name
-2. Status
-3. Full Name
-4. Address
-5. Email
-6. Phone
-7. Date Sent
-8. Product
-9. Content Posted
-10. Posted Link(s)
-11. Notes
+2. Creator Name
+3. Status
+4. Full Name
+5. Address
+6. Email
+7. Phone
+8. Date Sent
+9. Product
+10. Content Posted
+11. Posted Link(s)
+12. Notes
 
 ### Sample fulfillment / MCF tracking
 
-12. Fulfillment Method
-13. Address Confirmed Date
-14. Sample Approved By
-15. Sample Sent Date
-16. MCF Order ID
-17. Tracking Number
-18. Delivery Status
-19. Follow-up Date
+13. Fulfillment Method
+14. Address Confirmed Date
+15. Sample Approved By
+16. Sample Sent Date
+17. MCF Order ID
+18. Tracking Number
+19. Delivery Status
+20. Follow-up Date
 
 ### Creator qualification gate
 
-20. Amazon Storefront Link
-21. Portfolio / Media Kit Link
-22. Requested ASIN
-23. Product Match Status
-24. Recent Posting Verified?
-25. Last Visible Post Date
-26. Content Quality Rating
-27. Category Fit
-28. Performance Evidence Available?
-29. Earns Revenue Badge?
-30. Revenue Badge Source
-31. Revenue Threshold Met?
-32. Specific ASIN Mentioned?
-33. Spam Risk
-34. Risk Flags
-35. Total Qualification Score
-36. Qualification Tier
-37. Sample Decision
-38. Qualification Notes
+21. Amazon Storefront Link
+22. Portfolio / Media Kit Link
+23. Requested ASIN
+24. Product Match Status
+25. Recent Posting Verified?
+26. Last Visible Post Date
+27. Content Quality Rating
+28. Category Fit
+29. Performance Evidence Available?
+30. Earns Revenue Badge?
+31. Revenue Badge Source
+32. Revenue Threshold Met?
+33. Specific ASIN Mentioned?
+34. Spam Risk
+35. Risk Flags
+36. Total Qualification Score
+37. Qualification Tier
+38. Sample Decision
+39. Qualification Notes
 
-## Status dropdowns
+## Control tabs
 
-Use the existing sheet dropdown values and chip colors. Common values include:
+### Creator Registry
+
+The authoritative identity index. It stores Creator Record ID, display name for operator navigation, opaque storefront, thread, name, and contact fingerprints, active product/campaign, record state, lock state, and merge notes. Do not copy raw address, email, phone, or storefront URL values into this tab.
+
+### Creator Action Log
+
+Append-only, non-PII event log. Record every sent message, status move, queue decision, fulfillment pre-flight, MCF result, content verification, or escalation with an evidence reference.
+
+### Daily Action Queue
+
+The bot's daily worklist. It should show the Creator Record ID, current status, action type, due date, required inputs, gate result, queue state, escalation reason, evidence reference, and last update.
+
+## Status and decision rules
+
+Use the status dropdown that exists on the target sheet. Do not invent values. The standard labels are:
 
 - New Inquiry
 - First-Base Pass
 - Verification Sent
 - Verification Confirmed
 - Proof Requested
-- Manager Review
+- Address Verification
 - Approved for Sample
 - Sample Sent
 - Delivered / Awaiting Content
 - Content Posted
+- Performance Update
 - Follow Up
-- <Product> Pause
+- Manager Review
+- Product Switch Pending
 - On Hold
 - Unqualified
 - Ghosted
 - Declined / Closed
-- Address Verification
-- Inquiry Sent
+- `<Product> Pause`
 
-When adding or changing a status, keep a matching color. Do not leave new statuses white/unformatted. For client-specific product pauses, use a clear status such as `<Product> Pause` and document the exact wording in local notes.
+Use the existing chip color when a label already exists. New client-specific labels require a coordinated color and a recorded local note. The fulfillment decision is separate: `Send`, `Hold`, or `Do Not Send`.
 
-## Qualification gate
+`Send` requires the exact 10/10 gate in `lifecycle-execution-guardrails.md`; it is not inferred from a status alone.
 
-Use a 10-point score as a decision aid, not an automatic approval.
+## Product and duplicate rules
 
-Populate these fields from an internal background check whenever possible before asking the creator for proof. Check the visible Amazon storefront/profile, recent shoppable videos, Earns Revenue badge, attached product cards, media kit, portfolio, and public social links. If the visible evidence is strong enough, ask only for missing basic fulfillment details rather than requesting proof screenshots.
-
-Suggested scoring:
-
-- Recent active posting: 0–2
-- Content quality: 0–2
-- Category/product fit: 0–2
-- Performance/revenue proof: 0–1
-- Specific ASIN mentioned: 0–1
-- Storefront or portfolio available: 0–1
-- Responsiveness/complete details: 0–1
-
-Tiers:
-
-- 8–10: `A - Send`, only if product match is exact and risk is low.
-- 5–7: `B - Review`, ask for missing proof/details or manager approval.
-- 0–4: `C - Do Not Send`, hold or reject until proof improves.
-
-Prefer 10/10 before sample sending. Surface 8–9 candidates only with clear missing items and operator decision.
-
-## Sample decision
-
-Allowed sample decisions:
-
-- Send
-- Hold
-- Do Not Send
-
-Do not set `Send` unless:
-
-- product/ASIN is confirmed
-- creator passed the qualification gate or operator approved an exception
-- full shipping/contact details are complete
-- no major risk flag remains
-
-## Product switch rules
-
-- If a creator changes desired product, confirm the final product/ASIN before moving rows.
-- Once confirmed, move the active row to the final product tab.
-- Leave the old product row only if needed as historical context, and mark it `On Hold` / `Do Not Send`; do not keep multiple active sample-ready rows.
-- Do not move undecided creators until they confirm.
-
-## Undecided tab
-
-Use `Undecided` when:
-
-- no ASIN was provided
-- product name is vague
-- multiple products were requested without final choice
-- the creator asks for “any product”
-- the message appears under one campaign but the creator’s actual desired product is unclear
-
-Sample decision must stay `Hold` or `Do Not Send` until the creator confirms exact product/ASIN.
-
-## Notes rules
-
-Notes should be concise evidence logs:
-
-- message date
-- what the creator provided
-- what we asked
-- proof/status found
-- sample decision and blocker
-- reply sent date
-
-Do not write private data into repo files or Slack. Keep addresses, emails, and phone numbers in the tracker only.
+- One active creator row per Creator Record ID and final product/ASIN.
+- A creator who has not confirmed the final product remains in `Undecided`.
+- On a verified product switch, make the final-product row active and retain the old row as historical only. Never leave two active sample paths.
+- Never merge or move rows from display-name similarity. Resolve the Creator Record ID first.
+- Do not delete historical sample records. Mark their current state and link the same Creator Record ID when verified.
