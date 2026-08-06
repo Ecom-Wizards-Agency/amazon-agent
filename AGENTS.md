@@ -39,6 +39,17 @@ Every skill declares its path in one standardized line right under its title (`B
 
 If an Amazon page shows a login screen, switch port 9222 to `--mode recovery`, bring it forward, and ask the operator to log in. Return it to headless mode after login. The agent must not handle passwords, one-time codes, authenticator prompts, cookies, local storage, session stores, or other credentials.
 
+One narrow unattended exception is approved for Wizards AI. Its dedicated
+port-9223 Chrome uses a separate delegated Amazon user with view-only account
+permissions. When `~/os/wizards-ai/config.json` explicitly enables the scoped
+1Password service-account mode, `tools/wizards-inventory/` may retrieve only
+that view-only login from the custom `Wizards AI Automation` vault through a
+token stored in macOS Keychain. The code must assert port 9223, view-only scope,
+allowed Amazon authentication origins, and no fallback before retrieving a
+credential. CAPTCHA, device approval, account recovery, identity verification,
+and every port-9222 login remain human-only. This exception never permits cookie
+or browser-storage inspection and does not apply to attended Amazon Agent work.
+
 Before every Amazon task, verify the browser session is logged in and confirm the selected account/advertiser, marketplace/country, visible page title/tool, and date range or filters when relevant. If the task names a client, brand, advertiser, seller account, or marketplace, switch to that exact account and marketplace before doing any task work, downloading files, reading reports, or confirming statuses. When the requested account and marketplace are visibly selected, continue without asking for an additional account-safety confirmation. Stop only when a different account is active, the requested account is unavailable, the selection is ambiguous, or login/session friction prevents verification. Repeat this verification after switching tools, opening a new Amazon area, changing marketplaces, changing advertiser/seller accounts, or returning from a login/session timeout. If the browser is unavailable or not logged in, pause and ask the operator to open it, complete login, or name which browser/session to use.
 
 Detailed per-screen checkpoint, screenshot, and stop-point procedure: `docs/browser-checkpoints.md`. Per-workflow browser routing (which path each skill uses): `docs/browser-routing-map.md`.
