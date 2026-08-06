@@ -19,7 +19,7 @@ the logic there.
     python3 tools/report-fetcher/launch-chrome-debug.py
 
 Env: CDP_PORT (9222) · CDP_PROFILE · CHROME_BIN · CDP_START_URL ·
-CDP_BROWSER_MODE (headed)
+CDP_BROWSER_MODE (headless)
 """
 import argparse
 import json
@@ -87,8 +87,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--mode",
         choices=("headed", "headless", "recovery", "stop", "status"),
-        default=os.environ.get("CDP_BROWSER_MODE", "headed"),
-        help="headed is the backwards-compatible default; recovery is a visible operator session",
+        default=os.environ.get("CDP_BROWSER_MODE", "headless"),
+        help="headless is the normal background mode; recovery is a visible operator session",
     )
     parser.add_argument(
         "--adopt-existing",

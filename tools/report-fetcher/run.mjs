@@ -256,7 +256,7 @@ async function main() {
     const v = await assertChrome();
     console.log("Chrome:", v.Browser, "| debug port reachable");
     const sc = (await listPages()).filter((p) => /sellercentral\.amazon\./.test(p.url || ""));
-    if (!sc.length) { console.log("Seller Central: no tab — open https://sellercentral.amazon.com in the debug window and sign in."); process.exit(1); }
+    if (!sc.length) { console.log("Seller Central: no tab. Start recovery mode only if login is required, then open https://sellercentral.amazon.com."); process.exit(1); }
     const s = await Session.open(sc[0].webSocketDebuggerUrl);
     let st;
     try {

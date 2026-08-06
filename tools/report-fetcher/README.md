@@ -18,12 +18,13 @@ shell access (Codex `@computer`) can run it.
 
 One-time setup: Chrome 136+ ignores `--remote-debugging-port` on your normal profile
 (a Chrome security change), so the runner uses a dedicated debug Chrome that runs
-**alongside** your normal Chrome. You sign into Seller Central **once** in that window;
-the login persists in the debug profile for every future run.
+**alongside** your normal Chrome. Open its visible recovery window to sign into Seller
+Central **once**; the login persists in the debug profile for every future headless run.
 
 ```bash
-tools/report-fetcher/launch-chrome-debug.sh      # opens the dedicated debug Chrome (normal Chrome untouched)
+tools/report-fetcher/launch-chrome-debug.sh --mode recovery  # visible only for login/recovery
 # → in that new window, sign into Seller Central once (first run only)
+tools/report-fetcher/launch-chrome-debug.sh      # switches to normal headless background mode
 node tools/report-fetcher/run.mjs doctor         # confirms the connection + a logged-in tab
 ```
 
@@ -119,7 +120,7 @@ for its own requests. The script **never** reads cookies, localStorage, sessionS
 passwords, or bearer/refresh tokens, and never logs in. Report data is returned to the agent
 and sent nowhere else.
 
-- Connected/internal browser only, **never headless** (Amazon blocks bots).
+- Dedicated CDP browser only. Normal operation is headless; use visible recovery only for login or an explicit operator request.
 - **Read-only**: these endpoints only read reports; nothing is written or changed.
 - **~5 s spacing** between requests (mirrors real usage).
 - No session / 403 / missing token → the function returns `{ error }` and the agent stops

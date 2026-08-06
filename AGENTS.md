@@ -27,6 +27,8 @@ The agent should be able to:
 
 CDP-first for scripted workflows: the repo keeps a dedicated debug Chrome profile (`~/.amazon-agent/chrome-debug`, DevTools port 9222, localhost-only), launched or reused idempotently via `tools/report-fetcher/launch-chrome-debug.sh`. It runs alongside the normal browser, its Amazon logins persist across runs, and scripts drive it directly over CDP with no extension round-trips, which makes it faster and more reliable than operating a normal browser UI. Current Chrome (136+) silently ignores the debug port on the default profile, so this dedicated profile is the only working CDP path. Every workflow that has a script/CDP runner (report fetcher `run.mjs`, POE downloader `run-poe.mjs`, listing capture, future fetchers) uses the debug Chrome by default, for both agents. All account/marketplace verification and login rules below apply to the debug profile exactly like any other browser session.
 
+Port 9222 runs headlessly by default, like the Wizards AI port-9223 browser. Do not open or bring its window to the front during normal work. Use `--mode recovery` only when the operator must log in or explicitly asks to see the browser. A workflow that cannot function with Chrome's headless renderer may temporarily use `--mode headed`, but the window stays behind other apps unless the operator must interact. Return the profile to headless mode with the normal launcher command as soon as the visible step is complete. Headless operation does not relax any login, account, marketplace, evidence, or stop-before-risk checkpoint.
+
 Interactive UI work (FlatFilePro mapping, Creator Connections inbox, visual checks, anything without a script path) runs over the same CDP debug Chrome. CDP is not limited to scripted fetches: it dispatches real mouse and key events, captures screenshots as evidence, polls for late-loading elements, attaches local files to file inputs (`DOM.setFileInputFiles`), and captures downloads to a chosen folder (`Browser.setDownloadBehavior`). Verified 31.07.2026, including a live Seller Central account switch driven entirely from the terminal.
 
 Use the **Chrome extension** instead when the task must run inside the operator's own logged-in session rather than the debug profile. DataDive is the standing example: the debug profile has no DataDive login, and creating one risks displacing the operator's. The two profiles hold independent sessions and do not interfere.
@@ -35,7 +37,7 @@ Choose by session, not by agent: **CDP when the agent should work in its own san
 
 Every skill declares its path in one standardized line right under its title (`Browser: CDP|Extension|None|Mixed`, enforced by `tools/lint_agent_docs.py`). Trust that line when a skill is loaded; the full per-workflow table is `docs/browser-routing-map.md`.
 
-If an Amazon page shows a login screen, stop and ask the operator to log in first. The agent must not handle passwords, one-time codes, authenticator prompts, cookies, local storage, session stores, or other credentials.
+If an Amazon page shows a login screen, switch port 9222 to `--mode recovery`, bring it forward, and ask the operator to log in. Return it to headless mode after login. The agent must not handle passwords, one-time codes, authenticator prompts, cookies, local storage, session stores, or other credentials.
 
 One narrow unattended exception is approved for Wizards AI. Its dedicated
 port-9223 Chrome uses a separate delegated Amazon user with view-only account

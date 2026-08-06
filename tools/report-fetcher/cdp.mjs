@@ -22,7 +22,7 @@ export async function assertChrome() {
     throw new Error(
       `Cannot reach Chrome debug port at ${BASE}. Launch Chrome with the debug port first:\n` +
       `  tools/report-fetcher/launch-chrome-debug.sh\n` +
-      `then open Seller Central and log in. (${e.message})`);
+      `Use --mode recovery only if Seller Central login is required. (${e.message})`);
   }
 }
 

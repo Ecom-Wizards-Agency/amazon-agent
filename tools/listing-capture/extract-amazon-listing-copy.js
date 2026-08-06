@@ -10,8 +10,10 @@
  * be passed directly to a connected-browser evaluate call — no <script>
  * injection / eval / window assignment required.
  *
- * Execution paths (connected/internal browser only — never headless; Amazon
- * blocks bots; never inspect cookies/storage/credentials/tokens):
+ * Execution paths (dedicated CDP or connected browser only; never inspect
+ * cookies/storage/credentials/tokens). Try the normal headless CDP mode first.
+ * Amazon PDPs may block its renderer, so temporarily use headed background mode
+ * for this workflow when needed and return the CDP profile to headless afterward:
  *   A) Codex / Playwright:  await tab.playwright.evaluate(extractAmazonListingCopy, "<requestedAsin>")
  *   B) DevTools / injected:  window.amazonAgentExtractListingCopy("<requestedAsin>")
  *

@@ -8,7 +8,7 @@ Routing is by **session**, not by agent. CDP is not limited to scripted fetches:
 
 | Path | What it is | When |
 |---|---|---|
-| **CDP debug Chrome** | Dedicated profile `~/.amazon-agent/chrome-debug`, DevTools port 9222 (localhost-only). Launch/reuse: `tools/report-fetcher/launch-chrome-debug.sh`. Logins persist in the profile. | Default for everything with a page, scripted or interactive. JS round-trip measured at 0.58 ms, so whole jobs run in one call. |
+| **CDP debug Chrome** | Dedicated profile `~/.amazon-agent/chrome-debug`, DevTools port 9222 (localhost-only). Launch/reuse: `tools/report-fetcher/launch-chrome-debug.sh`. Logins persist in the profile. Normal mode is headless. | Default for everything with a page, scripted or interactive. Use visible recovery for login or an explicit operator request. Use temporary headed mode only when a workflow cannot function headlessly. |
 | **Chrome extension** | Drives the operator's *normal* Chrome with their existing logins. | When the task must run in the operator's own session rather than the debug profile. DataDive is the standing case: the debug profile has no DataDive login and creating one risks displacing the operator's. |
 | **No browser (MCP)** | DataDive MCP, AdLabs MCP, Notion MCP. | Data that has an API. Always preferred over any browser when it covers the need. |
 | **No browser (local)** | Builders and formatters in `tools/`. | File-in/file-out work. |
@@ -45,6 +45,7 @@ The two browser profiles hold independent sessions and do not interfere; both ca
 ## Constants Across All Paths
 
 - Account/marketplace verification before task work applies to every path, including the CDP profile.
+- Port 9222 stays headless by default. Visible recovery is for login or an explicit operator request. A technically required headed session stays behind other apps and returns to headless immediately afterward.
 - Logins: the operator logs in; agents never touch credentials. The CDP profile keeps its own logins (one-time per account).
 - One login per Seller Central region; switch marketplaces via the in-app switcher, never by changing the domain.
 - Stop-before-risk gates are path-independent: a send/upload/publish needs explicit approval no matter which browser executed the steps.
