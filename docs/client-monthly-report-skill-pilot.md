@@ -24,14 +24,14 @@ phase is approved.
 This workflow creates one client-ready monthly Amazon report by running three
 separate stages and combining them only after each stage passes validation:
 
-1. Run the managed-account audit through `amazon-adlabs-audit` and generate the
+1. Run the managed-account audit through `amazon-audit` and generate the
    audit workbook.
 2. Build the normal monthly report from Sellerboard, AdLabs, Amazon reports,
    DataDive, Slack, meeting notes, and any supplied brand documents.
 3. Weave the useful audit findings into the monthly report's approved design and
    narrative structure.
 
-Do not replace the existing `amazon-reporting` or `amazon-adlabs-audit` skills.
+Do not replace the existing `amazon-reporting` or `amazon-audit` skills.
 The eventual monthly-report skill should orchestrate both and own the final PDF,
 workbook delivery, visual QA, and cross-source reconciliation.
 
@@ -51,6 +51,42 @@ subfolder is optional, but it cannot be the only location of the client audit.
 
 ## 3. Source contract
 
+### Operator screenshot and notes handoff
+
+Before asking the operator for anything, load the persisted brand configuration.
+Reuse the known marketplace, Sellerboard account, AdLabs profile and dashboard,
+focus products and parent ASINs, brand aliases and misspellings, DataDive Rank
+Radar identifiers, currency, and Slack channel. Ask again only when a value is
+missing, ambiguous, inaccessible, stale, or explicitly changed by the operator.
+
+For each monthly run, request only these period-specific inputs:
+
+1. Sellerboard screenshots for the reporting month and comparison month, with
+   the correct brand/marketplace and `Group by parent`. The complete month dates,
+   account totals, and focus-product parent rows must be visible.
+2. One full-month DataDive Rank Radar heatmap screenshot per focus product. The
+   complete date span and product identity must be visible, the text must be
+   readable, and the image must not include a black border or unrelated blank
+   area. Omit this request for a marketplace DataDive does not support.
+3. The brand-specific AdLabs custom-dashboard screenshot with the exact reporting
+   month and previous comparison month selected. The dashboard/profile identity,
+   date selectors, and KPI tiles must be visible.
+4. Meeting notes for calls held during the reporting month, or explicit
+   confirmation that there were no meeting notes. Notes from after month-end may
+   be used only as clearly labeled forward-planning context.
+
+The Slack channel is normally not an operator handoff item. Resolve it from the
+persisted brand configuration and read the full month, including thread replies.
+Ask for the channel only when it is absent, ambiguous, or inaccessible.
+
+Reject or replace an input before drafting when it shows an incomplete month,
+the wrong account or marketplace, Sellerboard grouped by something other than
+parent, the wrong AdLabs dashboard/comparison, a partial or unreadable Rank Radar,
+or mixed-brand meeting notes that cannot be classified safely.
+
+The reusable operator-facing version of this checklist is maintained in
+`docs/monthly-report-input-handoff.md`.
+
 ### Sellerboard
 
 Use Sellerboard for business KPIs:
@@ -62,8 +98,9 @@ Use Sellerboard for business KPIs:
 - Refunds
 - Ad cost when displayed as a business/P&L KPI
 
-Use the exact account, marketplace, grouping, and complete calendar-month date
-range. Preserve the displayed precision and do not invent rounding.
+Use the exact account and marketplace, set `Group by parent`, and use the complete
+calendar-month date range. Preserve the displayed precision and do not invent
+rounding.
 
 ### AdLabs custom dashboard
 
@@ -79,6 +116,10 @@ Use `Insights > Custom Dashboards > <Brand>` for the advertising overview:
 
 AdLabs is the advertising source of truth. Keep Sellerboard and AdLabs values
 labelled separately when their accounting basis differs.
+
+The custom-dashboard screenshot is mandatory for every brand and marketplace,
+even when exact-dated data can also be fetched through an integration. It verifies
+the dashboard identity, profile, KPI configuration, and visible period selection.
 
 ### AdLabs search-term level
 
@@ -129,6 +170,9 @@ brand, even when no meeting notes are supplied. Use reply-level decisions and
 updates, not only thread headlines. If Slack's thread reader omits reported
 replies, recover them with channel-scoped, month-bounded Slack searches.
 
+Resolve the channel from the persisted brand record. Do not repeatedly ask the
+operator for a channel that is already registered and accessible.
+
 Build a short Slack evidence ledger with the date, thread topic, confirmed
 facts, unresolved items, and the report section each item informs. Weave only
 relevant context into the measured section it explains. Meeting notes and
@@ -143,7 +187,8 @@ the classification is uncertain, omit the item from the client report.
 
 ### Phase A - Scope and preflight
 
-Confirm:
+Load the persisted brand configuration first, then confirm only missing, stale,
+or changed values:
 
 - Brand and marketplace
 - Current calendar month and previous comparison month
@@ -156,6 +201,10 @@ Confirm:
 - DataDive Rank Radar sources
 - Slack channel ID/link, full-month thread window, and meeting-note sources
 - Optional modules explicitly requested or supplied
+
+Collect the current run's Sellerboard, AdLabs-dashboard, Rank Radar, and meeting-
+note handoff using the checklist in the source contract. Do not make the operator
+restate known brand details.
 
 Create a source ledger before calculating or writing anything.
 
@@ -216,8 +265,8 @@ Use this order unless the brand's evidence requires a small, justified change:
 12. Focus-product performance
 13. SQP product view
 14. Organic ranking by focus product
-15. Goals and next-month priorities
-16. Explicitly requested optional sections
+15. Explicitly requested optional sections
+16. Goals and next-month priorities
 
 The exact page count is content-driven. Do not force every brand into the same
 number of pages. Merge adjacent sections when they fit cleanly, while preserving
@@ -328,6 +377,12 @@ on memory. At minimum it stores:
 - DataDive radar identifiers
 - Slack channel
 - Currency symbol
+- Whether DataDive supports the marketplace
+- Per-run input status and source timestamps
+
+The source registry is durable brand knowledge. Monthly screenshots and meeting
+notes are run-specific evidence. Keep those concepts separate so the system can
+remember stable details without accidentally reusing stale monthly data.
 
 ## 8. Optional modules
 
@@ -474,6 +529,9 @@ impressions, clicks, orders, CTR, and CVR.
 
 - Confirm the brand's full reporting-month Slack channel and thread review is
   complete, including reply-level decisions.
+- Confirm the operator input checklist is complete or explicitly inapplicable:
+  both Sellerboard months, the exact AdLabs custom dashboard, one Rank Radar per
+  supported focus product, and meeting notes or a confirmed no-notes status.
 - Confirm every Slack and meeting item belongs to the correct brand, product,
   account, and marketplace.
 - Confirm optional modules have an explicit trigger and source.
@@ -510,7 +568,7 @@ After internal approval:
    `tools/client-monthly-report-template/` and its validated per-brand schema.
 4. Extend the reusable builders for the workbook, charts, tables, PDF, and
    visual QA without creating brand-specific forks.
-5. Route audit work to `amazon-adlabs-audit` and report fetching to
+5. Route audit work to `amazon-audit` and report fetching to
    `amazon-reporting` instead of duplicating those implementations.
 6. Add regression fixtures from approved Swissker and Pawsan runs.
 7. Validate the skill folder with `quick_validate.py` and run a full brand test.

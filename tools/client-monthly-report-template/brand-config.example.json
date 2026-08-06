@@ -42,6 +42,26 @@
       "include_all_month_threads": true,
       "include_thread_replies": true,
       "cross_brand_exclusion": true
+    },
+    "operator_handoff": {
+      "ask_only_if_missing_stale_or_changed": true,
+      "sellerboard": {
+        "current_month_screenshot_required": true,
+        "previous_month_screenshot_required": true,
+        "required_grouping": "parent"
+      },
+      "adlabs_dashboard": {
+        "screenshot_required": true,
+        "show_current_and_previous_complete_months": true
+      },
+      "meeting_notes": {
+        "required_or_confirm_none": true,
+        "post_period_notes_are_planning_context_only": true
+      },
+      "slack": {
+        "retrieve_from_saved_config": true,
+        "ask_only_if_missing_ambiguous_or_inaccessible": true
+      }
     }
   },
   "traffic": {
@@ -54,6 +74,8 @@
       "name": "Focus Product",
       "parent_asin": "B000000000",
       "rank_radar_id": "replace-me",
+      "rank_radar_url": "https://2.datadive.tools/rank-radar/replace-me",
+      "full_month_screenshot_required_each_run": true,
       "rank_radar_previous_period_source": "previous approved monthly report",
       "include_sqp": true
     }

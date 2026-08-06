@@ -131,6 +131,126 @@ class MarketplacePart:
             raise ValueError(f"Marketplace part is missing: {', '.join(missing)}")
 
 
+@dataclass(frozen=True)
+class MonthlySourceRegistry:
+    """Stable brand source settings that should persist between monthly runs."""
+
+    sellerboard_account: str
+    sellerboard_grouping: str
+    adlabs_profile: str
+    adlabs_dashboard: str
+    focus_products: tuple[str, ...]
+    slack_channel: str = ""
+    rank_radar_ids: Mapping[str, str] = field(default_factory=dict)
+    datadive_supported: bool = True
+
+    def validate(self) -> None:
+        required = {
+            "sellerboard_account": self.sellerboard_account,
+            "adlabs_profile": self.adlabs_profile,
+            "adlabs_dashboard": self.adlabs_dashboard,
+        }
+        missing = [name for name, value in required.items() if not value.strip()]
+        if missing:
+            raise ValueError(f"Monthly source registry is missing: {', '.join(missing)}")
+        if self.sellerboard_grouping.strip().lower() != "parent":
+            raise ValueError("Sellerboard grouping must be 'parent'")
+        if not self.focus_products:
+            raise ValueError("At least one focus product is required")
+        normalized = [product.strip().casefold() for product in self.focus_products]
+        if any(not product for product in normalized):
+            raise ValueError("Focus product names cannot be blank")
+        duplicates = sorted(
+            {product for product in normalized if normalized.count(product) > 1}
+        )
+        if duplicates:
+            raise ValueError(f"Duplicate focus products: {duplicates}")
+
+
+@dataclass(frozen=True)
+class MonthlyRunEvidence:
+    """Period-specific operator evidence received for one monthly run."""
+
+    sellerboard_current_month: bool = False
+    sellerboard_previous_month: bool = False
+    sellerboard_parent_grouping_verified: bool = False
+    adlabs_dashboard_current_month: bool = False
+    adlabs_dashboard_previous_month: bool = False
+    rank_radar_products: frozenset[str] = field(default_factory=frozenset)
+    meeting_notes_status: str = "missing"
+    slack_accessible: bool = True
+
+    def validate(self) -> None:
+        allowed = {"missing", "supplied", "none_confirmed"}
+        if self.meeting_notes_status not in allowed:
+            raise ValueError(
+                "meeting_notes_status must be 'missing', 'supplied', or "
+                "'none_confirmed'"
+            )
+
+
+def missing_operator_inputs(
+    registry: MonthlySourceRegistry,
+    evidence: MonthlyRunEvidence,
+) -> tuple[str, ...]:
+    """Return only the operator inputs still required for the monthly run."""
+
+    registry.validate()
+    evidence.validate()
+    requests: list[str] = []
+
+    missing_sellerboard_periods: list[str] = []
+    if not evidence.sellerboard_current_month:
+        missing_sellerboard_periods.append("reporting month")
+    if not evidence.sellerboard_previous_month:
+        missing_sellerboard_periods.append("comparison month")
+    if missing_sellerboard_periods or not evidence.sellerboard_parent_grouping_verified:
+        detail = " and ".join(missing_sellerboard_periods) or "both verified months"
+        requests.append(
+            f"Sellerboard screenshots for {detail}, using the saved account and "
+            "Group by parent."
+        )
+
+    missing_adlabs_periods: list[str] = []
+    if not evidence.adlabs_dashboard_current_month:
+        missing_adlabs_periods.append("reporting month")
+    if not evidence.adlabs_dashboard_previous_month:
+        missing_adlabs_periods.append("comparison month")
+    if missing_adlabs_periods:
+        requests.append(
+            "AdLabs custom-dashboard screenshot showing the "
+            + " and ".join(missing_adlabs_periods)
+            + " on the saved dashboard."
+        )
+
+    if registry.datadive_supported:
+        received = {product.strip().casefold() for product in evidence.rank_radar_products}
+        missing_products = [
+            product
+            for product in registry.focus_products
+            if product.strip().casefold() not in received
+        ]
+        if missing_products:
+            requests.append(
+                "Full-month DataDive Rank Radar screenshot for: "
+                + ", ".join(missing_products)
+                + "."
+            )
+
+    if evidence.meeting_notes_status == "missing":
+        requests.append(
+            "Meeting notes for the reporting month, or confirmation that there "
+            "were no meeting notes."
+        )
+
+    if not registry.slack_channel.strip() or not evidence.slack_accessible:
+        requests.append(
+            "Slack channel because it is not registered or cannot be accessed."
+        )
+
+    return tuple(requests)
+
+
 @dataclass
 class ReportDefinition:
     brand_slug: str

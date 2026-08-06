@@ -33,6 +33,8 @@ It preserves the exact structural decisions made during review:
 - Multi-marketplace reports split into complete, currency-isolated parts
 - Unsupported DataDive marketplaces omitted without invented Rank Radar output
 - Final PDF and audit workbook delivered together in the monthly Desktop folder
+- Stable brand source details remembered between runs; only missing, stale, or
+  changed values are requested again
 
 ## Files
 
@@ -100,18 +102,23 @@ contact sheets before promotion to the production skill.
 
 1. Copy `brand-config.example.json` and fill the exact account, marketplace,
    source, segment, focus-product, and Rank Radar fields.
-2. Pass the mandatory AdLabs dashboard preflight: verify the exact dashboard ID,
+2. Collect the four-item operator handoff: Sellerboard for both months grouped by
+   parent, one full-month Rank Radar screenshot per supported focus product, the
+   exact AdLabs custom dashboard, and meeting notes or a confirmed no-notes status.
+   Retrieve the Slack channel from brand configuration and ask for it only when
+   missing, ambiguous, or inaccessible. See `docs/monthly-report-input-handoff.md`.
+3. Pass the mandatory AdLabs dashboard preflight: verify the exact dashboard ID,
    linked profile ID, currency, refresh timestamp, and both complete calendar
    month windows. If the screenshot comparison is wrong, lock the comparison to
    exact-dated MCP data and use the screenshot only for current-period validation.
-3. Read the brand's Slack channel and all threads for the full reporting month;
+4. Read the brand's Slack channel and all threads for the full reporting month;
    record reply-level decisions in a source ledger and exclude cross-brand
    discussion before writing analysis.
-4. Run the AdLabs audit and create the audit workbook first.
-5. Build brand page renderers using the Swissker page order and layout tokens.
-6. Register any requested optional section with an explicit brand/source gate.
-7. Render, validate sources and formulas, then visually inspect every page.
-8. For multi-marketplace reports, validate and render each marketplace as a
+5. Run `amazon-audit` and create the audit workbook first.
+6. Build brand page renderers using the Swissker page order and layout tokens.
+7. Register any requested optional section with an explicit brand/source gate.
+8. Render, validate sources and formulas, then visually inspect every page.
+9. For multi-marketplace reports, validate and render each marketplace as a
    separately sourced part of the combined report.
-9. Create `%USERPROFILE%\Desktop\<Month> Monthly Reports` and place the final
+10. Create `%USERPROFILE%\Desktop\<Month> Monthly Reports` and place the final
    report PDF and audit workbook directly in it.
