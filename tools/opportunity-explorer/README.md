@@ -36,7 +36,8 @@ Captured-vs-visible verification: `references/poe-gap-matrix.md`.
 ### Path B: terminal/CDP (Claude or any agent with shell access)
 
 ```bash
-tools/report-fetcher/launch-chrome-debug.sh      # dedicated debug Chrome; sign into Seller Central once
+tools/report-fetcher/launch-chrome-debug.sh --mode recovery  # visible only for login/recovery
+tools/report-fetcher/launch-chrome-debug.sh      # normal headless background mode
 node tools/opportunity-explorer/run-poe.mjs doctor
 
 # find the niche (keyword search; also produces the related-niches files)
@@ -113,8 +114,8 @@ Same-origin, read-only GraphQL reads in the operator's existing logged-in
 session. The only header added is `anti-csrftoken-a2z`, read from the page's
 OWN meta tag, the same sanctioned mechanism as `tools/report-fetcher/` (see
 the carve-out in `AGENTS.md`). Never reads cookies, local/session storage,
-passwords, or bearer/refresh tokens; never logs in. Connected/internal browser
-only, never headless. ~5 s jittered pacing between heavy requests; one niche
+passwords, or bearer/refresh tokens; never logs in. Dedicated CDP browser in its
+normal headless mode. ~5 s jittered pacing between heavy requests; one niche
 per invocation; on `{error}` the tools stop and ask the operator (no retry
 loops, no fabricated data).
 

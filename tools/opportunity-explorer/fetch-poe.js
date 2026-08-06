@@ -20,7 +20,7 @@
  *   client-side routes — no per-tab requests exist.
  *
  * SAFETY
- *   Connected/internal browser only — never headless (Amazon blocks bots).
+ *   Dedicated CDP browser in its normal headless mode.
  *   Read-only: these operations only READ niche data. ~5 s spacing between
  *   heavy requests (mirrors real usage); one niche per invocation. If there is
  *   no active session (network error / 401/403 / non-JSON) the function returns

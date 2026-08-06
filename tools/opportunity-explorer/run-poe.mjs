@@ -5,7 +5,8 @@
  * launch-chrome-debug.sh prerequisite (dedicated debug Chrome profile,
  * logged into Seller Central once).
  *
- *   tools/report-fetcher/launch-chrome-debug.sh            # once; sign in
+ *   tools/report-fetcher/launch-chrome-debug.sh --mode recovery  # visible only for login/recovery
+ *   tools/report-fetcher/launch-chrome-debug.sh            # normal headless mode
  *   node tools/opportunity-explorer/run-poe.mjs doctor
  *   node tools/opportunity-explorer/run-poe.mjs niche  --niche-id <id> --marketplace de --client <slug> [--verbose]
  *   node tools/opportunity-explorer/run-poe.mjs search --query "kollagen pulver" --marketplace de --client <slug>
@@ -27,7 +28,7 @@
  *   --out-dir  (default: output/<client>/opportunity-data/)
  * --verbose additionally saves the raw envelope JSON.
  *
- * Safety: connected debug Chrome only (never headless), read-only GraphQL
+ * Safety: dedicated CDP Chrome in its normal headless mode, read-only GraphQL
  * reads in the operator's session, ~5 s pacing inside fetch-poe.js, one niche
  * per invocation. On {error} → exit non-zero and tell the operator.
  */
