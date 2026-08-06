@@ -5,6 +5,9 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { aggregateAwd, aggregateFba, classifyAuthPage, combineInventory, parseCsv } from "./lib.mjs";
 import { assertAuthPolicy, authenticationFormStep, loadViewOnlyLogin } from "./auth.mjs";
+import {
+  assertPriceExpectations, marketplaceDomain, normalizePriceRows, parseMoney,
+} from "./price-lib.mjs";
 
 let assertChrome, closePage, createPage, evaluate, listPages, Session;
 
@@ -320,6 +323,71 @@ async function fetchFba(session, profile) {
   return { summary: aggregateFba(listings), identity };
 }
 
+async function navigatePriceReadOnly(session, url, description) {
+  await session.send("Page.enable");
+  await session.send("Page.navigate", { url });
+  await waitFor(session, `document.readyState === "complete"`, description, 120);
+  const state = await inspectAuthState(session);
+  if (state !== "authenticated" && /signin|auth|mfa|captcha|\/ap\/cvf/.test(
+    await evaluate(session, "location.href"))) throw authenticationError(state);
+}
+
+async function fetchConfiguredPrice(session, profile, config, asin) {
+  const url = `https://sellercentral.amazon.com/amazonsell/manage-products?ref=myi&pageSize=100&pageIndex=0&searchTerm=${encodeURIComponent(asin)}`;
+  await navigatePriceReadOnly(session, url, `Manage Products price for ${asin}`);
+  await ensureInventorySession(session, config);
+  await waitFor(session, `document.body && (document.body.innerText||"").includes(${JSON.stringify(asin)})
+    || /(access denied|not authorized|insufficient permission)/i.test(document.body?.innerText||"")`,
+  `exact ASIN ${asin}`, 120);
+  const denied = await evaluate(session,
+    `/(access denied|not authorized|insufficient permission)/i.test(document.body?.innerText||"")`);
+  if (denied) throw selectionError(
+    "permission_denied", "Manage Inventory/Add a Product does not expose configured listing prices");
+  const rows = await evaluate(session, `(()=>{
+    const all=[];const roots=[document];
+    for(let i=0;i<roots.length;i++)for(const e of roots[i].querySelectorAll("*")){all.push(e);if(e.shadowRoot)roots.push(e.shadowRoot)}
+    const clean=x=>(x||"").replace(/\s+/g," ").trim();
+    const candidates=all.filter(e=>e.matches?.('tr,[role="row"],[data-testid*="listing"],[data-testid*="product"]')
+      && clean(e.innerText||e.textContent).includes(${JSON.stringify(asin)}));
+    return candidates.map(row=>{
+      const table=row.closest?.('table,[role="table"],[role="grid"]');
+      const headers=table?[...table.querySelectorAll('thead th,[role="columnheader"]')].map(e=>clean(e.innerText||e.textContent)):[];
+      const cells=[...row.querySelectorAll('th,td,[role="cell"],[role="gridcell"]')].map(e=>clean(e.innerText||e.textContent));
+      const text=clean(row.innerText||row.textContent);
+      const sku=text.match(/(?:Seller SKU|SKU)\s*[:#-]?\s*([A-Z0-9._-]+)/i)?.[1]||null;
+      return {text,headers,cells,sku};
+    });
+  })()`);
+  return normalizePriceRows(rows, asin);
+}
+
+async function fetchPdpOffer(session, profile, asin) {
+  const domain = marketplaceDomain(profile.marketplace);
+  if (!domain) return { status: "unsupported_marketplace" };
+  try {
+    await navigatePriceReadOnly(session, `https://${domain}/dp/${asin}`, `Amazon PDP ${asin}`);
+    const raw = await evaluate(session, `(()=>{
+      const text=e=>(e?.innerText||e?.textContent||"").replace(/\s+/g," ").trim();
+      const first=selectors=>selectors.map(s=>document.querySelector(s)).find(Boolean);
+      const offer=first(['#corePrice_feature_div .a-offscreen','#apex_desktop .a-offscreen','#price_inside_buybox','#newBuyBoxPrice']);
+      const seller=first(['#sellerProfileTriggerId','#merchant-info']);
+      const coupon=first(['#couponTextpctch','#couponText','label[for="checkboxpctch"]']);
+      const availability=first(['#availability','#outOfStock']);
+      return {url:location.href,title:text(document.querySelector('#productTitle')),offer:text(offer),
+        seller:text(seller),coupon:text(coupon),availability:text(availability),
+        challenge:/captcha|robot check/i.test(document.title+' '+text(document.body).slice(0,500))};
+    })()`);
+    if (raw.challenge) return { status: "unavailable", reason: "shopper challenge" };
+    const offer = parseMoney(raw.offer);
+    return { status: offer ? "verified" : "unavailable", url: raw.url, title: raw.title || null,
+      featured_offer: offer?.amount ?? null, currency: offer?.currency ?? null,
+      seller: raw.seller || null, coupon: raw.coupon || null,
+      availability: raw.availability || null };
+  } catch (error) {
+    return { status: "unavailable", reason: error.message };
+  }
+}
+
 async function fetchAwd(session, profile) {
   const end = new Date();
   end.setUTCDate(end.getUTCDate() - 2);
@@ -404,7 +472,11 @@ function writeAudit(directory, result) {
 
 async function main() {
   const options = args(process.argv.slice(2));
-  if (!options.config || !options.profile) throw new Error("usage: provider.mjs --config <wizards config.json> --profile <key> [--audit-dir <dir>]");
+  if (!options.config || !options.profile) throw new Error("usage: provider.mjs --config <wizards config.json> --profile <key> [--price-check --asin <ASIN>] [--audit-dir <dir>]");
+  const priceCheck = options["price-check"] === true;
+  if (priceCheck && !/^B0[A-Z0-9]{8}$/.test(String(options.asin || "").toUpperCase())) {
+    throw new Error("--price-check requires one exact ASIN");
+  }
   const config = JSON.parse(readFileSync(resolve(options.config), "utf8"));
   const inventory = config.inventory_questions || {};
   const profile = inventory.profiles?.[options.profile];
@@ -455,6 +527,23 @@ async function main() {
     }
     else await waitFor(session, `!!document.querySelector("meta[name=anti-csrftoken-a2z]")`, "inventory application", 120);
     const fbaResult = await fetchFba(session, profile);
+    if (priceCheck) {
+      assertPriceExpectations(options, profile, fbaResult.identity);
+      const asin = String(options.asin).toUpperCase();
+      const sellerCentral = await fetchConfiguredPrice(session, profile, config, asin);
+      const pdp = await fetchPdpOffer(session, profile, asin);
+      result = {
+        schema_version: 1, request_id: `${profile.key}-${Date.now()}`,
+        profile: profile.key, account: profile.account_name, marketplace: profile.marketplace,
+        identity: { merchant_id: fbaResult.identity?.merchantId,
+          marketplace_id: fbaResult.identity?.marketplaceId },
+        checked_at: new Date().toISOString(), duration_ms: Date.now() - started,
+        status: pdp.status === "verified" ? "complete" : "partial",
+        source: { seller_central: "Seller Central Manage Products",
+          pdp: "Amazon shopper product detail page" },
+        seller_central: sellerCentral, pdp,
+      };
+    } else {
     const fba = fbaResult.summary;
     let awd;
     const warnings = [];
@@ -493,6 +582,7 @@ async function main() {
       warnings,
       double_count_rule: "AWD ending balance is counted once. AWD departed units and FBA inbound are movement buckets and are not added to stored inventory.",
     };
+    }
   } catch (error) {
     trace("provider error", error.message);
     if (error.operationStatus) throw error;
