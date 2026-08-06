@@ -67,14 +67,15 @@ Chrome for operational Ads report and bulk-export work. Downloads are captured w
 
 `tools/report-fetcher/` pulls Business Reports (Detail Page Sales & Traffic) and Search Query Performance straight from Seller Central's own report APIs in the connected/internal browser: no clicking through the UI, no manual CSV download. The output CSVs match the exact headers `build_sqp_workbook.py` and `analyze_audit.py` read, so they satisfy the ad-audit preflight's Business-Report + SQP CODEX tasks directly.
 
-Preconditions: connected/internal browser (never headless) on a logged-in `sellercentral.amazon.*` tab; correct account + marketplace confirmed via the browser checkpoint; for SQP, a Brand Analytics page (so the `anti-csrftoken-a2z` meta tag is present).
+Preconditions: the headless-by-default CDP browser on a logged-in `sellercentral.amazon.*` tab; correct account + marketplace confirmed via the browser checkpoint; for SQP, a Brand Analytics page (so the `anti-csrftoken-a2z` meta tag is present). Use visible recovery only for login or when the operator asks to see it.
 
 Reports: `sqp` (Search Query Performance), `business` (Detail Sales & Traffic), `scp` (Brand Catalog Performance), `tst` (Top Search Terms), `all`. Slash command: `/fetch-reports`. Canonical copy-paste prompt: `tools/report-fetcher/CODEX-PROMPT.md`.
 
 Hands-off (preferred; needs Chrome on the debug port; an agent with shell/`@computer` runs and troubleshoots it). Copy-paste path: fill a per-client config once (`config.TEMPLATE.json` → `config.<client>.json`, gitignored), then a fixed command:
 
 ```bash
-tools/report-fetcher/launch-chrome-debug.sh        # one-time; dedicated debug Chrome; log into Seller Central in it
+tools/report-fetcher/launch-chrome-debug.sh --mode recovery  # one-time visible login/recovery
+tools/report-fetcher/launch-chrome-debug.sh        # normal headless background mode
 node tools/report-fetcher/run.mjs doctor           # connection + login + WHICH SELLER each tab is on
 node tools/report-fetcher/run.mjs all --config tools/report-fetcher/config.<client>.json --plan
 node tools/report-fetcher/run.mjs all --config tools/report-fetcher/config.<client>.json \

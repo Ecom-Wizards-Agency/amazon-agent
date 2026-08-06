@@ -76,7 +76,7 @@ FILL:
   BUSINESS RANGE: <START> to <END>       (YYYY-MM-DD)
 
 1. node tools/report-fetcher/run.mjs doctor   → proceed only on "Login: OK"
-   (if unreachable: run launch-chrome-debug.sh and tell me to sign in)
+   (if unreachable: run launch-chrome-debug.sh; if login is needed, use `--mode recovery` and tell me to sign in)
    → confirm a tab shows <CLIENT NAME>. If none does, STOP and tell me.
 2. SQP (one combined file for the ASINs; add --split for one file per ASIN):
    node tools/report-fetcher/run.mjs sqp --asins <ASIN(S)> --weeks <SQP PERIOD(S)> \

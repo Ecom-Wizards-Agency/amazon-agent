@@ -13,9 +13,11 @@ listing-reference JSON that `tools/amazon-seo-keyword-workbook/build_keyword_wor
 
 This replaces a legacy ZeroWork workflow. The old capture artifacts are intentionally
 not shipped because they can contain account-specific tables, screenshots, and example
-ASINs. Capture runs over the **CDP debug Chrome**. Amazon blocks headless scraping and
-`AGENTS.md` mandates a real logged-in browser session. Never inspect cookies, storage,
-tokens, or credentials.
+ASINs. Capture runs over the **CDP debug Chrome**. Amazon PDPs may block the headless
+renderer, so this workflow is the technical exception to the headless default. If a PDP
+fails headlessly, temporarily use `--mode headed`, keep the window behind other apps, and
+return to the normal headless mode immediately after capture. Never inspect cookies,
+storage, tokens, or credentials.
 
 ## Inputs
 - The **ASINs tab `link` column** (anchor + siblings + competitors) is the input link list,
