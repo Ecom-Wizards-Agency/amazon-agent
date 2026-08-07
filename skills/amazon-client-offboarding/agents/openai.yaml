@@ -1,0 +1,4 @@
+interface:
+  display_name: "Amazon Client Offboarding"
+  short_description: "Build branded Amazon account handovers"
+  default_prompt: "Use $amazon-client-offboarding to build a complete read-only Amazon client handover with a branded Google Doc and evidence workbook."

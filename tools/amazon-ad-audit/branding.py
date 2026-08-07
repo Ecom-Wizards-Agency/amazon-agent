@@ -102,6 +102,20 @@ def load_branding(cfg: dict | None = None) -> dict:
     return b
 
 
+def activate_branding(cfg: dict) -> dict:
+    """Make an explicit approved brand the process-local default for specialist builders.
+
+    Shared renderers initialize their module globals from the default branding path when
+    imported. A specialist workflow with an explicit brand config must activate it before
+    importing those renderers, so an absent repository-local file cannot briefly select a
+    neutral/example identity and leave stale globals behind.
+    """
+    b = load_branding(cfg)
+    default_path = REPO / "_local" / "branding" / "branding.json"
+    _CACHE[str(default_path)] = b
+    return b
+
+
 # ---------------------------------------------------------------- derived strings
 def prepared_by_line(b: dict, by: str) -> str:
     # Cover byline shows the agency only (cleaner look). The person/title `by`
