@@ -427,8 +427,9 @@ def mcf_preflight(registry: dict[str, Any], proposal: dict[str, Any], secret: by
     if score["score"] != 10: errors.append("qualification_not_10_of_10")
     if normalized(record.get("sample_decision")) != "send": errors.append("sample_decision_not_send")
     if not requested or len({requested, tracker_asin, selected_asin}) != 1: errors.append("asin_mismatch")
-    if normalized(catalog_item.get("asin")).upper() not in {"", selected_asin}: errors.append("catalog_asin_mismatch")
-    if normalized(catalog_item.get("sku")).upper() != selected_sku: errors.append("sku_not_mapped_to_selected_asin")
+    if normalized(catalog_item.get("asin")).upper() != selected_asin: errors.append("catalog_asin_mismatch")
+    if not selected_sku or normalized(catalog_item.get("sku")).upper() != selected_sku:
+        errors.append("sku_not_mapped_to_selected_asin")
     if int(proposal.get("quantity") or 0) != 1: errors.append("quantity_must_equal_1")
     if normalized(proposal.get("shipping_speed")) != "standard": errors.append("shipping_must_be_standard")
     fee = int(proposal.get("visible_fee_cents") or 0)

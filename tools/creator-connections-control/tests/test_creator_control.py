@@ -141,6 +141,17 @@ class CreatorControlTests(unittest.TestCase):
         self.assertIn("asin_mismatch", result["errors"])
         self.assertIn("quantity_must_equal_1", result["errors"])
 
+    def test_preflight_requires_explicit_catalog_asin_and_sku_mapping(self):
+        cc.issue_record_id(self.registry, creator(), self.secret, date(2026, 8, 5))
+        result = cc.mcf_preflight(
+            self.registry,
+            proposal(selected_sku="", product_catalog={"B0EXAMPLE1": {"sku": ""}}),
+            self.secret,
+        )
+        self.assertEqual(result["result"], "HOLD")
+        self.assertIn("catalog_asin_mismatch", result["errors"])
+        self.assertIn("sku_not_mapped_to_selected_asin", result["errors"])
+
     def test_reservation_blocks_a_second_mcf_preflight(self):
         cc.issue_record_id(self.registry, creator(), self.secret, date(2026, 8, 5))
         proposed = proposal()
