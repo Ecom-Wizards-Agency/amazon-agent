@@ -8,7 +8,7 @@ Routing is by **session**, not by agent. CDP is not limited to scripted fetches:
 
 | Path | What it is | When |
 |---|---|---|
-| **CDP debug Chrome** | Dedicated profile `~/.amazon-agent/chrome-debug`, DevTools port 9222 (localhost-only). Launch/reuse: `tools/report-fetcher/launch-chrome-debug.sh`. Logins persist in the profile. Normal mode is headless. | Default for everything with a page, scripted or interactive. Use visible recovery for login or an explicit operator request. Use temporary headed mode only when a workflow cannot function headlessly. |
+| **CDP debug Chrome** | Dedicated profile `~/.amazon-agent/chrome-debug`, DevTools port 9222 (localhost-only). CDP runners start/reuse it lazily through `ensureChrome()`; the explicit launcher is `tools/report-fetcher/launch-chrome-debug.sh`. Logins persist in the profile. Normal mode is headless. | Default for everything with a page, scripted or interactive. Use visible recovery for login or an explicit operator request. Use temporary headed mode only when a workflow cannot function headlessly. |
 | **Chrome extension** | Drives the operator's *normal* Chrome with their existing logins. | When the task must run in the operator's own session rather than the debug profile. DataDive is the standing case: the debug profile has no DataDive login and creating one risks displacing the operator's. |
 | **No browser (MCP)** | DataDive MCP, AdLabs MCP, Notion MCP. | Data that has an API. Always preferred over any browser when it covers the need. |
 | **No browser (local)** | Builders and formatters in `tools/`. | File-in/file-out work. |

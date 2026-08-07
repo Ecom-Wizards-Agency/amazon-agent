@@ -1,7 +1,52 @@
-import json, time, websocket, urllib.request, sys
+import json, os, subprocess, sys, time, urllib.error, urllib.request
+from pathlib import Path
+
+import websocket
+
+HOST = os.environ.get("CDP_HOST", "127.0.0.1")
+PORT = os.environ.get("CDP_PORT", "9222")
+URL_HOST = f"[{HOST}]" if ":" in HOST and not HOST.startswith("[") else HOST
+BASE = f"http://{URL_HOST}:{PORT}"
+LAUNCHER = Path(__file__).resolve().parents[1] / "report-fetcher" / "launch-chrome-debug.py"
+
+
+def _auto_start_enabled():
+    return os.environ.get("CDP_AUTOSTART", "1").lower() not in {"0", "false", "no", "off"}
+
+
+def _json(path):
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+    return json.load(opener.open(BASE + path, timeout=3))
+
+
+def ensure_chrome():
+    try:
+        return _json("/json/version")
+    except (OSError, urllib.error.URLError):
+        if not _auto_start_enabled():
+            raise RuntimeError("CDP automatic startup is disabled by CDP_AUTOSTART")
+        normalized = HOST.lower()
+        loopback = normalized in {"localhost", "127.0.0.1"}
+        if not loopback:
+            raise RuntimeError(f"refusing local Chrome startup for non-local CDP_HOST={HOST}")
+    launched = subprocess.run(
+        [sys.executable, str(LAUNCHER), "--mode", "headless"],
+        capture_output=True, text=True, env=os.environ.copy(), check=False,
+    )
+    if launched.returncode:
+        detail = (launched.stderr or launched.stdout or "launcher failed").strip()
+        raise RuntimeError(f"could not start dedicated Chrome: {detail}")
+    deadline = time.time() + 15
+    while time.time() < deadline:
+        try:
+            return _json("/json/version")
+        except (OSError, urllib.error.URLError):
+            time.sleep(0.25)
+    raise RuntimeError(f"dedicated Chrome did not become ready at {BASE}")
 
 def tabs():
-    return json.load(urllib.request.urlopen('http://localhost:9222/json/list'))
+    ensure_chrome()
+    return _json("/json/list")
 
 class Tab:
     def __init__(self, ws_url):

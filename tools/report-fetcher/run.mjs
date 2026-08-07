@@ -27,12 +27,13 @@
  *                                   inherited from your Seller Central tab, NOT the session default)
  *          --origin https://sellercentral.amazon.<tld> (force the region; normally derived from
  *                                   --marketplace via MARKET_HOSTS)
- * Prereq: tools/report-fetcher/launch-chrome-debug.sh (debug Chrome, signed into Seller Central).
+ * The runner starts/reuses the dedicated headless Chrome automatically. The
+ * operator signs in once through launch-chrome-debug.sh --mode recovery.
  */
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { assertChrome, listPages, createPage, closePage, evaluate, Session } from "./cdp.mjs";
+import { ensureChrome, listPages, createPage, closePage, evaluate, Session } from "./cdp.mjs";
 import { format } from "./format-seller-reports.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -253,10 +254,10 @@ async function main() {
   const cfg = args.config ? JSON.parse(readFileSync(args.config, "utf8")) : null;
 
   if (args._ === "doctor") {
-    const v = await assertChrome();
+    const v = await ensureChrome();
     console.log("Chrome:", v.Browser, "| debug port reachable");
     const sc = (await listPages()).filter((p) => /sellercentral\.amazon\./.test(p.url || ""));
-    if (!sc.length) { console.log("Seller Central: no tab. Start recovery mode only if login is required, then open https://sellercentral.amazon.com."); process.exit(1); }
+    if (!sc.length) { console.log("Seller Central: no logged-in tab. Run tools/report-fetcher/launch-chrome-debug.sh --mode recovery, sign in, then return it to headless mode with tools/report-fetcher/launch-chrome-debug.sh."); process.exit(1); }
     const s = await Session.open(sc[0].webSocketDebuggerUrl);
     let st;
     try {
@@ -291,7 +292,7 @@ async function main() {
     process.exit(0);
   }
 
-  await assertChrome();
+  await ensureChrome();
   // Region: pass --origin (e.g. https://sellercentral.amazon.de) to force it — needed
   // when the debug Chrome has tabs from more than one region (US .com vs EU .de). One
   // EU login (.de) covers DE/IT/ES/FR/NL/... via --marketplace; US uses .com.
@@ -304,7 +305,7 @@ async function main() {
     if (!pages.some((p) => (p.url || "").startsWith(origin))) die(`No debug-Chrome tab on ${origin}. Open Seller Central there (signed in) and retry.`);
   } else {
     const scTabs = pages.filter((p) => /sellercentral\.amazon\./.test(p.url || ""));
-    if (!scTabs.length) die("No logged-in Seller Central tab found. Run launch-chrome-debug.sh and sign in, then retry.");
+    if (!scTabs.length) die("No logged-in Seller Central tab found. Run tools/report-fetcher/launch-chrome-debug.sh --mode recovery, sign in, then return it to headless mode with tools/report-fetcher/launch-chrome-debug.sh.");
     // Pick the tab whose HOST actually serves the requested marketplace, in preference order.
     // Never just take the first Seller Central tab: with .com and .com.au both open that is a
     // coin flip, and the wrong one returns another country's (or another seller's) numbers.

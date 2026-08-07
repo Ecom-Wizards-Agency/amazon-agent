@@ -179,10 +179,16 @@ def stop_managed_browser(state: dict) -> None:
 
 
 def protect_profile() -> None:
-    PROFILE.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    parent = PROFILE.parent
+    parent_created = not parent.exists()
+    parent.mkdir(parents=True, exist_ok=True, mode=0o700)
     PROFILE.mkdir(parents=True, exist_ok=True, mode=0o700)
     if not sys.platform.startswith("win"):
-        os.chmod(PROFILE.parent, 0o700)
+        # Harden the standard private root and parents created by this launcher.
+        # A custom profile may sit under /tmp or another shared directory whose
+        # permissions this process neither owns nor should change.
+        if parent_created or parent == Path.home() / ".amazon-agent":
+            os.chmod(parent, 0o700)
         os.chmod(PROFILE, 0o700)
 
 

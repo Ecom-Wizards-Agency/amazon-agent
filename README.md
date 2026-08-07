@@ -48,6 +48,11 @@ The complete visual MAG SOP archive (all captured SOPs plus every screenshot/GIF
 
 Routing is by session, not by agent, and lives in the Browser Standard in `AGENTS.md`: the CDP debug Chrome (port 9222) by default, the Chrome extension when the task needs the operator's own logged-in session. The per-workflow table is `docs/browser-routing-map.md`. Browser choice never overrides account/marketplace verification or stop-before-risk rules.
 
+CDP runners start or reuse the dedicated headless profile automatically on the
+first applicable task. The operator still performs the one-time sign-in through
+`tools/report-fetcher/launch-chrome-debug.sh --mode recovery`; credentials are
+never automated.
+
 ## Client Profiles
 
 Shared operational client context lives in the private, Obsidian-synced agency vault, not GitHub. Each client has `Clients/{Name}/Amazon Ops.md`, containing one or more brand-marketplace profiles such as `Acme US` or `Example Brand DE`.

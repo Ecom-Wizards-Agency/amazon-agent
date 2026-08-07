@@ -11,7 +11,7 @@
 // Runs against the dedicated debug Chrome over CDP (port 9222), same profile as the
 // report fetcher, so it uses the operator's existing session. It opens its own tab and
 // closes it again.
-import { assertChrome, createPage, closePage, evaluate } from '../report-fetcher/cdp.mjs';
+import { ensureChrome, createPage, closePage, evaluate } from '../report-fetcher/cdp.mjs';
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 
@@ -82,7 +82,7 @@ const EXPR = `(() => {
   return res;
 })()`;
 
-await assertChrome();
+await ensureChrome();
 // createPage returns an already-open Session, not a ws URL.
 const { targetId, session: s } = await createPage(url);
 try {

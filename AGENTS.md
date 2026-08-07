@@ -27,6 +27,12 @@ The agent should be able to:
 
 CDP-first for scripted workflows: the repo keeps a dedicated debug Chrome profile (`~/.amazon-agent/chrome-debug`, DevTools port 9222, localhost-only), launched or reused idempotently via `tools/report-fetcher/launch-chrome-debug.sh`. It runs alongside the normal browser, its Amazon logins persist across runs, and scripts drive it directly over CDP with no extension round-trips, which makes it faster and more reliable than operating a normal browser UI. Current Chrome (136+) silently ignores the debug port on the default profile, so this dedicated profile is the only working CDP path. Every workflow that has a script/CDP runner (report fetcher `run.mjs`, POE downloader `run-poe.mjs`, listing capture, future fetchers) uses the debug Chrome by default, for both agents. All account/marketplace verification and login rules below apply to the debug profile exactly like any other browser session.
 
+CDP runners start or reuse this dedicated profile lazily through the shared
+`ensureChrome()` helper. `assertChrome()` is the read-only probe for setup and
+diagnostics. Set `CDP_AUTOSTART=0` only when a caller explicitly needs probe-only
+behavior. Automatic startup is always headless; visible recovery remains an
+operator-attended login step.
+
 Port 9222 runs headlessly by default, like the Wizards AI port-9223 browser. Do not open or bring its window to the front during normal work. Use `--mode recovery` only when the operator must log in or explicitly asks to see the browser. A workflow that cannot function with Chrome's headless renderer may temporarily use `--mode headed`, but the window stays behind other apps unless the operator must interact. Return the profile to headless mode with the normal launcher command as soon as the visible step is complete. Headless operation does not relax any login, account, marketplace, evidence, or stop-before-risk checkpoint.
 
 Interactive UI work (FlatFilePro mapping, Creator Connections inbox, visual checks, anything without a script path) runs over the same CDP debug Chrome. CDP is not limited to scripted fetches: it dispatches real mouse and key events, captures screenshots as evidence, polls for late-loading elements, attaches local files to file inputs (`DOM.setFileInputFiles`), and captures downloads to a chosen folder (`Browser.setDownloadBehavior`). Verified 31.07.2026, including a live Seller Central account switch driven entirely from the terminal.
