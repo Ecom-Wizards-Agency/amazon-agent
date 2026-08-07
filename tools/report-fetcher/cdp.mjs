@@ -3,12 +3,70 @@
  * WebSocket + fetch). Used to run the report fetch in the page's REAL main world
  * (which has fetch + the logged-in session), driven from the terminal.
  *
- * Chrome must be running with --remote-debugging-port (see launch-chrome-debug.sh).
+ * `ensureChrome()` starts or reuses the dedicated headless browser.
+ * `assertChrome()` remains a read-only probe for setup checks and diagnostics.
  */
+
+import { spawn } from "node:child_process";
+import { fileURLToPath } from "node:url";
 
 const HOST = process.env.CDP_HOST || "127.0.0.1";
 const PORT = process.env.CDP_PORT || "9222";
-const BASE = `http://${HOST}:${PORT}`;
+const URL_HOST = HOST.includes(":") && !HOST.startsWith("[") ? `[${HOST}]` : HOST;
+const BASE = `http://${URL_HOST}:${PORT}`;
+const LAUNCHER = process.env.CDP_LAUNCHER
+  || fileURLToPath(new URL("./launch-chrome-debug.py", import.meta.url));
+let startupPromise = null;
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+function autoStartEnabled() {
+  return !/^(0|false|no|off)$/i.test(String(process.env.CDP_AUTOSTART || "1"));
+}
+
+function isLoopback(host) {
+  const normalized = String(host).toLowerCase();
+  return normalized === "localhost" || normalized === "127.0.0.1";
+}
+
+async function runLauncher() {
+  const configured = process.env.CDP_PYTHON;
+  const candidates = configured
+    ? [configured]
+    : (process.platform === "win32" ? ["py", "python", "python3"] : ["python3", "python"]);
+  let missing = null;
+  for (const python of candidates) {
+    try {
+      const result = await new Promise((resolve, reject) => {
+        const child = spawn(python, [LAUNCHER, "--mode", "headless"], {
+          env: process.env,
+          stdio: ["ignore", "pipe", "pipe"],
+          windowsHide: true,
+        });
+        let stdout = "";
+        let stderr = "";
+        child.stdout.on("data", (chunk) => { stdout += chunk; });
+        child.stderr.on("data", (chunk) => { stderr += chunk; });
+        child.on("error", reject);
+        child.on("close", (code) => resolve({ code, stdout, stderr }));
+      });
+      if (result.code !== 0) {
+        const detail = (result.stderr || result.stdout || `exit ${result.code}`).trim();
+        throw new Error(`dedicated Chrome launcher failed: ${detail}`);
+      }
+      return;
+    } catch (error) {
+      if (error?.code === "ENOENT") {
+        missing = error;
+        continue;
+      }
+      throw error;
+    }
+  }
+  throw new Error(
+    `No Python interpreter could run ${LAUNCHER}${missing ? ` (${missing.message})` : ""}`,
+  );
+}
 
 export async function httpJson(path) {
   const r = await fetch(BASE + path);
@@ -24,6 +82,41 @@ export async function assertChrome() {
       `  tools/report-fetcher/launch-chrome-debug.sh\n` +
       `Use --mode recovery only if Seller Central login is required. (${e.message})`);
   }
+}
+
+/** Start or reuse the dedicated headless Chrome, then return its version.
+ *
+ * The optional `start` injection exists for tests; production callers should
+ * call `ensureChrome()` with no arguments. Concurrent callers share one launch.
+ */
+export async function ensureChrome({ start = runLauncher, timeoutMs = 15000, pollMs = 250 } = {}) {
+  try { return await assertChrome(); }
+  catch (initialError) {
+    if (!autoStartEnabled()) {
+      throw new Error(`CDP automatic startup is disabled by CDP_AUTOSTART. ${initialError.message}`);
+    }
+    if (!isLoopback(HOST)) {
+      throw new Error(
+        `Refusing to start a local browser for non-local CDP_HOST=${HOST}. ${initialError.message}`,
+      );
+    }
+  }
+
+  if (!startupPromise) {
+    startupPromise = Promise.resolve().then(start).finally(() => { startupPromise = null; });
+  }
+  await startupPromise;
+
+  const deadline = Date.now() + timeoutMs;
+  let lastError;
+  do {
+    try { return await assertChrome(); }
+    catch (error) { lastError = error; }
+    await sleep(pollMs);
+  } while (Date.now() < deadline);
+  throw new Error(
+    `Dedicated headless Chrome did not become ready at ${BASE}. ${lastError?.message || ""}`.trim(),
+  );
 }
 
 export async function listPages() {

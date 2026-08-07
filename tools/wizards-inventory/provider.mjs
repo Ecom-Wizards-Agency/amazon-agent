@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 import { mkdirSync, readFileSync, readdirSync, unlinkSync, writeFileSync } from "node:fs";
-import { spawnSync } from "node:child_process";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -13,7 +12,7 @@ import {
   assertPriceExpectations, marketplaceDomain, normalizePriceRows, parseMoney,
 } from "./price-lib.mjs";
 
-let assertChrome, closePage, createPage, evaluate, listPages, Session;
+let ensureChrome, closePage, createPage, evaluate, listPages, Session;
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const AMAZON_AGENT = resolve(HERE, "../..");
@@ -583,18 +582,10 @@ async function main() {
   if (config.authentication?.enabled) assertAuthPolicy(config);
   process.env.CDP_PORT = String(inventory.cdp_port || 9223);
   process.env.CDP_PROFILE = (inventory.cdp_profile || "~/.amazon-agent/wizards-ai-chrome").replace(/^~/, process.env.HOME);
-  ({ assertChrome, closePage, createPage, evaluate, listPages, Session }
+  ({ ensureChrome, closePage, createPage, evaluate, listPages, Session }
     = await import("../report-fetcher/cdp.mjs"));
-  try { await assertChrome(); }
-  catch {
-    const launcher = join(AMAZON_AGENT, "tools/report-fetcher/launch-chrome-debug.sh");
-    const browserMode = inventory.browser_mode || "headed";
-    const launched = spawnSync(launcher, ["--mode", browserMode], {
-      env: { ...process.env, CDP_START_URL: "https://sellercentral.amazon.com" }, encoding: "utf8",
-    });
-    if (launched.status !== 0) throw new Error(`Could not launch dedicated Chrome: ${launched.stderr || launched.stdout}`);
-    await assertChrome();
-  }
+  process.env.CDP_START_URL = "https://sellercentral.amazon.com";
+  await ensureChrome();
 
   const picker = locationForPicker();
   const started = Date.now();

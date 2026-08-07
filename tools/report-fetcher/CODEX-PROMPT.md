@@ -3,9 +3,10 @@
 Canonical, client-agnostic prompt for pulling Seller Central reports with the report
 fetcher via Codex `@computer`. Fill the placeholders; nothing here names a client.
 
-Prereq (one-time): a dedicated debug Chrome is running and signed into Seller Central.
-Run `tools/report-fetcher/launch-chrome-debug.sh`, then log in once in that window. The login
-persists in the debug profile.
+Prereq (one-time): initialize the dedicated debug Chrome login with
+`tools/report-fetcher/launch-chrome-debug.sh --mode recovery`, sign into Seller Central, then
+return it to headless mode with `tools/report-fetcher/launch-chrome-debug.sh`. The login persists;
+normal CDP commands start or reuse the headless profile automatically.
 
 ## ACCOUNT SAFETY (read before every run)
 
@@ -45,8 +46,8 @@ CONFIG: tools/report-fetcher/config.<CLIENT_SLUG>.json
 CLIENT (must match the Seller Central account name): <CLIENT NAME>
 
 1. node tools/report-fetcher/run.mjs doctor
-   - If the debug port is unreachable: run tools/report-fetcher/launch-chrome-debug.sh,
-     tell me to sign into Seller Central in the debug window, and wait for me.
+   - The command starts/reuses headless CDP. If login is missing, run
+     tools/report-fetcher/launch-chrome-debug.sh --mode recovery, tell me to sign in, and wait.
    - Proceed only when it prints "Login: OK".
    - CHECK THE ACCOUNT LINE. If no tab shows <CLIENT NAME>, stop and tell me. Do not
      fetch from a different seller "to see what comes back".
@@ -75,8 +76,8 @@ FILL:
   SQP PERIOD(S):  <YYYY-MM-DD>[,<YYYY-MM-DD>...]   (period-END date; weekly = week-ending SATURDAY)
   BUSINESS RANGE: <START> to <END>       (YYYY-MM-DD)
 
-1. node tools/report-fetcher/run.mjs doctor   → proceed only on "Login: OK"
-   (if unreachable: run launch-chrome-debug.sh; if login is needed, use `--mode recovery` and tell me to sign in)
+1. node tools/report-fetcher/run.mjs doctor   → starts/reuses headless CDP; proceed only on "Login: OK"
+   (if login is needed, use `launch-chrome-debug.sh --mode recovery` and tell me to sign in)
    → confirm a tab shows <CLIENT NAME>. If none does, STOP and tell me.
 2. SQP (one combined file for the ASINs; add --split for one file per ASIN):
    node tools/report-fetcher/run.mjs sqp --asins <ASIN(S)> --weeks <SQP PERIOD(S)> \

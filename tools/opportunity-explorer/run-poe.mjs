@@ -2,8 +2,8 @@
 /*
  * One-command POE fetch over the Chrome debug protocol — sibling of
  * tools/report-fetcher/run.mjs, sharing its cdp.mjs client and
- * launch-chrome-debug.sh prerequisite (dedicated debug Chrome profile,
- * logged into Seller Central once).
+ * dedicated debug Chrome profile, started/reused automatically and logged into
+ * Seller Central once through visible recovery mode.
  *
  *   tools/report-fetcher/launch-chrome-debug.sh --mode recovery  # visible only for login/recovery
  *   tools/report-fetcher/launch-chrome-debug.sh            # normal headless mode
@@ -36,7 +36,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { assertChrome, listPages, createPage, closePage, evaluate } from "../report-fetcher/cdp.mjs";
+import { ensureChrome, listPages, createPage, closePage, evaluate } from "../report-fetcher/cdp.mjs";
 import { formatEnvelope } from "./format-poe.mjs";
 import { archiveClient } from "./pcloud-archive.mjs";
 
@@ -147,7 +147,7 @@ async function waitPoeReady(session, timeoutMs = 30000) {
 }
 
 async function withPoePage(origin, work) {
-  await assertChrome();
+  await ensureChrome();
   const { targetId, session, temp } = await findOrCreatePoePage(origin);
   try {
     await waitPoeReady(session);
@@ -278,12 +278,12 @@ if (cmd === "self-test") {
   console.log(`run-poe self-test: ${checks.length}/${checks.length} passed`);
   process.exit(0);
 } else if (cmd === "doctor") {
-  const ver = await assertChrome();
+  const ver = await ensureChrome();
   console.log(`Chrome: ${ver.Browser} | debug port reachable`);
   const pages = await listPages();
   const sc = pages.filter((p) => /sellercentral\.amazon\./.test(p.url));
   console.log(`Seller Central tabs: ${sc.length}${sc.length ? " → " + sc.map((p) => p.url.replace(/^https:\/\//, "").slice(0, 60)).join(", ") : ""}`);
-  if (!sc.length) { console.log("Open Seller Central in the debug Chrome and log in, then re-run."); process.exit(0); }
+  if (!sc.length) { console.log("Run tools/report-fetcher/launch-chrome-debug.sh --mode recovery, sign into Seller Central, then return it to headless mode with tools/report-fetcher/launch-chrome-debug.sh."); process.exit(1); }
   const origins = resolveDoctorOrigins(sc, opt("origin", null));
   const results = await Promise.all(origins.map(async (origin) => {
     try {

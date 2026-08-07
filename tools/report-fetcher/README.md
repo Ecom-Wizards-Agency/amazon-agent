@@ -14,7 +14,8 @@ fetched CSVs match the manual Seller Central export to the penny.
 
 The runner drives Chrome's REAL page main world over the DevTools Protocol (CDP), so it
 uses your existing login. No console paste, no browser-evaluate sandbox. Any agent with
-shell access (Codex `@computer`) can run it.
+shell access can run it. Every CDP runner starts or reuses the dedicated headless Chrome
+automatically; `CDP_AUTOSTART=0` is available for probe-only diagnostics.
 
 One-time setup: Chrome 136+ ignores `--remote-debugging-port` on your normal profile
 (a Chrome security change), so the runner uses a dedicated debug Chrome that runs
@@ -27,6 +28,9 @@ tools/report-fetcher/launch-chrome-debug.sh --mode recovery  # visible only for 
 tools/report-fetcher/launch-chrome-debug.sh      # switches to normal headless background mode
 node tools/report-fetcher/run.mjs doctor         # confirms the connection + a logged-in tab
 ```
+
+After this one-time login, `run.mjs`, `run-poe.mjs`, listing capture, and the other shared
+CDP runners start the headless profile on demand when it is not already running.
 
 Then fetch. **Copy-paste path: fill a per-client config once, then a fixed command** (copy
 `config.TEMPLATE.json` → `config.<client>.json`, gitignored, and fill ASIN groups / dates):

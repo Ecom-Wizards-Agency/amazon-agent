@@ -2,7 +2,7 @@
 // Read-only: navigates to each PDP, extracts title/bullets/description/images/price/brand.
 // Usage: node tools/listing-capture/capture-cdp.mjs <ASIN[,ASIN...]> <out.json> [tld=com] [lang=en_US]
 import fs from "node:fs";
-import { assertChrome, createPage, closePage, evaluate } from "../report-fetcher/cdp.mjs";
+import { ensureChrome, createPage, closePage, evaluate } from "../report-fetcher/cdp.mjs";
 
 const asins = (process.argv[2] || "").split(",").map((s) => s.trim()).filter(Boolean);
 const out = process.argv[3];
@@ -34,7 +34,7 @@ const EXTRACTOR = (asin) => `(async () => {
     price, brand, rating, reviews, url: location.href, status: (title||bullets.length)?'ok':'empty' };
 })()`;
 
-await assertChrome();
+await ensureChrome();
 const listings = [];
 for (const asin of asins) {
   const url = `https://www.amazon.${tld}/dp/${asin}?language=${lang}&th=1&psc=1`;
