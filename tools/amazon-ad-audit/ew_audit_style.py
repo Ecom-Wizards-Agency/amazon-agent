@@ -25,6 +25,28 @@ TL = {"good": "C6EFCE", "ok": "E2EFDA", "warn": "FFEB9C", "bad": "FFC7CE", "grey
 DISPLAY = _B["fonts"]["xlsx_font_display"]; BODY = _B["fonts"]["xlsx_font_body"]
 
 
+def configure_branding(cfg):
+    """Reload workbook style globals from an explicit branding config.
+
+    Most audit builders use the repository-local branding file, so the module-level
+    load is sufficient. Specialist builders may receive an explicit approved branding
+    file in their run config; this hook keeps the shared helpers authoritative without
+    forcing those builders back to the neutral fallback loaded at import time.
+    """
+    global _B, C, DISPLAY, BODY, HDR_FILL, BAND_FILL, CORAL_FILL, SUB_FILL, _thin, BORDER
+    _B = _load_branding(cfg or {})
+    C = dict(_B["palette_xlsx"])
+    DISPLAY = _B["fonts"]["xlsx_font_display"]
+    BODY = _B["fonts"]["xlsx_font_body"]
+    HDR_FILL = PatternFill("solid", fgColor=C["obsidian"])
+    BAND_FILL = PatternFill("solid", fgColor=C["slate"])
+    CORAL_FILL = PatternFill("solid", fgColor=C["coral"])
+    SUB_FILL = PatternFill("solid", fgColor=C["hairline"])
+    _thin = Side(style="thin", color=C["hairline"])
+    BORDER = Border(left=_thin, right=_thin, top=_thin, bottom=_thin)
+    return _B
+
+
 def brand_banner(text):
     """'<AGENCY>  ·  <text>' (or just text when no agency is configured)."""
     return _brand_banner(_B, text)

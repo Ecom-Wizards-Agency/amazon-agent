@@ -1,0 +1,45 @@
+{
+  "client": {
+    "name": "CLIENT NAME",
+    "slug": "client-name"
+  },
+  "successor": "Primary successor",
+  "audience": "Client leadership and operating team",
+  "included_markets": ["DE", "FR"],
+  "excluded_markets": ["SE"],
+  "currency": "EUR",
+  "cutoff_timestamp": "2026-08-07T12:00:00+02:00",
+  "attribution_lag_days": 14,
+  "comparison_windows": [
+    {
+      "name": "Primary comparison",
+      "current_start": "2026-07-06",
+      "current_end": "2026-08-04",
+      "prior_start": "2026-06-06",
+      "prior_end": "2026-07-05",
+      "attribution_complete_through": "2026-08-04"
+    }
+  ],
+  "narrative_path": "handover.md",
+  "evidence_path": "evidence.json",
+  "existing_appendix": {
+    "name": "Existing tactical appendix",
+    "url": "https://drive.google.com/file/d/CLIENT_VISIBLE_FILE_ID/view",
+    "client_accessible": true,
+    "status": "verified",
+    "verified_at": "2026-08-07T12:00:00+02:00"
+  },
+  "branding": {
+    "approved": true,
+    "branding_json": "../../_local/branding/branding.json",
+    "brand_dir": "../amazon-ad-audit/brand",
+    "doc_label": "Amazon Account Handover"
+  },
+  "destination": {
+    "folder": "EXISTING_CLIENT_VISIBLE_DRIVE_FOLDER_ID",
+    "client_visible": true,
+    "existing": true,
+    "verified_at": "2026-08-07T12:00:00+02:00"
+  },
+  "output_dir": "../../output/client-name/offboarding"
+}

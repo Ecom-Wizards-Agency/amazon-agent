@@ -1,0 +1,164 @@
+{
+  "comparison_windows": [
+    {
+      "name": "Primary comparison",
+      "current_start": "2026-07-06",
+      "current_end": "2026-08-04",
+      "prior_start": "2026-06-06",
+      "prior_end": "2026-07-05",
+      "attribution_complete_through": "2026-08-04"
+    }
+  ],
+  "sources": [
+    {
+      "id": "ads-current",
+      "name": "Amazon Ads performance export",
+      "extracted_at": "2026-08-07T10:00:00+02:00",
+      "coverage": "DE and FR through 2026-08-04"
+    }
+  ],
+  "market_economics": [
+    {
+      "market": "DE",
+      "status": "verified",
+      "break_even_acos": 0.35,
+      "source_refs": ["ads-current"]
+    },
+    {
+      "market": "FR",
+      "status": "not-verified",
+      "break_even_acos": null,
+      "source_refs": []
+    }
+  ],
+  "market_scoreboard": [
+    {
+      "market": "DE",
+      "area": "Advertising",
+      "period": "2026-07-06 to 2026-08-04",
+      "spend": 0,
+      "ad_sales": 0,
+      "clicks": 0,
+      "orders": 0,
+      "cpc": 0,
+      "cvr": 0,
+      "rpc": 0,
+      "acos": 0,
+      "profitability_label": "",
+      "diagnosis": "Operator-written diagnosis",
+      "next_move": "Operator-written next move",
+      "source_refs": ["ads-current"]
+    },
+    {
+      "market": "FR",
+      "area": "Account readiness",
+      "period": "At cutoff",
+      "profitability_label": "",
+      "required_rpc": null,
+      "diagnosis": "Operator-written diagnosis",
+      "next_move": "Operator-written next move",
+      "source_refs": ["ads-current"]
+    }
+  ],
+  "engagement_delivery": [
+    {
+      "date": "2026-07-01",
+      "area": "Advertising",
+      "market": "DE",
+      "built": "Campaign structure",
+      "changed": "Target routing",
+      "learned": "Market-specific finding",
+      "source_refs": ["ads-current"]
+    }
+  ],
+  "advertising_changes": [
+    {
+      "effective_date": "2026-08-05",
+      "review_date": "2026-08-19",
+      "market": "DE",
+      "summary": "Latest material bid adjustment",
+      "details": "Complete operator-written record of entities and rationale",
+      "attribution_status": "provisional",
+      "source_refs": ["ads-current"]
+    }
+  ],
+  "non_brand_rpc": [
+    {
+      "market": "DE",
+      "asin": "B000000001",
+      "pack": "1-pack",
+      "campaign": "Example exact campaign",
+      "query_target": "generic example query",
+      "brand_class": "Non-brand",
+      "spend": 20,
+      "clicks": 10,
+      "orders": 2,
+      "sales": 60,
+      "ctr": 0.01,
+      "top_of_search_share": 0.2,
+      "organic_rank": 12,
+      "required_rpc": 5.71,
+      "diagnosis": "Healthy RPC with limited traffic",
+      "recommendation": "Run a controlled exact test",
+      "owner": "Successor",
+      "review_date": "2026-08-19",
+      "source_refs": ["ads-current"]
+    }
+  ],
+  "rank_queries": [
+    {
+      "market": "DE",
+      "asin": "B000000001",
+      "query": "generic example query",
+      "query_type": "Non-brand",
+      "organic_rank": 12,
+      "prior_rank": 21,
+      "ad_rank_share": "Measured",
+      "status": "Graduate gradually",
+      "opportunity": "Validated secondary query",
+      "recommendation": "Reduce rank-push intensity in stages",
+      "owner": "Successor",
+      "review_date": "2026-08-19",
+      "source_refs": ["ads-current"]
+    }
+  ],
+  "listing_assets": [],
+  "creative_assets": [],
+  "poe_findings": [],
+  "assets": [
+    {
+      "name": "Client-visible campaign reference",
+      "type": "Google Sheet",
+      "url": "https://docs.google.com/spreadsheets/d/CLIENT_VISIBLE_FILE_ID/edit",
+      "client_accessible": true,
+      "status": "verified",
+      "verified_at": "2026-08-07T12:00:00+02:00"
+    }
+  ],
+  "open_gaps": [
+    {
+      "market": "FR",
+      "area": "Economics",
+      "gap": "Break-even ACOS is not verified",
+      "impact": "Profitability and Required RPC are withheld",
+      "owner": "Client",
+      "review_date": "2026-08-19",
+      "source_refs": ["ads-current"]
+    }
+  ],
+  "actions": [
+    {
+      "market": "DE",
+      "area": "Advertising",
+      "action": "Review the controlled exact test",
+      "owner": "Successor",
+      "timing": "At the verification date",
+      "trigger": "Attribution window has matured",
+      "expected_outcome": "Decision-ready RPC evidence",
+      "stop_condition": "Stop if spend threshold is reached without an order",
+      "review_date": "2026-08-19",
+      "status": "Open",
+      "source_refs": ["ads-current"]
+    }
+  ]
+}

@@ -124,6 +124,7 @@ Default routing:
 - `amazon-sb-video-briefs`: Sponsored Brands VIDEO creative work: keyword-driven video planning, editor briefings, SB video scripts and angle testing (`/video-brief`). Data-selected query clusters (POE + DataDive + SQP + ads data) → one branded briefing per batch, section per video, three named angles over one shared second half (script tables, sound-off rules, specs, advisory health-claims table), plus a per-product-line Creative Reference & Asset Library. Pure PPC structure → `amazon-campaign-builder`/`amazon-ads`; creator sourcing → `amazon-creator-connections`.
 - `amazon-creator-connections`: Creator Connections inbox audits, status-filtered message triage, campaign tracker updates, reply drafting (operator-confirmed sends), campaign prep to the publish checkpoint, tracker gaps, reconciliation.
 - `amazon-reporting`: fetching and formatting Seller/Ads reports, SQP, business reports, analytics workbooks; Business Reports + SQP can be fetched without manual download via `tools/report-fetcher/`. Not for audit narratives (that is `amazon-audit`).
+- `amazon-client-offboarding`: complete, branded, read-only Amazon account handovers when an engagement ends or ownership transfers. Produces the client operating narrative plus the exact five-tab evidence workbook; it is not an audit posture and never mutates the account.
 - `amazon-inventory-planning`: weekly FBA inventory overview, reshipment planning, pCloud outputs, Slack staging.
 - `amazon-opportunity-explorer`: Product Opportunity Explorer/OEI/POE exports, image strategy, product strategy, Alexa/Rufus semantic insights.
 - `amazon-listing-capture`: capture live listing copy (title/bullets/link) for anchor + competitors via the connected-browser extractor; feeds the keyword-workbook ASINs tab; replaces the legacy ZeroWork scrape.
@@ -246,6 +247,16 @@ Neighbouring workflows that are NOT this skill:
 
 The workbooks and narrative scaffold are built by the client-agnostic toolkit `tools/amazon-ad-audit/` (per-client config from `config.TEMPLATE.json`; see its `WORKFLOW.md` and `NEW-CLIENT.md`). Note the toolkit directory keeps its original name; only the skill was renamed. Build steps, roles (Codex downloads exports, Claude pulls DataDive/builds/writes), QA gates, and delivery rules live in the `amazon-audit` skill. Client config JSONs are gitignored; deliver the MASTER workbook as a native Google Sheet and the narrative as a native Google Doc to the audit folder inside `<Client> - Shared/`, both through `tools/gdrive-deliver/deliver.py` (see Google Drive Delivery below). Intermediate working files from the audit run are NOT deliverables: they stay in `_Working/account-check/` or local `output/`.
 
+## Client Offboarding Standard
+
+**One skill owns a full Amazon engagement handover: `amazon-client-offboarding`.** Use it when a client is leaving, account ownership changes, or a successor needs to inherit the account. An audit diagnoses performance at a point in time; an offboarding handover also records engagement delivery, operating ownership, complete material change history, reusable assets, unresolved evidence, and successor-ready action queues across every supported Amazon area.
+
+The workflow is strictly read-only. It may collect evidence from advertising, rank, listings and creative, catalog, inventory, buyability, Account Health, and client-visible assets, but it never changes Amazon, AdLabs, listings, inventory, or communications. Unsupported areas are disclosed and omitted rather than padded.
+
+Build through `tools/amazon-client-offboarding/build_handover.py` from a gitignored per-run config, evidence manifest, and operator-written Markdown. Production preflight fails closed if approved Ecom Wizards branding or required logo/font assets are missing. The Doc uses the canonical no-cover A4 renderer with `Amazon Account Handover` as its label. The workbook uses the canonical branding loader and styling helpers and contains exactly five tabs: `Read Me & Data Watermark`, `Market Scoreboard`, `Non-Brand RPC Diagnostics`, `Rank & Query Tracker`, and `Action Register`. Advertising change history and the client asset/link index stay in the Doc.
+
+Deliver the validated DOCX/XLSX intermediaries as one native Google Doc and one native Google Sheet through `tools/gdrive-deliver/deliver.py` into an exact existing folder inside `<Client> - Shared/`. Never create a destination folder during offboarding, and never send the files without separate communication approval.
+
 ## Campaign Creation Standard
 
 To create Sponsored Products campaigns from a plain-text brief ("create SKW campaigns for these keywords", `/create-campaigns`), route to the `amazon-campaign-builder` skill and the client-agnostic toolkit `tools/amazon-campaign-builder/`. The build flow, config scaffolding, and QA gates live in the skill.
@@ -318,6 +329,7 @@ Controlled workflow names:
 - `support-prep`
 - `sop-maintenance`
 - `creator-connections`
+- `offboarding`
 
 Do not create a separate global overview tracker by default. If a workflow needs local context, put `README.md` or `operator-note.md` inside the relevant workflow folder. Use Notion for ongoing team status.
 
@@ -354,6 +366,7 @@ What agents deliver to Drive:
 |---|---|
 | Keyword research workbook (as a Google Sheet) | `<Client> - Shared/<Keyword Research>/<Country>/` |
 | Audit MASTER workbook (as a Google Sheet) + narrative Google Doc | `<Client> - Shared/<Audits>/` |
+| Amazon offboarding handover Google Doc + five-tab evidence Google Sheet | Exact existing handover/offboarding folder inside `<Client> - Shared/`; never create one |
 | Human-facing monthly reports | `<Client> - Shared/<Reports>/` |
 | SB video briefing + Creative Reference Google Docs | `<Client> - Shared/<Video Briefings>/` (one file per batch and per product line, edited in place) |
 | FlatFilePro upload CSVs | NOT in Drive. `output/{client}/catalog/` |

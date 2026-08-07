@@ -28,6 +28,11 @@ Consumers: `render_branded.py` + `brand_cover.py` (docs), `ew_audit_style.py` â†
 `build_audit_workbook.py` / `build_sqp_workbook.py` / `build_master_workbook.py` (xlsx banners,
 "Prepared by"), `narrative_scaffold.py` (byline), `md_to_docx.py` (fallback renderer).
 
+Specialist builders with an explicit approved branding path call
+`branding.activate_branding(config)` before importing shared renderers. This makes that approved
+identity the process-local default and prevents import-time example styling from leaving stale
+renderer globals behind.
+
 Everything here survives conversion to a native Google Doc, which is how documents are
 delivered. Verified 02.08.2026 on a full audit and an SB video briefing: cover, header
 lockup, footer fields, Inter, KPI cards, table styling and figures all import intact.
