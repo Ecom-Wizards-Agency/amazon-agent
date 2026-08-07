@@ -79,6 +79,8 @@ Append-only, non-PII event log. Record every sent message, status move, queue de
 
 The bot's daily worklist. It should show the Creator Record ID, current status, action type, due date, required inputs, gate result, queue state, escalation reason, evidence reference, and last update.
 
+`PENDING_APPROVAL` is the only valid gate result for a queued creator-message send unless a matching local standing permission has already been verified by the executor. `PASS` from a qualification or MCF pre-flight never authorizes a message send, campaign publish, MCF creation, or Slack post.
+
 ## Status and decision rules
 
 Use the status dropdown that exists on the target sheet. Do not invent values. The standard labels are:

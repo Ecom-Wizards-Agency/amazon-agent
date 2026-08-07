@@ -14,6 +14,9 @@ import json
 import os
 import re
 import sys
+import tempfile
+import time
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
@@ -33,9 +36,82 @@ def read_json(path: str) -> Any:
 def write_json(path: str, value: Any) -> None:
     target = Path(path)
     target.parent.mkdir(parents=True, exist_ok=True)
-    with open(target, "w", encoding="utf-8", newline="\n") as handle:
-        json.dump(value, handle, indent=2, sort_keys=True)
-        handle.write("\n")
+    temporary_path: str | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            newline="\n",
+            dir=target.parent,
+            prefix=f".{target.name}.",
+            suffix=".tmp",
+            delete=False,
+        ) as handle:
+            temporary_path = handle.name
+            json.dump(value, handle, indent=2, sort_keys=True)
+            handle.write("\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.chmod(temporary_path, 0o600)
+        os.replace(temporary_path, target)
+        temporary_path = None
+        try:
+            directory_fd = os.open(target.parent, os.O_RDONLY)
+            try:
+                os.fsync(directory_fd)
+            finally:
+                os.close(directory_fd)
+        except OSError:
+            # Directory fsync is not available on every supported platform.
+            pass
+    finally:
+        if temporary_path and Path(temporary_path).exists():
+            os.unlink(temporary_path)
+
+
+@contextmanager
+def registry_lock(path: str, timeout_seconds: float = 5.0):
+    """Hold a cross-process lock for one registry mutation."""
+    target = Path(path)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    lock_path = target.with_name(target.name + ".lock")
+    deadline = time.monotonic() + timeout_seconds
+    descriptor: int | None = None
+    while descriptor is None:
+        try:
+            descriptor = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+        except FileExistsError:
+            if time.monotonic() >= deadline:
+                raise Hold(f"Registry is locked by another process: {lock_path}")
+            time.sleep(0.02)
+    try:
+        os.write(descriptor, f"pid={os.getpid()} acquired={datetime.now(timezone.utc).isoformat()}\n".encode("utf-8"))
+        os.fsync(descriptor)
+        yield
+    finally:
+        os.close(descriptor)
+        try:
+            os.unlink(lock_path)
+        except FileNotFoundError:
+            pass
+
+
+def mutate_registry(path: str, operation) -> Any:
+    """Reread, mutate, and atomically persist a registry under one lock."""
+    with registry_lock(path):
+        registry = load_registry(path)
+        before = json.dumps(registry, sort_keys=True, separators=(",", ":"))
+        try:
+            result = operation(registry)
+        except Hold:
+            after = json.dumps(registry, sort_keys=True, separators=(",", ":"))
+            if after != before:
+                write_json(path, registry)
+            raise
+        after = json.dumps(registry, sort_keys=True, separators=(",", ":"))
+        if after != before:
+            write_json(path, registry)
+        return result
 
 
 def normalized(value: Any) -> str:
@@ -168,6 +244,20 @@ def resolve_record(registry: dict[str, Any], record: dict[str, Any], secret: byt
     return {"result": "NEW", "fingerprints": fingerprints}
 
 
+def lock_conflicting_records(registry: dict[str, Any], resolution: dict[str, Any]) -> None:
+    """Persist a conflict lock on every active record implicated by resolution."""
+    identifiers = set(resolution.get("matches") or [])
+    if not identifiers:
+        return
+    for entry in registry["records"]:
+        if entry.get("creator_record_id") not in identifiers:
+            continue
+        entry["lock_state"] = "Conflict"
+        entry["escalation_reason"] = resolution.get("reason") or "identity_conflict"
+        entry["version"] = int(entry.get("version") or 0) + 1
+        entry["last_verified_at"] = date.today().isoformat()
+
+
 def refresh_registry_entry(registry: dict[str, Any], identifier: str, record: dict[str, Any], secret: bytes) -> None:
     """Add newly verified fingerprints without replacing an existing identity value."""
     fingerprints = record_fingerprints(record, secret)
@@ -191,15 +281,28 @@ def issue_record_id(registry: dict[str, Any], record: dict[str, Any], secret: by
     if result["result"] == "RESOLVED":
         refresh_registry_entry(registry, result["creator_record_id"], record, secret)
         return result["creator_record_id"]
+    if result["result"] == "CONFLICT":
+        lock_conflicting_records(registry, result)
     if result["result"] != "NEW":
         raise Hold(f"Identity {result['result'].lower()}: {result['reason']}")
     brand_code = re.sub(r"[^A-Z0-9]", "", str(record.get("brand_code", ""))).upper()
     if not brand_code:
         raise Hold("New creator record requires brand_code.")
     sequence_key = f"{brand_code}-{today:%y}"
-    next_number = int(registry["sequence_by_brand"].get(sequence_key, 0)) + 1
-    registry["sequence_by_brand"][sequence_key] = next_number
+    id_pattern = re.compile(rf"^CCR-{re.escape(brand_code)}-{today:%y}-(\d+)$")
+    existing_numbers = [
+        int(match.group(1))
+        for entry in registry["records"]
+        if (match := id_pattern.fullmatch(str(entry.get("creator_record_id", "")).upper()))
+    ]
+    persisted_sequence = int(registry["sequence_by_brand"].get(sequence_key, 0))
+    next_number = max([persisted_sequence, *existing_numbers], default=0) + 1
+    existing_ids = {str(entry.get("creator_record_id", "")).upper() for entry in registry["records"]}
     identifier = f"CCR-{brand_code}-{today:%y}-{next_number:04d}"
+    while identifier in existing_ids:
+        next_number += 1
+        identifier = f"CCR-{brand_code}-{today:%y}-{next_number:04d}"
+    registry["sequence_by_brand"][sequence_key] = next_number
     registry["records"].append(
         {
             "creator_record_id": identifier,
@@ -286,7 +389,7 @@ def queue_item(record: dict[str, Any], today: date) -> dict[str, Any] | None:
         if attempts >= 3:
             return base | {"action_type": "ESCALATE_UNRESPONSIVE", "gate_result": "BLOCKED", "queue_state": "Escalated", "reason": "three_follow_up_attempts_without_required_reply"}
         if due <= today:
-            return base | {"action_type": "SEND_TAILORED_VERIFICATION_FOLLOW_UP", "gate_result": "HOLD", "queue_state": "Queued", "reason": "missing_" + ",".join(score["missing"])}
+            return base | {"action_type": "SEND_TAILORED_VERIFICATION_FOLLOW_UP", "gate_result": "PENDING_APPROVAL", "queue_state": "Queued", "reason": "message_send_requires_current_approval;missing_" + ",".join(score["missing"])}
         return None
     if status in {"verification confirmed", "approved for sample"}:
         if score["score"] != 10:
@@ -298,7 +401,7 @@ def queue_item(record: dict[str, Any], today: date) -> dict[str, Any] | None:
         if attempts >= 3:
             return base | {"action_type": "ESCALATE_CONTENT_UNRESPONSIVE", "gate_result": "BLOCKED", "queue_state": "Escalated", "reason": "three_content_follow_ups_without_reply"}
         if today >= content_due and due <= today:
-            return base | {"action_type": "SEND_CONTENT_FOLLOW_UP", "gate_result": "PASS", "queue_state": "Queued", "reason": "track_performance_and_request_video_link"}
+            return base | {"action_type": "SEND_CONTENT_FOLLOW_UP", "gate_result": "PENDING_APPROVAL", "queue_state": "Queued", "reason": "message_send_requires_current_approval;track_performance_and_request_video_link"}
     return None
 
 
@@ -306,6 +409,8 @@ def mcf_preflight(registry: dict[str, Any], proposal: dict[str, Any], secret: by
     record = proposal.get("creator") or {}
     identity = resolve_record(registry, record, secret)
     errors: list[str] = []
+    if identity.get("result") == "CONFLICT":
+        lock_conflicting_records(registry, identity)
     if identity.get("result") != "RESOLVED":
         errors.append("identity_not_resolved")
     resolved = next((item for item in registry["records"] if item.get("creator_record_id") == identity.get("creator_record_id")), {})
@@ -329,14 +434,25 @@ def mcf_preflight(registry: dict[str, Any], proposal: dict[str, Any], secret: by
     fee = int(proposal.get("visible_fee_cents") or 0)
     cap = int(proposal.get("approved_fee_cap_cents") or -1)
     if cap < 0 or fee > cap: errors.append("fee_exceeds_approved_cap")
-    history = proposal.get("sample_history") or []
-    duplicate_history = any(
+    registry_history = resolved.get("sample_history") or []
+    proposal_history = proposal.get("sample_history") or []
+    duplicate_registry_history = any(
+        normalized(entry.get("asin")).upper() == selected_asin
+        and normalized(entry.get("status")) not in {"cancelled", "failed"}
+        for entry in registry_history
+    )
+    duplicate_proposal_history = any(
         entry.get("creator_record_id") == identity.get("creator_record_id")
         and normalized(entry.get("asin")).upper() == selected_asin
         and normalized(entry.get("status")) not in {"cancelled", "failed"}
-        for entry in history
+        for entry in proposal_history
     )
-    if proposal.get("prior_sample_same_creator_asin") or duplicate_history: errors.append("duplicate_sample_risk")
+    if (
+        proposal.get("prior_sample_same_creator_asin")
+        or duplicate_registry_history
+        or duplicate_proposal_history
+    ):
+        errors.append("duplicate_sample_risk")
     if proposal.get("page_errors"): errors.append("page_validation_error")
     if proposal.get("field_truncated"): errors.append("field_truncation_detected")
     if not score["checks"]["complete_fulfillment_details"]: errors.append("incomplete_fulfillment_details")
@@ -347,6 +463,8 @@ def mcf_preflight(registry: dict[str, Any], proposal: dict[str, Any], secret: by
         "errors": errors,
         "required_next_state": "Locked for MCF" if not errors else "Conflict or Held",
         "quantity": proposal.get("quantity"),
+        "visible_fee_cents": fee,
+        "approved_fee_cap_cents": cap,
         "selected_asin": selected_asin,
         "selected_sku": selected_sku,
     }
@@ -443,9 +561,11 @@ def main() -> None:
     try:
         secret = get_secret(args.secret_env)
         if args.command == "register":
-            registry, record = load_registry(args.registry), read_json(args.record)
-            identifier = issue_record_id(registry, record, secret, date.today())
-            write_json(args.registry, registry)
+            record = read_json(args.record)
+            identifier = mutate_registry(
+                args.registry,
+                lambda registry: issue_record_id(registry, record, secret, date.today()),
+            )
             emit({"result": "PASS", "creator_record_id": identifier, "registry": args.registry})
         if args.command == "score":
             emit(score_record(read_json(args.record)))
@@ -457,24 +577,39 @@ def main() -> None:
             write_json(args.output, output)
             emit(output)
         if args.command == "preflight":
-            result = mcf_preflight(load_registry(args.registry), read_json(args.input), secret)
+            proposal = read_json(args.input)
+            result = mutate_registry(
+                args.registry,
+                lambda registry: mcf_preflight(registry, proposal, secret),
+            )
             emit(result, 0 if result["result"] == "PASS" else 2)
         if args.command == "reserve-mcf":
-            registry = load_registry(args.registry)
-            result = reserve_mcf(registry, read_json(args.input), secret)
-            if result["result"] == "PASS":
-                write_json(args.registry, registry)
+            proposal = read_json(args.input)
+            result = mutate_registry(
+                args.registry,
+                lambda registry: reserve_mcf(registry, proposal, secret),
+            )
             emit(result, 0 if result["result"] == "PASS" else 2)
         if args.command == "confirm-mcf":
-            registry = load_registry(args.registry)
-            result = confirm_mcf(registry, args.creator_record_id, args.asin, args.order_id, args.evidence_reference)
-            write_json(args.registry, registry)
+            result = mutate_registry(
+                args.registry,
+                lambda registry: confirm_mcf(
+                    registry,
+                    args.creator_record_id,
+                    args.asin,
+                    args.order_id,
+                    args.evidence_reference,
+                ),
+            )
             emit(result)
         if args.command == "migrate-legacy":
-            registry, today = load_registry(args.registry), parse_date(args.date)
+            today = parse_date(args.date)
             if not today: raise Hold("Legacy migration date is invalid.")
-            result = migrate_legacy(registry, read_json(args.input), secret, today)
-            write_json(args.registry, registry)
+            payload = read_json(args.input)
+            result = mutate_registry(
+                args.registry,
+                lambda registry: migrate_legacy(registry, payload, secret, today),
+            )
             write_json(args.output, result)
             emit(result)
     except Hold as exc:

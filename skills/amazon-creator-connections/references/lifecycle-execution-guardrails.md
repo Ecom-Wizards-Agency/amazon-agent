@@ -80,7 +80,7 @@ All checks must pass in the same run immediately before order creation:
 2. Status is `Approved for Sample`, Sample Decision is `Send`, and score is `10/10`.
 3. The final requested ASIN, tracker product, MCF SKU, and selected MCF product match exactly.
 4. Full name, street address, city, state/province, ZIP/postal code, phone, and email are present in the selected creator row.
-5. No prior sample exists for the same Creator Record ID and final product/ASIN. Check the registry, tracker, and MCF order history.
+5. No prior sample exists for the same Creator Record ID and final product/ASIN. The synchronized registry's `sample_history` is authoritative for the deterministic gate; reconcile it against the tracker and MCF order history before pre-flight. Caller-supplied proposal history may add evidence but can never hide registry history.
 6. Quantity equals exactly `1`. Standard shipping is selected. The visible fee is within the client-approved cap.
 7. There are no page validation errors, recipient mismatches, or field truncations.
 

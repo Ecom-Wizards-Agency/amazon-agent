@@ -75,8 +75,10 @@ The score is computed, not typed manually. Each item is worth one point: complet
 
 After a passing pre-flight, `reserve-mcf` writes a record lock for that exact Creator Record ID and ASIN. The executor cannot use another creator's data while the lock exists. `confirm-mcf` releases the lock only when it receives the resulting Amazon order ID and private evidence reference. A failed order stays locked and is escalated. This protects against double-sends and concurrent operators.
 
+Registry mutations are serialized through a per-registry lock file. Each command rereads the registry after it owns the lock and replaces the JSON atomically only after the mutation succeeds. Concurrent reservations for the same creator/ASIN therefore produce one lock and one held result. A leftover `.lock` file indicates an interrupted process and must be reviewed rather than bypassed automatically.
+
 ## Daily action queue
 
-The `queue` command creates a dated action for every actionable record. It schedules verification and missing-detail follow-ups every two days, and content follow-ups three days after expected delivery then every two days. At the configured limit it emits a PII-free escalation instead of sending another message. It can queue `MCF_PREFLIGHT`, but cannot place an order. Until SP-API is authorized, confirmed paid MCF placement remains a controlled operator/API worker step.
+The `queue` command creates a dated action for every actionable record. It schedules verification and missing-detail follow-ups every two days, and content follow-ups three days after expected delivery then every two days. Message actions use `PENDING_APPROVAL`; a queue item never grants send authority. At the configured limit it emits a PII-free escalation instead of another message action. It can queue `MCF_PREFLIGHT`, but cannot place an order. Until SP-API is authorized, confirmed paid MCF placement remains a controlled operator/API worker step.
 
 Input fixtures use generic data only. Keep real run files under `_local/creator-connections/` and outputs under `_local-output/creator-connections/`, both ignored by Git.
