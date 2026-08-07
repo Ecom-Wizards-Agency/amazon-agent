@@ -4,6 +4,8 @@ This repository's Creator Connections capability is implemented by the `amazon-c
 
 The workflow is browser-led because Creator Connections is operated in Amazon Ads. Private brand, creator, tracker, and contact data stay in the live tools or local configuration and are never committed here.
 
+For unattended work, the bot uses a dedicated persistent CDP browser profile, not a temporary in-app browser session. The operator completes a one-time Amazon Ads login in that isolated profile. If the profile returns to a sign-in page, the bot stops safely and sends a PII-free internal blocker notification through the approved Slack helper.
+
 ## Operating model
 
 - One campaign-level tracker tab per product campaign, plus an `Undecided` tab for unclear product matches.

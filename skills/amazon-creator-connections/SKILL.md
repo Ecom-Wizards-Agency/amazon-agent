@@ -5,11 +5,11 @@ description: Use for Amazon Creator Connections operations: campaign preparation
 
 # Amazon Creator Connections
 
-Browser: Codex interactive
+Browser: CDP
 
 Use this skill for the Creator Connections operating system across brands. It is a front-end/browser workflow, supported by a campaign-level Google Sheet tracker and Slack sweep updates. It does not require an Amazon Ads API.
 
-Creator Connections lives behind Amazon Ads login and currently has no direct MCP/API. Use the connected browser for Amazon Ads/Creator Connections and use Google Sheets/Slack connectors where available for tracker and reporting work.
+Creator Connections lives behind Amazon Ads login and currently has no direct MCP/API. Use the dedicated persistent CDP browser profile for Amazon Ads/Creator Connections and use Google Sheets/Slack connectors where available for tracker and reporting work. Scheduled runs must use that profile rather than an in-app browser so a one-time operator login persists between unattended runs.
 
 ## What this system can do
 
@@ -156,7 +156,7 @@ Creator Connections does not provide a reliable native status filter. The config
 
 ## Browser and navigation
 
-Use the connected browser for Amazon Ads. Run the browser checkpoint before changing anything:
+Use the dedicated persistent CDP browser for Amazon Ads. Run the browser checkpoint before changing anything:
 
 - logged in
 - correct Amazon Ads account/brand
@@ -169,6 +169,8 @@ Navigate through Amazon Ads where possible:
 Campaign Manager → account selector → Brand content → Creator connections.
 
 If authentication is unavailable, stop and ask the operator to log in. Do not use stale browser data for live sweeps or Slack posts.
+
+For a scheduled run, start or reuse the configured local CDP profile before opening Amazon Ads. The operator completes the first login manually in that isolated profile; the job then reuses its persisted session. Never fall back to the in-app browser for an unattended run. If the CDP profile reaches a sign-in page, do not touch credentials: send the configured PII-free Slack-helper blocker and stop.
 
 ## Matching and tracker update order
 
