@@ -24,6 +24,99 @@ export function parseCsv(text) {
 
 const qty = (value) => Number.isFinite(Number(value)) ? Number(value) : 0;
 
+export function nullableQty(value) {
+  if (value === null || value === undefined || value === "") return null;
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  const normalized = String(value).replaceAll(",", "").match(/-?\d+(?:\.\d+)?/);
+  if (!normalized) return null;
+  const number = Number(normalized[0]);
+  return Number.isFinite(number) ? number : null;
+}
+
+const first = (...values) => values.find((value) => value !== undefined && value !== null && value !== "");
+
+export function assertAccountIdentity(profile, identity) {
+  const expectedSeller = profile?.seller_id;
+  const expectedMarketplace = profile?.marketplace_id;
+  const actualSeller = identity?.merchantId;
+  const actualMarketplace = identity?.marketplaceId;
+  if ((expectedSeller && actualSeller !== expectedSeller)
+      || (expectedMarketplace && actualMarketplace !== expectedMarketplace)) {
+    throw new Error(`ACCOUNT_MISMATCH: expected ${expectedSeller || "selected account"}/${expectedMarketplace}, got ${actualSeller}/${actualMarketplace}`);
+  }
+  return true;
+}
+
+export function selectOnlyRequested(options = {}) {
+  return options["select-only"] === true;
+}
+
+function normalizeContent(raw = {}) {
+  return {
+    seller_sku: String(first(raw.seller_sku, raw.sellerSku, raw.sku, raw["Seller SKU"], "")).trim(),
+    expected: nullableQty(first(raw.expected, raw.expected_units, raw.expectedUnits, raw["Expected units"])),
+    shipped: nullableQty(first(raw.shipped, raw.shipped_units, raw.shippedUnits, raw["Shipped units"])),
+    received: nullableQty(first(raw.received, raw.received_units, raw.receivedUnits, raw["Received units"])),
+  };
+}
+
+export function normalizeShipment(raw = {}) {
+  const contents = (raw.contents || raw.items || raw.products || []).map(normalizeContent);
+  const sumKnown = (field) => {
+    const values = contents.map((item) => item[field]);
+    return values.length && values.every((value) => value !== null)
+      ? values.reduce((total, value) => total + value, 0) : null;
+  };
+  return {
+    shipment_id: String(first(raw.shipment_id, raw.shipmentId, raw.id, "")).trim() || null,
+    shipment_name: String(first(raw.shipment_name, raw.shipmentName, raw.name, "")).trim() || null,
+    status: String(first(raw.status, raw.shipment_status, raw.shipmentStatus, "")).trim() || null,
+    last_updated: String(first(raw.last_updated, raw.lastUpdated, raw.updated_at, raw.updatedAt, "")).trim() || null,
+    url: raw.url || null,
+    quantities: {
+      expected: nullableQty(first(raw.quantities?.expected, raw.expected, raw.expected_units, sumKnown("expected"))),
+      shipped: nullableQty(first(raw.quantities?.shipped, raw.shipped, raw.shipped_units, sumKnown("shipped"))),
+      received: nullableQty(first(raw.quantities?.received, raw.received, raw.received_units, sumKnown("received"))),
+    },
+    contents,
+  };
+}
+
+export function shipmentVerdict(quantities = {}) {
+  const expected = nullableQty(quantities.expected);
+  const received = nullableQty(quantities.received);
+  if (expected === null || received === null) return "unknown";
+  if (received === 0) return "not-booked-in";
+  if (received < expected) return "partially-booked-in";
+  return "fully-booked-in";
+}
+
+export function filterShipmentContents(rawShipments, requestedSkus) {
+  const wanted = new Set((requestedSkus || []).map((sku) => String(sku).trim().toUpperCase()));
+  const matches = [];
+  for (const raw of rawShipments || []) {
+    const shipment = normalizeShipment(raw);
+    const contents = shipment.contents.filter((item) => wanted.has(item.seller_sku.toUpperCase()));
+    if (!contents.length) continue;
+    const sumKnown = (field) => contents.every((item) => item[field] !== null)
+      ? contents.reduce((total, item) => total + item[field], 0) : null;
+    shipment.contents = contents;
+    shipment.quantities = {
+      expected: sumKnown("expected"),
+      shipped: sumKnown("shipped"),
+      received: sumKnown("received"),
+    };
+    shipment.verdict = shipmentVerdict(shipment.quantities);
+    matches.push(shipment);
+  }
+  let verdict = "unknown";
+  if (matches.length && matches.every((item) => item.verdict !== "unknown")) {
+    const states = new Set(matches.map((item) => item.verdict));
+    verdict = states.size === 1 ? matches[0].verdict : "partially-booked-in";
+  }
+  return { requested_skus: [...wanted], matches, verdict };
+}
+
 export function aggregateFba(listings) {
   const out = {
     listings: 0,
@@ -60,6 +153,25 @@ export function aggregateFba(listings) {
   // and researching units are separate physical buckets. Inbound is not stored.
   out.stored = out.available + out.reserved.total + out.unfulfillable + out.researching;
   return out;
+}
+
+export function summarizeFbaBySku(listings, requestedSkus) {
+  const wanted = new Set((requestedSkus || []).map((sku) => String(sku).trim().toUpperCase()));
+  return (listings || []).filter((listing) => {
+    const sku = String(listing.coreListingFields?.sku || "").trim().toUpperCase();
+    return wanted.has(sku);
+  }).map((listing) => {
+    const totals = aggregateFba([listing]);
+    return {
+      seller_sku: listing.coreListingFields?.sku || null,
+      asin: listing.coreListingFields?.asin || null,
+      available: totals.available,
+      reserved: totals.reserved.total,
+      inbound: totals.inbound,
+      unfulfillable: totals.unfulfillable,
+      stored: totals.stored,
+    };
+  });
 }
 
 export function aggregateAwd(rows) {
