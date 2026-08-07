@@ -1,25 +1,116 @@
-# Creator Tracker Schema
+# Creator Connections Tracker Schema
 
-The tracker is a shared Google Sheet with one tab per campaign (campaign-level model, client-shareable). The sheet URL is per-client (`_local/creator-connections/<client>-config.json`).
+This is the sole tracker schema. Preserve the live sheet's formatting, merges, dropdown validation, chip colors, and campaign metadata. Campaign tabs are client-shareable. Private creator contact details remain only in the live sheet and local browser context.
 
-## Columns (preserve exactly, in this order)
+## Tab structure
 
-| Column | Rules |
-| --- | --- |
-| Creator Name | Creator's display name from the thread/campaign. |
-| Status | Approved dropdown values only; do not invent new statuses. Covers the sample/collaboration lifecycle (e.g. inquiry, sample requested, sample sent, ghosted, unqualified, content submitted). Read the existing dropdown from the sheet; record the client's actual value set in local notes on first contact. |
-| Full Name | Verified full name, only when the creator provided it. |
-| Address | Verified shipping address, only when present. Never copy addresses into tracked repo files or reports; sheet only. |
-| Date Sent | Sample ship date, only when shipment is confirmed. |
-| Product | The matched product (per the SKILL.md matching order). |
-| Content Posted | Yes/No validation only. |
-| Posted Link(s) | Verified content links (opened and checked, not just claimed). |
-| Notes | Concise evidence notes: thread date, what was agreed, replies sent, follow-up needed. |
+- Rows 1 to 8: campaign metadata.
+- Row 9: grouped headers.
+- Row 10: column headers.
+- Row 11 onward: creator records.
+- One tab per campaign, plus `Undecided` for unresolved product choice and three internal control tabs: `Creator Registry`, `Creator Action Log`, and `Daily Action Queue`.
 
-## Rules
+## Campaign tab columns
 
-- **One row per creator per campaign.** Update the existing row; never duplicate.
-- Preserve the tab's existing formatting, dropdown validations, and metadata header when editing.
-- New tabs duplicate the client's approved styling and carry a metadata header read from the live campaign: campaign name, product title, ASIN, schedule, commission, status, campaign ID, campaign type, budget/remaining/spend, orders, sales, clicks, campaign link, product link.
-- Tab naming: product + date range (e.g. `Product Jan 26-27`), matching the client's existing convention when one exists.
-- Creator personal data (full names, addresses) stays in the sheet and `_local/` only.
+The live header order is authoritative. Resolve columns by header name at runtime. Do not hard-code letters or prior positions.
+
+### Record control
+
+1. Creator Record ID
+
+### Creator and campaign activity
+
+2. Creator Name
+3. Status
+4. Full Name
+5. Address
+6. Email
+7. Phone
+8. Date Sent
+9. Product
+10. Content Posted
+11. Posted Link(s)
+12. Notes
+
+### Sample fulfillment / MCF tracking
+
+13. Fulfillment Method
+14. Address Confirmed Date
+15. Sample Approved By
+16. Sample Sent Date
+17. MCF Order ID
+18. Tracking Number
+19. Delivery Status
+20. Follow-up Date
+
+### Creator qualification gate
+
+21. Amazon Storefront Link
+22. Portfolio / Media Kit Link
+23. Requested ASIN
+24. Product Match Status
+25. Recent Posting Verified?
+26. Last Visible Post Date
+27. Content Quality Rating
+28. Category Fit
+29. Performance Evidence Available?
+30. Earns Revenue Badge?
+31. Revenue Badge Source
+32. Revenue Threshold Met?
+33. Specific ASIN Mentioned?
+34. Spam Risk
+35. Risk Flags
+36. Total Qualification Score
+37. Qualification Tier
+38. Sample Decision
+39. Qualification Notes
+
+## Control tabs
+
+### Creator Registry
+
+The authoritative identity index. It stores Creator Record ID, display name for operator navigation, opaque storefront, thread, name, and contact fingerprints, active product/campaign, record state, lock state, and merge notes. Do not copy raw address, email, phone, or storefront URL values into this tab.
+
+### Creator Action Log
+
+Append-only, non-PII event log. Record every sent message, status move, queue decision, fulfillment pre-flight, MCF result, content verification, or escalation with an evidence reference.
+
+### Daily Action Queue
+
+The bot's daily worklist. It should show the Creator Record ID, current status, action type, due date, required inputs, gate result, queue state, escalation reason, evidence reference, and last update.
+
+## Status and decision rules
+
+Use the status dropdown that exists on the target sheet. Do not invent values. The standard labels are:
+
+- New Inquiry
+- First-Base Pass
+- Verification Sent
+- Verification Confirmed
+- Proof Requested
+- Address Verification
+- Approved for Sample
+- Sample Sent
+- Delivered / Awaiting Content
+- Content Posted
+- Performance Update
+- Follow Up
+- Manager Review
+- Product Switch Pending
+- On Hold
+- Unqualified
+- Ghosted
+- Declined / Closed
+- `<Product> Pause`
+
+Use the existing chip color when a label already exists. New client-specific labels require a coordinated color and a recorded local note. The fulfillment decision is separate: `Send`, `Hold`, or `Do Not Send`.
+
+`Send` requires the exact 10/10 gate in `lifecycle-execution-guardrails.md`; it is not inferred from a status alone.
+
+## Product and duplicate rules
+
+- One active creator row per Creator Record ID and final product/ASIN.
+- A creator who has not confirmed the final product remains in `Undecided`.
+- On a verified product switch, make the final-product row active and retain the old row as historical only. Never leave two active sample paths.
+- Never merge or move rows from display-name similarity. Resolve the Creator Record ID first.
+- Do not delete historical sample records. Mark their current state and link the same Creator Record ID when verified.
