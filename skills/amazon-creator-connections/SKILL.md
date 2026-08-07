@@ -67,6 +67,16 @@ Creator Connections lives behind Amazon Ads login and currently has no direct MC
    - If the creator qualifies from the background check, ask only for the basic fulfillment details needed to send the sample: full name, complete shipping address, email, phone, and final product/ASIN confirmation.
    - Ask for extra proof only when the visible background check cannot verify enough activity, fit, or performance to make a sample decision.
 
+9. Exhaust every message thread before completing a sweep.
+   - Drain the full infinite-scroll inbox to the true end. Never treat the initially mounted threads, unread dots, or the first visible page as complete coverage.
+   - Enumerate every thread on every daily run, including read threads, old threads, and threads previously placed on hold. A creator follow-up can reopen any of them.
+   - Open every non-archived thread and read through its newest message. Compare the newest creator message signature (Creator Record ID, sender role, Amazon timestamp, and normalized message-body hash) with the stored per-thread checkpoint.
+   - When the signature changed, process every message after the prior checkpoint. This includes follow-ups, address or ASIN confirmations, performance updates, posted links, acknowledgements, product switches, and replies that do not have an unread dot.
+   - An archived or unqualified thread may be skipped only when its newest-message signature is unchanged. If it changed, reopen and classify the new message.
+   - The completion equation is mandatory: `threads enumerated = unchanged threads + actioned threads + explicitly held/escalated threads`. Unmatched, unopened, or unclassified threads must be zero.
+   - Save the new checkpoint only after the message action, tracker write, action-log entry, and any permitted reply all verify successfully. A partial failure keeps the old checkpoint so the next run retries it.
+   - Report final mounted thread count, threads opened, changed threads, messages examined, messages sent, no-action acknowledgements, held/escalated threads, archived spam, and unmatched threads. Do not report a successful sweep when any count is unreconciled.
+
 ## How to use
 
 Use natural requests:
@@ -126,6 +136,13 @@ Use this shape:
   "reply_policy": {
     "auto_send": false,
     "notes": "Routine sends require current approval unless standing permission exists."
+  },
+  "message_coverage": {
+    "drain_infinite_scroll": true,
+    "open_all_non_archived_threads": true,
+    "reopen_archived_on_new_signature": true,
+    "checkpoint_file": "_local/creator-connections/message-watermarks.json",
+    "require_zero_unmatched_threads": true
   }
 }
 ```
