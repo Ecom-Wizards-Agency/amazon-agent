@@ -32,7 +32,6 @@ The brief carries execution only. The evidence behind the angle (shelf map, revi
 ## Video 2: <cluster> (target NN s)
    ...same shape...
 
-## Claims and compliance (advisory)
 ```
 
 ## 1. Header
@@ -85,24 +84,13 @@ The final card is **textless**: pack shot with the logo on a plain background, h
 
 The first market's language is the master. For each additional language add a compact table after the script: card number, then one column per language, translations only. Same timings, same visuals: text-layer swaps, not re-edits. Use the terminology from that marketplace's keyword research, mirror the local hero query in the first card, and keep every claim decision identical across languages. Adapt rather than translate when a literal line reads wrong locally.
 
-## 8. Claims and compliance (advisory)
+## 8. Internal claims gate, not delivered
 
-ONE table for the whole batch, at the end. Sort HIGH and MEDIUM first so the decisions are the first thing read.
-
-| Line | Risk | Why | Suggested compliant rewrite | Decision |
-|---|---|---|---|---|
-
-Rules:
-
-- Cover 100% of on-screen cards and any VO line.
-- Every LOW line's "why" names the live-listing phrase it traces to. If nothing traces, it is not LOW.
-- Every MEDIUM and HIGH line carries a suggested rewrite and a decision.
-- An operator authorisation that runs against the listing must record the source and the date, plus the listing-alignment fix that removes the risk.
-- Close with one line stating which decisions are still open before the edit starts.
+Run line-by-line claims QA on every on-screen card and VO line before delivery. Resolve every medium and high risk internally. The final editor document contains only the concise absolute do-not list, never a claims table or compliance appendix.
 
 ## Not in this document
 
 - **Shelf map and review evidence.** Lives in the Creative Reference & Asset Library.
-- **Assets and shot lists.** Lives in the Creative Reference doc, section 6.
-- **Test plan, baselines, campaign structure.** Operator-facing, not editor-facing.
+- **Assets and shot lists.** Lives in the Creative Reference doc, section 5.
+- **Test plan, baselines, campaign structure, and measurement.** Lives in the agency playbook and Notion, not in either editor document.
 - **Why this video exists.** The data case belongs in the shortlist conversation and the learnings loop.

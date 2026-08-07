@@ -1,62 +1,66 @@
 {
-  "_README": "TEMPLATE: copy to config.<client>-<market>-<product-line>.json and fill every <...>. Client configs are local-only (gitignored). Contract for the amazon-sb-video-briefs skill; see skills/amazon-sb-video-briefs/SKILL.md. One config per PRODUCT LINE, matching the one-Creative-Reference-doc-per-product-line rule.",
+  "_README": "TEMPLATE: copy to config.<client>-<market>-<product-line>.json. Client configs are local-only and gitignored. One config per product line.",
   "client": {
     "name": "<CLIENT>",
-    "product_line": "<PRODUCT LINE, e.g. 'Miracle Manuka'. Scopes the Creative Reference doc and the brief title>",
-    "amazon_account": "<Seller Central account + country, for POE --expect-account>",
+    "product_line": "<PRODUCT LINE>",
     "marketplace": "<DE|US|IT|...>",
-    "language": "<language of ALL on-screen text and VO>",
+    "language": "<language of all on-screen text and VO>",
     "target_asins": ["<ASIN>"],
     "datadive_niche": "<DataDive niche id>",
-    "poe_niche": "<POE niche / hero keyword>",
-    "adlabs_profile_id": "<AdLabs profile_id, for search_query / target / ad_group pulls>"
+    "adlabs_profile_id": "<AdLabs profile_id>"
+  },
+  "seller_central": {
+    "account_name": "<exact account-picker label>",
+    "expected_partner_account_id": "<GetUserContext partnerAccountId>",
+    "parent_account_name": "<optional agency parent label or null>",
+    "marketplace_label": "<exact account-picker marketplace label>"
+  },
+  "research": {
+    "pinned_keyword_workbook_url": "<optional Google Sheets URL or null>",
+    "poe": {
+      "cache_max_age_days": 14,
+      "seed_min": 8,
+      "seed_max": 12,
+      "full_niche_min": 5,
+      "full_niche_max": 10
+    }
   },
   "economics": {
-    "break_even_acos": "<number, decimal e.g. 0.32; mark ASSUMED if not confirmed>",
-    "break_even_source": "<operator-confirmed | assumed>",
-    "shelf_median_price": "<market median purchase price on the main shelf, from SQP; drives the price-constraint line in the reference doc>",
-    "our_price_band": "<e.g. '35 to 45 USD'>"
+    "shelf_median_price": "<current median purchase price on the main shelf>",
+    "our_price_band": "<current price or price band>"
   },
   "product_facts": {
-    "_comment": "Only facts from label/PDP/operator. The script never claims anything not in this block or the live listing. For supplements/cosmetics fill the compliance block too.",
+    "_comment": "Only facts from label, live PDP, or an explicit operator decision. Internal claims QA checks every final card, but the editor brief contains no claims appendix.",
     "plain_name": "<what a shopper calls it>",
-    "form": "<cream | balm | powder | capsule | device | ...>",
-    "hero_ingredient": "<the mechanism the video can lead on>",
-    "origin": "<country as labelled>",
-    "key_facts": ["<fact the video may show or say, quoted from the live listing>"],
-    "needs_substantiation": ["<claim live in the listing but not yet provable on file, e.g. 'Dermatologist Approved'>"],
-    "forbidden_terms": ["<terms that must never appear on screen>"]
+    "form": "<device, cream, powder, capsule, etc.>",
+    "hero_mechanism": "<mechanism or feature the video can show>",
+    "origin": "<country as labelled or not used>",
+    "key_facts": ["<approved factual line>"],
+    "needs_substantiation": ["<unsupported line that cannot be scripted>"],
+    "forbidden_terms": ["<absolute banned term>"]
   },
   "compliance": {
-    "category_tier": "<regulated | standard>",
-    "regime": "<EU | US>",
-    "claims_mode": "advisory",
-    "standing_authorisations": [
-      {"line": "<authorised wording>", "source": "<who authorised it>", "date": "<YYYY-MM-DD>", "residual_risk": "<what is still exposed>", "fix": "<the listing change that removes it>"}
-    ],
-    "notes": "<client-specific claim rules, e.g. authorised claim wordings>"
+    "category_tier": "<regulated|standard>",
+    "regime": "<EU|US>",
+    "standing_authorisations": [],
+    "notes": "<internal claims QA rules>"
   },
   "brand_kit": {
-    "fonts": "<font names + where files live>",
+    "fonts": "<font names and source>",
     "colors": ["<hex>"],
-    "logo_rules": "<placement/clear-space rules or path to brand doc>",
-    "assets_location": "<Drive path to logo/brand assets>"
+    "logo_rules": "<placement and clear-space rules>",
+    "assets_location": "<verified Drive URL>"
   },
   "footage": {
-    "product_footage_location": "<Drive path or 'none: shot list needed'>",
-    "existing_creatives_location": "<optional: current SB video / listing videos for reference>"
+    "product_footage_location": "<verified Drive or pCloud source>",
+    "existing_creatives_location": "<optional reference source>"
   },
   "delivery": {
-    "drive_creative_folder": "<path on the Google Drive desktop mount where the brief and reference doc live>",
-    "source_markdown_dir": "output/<client>/creative-reference/"
-  },
-  "testing": {
-    "_comment": "Pre-register win/kill thresholds ONLY where a like-for-like control exists (same product, same shelf, same ad type). Otherwise the first batch creates the baseline. Never build a threshold from a blended figure that mixes branded and generic cohorts.",
-    "control_exists": "<true|false, per cluster>",
-    "control_ctr": "<CTR of the existing like-for-like creative, if any>",
-    "control_acos": "<ACOS of the existing like-for-like creative, if any>",
-    "stage1_impressions_per_angle": 5000,
-    "stage2_clicks_per_angle": 150,
-    "observed_cpc": "<used to price stage 2 in the brief>"
+    "drive_folder_id": "<existing Google Drive folder id>",
+    "source_markdown_dir": "output/<client>/creative-reference/",
+    "brief_title": "<Client> <Market> - <Product Line> SB Video Briefing",
+    "reference_title": "<Client> <Market> - <Product Line> - Creative Reference & Asset Library",
+    "brief_document_id": null,
+    "reference_document_id": null
   }
 }

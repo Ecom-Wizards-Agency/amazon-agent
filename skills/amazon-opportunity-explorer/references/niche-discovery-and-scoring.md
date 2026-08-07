@@ -10,14 +10,13 @@ the brand's own name, leaving 4 real category niches. Breadth changes conclusion
 
 ## 1. Seed
 
-Pick 12 to 18 seed queries spanning **angles**, not synonyms. Synonyms collapse to the same
+For SB video scouting, read the latest Google Drive keyword workbook and DataDive roots, then pick 8 to 12 non-branded seed queries spanning **angles**, not synonyms. Synonyms collapse to the same
 niche and waste the run. Angles that generalise:
 
 - the product itself, and each competing **form factor** for the same job
 - **who it is used on** (species, life stage, size, skin or coat type)
 - the **problem** the shopper is trying to solve, in their words
-- **adjacent products** bought in the same session or by the same owner
-- **consumables and accessories** for the product
+- the main **use cases** and meaningful product **attributes**
 
 Seeds are cheap; full niche downloads are not. Search widely, download selectively.
 
@@ -26,7 +25,9 @@ Seeds are cheap; full niche downloads are not. Search widely, download selective
 ```bash
 node tools/opportunity-explorer/run-poe.mjs batch \
   --queries "seed1,seed2,..." --marketplace <cc> --client <slug> \
-  --expect-account "<Brand>" --top 40
+  --account-name "<exact account label>" \
+  --expected-partner-account-id "<partnerAccountId>" \
+  --marketplace-label "<exact marketplace label>" --top 10
 ```
 
 `batch` searches each seed, unions and dedupes by `nicheId` **in relevance order**, then
@@ -34,7 +35,7 @@ downloads each kept niche in full. The full download is what carries `searchTerm
 (per-term T90 volume, conversion rate, click share) and `nichePdr` (review, star-rating and
 returns insights), so always take the full pull, not just the related-niches grid.
 
-`--top N` caps the full downloads, but the per-seed `*_related-niches.{json,csv}` files
+For SB video scouting, filter the union first and download 5 to 10 relevant full packs. If fewer than five qualify, download every relevant pack and record the limitation. `--top N` caps the full downloads, but the per-seed `*_related-niches.{json,csv}` files
 record **every** niche found. Those files are the filtering input; state how many were
 discovered versus downloaded, and never imply the downloaded set is the whole set.
 
@@ -129,7 +130,8 @@ prescribing.
 ## Gotchas
 
 - **Account identity.** POE attributes viewed niches to the active Seller Central account.
-  Always pass `--expect-account`, and never browse a client's niches from another account.
+  Always pass the structured account options. A mismatch must switch and revalidate before the first fetch.
+- **Cache age.** Reuse a pack only when it is at most 14 days old and satisfies the same coverage contract. Mark insufficient captures superseded in the manifest without deleting raw history.
 - **Trailing windows only.** POE cannot be re-fetched for a past period. Capture, then archive.
 - `percentOfMentions` is **already a percentage**. Do not multiply by 100.
 - Several numeric fields arrive as strings. Coerce before formatting.

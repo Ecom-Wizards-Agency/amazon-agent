@@ -1,9 +1,11 @@
 # New client setup: SB video briefs
 
-1. Copy `config.TEMPLATE.json` to `config.<client>-<market>-<product-line>.json` (stays local, gitignored). Fill every `<...>`; never carry values from another client's config. **One config per product line**, matching the one-Creative-Reference-doc-per-product-line rule.
-2. Required before the first run: Seller Central account name (POE `--expect-account`), marketplace + language, product line, target ASIN(s), DataDive niche id, AdLabs profile_id, break-even ACOS (mark ASSUMED if unconfirmed), and the client's Drive creative folder on the desktop mount.
-3. Brand kit and footage locations can start as "none": the reference doc then carries them as open asset requests, and the brief flags the gap on the specific card that needs them.
-4. Build the Creative Reference & Asset Library before the first brief (`skills/amazon-sb-video-briefs/references/creative-reference-doc.md`). The brief draws its claims and its differentiation from it.
-5. Run via `/video-brief <client>-<market>`. The skill (`skills/amazon-sb-video-briefs/SKILL.md`) owns the workflow; this folder only holds the config contract.
+1. Copy `config.TEMPLATE.json` to `config.<client>-<market>-<product-line>.json`. It stays local and gitignored. Use one config per product line.
+2. Fill the exact Seller Central account-picker name, expected `partnerAccountId`, optional agency parent, marketplace label, marketplace, language, ASINs, DataDive niche, AdLabs profile, and existing Drive creative folder.
+3. Pin the latest Google Drive keyword-research workbook when one exists. The scouting pass combines its roots with DataDive roots before POE discovery.
+4. Brand kit and footage locations can start as `none`. Missing strategy direction does not block a brief. Missing required footage becomes an exact production gap on the affected card.
+5. Build or refresh the Creative Reference & Asset Library before the brief.
+6. Run the SB workflow. It pauses at the 3 to 5 cluster shortlist for operator confirmation.
+7. Deliver with `build_and_deliver.py --config <config> --brief-md <file> --reference-md <file>`. A first delivery imports both branded DOCX files as native Google Docs. When both canonical ids are configured, the same command updates them in place and verifies title, folder, native MIME type, content readback, and PDF export before it reports completion.
 
-Rendering both documents needs the repo `.venv` python (it has python-docx). Call `render_branded.render(cfg, outdir, md_path, cover=False)` from `tools/amazon-ad-audit`. `metrics.json` in `outdir` must exist but must NOT contain `custom_kpis`, so the KPI card strip is suppressed: `{"currency": "USD"}` is enough.
+Legacy `client.amazon_account`, `economics.break_even_acos`, `economics.break_even_source`, and `testing` keys are ignored with a migration warning. They never appear in editor deliverables.
