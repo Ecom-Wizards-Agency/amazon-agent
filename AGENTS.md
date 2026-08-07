@@ -237,6 +237,10 @@ Source priority:
 
 **One skill owns every Amazon ad or sales audit: `amazon-audit`** (`/amazon-audit`, with the posture as an argument: `deep`, `monthly` or `actions`). It is self-contained. The analysis lens, narrative structure, operator voice, workbook layout, figure set and branded-document contract all live in `skills/amazon-audit/SKILL.md`, not in a separate playbook doc. Route there for the full run and do not restate its rules elsewhere.
 
+**Client-facing brand precedence is strict.** For every Amazon document, workbook, deck, or report, use this order: an explicit approved client template first; otherwise the owning workflow's branded renderer and style configuration; otherwise the Ecom Wizards brand contract; generic document or spreadsheet defaults only when the operator explicitly asks for an unbranded deliverable. Generic Google Docs, Documents, Google Sheets, and Spreadsheets skills provide construction and QA mechanics only. They may not replace the owning workflow's logo or lockup, palette, typography, running header/footer, or workbook styling. "No cover" means `cover=False`: page one begins with the content while all content-page branding remains.
+
+Brand compliance is a delivery gate. Before a client-visible upload, verify the expected lockup or logo, palette, fonts, running header/footer and page numbers where applicable, workbook title/header/section treatments, and the absence of a generic fallback theme. Render and visually inspect every document page and every populated workbook tab after native Google conversion. A file that fails this gate is not delivered.
+
 It resolves three things, in this order:
 
 - **Data source, auto-detected, never asked.** Look the brand up in AdLabs. A managed client with a profile runs live on the MCP with no downloads: per-ASIN SQP (`search_query`) and the whole Business Report (`product` via the SP-API link) are both there, as is stock. A prospect with no profile runs from downloaded ads bulk + Business Report + SQP via the `tools/amazon-ad-audit/` toolkit. Only margin/break-even comes from outside either path (Sellerboard).

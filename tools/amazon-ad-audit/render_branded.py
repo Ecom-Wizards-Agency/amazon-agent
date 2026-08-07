@@ -124,7 +124,7 @@ _IMG = re.compile(r'^!\[(.*?)\]\((.*?)\)$')
 # Inline markdown the branded renderer understands: **bold** and `code`. Keyword and
 # search-term names are written as `code` in the narratives, so without this the
 # backticks printed literally in the docx.
-_INLINE = re.compile(r'\*\*(.+?)\*\*|`([^`]+)`')
+_INLINE = re.compile(r'\*\*(.+?)\*\*|`([^`]+)`|\[([^\]]+)\]\((https?://[^)]+)\)')
 _CODE = re.compile(r'`([^`]+)`')
 _COMMENT = re.compile(r'<!--.*?-->', re.S)
 
@@ -223,6 +223,23 @@ def _render_docx(blocks, M, cfg, brand_dir, cover_png, out):
         for a in ('w:ascii', 'w:hAnsi', 'w:cs'): rf.set(qn(a), FONT_NAME)
 
     def runs(p, text, size=10.5, color=INK, bold=False, italic=False, caps=False, tracking=None):
+        def emit_link(label, url):
+            from docx.opc.constants import RELATIONSHIP_TYPE as RT
+            rid = p.part.relate_to(url, RT.HYPERLINK, is_external=True)
+            h = OxmlElement('w:hyperlink'); h.set(qn('r:id'), rid)
+            r = OxmlElement('w:r'); rp = OxmlElement('w:rPr')
+            rf = OxmlElement('w:rFonts')
+            for a in ('w:ascii', 'w:hAnsi', 'w:cs'): rf.set(qn(a), FONT_NAME)
+            rp.append(rf)
+            sz = OxmlElement('w:sz'); sz.set(qn('w:val'), str(int(size * 2))); rp.append(sz)
+            c = OxmlElement('w:color'); c.set(qn('w:val'), ORANGE_H); rp.append(c)
+            u = OxmlElement('w:u'); u.set(qn('w:val'), 'single'); rp.append(u)
+            if bold: rp.append(OxmlElement('w:b'))
+            if italic: rp.append(OxmlElement('w:i'))
+            r.append(rp)
+            t = OxmlElement('w:t'); t.text = label.upper() if caps else label; r.append(t)
+            h.append(r); p._p.append(h)
+
         def emit(chunk, is_bold, is_code):
             if chunk == '': return
             r = p.add_run(chunk.upper() if caps else chunk); font(r)
@@ -244,7 +261,8 @@ def _render_docx(blocks, M, cfg, brand_dir, cover_png, out):
         for m in _INLINE.finditer(text):
             emit(text[pos:m.start()], False, False)
             if m.group(1) is not None: emit_bold(m.group(1))
-            else: emit(m.group(2), False, True)
+            elif m.group(2) is not None: emit(m.group(2), False, True)
+            else: emit_link(m.group(3), m.group(4))
             pos = m.end()
         emit(text[pos:], False, False)
 
@@ -316,7 +334,12 @@ def _render_docx(blocks, M, cfg, brand_dir, cover_png, out):
                 if ri == 0: shade(cells[ci], INK_H)
                 elif ri % 2 == 0: shade(cells[ci], CLOUD_H)
                 pc = cells[ci].paragraphs[0]; pc.paragraph_format.space_after = Pt(2); pc.paragraph_format.space_before = Pt(2)
+                if ri == 0: pc.paragraph_format.keep_with_next = True
                 runs(pc, txt, size=8.5, color=(WHITE if ri == 0 else INK), bold=(ri == 0))
+        # Repeat the header row and keep it attached to the first data row. Google Docs
+        # otherwise can strand a dark table header at the bottom of a page after import.
+        trpr = t.rows[0]._tr.get_or_add_trPr()
+        th = OxmlElement('w:tblHeader'); th.set(qn('w:val'), 'true'); trpr.append(th)
         b = OxmlElement('w:tblBorders')
         for e in ('top', 'bottom', 'insideH'):
             x = OxmlElement('w:' + e); x.set(qn('w:val'), 'single'); x.set(qn('w:sz'), '4'); x.set(qn('w:color'), MISTLINE_H); b.append(x)
@@ -354,21 +377,21 @@ def _render_docx(blocks, M, cfg, brand_dir, cover_png, out):
 
     def h2(text):
         orange_rule()
-        p = doc.add_paragraph(); p.paragraph_format.space_after = Pt(8); p.paragraph_format.space_before = Pt(2)
+        p = doc.add_paragraph(style='Heading 1'); p.paragraph_format.space_after = Pt(8); p.paragraph_format.space_before = Pt(2)
         p.paragraph_format.keep_with_next = True; runs(p, text, size=18, color=INK, bold=True)
 
     def h3(text):
-        p = doc.add_paragraph(); p.paragraph_format.space_before = Pt(10); p.paragraph_format.space_after = Pt(5)
+        p = doc.add_paragraph(style='Heading 2'); p.paragraph_format.space_before = Pt(10); p.paragraph_format.space_after = Pt(5)
         p.paragraph_format.keep_with_next = True; runs(p, text, size=12.5, color=INK, bold=True)
 
     def h4(text):
-        p = doc.add_paragraph(); p.paragraph_format.space_before = Pt(9); p.paragraph_format.space_after = Pt(4)
+        p = doc.add_paragraph(style='Heading 3'); p.paragraph_format.space_before = Pt(9); p.paragraph_format.space_after = Pt(4)
         p.paragraph_format.keep_with_next = True; runs(p, text, size=11, color=ORANGE, bold=True)
 
     def lever(n, title):
         p = doc.add_paragraph(); p.paragraph_format.space_before = Pt(14); p.paragraph_format.space_after = Pt(1)
         p.paragraph_format.keep_with_next = True; runs(p, f"LEVER {n}", size=9, color=ORANGE, bold=True, caps=True, tracking=30)
-        p2 = doc.add_paragraph(); p2.paragraph_format.space_after = Pt(6); p2.paragraph_format.keep_with_next = True
+        p2 = doc.add_paragraph(style='Heading 2'); p2.paragraph_format.space_after = Pt(6); p2.paragraph_format.keep_with_next = True
         runs(p2, title, size=14, color=INK, bold=True)
 
     def note(text):
