@@ -40,11 +40,15 @@ Every skill declares its path in one standardized line right under its title (`B
 If an Amazon page shows a login screen, switch port 9222 to `--mode recovery`, bring it forward, and ask the operator to log in. Return it to headless mode after login. The agent must not handle passwords, one-time codes, authenticator prompts, cookies, local storage, session stores, or other credentials.
 
 One narrow unattended exception is approved for Wizards AI. Its dedicated
-port-9223 Chrome uses a separate delegated Amazon user with view-only account
-permissions. When `~/os/wizards-ai/config.json` explicitly enables the scoped
+port-9223 Chrome uses a separate delegated least-privilege Amazon service account.
+SPP grants View wherever available plus three explicit Edit exceptions: Reports,
+`Manage Inventory/Add a Product`, and `Manage FBA Inventory/Shipments`. The two
+Inventory exceptions expose required read data and never authorize runtime writes.
+When `~/os/wizards-ai/config.json` explicitly enables the scoped
 1Password service-account mode, `tools/wizards-inventory/` may retrieve only
-that view-only login from the custom `Wizards AI Automation` vault through a
-token stored in macOS Keychain. The code must assert port 9223, view-only scope,
+that read-runtime login from the custom `Wizards AI Automation` vault through a
+token stored in macOS Keychain. The code must assert port 9223, the preserved
+view-only runtime-policy identifiers,
 allowed Amazon authentication origins, and no fallback before retrieving a
 credential. CAPTCHA, device approval, account recovery, identity verification,
 and every port-9222 login remain human-only. This exception never permits cookie
