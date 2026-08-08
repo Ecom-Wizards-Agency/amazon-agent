@@ -113,6 +113,7 @@ Terminology:
 
 Default routing:
 
+- `amazon-client-onboarding`: Amazon new-client access preflight, Day 0 account baseline, FBA disposal protection, 15% all-eligible-audience Brand Tailored Promotion plans, approval-gated setup changes, independent inventory verification, and seven-day onboarding monitoring. Permissions are a preflight gate and create a task only when missing.
 - `amazon-operations-review`: explicitly configured weekly and monthly operational checks for lightweight inventory exceptions, stranded inventory, open or received shipment exceptions, variation alerts, negative-review tracking, SellerSonar fee alerts, returns, Voice of the Customer, and overstock. Installing or loading the skill never creates or starts an automation; setup and activation use separate explicit prompts.
 - `amazon-troubleshooting`: errors, suppressed listings, warnings, Account Health, blocked workflows.
 - `amazon-regulated-product-suppression-appeals`: evidence-controlled appeal packs for serious supplement, cosmetic, OTC/drug, medical-device, restricted-product, packaging, labeling, manual, and unsupported-claims suppressions. Use when the case needs coordinated technical evidence, declarations, catalog-processing proof, preventative controls, training, or a response after denial. Victor is the final troubleshooting approver.
@@ -133,6 +134,15 @@ Default routing:
 - `amazon-communications`: support cases, buyer messages, courtesy-refund follow-ups (creator replies inside Creator Connections → `amazon-creator-connections`).
 - `amazon-flatfilepro-prep`: prepare label-based FlatFilePro/flat-file compliance CSVs and audit notes from backend exports, labels, packaging, and case messages.
 - `amazon-flatfilepro-upload-mapper`: operate the FlatFilePro upload flow in the logged-in browser for prepared CSVs, match by SKU, map columns, capture validation issues, and stop before final submit/update.
+
+Amazon client onboarding trigger phrases:
+
+- `Check Amazon onboarding access for <client>`
+- `Run Amazon onboarding setup for <client>`
+- `Approve Amazon onboarding changes <run_id>`
+- `Verify Amazon onboarding <run_id>`
+
+Route these phrases to `amazon-client-onboarding`. Access checks and Day 0 assessment are read-only. Approval authorizes only the current fingerprinted change batch. A different human must verify inventory settings before GREEN signoff.
 
 Operational-check trigger phrases:
 

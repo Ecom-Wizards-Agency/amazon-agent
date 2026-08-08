@@ -1,0 +1,155 @@
+{
+  "schema_version": 1,
+  "run": {
+    "run_id": "2026-08-08-client-name-de",
+    "mode": "TEMPLATE",
+    "state": "approval_pending",
+    "overall_rag": "AMBER",
+    "task_owner": "TASK OWNER",
+    "inventory_reviewer": "DIFFERENT REVIEWER",
+    "executor": null,
+    "started_at": "2026-08-08T09:00:00+05:00",
+    "completed_at": null
+  },
+  "scope": {
+    "client_name": "CLIENT NAME",
+    "client_slug": "client-name",
+    "profile_key": "client-name-de",
+    "seller_account_label": "SELLER CENTRAL LABEL",
+    "advertiser_label": "ADVERTISER LABEL",
+    "marketplace": "DE",
+    "fulfillment_model": "FBA",
+    "managed_brands": ["BRAND NAME"],
+    "managed_asins": ["B000000001"]
+  },
+  "access": [
+    {"id": "account_selector", "status": "PASS", "observed_at": "2026-08-08T09:05:00+05:00", "observed_value": "Exact account and DE selected", "evidence_ref": "evidence/account.png"},
+    {"id": "account_health", "status": "PASS", "observed_at": "2026-08-08T09:06:00+05:00", "observed_value": "Readable", "evidence_ref": "evidence/account-health.png"},
+    {"id": "inventory_settings", "status": "PASS", "observed_at": "2026-08-08T09:07:00+05:00", "observed_value": "Readable", "evidence_ref": "evidence/inventory-settings.png"},
+    {"id": "removal_reports", "status": "PASS", "observed_at": "2026-08-08T09:08:00+05:00", "observed_value": "Readable", "evidence_ref": "evidence/removal-report.csv"},
+    {"id": "catalog", "status": "PASS", "observed_at": "2026-08-08T09:09:00+05:00", "observed_value": "Readable", "evidence_ref": "evidence/catalog.png"},
+    {"id": "brand_registry_analytics", "status": "PASS", "observed_at": "2026-08-08T09:10:00+05:00", "observed_value": "Connected brand and Brand Analytics readable", "evidence_ref": "evidence/brand-access.png"},
+    {"id": "brand_tailored_promotions", "status": "PASS", "observed_at": "2026-08-08T09:11:00+05:00", "observed_value": "Audience eligibility readable", "evidence_ref": "evidence/btp.png"},
+    {"id": "ads_console", "status": "PASS", "observed_at": "2026-08-08T09:12:00+05:00", "observed_value": "Correct advertiser readable", "evidence_ref": "evidence/ads.png"},
+    {"id": "seller_reporting", "status": "PASS", "observed_at": "2026-08-08T09:13:00+05:00", "observed_value": "Required reports available", "evidence_ref": "evidence/reports.png"}
+  ],
+  "checks": [
+    {"id": "account_identity", "status": "PASS", "observed_at": "2026-08-08T09:20:00+05:00", "observed_value": "Scope verified", "evidence_ref": "evidence/account.png"},
+    {"id": "account_health", "status": "PASS", "observed_at": "2026-08-08T09:21:00+05:00", "observed_value": "Healthy", "evidence_ref": "evidence/account-health.png"},
+    {"id": "performance_notifications", "status": "PASS", "observed_at": "2026-08-08T09:22:00+05:00", "observed_value": "No open critical notice", "evidence_ref": "evidence/notifications.png"},
+    {"id": "recall_product_safety", "status": "PASS", "observed_at": "2026-08-08T09:23:00+05:00", "observed_value": "No active recall or required removal", "evidence_ref": "evidence/recalls.png"},
+    {"id": "listing_health", "status": "PASS", "observed_at": "2026-08-08T09:24:00+05:00", "observed_value": "No blocking suppression", "evidence_ref": "evidence/listing-health.png"},
+    {"id": "automated_unfulfillable_settings", "status": "PASS", "observed_at": "2026-08-08T09:25:00+05:00", "observed_value": "Current setting captured", "evidence_ref": "evidence/unfulfillable-settings.png"},
+    {"id": "automated_stranded_settings", "status": "PASS", "observed_at": "2026-08-08T09:26:00+05:00", "observed_value": "Both categories captured", "evidence_ref": "evidence/stranded-settings.png"},
+    {"id": "unfulfillable_inventory", "status": "PASS", "observed_at": "2026-08-08T09:27:00+05:00", "observed_value": "0 units", "evidence_ref": "evidence/unfulfillable.csv"},
+    {"id": "stranded_inventory", "status": "PASS", "observed_at": "2026-08-08T09:28:00+05:00", "observed_value": "0 units", "evidence_ref": "evidence/stranded.csv"},
+    {"id": "removal_orders_90d", "status": "PASS", "observed_at": "2026-08-08T09:29:00+05:00", "observed_value": "No active dangerous order", "evidence_ref": "evidence/removal-report.csv"},
+    {"id": "removal_quantity_reconciliation", "status": "PASS", "observed_at": "2026-08-08T09:30:00+05:00", "observed_value": "Reconciled", "evidence_ref": "evidence/removal-reconciliation.md"},
+    {"id": "catalog_offer_health", "status": "PASS", "observed_at": "2026-08-08T09:31:00+05:00", "observed_value": "Managed offers healthy", "evidence_ref": "evidence/catalog.png"},
+    {"id": "variation_integrity", "status": "PASS", "observed_at": "2026-08-08T09:32:00+05:00", "observed_value": "Families intact", "evidence_ref": "evidence/variations.png"},
+    {"id": "brand_assets", "status": "PASS", "observed_at": "2026-08-08T09:33:00+05:00", "observed_value": "Brand, A+, Store, images captured", "evidence_ref": "evidence/brand-assets.md"},
+    {"id": "inventory_fulfillment", "status": "PASS", "observed_at": "2026-08-08T09:34:00+05:00", "observed_value": "Baseline captured", "evidence_ref": "evidence/inventory.csv"},
+    {"id": "shipment_exceptions", "status": "PASS", "observed_at": "2026-08-08T09:35:00+05:00", "observed_value": "No blocking exception", "evidence_ref": "evidence/shipments.md"},
+    {"id": "fee_alerts", "status": "PASS", "observed_at": "2026-08-08T09:36:00+05:00", "observed_value": "No open alert", "evidence_ref": "evidence/fees.md"},
+    {"id": "returns_voc", "status": "PASS", "observed_at": "2026-08-08T09:37:00+05:00", "observed_value": "Baseline captured", "evidence_ref": "evidence/returns-voc.md"},
+    {"id": "ads_readiness", "status": "PASS", "observed_at": "2026-08-08T09:38:00+05:00", "observed_value": "Ready", "evidence_ref": "evidence/ads.png"},
+    {"id": "reporting_readiness", "status": "PASS", "observed_at": "2026-08-08T09:39:00+05:00", "observed_value": "Ready", "evidence_ref": "evidence/reports.png"},
+    {"id": "monitoring_integrations", "status": "PASS", "observed_at": "2026-08-08T09:40:00+05:00", "observed_value": "Destinations verified", "evidence_ref": "evidence/monitoring.md"},
+    {"id": "promotion_stack", "status": "PASS", "observed_at": "2026-08-08T09:41:00+05:00", "observed_value": "Stacking mapped", "evidence_ref": "evidence/promotions.md"},
+    {"id": "btp_eligibility", "status": "PASS", "observed_at": "2026-08-08T09:42:00+05:00", "observed_value": "All live audiences captured", "evidence_ref": "evidence/btp.png"}
+  ],
+  "red_conditions": [],
+  "promotion_inventory": {
+    "observed_at": "2026-08-08T09:42:00+05:00",
+    "evidence_ref": "evidence/btp.png",
+    "live_eligible_audience_ids": ["LIVE-AUDIENCE-ID"]
+  },
+  "promotion_audiences": [
+    {
+      "audience_id": "LIVE-AUDIENCE-ID",
+      "audience_name": "LIVE AUDIENCE NAME",
+      "eligibility": "ELIGIBLE",
+      "observed_at": "2026-08-08T09:42:00+05:00",
+      "evidence_ref": "evidence/btp.png",
+      "proposal": {
+        "discount_percent": 15,
+        "duration_days": 90,
+        "platform_max_duration_days": 90,
+        "start_date": "2026-08-10",
+        "budget_source": "PLATFORM_MINIMUM",
+        "budget_amount": 100,
+        "platform_minimum_budget": 100,
+        "approved_budget_ceiling": null,
+        "currency": "EUR",
+        "asins": [
+          {
+            "asin": "B000000001",
+            "active": true,
+            "in_stock": true,
+            "economically_eligible": true,
+            "featured_offer": true,
+            "stacking_safe": true,
+            "worst_case_discount_percent": 15
+          }
+        ],
+        "asin_exclusions": []
+      },
+      "exclusion": null
+    }
+  ],
+  "change_batch": {
+    "fingerprint": "",
+    "approved_fingerprint": null,
+    "approved_by": null,
+    "approved_at": null,
+    "actions": [
+      {
+        "action_id": "inventory-unfulfillable-setting",
+        "category": "INVENTORY_SAFETY",
+        "before": "Disposal",
+        "after": "Return to seller on approved schedule",
+        "risk": "HIGH",
+        "approval_required": true,
+        "status": "STAGED",
+        "executed_by": null,
+        "executed_at": null,
+        "verification_evidence_ref": null
+      },
+      {
+        "action_id": "btp-live-audience-id",
+        "category": "PROMOTION",
+        "before": "No active audience promotion",
+        "after": "15% for LIVE AUDIENCE NAME",
+        "risk": "FINANCIAL",
+        "approval_required": true,
+        "status": "STAGED",
+        "executed_by": null,
+        "executed_at": null,
+        "verification_evidence_ref": null
+      }
+    ]
+  },
+  "inventory_peer_review": {
+    "reviewed_by": null,
+    "reviewed_at": null,
+    "unfulfillable_setting_verified": false,
+    "stranded_settings_verified": false,
+    "return_destination_verified": false,
+    "removal_orders_rechecked": false,
+    "quantities_reconciled": false,
+    "recall_notices_rechecked": false,
+    "evidence_ref": null
+  },
+  "monitoring_handoff": {
+    "seven_day_watch": {
+      "scheduled": false,
+      "owner": null,
+      "start_date": null,
+      "end_date": null,
+      "task_url": null
+    },
+    "daily_account_health": {"status": "READY", "destination": "INTERNAL DESTINATION"},
+    "weekly_operations": {"status": "READY", "destination": "INTERNAL DESTINATION"},
+    "monthly_operations": {"status": "READY", "destination": "INTERNAL DESTINATION"}
+  }
+}

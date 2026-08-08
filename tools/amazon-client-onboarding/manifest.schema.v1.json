@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ecomwizards.agency/schemas/amazon-client-onboarding-manifest-v1.json",
+  "title": "Amazon Client Onboarding Run Manifest",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "run",
+    "scope",
+    "access",
+    "checks",
+    "red_conditions",
+    "promotion_inventory",
+    "promotion_audiences",
+    "change_batch",
+    "inventory_peer_review",
+    "monitoring_handoff"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "run": {
+      "type": "object",
+      "required": ["run_id", "mode", "state", "overall_rag", "task_owner", "inventory_reviewer", "started_at"],
+      "properties": {
+        "run_id": {"type": "string", "minLength": 8},
+        "mode": {"enum": ["TEMPLATE", "SYNTHETIC", "LIVE"]},
+        "state": {
+          "enum": [
+            "access_blocked",
+            "assessment_in_progress",
+            "approval_pending",
+            "approved",
+            "executing",
+            "verification_pending",
+            "signed_off"
+          ]
+        },
+        "overall_rag": {"enum": ["RED", "AMBER", "GREEN"]},
+        "task_owner": {"type": "string", "minLength": 1},
+        "inventory_reviewer": {"type": "string", "minLength": 1},
+        "executor": {"type": ["string", "null"]},
+        "started_at": {"type": "string", "format": "date-time"},
+        "completed_at": {"type": ["string", "null"], "format": "date-time"}
+      }
+    },
+    "scope": {
+      "type": "object",
+      "required": ["client_name", "client_slug", "profile_key", "seller_account_label", "marketplace", "fulfillment_model", "managed_brands", "managed_asins"],
+      "properties": {
+        "client_name": {"type": "string"},
+        "client_slug": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+        "profile_key": {"type": "string"},
+        "seller_account_label": {"type": "string"},
+        "advertiser_label": {"type": ["string", "null"]},
+        "marketplace": {"type": "string"},
+        "fulfillment_model": {"enum": ["FBA", "FBM", "MIXED"]},
+        "managed_brands": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+        "managed_asins": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "access": {"type": "array", "items": {"$ref": "#/$defs/result"}},
+    "checks": {"type": "array", "items": {"$ref": "#/$defs/result"}},
+    "red_conditions": {"type": "array"},
+    "promotion_inventory": {
+      "type": ["object", "null"],
+      "required": ["observed_at", "evidence_ref", "live_eligible_audience_ids"],
+      "properties": {
+        "observed_at": {"type": "string", "format": "date-time"},
+        "evidence_ref": {"type": "string", "minLength": 1},
+        "live_eligible_audience_ids": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "uniqueItems": true
+        }
+      }
+    },
+    "promotion_audiences": {"type": "array"},
+    "change_batch": {"type": "object"},
+    "inventory_peer_review": {"type": "object"},
+    "monitoring_handoff": {"type": "object"}
+  },
+  "$defs": {
+    "result": {
+      "type": "object",
+      "required": ["id", "status", "observed_at", "evidence_ref"],
+      "properties": {
+        "id": {"type": "string"},
+        "status": {"enum": ["PASS", "WARN", "FAIL", "BLOCKED", "NOT_APPLICABLE"]},
+        "observed_at": {"type": "string", "format": "date-time"},
+        "evidence_ref": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}
