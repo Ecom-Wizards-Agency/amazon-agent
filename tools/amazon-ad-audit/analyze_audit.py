@@ -131,6 +131,16 @@ CHANNEL_SHEETS = {
 
 SB_SHEETS = ["SB Multi Ad Group Campaigns", "Sponsored Brands Campaigns"]  # superset first
 
+
+def same_entity(a, b):
+    """Compare two Amazon bulk Entity labels case-insensitively.
+
+    Amazon's bulk export is not consistent about casing, within a single file: one ES
+    export carried "Keyword" and "Campaign" beside "Product targeting". An exact match
+    silently drops a whole entity class, which under-reports spend without failing any
+    reconciliation, because the buckets and the search-term rows are truncated together."""
+    return str(a or "").strip().casefold() == str(b or "").strip().casefold()
+
 # Bounds for streaming the ads bulk (see sheet_io): Amazon writes a bogus "A1:A1" dimension
 # that openpyxl read_only clips to, so iter_rows is forced past it with explicit maxima.
 # Generous headroom: bulk sheets have <~80 columns; big accounts run into 6-figure row counts.
@@ -146,7 +156,22 @@ def parse_bulk(cfg, market, path, agg):
     wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
     _sheet_cache = {}
 
+    # Amazon is NOT consistent about sheet-name casing. One real ES export carried
+    # "Sponsored Products Campaigns" and "SB Multi Ad Group Campaigns" beside
+    # "Sponsored Brands campaigns" and "Sponsored Display campaigns" (lowercase c).
+    # An exact-match lookup silently skips the whole channel: SD vanished entirely and
+    # SB was counted from one sheet only, under-reporting spend by ~36% while every
+    # internal reconciliation still passed. Resolve names case-insensitively.
+    _actual_sheet = {s.strip().casefold(): s for s in wb.sheetnames}
+
+    def resolve(sheet):
+        """Workbook's real name for `sheet`, case-insensitively, or None if absent."""
+        return _actual_sheet.get(str(sheet).strip().casefold())
+
     def sheet_io(sheet):
+        sheet = resolve(sheet)
+        if sheet is None:
+            return [], {}, []
         if sheet in _sheet_cache:
             return _sheet_cache[sheet]
         ws = wb[sheet]
@@ -178,27 +203,27 @@ def parse_bulk(cfg, market, path, agg):
     # sheet (superset wins) and only count/parse it there.
     sb_owner = {}  # campaign_id -> sheet that owns it
     for sheet in SB_SHEETS:
-        if sheet not in wb.sheetnames:
+        if resolve(sheet) is None:
             continue
         _, I, rows = sheet_io(sheet)
         cid = I.get("Campaign ID")
         if cid is None or "Entity" not in I:
             continue
         for r in rows:
-            if r[I["Entity"]] == "Campaign" and r[cid] is not None:
+            if same_entity(r[I["Entity"]], "Campaign") and r[cid] is not None:
                 sb_owner.setdefault(r[cid], sheet)
     agg["_sb_owner"] = sb_owner
 
     # ---- channel presence + additive totals ----
     # SB (both sheets, deduped by owner) collapse into one "SB" channel.
     for sheet in SB_SHEETS:
-        if sheet not in wb.sheetnames:
+        if resolve(sheet) is None:
             continue
         _, I, rows = sheet_io(sheet)
         if not rows or "Entity" not in I:
             continue
         cid = I.get("Campaign ID")
-        camp = [r for r in rows if r[I["Entity"]] == "Campaign"
+        camp = [r for r in rows if same_entity(r[I["Entity"]], "Campaign")
                 and (cid is None or sb_owner.get(r[cid]) == sheet)]
         sp = sum(nf(r[I["Spend"]]) for r in camp if "Spend" in I)
         sa = sum(nf(r[I["Sales"]]) for r in camp if "Sales" in I)
@@ -209,12 +234,12 @@ def parse_bulk(cfg, market, path, agg):
             agg["channels"]["SB"]["campaigns"] += len(camp)
     # SD / RAS — independent sheets, no dedup needed
     for ch, sheet in (("SD", "Sponsored Display Campaigns"), ("RAS", "RAS Campaigns")):
-        if sheet not in wb.sheetnames:
+        if resolve(sheet) is None:
             continue
         _, I, rows = sheet_io(sheet)
         if not rows or "Entity" not in I:
             continue
-        camp = [r for r in rows if r[I["Entity"]] == "Campaign"]
+        camp = [r for r in rows if same_entity(r[I["Entity"]], "Campaign")]
         sp = sum(nf(r[I["Spend"]]) for r in camp if "Spend" in I)
         sa = sum(nf(r[I["Sales"]]) for r in camp if "Sales" in I)
         if sp or sa or camp:
@@ -226,7 +251,12 @@ def parse_bulk(cfg, market, path, agg):
     # ---- Sponsored Products (full detail) ----
     H, I, R = sheet_io(SP_SHEET)
     def g(row, col): return row[I[col]] if col in I else None
-    ENT = lambda e: [r for r in R if g(r, "Entity") == e]
+    # Entity labels carry the same casing inconsistency as the sheet names: one real ES
+    # export used "Product targeting" (lowercase t) while the same file said "Keyword" and
+    # "Campaign". Matching exactly dropped EUR 11,575 of Product-targeting spend, i.e. half
+    # of Sponsored Products, and every internal reconciliation still passed because the
+    # buckets agreed with the (equally truncated) search-term rows. Compare case-folded.
+    ENT = lambda e: [r for r in R if same_entity(g(r, "Entity"), e)]
     camp_rows = ENT("Campaign"); ag_rows = ENT("Ad Group")
     kw_rows = ENT("Keyword"); pt_rows = ENT("Product Targeting")
     ba_rows = ENT("Bidding Adjustment")
@@ -311,7 +341,7 @@ def parse_bulk(cfg, market, path, agg):
     # which is what an intent split is meant to measure. SB falls back to its TARGETS
     # only when its search-term report does not cover the channel (see below).
     for sheet in ("SP Search Term Report",):
-        if sheet not in wb.sheetnames:
+        if resolve(sheet) is None:
             continue
         SH, SI, SR = sheet_io(sheet)
         if "Customer Search Term" not in SI:
@@ -342,7 +372,7 @@ def parse_bulk(cfg, market, path, agg):
     sb_channel_spend = agg.get("channels", {}).get("SB", {}).get("spend", 0.0)
     sb_st_sheet = "SB Search Term Report"
     sb_st_spend = 0.0
-    if sb_st_sheet in wb.sheetnames:
+    if resolve(sb_st_sheet):
         _, _SI, _SR = sheet_io(sb_st_sheet)
         if "Customer Search Term" in _SI and "Spend" in _SI:
             sb_st_spend = sum(nf(r[_SI["Spend"]]) for r in _SR)
@@ -383,7 +413,7 @@ def parse_bulk(cfg, market, path, agg):
     # Dedupe across the two SB sheets by the owner map so overlapping campaigns'
     # targets aren't counted twice.
     for sheet in sb_target_sheets:
-        if sheet not in wb.sheetnames:
+        if resolve(sheet) is None:
             continue
         SBH, SBI, SBR = sheet_io(sheet)
         if "Entity" not in SBI:
@@ -395,9 +425,9 @@ def parse_bulk(cfg, market, path, agg):
             if cid_val is not None and sb_owner.get(cid_val, sheet) != sheet:
                 continue  # this campaign is owned by the other SB sheet — skip (dedupe)
             ent = bg("Entity")
-            if ent == "Keyword":
+            if same_entity(ent, "Keyword"):
                 label = bg("Keyword Text"); b = classify_target(cfg, label)
-            elif ent == "Product Targeting":
+            elif same_entity(ent, "Product Targeting"):
                 label = str(bg("Product Targeting Expression") or "") + " " + \
                         str(bg("Resolved Product Targeting Expression (Informational only)") or "")
                 b = classify_target(cfg, label.strip())
@@ -697,7 +727,49 @@ def run(config_path, outdir=None):
 def _slug(s):
     return re.sub(r"[^a-z0-9]+", "-", (s or "client").lower()).strip("-")
 
+def _self_test():
+    """Guard the bulk-parser casing contract.
+
+    Amazon's bulk export varies the casing of BOTH sheet names and Entity labels, within
+    one file. Matching either exactly drops a whole channel or a whole entity class, and
+    it does so silently: the buckets and the search-term rows truncate together, so spend
+    reconciliation still passes and the audit ships plausible, wrong numbers. On the
+    V Gummies ES export that hid EUR 11,576 of Product-targeting spend and all of
+    Sponsored Display, understating account spend by 29%."""
+    fails = []
+
+    def check(name, got, want):
+        if got != want:
+            fails.append(f"{name}: got {got!r}, want {want!r}")
+
+    # Entity labels differ in case across a single real export.
+    check("entity exact", same_entity("Keyword", "Keyword"), True)
+    check("entity lower t", same_entity("Product targeting", "Product Targeting"), True)
+    check("entity upper", same_entity("PRODUCT TARGETING", "Product Targeting"), True)
+    check("entity padded", same_entity("  Campaign ", "Campaign"), True)
+    check("entity distinct", same_entity("Keyword", "Campaign"), False)
+    check("entity none", same_entity(None, "Campaign"), False)
+
+    # Sheet-name resolution uses the same fold; mirror it here so the contract is pinned
+    # even though `resolve` is scoped inside parse_bulk.
+    actual = {s.strip().casefold(): s for s in
+              ["Sponsored Products Campaigns", "Sponsored Brands campaigns",
+               "SB Multi Ad Group Campaigns", "Sponsored Display campaigns"]}
+    check("sheet lower c", actual.get("sponsored display campaigns"), "Sponsored Display campaigns")
+    check("sheet asked title-case", actual.get("Sponsored Display Campaigns".casefold()),
+          "Sponsored Display campaigns")
+    check("sheet absent", actual.get("ras campaigns"), None)
+
+    if fails:
+        print("SELF-TEST FAILED"); [print("  " + f) for f in fails]; return 1
+    print(f"self-test OK — {9} casing assertions on sheet names and Entity labels")
+    return 0
+
+
 if __name__ == "__main__":
+    if len(sys.argv) > 1 and sys.argv[1] == "--self-test":
+        sys.exit(_self_test())
     if len(sys.argv) < 2:
-        print("usage: analyze_audit.py <config.json> [outdir]"); sys.exit(1)
+        print("usage: analyze_audit.py <config.json> [outdir]\n"
+              "       analyze_audit.py --self-test"); sys.exit(1)
     run(sys.argv[1], sys.argv[2] if len(sys.argv) > 2 else None)
