@@ -132,6 +132,37 @@ CHANNEL_SHEETS = {
 SB_SHEETS = ["SB Multi Ad Group Campaigns", "Sponsored Brands Campaigns"]  # superset first
 
 
+class CIHeaders(dict):
+    """Column-name index that tolerates Amazon's inconsistent header casing.
+
+    Third instance of the same failure mode as the sheet names and Entity labels, in one
+    file: the search-term sheets are headed "Customer search term" while the code, and
+    Amazon's own docs, say "Customer Search Term". An exact lookup silently dropped the
+    ENTIRE Sponsored Products intent split, leaving a branded/generic/competitor breakdown
+    built from Sponsored Brands alone and a coverage figure that looked like thin data
+    rather than a bug. Behaves as a normal dict for iteration; folds case on lookup."""
+
+    @staticmethod
+    def _k(key):
+        return str(key).strip().casefold()
+
+    def __init__(self, mapping):
+        super().__init__(mapping)
+        self._fold = {self._k(k): v for k, v in mapping.items()}
+
+    def __contains__(self, key):
+        return self._k(key) in self._fold
+
+    def __getitem__(self, key):
+        try:
+            return self._fold[self._k(key)]
+        except KeyError:
+            raise KeyError(key) from None
+
+    def get(self, key, default=None):
+        return self._fold.get(self._k(key), default)
+
+
 def same_entity(a, b):
     """Compare two Amazon bulk Entity labels case-insensitively.
 
@@ -188,7 +219,7 @@ def parse_bulk(cfg, market, path, agg):
         while H and H[-1] is None:              # drop the None cells beyond the real header
             H.pop()
         ncol = len(H)
-        I = {h: i for i, h in enumerate(H)}
+        I = CIHeaders({h: i for i, h in enumerate(H)})
         rows = []
         if ncol:
             for r in ws.iter_rows(min_row=2, max_row=BULK_MAX_ROWS, min_col=1, max_col=ncol,
