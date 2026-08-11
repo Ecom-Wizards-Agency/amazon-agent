@@ -248,10 +248,18 @@ def main() -> None:
         kwargs["creationflags"] = getattr(subprocess, "DETACHED_PROCESS", 0)
     else:
         kwargs["start_new_session"] = True
+    # Pin the UI language for every marketplace. Seller Central renders in the
+    # browser's language, so a .de or .co.jp host otherwise hands back a page
+    # whose account names, marketplace names and button labels are localized.
+    # On 11.08.2026 that silently broke every scheduled inventory pass: the
+    # picker offered "Vereinigte Staaten" while the automation looked for
+    # "United States". Setting it here rather than on the Amazon account keeps
+    # it a local browser preference and changes nothing on the seller profile.
     command = [chrome, f"--remote-debugging-port={PORT}",
                "--remote-debugging-address=127.0.0.1",
                f"--user-data-dir={PROFILE}", "--no-first-run",
-               "--no-default-browser-check"]
+               "--no-default-browser-check",
+               "--lang=en-US", "--accept-lang=en-US,en"]
     if requested == "headless":
         command.append("--headless")
     command.append(START_URL)
