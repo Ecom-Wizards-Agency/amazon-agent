@@ -8,6 +8,7 @@
  *
  * Copy-paste path (fill a per-client config once, then a fixed command):
  *   node run.mjs sqp      --config config.<client>.json        # every ASIN group
+ *   node run.mjs sqp-brand --brand <id> --proxy-asin B0.. --weeks ...
  *   node run.mjs business --config config.<client>.json
  *   node run.mjs scp      --config config.<client>.json
  *   node run.mjs tst      --config config.<client>.json
@@ -17,6 +18,7 @@
  * Explicit-flag path:
  *   node run.mjs sqp --asins B0..,B0.. --weeks 2026-06-27 --range weekly|monthly|quarterly \
  *                    --out output/<client>/reporting/sqp.csv [--split]
+ *   node run.mjs sqp-brand --brand 123 --proxy-asin B0.. --weeks 2026-06-27 --out ...
  *   node run.mjs business --start 2026-06-01 --end 2026-06-30 [--asins ..] [--report child|parent|sku] --out ..
  *   node run.mjs scp --weeks 2026-06-27 [--brand <id>] [--asins ..] --out ..
  *   node run.mjs tst --weeks 2026-06-27 [--brand <b>] [--search-term <t>] --out ..
@@ -145,6 +147,22 @@ function buildJobs(report, cfg, args, mp) {
       jobs.push({ report, group: name, asins: list(asins), range, weeks, split,
         pageUrl: "/brand-analytics/dashboard/query-performance", needMetaTag: true, stem });
     }
+  } else if (report === "sqp-brand") {
+    const c = cfgFor("sqp_brand");
+    const range = (args.range || c.reporting_range || "weekly").toLowerCase();
+    const weeks = list(args.weeks || args.week).length ? list(args.weeks || args.week) : list(c.period_end_dates);
+    if (!weeks.length) die("sqp-brand needs --weeks YYYY-MM-DD (or period_end_dates in config)");
+    const brand = args.brand || c.brand;
+    if (!brand) die("sqp-brand needs --brand <brand id>");
+    const proxyAsin = args["proxy-asin"] || c.proxy_asin || "";
+    const out = args.out || c.out || join(c.out_dir || "output/<client>/reporting/", "sqp_brand_proxy.csv");
+    const p = { marketplace: mp, reportingRange: range, periodEndDates: weeks,
+      brand: String(brand), proxyAsin };
+    if (args["max-pages"] || c.max_pages) p.maxPages = Number(args["max-pages"] || c.max_pages);
+    jobs.push({ report, out, range, weeks,
+      pageUrl: `/brand-analytics/dashboard/query-performance?brand=${encodeURIComponent(brand)}&view-id=query-performance-brands-view`,
+      needMetaTag: true, call: `fetchBrandSqp(${JSON.stringify(p)})`,
+      desc: `SQP BRAND VIEW proxy ${range} ${weeks.join(",")}${proxyAsin ? " -> " + proxyAsin : ""}` });
   } else if (report === "scp" || report === "tst") {
     const c = cfgFor(report);
     const range = (args.range || c.reporting_range || "weekly").toLowerCase();
@@ -278,8 +296,8 @@ async function main() {
   }
 
   const reports = args._ === "all" ? ["sqp", "business", "scp", "tst", "inventory"].filter((r) => cfg && (cfg[r] || cfg[r === "business" ? "business_report" : r])) : [args._];
-  if (!reports.length || !["sqp", "scp", "tst", "business", "inventory"].includes(reports[0]))
-    die("usage: run.mjs <sqp|scp|tst|business|inventory|all|doctor> [--config <cfg>] [flags] — see the header of run.mjs");
+  if (!reports.length || !["sqp", "sqp-brand", "scp", "tst", "business", "inventory"].includes(reports[0]))
+    die("usage: run.mjs <sqp|sqp-brand|scp|tst|business|inventory|all|doctor> [--config <cfg>] [flags]. See the header of run.mjs");
 
   const jobs = reports.flatMap((r) => buildJobs(r, cfg, args, mp));
 

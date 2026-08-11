@@ -1,6 +1,6 @@
 ---
 name: amazon-audit
-description: Use for every Amazon ad or sales audit, whether the brand is an AdLabs-managed client or a prospect audited from downloaded files. Trigger on `/amazon-audit`, ad audit, sales audit, account audit, monthly account review, or analyze this AdLabs account. Asks the job first (first-time audit, monthly review, or actions only), detects the data source silently, then asks only what is not already on file. Self-contained: narrative voice, workbook standard, figure set and branded-document contract all live here. Read-only.
+description: Use for every Amazon ad or sales audit. First-time prospect audits always use downloaded Amazon files; monthly reviews and actions-only audits require an AdLabs-managed account. Trigger on `/amazon-audit`, ad audit, sales audit, account audit, monthly account review, or analyze this AdLabs account. Asks the job first, routes by posture, then asks only what is not already on file. Self-contained: narrative voice, workbook standard, figure set and branded-document contract all live here. Read-only.
 ---
 
 # Amazon Ad / Sales Audit
@@ -69,16 +69,16 @@ This is operator intent, and no lookup can infer it, so it comes first. Ask this
 
 | Ask it as | Internal key | For |
 |---|---|---|
-| First-time audit | `deep` | New client onboarding or a prospect pitch |
+| First-time audit | `deep` | A prospect pitch before the brand is connected to AdLabs |
 | Monthly review | `monthly` | A client we already run |
-| Actions only | `actions` | Just the prioritized change list |
+| Actions only | `actions` | A read-only prioritized change list for an AdLabs-managed client |
 
 The rest of this file and both lens references use the internal key, so read `monthly` wherever
 the posture is named later.
 
-**The labels name the job, never the data source.** Onboarding a new managed client is a
-first-time audit on an AdLabs account, so a source-shaped label would collide with "first-time"
-on a case that happens often. The source is detected in stage 2 and never asked.
+**The posture fixes the data source.** A first-time audit is always prospect work and never calls
+AdLabs. Monthly and actions-only audits are managed-account work and require AdLabs. Applying any
+action leaves this skill and routes to `amazon-ppc-management`.
 
 Skip this stage entirely when the arguments already say it.
 
@@ -88,28 +88,26 @@ Skip this stage entirely when the arguments already say it.
 | `monthly` | Lean, internal, learnings-forward, no roasting | Lens A + tripwire | Inline report **and** branded `.docx`, **no cover**. Workbook on request |
 | `actions` | None | Lens A only | Prioritized action list with spend impact and GoTo links |
 
-### Stage 2. Detect and pre-fill. Silent, no questions.
+### Stage 2. Route and pre-fill. Silent, no questions.
 
-Run the AdLabs startup sequence and look for the brand:
+**`deep`: download path.** Read `references/source-bulk.md`. Do not start an AdLabs session and do
+not look for a profile. Resolve any existing per-client audit config, then read the matched prospect
+call notes for context. A first-time audit still asks the full brief in stage 3 because prospect
+facts and margin assumptions must be explicit.
+
+**`monthly` and `actions`: AdLabs path.** Read `references/source-adlabs.md`, then run the startup
+sequence:
 
 1. `start_chat_session`, then `read_resource(adlabs://instructions)`. Pass the returned
    `chat_session_id` on every later call.
 2. `get_entity_data(teams)`, then `get_entity_data(profiles, team_id)`.
 
-- Profile found: **MCP path** (`references/source-adlabs.md`). The brand is a managed client.
-- Not found: **download path** (`references/source-bulk.md`). A prospect with no live connection.
-- MCP unavailable, or the name match is ambiguous: ask, folded into stage 3.
+Require an unambiguous profile. If AdLabs is unavailable or the profile is missing, stop and report
+the blocker. Never fall back to downloaded files for these postures.
 
-Connection status drives the data source and nothing else: the analysis is identical either way.
-
-Then **resolve what is already known instead of asking for it**:
-
-- AdLabs profile memory, `context_and_prompts(get_context, PROFILE, <profile_id>)`: brand terms,
-  product-fact negatives, break-even, strategy doctrine.
-- The client ops profile, `node tools/client-profiles/find-client-profile.mjs <slug>`: account
-  naming, marketplaces, stakeholders, restrictions.
-- The per-client config where one exists: ASINs, product groups, brand and competitor tokens,
-  `core_tokens`.
+Then **resolve what is already known instead of asking for it** from profile memory, the client ops
+profile, and the per-client config: brand terms, product-fact negatives, break-even, doctrine,
+account naming, marketplaces, ASINs, product groups, competitor tokens, and `core_tokens`.
 
 ### Stage 3. Ask only what stage 2 did not resolve.
 
@@ -138,10 +136,10 @@ quarterly pass is due: compute it and report it.
 
 Flag explicitly what is missing rather than assuming a clean window.
 
-Stage 2 already read the AdLabs profile memory and the client ops profile for the **brief** values
-(break-even, brand tokens, targets). This step reads for a different purpose: what happened, what
-we learned, and what to do next. Reuse what stage 2 already pulled rather than fetching it twice,
-and never turn any of it into a question.
+For managed postures, stage 2 already read the AdLabs profile memory and client ops profile for the
+**brief** values. This step reads for a different purpose: what happened, what we learned, and what
+to do next. Reuse what stage 2 already pulled rather than fetching it twice, and never turn any of
+it into a question.
 
 ### `deep`: read the call notes, then move on
 
@@ -154,6 +152,19 @@ The client's stated core problem is often invisible in the exports. An audit tha
 the thing they are living with reads as though you were not listening. Call notes also supply
 facts the data cannot: reseller counts, agency history, trademark status, off-Amazon spend, SKUs
 about to launch.
+
+Turn every material call statement into an **internal hypothesis matrix** before writing. Verdicts
+are `Confirmed`, `Not supported`, `Mixed or confounded`, or `Not verifiable from available data`.
+Keep the full matrix internal. Surface only contradictions and conclusions that change the client
+recommendation. Goals and preferences remain labelled as goals, never verified facts.
+
+For any cart-abandonment claim, use Search Catalog Performance for the absolute ASIN funnel and
+SQP for the same-query market comparison. A large absolute click-to-cart or cart-to-purchase drop
+does not prove underperformance. Confirm the claim only when sufficiently sampled, commercially
+important queries materially trail the market at the relevant step. Mark it not supported when the
+ASIN matches or beats the market, and mixed when suppression, traffic mix, or thin coverage prevents
+a clean conclusion. Never screenshot SQP; point to its workbook tab. A Search Catalog Performance
+screenshot is allowed only when it visibly supports a material finding.
 
 ### `monthly`: build the learnings layer
 
@@ -190,11 +201,10 @@ percentages into an AdLabs comparison; quote their currency, not their percentag
 Both paths must fill the same Lens A rows. "That is not available on this path" is only an
 acceptable answer for **margin**, and only until the client's P&L arrives.
 
-- **Brand resolved to an AdLabs profile.** Read `references/source-adlabs.md` before pulling
-  anything. No downloads, no handoff: campaigns, targets, search terms, placements, per-ASIN SQP,
-  the Business Report and stock are all live on the MCP.
-- **No profile found.** Read `references/source-bulk.md` before pulling anything. Scaffold the
-  config, preflight, hand the browser downloads to Codex, pull DataDive over MCP, build locally.
+- **`deep`: download path.** Scaffold the config, preflight, gather browser downloads, pull
+  DataDive over MCP, and build locally. Never call AdLabs.
+- **`monthly` and `actions`: AdLabs path.** Campaigns, targets, search terms, placements, per-ASIN
+  SQP, the Business Report, and stock are live on the MCP. Never fall back to bulk downloads.
 
 Rank data comes from the DataDive MCP on both paths.
 
@@ -211,7 +221,7 @@ output with the reason.
 | A2 | Buy Box share, seller count and price, **weekly** | `run.mjs business --start/--end` per week | `product`: `FEATURED_OFFER_PERCENT`, `BUY_BOX_VIEWS` |
 | A3 | Organic rank bands and movement; cost-per-rank on every rank campaign | DataDive niche + Rank Radar | same, DataDive MCP |
 | A4 | SQP demand and intent split; click share, purchase capture, CVR against market | SQP `.csv` per group | `search_query`, `ASIN_*` beside `TOTAL_*` |
-| A5 | **Funnel decomposition** (the tripwire) | SQP, per average week (see the method notes) | `search_query`: `ASIN_CTR`, `ASIN_CART_ADD_SHARE`, `ASIN_CONVERSION_RATE` |
+| A5 | **Funnel decomposition** (the tripwire) | Search Catalog Performance + SQP, per average week (see the method notes) | `search_query`: `ASIN_CTR`, `ASIN_CART_ADD_SHARE`, `ASIN_CONVERSION_RATE` |
 | A6 | Demand trajectory: is the niche draining, and is the brand draining faster | DataDive niche + SQP week series | same, plus `search_query` per week |
 | A7 | Channel mix and placement mechanism (base bid times multiplier) | ads bulk | `campaign`, `placement` entities |
 | A8 | Search-term waste and harvest, 1-gram and 2-gram | ads bulk search terms | `target` + search-term entities, profile-derived aCTC and CVR benchmarks |

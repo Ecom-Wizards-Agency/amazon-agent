@@ -143,6 +143,7 @@ def parse_markdown(md, base_dir):
             tbl.append([c.strip() for c in s.strip().strip('|').split('|')]); continue
         flush()
         if not s.strip(): continue
+        if s.strip().lower() == "\\pagebreak": blocks.append(("pagebreak", None)); continue
         if s.startswith("# "): title = s[2:].strip(); continue
         if s.strip() in ("---", "—"): continue
         mLi = _LEVER_INLINE.match(s.strip())
@@ -204,8 +205,7 @@ def _cover_kwargs(cfg, M, blocks, brand_dir):
 def _render_docx(blocks, M, cfg, brand_dir, cover_png, out):
     from docx import Document
     from docx.shared import Pt, RGBColor, Inches
-    from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_LINE_SPACING
-    from docx.enum.section import WD_SECTION
+    from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_LINE_SPACING, WD_TAB_ALIGNMENT
     from docx.enum.table import WD_TABLE_ALIGNMENT, WD_CELL_VERTICAL_ALIGNMENT
     from docx.oxml import OxmlElement
     from docx.oxml.ns import qn
@@ -369,9 +369,14 @@ def _render_docx(blocks, M, cfg, brand_dir, cover_png, out):
     def image(path, caption):
         if not Path(path).exists():
             para(f"[missing image: {Path(path).name}]", size=8.5, color=STEEL, italic=True); return
+        from docx.image.image import Image as DocxImage
+        source = DocxImage.from_file(str(path))
+        aspect = source.height / source.width if source.width else 1
+        max_width = 5.0 if Path(path).name.startswith('fig_') else 5.6
+        width_inches = min(max_width, 8.4 / aspect) if aspect else max_width
         p = doc.add_paragraph(); p.alignment = WD_ALIGN_PARAGRAPH.CENTER
         p.paragraph_format.space_before = Pt(6); p.paragraph_format.keep_with_next = True
-        p.add_run().add_picture(str(path), width=Inches(6.2))
+        p.add_run().add_picture(str(path), width=Inches(width_inches))
         c = doc.add_paragraph(); c.alignment = WD_ALIGN_PARAGRAPH.CENTER; c.paragraph_format.space_after = Pt(10)
         runs(c, caption, size=8.5, color=STEEL, italic=True)
 
@@ -404,55 +409,57 @@ def _render_docx(blocks, M, cfg, brand_dir, cover_png, out):
     def bullet(text, num=False):
         p = doc.add_paragraph(style='List Number' if num else 'List Bullet'); runs(p, text)
 
-    # cover section
-    sec0 = doc.sections[0]; sec0.page_width = A4_W; sec0.page_height = A4_H
-    if cover_png:
-        for m in ('top', 'bottom', 'left', 'right'): setattr(sec0, f'{m}_margin', Inches(0))
-        sec0.header_distance = Inches(0); sec0.footer_distance = Inches(0)
-        cp = doc.add_paragraph(); cp.paragraph_format.space_after = Pt(0); cp.paragraph_format.space_before = Pt(0)
-        # A 1pt exact line makes LibreOffice/Google Docs drop the full-page image. Normal spacing keeps
-        # the editable cover visible while the zero-margin section preserves the intended full bleed.
-        cp.paragraph_format.line_spacing_rule = WD_LINE_SPACING.SINGLE; cp.paragraph_format.line_spacing = 1.0
-        cr = cp.add_run(); cr.font.size = Pt(1); cr.add_picture(str(cover_png), width=A4_W)
-        doc.add_section(WD_SECTION.NEW_PAGE); body = doc.sections[1]
-    else:
-        body = sec0
+    # Use one page style for the whole document. A separate zero-margin cover section caused
+    # LibreOffice to alternate the cover and body styles on automatically paginated pages.
+    # Keeping the cover inline also avoids first-page-style resets after automatic page breaks.
+    # The small white frame is preferable to clipped headings or missing running furniture.
+    body = doc.sections[0]
     body.page_width = A4_W; body.page_height = A4_H
     body.top_margin = Inches(0.85); body.bottom_margin = Inches(0.8)
     body.left_margin = Inches(0.85); body.right_margin = Inches(0.85)
+    body.header_distance = Inches(0.25); body.footer_distance = Inches(0.25)
+    if cover_png:
+        cp = doc.add_paragraph(); compact(cp)
+        cp.paragraph_format.line_spacing_rule = WD_LINE_SPACING.SINGLE
+        cr = cp.add_run(); cr.font.size = Pt(1)
+        cr.add_picture(str(cover_png), width=Inches(6.57))
+        doc.add_page_break()
 
-    # Running furniture: full lockup in the header, text-only footer.
+    # Running furniture. Populate both right-page and left-page parts, while keeping the
+    # first-page variant disabled. LibreOffice applies its paired page styles even when a
+    # DOCX asks for shared furniture; duplicating the contract into both parts keeps every
+    # page branded without triggering its fragile First Page overflow behavior.
     run = _running_text(cfg, M)
     logo = Path(brand_dir) / _B["assets"].get("logo_black", "logo_black.png")
-    body.header.is_linked_to_previous = False
-    hp0 = body.header.paragraphs[0]; hp0.text = ''; compact(hp0)
-    ht = body.header.add_table(rows=1, cols=2, width=Inches(6.57)); ht.autofit = False
-    ht.alignment = WD_TABLE_ALIGNMENT.CENTER; no_table_borders(ht)
-    col_widths(ht, (2.05, 4.52))
-    hc0, hc1 = ht.rows[0].cells
-    for c in (hc0, hc1): c.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
-    hp = hc0.paragraphs[0]; compact(hp)
-    if logo.exists(): hp.add_run().add_picture(str(logo), width=Inches(0.9))
-    elif _B.get("agency_name"): runs(hp, _B["agency_name"], size=8, color=INK, bold=True)
-    hp = hc1.paragraphs[0]; compact(hp); hp.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-    runs(hp, run["header_right"], size=7.5, color=MIST, bold=True, tracking=12)
+    doc.settings.odd_and_even_pages_header_footer = True
+    body.different_first_page_header_footer = False
 
-    body.footer.is_linked_to_previous = False
-    fp0 = body.footer.paragraphs[0]; fp0.text = ''; compact(fp0)
-    ft = body.footer.add_table(rows=1, cols=3, width=Inches(6.57)); ft.autofit = False
-    ft.alignment = WD_TABLE_ALIGNMENT.CENTER; no_table_borders(ft)
-    # The left zone carries "<doc label> · <client>", which on a long label ("Sponsored Brands
-    # Video Briefing · AlphaInfuse") wrapped to a second line in Google Docs and broke the
-    # single-baseline footer rule. The right zone only ever holds the agency URL, so it gives
-    # the width up.
-    col_widths(ft, (3.05, 1.27, 2.25))
-    fc0, fc1, fc2 = ft.rows[0].cells
-    for c in (fc0, fc1, fc2): c.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
-    fp = fc0.paragraphs[0]; compact(fp); runs(fp, run["footer_left"], size=8, color=MIST)
-    fp = fc1.paragraphs[0]; compact(fp); fp.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    runs(fp, "page ", size=8, color=MIST); field(fp, "PAGE", "1"); runs(fp, " of ", size=8, color=MIST); field(fp, "NUMPAGES", "1")
-    fp = fc2.paragraphs[0]; compact(fp); fp.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-    runs(fp, run["footer_right"], size=8, color=MIST)
+    def populate_header(header):
+        header.is_linked_to_previous = False
+        hp = header.paragraphs[0]; hp.text = ''; compact(hp)
+        hp.paragraph_format.tab_stops.add_tab_stop(Inches(6.57), WD_TAB_ALIGNMENT.RIGHT)
+        if logo.exists(): hp.add_run().add_picture(str(logo), width=Inches(0.9))
+        elif _B.get("agency_name"): runs(hp, _B["agency_name"], size=8, color=INK, bold=True)
+        hp.add_run('\t')
+        runs(hp, run["header_right"], size=7.5, color=MIST, bold=True, tracking=12)
+
+    def populate_footer(footer):
+        footer.is_linked_to_previous = False
+        fp = footer.paragraphs[0]; fp.text = ''; compact(fp)
+        fp.paragraph_format.tab_stops.add_tab_stop(Inches(3.285), WD_TAB_ALIGNMENT.CENTER)
+        fp.paragraph_format.tab_stops.add_tab_stop(Inches(6.57), WD_TAB_ALIGNMENT.RIGHT)
+        runs(fp, run["footer_left"], size=8, color=MIST)
+        fp.add_run('\t')
+        runs(fp, "page ", size=8, color=MIST); field(fp, "PAGE", "1"); runs(fp, " of ", size=8, color=MIST); field(fp, "NUMPAGES", "1")
+        fp.add_run('\t')
+        runs(fp, run["footer_right"], size=8, color=MIST)
+
+    populate_header(body.header)
+    populate_header(body.even_page_header)
+    populate_header(body.first_page_header)
+    populate_footer(body.footer)
+    populate_footer(body.even_page_footer)
+    populate_footer(body.first_page_footer)
 
     # render blocks (+ KPI after the verdict/summary h2); -1 disables cards for non-audit docs
     kpi_idx = _kpi_after(blocks) if (M.get("custom_kpis") or M.get("totals")) else -1
@@ -469,6 +476,7 @@ def _render_docx(blocks, M, cfg, brand_dir, cover_png, out):
         elif kind == "num": bullet(payload, num=True)
         elif kind == "table": data_table(payload)
         elif kind == "img": image(*payload)
+        elif kind == "pagebreak": doc.add_page_break()
     # NUMPAGES has no cached value we can compute here, so it ships as "1". Without this
     # flag Word and Google Docs render that stale cache and a multi-page audit reads
     # "page 1 of 1". updateFields makes them recompute the footer counters on open.

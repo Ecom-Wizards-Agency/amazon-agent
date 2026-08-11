@@ -249,8 +249,8 @@ Brand compliance is a delivery gate. Before a client-visible upload, verify the 
 
 It resolves three things, in this order:
 
-- **Data source, auto-detected, never asked.** Look the brand up in AdLabs. A managed client with a profile runs live on the MCP with no downloads: per-ASIN SQP (`search_query`) and the whole Business Report (`product` via the SP-API link) are both there, as is stock. A prospect with no profile runs from downloaded ads bulk + Business Report + SQP via the `tools/amazon-ad-audit/` toolkit. Only margin/break-even comes from outside either path (Sellerboard).
-- **Posture, the one question asked up front.** `deep` for onboarding or a prospect pitch (full narrative, cover page, MASTER workbook). `monthly` for a recurring managed review (lean, internal, learnings-forward, no cover, inline report plus a branded Google Doc). `actions` for the prioritized change list only.
+- **Posture, the one question asked up front.** `deep` is always a prospect audit (full narrative, cover page, MASTER workbook). `monthly` is a recurring managed review (lean, internal, learnings-forward, no cover, inline report plus a branded Google Doc). `actions` is a read-only prioritized change list for a managed account.
+- **Data source, fixed by posture.** `deep` always uses downloaded ads bulk + Business Report + SQP via `tools/amazon-ad-audit/` and never calls AdLabs. `monthly` and `actions` require an AdLabs profile and never fall back to downloads. Actions are diagnosed here; previews and applies route to `amazon-ppc-management`. Only margin/break-even comes from outside either path (Sellerboard).
 - **Scope, defaulted from posture.** Lens A (performance: stock, Buy Box, organic rank, SQP, funnel, ads, structure, budgets) runs on every audit. Lens B (shopper and creative: POE reviews and returns, live creative capture, listing compliance) runs on `deep`, on a quarterly pass for managed clients, or whenever Lens A's funnel tripwire fires.
 
 Neighbouring workflows that are NOT this skill:
