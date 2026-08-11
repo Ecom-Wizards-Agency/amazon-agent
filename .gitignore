@@ -42,6 +42,8 @@ tools/amazon-seo-keyword-workbook/seo_content.*.json
 tools/reshipment/config.json
 tools/reshipment/config.*.json
 !tools/reshipment/config.TEMPLATE.json
+# Run-scoped copy of the wizards-ai config (Seller Central profile names).
+tools/reshipment/.provider-config-*.json
 
 # Ad/Sales Audit tool: client configs + saved DataDive JSON stay LOCAL ONLY; only the template ships.
 tools/amazon-ad-audit/config.*.json
