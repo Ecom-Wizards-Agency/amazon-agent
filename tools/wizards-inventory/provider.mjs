@@ -16,6 +16,48 @@ let ensureChrome, closePage, createPage, evaluate, listPages, Session;
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const AMAZON_AGENT = resolve(HERE, "../..");
+
+// Seller Central names each marketplace in the operator's display language, so
+// the account picker is not a stable English string. Keyed by the profile's
+// marketplace code; a profile can still add its own spellings through
+// `marketplace_labels` when Amazon uses one this table has not seen.
+const MARKETPLACE_LABELS = {
+  US: ["United States", "Vereinigte Staaten", "États-Unis", "Estados Unidos", "Stati Uniti"],
+  CA: ["Canada", "Kanada", "Canadá"],
+  MX: ["Mexico", "Mexiko", "México", "Messico"],
+  BR: ["Brazil", "Brasilien", "Brasil", "Brésil"],
+  UK: ["United Kingdom", "Vereinigtes Königreich", "Royaume-Uni", "Reino Unido", "Regno Unito"],
+  GB: ["United Kingdom", "Vereinigtes Königreich", "Royaume-Uni", "Reino Unido", "Regno Unito"],
+  DE: ["Germany", "Deutschland", "Allemagne", "Alemania", "Germania"],
+  FR: ["France", "Frankreich", "Francia"],
+  IT: ["Italy", "Italien", "Italie", "Italia"],
+  ES: ["Spain", "Spanien", "Espagne", "España", "Spagna"],
+  NL: ["Netherlands", "Niederlande", "Pays-Bas", "Países Bajos", "Paesi Bassi"],
+  SE: ["Sweden", "Schweden", "Suède", "Suecia", "Svezia"],
+  PL: ["Poland", "Polen", "Pologne", "Polonia"],
+  BE: ["Belgium", "Belgien", "Belgique", "Bélgica", "Belgio"],
+  IE: ["Ireland", "Irland", "Irlande", "Irlanda"],
+  TR: ["Turkey", "Türkei", "Turquie", "Turquía", "Turchia"],
+  AE: ["United Arab Emirates", "Vereinigte Arabische Emirate", "Émirats arabes unis"],
+  SA: ["Saudi Arabia", "Saudi-Arabien", "Arabie saoudite"],
+  EG: ["Egypt", "Ägypten", "Égypte", "Egipto"],
+  ZA: ["South Africa", "Südafrika", "Afrique du Sud"],
+  AU: ["Australia", "Australien", "Australie"],
+  AUS: ["Australia", "Australien", "Australie"],
+  JP: ["Japan", "Japon", "Japón", "Giappone"],
+  SG: ["Singapore", "Singapur", "Singapour"],
+  IN: ["India", "Indien", "Inde"],
+};
+
+function marketplaceLabels(profile) {
+  const labels = new Set();
+  if (profile.marketplace_label) labels.add(profile.marketplace_label);
+  for (const extra of profile.marketplace_labels || []) labels.add(extra);
+  for (const known of MARKETPLACE_LABELS[(profile.marketplace || "").toUpperCase()] || []) {
+    labels.add(known);
+  }
+  return [...labels];
+}
 const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
 const trace = (...parts) => {
   if (process.env.WIZARDS_AUTH_TRACE === "1") console.error("[wizards-auth]", ...parts);
@@ -234,9 +276,17 @@ async function selectAccount(session, profile, config) {
     }
   }
   if (authState !== "authenticated") throw authenticationError(authState);
-  const account = JSON.stringify(profile.account_name);
-  const marketplace = JSON.stringify(profile.marketplace_label);
-  const accountBox = `(()=>{const norm=s=>(s||"").replace(/\\s*\\((aktuell|current)\\)\\s*$/i,"").trim();
+  // Both matches below are case-insensitive and language-tolerant. The picker
+  // renders in whatever display language the operator set on Seller Central,
+  // and the configured label is only ever one language's spelling: on
+  // 11.08.2026 the switcher came back in German and every account failed with
+  // "Could not find marketplace United States" while the page was offering
+  // "Vereinigte Staaten". The same run failed "Swissklip" against a picker
+  // showing "SwissKlip". Neither is a real mismatch, so neither should stop a
+  // pass.
+  const account = JSON.stringify(profile.account_name.toLowerCase());
+  const marketplace = JSON.stringify(marketplaceLabels(profile).map((l) => l.toLowerCase()));
+  const accountBox = `(()=>{const norm=s=>(s||"").replace(/\\s*\\((aktuell|current)\\)\\s*$/i,"").trim().toLowerCase();
     const e=[...document.querySelectorAll("button.full-page-account-switcher-account-details")]
       .find(e=>norm(e.innerText)===${account}); if(!e)return null;
     e.scrollIntoView({block:"center"}); const r=e.getBoundingClientRect();
@@ -249,9 +299,9 @@ async function selectAccount(session, profile, config) {
   // Agency access is hierarchical. A fresh picker initially renders only the
   // agency parent; expand it before looking for the client account.
   if (!accountHit && profile.parent_account_name) {
-    const parent = JSON.stringify(profile.parent_account_name);
+    const parent = JSON.stringify(profile.parent_account_name.toLowerCase());
     const parentBox = `(()=>{const e=[...document.querySelectorAll("button.full-page-account-switcher-account-details")]
-      .find(e=>(e.innerText||"").trim()===${parent});if(!e)return null;
+      .find(e=>(e.innerText||"").trim().toLowerCase()===${parent});if(!e)return null;
       e.scrollIntoView({block:"center"});const r=e.getBoundingClientRect();return{x:r.x+r.width/2,y:r.y+r.height/2,expanded:!!e.querySelector("[class*=expanded]")}})()`;
     const parentHit = await evaluate(session, parentBox);
     if (!parentHit) throw selectionError(
@@ -264,11 +314,12 @@ async function selectAccount(session, profile, config) {
   }
   if (!accountHit) throw selectionError(
     "account_unavailable", `Account ${profile.account_name} is not available`);
-  const marketplaceBox = `(()=>{const norm=s=>(s||"").replace(/\\s*\\((aktuell|current)\\)\\s*$/i,"").trim();
+  const marketplaceBox = `(()=>{const norm=s=>(s||"").replace(/\\s*\\((aktuell|current)\\)\\s*$/i,"").trim().toLowerCase();
+    const labels=${marketplace};
     const groups=[...document.querySelectorAll("div.full-page-account-switcher-account")];
     const g=groups.find(x=>[...x.children].some(c=>c.matches?.("button.full-page-account-switcher-account-details")&&norm(c.innerText)===${account}));
     const e=g&&[...g.querySelectorAll("button.full-page-account-switcher-account-details")]
-      .find(b=>norm(b.innerText)===${marketplace}); if(!e)return null;
+      .find(b=>labels.includes(norm(b.innerText))); if(!e)return null;
     e.scrollIntoView({block:"center"}); const r=e.getBoundingClientRect();
     return {x:r.x+r.width/2,y:r.y+r.height/2,current:/\\((aktuell|current)\\)/i.test(e.innerText||"")}})()`;
   let marketplaceHit;
@@ -565,7 +616,7 @@ function writeAudit(directory, result) {
 
 async function main() {
   const options = args(process.argv.slice(2));
-  if (!options.config || !options.profile) throw new Error("usage: provider.mjs --config <wizards config.json> --profile <key> [--select-only] [--shipment-group <key>] [--price-check --asin <ASIN>] [--audit-dir <dir>]");
+  if (!options.config || !options.profile) throw new Error("usage: provider.mjs --config <wizards config.json> --profile <key> [--select-only] [--all-skus] [--shipment-group <key>] [--price-check --asin <ASIN>] [--audit-dir <dir>]");
   const selectOnly = selectOnlyRequested(options);
   const shipmentGroup = options["shipment-group"] || null;
   const priceCheck = options["price-check"] === true;
@@ -647,7 +698,11 @@ async function main() {
     } else {
       const fbaResult = await fetchFba(session, profile);
       const fba = fbaResult.summary;
-      if (shipmentGroup) {
+      if (options["all-skus"] === true) {
+        const allSkus = fbaResult.listings.map((listing) =>
+          listing.coreListingFields?.sku).filter(Boolean);
+        fba.skus = summarizeFbaBySku(fbaResult.listings, allSkus);
+      } else if (shipmentGroup) {
         fba.skus = summarizeFbaBySku(
           fbaResult.listings, profile.shipment_groups?.[shipmentGroup]?.skus || []);
       }
