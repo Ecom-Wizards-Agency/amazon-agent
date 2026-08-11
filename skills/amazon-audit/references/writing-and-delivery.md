@@ -79,6 +79,19 @@ carry period-over-period deltas through sections 3 and 6.
    Let a punchy line stand alone. The operator has hand-edited delivered documents purely to split
    paragraphs apart, so write it that way the first time.
 
+### Evidence-hybrid pilot
+
+When `narrative.mode` is `evidence_hybrid`, keep the same section order, brand, and method depth but
+write each major finding as a short claim, two to four evidence bullets, one useful visual, and one
+decision or action line. Preserve prose for causal caveats, assumptions, and strategic tradeoffs.
+This is a config-controlled pilot, not a global default.
+
+Select screenshots from a structured evidence manifest. Target six to eight and permit up to ten
+only when the extra image proves a distinct high-impact point. Prefer account state, organic search,
+PDP/gallery/A+, competitor creative, POE, and a material Search Catalog Performance funnel. Never
+include SQP, workbook, spreadsheet, wrong-account, duplicate, unreadable, or finding-free screenshots.
+Use charts for numeric relationships and point the reader to the MASTER workbook tabs for detail.
+
 ### Two checks that decide credibility
 
 - **Scale calibration.** Never state an absolute (revenue, sessions, units) without a reference

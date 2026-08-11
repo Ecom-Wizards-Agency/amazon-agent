@@ -44,6 +44,8 @@ def collect_inputs(cfg):
         yield (f"Business Report .csv [{mkt}]", p, "CODEX")
     for grp, p in (inp.get("sqp_csvs") or {}).items():
         yield (f"SQP .csv [{grp}]", p, "CODEX")
+    if inp.get("search_catalog_performance_csv"):
+        yield ("Search Catalog Performance .csv", inp.get("search_catalog_performance_csv"), "CODEX")
     if cfg.get("datadive_niche"):
         yield ("DataDive niche keywords JSON", inp.get("datadive_niche_json"), "CLAUDE/MCP")
         if inp.get("datadive_competitors_json"):
@@ -119,6 +121,42 @@ def build(cfg, cfg_path, cover=None) -> int:
     except Exception as e:
         print(f"[build] figures skipped ({e})")
 
+    # Internal call-claim matrix. It is never inserted wholesale into client copy.
+    cv = cfg.get("claim_verification", {}) or {}
+    if cv.get("enabled") and cv.get("claims_json"):
+        try:
+            import claim_verification
+            claims_path = rp(cv.get("claims_json"))
+            cart_path = (rp(cv.get("cart_sqp_json")) if cv.get("cart_sqp_json")
+                         else outdir / "clean" / "cart_claim_query_averages.json")
+            search_catalog_path = rp((cfg.get("inputs", {}) or {}).get("search_catalog_performance_csv"))
+            claim_verification.run(
+                claims_path, cart_path, outdir / "internal" / "claim_matrix.json",
+                search_catalog_path=search_catalog_path,
+                suppression_confounded=bool(cv.get("suppression_confounded", False)),
+                material_gap=float(cv.get("material_gap", 0.10)),
+            )
+        except Exception as e:
+            print(f"[build] claim verification skipped ({e})")
+
+    # Screenshot evidence is selected after figures and before the scaffold. SQP and
+    # workbook screenshots are rejected by audit_evidence regardless of config.
+    evidence_path = None
+    candidates_path = rp((cfg.get("inputs", {}) or {}).get("evidence_candidates_json"))
+    if candidates_path and candidates_path.exists():
+        try:
+            import audit_evidence
+            visuals = cfg.get("visuals", {}) or {}
+            evidence_path = audit_evidence.run(
+                candidates_path, outdir / "evidence_manifest.json",
+                expected_account=cfg.get("amazon_account"),
+                marketplace=(cfg.get("marketplaces") or [None])[0],
+                target=int(visuals.get("target_screenshots", 8)),
+                maximum=int(visuals.get("maximum_screenshots", 10)),
+            )
+        except Exception as e:
+            print(f"[build] evidence selection skipped ({e})")
+
     scaffold_md = narrative_scaffold.build(cfg_path, outdir, force="--force-scaffold" in sys.argv)
 
     # Resolve cover: --cover/--no-cover overrides config branding.first_time (first-time audits only).
@@ -144,7 +182,7 @@ def build(cfg, cfg_path, cover=None) -> int:
             print(f"[build] md_to_docx skipped: {e}")
             docx_path = None
     print("\nArtifacts:")
-    for p in (audit_path, sqp_path, master_path, scaffold_md, docx_path, *figures):
+    for p in (audit_path, sqp_path, master_path, scaffold_md, docx_path, evidence_path, *figures):
         if p:
             print(f"  {p}")
     _completeness_panel(outdir)

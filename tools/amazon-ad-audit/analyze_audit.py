@@ -693,6 +693,37 @@ def build_metrics(cfg, agg, outdir):
         (clean / "sqp_demand.json").write_text(json.dumps(sqp_demand, indent=2))
         metrics["sqp_demand"] = sqp_demand
 
+        # Query-level cart-claim evidence. Every metric is the average across the
+        # weeks in which that ASIN/query row appeared. Never use a four-week sum:
+        # Amazon's capped query grid changes from week to week. The resulting JSON
+        # feeds the internal call-claim verifier and is also the auditable source
+        # for the MASTER workbook reference. Commercially relevant queries sort
+        # first by the ASIN's average purchases.
+        cart_rows = []
+        for (group, ql), weekmap in sqp["grp_wk"].items():
+            common = [w for w in weekmap if w in sqp["mkt_wk"].get(ql, {})]
+            if not common:
+                continue
+            ours = weekmap
+            market = sqp["mkt_wk"][ql]
+            query = sqp["grp_qtext"].get((group, ql), ql)
+            cart_rows.append(dict(
+                group=group,
+                query=query,
+                segment=classify_demand(cfg, query),
+                weeks=len(common),
+                impressions=mean([ours[w]["imp"] for w in common]),
+                clicks=mean([ours[w]["clk"] for w in common]),
+                cart_adds=mean([ours[w]["cart"] for w in common]),
+                purchases=mean([ours[w]["pur"] for w in common]),
+                market_impressions=mean([market[w]["imp"] for w in common]),
+                market_clicks=mean([market[w]["clk"] for w in common]),
+                market_cart_adds=mean([market[w]["cart"] for w in common]),
+                market_purchases=mean([market[w]["pur"] for w in common]),
+            ))
+        cart_rows.sort(key=lambda row: (-row["purchases"], -row["clicks"], row["query"].lower()))
+        (clean / "cart_claim_query_averages.json").write_text(json.dumps(cart_rows, indent=2))
+
     # DataDive summary
     if agg.get("dd"):
         dd = agg["dd"]["keywords"]
@@ -751,8 +782,9 @@ def run(config_path, outdir=None):
     parse_sqp(cfg, agg)
     parse_datadive(cfg, agg)
     m = build_metrics(cfg, agg, outdir)
+    acos_text = f"{m['totals']['acos']:.1%}" if m["totals"]["acos"] is not None else "n/a"
     print(f"[analyze] {cfg['client']}: spend {m['totals']['spend']:,.0f} sales {m['totals']['sales']:,.0f} "
-          f"ACOS {m['totals']['acos']:.1%} | channels {m['channels_present']} | outdir {outdir}")
+          f"ACOS {acos_text} | channels {m['channels_present']} | outdir {outdir}")
     return outdir, m
 
 def _slug(s):

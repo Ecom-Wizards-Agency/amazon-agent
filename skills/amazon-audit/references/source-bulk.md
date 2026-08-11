@@ -21,6 +21,7 @@ Scaffold a config, preflight, hand the browser downloads to Codex, pull DataDive
 | Ads bulk `.xlsx` (SP required; SB, SB-Multi, SD, RAS if running) | `ads_bulk_xlsx` | Codex |
 | Business Report `.csv` (Detail Page Sales and Traffic by Child ASIN) | `business_report_csv` | Codex, or `tools/report-fetcher/` |
 | Multi-ASIN SQP `.csv`, one per product group, weekly | `sqp_csvs` | Codex, or `tools/report-fetcher/` |
+| Search Catalog Performance `.csv`, when a product-funnel claim must be tested | `search_catalog_performance_csv` | Codex, Brand Analytics download |
 | DataDive niche keywords + competitors JSON | `datadive_niche_json`, `datadive_competitors_json` | This skill, over MCP |
 | Rank Radar payload (optional, drives the rank chart) | `rank_radar_json` | This skill, over MCP |
 

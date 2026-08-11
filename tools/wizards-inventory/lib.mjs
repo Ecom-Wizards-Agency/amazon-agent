@@ -162,9 +162,19 @@ export function summarizeFbaBySku(listings, requestedSkus) {
     return wanted.has(sku);
   }).map((listing) => {
     const totals = aggregateFba([listing]);
+    const channel = listing.coreListingFields?.fulfillmentChannel
+      || listing.availability?.coreListingFields?.fulfillmentChannel || null;
     return {
       seller_sku: listing.coreListingFields?.sku || null,
       asin: listing.coreListingFields?.asin || null,
+      // Whether an FBA offer exists at all, which the quantities cannot tell
+      // you: an out-of-stock FBA child and an FBM-only child both aggregate to
+      // zero. Reshipment planning needs that difference. The first wants
+      // restocking; the second must never be sent to FBA, and on 11.08.2026 a
+      // plan built without it proposed 5,603 and 5,296 units of two AlphaInfuse
+      // children that hold no FBA offer at all.
+      fulfillment_channel: channel,
+      fba_offer: channel === "AFN",
       available: totals.available,
       reserved: totals.reserved.total,
       inbound: totals.inbound,

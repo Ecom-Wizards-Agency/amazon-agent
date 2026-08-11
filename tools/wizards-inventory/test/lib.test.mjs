@@ -103,7 +103,21 @@ test("configured SKU stock is returned without unrelated listings", () => {
     { coreListingFields: { sku: "OTHER", asin: "B002", fulfillmentChannel: "AFN" }, availability: { quantity: 99 } },
   ];
   assert.deepEqual(summarizeFbaBySku(listings, ["SK-TWF001"]), [{
-    seller_sku: "SK-TWF001", asin: "B001", available: 10, reserved: 0,
-    inbound: 5, unfulfillable: 0, stored: 10,
+    seller_sku: "SK-TWF001", asin: "B001", fulfillment_channel: "AFN", fba_offer: true,
+    available: 10, reserved: 0, inbound: 5, unfulfillable: 0, stored: 10,
   }]);
+});
+
+test("an FBM child is distinguishable from an out-of-stock FBA child", () => {
+  // Both aggregate to zero units. Only one of them should ever be restocked,
+  // and reshipment planning has no other way to tell them apart.
+  const listings = [
+    { coreListingFields: { sku: "SK-FBA", asin: "B001", fulfillmentChannel: "AFN" }, availability: { quantity: 0 } },
+    { coreListingFields: { sku: "SK-FBM", asin: "B002", fulfillmentChannel: "MFN" }, availability: { quantity: 0 } },
+  ];
+  const rows = summarizeFbaBySku(listings, ["SK-FBA", "SK-FBM"]);
+  assert.equal(rows.find((r) => r.asin === "B001").fba_offer, true);
+  assert.equal(rows.find((r) => r.asin === "B002").fba_offer, false);
+  assert.equal(rows.find((r) => r.asin === "B001").available, 0);
+  assert.equal(rows.find((r) => r.asin === "B002").available, 0);
 });

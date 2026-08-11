@@ -68,8 +68,18 @@ tmp/
 *.swp
 ~$*
 
+# Agent scratch scripts and generated client deliverables (never source)
+.codex-tmp/
+outputs/
+tools/reshipment/logs/
+
 # Local runtimes and assistant permissions
 .venv/
+node_modules/
+.dev.vars
+.dev.vars.*
+.env
+.env.*
 .claude/settings.local.json
 
 # sqp-supa client configs (local-only)

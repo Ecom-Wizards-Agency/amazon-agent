@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """
 Amazon Ad/Sales Audit narrative scaffold generator.
-Emits a Markdown draft following skills/amazon-audit/SKILL.md's section skeleton,
-with KPIs/tables PRE-FILLED from metrics.json + sqp_summary.json and prose/problem/lever
-bodies left as `<!-- operator: ... -->` stubs for the operator to write in the agency voice.
+Emits a Markdown draft following skills/amazon-audit/SKILL.md's section skeleton.
+The standard mode leaves operator prompts around pre-filled KPIs. The evidence-hybrid
+mode writes concise claims, evidence, and actions automatically so it can be rendered
+without a manual placeholder pass.
 Honors config.narrative flags (include_levers, include_30day_plan, include_what_can_be_reached).
 """
 from __future__ import annotations
@@ -15,9 +16,6 @@ from branding import load_branding as _load_branding
 
 def _prepared_by_org():
     return _load_branding({}).get("agency_name") or "the operator"
-
-
-from analyze_audit import load_config
 
 
 def _m(v, cur):
@@ -48,7 +46,199 @@ def _fig(outdir, name):
     return f"![{FIGURES[name]}]({name})\n" if (Path(outdir) / name).exists() else None
 
 
+def _evidence(outdir, section):
+    """Selected screenshot lines for one narrative section."""
+    manifest = Path(outdir) / "evidence_manifest.json"
+    if not manifest.exists():
+        return []
+    rows = json.loads(manifest.read_text()).get("selected", [])
+    return [f"![{row['caption']}]({row['path']})\n" for row in rows if row.get("section") == section]
+
+
+def _client_claim_conclusions(outdir):
+    path = Path(outdir) / "internal" / "claim_matrix.json"
+    if not path.exists():
+        return []
+    rows = json.loads(path.read_text()).get("claims", [])
+    return [row for row in rows
+            if row.get("client_surface")
+            and row.get("verdict") != "Not verifiable from available data"]
+
+
+def _claim_reason(row):
+    evidence = row.get("evidence") or []
+    if not evidence:
+        return ""
+    first = evidence[0]
+    if isinstance(first, dict):
+        return first.get("reason") or ""
+    return str(first)
+
+
+def _market_sizing(cfg):
+    path = (cfg.get("inputs", {}) or {}).get("market_sizing_json")
+    if not path:
+        return None
+    q = Path(path).expanduser()
+    if not q.is_absolute():
+        q = Path(__file__).resolve().parents[2] / q
+    return json.loads(q.read_text()) if q.exists() else None
+
+
+def _hybrid_summary(cfg, totals, searchterm_bucket, channels, currency):
+    comparison = cfg.get("comparison_windows", {}) or {}
+    disruption = comparison.get("disruption")
+    control = comparison.get("online_control")
+    note = (cfg.get("inputs", {}) or {}).get("ads_bulk_source_note", "")
+    parts = []
+    if disruption and control:
+        parts.append(
+            f"The required observation window ({disruption}) is disrupted, so it is not a clean "
+            f"commercial baseline. The latest clean online control is {control}."
+        )
+    if totals.get("br_total_sales", 0):
+        parts.append(
+            f"In the control data, the product produced {_m(totals['br_total_sales'], currency)} "
+            f"in ordered-product sales from {totals.get('br_sessions', 0):,.0f} sessions."
+        )
+    if searchterm_bucket:
+        branded = searchterm_bucket.get("Branded", {})
+        generic = searchterm_bucket.get("Generic", {})
+        if branded or generic:
+            b = branded.get("spend", 0)
+            g = generic.get("spend", 0)
+            total = totals.get("spend", 0) or 1
+            parts.append(
+                f"The available ad snapshot allocates {b / total:.0%} of spend to branded terms and "
+                f"{g / total:.0%} to generic terms."
+            )
+    if note:
+        parts.append(f"Advertising conclusions remain directional: {note}")
+    elif channels:
+        parts.append(f"The available advertising data contains {', '.join(channels)}.")
+    return " ".join(parts)
+
+
+def _hybrid_findings(cfg, totals, searchterm_bucket, placements, claims, sqp_demand):
+    findings = []
+    comparison = cfg.get("comparison_windows", {}) or {}
+    if comparison.get("disruption") and comparison.get("online_control"):
+        findings.append({
+            "claim": "Availability is the first constraint, not advertising efficiency",
+            "evidence": [
+                f"The observation window is {comparison['disruption']}.",
+                f"The clean online control is {comparison['online_control']}.",
+                comparison.get("note", "The two windows must remain separate."),
+            ],
+            "comparison": "The disrupted window cannot be graded against a normal trading baseline.",
+            "decision": "Restore and verify the listing before using paid-media changes as a growth test.",
+        })
+
+    for row in claims:
+        reason = _claim_reason(row)
+        if not reason:
+            continue
+        claim = row.get("claim", "Call statement")
+        findings.append({
+            "claim": claim,
+            "evidence": [f"Verdict: {row.get('verdict', 'Not verifiable from available data')}.", reason],
+            "comparison": "The verdict follows the audit's same-query or source-specific comparison method.",
+            "decision": (
+                "Do not use this claim as the basis for a recommendation."
+                if row.get("verdict") == "Not supported"
+                else "Carry this conclusion into the relaunch plan."
+            ),
+        })
+
+    if searchterm_bucket and len(findings) < 4:
+        total_spend = totals.get("spend", 0) or 1
+        generic = searchterm_bucket.get("Generic", {})
+        branded = searchterm_bucket.get("Branded", {})
+        findings.append({
+            "claim": "The available ad snapshot includes both branded and non-branded demand",
+            "evidence": [
+                f"Generic terms represent {generic.get('spend', 0) / total_spend:.0%} of captured spend.",
+                f"Branded terms represent {branded.get('spend', 0) / total_spend:.0%} of captured spend.",
+            ],
+            "comparison": "The snapshot is too short for campaign grades, but it is enough to reject an absolute claim that non-branded advertising is absent.",
+            "decision": "Rebuild the full-window export after relaunch, then grade structure and efficiency against confirmed margin.",
+        })
+
+    if sqp_demand and len(findings) < 4:
+        core = sqp_demand.get("Core", {})
+        if core:
+            findings.append({
+                "claim": "The useful growth pool is the winnable core, not the category headline",
+                "evidence": [
+                    f"Core demand averages {core.get('avg_wk_sv', 0):,.0f} searches a week.",
+                    f"The product captures {core.get('capture', 0):.1%} of measured core purchases.",
+                ],
+                "comparison": "Head terms are real demand, but they are too broad to treat as one listing's addressable market.",
+                "decision": "Build the relaunch around the strongest core terms and measure query-level share movement.",
+            })
+    return findings[:5]
+
+
+def _hybrid_levers(cfg, totals, placements, channels, missing_channels):
+    levers = []
+    comparison = cfg.get("comparison_windows", {}) or {}
+    if comparison.get("disruption"):
+        levers.append((
+            "Restore the retail foundation",
+            "Resolve suppression or availability, confirm the live PDP and Buy Box, then restart measurement.",
+            f"The required window {comparison['disruption']} is disrupted.",
+            "Daily sessions, purchasable status, Buy Box, and stock.",
+        ))
+    if placements:
+        best = min(placements.items(), key=lambda item: item[1].get("acos") if item[1].get("acos") is not None else 999)
+        worst = max(placements.items(), key=lambda item: item[1].get("acos") if item[1].get("acos") is not None else -1)
+        levers.append((
+            "Rebalance placements after the listing is live",
+            f"Protect {best[0]} where efficiency is strongest and reduce exposure to {worst[0]} until it proves incremental value.",
+            f"Available ACOS ranges from {(best[1].get('acos') or 0):.1%} to {(worst[1].get('acos') or 0):.1%} by placement.",
+            "Placement ACOS and incremental ordered sales against confirmed break-even ACOS.",
+        ))
+    levers.append((
+        "Use the listing as the conversion control",
+        "Rebuild the gallery and A+ around the winning use case, proof, product facts, and objection handling before scaling generic traffic.",
+        "The live-creative comparison and category evidence show what shoppers see at the decision point.",
+        "Unit session percentage, click-to-cart, cart-to-purchase, and controlled experiment lift.",
+    ))
+    levers.append((
+        "Win a narrow generic wedge",
+        "Separate branded protection, competitor terms, winnable core queries, and undifferentiated head terms.",
+        "SQP separates where demand exists from where the product actually captures purchases.",
+        "Purchase share and organic rank on the selected core query set.",
+    ))
+    if missing_channels:
+        levers.append((
+            f"Test the missing formats: {', '.join(missing_channels)}",
+            "Add only the formats that match a clear job in the relaunch funnel.",
+            f"The available data contains {', '.join(channels)} and no measured {', '.join(missing_channels)} activity.",
+            "Incremental reach, new-to-brand contribution where available, and blended ACOS.",
+        ))
+    return levers[:5]
+
+
+def _market_decision(product):
+    bench = product.get("benchmark", {}) or {}
+    coverage = product.get("coverage", {}) or {}
+    demand = coverage.get("exact_relevancy_weekly_equivalent", 0)
+    reviews = bench.get("median_reviews", 0)
+    if reviews >= 10000:
+        return (
+            "Large demand, but a heavy review moat. Treat this as the harder launch and require a sharply differentiated position before committing inventory."
+        )
+    if demand >= 50000:
+        return (
+            "Meaningful directional demand with a more workable moat. Validate compliance, unit economics, and a defendable core-term position before launch."
+        )
+    return "Keep this as a secondary test until demand coverage and a differentiated position are stronger."
+
+
 def build(config_path, outdir, force=False):
+    from analyze_audit import load_config
+
     cfg = load_config(config_path)
     outdir = Path(outdir)
     M = json.loads((outdir / "metrics.json").read_text())
@@ -59,10 +249,14 @@ def build(config_path, outdir, force=False):
     markets = ", ".join(M.get("marketplaces", []) or [])
     channels = M.get("channels_present", ["SP"]); miss = [c for c in ("SB", "SD", "RAS") if c not in channels]
     win = M.get("windows", {}); nflags = cfg.get("narrative", {})
+    hybrid = nflags.get("mode") == "evidence_hybrid"
     L = []
     A = L.append
 
     A(f"# {CLIENT}: {markets} Amazon Advertising & Sales Audit\n")
+    voice_guide = (cfg.get("inputs", {}) or {}).get("voice_guide_path")
+    if voice_guide:
+        A(f"<!-- writing authority: {voice_guide} -->")
     A(f"**Prepared by {_prepared_by_org()} · Marketplace: {markets} · Window: {win.get('ads','')}**\n")
     A(f"**Sources:** Ads bulk ({win.get('ads','')}), Business Report ({win.get('business_report','')}), "
       f"SQP ({len(win.get('sqp_weeks',[]))} weekly snapshots), DataDive niche {cfg.get('datadive_niche','')}.\n")
@@ -72,7 +266,10 @@ def build(config_path, outdir, force=False):
     # ---- Ads Summary ----
     organic = T["br_total_sales"] - T["sales"]
     A("## Ads Summary\n")
-    A("<!-- operator: 2-3 sentences on what's really going on. Lead with the branded-carries / generic-bleeds tension and the capture wall. -->\n")
+    if hybrid:
+        A(_hybrid_summary(cfg, T, STB, channels, cur) + "\n")
+    else:
+        A("<!-- operator: 2-3 sentences on what's really going on. Lead with the branded-carries / generic-bleeds tension and the capture wall. -->\n")
     A("| Metric | Value |")
     A("|---|---|")
     A(f"| Ad spend | {_m(T['spend'],cur)} |")
@@ -92,6 +289,8 @@ def build(config_path, outdir, force=False):
             continue
         A(f"| {b} | {_m(d['spend'],cur)} | {d['spend']/T['spend']:.0%} | {_m(d['sales'],cur)} | {(d['acos'] or 0):.0%} | {d['cvr']:.1%} |")
     A("")
+    for visual in _evidence(outdir, "summary"):
+        A(visual)
     A("---\n")
 
     # ---- Current Account Performance ----
@@ -102,7 +301,15 @@ def build(config_path, outdir, force=False):
     for d in sorted(M["business_report"]["rows"], key=lambda x: -x["sales"]):
         A(f"| {d['asin']} | {d['group']} | {d['sessions']:,} | {d['units']} | {_m(d['sales'],cur)} | {d['buybox']:.0%} |")
     A("")
-    A("<!-- operator: one-line read-through: which line carries revenue, $0 ASINs, CVR health. -->\n")
+    if hybrid:
+        br_sessions = sum(row.get("sessions", 0) for row in M["business_report"]["rows"])
+        br_units = sum(row.get("units", 0) for row in M["business_report"]["rows"])
+        cvr = br_units / br_sessions if br_sessions else 0
+        A(f"The product generated {br_units:,.0f} units from {br_sessions:,.0f} sessions in the control data, a {cvr:.1%} unit-session rate. This is the performance baseline to protect after the listing returns.\n")
+    else:
+        A("<!-- operator: one-line read-through: which line carries revenue, $0 ASINs, CVR health. -->\n")
+    for visual in _evidence(outdir, "performance"):
+        A(visual)
     A("### Ads by format\n")
     A(f"Channels present: **{', '.join(channels)}**." + (f" Missing: **{', '.join(miss)}**." if miss else "") + "\n")
     A("### Placement\n")
@@ -158,11 +365,18 @@ def build(config_path, outdir, force=False):
                                _fig(outdir, "fig_purchases_vs_market.png"),
                                _fig(outdir, "fig_brand_name_leak.png")]):
             A(f)
-        A("<!-- operator: the capture number is the story: category demand is large but unconverted. CTR-vs-CVR wall. -->\n")
-        A("<!-- operator: never read branded capture against generic capture. Origination biases them "
-          "differently, so each is only meaningful against the market on its own query type. -->\n")
-        A("<!-- operator: if the brand-leak chart rendered, somebody else is monetising demand this brand "
-          "is paying to create. That usually outranks every optimisation lever. -->\n")
+        for visual in _evidence(outdir, "demand"):
+            A(visual)
+        if hybrid:
+            core = SD.get("Core", {}) if SD else {}
+            if core:
+                A(f"The commercial question is not whether category demand exists. It is whether the listing can win more of the {core.get('avg_wk_sv', 0):,.0f} weekly searches in the winnable core. Branded and generic capture remain separate comparisons because each starts from a different demand source.\n")
+        else:
+            A("<!-- operator: the capture number is the story: category demand is large but unconverted. CTR-vs-CVR wall. -->\n")
+            A("<!-- operator: never read branded capture against generic capture. Origination biases them "
+              "differently, so each is only meaningful against the market on its own query type. -->\n")
+            A("<!-- operator: if the brand-leak chart rendered, somebody else is monetising demand this brand "
+              "is paying to create. That usually outranks every optimisation lever. -->\n")
         A("---\n")
 
     # ---- DataDive ----
@@ -179,38 +393,101 @@ def build(config_path, outdir, force=False):
                                _fig(outdir, "fig_visibility_vs_competition.png"),
                                _fig(outdir, "fig_price_vs_rating.png")]):
             A(f)
-        A("<!-- operator: frame the price/review moat: is the client a premium outlier? what does that do to generic conversion? -->")
-        A("<!-- operator: uniqueness test (playbook check 4): before crediting any strength, confirm the competitors do not have it too. -->\n")
+        for visual in _evidence(outdir, "organic") + _evidence(outdir, "datadive"):
+            A(visual)
+        if hybrid:
+            A("Price, rating, and review count set the trust threshold the relaunch has to cross. A claimed strength only counts when the live competitor set does not make the same claim or show the same proof.\n")
+        else:
+            A("<!-- operator: frame the price/review moat: is the client a premium outlier? what does that do to generic conversion? -->")
+            A("<!-- operator: uniqueness test (playbook check 4): before crediting any strength, confirm the competitors do not have it too. -->\n")
         A("---\n")
 
     # ---- Good and Bad ----
     A("## Good and Bad\n")
-    A("<!-- operator: fold strengths inline as read-throughs. Then number the problems. -->\n")
-    A("**Problem 1: <!-- title -->.** <!-- evidence -->\n")
-    A("**Problem 2: <!-- title -->.** <!-- evidence -->\n")
-    A("**Problem 3: <!-- title -->.** <!-- evidence -->\n")
+    if hybrid:
+        findings = _hybrid_findings(cfg, T, STB, P, _client_claim_conclusions(outdir), SD)
+        for n, finding in enumerate(findings, 1):
+            A(f"### Finding {n}: {finding['claim']}")
+            for evidence in finding["evidence"][:4]:
+                A(f"- **Evidence:** {evidence}")
+            A(f"- **Market comparison:** {finding['comparison']}")
+            A(f"**Decision:** {finding['decision']}\n")
+    else:
+        A("<!-- operator: fold strengths inline as read-throughs. Then number the problems. -->\n")
+        A("**Problem 1: <!-- title -->.** <!-- evidence -->\n")
+        A("**Problem 2: <!-- title -->.** <!-- evidence -->\n")
+        A("**Problem 3: <!-- title -->.** <!-- evidence -->\n")
+    for visual in _evidence(outdir, "findings"):
+        A(visual)
     A("---\n")
+
+    # The internal matrix stays internal. Only operator-selected contradictions or
+    # recommendation-changing conclusions become short narrative findings.
+    claim_conclusions = _client_claim_conclusions(outdir)
+    if claim_conclusions:
+        A("## What changed after checking the call\n")
+        A("We treated the call as a set of hypotheses. These are the points where the evidence changes the recommendation.\n")
+        for row in claim_conclusions:
+            A(f"### {row['claim']}")
+            A(f"**{row['verdict']}.** {_claim_reason(row)}\n")
+        A("---\n")
 
     # ---- Growth Levers ----
     if nflags.get("include_levers", True):
         A("## Growth Levers\n")
-        A("<!-- operator: order by impact on the ceiling. Offer track (reviews/expectations, positioning) usually leads; PPC restructure + placement + missing channels follow. -->\n")
-        A("**Lever 1: <!-- reviews / expectation reset -->.**\n")
-        A("**Lever 2: <!-- positioning / winning use case -->.**\n")
-        A("**Lever 3: <!-- restructure PPC (waste falls out of a clean setup) -->.**\n")
-        A("**Lever 4: <!-- narrow generic wedge -->.**\n")
-        A("**Lever 5: <!-- placement rebalance -->.**\n")
-        if miss:
+        if hybrid:
+            for n, (title, action, evidence, measure) in enumerate(
+                    _hybrid_levers(cfg, T, P, channels, miss), 1):
+                A(f"**Lever {n}: {title}.** {action}")
+                A(f"- **Evidence:** {evidence}")
+                A(f"- **Measure:** {measure}\n")
+        else:
+            A("<!-- operator: order by impact on the ceiling. Offer track (reviews/expectations, positioning) usually leads; PPC restructure + placement + missing channels follow. -->\n")
+            A("**Lever 1: <!-- reviews / expectation reset -->.**\n")
+            A("**Lever 2: <!-- positioning / winning use case -->.**\n")
+            A("**Lever 3: <!-- restructure PPC (waste falls out of a clean setup) -->.**\n")
+            A("**Lever 4: <!-- narrow generic wedge -->.**\n")
+            A("**Lever 5: <!-- placement rebalance -->.**\n")
+        if miss and not hybrid:
             A(f"**Lever 6: <!-- add {', '.join(miss)} -->.**\n")
         A("---\n")
 
     if nflags.get("include_30day_plan", False):
         A("## Recommended 30-day plan\n")
-        A("<!-- operator: only include if the client wants a week-by-week action plan. -->\n")
+        if hybrid:
+            A("- **Days 1–7:** restore and verify the listing, Buy Box, stock, and compliance state.")
+            A("- **Days 8–14:** launch the revised listing and narrow query structure with controlled budgets.")
+            A("- **Days 15–21:** read SQP, Search Catalog Performance, placements, and organic rank together.")
+            A("- **Days 22–30:** keep the proven terms and placements, cut weak traffic, and document the next test.\n")
+        else:
+            A("<!-- operator: only include if the client wants a week-by-week action plan. -->\n")
         A("---\n")
     if nflags.get("include_what_can_be_reached", False):
         A("## What can be reached\n")
-        A("<!-- operator: directional outcomes; exact once margin is confirmed. -->\n")
+        if hybrid:
+            A("The audit supports a staged relaunch target, not a revenue promise. Exact scale and campaign grades remain conditional on confirmed contribution margin, restored availability, and enough post-relaunch data to separate listing lift from traffic mix.\n")
+        else:
+            A("<!-- operator: directional outcomes; exact once margin is confirmed. -->\n")
+        A("---\n")
+
+    # Compact directional launch appendix. It is deliberately separate from the
+    # audited ASIN and never framed as client actuals or a forecast.
+    market_sizing = _market_sizing(cfg)
+    if market_sizing and market_sizing.get("products"):
+        A("## Directional market appendix: the two next products\n")
+        A("This is a market check, not a sales forecast. DataDive estimates category demand and competitor performance. It does not tell us what UltimaPeak will sell.\n")
+        for product in market_sizing["products"]:
+            cov = product.get("coverage", {})
+            bench = product.get("benchmark", {})
+            A(f"### {product['product']}")
+            A(f"- **Relevant demand:** about {cov.get('exact_relevancy_weekly_equivalent', 0):,.0f} searches a week across the exact-relevancy keyword set.")
+            terms = product.get("winnable_core_terms", [])[:5]
+            if terms:
+                A("- **Core terms:** " + ", ".join(f"{x['keyword']} ({x['monthly_search_volume']:,.0f}/month)" for x in terms) + ".")
+            A(f"- **Commercial benchmark:** median price {_m(bench.get('median_price', 0), cur)}, rating {bench.get('median_rating', 0):.1f}, and {bench.get('median_reviews', 0):,.0f} reviews. DataDive estimates median 30-day competitor revenue at {_m(bench.get('median_estimated_revenue_30d', 0), cur)}.")
+            A(f"- **Rankability:** {product.get('competitor_strength', '')}")
+            A(f"**Decision:** {_market_decision(product)}\n")
+            A(f"*Coverage note: {product.get('coverage_caveat', '')} Fresh as of {product.get('latest_research_date', '')[:10]}.*\n")
         A("---\n")
 
     # ---- Sources / Method ----
