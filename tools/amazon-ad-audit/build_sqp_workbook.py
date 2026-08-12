@@ -81,8 +81,8 @@ def build(config_path, outdir):
                    round(avg(sv_series)), round(sum(sv_series)), avg(impshare),
                    avg(actr), avg(mctr), (avg(actr) - avg(mctr)) * 100,
                    avg(acvr), avg(mcvr), (avg(acvr) - avg(mcvr)) * 100,
-                   avg(acart), avg(mcart), safe(pur_asin, pur_mkt)])
-    qi.sort(key=lambda x: -x[4])
+                   avg(acart), avg(mcart), safe(pur_asin, pur_mkt), round(pur_asin), round(pur_mkt)])
+    qi.sort(key=lambda x: (-x[16], -x[4]))
 
     # ---- PPC overlay: aggregate clean/search_terms_classified.csv by term ----
     ppc = defaultdict(lambda: dict(sp=0.0, sa=0.0))
@@ -115,15 +115,20 @@ def build(config_path, outdir):
 
     # TAB 1: Data Completeness
     ws = wb.create_sheet("Data Completeness")
-    title_block(ws, "Data Completeness — read this first", "Multi-ASIN SQP exports cap the query grid per ASIN per week. Long-tail is missing; SV totals are a FLOOR.", 6)
+    source_note = cfg.get("inputs", {}).get("sqp_source_note") or "SQP export source not specified."
+    visible_query_cap = max(
+        (len(queries) for week_map in coverage.values() for queries in week_map.values()),
+        default=0,
+    )
+    title_block(ws, "Data Completeness: read this first", "Historical SQP coverage is capped. Long-tail is missing, so demand totals are a floor.", 6)
     rr = notes_block(ws, 4, [
-        f"Built from {len(cfg['inputs'].get('sqp_csvs',{}))} multi-ASIN SQP exports. Weeks used: {', '.join(KEPT)}.",
-        "CAP: the multi-ASIN SQP tool returns only the top queries per ASIN per week. Below the cap is missing every week, so SV/non-branded totals are a FLOOR.",
-        "FIX for full data: export Brand Analytics > Search Query Performance per single ASIN in Seller Central (uncapped).",
+        f"Built from {len(cfg['inputs'].get('sqp_csvs',{}))} SQP export. Weeks used: {', '.join(KEPT)}.",
+        source_note,
+        f"CAP: this multi-ASIN export reaches {visible_query_cap:,} visible query rows in at least one week. Queries below the grid cap are missing, so demand and non-branded totals are a floor.",
         "Market metrics deduped once per query+week. ASIN counts summed across the ASINs in each parent group.",
     ], 6)
     rr += 1; ws.cell(rr, 1, "Per-ASIN coverage").font = F(11, True, C["deep"]); rr += 1
-    hr = rr; header_row(ws, hr, ["Group", "ASIN", "Weeks", "Max queries / week", "Total unique queries", "Status"], [14, 16, 8, 18, 18, 12]); rr += 1
+    hr = rr; header_row(ws, hr, ["Group", "ASIN", "Weeks", "Max queries / week", "Total unique queries", "Status"], [20, 16, 8, 18, 18, 12]); rr += 1
     for (group, a), wkmap in sorted(coverage.items()):
         perwk = [len(wkmap[x]) for x in wkmap]; maxq = max(perwk) if perwk else 0
         uq = len(set().union(*wkmap.values())) if wkmap else 0
@@ -139,7 +144,7 @@ def build(config_path, outdir):
 
     # TAB 2: Weekly Trend
     ws = wb.create_sheet("Weekly Trend")
-    title_block(ws, "Weekly Trend — deduped market demand + brand funnel", "Per week: deduped market SV / CTR / CVR, and the brand's pooled impression→click→cart→purchase funnel.", 8)
+    title_block(ws, "Weekly Trend: deduped market demand + brand funnel", "Per week: deduped market SV / CTR / CVR, and the brand's pooled impression→click→cart→purchase funnel.", 8)
     hr = 5; header_row(ws, hr, ["Week", "Market SV", "Mkt CTR", "Mkt CVR", "Brand impr", "Brand clicks", "Brand cart", "Brand purch"], [14, 14, 10, 10, 12, 12, 12, 12])
     rr = hr + 1
     for x in KEPT:
@@ -157,7 +162,7 @@ def build(config_path, outdir):
 
     # TAB 3: Branded vs Non-Branded
     ws = wb.create_sheet("Branded vs Non-Branded")
-    title_block(ws, "Branded vs Non-Branded — SQP demand & purchase capture", "SV deduped per query+week. Capture = brand purchases ÷ market purchases on those queries.", 7)
+    title_block(ws, "Branded vs Non-Branded: SQP demand & purchase capture", "SV deduped per query+week. Capture = brand purchases ÷ market purchases on those queries.", 7)
     hr = 5; header_row(ws, hr, ["Intent", "Unique queries", "Avg weekly SV", "Total SV", "SV share", "Brand purch", "Mkt purch"], [14, 14, 14, 14, 10, 12, 12])
     bi = defaultdict(lambda: dict(q=0, avg=0.0, tot=0.0, ap=0.0, mp=0.0))
     for q, weekmap in mkt_wk.items():
@@ -182,17 +187,17 @@ def build(config_path, outdir):
             if c == 1 and it == "Generic":
                 cell.fill = PatternFill("solid", fgColor=TL["warn"])
         rr += 1
-    notes_block(ws, rr + 1, ["Read: the category (non-branded) queries are where the search volume is — but the brand captures a far smaller share of purchases there than on its own name. Category is the gap, gated by price + reviews."], 7, 44)
+    notes_block(ws, rr + 1, ["Read: category queries contain most of the search volume, but the brand captures a far smaller share of purchases there than on its own name. Category is the gap, gated by price + reviews."], 7, 44)
     ws.freeze_panes = f"A{hr+1}"
 
     # TAB 4: Query Intelligence
     ws = wb.create_sheet("Query Intelligence")
-    title_block(ws, "Query Intelligence — brand vs market (multi-week avg)", "CTR/CVR gap vs market = where you under-index. Green = at/above market, red = below. Sorted by avg weekly SV.", 16)
-    hr = 5; header_row(ws, hr, ["Group", "Search query", "Intent", "Wks", "Avg SV", "Total SV", "Imp Share", "Brand CTR", "Mkt CTR", "CTR gap pp", "Brand CVR", "Mkt CVR", "CVR gap pp", "Cart rate", "Mkt cart", "Purch share"],
-                       [12, 30, 9, 5, 9, 10, 9, 9, 9, 9, 9, 9, 9, 9, 9, 10])
+    title_block(ws, "Query Intelligence: brand vs market (multi-week avg)", "CTR/CVR gap vs market = where you under-index. Green = at/above market, red = below. Sorted by brand purchases, then weekly demand.", 18)
+    hr = 5; header_row(ws, hr, ["Group", "Search query", "Intent", "Wks", "Avg SV", "Total SV", "Imp Share", "Brand CTR", "Mkt CTR", "CTR gap pp", "Brand CVR", "Mkt CVR", "CVR gap pp", "Cart rate", "Mkt cart", "Purch share", "Brand purch", "Mkt purch"],
+                       [20, 30, 9, 5, 9, 10, 9, 9, 9, 9, 9, 9, 9, 9, 9, 10, 11, 11])
     rr = hr + 1
     for row in qi[:400]:
-        fmts = [None, None, None, INT, INT, INT, PCT, PCT2, PCT2, '0.00', PCT, PCT, '0.00', PCT, PCT, PCT]
+        fmts = [None, None, None, INT, INT, INT, PCT, PCT2, PCT2, '0.00', PCT, PCT, '0.00', PCT, PCT, PCT, INT, INT]
         for c, (v, fm) in enumerate(zip(row, fmts), 1):
             cell = ws.cell(rr, c, v); cell.border = BORDER; cell.font = F(9)
             if fm:
@@ -208,17 +213,18 @@ def build(config_path, outdir):
 
     # TAB 5: Top Opportunities
     ws = wb.create_sheet("Top Opportunities")
-    title_block(ws, "Top Opportunities — non-branded, high demand, brand invisible", "Non-branded queries, avg weekly SV ≥ 500, ranked by lowest impression share.", 8)
-    hr = 5; header_row(ws, hr, ["Group", "Search query", "Avg SV", "Total SV", "Imp Share", "Brand CTR", "Mkt CTR", "CTR gap pp", "Purch share"], [12, 30, 10, 11, 9, 9, 9, 10, 10])
-    opp = [r for r in qi if r[2] != "Branded" and r[4] >= 500]
+    title_block(ws, "Top Opportunities: focused non-branded core", "Queries must match the configured core terms. Ranked by market purchases, then weekly demand.", 11)
+    hr = 5; header_row(ws, hr, ["Group", "Search query", "Avg SV", "Total SV", "Imp Share", "Brand CTR", "Mkt CTR", "CTR gap pp", "Purch share", "Brand purch", "Mkt purch"], [20, 30, 10, 11, 9, 9, 9, 10, 10, 11, 11])
+    core_tokens = [str(x).lower() for x in (cfg.get("core_tokens") or [])]
+    opp = [r for r in qi if r[2] == "Generic" and r[4] >= 500 and (not core_tokens or any(t in r[1].lower() for t in core_tokens))]
     best = {}
     for r in opp:
         if r[1] not in best or r[6] < best[r[1]][6]:
             best[r[1]] = r
-    opp = sorted(best.values(), key=lambda x: x[6])[:60]
+    opp = sorted(best.values(), key=lambda x: (-x[17], -x[4], x[6]))[:60]
     rr = hr + 1
     for r in opp:
-        vals = [r[0], r[1], r[4], r[5], r[6], r[7], r[8], r[9], r[15]]; fmts = [None, None, INT, INT, PCT, PCT2, PCT2, '0.00', PCT]
+        vals = [r[0], r[1], r[4], r[5], r[6], r[7], r[8], r[9], r[15], r[16], r[17]]; fmts = [None, None, INT, INT, PCT, PCT2, PCT2, '0.00', PCT, INT, INT]
         for c, (v, fm) in enumerate(zip(vals, fmts), 1):
             cell = ws.cell(rr, c, v); cell.border = BORDER; cell.font = F(9)
             if fm:
@@ -228,13 +234,13 @@ def build(config_path, outdir):
             if c == 5:
                 cell.fill = PatternFill("solid", fgColor=(TL["bad"] if r[6] < 0.02 else TL["warn"] if r[6] < 0.05 else TL["ok"]))
         rr += 1
-    notes_block(ws, rr + 1, ["Big category queries where the brand barely shows up. Winning them needs rank + conversion (price/reviews), not just ad bids."], 8, 44)
+    notes_block(ws, rr + 1, ["Focused category queries where the brand barely shows up. Winning them needs rank and conversion proof, not just ad bids."], 11, 44)
     ws.freeze_panes = f"A{hr+1}"
 
     # TAB 6: PPC Overlay
     ws = wb.create_sheet("PPC Overlay")
-    title_block(ws, "PPC Overlay — buying visibility vs earning it", "Top SQP queries matched to ad spend/ACOS. High organic imp-share + high ad spend = paying for traffic you may already get.", 9)
-    hr = 5; header_row(ws, hr, ["Group", "Search query", "Intent", "Avg SV", "Imp Share", "Ad spend", "Ad sales", "Ad ACOS", "Read"], [12, 28, 9, 9, 9, 11, 11, 9, 26])
+    title_block(ws, "PPC Overlay: buying visibility vs earning it", "Top SQP queries matched to ad spend/ACOS. High organic imp-share + high ad spend = paying for traffic you may already get.", 9)
+    hr = 5; header_row(ws, hr, ["Group", "Search query", "Intent", "Avg SV", "Imp Share", "Ad spend", "Ad sales", "Ad ACOS", "Read"], [20, 28, 9, 9, 9, 11, 11, 9, 26])
     rr = hr + 1
     seen_q = {}
     for r in qi:
@@ -247,7 +253,7 @@ def build(config_path, outdir):
         if not p or p["sp"] < 20:
             continue
         ac = safe(p["sp"], p["sa"])
-        read = "Branded — defensive" if r[2] == "Branded" else ("High spend, low visibility" if r[6] < 0.05 else "Category spend")
+        read = "Branded: defensive" if r[2] == "Branded" else ("Low visibility; review paid role" if r[6] < 0.05 else "Category spend")
         rows_ov.append([r[0], r[1], r[2], r[4], r[6], p["sp"], p["sa"], ac if p["sa"] else None, read])
     for r in sorted(rows_ov, key=lambda x: -x[5])[:40]:
         fmts = [None, None, None, INT, PCT, MONEY, MONEY, PCT, None]
@@ -268,7 +274,7 @@ def build(config_path, outdir):
     if has_dd:
         ws = wb.create_sheet("Organic Rank (DataDive)")
         title_block(ws, "Organic Rank overlay (DataDive)", "Brand organic rank on the SQP queries. Ranked top-10 + high SV + high ad spend = candidate to reduce PPC dependence.", 7)
-        hr = 5; header_row(ws, hr, ["Group", "Search query", "Intent", "Avg SV", "Imp Share", "Organic rank", "Ad spend"], [12, 30, 9, 9, 10, 16, 11])
+        hr = 5; header_row(ws, hr, ["Group", "Search query", "Intent", "Avg SV", "Imp Share", "Organic rank", "Ad spend"], [20, 30, 9, 9, 10, 16, 11])
         rr = hr + 1
         seen_or = {}
         for r in qi:
@@ -304,7 +310,7 @@ def build(config_path, outdir):
         ("Averages", "CTR/CVR/cart shown as mean of weekly values; SV shown as avg weekly and total."),
         ("Branded", f"Queries containing {', '.join(cfg.get('brand_tokens',[]))} = Branded. Competitor brand tokens = Competitor. Else Generic."),
         ("Cap caveat", "Multi-ASIN SQP returns only top queries per ASIN per week; long-tail missing; SV totals are a FLOOR."),
-        ("PPC overlay", "Search Term Report (full window) matched to SQP queries by exact term. Ad window vs SQP weeks differ — directional alignment."),
+        ("PPC overlay", "Search Term Report (full window) matched to SQP queries by exact term. The ad window and SQP weeks differ, so the alignment is directional."),
         ("Legend", f"CTR/CVR gap: green ≥ market. ACOS: green <30% / <{M.get('breakeven',0.5):.0%} / amber ≤60% / red >60%."),
     ]
     rr = 4

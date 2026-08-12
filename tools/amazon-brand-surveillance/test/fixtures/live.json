@@ -1,0 +1,16 @@
+{
+  "requestedAsin": "B0HDH2KNFY",
+  "resolvedAsin": "B0HDH2KNFY",
+  "title": "TMRW Example Product",
+  "brand": "Visit the TMRW Store",
+  "availability": "In Stock",
+  "seller": "Example Seller",
+  "shipsFrom": "Amazon",
+  "price": "$29.99",
+  "rating": "4.2",
+  "reviews": "18 ratings",
+  "mainImage": "https://images.example/live.jpg",
+  "url": "https://www.amazon.com/dp/B0HDH2KNFY",
+  "pageTitle": "TMRW Example Product",
+  "capturedAt": "2026-08-10T01:00:00.000Z"
+}

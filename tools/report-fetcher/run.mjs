@@ -4,10 +4,11 @@
  *
  * Runs the fetch in Chrome's REAL page main world over the DevTools Protocol (CDP),
  * using the operator's existing logged-in session. Any agent with shell access
- * (Codex @computer) can run this; no browser sandbox. Read-only.
+ * Any agent with shell access can run this; no browser sandbox. Read-only.
  *
  * Copy-paste path (fill a per-client config once, then a fixed command):
  *   node run.mjs sqp      --config config.<client>.json        # every ASIN group
+ *   node run.mjs sqp-brand --brand <id> --proxy-asin B0.. --weeks ...
  *   node run.mjs business --config config.<client>.json
  *   node run.mjs scp      --config config.<client>.json
  *   node run.mjs tst      --config config.<client>.json
@@ -17,6 +18,7 @@
  * Explicit-flag path:
  *   node run.mjs sqp --asins B0..,B0.. --weeks 2026-06-27 --range weekly|monthly|quarterly \
  *                    --out output/<client>/reporting/sqp.csv [--split]
+ *   node run.mjs sqp-brand --brand 123 --proxy-asin B0.. --weeks 2026-06-27 --out ...
  *   node run.mjs business --start 2026-06-01 --end 2026-06-30 [--asins ..] [--report child|parent|sku] --out ..
  *   node run.mjs scp --weeks 2026-06-27 [--brand <id>] [--asins ..] --out ..
  *   node run.mjs tst --weeks 2026-06-27 [--brand <b>] [--search-term <t>] --out ..
@@ -27,12 +29,13 @@
  *                                   inherited from your Seller Central tab, NOT the session default)
  *          --origin https://sellercentral.amazon.<tld> (force the region; normally derived from
  *                                   --marketplace via MARKET_HOSTS)
- * Prereq: tools/report-fetcher/launch-chrome-debug.sh (debug Chrome, signed into Seller Central).
+ * The runner starts/reuses the dedicated headless Chrome automatically. The
+ * operator signs in once through launch-chrome-debug.sh --mode recovery.
  */
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { assertChrome, listPages, createPage, closePage, evaluate, Session } from "./cdp.mjs";
+import { ensureChrome, listPages, createPage, closePage, evaluate, Session } from "./cdp.mjs";
 import { format } from "./format-seller-reports.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -144,6 +147,22 @@ function buildJobs(report, cfg, args, mp) {
       jobs.push({ report, group: name, asins: list(asins), range, weeks, split,
         pageUrl: "/brand-analytics/dashboard/query-performance", needMetaTag: true, stem });
     }
+  } else if (report === "sqp-brand") {
+    const c = cfgFor("sqp_brand");
+    const range = (args.range || c.reporting_range || "weekly").toLowerCase();
+    const weeks = list(args.weeks || args.week).length ? list(args.weeks || args.week) : list(c.period_end_dates);
+    if (!weeks.length) die("sqp-brand needs --weeks YYYY-MM-DD (or period_end_dates in config)");
+    const brand = args.brand || c.brand;
+    if (!brand) die("sqp-brand needs --brand <brand id>");
+    const proxyAsin = args["proxy-asin"] || c.proxy_asin || "";
+    const out = args.out || c.out || join(c.out_dir || "output/<client>/reporting/", "sqp_brand_proxy.csv");
+    const p = { marketplace: mp, reportingRange: range, periodEndDates: weeks,
+      brand: String(brand), proxyAsin };
+    if (args["max-pages"] || c.max_pages) p.maxPages = Number(args["max-pages"] || c.max_pages);
+    jobs.push({ report, out, range, weeks,
+      pageUrl: `/brand-analytics/dashboard/query-performance?brand=${encodeURIComponent(brand)}&view-id=query-performance-brands-view`,
+      needMetaTag: true, call: `fetchBrandSqp(${JSON.stringify(p)})`,
+      desc: `SQP BRAND VIEW proxy ${range} ${weeks.join(",")}${proxyAsin ? " -> " + proxyAsin : ""}` });
   } else if (report === "scp" || report === "tst") {
     const c = cfgFor(report);
     const range = (args.range || c.reporting_range || "weekly").toLowerCase();
@@ -203,7 +222,7 @@ function accountParamsFrom(url) {
 }
 
 // Best-effort read of the seller display name from a Seller Central tab, so the operator (or
-// Codex) can eyeball WHICH CLIENT a pull belongs to instead of decoding a merchant id. Mirrors
+// the current agent can eyeball WHICH CLIENT a pull belongs to instead of decoding a merchant id. Mirrors
 // the account-safety pattern in ../opportunity-explorer/run-poe.mjs.
 const ACCT_NAME_JS = `(function(){
   var sels = ['[data-test="current-account"]','.dropdown-account-switcher-header',
@@ -253,10 +272,10 @@ async function main() {
   const cfg = args.config ? JSON.parse(readFileSync(args.config, "utf8")) : null;
 
   if (args._ === "doctor") {
-    const v = await assertChrome();
+    const v = await ensureChrome();
     console.log("Chrome:", v.Browser, "| debug port reachable");
     const sc = (await listPages()).filter((p) => /sellercentral\.amazon\./.test(p.url || ""));
-    if (!sc.length) { console.log("Seller Central: no tab. Start recovery mode only if login is required, then open https://sellercentral.amazon.com."); process.exit(1); }
+    if (!sc.length) { console.log("Seller Central: no logged-in tab. Run tools/report-fetcher/launch-chrome-debug.sh --mode recovery, sign in, then return it to headless mode with tools/report-fetcher/launch-chrome-debug.sh."); process.exit(1); }
     const s = await Session.open(sc[0].webSocketDebuggerUrl);
     let st;
     try {
@@ -277,8 +296,8 @@ async function main() {
   }
 
   const reports = args._ === "all" ? ["sqp", "business", "scp", "tst", "inventory"].filter((r) => cfg && (cfg[r] || cfg[r === "business" ? "business_report" : r])) : [args._];
-  if (!reports.length || !["sqp", "scp", "tst", "business", "inventory"].includes(reports[0]))
-    die("usage: run.mjs <sqp|scp|tst|business|inventory|all|doctor> [--config <cfg>] [flags] — see the header of run.mjs");
+  if (!reports.length || !["sqp", "sqp-brand", "scp", "tst", "business", "inventory"].includes(reports[0]))
+    die("usage: run.mjs <sqp|sqp-brand|scp|tst|business|inventory|all|doctor> [--config <cfg>] [flags]. See the header of run.mjs");
 
   const jobs = reports.flatMap((r) => buildJobs(r, cfg, args, mp));
 
@@ -291,7 +310,7 @@ async function main() {
     process.exit(0);
   }
 
-  await assertChrome();
+  await ensureChrome();
   // Region: pass --origin (e.g. https://sellercentral.amazon.de) to force it — needed
   // when the debug Chrome has tabs from more than one region (US .com vs EU .de). One
   // EU login (.de) covers DE/IT/ES/FR/NL/... via --marketplace; US uses .com.
@@ -304,14 +323,36 @@ async function main() {
     if (!pages.some((p) => (p.url || "").startsWith(origin))) die(`No debug-Chrome tab on ${origin}. Open Seller Central there (signed in) and retry.`);
   } else {
     const scTabs = pages.filter((p) => /sellercentral\.amazon\./.test(p.url || ""));
-    if (!scTabs.length) die("No logged-in Seller Central tab found. Run launch-chrome-debug.sh and sign in, then retry.");
+    if (!scTabs.length) die("No logged-in Seller Central tab found. Run tools/report-fetcher/launch-chrome-debug.sh --mode recovery, sign in, then return it to headless mode with tools/report-fetcher/launch-chrome-debug.sh.");
     // Pick the tab whose HOST actually serves the requested marketplace, in preference order.
     // Never just take the first Seller Central tab: with .com and .com.au both open that is a
     // coin flip, and the wrong one returns another country's (or another seller's) numbers.
     const wanted = MARKET_HOSTS[mp];
     if (!wanted) die(`Unknown --marketplace "${mp}". Known: ${Object.keys(MARKET_HOSTS).join(", ")}. Or force the region with --origin https://sellercentral.amazon.<tld>`);
-    const match = wanted.map((h) => scTabs.find((p) => hostOf(p) === h)).find(Boolean);
-    if (!match) die(`No debug-Chrome tab serves --marketplace ${mp}. Expected one of: ${wanted.join(", ")}. Open Seller Central on that host (signed in) and retry.\n  Tabs currently open: ${[...new Set(scTabs.map(hostOf))].join(", ")}`);
+    let match = wanted.map((h) => scTabs.find((p) => hostOf(p) === h)).find(Boolean);
+    // No tab on this region yet: open the preferred host ourselves rather than
+    // failing. One Seller Central login covers every region the seller is
+    // registered in, so a signed-in .com session reaches .de and .com.au too --
+    // the tab just has to exist, because host routing above picks by tab.
+    // Without this an unattended run dies on any non-US marketplace, which is
+    // exactly what happened to JBS DE and Svens Island AU on 11.08.2026.
+    if (!match) {
+      const host = wanted[0];
+      console.log(`Region: no tab serves --marketplace ${mp}; opening https://${host}/home`);
+      const opened = await createPage(`https://${host}/home`);
+      await new Promise((r) => setTimeout(r, 14000));
+      match = (await listPages()).find((p) => hostOf(p) === host) || opened;
+      // A fresh regional tab can land on sign-in if the session does not extend
+      // there. Say so plainly instead of fetching an empty report.
+      const probe = await (async () => {
+        try {
+          const s = await Session.open(match.webSocketDebuggerUrl);
+          return JSON.parse(await evaluate(s, `JSON.stringify({p: !!document.querySelector("input[type=password]"), h: location.host})`, 25000));
+        } catch { return null; }
+      })();
+      if (probe && probe.p) die(`Opened https://${host}/home but it shows a sign-in page. Run tools/report-fetcher/launch-chrome-debug.sh --mode recovery, sign in to that region, then return to headless mode.`);
+      if (!match || hostOf(match) !== host) die(`Could not open a Seller Central tab on ${host} for --marketplace ${mp}.`);
+    }
     origin = new URL(match.url).origin;
     const others = [...new Set(scTabs.map(hostOf))].filter((h) => h !== hostOf(match));
     console.log(`Region: ${new URL(origin).host} for --marketplace ${mp}${others.length ? ` (ignoring other open host(s): ${others.join(", ")})` : ""}`);

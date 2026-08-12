@@ -27,7 +27,15 @@ The agent should be able to:
 
 CDP-first for scripted workflows: the repo keeps a dedicated debug Chrome profile (`~/.amazon-agent/chrome-debug`, DevTools port 9222, localhost-only), launched or reused idempotently via `tools/report-fetcher/launch-chrome-debug.sh`. It runs alongside the normal browser, its Amazon logins persist across runs, and scripts drive it directly over CDP with no extension round-trips, which makes it faster and more reliable than operating a normal browser UI. Current Chrome (136+) silently ignores the debug port on the default profile, so this dedicated profile is the only working CDP path. Every workflow that has a script/CDP runner (report fetcher `run.mjs`, POE downloader `run-poe.mjs`, listing capture, future fetchers) uses the debug Chrome by default, for both agents. All account/marketplace verification and login rules below apply to the debug profile exactly like any other browser session.
 
+CDP runners start or reuse this dedicated profile lazily through the shared
+`ensureChrome()` helper. `assertChrome()` is the read-only probe for setup and
+diagnostics. Set `CDP_AUTOSTART=0` only when a caller explicitly needs probe-only
+behavior. Automatic startup is always headless; visible recovery remains an
+operator-attended login step.
+
 Port 9222 runs headlessly by default, like the Wizards AI port-9223 browser. Do not open or bring its window to the front during normal work. Use `--mode recovery` only when the operator must log in or explicitly asks to see the browser. A workflow that cannot function with Chrome's headless renderer may temporarily use `--mode headed`, but the window stays behind other apps unless the operator must interact. Return the profile to headless mode with the normal launcher command as soon as the visible step is complete. Headless operation does not relax any login, account, marketplace, evidence, or stop-before-risk checkpoint.
+
+**Set a local delivery postcode before reading or screenshotting any Amazon RETAIL page.** Without one, an automated session sits on Amazon's default ship-to (it renders as "Kazakhstan" on the EU stores) and every listing comes back with no price, no Add to Cart and "No disponible / Currently unavailable", including products that are in stock and selling. Search results are reordered, so the client's own ASINs fall off page one. Nothing errors, so the wrong answer looks like a finding. Use `tools/report-fetcher/marketplace-postcode.mjs`: `ensureDeliveryPostcode(session, "es")` sets it, and `assertDeliveryPostcode(session, "es")` re-checks it. The postcode is per marketplace and per big city (Madrid 28001, Berlin 10115, London SW1A 1AA, New York 10001, and so on), because coverage is best in a city and a rural code can add a real delivery restriction. Amazon also drops the ship-to on a new tab that has not been reloaded, so re-assert after every navigation you are about to read from. This is a browsing preference on our own debug profile: it changes nothing on any Amazon account and touches no cookie or storage directly. Seller Central pages do not need it.
 
 Interactive UI work (FlatFilePro mapping, Creator Connections inbox, visual checks, anything without a script path) runs over the same CDP debug Chrome. CDP is not limited to scripted fetches: it dispatches real mouse and key events, captures screenshots as evidence, polls for late-loading elements, attaches local files to file inputs (`DOM.setFileInputFiles`), and captures downloads to a chosen folder (`Browser.setDownloadBehavior`). Verified 31.07.2026, including a live Seller Central account switch driven entirely from the terminal.
 
@@ -40,11 +48,16 @@ Every skill declares its path in one standardized line right under its title (`B
 If an Amazon page shows a login screen, switch port 9222 to `--mode recovery`, bring it forward, and ask the operator to log in. Return it to headless mode after login. The agent must not handle passwords, one-time codes, authenticator prompts, cookies, local storage, session stores, or other credentials.
 
 One narrow unattended exception is approved for Wizards AI. Its dedicated
-port-9223 Chrome uses a separate delegated Amazon user with view-only account
-permissions. When `~/os/wizards-ai/config.json` explicitly enables the scoped
+port-9223 Chrome uses a separate delegated least-privilege Amazon service account.
+SPP grants View wherever available plus four explicit Edit exceptions: Reports,
+`Manage Inventory/Add a Product`, `Manage FBA Inventory/Shipments`, and
+`Inventory Planning`. The three Inventory exceptions expose required read data
+and never authorize runtime writes.
+When `~/os/wizards-ai/config.json` explicitly enables the scoped
 1Password service-account mode, `tools/wizards-inventory/` may retrieve only
-that view-only login from the custom `Wizards AI Automation` vault through a
-token stored in macOS Keychain. The code must assert port 9223, view-only scope,
+that read-runtime login from the custom `Wizards AI Automation` vault through a
+token stored in macOS Keychain. The code must assert port 9223, the preserved
+view-only runtime-policy identifiers,
 allowed Amazon authentication origins, and no fallback before retrieving a
 credential. CAPTCHA, device approval, account recovery, identity verification,
 and every port-9222 login remain human-only. This exception never permits cookie
@@ -98,15 +111,17 @@ Expected pCloud visual archive check:
 
 ## Specialist Skill Model
 
-This project uses one main Amazon operator with specialist skills. Specialist skills are not permanent separate agents; they are focused playbooks the main operator loads when the request matches. Use temporary subagents only for larger tasks where parallel research or QA saves time.
+This project uses one current Amazon operator with specialist skills. Specialist skills are not permanent separate agents; they are focused playbooks the current agent loads when the request matches. Use temporary subagents only for larger tasks where parallel research or QA saves time.
 
-**One copy of every skill, in this repo.** `skills/` is the single source of truth for both runtimes. Claude reads it directly from the working tree. Codex reads it through symlinks: every `~/.codex/skills/amazon-*` entry points at the matching `skills/<name>` directory here (wired 2026-07-26). Never edit a skill inside `~/.codex/skills/`, and never replace one of those symlinks with a real directory: that is exactly how the two runtimes silently drifted for three weeks. Edit the file in this repo and both agents see it immediately.
+**Skills are agent-neutral.** The current working agent owns the workflow end to end when it has the required capabilities: data collection, local build, writing, QA, and authorized internal delivery. Describe steps by capability or surface (`connected browser`, `CDP`, `DataDive MCP`, `local build`, `Google Drive`), never by a named assistant. If a required capability is unavailable, leave the standard handoff for any capable agent. A handoff is a capability fallback, not a permanent role split. Platform names remain only when they identify a real interface or discovery mechanism.
+
+**One copy of every skill, in this repo.** `skills/` is the single source of truth for every runtime. Claude reads it directly from the working tree. Codex reads it through symlinks: every `~/.codex/skills/amazon-*` entry points at the matching `skills/<name>` directory here (wired 2026-07-26). Never edit a skill inside `~/.codex/skills/`, and never replace one of those symlinks with a real directory: that is exactly how two runtimes silently drifted for three weeks. Edit the file in this repo so every supported agent sees the same instructions.
 
 **There are no exceptions any more.** `amazon-sqp-competitor-check` used to be a deliberate twin pair (repo file = coordinator, `~/.codex/skills/` copy = browser executor). The two halves were merged into the single repo skill on 31.07.2026 and the Codex-side directory was replaced with a symlink like every other skill. Every `~/.codex/skills/amazon-*` entry is a symlink and none is a real directory, so the drift failure mode is structurally impossible rather than merely forbidden.
 
 Terminology:
 
-- Main agent (Codex or Claude): the main operator doing the work.
+- Current agent: the main operator doing the work, regardless of runtime or model.
 - Specialist skill: a focused playbook/toolkit the main operator opens for a workflow.
 - Temporary subagent: a delegated helper used only when parallel research, independent QA, or a large split task is useful.
 - Project: the shared workspace where the Amazon libraries, skills, local outputs, and safety rules live.
@@ -122,9 +137,10 @@ Default routing:
 - `amazon-ads`: Ads Console, PPC, bidding, budgets, targeting.
 - `amazon-campaign-builder`: creating Sponsored Products campaigns from a text brief → bulk-upload `.xlsx` via `tools/amazon-campaign-builder/` (file-only; upload stays operator-confirmed).
 - `amazon-ads-monitor`: automated daily (and weekly) Amazon Ads performance brief with trends, % changes, a Sellerboard-vs-AdLabs data cross-check, and goal-lens-aware philosophy-aware flags, posted to Slack → `tools/amazon-ads-monitor/` (read-only; Sellerboard "Dashboard Totals" CSV + AdLabs cross-check primary, SP Ads API v3 secondary, mock/PREVIEW fallback with no credentials).
-- `amazon-sb-video-briefs`: Sponsored Brands VIDEO creative work: keyword-driven video planning, editor briefings, SB video scripts and angle testing (`/video-brief`). Data-selected query clusters (POE + DataDive + SQP + ads data) → one branded briefing per batch, section per video, three named angles over one shared second half (script tables, sound-off rules, specs, advisory health-claims table), plus a per-product-line Creative Reference & Asset Library. Pure PPC structure → `amazon-campaign-builder`/`amazon-ads`; creator sourcing → `amazon-creator-connections`.
+- `amazon-sb-video-briefs`: Sponsored Brands VIDEO creative work (`/video-brief`). It combines the latest Drive keyword workbook, DataDive roots, broad POE scouting, SQP, ads, listing, price, and verified assets, then produces three named angles over one shared second half plus a per-product Creative Reference. Claims validation stays internal. Briefs contain only the concise do-not list. Stable concept-testing methodology lives in `agency/Playbooks/amazon-sb-video-concept-testing-playbook.md`; live results live in Notion. Pure PPC structure routes to `amazon-campaign-builder`/`amazon-ads`; creator sourcing routes to `amazon-creator-connections`.
 - `amazon-creator-connections`: Creator Connections inbox audits, status-filtered message triage, campaign tracker updates, reply drafting (operator-confirmed sends), campaign prep to the publish checkpoint, tracker gaps, reconciliation.
 - `amazon-reporting`: fetching and formatting Seller/Ads reports, SQP, business reports, analytics workbooks; Business Reports + SQP can be fetched without manual download via `tools/report-fetcher/`. Not for audit narratives (that is `amazon-audit`).
+- `amazon-launch-strategy`: read-only forward-looking Day 0 and 13-week launch plans covering low/base/high sales scenarios, bottom-up PPC budgets, pricing and discount constraints, stock and reorder timing, compliant review paths, owners, and open confirmations. Historical diagnosis remains in `amazon-audit`; live execution routes to the relevant operating skill.
 - `amazon-client-offboarding`: complete, branded, read-only Amazon account handovers when an engagement ends or ownership transfers. Produces the client operating narrative plus the exact five-tab evidence workbook; it is not an audit posture and never mutates the account.
 - `amazon-inventory-planning`: weekly FBA inventory overview, reshipment planning, pCloud outputs, Slack staging.
 - `amazon-opportunity-explorer`: Product Opportunity Explorer/OEI/POE exports, image strategy, product strategy, Alexa/Rufus semantic insights.
@@ -134,6 +150,7 @@ Default routing:
 - `amazon-communications`: support cases, buyer messages, courtesy-refund follow-ups (creator replies inside Creator Connections → `amazon-creator-connections`).
 - `amazon-flatfilepro-prep`: prepare label-based FlatFilePro/flat-file compliance CSVs and audit notes from backend exports, labels, packaging, and case messages.
 - `amazon-flatfilepro-upload-mapper`: operate the FlatFilePro upload flow in the logged-in browser for prepared CSVs, match by SKU, map columns, capture validation issues, and stop before final submit/update.
+- `amazon-forecasting-context`: per-client source precedence, historical evidence, assumptions, and caveats for forecasting questions. The skill is the structure; the filled-in pack lives outside this repo under `_local/forecasting-context/<client>/`. It is a context layer, not an audit or launch-plan builder.
 
 Amazon client onboarding trigger phrases:
 
@@ -155,6 +172,17 @@ Operational-check trigger phrases:
 - `Show the operational checks setup`
 
 Route these phrases to `amazon-operations-review`. Loading or installing the skill never creates an automation or runs a check. The setup phrase produces a preview only. Only the separate exact approval phrase following a complete pending preview authorizes schedule creation, and activation must not trigger an immediate run.
+
+Launch strategy trigger phrases:
+
+- `Amazon launch plan`
+- `90-day launch strategy`
+- `PPC budget and plan for launch`
+- `launch pricing and discount strategy`
+- `launch stock forecast`
+- `review strategy before launch`
+
+Route these phrases to `amazon-launch-strategy`. The workflow is read-only and may consume audit findings, keyword workbooks, POE, listing drafts, client briefs, and live project context. It never duplicates the `amazon-audit` historical diagnosis model. Campaign files, live PPC changes, catalog changes, shipments, and client messages remain separate authorized actions.
 
 Inventory planning trigger phrases:
 
@@ -227,9 +255,7 @@ Reusable assembly (client-agnostic): `tools/amazon-seo-keyword-workbook/` turns 
 
 Keyword-research workbook delivery goes to Google Drive only. Do not copy generated keyword-research workbooks to pCloud. Target folder pattern: `Geteilte Ablagen/Ecom Wizards/01_Client Sheets/<Client>/<Client> - Shared/<Keyword Research>/<Country>/` (see Google Drive Delivery below: the workbook is client-facing, so it goes inside `<Client> - Shared/`, and the Keyword Research folder's exact name varies per client, so reuse the existing one). One Keyword Research folder per client with a sub-folder per country (NOT a folder per run). If the client has only one country, the workbook goes directly in that folder with no country sub-folder. The workbook is delivered as a native Google Sheet with `tools/gdrive-deliver/deliver.py`, like every other deliverable.
 
-Two-agent flow (Codex ↔ Claude): keyword-workbook runs split across the internal/connected browser (POE + DataDive UI exports) and Claude (SEO writing + the builder). To avoid hand-translating between agents, run the builder's preflight: `build_keyword_workbook.py --config <cfg> --preflight`. It reads the config's input contract and prints either a copy-ready Codex handoff (for missing browser/UI inputs) or a READY status. Codex's role here: produce the contract inputs at their paths, capture evidence + caveats, then stop. Do not run the builder or write SEO (that is Claude's half: write the SEO content and run the build). Follow the handoff format in `docs/handoff-template.md`. Building a different product than the style template clears product-specific curated tabs to placeholders (via `tabs.carry_forward_clear`) so a new-market workbook never ships another product's content.
-
-`/seo-standby` means: prepare for a keyword-research workbook run, load the Amazon SEO keyword workflow as needed, then wait for Claude's handoff. Do not start DataDive, POE, listing capture, builder, SEO writing, Drive delivery, listing edits, commits, or browser work until the operator provides Claude's concrete handoff/instructions. After the handoff arrives, capture only the contract inputs, save exact requested paths, report caveats, and stop.
+The current agent runs the keyword-workbook flow end to end. Run `build_keyword_workbook.py --config <cfg> --preflight`; it reads the input contract and prints capability-based checklists for missing DataDive MCP or browser inputs, or a READY status. Gather the available inputs, write the SEO content, build, validate, and complete authorized internal delivery in the same session. If the current runtime lacks a required capability, leave `docs/handoff-template.md` for any capable agent to continue from the exact contract paths. Building a different product than the style template clears product-specific curated tabs to placeholders (via `tabs.carry_forward_clear`) so a new-market workbook never ships another product's content.
 
 For SOP maintenance (`/create-sop`, `/fix-sop`, outdated SOPs, broken SOP links, wrong SOP steps, new SOP drafts), route to `amazon-sop-maintenance`. The trigger phrases, the SOP-vs-skill rule, storage locations, and the full correction workflow live in that skill. Stop before pushing unless the operator explicitly asks to push.
 
@@ -244,10 +270,14 @@ Source priority:
 
 **One skill owns every Amazon ad or sales audit: `amazon-audit`** (`/amazon-audit`, with the posture as an argument: `deep`, `monthly` or `actions`). It is self-contained. The analysis lens, narrative structure, operator voice, workbook layout, figure set and branded-document contract all live in `skills/amazon-audit/SKILL.md`, not in a separate playbook doc. Route there for the full run and do not restate its rules elsewhere.
 
+**Client-facing brand precedence is strict.** For every Amazon document, workbook, deck, or report, use this order: an explicit approved client template first; otherwise the owning workflow's branded renderer and style configuration; otherwise the Ecom Wizards brand contract; generic document or spreadsheet defaults only when the operator explicitly asks for an unbranded deliverable. Generic Google Docs, Documents, Google Sheets, and Spreadsheets skills provide construction and QA mechanics only. They may not replace the owning workflow's logo or lockup, palette, typography, running header/footer, or workbook styling. "No cover" means `cover=False`: page one begins with the content while all content-page branding remains.
+
+Brand compliance is a delivery gate. Before a client-visible upload, verify the expected lockup or logo, palette, fonts, running header/footer and page numbers where applicable, workbook title/header/section treatments, and the absence of a generic fallback theme. Render and visually inspect every document page and every populated workbook tab after native Google conversion. A file that fails this gate is not delivered.
+
 It resolves three things, in this order:
 
-- **Data source, auto-detected, never asked.** Look the brand up in AdLabs. A managed client with a profile runs live on the MCP with no downloads: per-ASIN SQP (`search_query`) and the whole Business Report (`product` via the SP-API link) are both there, as is stock. A prospect with no profile runs from downloaded ads bulk + Business Report + SQP via the `tools/amazon-ad-audit/` toolkit. Only margin/break-even comes from outside either path (Sellerboard).
-- **Posture, the one question asked up front.** `deep` for onboarding or a prospect pitch (full narrative, cover page, MASTER workbook). `monthly` for a recurring managed review (lean, internal, learnings-forward, no cover, inline report plus a branded Google Doc). `actions` for the prioritized change list only.
+- **Posture, the one question asked up front.** `deep` is always a prospect audit (full narrative, cover page, MASTER workbook). `monthly` is a recurring managed review (lean, internal, learnings-forward, no cover, inline report plus a branded Google Doc). `actions` is a read-only prioritized change list for a managed account.
+- **Data source, fixed by posture.** `deep` always uses downloaded ads bulk + Business Report + SQP via `tools/amazon-ad-audit/` and never calls AdLabs. `monthly` and `actions` require an AdLabs profile and never fall back to downloads. Actions are diagnosed here; previews and applies route to `amazon-ppc-management`. Only margin/break-even comes from outside either path (Sellerboard).
 - **Scope, defaulted from posture.** Lens A (performance: stock, Buy Box, organic rank, SQP, funnel, ads, structure, budgets) runs on every audit. Lens B (shopper and creative: POE reviews and returns, live creative capture, listing compliance) runs on `deep`, on a quarterly pass for managed clients, or whenever Lens A's funnel tripwire fires.
 
 Neighbouring workflows that are NOT this skill:
@@ -255,7 +285,17 @@ Neighbouring workflows that are NOT this skill:
 - Weekly per-keyword SQP x PPC monitoring (`/supa`): `tools/sqp-supa/` toolkit. Answers the one question the audit cannot: did click share fall because ad spend on that keyword quietly fell? AdLabs-native, one pull per Sunday-Saturday week, per-client config gitignored (`config.<client>-<market>.json`). Not an audit narrative and not a substitute for one.
 - Ongoing weekly MANAGEMENT of an AdLabs-managed account ("run the week", `/ppc-manage`): `amazon-ppc-management` skill. The operating counterpart to the audit (diagnose) and the monitor (observe): stock gate, run-rate pacing governor, Rank Radar graduation, opt-group audit, then AdLabs optimizer/harvest preview -> explicit operator approval per batch -> apply with an audit note. Doctrine and thresholds live in `_local/ads-strategy/strategy.md` v3 + `strategy.json` `management`.
 
-The workbooks and narrative scaffold are built by the client-agnostic toolkit `tools/amazon-ad-audit/` (per-client config from `config.TEMPLATE.json`; see its `WORKFLOW.md` and `NEW-CLIENT.md`). Note the toolkit directory keeps its original name; only the skill was renamed. Build steps, roles (Codex downloads exports, Claude pulls DataDive/builds/writes), QA gates, and delivery rules live in the `amazon-audit` skill. Client config JSONs are gitignored; deliver the MASTER workbook as a native Google Sheet and the narrative as a native Google Doc to the audit folder inside `<Client> - Shared/`, both through `tools/gdrive-deliver/deliver.py` (see Google Drive Delivery below). Intermediate working files from the audit run are NOT deliverables: they stay in `_Working/account-check/` or local `output/`.
+The workbooks and narrative scaffold are built by the client-agnostic toolkit `tools/amazon-ad-audit/` (per-client config from `config.TEMPLATE.json`; see its `WORKFLOW.md` and `NEW-CLIENT.md`). Note the toolkit directory keeps its original name; only the skill was renamed. The current agent gathers the capability-specific inputs, pulls DataDive, builds, writes, runs QA, and completes authorized internal delivery. The detailed gates live in the `amazon-audit` skill. Client config JSONs are gitignored; deliver the MASTER workbook as a native Google Sheet and the narrative as a native Google Doc to the audit folder inside `<Client> - Shared/`, both through `tools/gdrive-deliver/deliver.py` (see Google Drive Delivery below). Intermediate working files from the audit run are NOT deliverables: they stay in `_Working/account-check/` or local `output/`.
+
+## Client Offboarding Standard
+
+**One skill owns a full Amazon engagement handover: `amazon-client-offboarding`.** Use it when a client is leaving, account ownership changes, or a successor needs to inherit the account. An audit diagnoses performance at a point in time; an offboarding handover also records engagement delivery, operating ownership, complete material change history, reusable assets, unresolved evidence, and successor-ready action queues across every supported Amazon area.
+
+The workflow is strictly read-only. It may collect evidence from advertising, rank, listings and creative, catalog, inventory, buyability, Account Health, and client-visible assets, but it never changes Amazon, AdLabs, listings, inventory, or communications. Unsupported areas are disclosed and omitted rather than padded.
+
+Build through `tools/amazon-client-offboarding/build_handover.py` from a gitignored per-run config, evidence manifest, and operator-written Markdown. Production preflight fails closed if approved Ecom Wizards branding or required logo/font assets are missing. The Doc uses the canonical no-cover A4 renderer with `Amazon Account Handover` as its label. The workbook uses the canonical branding loader and styling helpers and contains exactly five tabs: `Read Me & Data Watermark`, `Market Scoreboard`, `Non-Brand RPC Diagnostics`, `Rank & Query Tracker`, and `Action Register`. Advertising change history and the client asset/link index stay in the Doc.
+
+Deliver the validated DOCX/XLSX intermediaries as one native Google Doc and one native Google Sheet through `tools/gdrive-deliver/deliver.py` into an exact existing folder inside `<Client> - Shared/`. Never create a destination folder during offboarding, and never send the files without separate communication approval.
 
 ## Client Offboarding Standard
 
@@ -499,19 +539,19 @@ Before any Brand Customer Reviews, promotion/sale-discount, or courtesy-refund o
 
 ## Cross-Agent Handoff
 
-When the operator is using Codex and Claude together, the agent that stops must leave a copy-ready handoff for the next agent. Do not make the operator translate between agents.
+When work must move between agents or runtimes, the agent that stops must leave a copy-ready handoff for the next capable agent. Do not make the operator translate between agents.
 
 **The format is `docs/handoff-template.md`, and it is the only one.** One self-contained file: the operator pastes its path, the next agent reads that file and nothing else, and continues. If the receiving agent has to ask something the file should have answered, the handoff failed. That document carries the section order, where the file goes, and why it is shaped that way; do not restate it here or keep a second copy elsewhere, which is exactly how the previous three copies drifted apart.
 
 The seven sections, in order: the next action, the stop condition, what never to do, verified state, input paths, context that cannot be inferred, caveats. Action first because the file exists to cause it, and caveats last because they qualify work rather than direct it.
 
-For keyword-workbook runs the handoff is auto-generated: `build_keyword_workbook.py --config <cfg> --preflight` emits a copy-ready Codex task for missing inputs (or a READY status). Per-run handoff notes resolve automatically, shared vault first: `<team-vault>/Clients/<Client>/Handoffs/` when the client already has a folder in the shared team vault, otherwise the repo's gitignored `output/<client>/seo/`. The client slug maps to its vault folder via the hub note's frontmatter `slug:` (see Local Output Storage). Point the builder at the vault with the `AMAZON_AGENT_TEAM_VAULT` env var or `_local/team-vault-path.txt`; an explicit `inputs.handoff_note` still overrides both. Never write into a personal vault, and never create a new client folder in the shared vault just to place a note. Client folders left the personal vault on 27.07.2026.
+For keyword-workbook runs the preflight is capability-based: `build_keyword_workbook.py --config <cfg> --preflight` emits checklists for missing MCP or browser inputs, or a READY status. When a handoff is actually needed, per-run notes resolve automatically, shared vault first: `<team-vault>/Clients/<Client>/Handoffs/` when the client already has a folder in the shared team vault, otherwise the repo's gitignored `output/<client>/seo/`. The client slug maps to its vault folder via the hub note's frontmatter `slug:` (see Local Output Storage). Point the builder at the vault with the `AMAZON_AGENT_TEAM_VAULT` env var or `_local/team-vault-path.txt`; an explicit `inputs.handoff_note` still overrides both. Never write into a personal vault, and never create a new client folder in the shared vault just to place a note. Client folders left the personal vault on 27.07.2026.
 
 ## Repository Hygiene (Public Release)
 
-Before committing doc or skill changes, run `python3 tools/lint_agent_docs.py`. It checks that every skill ships both discovery manifests (SKILL.md frontmatter + agents/openai.yaml), that routing-table names resolve, that no spaced em-dash slipped into authored files, that shared skill files stay agent-neutral (no Claude-only tool names), and that **every repo file path a doc names actually exists**. That last one exists because renaming a tool leaves its old name behind in every doc that told an agent to run it, and nothing fails until somebody runs the command. Gitignored paths (per-operator configs) and files whose job is to describe the past are exempt.
+Before committing doc or skill changes, run `python3 tools/lint_agent_docs.py`. It checks that every skill ships both discovery manifests (SKILL.md frontmatter + agents/openai.yaml), that routing-table names resolve, that no spaced em-dash slipped into authored files, that shared skills contain no runtime-only tools, that reusable workflows assign work by capability rather than named agent, and that **every repo file path a doc names actually exists**. That last one exists because renaming a tool leaves its old name behind in every doc that told an agent to run it, and nothing fails until somebody runs the command. Gitignored paths (per-operator configs) and files whose job is to describe the past are exempt.
 
-This repo is being prepared as a public-safe, reusable workspace. Before any commit that will be pushed to a public remote, follow `docs/public-release-checklist.md`: git identity (never publish a personal machine identity), no client/local data staged, public-safe content scan, no secrets, and the branch → PR flow. This applies to whichever agent performs the push (Claude or Codex); the pushing agent re-runs the checklist rather than trusting a handoff. Do not push unless the operator has explicitly asked for that specific push.
+This repo is being prepared as a public-safe, reusable workspace. Before any commit that will be pushed to a public remote, follow `docs/public-release-checklist.md`: git identity (never publish a personal machine identity), no client/local data staged, public-safe content scan, no secrets, and the branch → PR flow. The current pushing agent re-runs the checklist rather than trusting a handoff. Do not push unless the operator has explicitly asked for that specific push.
 
 ## Session Completion
 

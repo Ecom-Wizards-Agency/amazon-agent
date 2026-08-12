@@ -76,6 +76,16 @@ const SQP_EXACT = {
   "qp-asin-count-cart-adds": "Cart Adds: ASIN Count",
   "qp-asin-purchases": "Purchases: Total Count",
   "qp-asin-count-purchases": "Purchases: ASIN Count",
+  "qp-brand-query": "Search Query",
+  "qp-query-volume": "Search Query Volume",
+  "qp-impressions": "Impressions: Total Count",
+  "qp-brand-count-impressions": "Impressions: ASIN Count",
+  "qp-clicks": "Clicks: Total Count",
+  "qp-brand-count-clicks": "Clicks: ASIN Count",
+  "qp-cart-adds": "Cart Adds: Total Count",
+  "qp-cart-adds-brand-count": "Cart Adds: ASIN Count",
+  "qp-purchases": "Purchases: Total Count",
+  "qp-purchases-brand-count": "Purchases: ASIN Count",
   "asin": "ASIN",
 };
 const BR_EXACT = {
@@ -332,6 +342,20 @@ function selfTest() {
   assert(sqpHeader === expectSqp, "SQP header mismatch:\n  got:  " + sqpHeader + "\n  want: " + expectSqp);
   const sqpRow = sqpCsv.split("\n")[1];
   assert(sqpRow === "2026-06-28,manuka balm,B0TEST00001,1234,10000,800,500,40,60,5,30,3", "SQP row mismatch: " + sqpRow);
+
+  const brandSqp = {
+    report: "sqp", sourceView: "brand", proxyAsin: "B0TEST00001",
+    batches: [{ asin: "B0TEST00001", reportingDate: "2026-06-28", rows: [{
+      "qp-brand-query": "performance gummies", "qp-query-volume": "2283",
+      "qp-impressions": "10000", "qp-brand-count-impressions": "800",
+      "qp-clicks": "500", "qp-brand-count-clicks": "40",
+      "qp-cart-adds": "60", "qp-cart-adds-brand-count": "5",
+      "qp-purchases": "30", "qp-purchases-brand-count": "3",
+    }] }],
+  };
+  const brandSqpRow = formatSqp(brandSqp).split("\n")[1];
+  assert(brandSqpRow === "2026-06-28,performance gummies,B0TEST00001,2283,10000,800,500,40,60,5,30,3",
+    "Brand SQP proxy row mismatch: " + brandSqpRow);
 
   const brHeader = brCsv.split("\n")[0];
   assert(brHeader === BR_HEADERS.join(","), "BR header mismatch: " + brHeader);

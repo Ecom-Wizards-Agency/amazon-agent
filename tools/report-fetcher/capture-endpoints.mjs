@@ -18,7 +18,7 @@
  */
 import { writeFileSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
-import { assertChrome, listPages, createPage, closePage, Session } from "./cdp.mjs";
+import { ensureChrome, listPages, createPage, closePage, Session } from "./cdp.mjs";
 
 function arg(name, def) { const i = process.argv.indexOf("--" + name); return i > 0 ? process.argv[i + 1] : def; }
 const SECONDS = Number(arg("seconds", "180"));
@@ -68,7 +68,7 @@ async function attach(page) {
 }
 
 async function main() {
-  await assertChrome();
+  await ensureChrome();
   console.log(`Capturing Seller Central endpoints${FILTER ? " (filter " + FILTER + ")" : ""} for up to ${SECONDS}s.\n`);
   let done = false;
   const rescan = setInterval(async () => {

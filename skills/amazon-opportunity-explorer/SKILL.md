@@ -1,93 +1,61 @@
 ---
 name: amazon-opportunity-explorer
-description: Use for Amazon Product Opportunity Explorer (OEI/POE) workflows, the POE downloader, Niche Scout exports, wide niche discovery and scoring across seed queries, product opportunity analysis, image strategy from OEI data, product development strategy from OEI data, and connecting Opportunity Explorer insights to Amazon SEO, Rufus/Alexa AI semantic strategy, image text, and listing differentiation.
+description: Use for Amazon Product Opportunity Explorer workflows, wide seed-based niche discovery, full POE pack downloads, niche scoring, image and product strategy, and connecting Amazon-native demand and customer language to SEO and creative work.
 ---
 
 # Amazon Opportunity Explorer
 
-Browser: CDP (`run-poe.mjs` over the shared debug Chrome). Fallback: evaluate `fetch-poe.js` in a logged-in SC page (Codex).
+Browser: CDP (`run-poe.mjs` over the shared debug Chrome). Fallback: evaluate `fetch-poe.js` in a logged-in Seller Central page.
 
-Use this specialist skill when the task involves Amazon Product Opportunity Explorer, OEI/POE data, Niche Scout exports, category/niche insights, product opportunity analysis, image strategy, product development ideas, or visual/listing strategy from customer review and returns data.
+## Account Safety
 
-## Account Safety (STOP: read before any POE pull)
+POE records viewed niches in the active Seller Central account. Verify account identity before every search, niche, batch, or merchant-niches request.
 
-POE records every niche you open in that account's "recently viewed niches." Running competitor/keyword research while logged into the WRONG Seller Central account leaks that research to the account's owner (a cross-client confidentiality breach). Verifying the marketplace is not enough: **verify the ACCOUNT IDENTITY before every `run-poe.mjs search|niche|batch`.**
+For client work, pass:
 
-- `run-poe.mjs` now resolves and PRINTS the active account (display name + `partnerAccountId`) on every data command and on `doctor`. **Pass `--expect-account "<name|partnerAccountId>"` for all client work** to hard-abort on a mismatch before any niche is opened (implemented 2026-07-21; matches the account-switcher display name substring or an exact `partnerAccountId`/`merchantId`). Run `run-poe.mjs doctor` first to see which account is active.
-- The identity comes from the DOM account switcher (e.g. "AcmeUnited States") plus `GetUserContext` (`partnerAccountId`/`merchantId`).
-- POE data is market-level and identical across accounts, so data pulled under the wrong account is still USABLE, but the recently-viewed footprint cannot be scrubbed and re-pulling elsewhere does not remove it. So get the account right the first time.
-- See memory `poe-account-identity-leak-rule` (2026-07-21 incident: one client's research leaked into a different client's US account).
+- `--account-name <exact picker label>`
+- `--expected-partner-account-id <id>`
+- optional `--parent-account-name <agency parent>`
+- `--marketplace-label <exact picker label>`
+- `--marketplace <cc>`
 
-## Source Order
+On mismatch, `run-poe.mjs` opens the account picker, uses trusted CDP clicks to select the configured account and marketplace, reloads POE, and re-reads `partnerAccountId`. It fetches only after the identity matches.
 
-1. Knowledge-base skill references for Ecom Wizards methodology:
-   - `<your-knowledge-base>/Skills/amazon-image-strategy.md`
-   - `<your-knowledge-base>/Skills/oei-product-strategy.md`
-   - `<your-knowledge-base>/Skills/rufus-optimization.md`
-   - `<your-knowledge-base>/Skills/amazon-seo-writer.md`
-   - `<your-knowledge-base>/Skills/direct-response-copywriter.md` when image text or persuasive angles matter
-2. Amazon Seller Help for current Product Opportunity Explorer access, report/export behavior, and Seller Central constraints.
-3. MAG SOPs for practical Seller Central navigation and screenshots when useful.
+Stop without fetching when the configured account or marketplace is unavailable or ambiguous, the session is logged out, a human challenge appears, or the post-switch identity does not match. Never handle credentials, MFA, CAPTCHA, cookies, or browser storage.
 
 ## Extraction Tool
 
-Use the repo-native API-first downloader (house pattern of `tools/report-fetcher/`):
+- `tools/opportunity-explorer/fetch-poe.js`: browser-side GraphQL reads.
+- `tools/opportunity-explorer/format-poe.mjs`: canonical formatter.
+- `tools/opportunity-explorer/run-poe.mjs`: CDP runner with account recovery and marketplace verification.
+- `references/poe-niche-export-checklist.md`: full-pack completeness.
+- `references/niche-discovery-and-scoring.md`: breadth discovery and scoring.
 
-- Browser-side fetcher: `tools/opportunity-explorer/fetch-poe.js`: same-origin GraphQL; ONE `fetchPoeNiche` call returns every niche-detail tab (overview, Products, Search Terms, Customer Review Insights positive+negative with snippets, Returns, Insights & Trends series); `fetchPoeSearch` returns the keyword-search / related-niches grid.
-- Local formatter: `tools/opportunity-explorer/format-poe.mjs` (`--self-test`): EN-canonical builder-ready CSVs + sentiment-labeled CRI, Returns, overview, related-niches JSON.
-- One-command CDP runner: `tools/opportunity-explorer/run-poe.mjs` (shares the report-fetcher debug Chrome; `--marketplace` verified against the session).
-- API contract + verification: `tools/opportunity-explorer/references/poe-endpoints.md`, `poe-gap-matrix.md`.
-- Per-niche export completeness checklist: `references/poe-niche-export-checklist.md` (also used by the keyword-workbook workflow).
-- Breadth run (`/niche-scout`): seed by angle, discover 20 to 40 niches, filter for relevance, weight them against each other, and read `nichePdr` ACROSS niches rather than one: `references/niche-discovery-and-scoring.md`. Use whenever the question is "where is the winnable demand", not "what is in this one niche". `merchant-niches` alone returns only the brand's own auto-assigned niches and is too narrow to answer it.
+The legacy DOM extractor is a deprecated fallback only.
 
-Default model: API-first over the shared CDP debug Chrome (Browser Standard in `AGENTS.md`): run `run-poe.mjs` from the terminal (path A, works for both agents; it launches or reuses the debug Chrome). Fallback when the debug profile lacks the needed Seller Central login: evaluate `fetch-poe.js` in an already logged-in Seller Central page in the connected/internal browser (path B). Both produce identical files. The legacy DOM extractor (`extract-opportunity-explorer.js` + `format-opportunity-explorer-export.mjs`) is a DEPRECATED fallback only; its manual navigation steps live in `references/opportunity-explorer-workflow.md`.
+## Wide Discovery Standard
 
-The Chrome extension package is not part of the intended workflow once the script is tested. Keep the pCloud extension only as historical/source reference during transition.
+When the task asks where demand or ideas exist, do not rely on three convenient niches.
 
-Original extension/source backup remains available in pCloud if needed. This is the operator's current local placeholder path, not a repo dependency:
+1. Read the latest relevant Google Drive keyword-research workbook and DataDive roots when available.
+2. Create 8 to 12 non-branded seeds spanning head term, product form, mechanism, principal uses, and meaningful attributes.
+3. Search all seeds. Union and deduplicate related niches by `nicheId` while retaining seed provenance.
+4. Exclude wrong-brand, wrong-product, wrong-form, wrong-audience, and wrong-use results with explicit reasons.
+5. Download 5 to 10 relevant full niche packs. If fewer than five qualify, download all and record the limitation.
+6. Reuse cached POE only when it is at most 14 days old and meets the same coverage contract.
+7. Mark insufficient prior captures as superseded in the run manifest without deleting raw history.
 
-`<your-pcloud>/Account shares/Amazon Wizards/2_Company/2.7_Tools/Chrome Extension-Opportunity Explorer Downloader`
-
-The operator confirmed ownership and backend clearance for reusing the previous extension logic. Use the extractor only through the logged-in connected browser Seller Central session. Do not inspect cookies, session storage, local storage, tokens, or credentials.
+The run manifest must record sources, seed categories, related niches, exclusions, selected full packs, capture dates, cache decisions, and limitations.
 
 ## Workflow
 
-1. Confirm account, marketplace, product/niche/category, and intended output: image strategy, product strategy, SEO/Alexa AI strategy, or combined opportunity brief.
-2. Search local Amazon docs and MAG SOPs for the current Product Opportunity Explorer path if browser navigation is needed.
-3. In the connected browser, navigate Seller Central to Product Opportunity Explorer / Opportunity Explorer and verify the selected account and marketplace.
-4. Fetch the niche: default is `run-poe.mjs niche --niche-id <id> --marketplace <cc> --client <slug>` from the terminal against the shared CDP debug Chrome. Fallback: evaluate `fetch-poe.js` (`fetchPoeSearch` to find the nicheId, then `fetchPoeNiche`) in a logged-in page context. Do not require the user to open or click a Chrome extension.
-5. Format with `tools/opportunity-explorer/format-poe.mjs` into `output/{client}/opportunity-data/` with dates in filenames, or another operator-approved destination. `{client}` is the normalized lowercase-kebab client slug from `AGENTS.md`, with marketplace in filenames, not folder names.
-6. Load only the relevant knowledge-base reference:
-   - `amazon-image-strategy` for image set recommendations and creative direction.
-   - `oei-product-strategy` for product development, differentiation, and market entry.
-   - `rufus-optimization` for Amazon AI search / semantic listing strategy.
-7. Trace every recommendation to a specific OEI/POE signal: returns data, negative reviews, positive reviews, success factors, positioning opportunity, seasonal pattern, demographics, search terms, or price architecture.
-8. Stop before changing listings, uploading assets, publishing copy, or making account-visible changes.
-
-## Rufus / Alexa AI Naming
-
-The operator noted that Amazon's Rufus AI naming is moving/has moved toward Alexa or Alexa AI. Treat `Rufus`, `Alexa AI`, `Amazon AI search`, and `semantic Amazon search` as related trigger language unless current first-party Amazon docs say otherwise for a specific workflow.
+1. Confirm intended client, account, marketplace, product or niche, and output type.
+2. Apply account recovery and post-switch identity verification before any POE request.
+3. Run wide discovery when the question is exploratory. Run a direct niche pull only when a specific authoritative niche ID is already in scope.
+4. Format outputs into `output/<client>/opportunity-data/` with market in filenames.
+5. Trace each recommendation to POE search terms, products, reviews, returns, trends, or price structure.
+6. Stop before changing listings, uploading assets, publishing copy, or making an Amazon-visible change.
 
 ## Outputs
 
-For image strategy, produce:
-
-- 7-8 image recommendations when no other count is specified.
-- A data citation for each image.
-- Creative direction.
-- Three text-angle options per image: trust/proof, emotional/benefit, and problem/solution.
-
-For product strategy, produce:
-
-- Product development approaches.
-- Positioning angles.
-- Feature innovations tied to return/review signals.
-- Listing differentiation ideas.
-- Entry strategy, including hero SKU, price point, launch timing, and moat.
-
-For SEO/Alexa AI strategy, produce:
-
-- Semantic noun-phrase themes.
-- Customer-intent and question clusters.
-- Listing/image/A+ angles connected to OEI evidence.
-- Notes for `amazon-seo` follow-up if listing copy should be produced.
+For creative or image strategy, provide concrete visual recommendations and data citations. For product strategy, provide positioning, feature, price, and entry implications. For SEO or Alexa AI strategy, provide semantic phrase and intent clusters tied to Amazon-native evidence.

@@ -45,12 +45,15 @@ The user's target is: **$ARGUMENTS**
 6. **Run the lens.** Lens A on every run, including the funnel tripwire. Lens B as well on `deep`.
    Every Lens A row must produce a number or be named with its reason.
 
-7. **Build.** On the download path: scaffold the config, `--preflight`, hand the Codex download
-   task over, pull DataDive over MCP, then build and `--validate` until every gate passes. On the
-   MCP path, build to the same depth without `build_audit.py`.
+7. **Build.** On the download path: scaffold the config, run `--preflight`, gather the browser and
+   DataDive MCP inputs, then build and `--validate` until every gate passes. If one capability is
+   unavailable, hand off only that checklist to any capable agent. On the MCP path, build to the
+   same depth without `build_audit.py`.
 
 8. **Write the narrative** into the scaffold per the skill: operator voice, organic-first, lean,
-   `Problem N` and `Lever N`, screenshots inline as `![caption](file.png)`.
+   one **Problems and Solutions** section of five to seven `### Priority N:` action-led headings,
+   each with a short diagnosis, one evidence sentence and one sentence beginning `I would`.
+   Screenshots inline as `![caption](file.png)`, on their own line.
 
 9. **Deliver** the MASTER `.xlsx` and the branded `.docx` to the client's Drive audit folder via
    the desktop mount. Confirm with the operator before a prospect sees anything.

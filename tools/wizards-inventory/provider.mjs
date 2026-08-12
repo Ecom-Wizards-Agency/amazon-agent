@@ -1,18 +1,63 @@
 #!/usr/bin/env node
 import { mkdirSync, readFileSync, readdirSync, unlinkSync, writeFileSync } from "node:fs";
-import { spawnSync } from "node:child_process";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { aggregateAwd, aggregateFba, classifyAuthPage, combineInventory, parseCsv } from "./lib.mjs";
+import {
+  aggregateAwd, aggregateFba, assertAccountIdentity, classifyAuthPage,
+  combineInventory, filterShipmentContents, parseCsv, selectOnlyRequested,
+  summarizeFbaBySku,
+} from "./lib.mjs";
 import { assertAuthPolicy, authenticationFormStep, loadViewOnlyLogin } from "./auth.mjs";
 import {
   assertPriceExpectations, marketplaceDomain, normalizePriceRows, parseMoney,
 } from "./price-lib.mjs";
 
-let assertChrome, closePage, createPage, evaluate, listPages, Session;
+let ensureChrome, closePage, createPage, evaluate, listPages, Session;
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const AMAZON_AGENT = resolve(HERE, "../..");
+
+// Seller Central names each marketplace in the operator's display language, so
+// the account picker is not a stable English string. Keyed by the profile's
+// marketplace code; a profile can still add its own spellings through
+// `marketplace_labels` when Amazon uses one this table has not seen.
+const MARKETPLACE_LABELS = {
+  US: ["United States", "Vereinigte Staaten", "États-Unis", "Estados Unidos", "Stati Uniti"],
+  CA: ["Canada", "Kanada", "Canadá"],
+  MX: ["Mexico", "Mexiko", "México", "Messico"],
+  BR: ["Brazil", "Brasilien", "Brasil", "Brésil"],
+  UK: ["United Kingdom", "Vereinigtes Königreich", "Royaume-Uni", "Reino Unido", "Regno Unito"],
+  GB: ["United Kingdom", "Vereinigtes Königreich", "Royaume-Uni", "Reino Unido", "Regno Unito"],
+  DE: ["Germany", "Deutschland", "Allemagne", "Alemania", "Germania"],
+  FR: ["France", "Frankreich", "Francia"],
+  IT: ["Italy", "Italien", "Italie", "Italia"],
+  ES: ["Spain", "Spanien", "Espagne", "España", "Spagna"],
+  NL: ["Netherlands", "Niederlande", "Pays-Bas", "Países Bajos", "Paesi Bassi"],
+  SE: ["Sweden", "Schweden", "Suède", "Suecia", "Svezia"],
+  PL: ["Poland", "Polen", "Pologne", "Polonia"],
+  BE: ["Belgium", "Belgien", "Belgique", "Bélgica", "Belgio"],
+  IE: ["Ireland", "Irland", "Irlande", "Irlanda"],
+  TR: ["Turkey", "Türkei", "Turquie", "Turquía", "Turchia"],
+  AE: ["United Arab Emirates", "Vereinigte Arabische Emirate", "Émirats arabes unis"],
+  SA: ["Saudi Arabia", "Saudi-Arabien", "Arabie saoudite"],
+  EG: ["Egypt", "Ägypten", "Égypte", "Egipto"],
+  ZA: ["South Africa", "Südafrika", "Afrique du Sud"],
+  AU: ["Australia", "Australien", "Australie"],
+  AUS: ["Australia", "Australien", "Australie"],
+  JP: ["Japan", "Japon", "Japón", "Giappone"],
+  SG: ["Singapore", "Singapur", "Singapour"],
+  IN: ["India", "Indien", "Inde"],
+};
+
+function marketplaceLabels(profile) {
+  const labels = new Set();
+  if (profile.marketplace_label) labels.add(profile.marketplace_label);
+  for (const extra of profile.marketplace_labels || []) labels.add(extra);
+  for (const known of MARKETPLACE_LABELS[(profile.marketplace || "").toUpperCase()] || []) {
+    labels.add(known);
+  }
+  return [...labels];
+}
 const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
 const trace = (...parts) => {
   if (process.env.WIZARDS_AUTH_TRACE === "1") console.error("[wizards-auth]", ...parts);
@@ -231,9 +276,17 @@ async function selectAccount(session, profile, config) {
     }
   }
   if (authState !== "authenticated") throw authenticationError(authState);
-  const account = JSON.stringify(profile.account_name);
-  const marketplace = JSON.stringify(profile.marketplace_label);
-  const accountBox = `(()=>{const norm=s=>(s||"").replace(/\\s*\\((aktuell|current)\\)\\s*$/i,"").trim();
+  // Both matches below are case-insensitive and language-tolerant. The picker
+  // renders in whatever display language the operator set on Seller Central,
+  // and the configured label is only ever one language's spelling: on
+  // 11.08.2026 the switcher came back in German and every account failed with
+  // "Could not find marketplace United States" while the page was offering
+  // "Vereinigte Staaten". The same run failed "Swissklip" against a picker
+  // showing "SwissKlip". Neither is a real mismatch, so neither should stop a
+  // pass.
+  const account = JSON.stringify(profile.account_name.toLowerCase());
+  const marketplace = JSON.stringify(marketplaceLabels(profile).map((l) => l.toLowerCase()));
+  const accountBox = `(()=>{const norm=s=>(s||"").replace(/\\s*\\((aktuell|current)\\)\\s*$/i,"").trim().toLowerCase();
     const e=[...document.querySelectorAll("button.full-page-account-switcher-account-details")]
       .find(e=>norm(e.innerText)===${account}); if(!e)return null;
     e.scrollIntoView({block:"center"}); const r=e.getBoundingClientRect();
@@ -246,9 +299,9 @@ async function selectAccount(session, profile, config) {
   // Agency access is hierarchical. A fresh picker initially renders only the
   // agency parent; expand it before looking for the client account.
   if (!accountHit && profile.parent_account_name) {
-    const parent = JSON.stringify(profile.parent_account_name);
+    const parent = JSON.stringify(profile.parent_account_name.toLowerCase());
     const parentBox = `(()=>{const e=[...document.querySelectorAll("button.full-page-account-switcher-account-details")]
-      .find(e=>(e.innerText||"").trim()===${parent});if(!e)return null;
+      .find(e=>(e.innerText||"").trim().toLowerCase()===${parent});if(!e)return null;
       e.scrollIntoView({block:"center"});const r=e.getBoundingClientRect();return{x:r.x+r.width/2,y:r.y+r.height/2,expanded:!!e.querySelector("[class*=expanded]")}})()`;
     const parentHit = await evaluate(session, parentBox);
     if (!parentHit) throw selectionError(
@@ -261,11 +314,12 @@ async function selectAccount(session, profile, config) {
   }
   if (!accountHit) throw selectionError(
     "account_unavailable", `Account ${profile.account_name} is not available`);
-  const marketplaceBox = `(()=>{const norm=s=>(s||"").replace(/\\s*\\((aktuell|current)\\)\\s*$/i,"").trim();
+  const marketplaceBox = `(()=>{const norm=s=>(s||"").replace(/\\s*\\((aktuell|current)\\)\\s*$/i,"").trim().toLowerCase();
+    const labels=${marketplace};
     const groups=[...document.querySelectorAll("div.full-page-account-switcher-account")];
     const g=groups.find(x=>[...x.children].some(c=>c.matches?.("button.full-page-account-switcher-account-details")&&norm(c.innerText)===${account}));
     const e=g&&[...g.querySelectorAll("button.full-page-account-switcher-account-details")]
-      .find(b=>norm(b.innerText)===${marketplace}); if(!e)return null;
+      .find(b=>labels.includes(norm(b.innerText))); if(!e)return null;
     e.scrollIntoView({block:"center"}); const r=e.getBoundingClientRect();
     return {x:r.x+r.width/2,y:r.y+r.height/2,current:/\\((aktuell|current)\\)/i.test(e.innerText||"")}})()`;
   let marketplaceHit;
@@ -313,28 +367,16 @@ async function fetchFba(session, profile) {
     const root = page.data?.listingsV2;
     if (!root) throw new Error("FBA GraphQL response shape changed");
     identity ||= root.configContext || {};
-    if ((profile.seller_id && root.configContext?.merchantId !== profile.seller_id)
-      || root.configContext?.marketplaceId !== profile.marketplace_id) {
-      throw new Error(`ACCOUNT_MISMATCH: expected ${profile.seller_id || "selected account"}/${profile.marketplace_id}, got ${root.configContext?.merchantId}/${root.configContext?.marketplaceId}`);
-    }
+    assertAccountIdentity(profile, root.configContext || {});
     total = Number(root.count || 0);
     listings.push(...(root.listings || []));
   }
-  return { summary: aggregateFba(listings), identity };
-}
-
-async function navigatePriceReadOnly(session, url, description) {
-  await session.send("Page.enable");
-  await session.send("Page.navigate", { url });
-  await waitFor(session, `document.readyState === "complete"`, description, 120);
-  const state = await inspectAuthState(session);
-  if (state !== "authenticated" && /signin|auth|mfa|captcha|\/ap\/cvf/.test(
-    await evaluate(session, "location.href"))) throw authenticationError(state);
+  return { summary: aggregateFba(listings), identity, listings };
 }
 
 async function fetchConfiguredPrice(session, profile, config, asin) {
   const url = `https://sellercentral.amazon.com/amazonsell/manage-products?ref=myi&pageSize=100&pageIndex=0&searchTerm=${encodeURIComponent(asin)}`;
-  await navigatePriceReadOnly(session, url, `Manage Products price for ${asin}`);
+  await navigateReadOnly(session, url, `Manage Products price for ${asin}`);
   await ensureInventorySession(session, config);
   await waitFor(session, `document.body && (document.body.innerText||"").includes(${JSON.stringify(asin)})
     || /(access denied|not authorized|insufficient permission)/i.test(document.body?.innerText||"")`,
@@ -365,7 +407,7 @@ async function fetchPdpOffer(session, profile, asin) {
   const domain = marketplaceDomain(profile.marketplace);
   if (!domain) return { status: "unsupported_marketplace" };
   try {
-    await navigatePriceReadOnly(session, `https://${domain}/dp/${asin}`, `Amazon PDP ${asin}`);
+    await navigateReadOnly(session, `https://${domain}/dp/${asin}`, `Amazon PDP ${asin}`);
     const raw = await evaluate(session, `(()=>{
       const text=e=>(e?.innerText||e?.textContent||"").replace(/\s+/g," ").trim();
       const first=selectors=>selectors.map(s=>document.querySelector(s)).find(Boolean);
@@ -386,6 +428,108 @@ async function fetchPdpOffer(session, profile, asin) {
   } catch (error) {
     return { status: "unavailable", reason: error.message };
   }
+}
+
+async function navigateReadOnly(session, url, description) {
+  await session.send("Page.enable");
+  await session.send("Page.navigate", { url });
+  await waitFor(session, `document.readyState === "complete"`, description, 120);
+  const state = await inspectAuthState(session);
+  if (state !== "authenticated" && /signin|auth|mfa|captcha|\/ap\/cvf/.test(
+    await evaluate(session, "location.href"))) throw authenticationError(state);
+}
+
+async function shippingQueueLinks(session) {
+  return await evaluate(session, `(()=>{
+    const statusPattern=/(In transit|Delivered|Checked in|Receiving|Closed|Ready to ship|Shipped|Cancelled|Canceled)/i;
+    const shipmentPattern=/\b(FBA[A-Z0-9]{6,})\b/i;
+    const links=[];const seen=new Set();
+    for(const anchor of document.querySelectorAll("a[href]")){
+      const href=anchor.href||"";const row=anchor.closest("tr,[role=row],li,article,section,div");
+      const text=((row?.innerText||anchor.innerText||"").replace(/\s+/g," ").trim());
+      const id=(href.match(/[?&](?:shipmentId|shipmentID|shipment_id)=([^&#]+)/i)?.[1]
+        || href.match(/\/shipment(?:s)?\/([^/?#]+)/i)?.[1]
+        || text.match(shipmentPattern)?.[1]||"");
+      if(!id || !/shipment|inbound|fba/i.test(href+" "+text))continue;
+      const absolute=new URL(href,location.href).href;if(seen.has(absolute))continue;seen.add(absolute);
+      const status=text.match(statusPattern)?.[1]||null;
+      const updated=text.match(/(?:last updated|updated|modified)\s*[:\-]?\s*([^|•]+?)(?=\s{2,}|$)/i)?.[1]?.trim()||null;
+      links.push({url:absolute,shipment_id:decodeURIComponent(id),shipment_name:(anchor.innerText||"").trim()||null,status,last_updated:updated});
+      if(links.length>=30)break;
+    }
+    return links;
+  })()`);
+}
+
+async function readShipmentContents(session, queueRecord, requestedSkus) {
+  await navigateReadOnly(session, queueRecord.url, `shipment ${queueRecord.shipment_id}`);
+  const denied = await evaluate(session, `/(access denied|not authorized|insufficient permission)/i.test(document.body?.innerText||"")`);
+  if (denied) throw selectionError(
+    "permission_denied", "Manage FBA Inventory/Shipments does not expose shipment contents");
+  const contentsTab = `(()=>{const nodes=[...document.querySelectorAll('a,button,[role="tab"]')];
+    const e=nodes.find(x=>(x.textContent||"").trim().toLowerCase()==="contents"&&x.getBoundingClientRect().width>0);
+    if(!e)return null;e.scrollIntoView({block:"center"});const r=e.getBoundingClientRect();return{x:r.x+r.width/2,y:r.y+r.height/2}})()`;
+  if (await evaluate(session, contentsTab)) {
+    await trustedClick(session, contentsTab, "shipment Contents tab");
+    await sleep(800);
+  }
+  const requested = JSON.stringify(requestedSkus);
+  const raw = await evaluate(session, `(()=>{
+    const wanted=new Set(${requested}.map(x=>String(x).trim().toUpperCase()));
+    const clean=x=>(x||"").replace(/\s+/g," ").trim();
+    const number=x=>{const m=clean(x).replace(/,/g,"").match(/-?\d+(?:\.\d+)?/);return m?Number(m[0]):null};
+    const contents=[];
+    for(const row of document.querySelectorAll("tr,[role=row]")){
+      const cells=[...row.querySelectorAll("th,td,[role=cell],[role=gridcell]")].map(x=>clean(x.innerText));
+      if(!cells.length)continue;
+      const sku=cells.find(cell=>wanted.has(cell.toUpperCase()))
+        || [...wanted].find(value=>clean(row.innerText).toUpperCase().includes(value));
+      if(!sku)continue;
+      const table=row.closest("table,[role=table],[role=grid]");
+      const headers=table?[...table.querySelectorAll("thead th,[role=columnheader]")].map(x=>clean(x.innerText).toLowerCase()):[];
+      const byHeader=terms=>{const index=headers.findIndex(h=>terms.some(term=>h.includes(term)));return index>=0?number(cells[index]):null};
+      const text=clean(row.innerText);
+      const byLabel=label=>number(text.match(new RegExp(label+"\\s*[:\\-]?\\s*([\\d,]+)","i"))?.[1]);
+      contents.push({seller_sku:sku,expected:byHeader(["expected","plan","sent"] )??byLabel("expected(?: units)?"),
+        shipped:byHeader(["shipped"] )??byLabel("shipped(?: units)?"),
+        received:byHeader(["received"] )??byLabel("received(?: units)?")});
+    }
+    const body=clean(document.body?.innerText||"");
+    const status=body.match(/\b(In transit|Delivered|Checked in|Receiving|Closed|Ready to ship|Shipped|Cancelled|Canceled)\b/i)?.[1]||${JSON.stringify(queueRecord.status)};
+    const shipmentId=body.match(/\b(FBA[A-Z0-9]{6,})\b/i)?.[1]||${JSON.stringify(queueRecord.shipment_id)};
+    const heading=clean(document.querySelector("h1,h2")?.innerText)||${JSON.stringify(queueRecord.shipment_name)};
+    const updated=body.match(/(?:last updated|updated|modified)\s*[:\-]?\s*([^|•]+?)(?=\s{2,}|$)/i)?.[1]?.trim()||${JSON.stringify(queueRecord.last_updated)};
+    return {shipment_id:shipmentId,shipment_name:heading,status,last_updated:updated,url:location.href,contents};
+  })()`);
+  return raw;
+}
+
+async function fetchShipments(session, profile, groupKey) {
+  const group = profile.shipment_groups?.[groupKey];
+  if (!group?.skus?.length) throw new Error(`Unknown shipment group ${groupKey}`);
+  const routes = [
+    "https://sellercentral.amazon.com/fba/inbound-shipment/summary",
+    "https://sellercentral.amazon.com/gp/ssof/shipping-queue.html",
+  ];
+  let links = [];
+  for (const route of routes) {
+    await navigateReadOnly(session, route, "Shipping Queue");
+    const denied = await evaluate(session, `/(access denied|not authorized|insufficient permission)/i.test(document.body?.innerText||"")`);
+    if (denied) throw selectionError(
+      "permission_denied", "Manage FBA Inventory/Shipments does not expose Shipping Queue");
+    links = await shippingQueueLinks(session);
+    if (links.length) break;
+  }
+  if (!links.length) {
+    return { requested_skus: group.skus, matches: [], verdict: "unknown",
+      warning: "Shipping Queue returned no readable shipment links" };
+  }
+  const shipments = [];
+  for (const link of links) {
+    const shipment = await readShipmentContents(session, link, group.skus);
+    if (shipment.contents?.length) shipments.push(shipment);
+  }
+  return filterShipmentContents(shipments, group.skus);
 }
 
 async function fetchAwd(session, profile) {
@@ -472,7 +616,9 @@ function writeAudit(directory, result) {
 
 async function main() {
   const options = args(process.argv.slice(2));
-  if (!options.config || !options.profile) throw new Error("usage: provider.mjs --config <wizards config.json> --profile <key> [--price-check --asin <ASIN>] [--audit-dir <dir>]");
+  if (!options.config || !options.profile) throw new Error("usage: provider.mjs --config <wizards config.json> --profile <key> [--select-only] [--all-skus] [--shipment-group <key>] [--price-check --asin <ASIN>] [--audit-dir <dir>]");
+  const selectOnly = selectOnlyRequested(options);
+  const shipmentGroup = options["shipment-group"] || null;
   const priceCheck = options["price-check"] === true;
   if (priceCheck && !/^B0[A-Z0-9]{8}$/.test(String(options.asin || "").toUpperCase())) {
     throw new Error("--price-check requires one exact ASIN");
@@ -487,18 +633,10 @@ async function main() {
   if (config.authentication?.enabled) assertAuthPolicy(config);
   process.env.CDP_PORT = String(inventory.cdp_port || 9223);
   process.env.CDP_PROFILE = (inventory.cdp_profile || "~/.amazon-agent/wizards-ai-chrome").replace(/^~/, process.env.HOME);
-  ({ assertChrome, closePage, createPage, evaluate, listPages, Session }
+  ({ ensureChrome, closePage, createPage, evaluate, listPages, Session }
     = await import("../report-fetcher/cdp.mjs"));
-  try { await assertChrome(); }
-  catch {
-    const launcher = join(AMAZON_AGENT, "tools/report-fetcher/launch-chrome-debug.sh");
-    const browserMode = inventory.browser_mode || "headed";
-    const launched = spawnSync(launcher, ["--mode", browserMode], {
-      env: { ...process.env, CDP_START_URL: "https://sellercentral.amazon.com" }, encoding: "utf8",
-    });
-    if (launched.status !== 0) throw new Error(`Could not launch dedicated Chrome: ${launched.stderr || launched.stdout}`);
-    await assertChrome();
-  }
+  process.env.CDP_START_URL = "https://sellercentral.amazon.com";
+  await ensureChrome();
 
   const picker = locationForPicker();
   const started = Date.now();
@@ -507,7 +645,7 @@ async function main() {
   // target can intentionally return to the account picker even though the
   // dedicated tab is selected. The GraphQL seller/marketplace assertion below
   // is the hard safety check before any numbers are accepted.
-  const existing = (await listPages()).find((page) =>
+  const existing = selectOnly ? null : (await listPages()).find((page) =>
     page.url.startsWith("https://sellercentral.amazon.com/amazonsell/manage-products"));
   trace("inventory tab", existing ? "reused" : "created");
   // Create a stable blank target and navigate only after the CDP session is
@@ -526,12 +664,26 @@ async function main() {
       await selectAccount(session, profile, config);
     }
     else await waitFor(session, `!!document.querySelector("meta[name=anti-csrftoken-a2z]")`, "inventory application", 120);
-    const fbaResult = await fetchFba(session, profile);
-    if (priceCheck) {
+    if (selectOnly) {
+      result = {
+        schema_version: 1,
+        request_id: `${profile.key}-${Date.now()}`,
+        profile: profile.key,
+        account: profile.account_name,
+        display_name: profile.display_name,
+        marketplace: profile.marketplace,
+        marketplace_id: profile.marketplace_id,
+        checked_at: new Date().toISOString(),
+        duration_ms: Date.now() - started,
+        status: "selected",
+        source: "Seller Central account switcher",
+      };
+    } else if (priceCheck) {
+      const fbaResult = await fetchFba(session, profile);
       assertPriceExpectations(options, profile, fbaResult.identity);
-      const asin = String(options.asin).toUpperCase();
-      const sellerCentral = await fetchConfiguredPrice(session, profile, config, asin);
-      const pdp = await fetchPdpOffer(session, profile, asin);
+      const sellerCentral = await fetchConfiguredPrice(
+        session, profile, config, String(options.asin).toUpperCase());
+      const pdp = await fetchPdpOffer(session, profile, String(options.asin).toUpperCase());
       result = {
         schema_version: 1, request_id: `${profile.key}-${Date.now()}`,
         profile: profile.key, account: profile.account_name, marketplace: profile.marketplace,
@@ -544,44 +696,66 @@ async function main() {
         seller_central: sellerCentral, pdp,
       };
     } else {
-    const fba = fbaResult.summary;
-    let awd;
-    const warnings = [];
-    if (profile.include_awd) {
-      try { awd = await fetchAwd(session, profile); }
-      catch (error) {
-        awd = null;
-        warnings.push(`AWD unavailable: ${error.message}`);
+      const fbaResult = await fetchFba(session, profile);
+      const fba = fbaResult.summary;
+      if (options["all-skus"] === true) {
+        const allSkus = fbaResult.listings.map((listing) =>
+          listing.coreListingFields?.sku).filter(Boolean);
+        fba.skus = summarizeFbaBySku(fbaResult.listings, allSkus);
+      } else if (shipmentGroup) {
+        fba.skus = summarizeFbaBySku(
+          fbaResult.listings, profile.shipment_groups?.[shipmentGroup]?.skus || []);
       }
-    } else {
-      awd = null;
-    }
-    if (awd && Math.abs(fba.awd_buyable_in_transit_signal - awd.stored) > 0) {
-      warnings.push(`Current AWD signal is ${fba.awd_buyable_in_transit_signal.toLocaleString("en-US")} versus ${awd.stored.toLocaleString("en-US")} in the delayed ledger`);
-    }
-    result = {
-      schema_version: 1,
-      request_id: `${profile.key}-${Date.now()}`,
-      profile: profile.key,
-      account: profile.account_name,
-      display_name: profile.display_name,
-      marketplace: profile.marketplace,
-      seller_id: fbaResult.identity?.merchantId || profile.seller_id,
-      checked_at: new Date().toISOString(),
-      duration_ms: Date.now() - started,
-      status: profile.include_awd && !awd ? "partial" : "complete",
-      source: { fba: "Seller Central Manage Products GraphQL", awd: awd ? "Seller Central AWD Inventory Ledger" : null },
-      fba,
-      awd,
-      totals: awd ? combineInventory(fba, awd) : {
-        stored: fba.stored, available_network: fba.available,
-        fba_stored: fba.stored, fba_available: fba.available,
-        awd_stored: 0, reserved_fba: fba.reserved.total,
-        inbound_fba: fba.inbound, unfulfillable_fba: fba.unfulfillable,
-      },
-      warnings,
-      double_count_rule: "AWD ending balance is counted once. AWD departed units and FBA inbound are movement buckets and are not added to stored inventory.",
-    };
+      let awd;
+      let shipments = null;
+      const warnings = [];
+      if (profile.include_awd) {
+        try { awd = await fetchAwd(session, profile); }
+        catch (error) {
+          awd = null;
+          warnings.push(`AWD unavailable: ${error.message}`);
+        }
+      } else {
+        awd = null;
+      }
+      if (awd && Math.abs(fba.awd_buyable_in_transit_signal - awd.stored) > 0) {
+        warnings.push(`Current AWD signal is ${fba.awd_buyable_in_transit_signal.toLocaleString("en-US")} versus ${awd.stored.toLocaleString("en-US")} in the delayed ledger`);
+      }
+      if (shipmentGroup) {
+        shipments = await fetchShipments(session, profile, shipmentGroup);
+        if (shipments.warning) warnings.push(shipments.warning);
+        if (shipments.verdict === "unknown") {
+          warnings.push("Shipment quantities were missing or no requested SKU was found; booking status remains unknown");
+        }
+      }
+      result = {
+        schema_version: 1,
+        request_id: `${profile.key}-${Date.now()}`,
+        profile: profile.key,
+        account: profile.account_name,
+        display_name: profile.display_name,
+        marketplace: profile.marketplace,
+        seller_id: fbaResult.identity?.merchantId || profile.seller_id,
+        checked_at: new Date().toISOString(),
+        duration_ms: Date.now() - started,
+        status: (profile.include_awd && !awd) || (shipmentGroup && shipments?.verdict === "unknown") ? "partial" : "complete",
+        source: {
+          fba: "Seller Central Manage Products GraphQL",
+          awd: awd ? "Seller Central AWD Inventory Ledger" : null,
+          shipments: shipments ? "Seller Central Shipping Queue and shipment Contents" : null,
+        },
+        fba,
+        awd,
+        shipments,
+        totals: awd ? combineInventory(fba, awd) : {
+          stored: fba.stored, available_network: fba.available,
+          fba_stored: fba.stored, fba_available: fba.available,
+          awd_stored: 0, reserved_fba: fba.reserved.total,
+          inbound_fba: fba.inbound, unfulfillable_fba: fba.unfulfillable,
+        },
+        warnings,
+        double_count_rule: "AWD ending balance is counted once. AWD departed units and FBA inbound are movement buckets and are not added to stored inventory.",
+      };
     }
   } catch (error) {
     trace("provider error", error.message);
@@ -594,7 +768,7 @@ async function main() {
           throw authenticationError("login_required");
         }
         if (/HTTP 403/i.test(error.message)) {
-          throw selectionError("permission_denied", "The view-only Seller Central user lacks permission to read Manage Inventory");
+          throw selectionError("permission_denied", "Manage Inventory/Add a Product does not expose the read-only Manage Products query");
         }
       } catch (authCheckError) {
         if (authCheckError.authStatus || authCheckError.operationStatus) throw authCheckError;

@@ -21,13 +21,12 @@ Delivered as a branded Google Doc, no cover, alongside the briefs in the client'
 ## 2. The shelf map: what the tiles already say
 ## 3. Cluster coverage
 ## 4. The shopper's own language
-## 5. How angle tests are measured
-## 6. Footage inventory and asset requests
+## 5. Footage inventory and asset requests
 ```
 
 ## How to use this document
 
-Three or four sentences: this is the standing reference behind every brief, it contains no scripts and no results, what each section is for, and when it gets updated. Updated after every learnings pass, before the next brief is written.
+Three or four sentences: this is the standing reference behind every brief, it contains no scripts, testing method, or results, what each section is for, and when it gets updated. Update it before the next brief when product facts, shelf conditions, shopper language, or assets change.
 
 ## 1. Product and claim master
 
@@ -63,26 +62,16 @@ From POE review mining, per shelf, split into what they praise and what they com
 
 Close with the design translation: which complaints are filmable and claim-free. That is usually the safest and most differentiated territory the brand has, and it is what the texture and after-feel angles are built from.
 
-## 5. How angle tests are measured
+## 5. Footage inventory and asset requests
 
-Open with the constraint, so the structure reads as forced rather than chosen: AdLabs has no creative-level entity for Sponsored Brands (`advertised_product` excludes SB, `creative_type` returns empty on SB video ad groups), so three video creatives inside one ad group are invisible to reporting.
+Keep the heading even when no source is verified. Use one row per asset:
 
-Then the five bullets, stated once so no brief has to repeat them:
+| Asset | Verified source link | Orientation | Resolution | Editor suitability | Rights status | Crop, reshoot, or production instruction |
+|---|---|---|---|---|---|---|
 
-- One campaign per keyword. One ad group per angle (batch) inside it.
-- Same keywords and same bids across the angles. The ad group name is the only difference.
-- Budget sits at campaign level, so impressions will not split evenly. Read CTR, which is a rate, not click counts. If one angle sits far behind the others on impressions, pause the leaders until it catches up.
-- CTR is the first read and is cheap. Conversion rate and ACOS are the second read, on the survivor only, because they need clicks rather than impressions.
+Use exact Drive or pCloud links. State whether each asset is editor-ready, reference-only, or unsuitable. Do not infer rights. Record `not independently verified` when that is the real status.
 
-Keep this section to the structure alone. Internal operating detail (cadence, the SQP batch-level caveat, stage thresholds) lives in the skill and the brief, not in a document the client and editor read.
-
-## 6. Footage inventory and asset requests
-
-A links section. Paste the Drive links to the footage, the brand kit and any other asset directly under the heading; do not narrate them.
-
-Leave the heading in place even when empty. It is where assets land as they arrive, and an empty heading is a visible reminder that they have not.
-
-Open gaps do not get written up here as prose. They surface in the brief, as a constraint on the specific card that needs them.
+Missing required footage becomes an exact production gap with the shot, orientation, resolution, and action needed. Missing strategy direction is not a blocker and does not become a fake footage request.
 
 ## Rendering
 

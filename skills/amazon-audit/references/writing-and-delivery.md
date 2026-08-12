@@ -27,10 +27,10 @@ Use these, in this order. Drop a section the data does not support. Never pad.
 6. **Ads Summary.** The one-paragraph "what is really going on", the intent-split table, then
    ads by format and SP placement. State the single headline. The TACOS band we call solid is
    10 to 15%.
-7. **Good and Bad.** Problems, numbered `Problem N`, each with its evidence. Strengths stated
-   inline in a sentence where relevant, never as a separate praise section.
-8. **Growth Levers.** Recommendations, numbered `Lever N`, including next-level tactics.
-9. **Sources Used** and **Method Notes.** Files, dates, assumptions (especially break-even ACOS),
+7. **Problems and Solutions.** Combine diagnosis and action once. Use five to seven action-led
+   priorities. Give each one a short diagnosis, one evidence sentence, and one clear sentence
+   beginning `I would`. Keep the relevant visual beside the priority.
+8. **Sources Used** and **Method Notes.** Files, dates, assumptions (especially break-even ACOS),
    classification logic, caveats.
 
 On `monthly`, keep the skeleton but lead with the learnings and next actions from section 1, and
@@ -39,8 +39,12 @@ carry period-over-period deltas through sections 3 and 6.
 ### Cut these
 
 - No opening reassurance paragraph and no standalone punchy tagline.
-- No standalone "What Is Working" section. Fold strengths into Good and Bad.
-- No "Recommended 30-Day Plan" or Week 1 to 4 breakdown. The levers already say what to do.
+- No standalone "What Is Working", "Good and Bad", "Problems", or "Growth Levers" section.
+  Put each diagnosis and its action together under **Problems and Solutions**.
+- No separate "What changed after checking the call" recap. Keep the call-claim matrix internal.
+  Integrate only conclusions that materially change a diagnosis or recommendation into the
+  relevant section.
+- No "Recommended 30-Day Plan" or Week 1 to 4 breakdown. The priorities already say what to do.
 - No "What Can Be Reached" and no "Bottom Line" recap. Do not say the same thing a third time.
 - Opening questions: keep only the 2 or 3 that change the recommendation (real contribution
   margin and break-even ACOS; growth against profitability mandate). Drop the nice-to-knows.
@@ -65,19 +69,50 @@ carry period-over-period deltas through sections 3 and 6.
 5. **Blunter, shorter.** "not healthy", not "not equally healthy". Prefer plain section names:
    Ads Summary over Executive Summary, Current Account Performance over Current Account Reality.
 6. **No spaced em-dashes anywhere.** It reads as AI style. End the sentence and start a new one,
-   the way somebody would speak. Colons and parentheses are fine, and lead-ins use a colon:
-   `**Problem 1: Title.**` and `**Lever 1: Title.**`. Only exceptions: an em-dash as an empty
-   table cell, and numeric ranges.
+   the way somebody would speak. Colons and parentheses are fine. Only exceptions: an em-dash as
+   an empty table cell, and numeric ranges.
 7. **No reveal framing. State the fact and its size.** The audit is not a story with a twist. Cut
    build-ups like "here is the headline, and it is an unusual one" or "here is the kicker". They
    read as sensational and they delay the number. An operator says "you run zero ads, and it is
    about $1.3k a day, which is small for us", not "what I found here is remarkable".
 8. **Ask the strategic question back.** When a recommendation depends on what the client actually
    wants, pose it as the conditional it is. Do not assert a goal the client never stated.
-9. **Short paragraphs, one to three sentences.** The client reads this on screen, often while
-   skimming before a call. A six-sentence paragraph reads as a wall and the point inside it dies.
-   Let a punchy line stand alone. The operator has hand-edited delivered documents purely to split
-   paragraphs apart, so write it that way the first time.
+9. **Short paragraphs, one to three sentences and no more than 75 words.** Read every paragraph
+   aloud. If it does not sound like something you would say on a call, shorten it. Use second
+   person, one idea per paragraph, and action-led headings. Let tables, screenshots, and charts
+   carry the detail. Do not repeat a number already visible beside the prose unless it changes the
+   decision. State each diagnosis once, inside its priority.
+
+### Evidence-hybrid mode
+
+When `narrative.mode` is `evidence_hybrid`, keep the same section order, brand, and method depth but
+write each major priority as an action-led heading, one short diagnosis, one evidence sentence, one
+useful visual where available, and one clear `I would` recommendation. Preserve prose for causal
+caveats, assumptions, and strategic tradeoffs.
+This is a config-controlled opt-in, not the global default. The operator can invoke it with
+`same style as UltimaPeak`, `UltimaPeak style`, or `evidence-hybrid`.
+
+Select screenshots from a structured evidence manifest. Target six to eight and permit up to ten
+only when the extra image proves a distinct high-impact point. Prefer account state, organic search,
+PDP/gallery/A+, competitor creative, POE, and a material Search Catalog Performance funnel. Never
+include SQP, workbook, spreadsheet, wrong-account, duplicate, unreadable, or finding-free screenshots.
+Use charts for numeric relationships and point the reader to the MASTER workbook tabs for detail.
+
+The reusable profile is:
+
+- Full `deep` prospect audit using downloads only. Never initialize AdLabs.
+- Current Victor voice authority when one is configured, while preserving the audit's evidence
+  hierarchy, causal caveats, and brand contract.
+- One combined **Problems and Solutions** section. Use an action-led heading, short diagnosis, one
+  evidence sentence, one visual, and one `I would` recommendation for each priority. Tables and
+  charts carry detail so prose can stay lean.
+- Six to eight selected screenshots, with ten as a soft ceiling only when each extra image proves
+  a different high-impact point.
+- Call claims tested internally. Only contradictions and recommendation-changing conclusions enter
+  the Doc.
+- Native branded Google Doc and MASTER Google Sheet after local validation and visual QA.
+- When the product is offline, the incident window and clean online control remain separate. The
+  incident explains current state; the control is the basis for normal-performance grading.
 
 ### Two checks that decide credibility
 
@@ -96,7 +131,7 @@ carry period-over-period deltas through sections 3 and 6.
 
 ### Standard operator plays
 
-Check each one, and fold it into Problems or Levers where the data supports it.
+Check each one, and fold it into **Problems and Solutions** where the data supports it.
 
 - **Placement mechanism.** Do not stop at "product pages bleed". Read base bid times placement
   multiplier on the big campaigns. Multipliers are **campaign-level**: a $10 base bid with a 500%
@@ -158,8 +193,10 @@ download path `build_audit.py` produces all three. On the MCP path, build to the
 
 - Obsidian header band and coral subtitle band (market, window, ad-type mix, break-even assumption).
 - One coral one-liner: the whole story in a sentence.
-- **KPI strip**: ad spend, ad sales, ad ACOS, ad ROAS, total sales across all traffic, TACOS,
-  organic-implied sales, ad-to-organic ratio.
+- **KPI strip**: always show same-window Ads metrics and label the Ads window. Show Business Report
+  sales as its own source period. TACOS, organic-implied sales, ad-attributed share, and
+  ad-to-organic ratio appear only when the normalized Ads and Business Report date ranges match.
+  Otherwise each renders as N/A beside the alignment reason.
 - **Traffic-mix table**: per bucket (Branded, Generic, Competitor) list ad spend, % spend, ad ACOS,
   SQP SV share, SQP purchase capture. This is the core story: spend efficiency against demand capture,
   side by side.
@@ -205,7 +242,7 @@ the figure, never fakes it, and never fails the audit.
 | `fig_price_vs_rating.png` | The price and rating moat. Would a shopper pick us | DataDive competitors; `client_price` or BR ASP |
 | `fig_demand_segments.png` | Where demand is, across four exclusive segments | SQP + `brand_tokens`; `core_tokens` to split generic |
 | `fig_purchases_vs_market.png` | Purchases, you against the market, same measure both bars | SQP + `brand_tokens` |
-| `fig_brand_name_leak.png` | Who ranks on the brand's OWN name, and where we sit | DataDive niche + competitors + `brand_tokens` |
+| `fig_brand_name_leak.png` | Who outranks the client on a materially searched brand-name query | DataDive niche + competitors + `brand_tokens` |
 
 **The rank-movement chart** shows where each keyword's organic rank started and ended: a dumbbell
 with a direction arrow, red slipped, green gained, both endpoints labelled, on a real position axis
@@ -213,12 +250,21 @@ with a direction arrow, red slipped, green gained, both endpoints labelled, on a
 read as "we rank 22 overall" when it was one keyword's worst position. It pairs well with the hero
 term as a small week-by-week table, rank against days out of stock, when stock is the story.
 
-**The brand-name-leak chart** came out of an audit where copycats held ranks 1, 2, 3 and 11 on the
-client's exact product name while the client sat at 18, and the market bought 3,420 units on that
-query against the client's 28. It earns a standing slot because of the thesis: external and
-influencer traffic builds the **brand term** and no category rank, so a brand spending off-Amazon is
-creating branded demand that whoever ranks above it will harvest. When it renders with somebody else
-on top, it usually outranks every optimisation lever in the deck.
+**Brand-name leak is a finding only when somebody outranks the client on the client's own name.**
+Competitors appearing on a brand term is how Amazon works. Every brand has them, so their presence
+is not news and stating it wastes the client's attention. The chart and the finding both render
+only when a rival sits **above** the client on a branded query with material search volume, which
+`build_figures._material_branded_leak_query()` enforces. A client at rank one gets neither the
+chart nor a paragraph about who is at 3 and 4, and no recommendation may lean on that ranking as
+evidence.
+
+The chart came out of an audit where copycats held ranks 1, 2, 3 and 11 on the client's exact
+product name while the client sat at 18, and the market bought 3,420 units on that query against
+the client's 28. That is the shape worth showing, and the thesis behind it: external and influencer
+traffic builds the **brand term** and no category rank, so a brand spending off-Amazon creates
+branded demand that whoever ranks above it harvests. When it does render, it usually outranks every
+optimisation lever in the deck. When the client holds rank one, the same off-Amazon point still
+stands on its own and needs no leak framing.
 
 **Price sits against RATING, not review count.** Review count spans three orders of magnitude and
 needed a log axis that rendered as exponents, which prospects do not read; worse, plotting only
@@ -236,7 +282,7 @@ clipped titles only show up when you open the PNG. Simpler beats complete.
 
 ## 8. Brand it
 
-The narrative ships as a brand-styled **A4 `.docx`**, rendered from the narrative `.md` by
+The narrative is built as a brand-styled **A4 `.docx` intermediate**, rendered from the narrative `.md` by
 `tools/amazon-ad-audit/render_branded.py`. Not a pixel deck: a clean, readable report carrying the
 CI. `render(cfg, outdir, scaffold_md, cover=False, brand_dir=None)` takes a **Path**, not a string.
 It is client- and source-agnostic, so the MCP path uses it too: set `custom_kpis` in `metrics.json`
@@ -266,11 +312,14 @@ as `[[number, label, sub-or-null], ...]` and the renderer needs no `totals` or `
 
 **Markdown authoring contract, so blocks render as intended and not as headlines:**
 
-- **Levers**: bold lead-in with the body on the SAME line, `**Lever N: Short title.** Body continues
-  here.` The renderer splits that into a LEVER N eyebrow plus a title card, then the body as a normal
-  paragraph. Do **not** put the whole lever on a heading line; the lever regex will swallow title and
-  body into one giant H3.
-- **Problems** render as plain bold-lead paragraphs. No card, by design.
+- **Priorities** use `### Priority N: Action-led title` followed by short body paragraphs. Give
+  each priority one diagnosis or evidence paragraph and one sentence beginning `I would`.
+- **Priority heading colour is Ink, never Google blue.** In the native Google Doc, explicitly set
+  every `Priority N:` heading to Inter 12.5 pt, bold, Ink `#11151C` after conversion or after
+  promoting a paragraph to Heading 2. Do not rely on the document's inherited Heading 2 colour.
+- **Supporting priority copy is regular weight.** Set the diagnosis, evidence, and `I would`
+  recommendation to Inter 10.5 pt, regular, Ink `#11151C`. Do not bold or italicize an entire
+  supporting paragraph. Reserve bold for the priority title and isolated metrics.
 - `## H2` is a section header and also feeds the cover's "inside" list. A `> ` line is a pull-note.
   `![caption](rel.png)` is a figure, paths relative to the `.md`. Pipe tables get Ink headers.
   `<!-- ... -->` stubs are dropped. Inline code spans render italic.
@@ -297,8 +346,10 @@ rebuild and verify by looking at the rendered pages: captions drift from figures
 The renderers produce `.docx` and `.xlsx` because python-docx and openpyxl are what give us the
 branded contract, but those files are intermediates. Deliver each with
 `python3 tools/gdrive-deliver/deliver.py <file> "<drive folder>" --name "<delivery filename>"`,
-which converts it in Drive and then deletes the Office file local and remote. There is no PDF
-renderer. Anybody who needs a PDF downloads one from the Doc.
+which converts it in Drive and then deletes the Office file local and remote. The native Google Doc
+is the complete audit deliverable. Do not create, retain, upload, archive, or link a PDF unless the
+operator explicitly asks for one. A temporary PDF export may be used only to rasterize and inspect
+layout during QA; delete it after inspection.
 
 An earlier version of this file claimed conversion broke the cover, the KPI cards and the font.
 That was measured on 02.08.2026 and is wrong. What does and does not survive is recorded once, in
@@ -334,19 +385,23 @@ where this is heading, staged after the quick wins, not as a same-day rebuild.
 
 ### Re-delivering after the operator has edited the file
 
-The operator edits the delivered `.docx` in place on Drive. From that moment it is the source of
-truth for wording.
+The operator may edit the delivered Office file or native Google Doc in place on Drive. From that
+moment the live file is the source of truth for wording, figures, screenshots, and deletions.
 
-**Pull it back before any rebuild.** Copy the Drive `.docx`, extract `word/document.xml` to text,
-diff it against the scaffold, and carry their version into the `.md`, because the scaffold is
-protected and that is the only way their wording survives.
+**Read and archive its state before any rebuild.** For a `.docx`, extract `word/document.xml` and
+diff it against the scaffold. For a native Google Doc, preserve the revision ID plus a
+revision-aligned structural read. Do not create a PDF or DOCX archive. Reconcile the human-edited
+version into the protected `.md` before rebuilding.
+Never re-import a generated file over the native Doc.
 
-- **Never restore a paragraph they deleted**, and never rewrite a sentence they wrote. Fix an
-  outright typo and say that you did.
+- **Never restore a paragraph, figure, or screenshot they deleted.** Human wording and manual
+  additions stay authoritative. Make only the requested edit or a defensible factual, grammar, or
+  capitalization correction.
 - **Correct a number even inside their sentence.** Wording is theirs, arithmetic is ours. If an
   edit introduces a factual error, fix it and flag it plainly rather than shipping it.
 - **Archive their copy** to `evidence/<slug>/operator-edits/` before overwriting anything.
-- **Bump the version** and delete the superseded Drive file so the wrong one cannot be sent.
+- **Bump the version and delete the superseded Drive file only for Office-file re-delivery.** Edit
+  a native Google Doc in place so comments and revision history remain attached.
 - Images can be anchored inside a section you are removing: clear the text runs but keep the
   drawing runs, and never delete an image-bearing paragraph.
 
