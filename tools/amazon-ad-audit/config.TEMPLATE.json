@@ -31,6 +31,12 @@
     "datadive": "<YYYY-MM-DD>"
   },
 
+  "comparison_windows": {
+    "disruption": "<optional incident/suppression window; leave empty for a clean run>",
+    "online_control": "<optional latest four complete weeks continuously online>",
+    "note": "Keep incident and online-control windows separate. Do not blend them."
+  },
+
   "datadive_niche": "<nicheId, or empty if no organic overlay>",
 
   "inputs": {
@@ -41,7 +47,7 @@
       "<Product line B>": "<path to multi-ASIN SQP .csv>"
     },
     "search_catalog_performance_csv": "<optional Search Catalog Performance .csv for product-level funnel validation>",
-    "datadive_niche_json": "<path to saved DataDive niche keywords JSON (Claude pulls via MCP), or empty>",
+    "datadive_niche_json": "<path to saved DataDive niche keywords JSON from the DataDive MCP, or empty>",
     "datadive_competitors_json": "<optional path to DataDive competitors JSON, or empty>",
     "rank_radar_json": "<optional path to a DataDive Rank Radar payload (keyword + ranks over time) for the standard fig_rank_movement chart, or empty>",
     "evidence_candidates_json": "<optional screenshot candidate manifest from capture_audit_evidence.mjs>",
@@ -56,6 +62,7 @@
 
   "narrative": {
     "mode": "standard",
+    "mode_note": "Use evidence_hybrid when the operator asks for the same style as UltimaPeak.",
     "include_levers": true,
     "include_30day_plan": false,
     "include_what_can_be_reached": false

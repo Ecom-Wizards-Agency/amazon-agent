@@ -4,7 +4,7 @@
  *
  * Runs the fetch in Chrome's REAL page main world over the DevTools Protocol (CDP),
  * using the operator's existing logged-in session. Any agent with shell access
- * (Codex @computer) can run this; no browser sandbox. Read-only.
+ * Any agent with shell access can run this; no browser sandbox. Read-only.
  *
  * Copy-paste path (fill a per-client config once, then a fixed command):
  *   node run.mjs sqp      --config config.<client>.json        # every ASIN group
@@ -222,7 +222,7 @@ function accountParamsFrom(url) {
 }
 
 // Best-effort read of the seller display name from a Seller Central tab, so the operator (or
-// Codex) can eyeball WHICH CLIENT a pull belongs to instead of decoding a merchant id. Mirrors
+// the current agent can eyeball WHICH CLIENT a pull belongs to instead of decoding a merchant id. Mirrors
 // the account-safety pattern in ../opportunity-explorer/run-poe.mjs.
 const ACCT_NAME_JS = `(function(){
   var sels = ['[data-test="current-account"]','.dropdown-account-switcher-header',
@@ -329,8 +329,30 @@ async function main() {
     // coin flip, and the wrong one returns another country's (or another seller's) numbers.
     const wanted = MARKET_HOSTS[mp];
     if (!wanted) die(`Unknown --marketplace "${mp}". Known: ${Object.keys(MARKET_HOSTS).join(", ")}. Or force the region with --origin https://sellercentral.amazon.<tld>`);
-    const match = wanted.map((h) => scTabs.find((p) => hostOf(p) === h)).find(Boolean);
-    if (!match) die(`No debug-Chrome tab serves --marketplace ${mp}. Expected one of: ${wanted.join(", ")}. Open Seller Central on that host (signed in) and retry.\n  Tabs currently open: ${[...new Set(scTabs.map(hostOf))].join(", ")}`);
+    let match = wanted.map((h) => scTabs.find((p) => hostOf(p) === h)).find(Boolean);
+    // No tab on this region yet: open the preferred host ourselves rather than
+    // failing. One Seller Central login covers every region the seller is
+    // registered in, so a signed-in .com session reaches .de and .com.au too --
+    // the tab just has to exist, because host routing above picks by tab.
+    // Without this an unattended run dies on any non-US marketplace, which is
+    // exactly what happened to JBS DE and Svens Island AU on 11.08.2026.
+    if (!match) {
+      const host = wanted[0];
+      console.log(`Region: no tab serves --marketplace ${mp}; opening https://${host}/home`);
+      const opened = await createPage(`https://${host}/home`);
+      await new Promise((r) => setTimeout(r, 14000));
+      match = (await listPages()).find((p) => hostOf(p) === host) || opened;
+      // A fresh regional tab can land on sign-in if the session does not extend
+      // there. Say so plainly instead of fetching an empty report.
+      const probe = await (async () => {
+        try {
+          const s = await Session.open(match.webSocketDebuggerUrl);
+          return JSON.parse(await evaluate(s, `JSON.stringify({p: !!document.querySelector("input[type=password]"), h: location.host})`, 25000));
+        } catch { return null; }
+      })();
+      if (probe && probe.p) die(`Opened https://${host}/home but it shows a sign-in page. Run tools/report-fetcher/launch-chrome-debug.sh --mode recovery, sign in to that region, then return to headless mode.`);
+      if (!match || hostOf(match) !== host) die(`Could not open a Seller Central tab on ${host} for --marketplace ${mp}.`);
+    }
     origin = new URL(match.url).origin;
     const others = [...new Set(scTabs.map(hostOf))].filter((h) => h !== hostOf(match));
     console.log(`Region: ${new URL(origin).host} for --marketplace ${mp}${others.length ? ` (ignoring other open host(s): ${others.join(", ")})` : ""}`);

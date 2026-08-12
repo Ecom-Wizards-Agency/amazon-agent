@@ -48,7 +48,36 @@ The resolved shared profile supplies target stock days, lead time, Amazon bookin
 
 Requires `openpyxl` for the XLSX output (CSV/Slack/manifest are written even without it).
 
+## Unattended run
+
+`run_reshipment.py` does the whole thing for one Seller Central region: pulls
+same-day inventory and demand for every roster account, plans it, and posts one
+thread to #amazon-check. It is deterministic, so no model is involved.
+
+```bash
+tools/reshipment/run_reshipment.py --region us          # or europe, rest
+tools/reshipment/run_reshipment.py --region us --dry-run   # plan, print, post nothing
+```
+
+`roster.json` is the single source of truth for which accounts are in scope and
+which region reaches each one. Planning inputs stay in the team vault, so
+changing a client's timing is a vault edit and needs no code change. AWD is
+derived from the region rather than trusted per profile, because it is a US-only
+program and requesting it elsewhere degrades the whole read.
+
+Regions can run at the same time; accounts inside one region cannot, or they
+fight over the same account picker. That is why the schedule is one job per
+region.
+
+The wizards-ai `reshipment` pass owns the schedule, the freshness guard, the
+retry budget and the failure alerting. It replaced the older
+`biweekly_preflight.sh`, which only posted a readiness list because at the time
+the service account could not complete a pull.
+
 ## Slack posting
+
+The commands below post a single account by hand. The unattended run above does
+its own posting and does not use them.
 
 Post each brand-market with a positive reshipment quantity as its own copy-ready thread through Wizards AI:
 

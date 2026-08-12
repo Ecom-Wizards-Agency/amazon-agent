@@ -1,0 +1,118 @@
+{
+  "_comment": [
+    "The reshipment roster: which brand-marketplaces the unattended run covers,",
+    "and which Seller Central region each one is reached through. This file is the",
+    "single source of truth. It used to be duplicated as a ROSTER string inside",
+    "biweekly_preflight.sh and again in whatever ad-hoc harness drove a run, which",
+    "is how Pawsan sat enabled in the vault while the automation never planned it.",
+    "",
+    "Planning inputs (coverage days, lead time, minimums) deliberately do NOT live",
+    "here. They live in each client's team-vault 'Amazon Ops.md' so a timing change",
+    "is a vault edit and takes effect on the next run with no code change. An",
+    "account whose vault profile has reshipment.enabled false is skipped and named.",
+    "",
+    "region groups the accounts by Seller Central host, because one login serves a",
+    "whole region and the runs are scheduled per region. Regions run in parallel;",
+    "accounts inside a region run one at a time, so two accounts never fight over",
+    "the same account picker.",
+    "",
+    "awd is Amazon Warehousing & Distribution, a US-only program. Requesting it on",
+    "a non-US marketplace makes the provider return status 'partial' with awd null,",
+    "which on 11.08.2026 looked exactly like a hard failure and dropped JBS DE and",
+    "Svens Island AU from the run."
+  ],
+  "regions": {
+    "us": {
+      "label": "US",
+      "marketplace": "us",
+      "host": "sellercentral.amazon.com",
+      "awd": true
+    },
+    "europe": {
+      "label": "Europe",
+      "marketplace": "de",
+      "host": "sellercentral.amazon.de",
+      "awd": false
+    },
+    "rest": {
+      "label": "Rest",
+      "marketplace": "au",
+      "host": "sellercentral.amazon.com.au",
+      "awd": false
+    }
+  },
+  "accounts": [
+    {
+      "key": "alphainfuse",
+      "profile_key": "alphainfuse-us",
+      "brand": "AlphaInfuse",
+      "market": "US",
+      "country": "United States",
+      "region": "us"
+    },
+    {
+      "key": "evora-body",
+      "profile_key": "evora-body-us",
+      "brand": "Evora Body",
+      "market": "US",
+      "country": "United States",
+      "region": "us"
+    },
+    {
+      "key": "seranova",
+      "profile_key": "seranova-us",
+      "brand": "Seranova",
+      "market": "US",
+      "country": "United States",
+      "region": "us"
+    },
+    {
+      "key": "shaperluv",
+      "profile_key": "shaperluv-us",
+      "brand": "Shaperluv",
+      "market": "US",
+      "country": "United States",
+      "region": "us"
+    },
+    {
+      "key": "sondur",
+      "profile_key": "sondur-us",
+      "brand": "Sondur",
+      "market": "US",
+      "country": "United States",
+      "region": "us"
+    },
+    {
+      "key": "svens-island",
+      "profile_key": "svens-island-us",
+      "brand": "Svens Island",
+      "market": "US",
+      "country": "United States",
+      "region": "us"
+    },
+    {
+      "key": "swissker",
+      "profile_key": "swissklip-us",
+      "brand": "Swissker",
+      "market": "US",
+      "country": "United States",
+      "region": "us"
+    },
+    {
+      "key": "jbs",
+      "profile_key": "jbs-de",
+      "brand": "JBS",
+      "market": "DE",
+      "country": "Germany",
+      "region": "europe"
+    },
+    {
+      "key": "svens-island-au",
+      "profile_key": "svens-island-aus",
+      "brand": "Svens Island",
+      "market": "AU",
+      "country": "Australia",
+      "region": "rest"
+    }
+  ]
+}

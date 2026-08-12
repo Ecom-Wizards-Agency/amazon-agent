@@ -2,7 +2,7 @@
 """
 Amazon Ad/Sales Audit — orchestrator.
 
-  # Preflight: check the config's input contract, emit a Codex download task or READY
+  # Preflight: check the config's input contract, emit capability checklists or READY
   python3 tools/amazon-ad-audit/build_audit.py --config <cfg> --preflight
 
   # Build: analyze -> audit workbook -> SQP workbook -> master -> narrative scaffold (+docx)
@@ -23,7 +23,14 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
-from analyze_audit import REPO, load_config, rp, _slug, as_market_map  # noqa: E402
+from analyze_audit import (  # noqa: E402
+    REPO,
+    _slug,
+    as_market_map,
+    assess_ads_business_window_alignment,
+    load_config,
+    rp,
+)
 
 GREEN_FILLS = {"C6EFCE", "E2EFDA"}  # traffic-light good/ok — never legal on ACOS > 100%
 SPEND_TOL = 0.01  # currency units
@@ -35,21 +42,21 @@ def outdir_for(cfg) -> Path:
 
 # ----------------------------------------------------------------- preflight
 def collect_inputs(cfg):
-    """Yield (label, path, gatherer) for every contract input."""
+    """Yield (label, path, capability) for every contract input."""
     inp = cfg.get("inputs", {})
     default_market = cfg["marketplaces"][0] if cfg.get("marketplaces") else "US"
     for mkt, p in as_market_map(inp.get("ads_bulk_xlsx"), default_market).items():
-        yield (f"ads bulk .xlsx [{mkt}]", p, "CODEX")
+        yield (f"ads bulk .xlsx [{mkt}]", p, "BROWSER")
     for mkt, p in as_market_map(inp.get("business_report_csv"), default_market).items():
-        yield (f"Business Report .csv [{mkt}]", p, "CODEX")
+        yield (f"Business Report .csv [{mkt}]", p, "BROWSER")
     for grp, p in (inp.get("sqp_csvs") or {}).items():
-        yield (f"SQP .csv [{grp}]", p, "CODEX")
+        yield (f"SQP .csv [{grp}]", p, "BROWSER")
     if inp.get("search_catalog_performance_csv"):
-        yield ("Search Catalog Performance .csv", inp.get("search_catalog_performance_csv"), "CODEX")
+        yield ("Search Catalog Performance .csv", inp.get("search_catalog_performance_csv"), "BROWSER")
     if cfg.get("datadive_niche"):
-        yield ("DataDive niche keywords JSON", inp.get("datadive_niche_json"), "CLAUDE/MCP")
+        yield ("DataDive niche keywords JSON", inp.get("datadive_niche_json"), "DATADIVE_MCP")
         if inp.get("datadive_competitors_json"):
-            yield ("DataDive competitors JSON", inp.get("datadive_competitors_json"), "CLAUDE/MCP")
+            yield ("DataDive competitors JSON", inp.get("datadive_competitors_json"), "DATADIVE_MCP")
 
 
 def preflight(cfg, cfg_path) -> int:
@@ -61,23 +68,29 @@ def preflight(cfg, cfg_path) -> int:
         print(f"  [{'OK' if ok else 'MISSING'}] {label}  ->  {p}")
         if not ok:
             missing.append((label, p, who))
-    codex = [m for m in missing if m[2] == "CODEX"]
-    claude = [m for m in missing if m[2] == "CLAUDE/MCP"]
+    browser = [m for m in missing if m[2] == "BROWSER"]
+    datadive_mcp = [m for m in missing if m[2] == "DATADIVE_MCP"]
+    alignment = assess_ads_business_window_alignment(cfg.get("windows", {}))
+    if alignment["ads_vs_business_report"] != "matched":
+        print("\nWARNING: Ads and Business Report source windows are "
+              f"{alignment['ads_vs_business_report']}. {alignment['reason']}")
+        print("  Blended KPIs will render as N/A. This warning does not block an incident or "
+              "offline-control audit.")
     if not missing:
-        print("\nREADY — all inputs present. Run the build:")
+        print("\nREADY: all inputs present. Continue the current run with the build:")
         print(f"  python3 tools/amazon-ad-audit/build_audit.py --config {cfg_path}")
         return 0
-    if codex:
+    if browser:
         w = cfg.get("windows", {})
-        print("\nWAITING ON CODEX — copy-ready download task:\n")
-        print("---8<--- CODEX TASK ---")
+        print("\nMISSING BROWSER INPUTS: capability checklist\n")
+        print("---8<--- BROWSER INPUT CHECKLIST ---")
         print(f"Objective: download the missing Amazon exports for the {cfg.get('client')} "
-              f"{'/'.join(cfg.get('marketplaces', []))} ad/sales audit. Do NOT run the builder, "
-              f"write the narrative, or change anything in the ad account.")
+              f"{'/'.join(cfg.get('marketplaces', []))} ad/sales audit. Read-only: do not change "
+              f"anything in the ad account.")
         print(f"Account: {cfg.get('amazon_account')} · Window: ads {w.get('ads')} · BR {w.get('business_report')} "
               f"· SQP weeks {', '.join(w.get('sqp_weeks', []))}")
         print("Save each file to the EXACT path below (download via the Chrome extension or the CDP debug Chrome; no VPN needed):")
-        for label, p, _ in codex:
+        for label, p, _ in browser:
             print(f"  - {label}: {p}")
         print("Sources: ads bulk = Ads console > Bulk Operations (SP required; SB/SD/RAS if running); "
               "Business Report = Seller Central > Business Reports > Detail Page Sales & Traffic by Child ASIN; "
@@ -89,13 +102,17 @@ def preflight(cfg, cfg_path) -> int:
         print("  - SP Search-Term Impression-Share report — Top-of-Search headroom for the placement lever.")
         print("  NOT needed: SB/SD search-term reports — SB is intent-split by TARGET from the bulk itself "
               "(bulk SB search-term coverage is ~half; a dedicated SB ST report adds almost nothing).")
-        print("Then: note evidence + caveats and STOP.")
+        print("Then: record evidence and caveats, re-run preflight, and continue when READY.")
+        print("If this runtime lacks the connected-browser capability, hand off only this checklist "
+              "and the exact paths to any capable agent.")
         print("---8<---------------")
-    if claude:
-        print("\nCLAUDE (MCP) still to pull:")
-        for label, p, _ in claude:
+    if datadive_mcp:
+        print("\nMISSING DATADIVE MCP INPUTS: capability checklist")
+        for label, p, _ in datadive_mcp:
             print(f"  - {label}: save get_niche_keywords/get_niche_competitors for "
                   f"niche '{cfg.get('datadive_niche')}' to {p}")
+        print("Then: re-run preflight and continue when READY. If this runtime lacks DataDive MCP, "
+              "hand off only this checklist and the exact paths to any capable agent.")
     return 1
 
 
@@ -286,7 +303,7 @@ def validate(cfg, cfg_path) -> int:
     if dc.get("sqp_revenue_gap", 0) > 0.20:
         warns.append(f"SQP revenue gap {dc['sqp_revenue_gap']:.1%} — groups with no SQP: {', '.join(dc.get('sqp_uncovered_groups', []))}. Confirm the data truly doesn't exist, else download it; disclose in Method Notes.")
     if dc.get("channels_missing"):
-        warns.append(f"no {', '.join(dc['channels_missing'])} campaigns (no brand-defense / retargeting motion)")
+        warns.append(f"no {', '.join(dc['channels_missing'])} campaigns (format expansion to assess against a clear job in the funnel)")
     if dc.get("multi_parent_ad_groups"):
         warns.append(f"{dc['multi_parent_ad_groups']} ad groups advertise several parent families — keyword→product fit uncontrolled")
     if warns:

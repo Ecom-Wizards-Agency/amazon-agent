@@ -4,7 +4,7 @@
 Client- and agency-agnostic. Consumes the operator-written `*_Sales_Audit_SCAFFOLD.md` (the narrative),
 the run's `metrics.json` (for the KPI cards), the config (client / market / window / prepared_by /
 first_time), the agency identity from `_local/branding/branding.json` (see BRANDING.md; falls back to a
-Claude/Codex example style), and the local brand assets in `brand/`. Produces a light, readable body,
+agent-neutral example style), and the local brand assets in `brand/`. Produces a light, readable body,
 a dark **cover page** (first-time audits only), KPI stat-cards, restyled tables, a full-lockup running
 header, a text-only three-part footer, and smart page-break hygiene. Degrades gracefully to plain
 md_to_docx when assets are missing.
@@ -27,6 +27,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 
 import branding as _branding
+from analyze_audit import blended_metrics_available
 
 # palette/fonts — populated from the branding file (agency identity) via _apply_branding()
 INK_H = CLOUD_H = ORANGE_H = MISTLINE_H = STEEL_H = MIST_H = ""
@@ -103,16 +104,17 @@ def _kpis(M):
     if M.get("custom_kpis"):  # non-audit docs: [[number, label, sub-or-null], ...] in metrics.json
         return [(str(n), l, s) for n, l, s in M["custom_kpis"]]
     T = M["totals"]; cur = M.get("currency", "USD"); be = M.get("breakeven", 0.5)
-    # TACoS divides ad spend by TOTAL sales, which only the Business Report supplies.
-    # Without it br_total_sales is 0 and the ratio computes as 0 -- so the card claimed a
-    # flawless "0% TACoS" on exactly the accounts where the number was unknown. An audit
-    # may not state a metric it could not measure; say so on the card instead.
-    tacos = ((f"{T['tacos']*100:.0f}%", "TACoS", None) if T.get("br_total_sales")
-             else ("n/a", "TACoS", "no Business Report"))
-    return [(_money(T["spend"], cur), "Ad spend / month", None),
+    # Blended cards exist only when Ads and Business Report cover the same dates. When
+    # they do not, use ROAS from the Ads snapshot rather than putting a false TACoS beside
+    # two incompatible periods.
+    fourth = ((f"{T['tacos']*100:.0f}%", "TACoS", None)
+              if blended_metrics_available(M)
+              else (f"{T['roas']:.2f}x", "Ad ROAS", "same Ads window"))
+    spend_label = "Ad spend / snapshot" if M.get("ads_snapshot_directional") else "Ad spend / window"
+    return [(_money(T["spend"], cur), spend_label, None),
             (_money(T["sales"], cur), "Ad sales", None),
             (f"{T['acos']*100:.0f}%", "Blended ACoS", f"vs ~{be*100:.0f}% break-even"),
-            tacos]
+            fourth]
 
 
 # ------------------------------ markdown -> blocks ------------------------------
@@ -129,7 +131,41 @@ _CODE = re.compile(r'`([^`]+)`')
 _COMMENT = re.compile(r'<!--.*?-->', re.S)
 
 
+# A block construct starts a new block; anything else is a continuation of the line above.
+_BLOCK_START = re.compile(r'^\s*(?:#{1,6}\s|\||>\s|[-*]\s|\d+\.\s|!\[|---\s*$|—\s*$|\\pagebreak\s*$)', re.I)
+
+
+def unwrap_soft_breaks(md):
+    """Join hard-wrapped lines back into one paragraph per paragraph.
+
+    The block parser below is line-based, so a prose paragraph wrapped at 100 columns
+    used to become one docx paragraph per LINE, each with its own space-after. Worse,
+    inline spans are matched per line, so a `**bold**` that straddled a wrap shipped to
+    the client as literal asterisks. Four of them reached a delivered audit before this
+    was caught, which is exactly the failure mode that leaves no error behind.
+
+    Markdown already says consecutive non-blank text lines are one paragraph, so this
+    only makes the renderer agree with the format it claims to read. A blank line, a
+    heading, table row, bullet, quote, image or rule still starts a new block.
+    """
+    out = []
+    for line in md.splitlines():
+        stripped = line.strip()
+        if (out and stripped and out[-1].strip()
+                and not _BLOCK_START.match(line)
+                and not _BLOCK_START.match(out[-1])):
+            out[-1] = out[-1].rstrip() + " " + stripped
+        elif (out and stripped and out[-1].strip() and line.startswith(("  ", "\t"))
+              and _BLOCK_START.match(out[-1]) and not _BLOCK_START.match(line)):
+            # An indented continuation belongs to the bullet or list item above it.
+            out[-1] = out[-1].rstrip() + " " + stripped
+        else:
+            out.append(line)
+    return "\n".join(out)
+
+
 def parse_markdown(md, base_dir):
+    md = unwrap_soft_breaks(md)
     blocks = []; tbl = []; title = None
     def flush():
         nonlocal tbl
@@ -216,6 +252,20 @@ def _render_docx(blocks, M, cfg, brand_dir, cover_png, out):
     doc = Document()
     nm = doc.styles['Normal']; nm.font.name = FONT_NAME; nm.font.size = Pt(10.5); nm.font.color.rgb = INK
     pf = nm.paragraph_format; pf.line_spacing = 1.4; pf.space_after = Pt(7); pf.widow_control = True
+
+    # Google Docs may discard a run-level override when it imports or later promotes a
+    # paragraph to a named heading. Brand the named styles themselves so an inherited
+    # Heading 2 can never fall back to Google's default blue.
+    for style_name, size, color in (
+        ('Heading 1', 18, INK),
+        ('Heading 2', 12.5, INK),
+        ('Heading 3', 11, ORANGE),
+    ):
+        style = doc.styles[style_name]
+        style.font.name = FONT_NAME
+        style.font.size = Pt(size)
+        style.font.color.rgb = color
+        style.font.bold = True
 
     def font(r):
         r.font.name = FONT_NAME; rpr = r._element.get_or_add_rPr(); rf = rpr.find(qn('w:rFonts'))

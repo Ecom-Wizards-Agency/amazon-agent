@@ -4,26 +4,26 @@ Loaded at step 2 when the brand has no AdLabs profile. Every Lens A row must sti
 from here. "Not available on this path" is only an acceptable answer for margin.
 
 
-Scaffold a config, preflight, hand the browser downloads to Codex, pull DataDive yourself.
+Scaffold a config, run preflight, gather the browser and DataDive inputs, then continue through the build.
 
 1. Copy `tools/amazon-ad-audit/config.TEMPLATE.json` to `config.<client>-<market>.json`
    (gitignored). Fill client, marketplaces, product lines and ASINs, break-even ACOS, brand and
    competitor tokens, `core_tokens`, `asin_groups`, windows. Never reuse another client's values.
 2. `python3 tools/amazon-ad-audit/build_audit.py --config <cfg> --preflight` prints per-input
-   OK or MISSING, then either READY or a copy-ready Codex download task.
-3. Codex gathers the browser downloads to the exact contract paths, notes evidence and caveats,
-   and stops. It does not run the builder and does not write the narrative.
+   OK or MISSING, then capability-based browser and DataDive MCP checklists or READY.
+3. Gather the browser downloads to the exact contract paths and record evidence and caveats.
 4. Pull the DataDive niche and competitors over MCP to the config paths, then re-run
-   `--preflight` until READY.
+   `--preflight` until READY and continue with the build, narrative, QA, and authorized delivery.
+   If the current runtime lacks one capability, hand off only that checklist to any capable agent.
 
 | Input | Config key | Gatherer |
 |---|---|---|
-| Ads bulk `.xlsx` (SP required; SB, SB-Multi, SD, RAS if running) | `ads_bulk_xlsx` | Codex |
-| Business Report `.csv` (Detail Page Sales and Traffic by Child ASIN) | `business_report_csv` | Codex, or `tools/report-fetcher/` |
-| Multi-ASIN SQP `.csv`, one per product group, weekly | `sqp_csvs` | Codex, or `tools/report-fetcher/` |
-| Search Catalog Performance `.csv`, when a product-funnel claim must be tested | `search_catalog_performance_csv` | Codex, Brand Analytics download |
-| DataDive niche keywords + competitors JSON | `datadive_niche_json`, `datadive_competitors_json` | This skill, over MCP |
-| Rank Radar payload (optional, drives the rank chart) | `rank_radar_json` | This skill, over MCP |
+| Ads bulk `.xlsx` (SP required; SB, SB-Multi, SD, RAS if running) | `ads_bulk_xlsx` | Connected browser |
+| Business Report `.csv` (Detail Page Sales and Traffic by Child ASIN) | `business_report_csv` | Connected browser or `tools/report-fetcher/` |
+| Multi-ASIN SQP `.csv`, one per product group, weekly | `sqp_csvs` | Connected browser or `tools/report-fetcher/` |
+| Search Catalog Performance `.csv`, when a product-funnel claim must be tested | `search_catalog_performance_csv` | Brand Analytics download |
+| DataDive niche keywords + competitors JSON | `datadive_niche_json`, `datadive_competitors_json` | DataDive MCP |
+| Rank Radar payload (optional, drives the rank chart) | `rank_radar_json` | DataDive MCP |
 
 Recommended extras: the SB campaign placement report (the bulk's SB placement rows are
 incomplete, only Detail Page populated in practice) and the SP Search-Term Impression-Share
@@ -36,6 +36,24 @@ whatever range was requested. A window cannot be sliced afterwards, so a clean-w
 needs a second export. Default to 4 complete SQP weeks, Sunday to Saturday, about 28 days, so
 ads, BR and SQP line up. `--weeks` takes the period-END date, the Saturday; a Sunday returns
 HTTP 400.
+
+**If the product is offline or materially suppressed, keep two windows separate.** Preserve the
+required latest-four-week observation as the incident window, then identify the latest four
+complete Sunday-to-Saturday weeks when the product was continuously online as the commercial
+control. Export the ads bulk and Business Report separately for each window and enforce the SQP
+week cut on the file with `split_sqp_windows.py`. Do not blend, average, or silently replace the
+incident window with the control. The Doc opens on the current availability problem, uses the
+online control to judge normal performance, and labels the comparison as directional when price,
+seasonality, promotion, traffic mix, or catalog state changed between the windows. Record both in
+`comparison_windows.disruption` and `comparison_windows.online_control`.
+
+**Blended KPIs require exact source-window alignment.** The builder normalizes the ISO dates in
+`windows.ads` and `windows.business_report` and writes
+`metrics.json.window_alignment.ads_vs_business_report` as `matched`, `mismatched`, or `unknown`.
+Only `matched` may calculate TACOS, implied organic sales, ad-attributed share, or ad-to-organic
+ratio. `mismatched` and `unknown` render those fields as N/A with the reason. Preflight warns but
+does not block, because a valid incident or offline-control audit often needs intentionally
+different source windows.
 
 Raw exports stage under gitignored `downloads/{client}/` and stay there. Clear the same files
 from the browser's `~/Downloads` afterwards. Only deliverables reach the client's Drive folder,

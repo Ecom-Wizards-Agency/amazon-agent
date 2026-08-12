@@ -116,11 +116,15 @@ def build(config_path, outdir):
     # TAB 1: Data Completeness
     ws = wb.create_sheet("Data Completeness")
     source_note = cfg.get("inputs", {}).get("sqp_source_note") or "SQP export source not specified."
+    visible_query_cap = max(
+        (len(queries) for week_map in coverage.values() for queries in week_map.values()),
+        default=0,
+    )
     title_block(ws, "Data Completeness: read this first", "Historical SQP coverage is capped. Long-tail is missing, so demand totals are a floor.", 6)
     rr = notes_block(ws, 4, [
         f"Built from {len(cfg['inputs'].get('sqp_csvs',{}))} SQP export. Weeks used: {', '.join(KEPT)}.",
         source_note,
-        "CAP: the export reaches 1,000 rows in at least one week. Queries below the cap are missing, so demand and non-branded totals are a floor.",
+        f"CAP: this multi-ASIN export reaches {visible_query_cap:,} visible query rows in at least one week. Queries below the grid cap are missing, so demand and non-branded totals are a floor.",
         "Market metrics deduped once per query+week. ASIN counts summed across the ASINs in each parent group.",
     ], 6)
     rr += 1; ws.cell(rr, 1, "Per-ASIN coverage").font = F(11, True, C["deep"]); rr += 1
@@ -188,7 +192,7 @@ def build(config_path, outdir):
 
     # TAB 4: Query Intelligence
     ws = wb.create_sheet("Query Intelligence")
-    title_block(ws, "Query Intelligence: brand vs market (multi-week avg)", "CTR/CVR gap vs market = where you under-index. Green = at/above market, red = below. Sorted by UltimaPeak purchases, then weekly demand.", 18)
+    title_block(ws, "Query Intelligence: brand vs market (multi-week avg)", "CTR/CVR gap vs market = where you under-index. Green = at/above market, red = below. Sorted by brand purchases, then weekly demand.", 18)
     hr = 5; header_row(ws, hr, ["Group", "Search query", "Intent", "Wks", "Avg SV", "Total SV", "Imp Share", "Brand CTR", "Mkt CTR", "CTR gap pp", "Brand CVR", "Mkt CVR", "CVR gap pp", "Cart rate", "Mkt cart", "Purch share", "Brand purch", "Mkt purch"],
                        [20, 30, 9, 5, 9, 10, 9, 9, 9, 9, 9, 9, 9, 9, 9, 10, 11, 11])
     rr = hr + 1
@@ -212,7 +216,7 @@ def build(config_path, outdir):
     title_block(ws, "Top Opportunities: focused non-branded core", "Queries must match the configured core terms. Ranked by market purchases, then weekly demand.", 11)
     hr = 5; header_row(ws, hr, ["Group", "Search query", "Avg SV", "Total SV", "Imp Share", "Brand CTR", "Mkt CTR", "CTR gap pp", "Purch share", "Brand purch", "Mkt purch"], [20, 30, 10, 11, 9, 9, 9, 10, 10, 11, 11])
     core_tokens = [str(x).lower() for x in (cfg.get("core_tokens") or [])]
-    opp = [r for r in qi if r[2] != "Branded" and r[4] >= 500 and (not core_tokens or any(t in r[1].lower() for t in core_tokens))]
+    opp = [r for r in qi if r[2] == "Generic" and r[4] >= 500 and (not core_tokens or any(t in r[1].lower() for t in core_tokens))]
     best = {}
     for r in opp:
         if r[1] not in best or r[6] < best[r[1]][6]:
@@ -249,7 +253,7 @@ def build(config_path, outdir):
         if not p or p["sp"] < 20:
             continue
         ac = safe(p["sp"], p["sa"])
-        read = "Branded: defensive" if r[2] == "Branded" else ("High spend, low visibility" if r[6] < 0.05 else "Category spend")
+        read = "Branded: defensive" if r[2] == "Branded" else ("Low visibility; review paid role" if r[6] < 0.05 else "Category spend")
         rows_ov.append([r[0], r[1], r[2], r[4], r[6], p["sp"], p["sa"], ac if p["sa"] else None, read])
     for r in sorted(rows_ov, key=lambda x: -x[5])[:40]:
         fmts = [None, None, None, INT, PCT, MONEY, MONEY, PCT, None]
