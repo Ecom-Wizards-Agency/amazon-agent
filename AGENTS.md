@@ -18,10 +18,7 @@ The agent should be able to:
 
 ## Writing Style (all agents, all written output)
 
-- **Never use the spaced em-dash (" — ") in written text.** It reads as AI style. This applies to client deliverables, narratives, workbook notes, chat replies, commit messages, and docs.
-- Instead: end the sentence and start a new one. Short sentences, the way somebody would speak. A colon or parentheses are fine where a real pause or aside is needed.
-- Allowed exceptions: table cells using "—" as an empty/null marker, numeric ranges ("$10–15", "2026-06-01..2026-06-30"), and minus signs in math.
-- When editing an existing doc, rewrite em-dash sentences instead of mechanically swapping the character. The sentence should still sound like the operator talking.
+The company writing standard lives in `company-ai-skills/docs/writing-style.md`; it is not Amazon-specific and this file no longer restates it. The headline rule, kept here because `tools/lint_agent_docs.py` enforces it on every commit: **never use the spaced em-dash (" — ") in written text**, including chat replies and commit messages. Rewrite the sentence instead.
 
 ## Browser Standard
 
@@ -54,7 +51,7 @@ SPP grants View wherever available plus four explicit Edit exceptions: Reports,
 `Inventory Planning`. The three Inventory exceptions expose required read data
 and never authorize runtime writes.
 When `~/os/wizards-ai/config.json` explicitly enables the scoped
-1Password service-account mode, `tools/wizards-inventory/` may retrieve only
+1Password service-account mode, wizards-ai's `tools/wizards-inventory/` may retrieve only
 that read-runtime login from the custom `Wizards AI Automation` vault through a
 token stored in macOS Keychain. The code must assert port 9223, the preserved
 view-only runtime-policy identifiers,
@@ -311,7 +308,10 @@ Two stop-gates: **sending any creator message** and **publishing any campaign** 
 
 **Local policy overrides these generic defaults.** Before choosing a durable
 destination or deciding whether to retain a local artifact, read
-`_local/storage-routing.md` when it exists. That setup-managed file may override
+`_local/storage-routing.md` when it exists. That file is a symlink the
+company-setup bootstrap creates, pointing at
+`company-ai-skills/skills/company-setup/references/storage-routing.md`; it is
+gitignored, so a bare clone does not have it until setup runs. It may override
 the saving, delivery, retention and cleanup paths below. An explicit safe target
 from the operator for the current task wins over both. Security, permission and
 client-visibility guardrails never become optional. If the local policy path
@@ -418,7 +418,7 @@ Date first and ISO always, so folders sort chronologically. Keep the client name
 
 **Deliverables become native Google files, never `.docx` or `.xlsx`.** Documents become Google Docs and workbooks become Google Sheets. An Office file in Drive cannot be commented on the way a native one can, and "Open with Google Docs/Sheets" hands the client a detached copy. Renderers still produce Office files because python-docx and openpyxl are what carry the branded contract, so those files are intermediates: convert with `python3 tools/gdrive-deliver/deliver.py <file> "<drive folder>" --name "<delivery filename>"`, which gets the file into Drive, converts it, verifies the result, then deletes the Office file both locally and in Drive. Nothing is deleted unless the conversion verified, so a failure leaves the file in the folder rather than losing it.
 
-The destination can be a Drive folder path or a Drive folder id, and the script picks the route from it. One-time setup on a machine is `python3 tools/gdrive-deliver/setup_google.py`; without it, delivery still works and prints the browser steps instead. **`tools/gdrive-deliver/README.md` is the source of truth** for the routes, the size limits, the account check and what survives conversion. Read it when delivery does something unexpected, not before every delivery.
+The destination can be a Drive folder path or a Drive folder id, and the script picks the route from it. One-time setup on a machine is `python3 tools/gdrive-deliver/setup_google.py`; without it, delivery still works and prints the browser steps instead. **the gdrive-deliver README in `company-ai-skills/lib/gdrive-deliver/` is the source of truth** for the routes, the size limits, the account check and what survives conversion (the implementation moved there on 12.08.2026; `tools/gdrive-deliver/` here holds forwarders so every documented command keeps working). Read it when delivery does something unexpected, not before every delivery.
 
 We do not render PDFs anywhere. Whoever needs one downloads it from the Doc, which also covers Amazon case attachments.
 
@@ -594,14 +594,7 @@ Before any Slack write, read `_local/slack-posting.md`. This is mandatory even w
 
 If no bot is configured for the current operator, ask how they want the message posted. Do not default to their personal identity.
 
-The house writing standard the helper enforces:
-
-- Post one short, bold, single-line parent message in the channel.
-- Put all details in flat thread replies under that parent.
-- Use `DD.MM.YYYY` dates.
-- Use short `•` bullets with bold item or metric labels.
-- Use no more than one emoji per message and no sign-off.
-- Do not use a long channel-parent post or bypass the helper's house-style enforcement.
+The house writing standard is enforced by the helper itself and documented in `_local/slack-posting.md` (per-operator) and the company `integration-routing.md` (policy). Do not use a long channel-parent post or bypass the helper's house-style enforcement.
 
 The bot identity, helper script path, channel allowlist, and any operator-specific deviations from the standard above are per-operator configuration and live in `_local/slack-posting.md`. If that file does not exist, the helper is unavailable, the channel is not allowlisted, or the configured bot identity cannot be verified, stop and ask the operator. Do not silently fall back to a personal user account or the Slack connector.
 
