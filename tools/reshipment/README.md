@@ -94,7 +94,7 @@ The poster creates separate thread replies for:
 2. `Reshipment`, with the copy-ready ASIN list and total.
 3. `Excess Inventory / Plan Sales`, when actionable.
 
-Scope summaries and login blockers stay in the Codex task.
+Scope summaries and login blockers stay in the task summary.
 
 Accounts with zero positive reshipment quantities do not get individual threads. Group them into one short parent post:
 

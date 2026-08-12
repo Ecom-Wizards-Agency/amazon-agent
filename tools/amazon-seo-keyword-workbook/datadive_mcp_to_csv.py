@@ -13,7 +13,7 @@ NOT MCP-covered (still a UI download — do NOT try to synthesize):
   - expanded_mkl_csv (1% MKL) — the MCP returns only the ~visible/tracked set, not
     the 1% expansion tail (the extra rows up to the 500 cap). Download it.
 
-Usage (Claude calls the MCP tools, saves each raw JSON response to a file, then):
+Usage (the current agent calls the MCP tools, saves each raw JSON response to a file, then):
   python datadive_mcp_to_csv.py --anchor B0XXXXXXXX \
     --roots-json roots.json --keywords-json keywords.json --competitors-json comps.json \
     --out-roots ~/Downloads/niche-<ID>-niche-analysis-roots.csv \

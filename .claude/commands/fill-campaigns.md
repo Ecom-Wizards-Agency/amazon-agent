@@ -17,9 +17,10 @@ Load the `amazon-seo-keyword-workflow` skill (section "Campaign Structure Fill")
 1. **Confirm scope** with the operator if not given: which client config
    (`tools/amazon-seo-keyword-workbook/config.<client>.json`) and which built workbook `.xlsx`.
 2. **Check the local strategy files** `_local/ads-strategy/strategy.json` + `strategy.md`:
-   - Missing or `<placeholders>` → Claude: offer to create/refresh them from the Notion playbooks
-     listed in the strategy.md header (via `tools/amazon-seo-keyword-workbook/ads-strategy.TEMPLATE.*`).
-     Codex: stop and ask the operator for the files. Never guess thresholds.
+   - Missing or `<placeholders>` → if the current agent has Notion access, offer to create or
+     refresh them from the playbooks listed in the strategy.md header (via
+     `tools/amazon-seo-keyword-workbook/ads-strategy.TEMPLATE.*`). Otherwise ask the operator for
+     the files. Never guess thresholds.
    - Check the client config has `campaign_structure.own_brand_tokens` and
      `product_name_for_naming`; ask once for missing values.
 3. **Extract**:

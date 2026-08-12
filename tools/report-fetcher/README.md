@@ -62,7 +62,7 @@ Options: `--range weekly|monthly|quarterly` (SQP/SCP/TST) · `--weeks a,b` (mult
 fetch nothing) · `--verbose` (also writes `<out>.raw.json` + column ids, for troubleshooting a
 first run). Each SQP ASIN is fetched with a single-ASIN call (uncapped Search Query Volume).
 The runner opens its own background tab, writes the CSV, closes the tab; it never disturbs
-your other tabs. The canonical copy-paste Codex prompt is in `CODEX-PROMPT.md`.
+your other tabs. The canonical copy-paste browser prompt is in `BROWSER-PROMPT.md`.
 
 ## Account safety (read this)
 
@@ -139,7 +139,7 @@ Preconditions: the connected browser is on a logged-in `sellercentral.amazon.*` 
 account + marketplace confirmed (the standard browser checkpoint). For SQP, be on a Brand
 Analytics page so the `anti-csrftoken-a2z` meta tag is present.
 
-**1. Fetch (in the browser).** Pass the source string + a call (Playwright / Codex path):
+**1. Fetch (in the browser).** Pass the source string plus a call through the page-evaluate path:
 
 ```js
 // SQP: one product line, two weeks

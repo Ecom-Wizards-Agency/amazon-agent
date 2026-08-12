@@ -30,4 +30,4 @@ The user's target is: **$ARGUMENTS**
 
 6. **Deliver**: the `upload.xlsx` + a per-SKU audit note (included/excluded SKUs, changed fields, manual-review flags). Use **`PartialUpdate`** semantics for SEO-only changes so price/images/parentage are untouched.
 
-7. **Stop.** Uploading is a separate step. Hand off to `/flatfilepro-upload` (or the operator/Codex). Never upload, save Seller Central changes, or submit cases as part of this command.
+7. **Stop.** Uploading is a separate step. Hand off to `/flatfilepro-upload` or the operator. Never upload, save Seller Central changes, or submit cases as part of this command.

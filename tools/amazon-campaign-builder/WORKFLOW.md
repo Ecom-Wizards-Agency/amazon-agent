@@ -7,7 +7,7 @@ contract; nothing in the code is client-specific.
 
 ## Roles
 
-- **Agent (Claude or Codex)**: parses the operator's brief/keyword workbook/change request,
+- **Current agent**: parses the operator's brief/keyword workbook/change request,
   asks for missing required fields, scaffolds the config, runs preflight/preview/build,
   presents the review, and then **stops**.
 - **Operator**: confirms the preview, uploads the file in Campaign Manager → Bulk Operations,

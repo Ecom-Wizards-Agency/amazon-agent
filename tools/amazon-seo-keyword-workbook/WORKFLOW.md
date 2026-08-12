@@ -1,8 +1,8 @@
 # Amazon SEO Keyword Workbook Workflow
 
-> **Cross-agent note:** Codex gathers these inputs via the internal browser while Claude writes SEO + builds. Codex waits for Claude's handoff with the **`/seo-standby`** command, then captures to the contract paths and stops.
+> **Current-agent rule:** the active agent gathers MCP and browser inputs, writes SEO, builds, validates, and completes authorized internal delivery. A handoff is used only when a required capability is unavailable.
 >
-> **Known capture quirks** (baked into the preflight Codex task; details in the `amazon-seo-keyword-workflow` skill): DataDive export buttons may emit no download event → manual download + Codex maps files by rows/headers, Claude cross-checks counts vs the DataDive MCP; POE inputs come from the API-first downloader (`run-poe.mjs`, one command per niche; manual tab-click/CSV export is fallback only); Amazon may render EN → switch the site language preference before listing capture; Codex cleans up duplicate downloads only after Claude accepts the canonical files.
+> **Known capture quirks** (baked into the preflight browser checklist; details in the `amazon-seo-keyword-workflow` skill): DataDive export buttons may emit no download event → map files by rows/headers and cross-check counts against DataDive MCP; POE inputs come from the API-first downloader (`run-poe.mjs`, one command per niche; manual tab-click/CSV export is fallback only); Amazon may render EN → switch the site language preference before listing capture; clean up duplicate downloads only after canonical inputs pass validation.
 
 ## 1. Gather DataDive Exports
 
@@ -117,8 +117,8 @@ Folder convention: **one Keyword Research folder per client, with a sub-folder p
 The build also writes:
 
 - manifest JSON
-- cross-agent handoff note (shared team vault when reachable, otherwise next to the workbook)
-- copy-ready Claude/Codex prompt
+- optional capability handoff note (shared team vault when reachable, otherwise next to the workbook)
+- copy-ready capability continuation checklist
 
 ## 7. (Optional, on explicit PPC request) Fill Campaign Structure
 

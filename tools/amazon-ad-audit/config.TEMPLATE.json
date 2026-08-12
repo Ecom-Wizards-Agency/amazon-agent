@@ -1,5 +1,5 @@
 {
-  "_README": "Per-client Amazon Ad/Sales Audit config. Copy to config.<client>-<market>.json (gitignored; only this TEMPLATE is committed). Fill every <...> placeholder. Paths in inputs{} may use ~ and repo-relative paths. Run: python tools/amazon-ad-audit/build_audit.py --config <this file> --preflight  → then --config <this file> to build. break-even ACOS is an ASSUMPTION until margin is confirmed; every red/amber verdict keys off it.",
+  "_README": "Per-client Amazon Account Audit config. Copy to config.<client>-<market>.json (gitignored; only this TEMPLATE is committed). Fill every <...> placeholder. Paths in inputs{} may use ~ and repo-relative paths. Run: python tools/amazon-ad-audit/build_audit.py --config <this file> --preflight, then --config <this file> to build. Break-even ACOS is an ASSUMPTION until margin is confirmed; every red/amber verdict keys off it.",
 
   "client": "<Client display name>",
   "date": "<YYYY-MM-DD of the deliverable>",
@@ -80,7 +80,8 @@
   },
 
   "branding": {
-    "_note": "Branded rendering (render_branded.py) → A4 .docx + .pdf. Agency identity (palette/fonts/name/URL) comes from _local/branding/branding.json — see tools/amazon-ad-audit/BRANDING.md. first_time=true renders the dark cover page; regular update audits set false (no cover). Requires the local brand/ assets (prepare_brand_assets.py or your own). Falls back to plain md_to_docx if assets/Chrome are missing.",
+    "_note": "Branded rendering creates an A4 DOCX intermediate for conversion to the sole deliverable: a native Google Doc. After conversion, run the native normalization in native_doc_normalize.py so a deep audit has a full-page cover, no first-page furniture, and a right-aligned content header. Agency identity comes from _local/branding/branding.json; see tools/amazon-ad-audit/BRANDING.md. first_time=true renders the cover; regular update audits set false. Requires the local brand assets. Falls back to plain md_to_docx if assets or Chrome are missing.",
+    "doc_label": "Account Audit",
     "first_time": true,
     "prepared_by": "Victor Uhl, Founder",
     "cover_subtitle": "A straight look at the account, with recommendations on where to start.",

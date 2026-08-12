@@ -4,7 +4,7 @@ Verified 2026-07-05 on the `hydrocortisone cream` niche (a US seller account,
 German UI), live side-by-side: UI screenshots in
 `evidence/<client>/opportunity-data/2026-07-05_poe_*.png`, native CSV
 exports vs `fetch-poe.js` output diffed cell-by-cell. Transports: A = evaluate
-of fetch-poe.js source (Codex style), B = `run-poe.mjs` over CDP. A and B
+of fetch-poe.js source (page-evaluate style), B = `run-poe.mjs` over CDP. A and B
 outputs were byte-identical.
 
 Legend: OLD = pre-rebuild capture (extract-opportunity-explorer.js DOM scrape +

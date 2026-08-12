@@ -2,7 +2,7 @@
  * Browser-side Amazon listing-copy extractor.
  *
  * Deterministic replacement for a legacy browser workflow, without the
- * ChatGPT formatting steps. Captures
+ * downstream formatting steps. Captures
  * the title + bullet points + canonical link for the listing on the current
  * Amazon product page.
  *
@@ -14,7 +14,7 @@
  * cookies/storage/credentials/tokens). Try the normal headless CDP mode first.
  * Amazon PDPs may block its renderer, so temporarily use headed background mode
  * for this workflow when needed and return the CDP profile to headless afterward:
- *   A) Codex / Playwright:  await tab.playwright.evaluate(extractAmazonListingCopy, "<requestedAsin>")
+ *   A) Internal browser / Playwright: await tab.playwright.evaluate(extractAmazonListingCopy, "<requestedAsin>")
  *   B) DevTools / injected:  window.amazonAgentExtractListingCopy("<requestedAsin>")
  *
  * Navigate in the LOCAL language first. For amazon.it use the locale path

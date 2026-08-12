@@ -19,7 +19,7 @@ The operator confirmed ownership and backend clearance for reusing the previous 
 
 The normal workflow should not require a Chrome extension or manual extension clicks.
 
-Codex should:
+The current agent should:
 
 1. Open the logged-in connected browser Seller Central page.
 2. Navigate to the relevant Product Opportunity Explorer niche/page.
@@ -33,7 +33,7 @@ Keep the original Chrome extension only as historical/source reference during tr
 
 Team members should clone the GitHub `amazon-agent` repo. No browser extension install is required for the AI workflow.
 
-When an OEI/POE export is needed, Codex should:
+When an OEI/POE export is needed, the current agent should:
 
 1. Open Product Opportunity Explorer in the connected browser.
 2. Run `tools/opportunity-explorer/extract-opportunity-explorer.js` in the page context.

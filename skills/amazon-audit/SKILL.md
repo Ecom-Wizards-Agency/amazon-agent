@@ -1,9 +1,9 @@
 ---
 name: amazon-audit
-description: "Use for every Amazon ad or sales audit. First-time prospect audits always use downloaded Amazon files; monthly reviews and actions-only audits require an AdLabs-managed account. Trigger on `/amazon-audit`, ad audit, sales audit, account audit, monthly account review, or analyze this AdLabs account. Asks the job first, routes by posture, then asks only what is not already on file. Self-contained: narrative voice, workbook standard, figure set and branded-document contract all live here. Read-only."
+description: "Use for every Amazon Account Audit, including ad or sales audits. First-time prospect audits always use downloaded Amazon files; monthly reviews and actions-only audits require an AdLabs-managed account. Trigger on `/amazon-audit`, account audit, ad audit, sales audit, monthly account review, or analyze this AdLabs account. Asks the job first, routes by posture, then asks only what is not already on file. Self-contained: narrative voice, workbook standard, figure set and branded-document contract all live here. Read-only."
 ---
 
-# Amazon Ad / Sales Audit
+# Amazon Account Audit
 
 Browser: Mixed (AdLabs and DataDive over MCP; Business Report, SQP and the ads bulk over the CDP report fetcher on the download path; live creative capture over CDP on both paths; build is local).
 
@@ -594,9 +594,20 @@ with a cover. `monthly` ships an inline consolidated report plus a branded Googl
 request. `actions` ships the prioritized change list only, with spend impact in the profile
 currency and GoTo links, and skips the narrative entirely.
 
-The native Google Doc is the audit deliverable. Never create or deliver a PDF unless the operator
-explicitly requests one. A temporary PDF export is allowed only for visual QA and must be deleted
-after inspection.
+The native Google Doc is the audit deliverable. Never create, export, retain, or deliver a PDF
+unless the operator explicitly requests one. Inspect the native Google Doc directly.
+
+The default document label is **Account Audit**. An explicit client-specific `branding.doc_label`
+override still wins.
+
+**Native conversion is not finished until the cover and header are normalized.** For every `deep`
+audit, read the converted Google Doc, build the request batch with
+`tools/amazon-ad-audit/native_doc_normalize.py`, apply it with revision control, and read the Doc
+back. The native result must have a zero-margin first section, an A4 cover image that fills the
+entire first page, no header or footer on the cover, a next-page section break before body content,
+and content-page labels aligned to the right content edge. DOCX section or header-table geometry is
+not proof. Google conversion can flatten both. Visually inspect the cover and every content-page
+header in the native Doc before delivery.
 
 After native Google conversion or any in-place heading edit, explicitly normalize every
 `Priority N:` heading to Inter 12.5 pt, bold, Ecom Wizards Ink `#11151C`. Never leave priority

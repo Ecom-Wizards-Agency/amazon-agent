@@ -8,8 +8,8 @@ This is the only handoff format. It replaces the personal-vault copies that drif
 
 ## The rule
 
-An agent that stops mid-task, when another agent may continue, writes one of these before it
-stops. Do not make the operator translate between Codex and Claude.
+An agent that stops mid-task, when another agent or runtime may continue, writes one of these
+before it stops. Do not make the operator translate between agents.
 
 ## Where the file goes
 
@@ -18,7 +18,7 @@ stops. Do not make the operator translate between Codex and Claude.
 | Client has a team-vault folder | `<team-vault>/Clients/<Client>/Handoffs/YYYY-MM-DD-<topic>.md` |
 | No vault folder for that client | `output/<client>/<workflow>/YYYY-MM-DD-<topic>-handoff.md` |
 | Not client work (tooling, infra, migrations) | `<team-vault>/Handoffs/YYYY-MM-DD-<topic>.md` |
-| Keyword-workbook runs | auto-generated: `build_keyword_workbook.py --config <cfg> --preflight` |
+| Keyword-workbook runs | builder-resolved path; preflight prints it when a capability handoff is needed |
 
 The root `Handoffs/` row mirrors the vault's existing root `Runs/`, which already covers work that
 spans clients rather than belonging to one. It was added after the first handoff written to this
@@ -30,7 +30,7 @@ with `AMAZON_AGENT_TEAM_VAULT` or `_local/team-vault-path.txt`.
 **No YAML frontmatter.** A handoff is transient work state, not vault knowledge, and `handoff`
 is deliberately absent from the vault type vocabulary. The header lines below carry everything.
 
-**One file per task, not per exchange.** A task that bounces Claude to Codex and back is still one
+**One file per task, not per exchange.** A task that moves between agents or runtimes is still one
 handoff file. The receiving agent rewrites it in place when it hands the task back: update the
 header, replace sections 1 to 3 with what the next agent must now do, and fold what it just did
 into section 4. The file is a baton, not a transcript.
@@ -50,8 +50,8 @@ Copy this. Keep the section order and the numbering.
 # Handoff: <one line, what this is>
 
 Updated: DD.MM.YYYY
-From: <Claude | Codex>
-Next agent: <Codex | Claude | any>
+From: <agent/runtime>
+Next agent: <agent/runtime | any capable agent>
 Status: <ready | blocked on X>
 Round: <1, 2, ... incremented each time the task changes hands>
 

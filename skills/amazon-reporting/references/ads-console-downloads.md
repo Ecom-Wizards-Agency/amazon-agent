@@ -14,7 +14,7 @@ Use this reference for campaign bulk exports and Sponsored Ads reports created a
 - Campaign bulk export
 - Sponsored Products Search Term Impression Share
 - Sponsored Brands Campaign Placement
-- CDP feasibility and Claude Code handoff
+- CDP feasibility and implementation brief
 
 ## Input contract
 
@@ -323,9 +323,9 @@ runner already exists.
 Conclusion: the Chrome extension is not required for authenticated Ads downloads. The
 remaining engineering work is generation and polling automation, not file transfer.
 
-## Claude Code handoff
+## Implementation brief
 
-Give Claude Code this reference plus:
+Give the implementing agent this reference plus:
 
 - `tools/report-fetcher/cdp.mjs`;
 - `tools/report-fetcher/capture-endpoints.mjs` as a pattern only. It currently filters
@@ -334,7 +334,7 @@ Give Claude Code this reference plus:
 - `docs/browser-checkpoints.md`;
 - `docs/browser-routing-map.md`.
 
-Ask Claude to build an Ads-specific CDP runner with these commands:
+Build an Ads-specific CDP runner with these commands:
 
 ```text
 doctor
