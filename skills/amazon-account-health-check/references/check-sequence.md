@@ -10,19 +10,22 @@ Process account-marketplaces by region in this order:
 2. US accounts second.
 3. Any remaining non-Europe, non-US marketplaces last, unless the operator gives a different order.
 
-Within each region, keep a stable marketplace/account order for the run so Slack output is easy to scan.
+Within each region, keep a stable marketplace/account order for the run so the ledger and the digest read in a predictable order.
 
 For each account-marketplace:
 
 1. Open `{preferred_browser}` and confirm Seller Central is logged in.
-2. Read the latest report from `{sellersonar_alert_source}`. Freshness guard: if the latest report is older than the previous business day, never report `No alerts` - report `alert source stale ({report date})` and treat alert-source checks as not performed.
-3. Record relevant alerts:
-   - search suppression
-   - Buy Box / Featured Offer suppression or drop
-   - new seller or possible hijacker
-   - category/sub-category change
-   - rating/review drop
-   - major price or offer change
+2. Read this account's precomputed Keepa market signals from `{market_signals_state_path}`. They are computed from Keepa before the run starts. Never fetch market signals during the check. Freshness guard: if the file is missing or its `generated_at` is not from today, record that as a blocker, treat market coverage as not performed for this run, and carry on with the rest of the check. An account whose ASINs are not registered for monitoring has no market coverage at all: record that as `not monitored`, which is not the same as clean.
+3. Record the relevant market signals as findings:
+   - BSR move, and proximity to the named competitor it is measured against
+   - Buy Box / Featured Offer holder change, loss, or a new seller that looks like a hijacker
+   - category / browse-node change
+   - average rating change, or reviews disappearing
+   - Buy Box price or offer change
+   - FBA or referral fee change
+   - package dimension or weight change
+
+   Search-suppressed and inactive listings are not in Keepa. They come from Seller Central in the steps below.
 4. Open Seller Central and verify the account by `{seller_central_name_field}` and the country/region by `{marketplace_field}`.
 5. Check Account Health:
    - overall status and Account Health Rating

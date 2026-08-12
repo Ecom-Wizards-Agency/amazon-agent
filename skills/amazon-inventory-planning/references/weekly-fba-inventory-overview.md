@@ -18,7 +18,7 @@ Do not include Globex, Umbrella, or Stark unless the operator explicitly expands
 Post only in the internal Slack `#amazon-check` channel for review:
 
 - Channel id: `<slack-channel-id>` (the real id lives in the local reshipment config, not in this file)
-- Send through `~/Automations/wizards-ai/slack.sh` as Wizards AI. Do not use a personal Slack identity or the Slack connector for posting.
+- Send through the Wizards AI helper as Wizards AI: `~/os/wizards-ai/slack.sh`, or `~/Automations/wizards-ai/slack.sh` on an unmigrated machine. Do not use a personal Slack identity or the Slack connector for posting.
 - Do not post to client channels unless the operator explicitly approves a client-channel send after reviewing the staging output.
 
 ## Browser And Login Rules

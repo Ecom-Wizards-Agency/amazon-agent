@@ -18,10 +18,7 @@ The agent should be able to:
 
 ## Writing Style (all agents, all written output)
 
-- **Never use the spaced em-dash (" — ") in written text.** It reads as AI style. This applies to client deliverables, narratives, workbook notes, chat replies, commit messages, and docs.
-- Instead: end the sentence and start a new one. Short sentences, the way somebody would speak. A colon or parentheses are fine where a real pause or aside is needed.
-- Allowed exceptions: table cells using "—" as an empty/null marker, numeric ranges ("$10–15", "2026-06-01..2026-06-30"), and minus signs in math.
-- When editing an existing doc, rewrite em-dash sentences instead of mechanically swapping the character. The sentence should still sound like the operator talking.
+The company writing standard lives in `company-ai-skills/docs/writing-style.md`; it is not Amazon-specific and this file no longer restates it. The headline rule, kept here because `tools/lint_agent_docs.py` enforces it on every commit: **never use the spaced em-dash (" — ") in written text**, including chat replies and commit messages. Rewrite the sentence instead.
 
 ## Browser Standard
 
@@ -54,7 +51,7 @@ SPP grants View wherever available plus four explicit Edit exceptions: Reports,
 `Inventory Planning`. The three Inventory exceptions expose required read data
 and never authorize runtime writes.
 When `~/os/wizards-ai/config.json` explicitly enables the scoped
-1Password service-account mode, `tools/wizards-inventory/` may retrieve only
+1Password service-account mode, wizards-ai's `tools/wizards-inventory/` may retrieve only
 that read-runtime login from the custom `Wizards AI Automation` vault through a
 token stored in macOS Keychain. The code must assert port 9223, the preserved
 view-only runtime-policy identifiers,
@@ -129,7 +126,7 @@ Terminology:
 Default routing:
 
 - `amazon-client-onboarding`: Amazon new-client access preflight, Day 0 account baseline, FBA disposal protection, 15% all-eligible-audience Brand Tailored Promotion plans, approval-gated setup changes, independent inventory verification, and seven-day onboarding monitoring. Permissions are a preflight gate and create a task only when missing.
-- `amazon-operations-review`: explicitly configured weekly and monthly operational checks for lightweight inventory exceptions, stranded inventory, open or received shipment exceptions, variation alerts, negative-review tracking, SellerSonar fee alerts, returns, Voice of the Customer, and overstock. Installing or loading the skill never creates or starts an automation; setup and activation use separate explicit prompts.
+- `amazon-operations-review`: explicitly configured weekly and monthly operational checks for lightweight inventory exceptions, stranded inventory, open or received shipment exceptions, variation alerts, negative-review tracking, the precomputed Keepa fee, package dimension and package weight findings, returns, Voice of the Customer, and overstock. Installing or loading the skill never creates or starts an automation; setup and activation use separate explicit prompts.
 - `amazon-troubleshooting`: errors, suppressed listings, warnings, Account Health, blocked workflows.
 - `amazon-regulated-product-suppression-appeals`: evidence-controlled appeal packs for serious supplement, cosmetic, OTC/drug, medical-device, restricted-product, packaging, labeling, manual, and unsupported-claims suppressions. Use when the case needs coordinated technical evidence, declarations, catalog-processing proof, preventative controls, training, or a response after denial. Victor is the final troubleshooting approver.
 - `amazon-seo`: keyword research, listing SEO, Ranking Juice, Rufus/semantic optimization, SEO audits, and updating/re-optimizing an existing listing's title/bullets/Item Highlights/backend (load it for any "update the title/bullets/SEO" or "make the listing compliant" request, and run its product-facts intake before writing). Includes the health-claims compliance layer (`/health-claims-check`): category-tiered (regulated vs standard), EU + US regimes, SAS-style per-claim self-check, RJ-preserving rewrite ladder; mandatory self-check for regulated-tier deliverables.
@@ -140,7 +137,6 @@ Default routing:
 - `amazon-sb-video-briefs`: Sponsored Brands VIDEO creative work (`/video-brief`). It combines the latest Drive keyword workbook, DataDive roots, broad POE scouting, SQP, ads, listing, price, and verified assets, then produces three named angles over one shared second half plus a per-product Creative Reference. Claims validation stays internal. Briefs contain only the concise do-not list. Stable concept-testing methodology lives in `agency/Playbooks/amazon-sb-video-concept-testing-playbook.md`; live results live in Notion. Pure PPC structure routes to `amazon-campaign-builder`/`amazon-ads`; creator sourcing routes to `amazon-creator-connections`.
 - `amazon-creator-connections`: Creator Connections inbox audits, status-filtered message triage, campaign tracker updates, reply drafting (operator-confirmed sends), campaign prep to the publish checkpoint, tracker gaps, reconciliation.
 - `amazon-reporting`: fetching and formatting Seller/Ads reports, SQP, business reports, analytics workbooks; Business Reports + SQP can be fetched without manual download via `tools/report-fetcher/`. Not for audit narratives (that is `amazon-audit`).
-- `amazon-launch-strategy`: read-only forward-looking Day 0 and 13-week launch plans covering low/base/high sales scenarios, bottom-up PPC budgets, pricing and discount constraints, stock and reorder timing, compliant review paths, owners, and open confirmations. Historical diagnosis remains in `amazon-audit`; live execution routes to the relevant operating skill.
 - `amazon-client-offboarding`: complete, branded, read-only Amazon account handovers when an engagement ends or ownership transfers. Produces the client operating narrative plus the exact five-tab evidence workbook; it is not an audit posture and never mutates the account.
 - `amazon-inventory-planning`: weekly FBA inventory overview, reshipment planning, pCloud outputs, Slack staging.
 - `amazon-opportunity-explorer`: Product Opportunity Explorer/OEI/POE exports, image strategy, product strategy, Alexa/Rufus semantic insights.
@@ -172,17 +168,6 @@ Operational-check trigger phrases:
 - `Show the operational checks setup`
 
 Route these phrases to `amazon-operations-review`. Loading or installing the skill never creates an automation or runs a check. The setup phrase produces a preview only. Only the separate exact approval phrase following a complete pending preview authorizes schedule creation, and activation must not trigger an immediate run.
-
-Launch strategy trigger phrases:
-
-- `Amazon launch plan`
-- `90-day launch strategy`
-- `PPC budget and plan for launch`
-- `launch pricing and discount strategy`
-- `launch stock forecast`
-- `review strategy before launch`
-
-Route these phrases to `amazon-launch-strategy`. The workflow is read-only and may consume audit findings, keyword workbooks, POE, listing drafts, client briefs, and live project context. It never duplicates the `amazon-audit` historical diagnosis model. Campaign files, live PPC changes, catalog changes, shipments, and client messages remain separate authorized actions.
 
 Inventory planning trigger phrases:
 
@@ -331,7 +316,10 @@ Two stop-gates: **sending any creator message** and **publishing any campaign** 
 
 **Local policy overrides these generic defaults.** Before choosing a durable
 destination or deciding whether to retain a local artifact, read
-`_local/storage-routing.md` when it exists. That setup-managed file may override
+`_local/storage-routing.md` when it exists. That file is a symlink the
+company-setup bootstrap creates, pointing at
+`company-ai-skills/skills/company-setup/references/storage-routing.md`; it is
+gitignored, so a bare clone does not have it until setup runs. It may override
 the saving, delivery, retention and cleanup paths below. An explicit safe target
 from the operator for the current task wins over both. Security, permission and
 client-visibility guardrails never become optional. If the local policy path
@@ -348,7 +336,10 @@ Top-level folder roles:
 - `evidence/`: screenshots, UI proof, warning captures, visible tables, and operator notes.
 - `downloads/`: temporary raw Amazon exports before processing.
 - `_local-output/`: one-off local staging or migration scratch space.
+- `.codex-tmp/`: Codex one-shot scratch only (throwaway inspector scripts, probe output). Never a home for client deliverables: anything worth keeping moves to `output/{client}/{workflow}/` in the same session, and the folder is purged at least monthly.
 - `review-tracking/`: legacy ignored folder only. Keep existing local files there if they already exist, but do not create new review-management work there by default.
+
+These are the only sanctioned scratch roots. `tmp/`, `.tmp/`, `outputs/` and uppercase `Output/` are retired roots (consolidated into `output/` on 12.08.2026): they stay in `.gitignore` as tombstones, and nothing new gets created in them.
 
 Use ongoing client-first paths for new artifacts:
 
@@ -435,7 +426,7 @@ Date first and ISO always, so folders sort chronologically. Keep the client name
 
 **Deliverables become native Google files, never `.docx` or `.xlsx`.** Documents become Google Docs and workbooks become Google Sheets. An Office file in Drive cannot be commented on the way a native one can, and "Open with Google Docs/Sheets" hands the client a detached copy. Renderers still produce Office files because python-docx and openpyxl are what carry the branded contract, so those files are intermediates: convert with `python3 tools/gdrive-deliver/deliver.py <file> "<drive folder>" --name "<delivery filename>"`, which gets the file into Drive, converts it, verifies the result, then deletes the Office file both locally and in Drive. Nothing is deleted unless the conversion verified, so a failure leaves the file in the folder rather than losing it.
 
-The destination can be a Drive folder path or a Drive folder id, and the script picks the route from it. One-time setup on a machine is `python3 tools/gdrive-deliver/setup_google.py`; without it, delivery still works and prints the browser steps instead. **`tools/gdrive-deliver/README.md` is the source of truth** for the routes, the size limits, the account check and what survives conversion. Read it when delivery does something unexpected, not before every delivery.
+The destination can be a Drive folder path or a Drive folder id, and the script picks the route from it. One-time setup on a machine is `python3 tools/gdrive-deliver/setup_google.py`; without it, delivery still works and prints the browser steps instead. **the gdrive-deliver README in `company-ai-skills/lib/gdrive-deliver/` is the source of truth** for the routes, the size limits, the account check and what survives conversion (the implementation moved there on 12.08.2026; `tools/gdrive-deliver/` here holds forwarders so every documented command keeps working). Read it when delivery does something unexpected, not before every delivery.
 
 We do not render PDFs anywhere. Whoever needs one downloads it from the Doc, which also covers Amazon case attachments.
 
@@ -611,14 +602,7 @@ Before any Slack write, read `_local/slack-posting.md`. This is mandatory even w
 
 If no bot is configured for the current operator, ask how they want the message posted. Do not default to their personal identity.
 
-The house writing standard the helper enforces:
-
-- Post one short, bold, single-line parent message in the channel.
-- Put all details in flat thread replies under that parent.
-- Use `DD.MM.YYYY` dates.
-- Use short `•` bullets with bold item or metric labels.
-- Use no more than one emoji per message and no sign-off.
-- Do not use a long channel-parent post or bypass the helper's house-style enforcement.
+The house writing standard is enforced by the helper itself and documented in `_local/slack-posting.md` (per-operator) and the company `integration-routing.md` (policy). Do not use a long channel-parent post or bypass the helper's house-style enforcement.
 
 The bot identity, helper script path, channel allowlist, and any operator-specific deviations from the standard above are per-operator configuration and live in `_local/slack-posting.md`. If that file does not exist, the helper is unavailable, the channel is not allowlisted, or the configured bot identity cannot be verified, stop and ask the operator. Do not silently fall back to a personal user account or the Slack connector.
 

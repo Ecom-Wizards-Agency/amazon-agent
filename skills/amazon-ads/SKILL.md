@@ -5,7 +5,7 @@ description: Use for day-to-day Amazon Ads Console work: bidding, budgets, place
 
 # Amazon Ads
 
-For Sponsored Brands video concept tests, use `/Users/victoruhl/os/agency/Playbooks/amazon-sb-video-concept-testing-playbook.md` as the canonical measurement method. Keep live tests in the existing Notion A/B Test Program. Do not copy the method into editor briefings or Creative References.
+For Sponsored Brands video concept tests, use `<vault>/Playbooks/amazon-sb-video-concept-testing-playbook.md` (team vault, resolved via `AMAZON_AGENT_TEAM_VAULT` or `_local/team-vault-path.txt`) as the canonical measurement method. Keep live tests in the existing Notion A/B Test Program. Do not copy the method into editor briefings or Creative References.
 
 Browser: CDP (Ads Campaign Manager; stop before changes).
 
