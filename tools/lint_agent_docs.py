@@ -46,6 +46,9 @@ EXEMPT_PARTS = [
     # Temporary: em-dash sweep deferred while the branding-doc rework is in
     # flight in the operator's working tree (2026-07-15). Remove once swept.
     "tools/amazon-ad-audit/",
+    # Third-party dependencies. Our house writing style does not apply to somebody
+    # else's README, and an installed package can put thousands of them in the tree.
+    "node_modules/",
 ]
 
 CLAUDE_ONLY_TOOLS = ["AskUserQuestion"]
