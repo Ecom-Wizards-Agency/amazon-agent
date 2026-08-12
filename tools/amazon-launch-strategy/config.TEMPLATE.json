@@ -1,0 +1,83 @@
+{
+  "schema_version": "amazon-launch-strategy.v1",
+  "client": {
+    "name": "<client>",
+    "brand": "<brand>",
+    "account": "<seller account>",
+    "marketplace": "US",
+    "currency": "USD",
+    "launch_date": null,
+    "launch_timing_label": "Day 0 and Weeks 1-13",
+    "output_dir": "/absolute/path/to/output/<client>/launch-strategy",
+    "file_stem": "YYYY-MM-DD_<Brand>_US_90-Day_Amazon_Launch_Strategy"
+  },
+  "baseline": {"current_revenue": null, "orders_by_product": null},
+  "external_channels": {
+    "current_meta_spend": null,
+    "current_google_spend": null,
+    "branded_search_contribution": null,
+    "planned_launch_support": null
+  },
+  "commercial_targets": {
+    "daily_revenue_milestones": {"month_1_exit": 300, "month_2_exit": 1000, "month_3_committed": 1000, "month_3_stretch": 2000},
+    "stock_safety_buffer_pct": 0.2,
+    "stock_rounding_increment": 25,
+    "product_mix_by_month": {
+      "month_1": {"launch-product": 1.0},
+      "month_2": {"launch-product": 1.0},
+      "month_3": {"launch-product": 1.0}
+    },
+    "ppc_plan": {
+      "month_1": {"label": "Month 1", "planned_spend": 2000, "spend_ceiling": 3000, "planning_cpc": null, "planning_cvr": null, "campaign_allocation": {"high_intent_non_branded": 0.45, "discovery": 0.25, "competitor_keywords": 0.15, "competitor_product_targeting": 0.10, "branded_defense": 0.05}},
+      "month_2": {"label": "Month 2", "planned_spend": 4500, "spend_ceiling": 6000, "planning_cpc": null, "planning_cvr": null, "campaign_allocation": {"high_intent_non_branded": 0.50, "discovery": 0.15, "competitor_keywords": 0.15, "competitor_product_targeting": 0.15, "branded_defense": 0.05}},
+      "month_3_committed": {"label": "Month 3 committed", "planned_spend": 6500, "spend_ceiling": 9000, "planning_cpc": null, "planning_cvr": null, "campaign_allocation": {"high_intent_non_branded": 0.55, "discovery": 0.10, "competitor_keywords": 0.15, "competitor_product_targeting": 0.15, "branded_defense": 0.05}},
+      "month_3_stretch": {"label": "Month 3 stretch", "planned_spend": 10000, "spend_ceiling": 12000, "planning_cpc": null, "planning_cvr": null, "campaign_allocation": {"high_intent_non_branded": 0.55, "discovery": 0.10, "competitor_keywords": 0.15, "competitor_product_targeting": 0.15, "branded_defense": 0.05}}
+    },
+    "keywords": {"core": [], "discovery": [], "competitors": [], "controlled_tests": [], "controlled_test_guardrail": ""}
+  },
+  "products": [
+    {
+      "id": "launch-product",
+      "name": "Launch Product",
+      "phase": "launch",
+      "list_price": 49.99,
+      "launch_price": 49.99,
+      "coupon_pct": 0,
+      "unit_economics": {
+        "landed_cogs": null,
+        "amazon_fees": null,
+        "other_variable_costs": null,
+        "coupon_fee_per_redemption": 0,
+        "discount_floor": null
+      },
+      "inventory": {
+        "opening_stock": null,
+        "inbound": null,
+        "safety_stock": null,
+        "moq": null,
+        "lead_times": {"production_weeks": null, "freight_weeks": null, "fba_checkin_weeks": null}
+      },
+      "reviews": {"vine_eligible": null, "vine_units": 0}
+    }
+  ],
+  "ppc": {
+    "phases": [
+      {"id": "launch", "name": "Launch Discovery", "start_week": 1, "end_week": 4, "daily_budget_cap": null, "objective": "Harvest search-term and conversion evidence.", "decision_gate": "Protect relevance and suppress waste."},
+      {"id": "scale", "name": "Controlled Scale", "start_week": 5, "end_week": 8, "daily_budget_cap": null, "objective": "Scale proven targets within stock and contribution limits.", "decision_gate": "Increase only proven targets."},
+      {"id": "stabilize", "name": "Stabilize", "start_week": 9, "end_week": 13, "daily_budget_cap": null, "objective": "Shift toward efficient repeatable coverage.", "decision_gate": "Set steady-state budget and targets."}
+    ]
+  },
+  "scenarios": [
+    {"id": "low", "label": "Low", "products": {"launch-product": {"cpc": {"launch": 1.5, "scale": 1.4, "stabilize": 1.3}, "cvr": {"launch": 0.06, "scale": 0.07, "stabilize": 0.08}, "paid_clicks_per_week": {"launch": 30, "scale": 40, "stabilize": 50}, "organic_units_per_week": {"launch": 1, "scale": 2, "stabilize": 3}, "external_halo_units_per_week": {"launch": 0, "scale": 0, "stabilize": 0}, "halo_basis": "No external halo assumed"}}},
+    {"id": "base", "label": "Base", "products": {"launch-product": {"cpc": {"launch": 1.6, "scale": 1.5, "stabilize": 1.4}, "cvr": {"launch": 0.08, "scale": 0.1, "stabilize": 0.11}, "paid_clicks_per_week": {"launch": 50, "scale": 70, "stabilize": 90}, "organic_units_per_week": {"launch": 2, "scale": 4, "stabilize": 7}, "external_halo_units_per_week": {"launch": 0, "scale": 0, "stabilize": 0}, "halo_basis": "No external halo assumed"}}},
+    {"id": "high", "label": "High", "products": {"launch-product": {"cpc": {"launch": 1.8, "scale": 1.7, "stabilize": 1.6}, "cvr": {"launch": 0.1, "scale": 0.12, "stabilize": 0.14}, "paid_clicks_per_week": {"launch": 80, "scale": 110, "stabilize": 140}, "organic_units_per_week": {"launch": 4, "scale": 8, "stabilize": 12}, "external_halo_units_per_week": {"launch": 0, "scale": 0, "stabilize": 0}, "halo_basis": "No external halo assumed"}}}
+  ],
+  "reviews": {
+    "methods": ["vine", "request_a_review"],
+    "vine": {"enabled": false},
+    "request_a_review": {"enabled": true},
+    "helium10_follow_up": {"enabled": false, "amazon_standard_template_only": true, "max_requests_per_order": 1, "deduplicate_with_seller_central": true, "incentive_or_custom_review_language": false}
+  },
+  "sources": [],
+  "owners": []
+}

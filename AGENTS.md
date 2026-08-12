@@ -136,6 +136,7 @@ Default routing:
 - `amazon-sb-video-briefs`: Sponsored Brands VIDEO creative work (`/video-brief`). It combines the latest Drive keyword workbook, DataDive roots, broad POE scouting, SQP, ads, listing, price, and verified assets, then produces three named angles over one shared second half plus a per-product Creative Reference. Claims validation stays internal. Briefs contain only the concise do-not list. Stable concept-testing methodology lives in `<vault>/Playbooks/amazon-sb-video-concept-testing-playbook.md` (team vault); live results live in Notion. Pure PPC structure routes to `amazon-campaign-builder`/`amazon-ads`; creator sourcing routes to `amazon-creator-connections`.
 - `amazon-creator-connections`: Creator Connections inbox audits, status-filtered message triage, campaign tracker updates, reply drafting (operator-confirmed sends), campaign prep to the publish checkpoint, tracker gaps, reconciliation.
 - `amazon-reporting`: fetching and formatting Seller/Ads reports, SQP, business reports, analytics workbooks; Business Reports + SQP can be fetched without manual download via `tools/report-fetcher/`. Not for audit narratives (that is `amazon-audit`).
+- `amazon-launch-strategy`: read-only forward-looking Day 0 and 13-week launch plans covering low/base/high sales scenarios, bottom-up PPC budgets, pricing and discount constraints, stock and reorder timing, compliant review paths, owners, and open confirmations. Historical diagnosis remains in `amazon-audit`; live execution routes to the relevant operating skill.
 - `amazon-client-offboarding`: complete, branded, read-only Amazon account handovers when an engagement ends or ownership transfers. Produces the client operating narrative plus the exact five-tab evidence workbook; it is not an audit posture and never mutates the account.
 - `amazon-inventory-planning`: weekly FBA inventory overview, reshipment planning, pCloud outputs, Slack staging.
 - `amazon-opportunity-explorer`: Product Opportunity Explorer/OEI/POE exports, image strategy, product strategy, Alexa/Rufus semantic insights.
@@ -158,6 +159,17 @@ Operational-check trigger phrases:
 - `Show the operational checks setup`
 
 Route these phrases to `amazon-operations-review`. Loading or installing the skill never creates an automation or runs a check. The setup phrase produces a preview only. Only the separate exact approval phrase following a complete pending preview authorizes schedule creation, and activation must not trigger an immediate run.
+
+Launch strategy trigger phrases:
+
+- `Amazon launch plan`
+- `90-day launch strategy`
+- `PPC budget and plan for launch`
+- `launch pricing and discount strategy`
+- `launch stock forecast`
+- `review strategy before launch`
+
+Route these phrases to `amazon-launch-strategy`. The workflow is read-only and may consume audit findings, keyword workbooks, POE, listing drafts, client briefs, and live project context. It never duplicates the `amazon-audit` historical diagnosis model. Campaign files, live PPC changes, catalog changes, shipments, and client messages remain separate authorized actions.
 
 Inventory planning trigger phrases:
 
