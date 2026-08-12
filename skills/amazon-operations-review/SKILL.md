@@ -1,11 +1,11 @@
 ---
 name: amazon-operations-review
-description: Run and manage lightweight Amazon weekly and monthly operational checks without duplicating daily Account Health, shipment reconciliation, or full reshipment planning. Use for `Set up the operational checks`, weekly or monthly operations reviews, low-stock and stranded-inventory exceptions, open or received shipment issues, negative-review tracking, SellerSonar fee alerts, returns, Voice of the Customer, overstock checks, and commands to run, show, pause, or resume the operational checks.
+description: Run and manage lightweight Amazon weekly and monthly operational checks without duplicating daily Account Health, shipment reconciliation, or full reshipment planning. Use for `Set up the operational checks`, weekly or monthly operations reviews, low-stock and stranded-inventory exceptions, open or received shipment issues, negative-review tracking, the precomputed Keepa fee, package dimension and package weight findings, returns, Voice of the Customer, overstock checks, and commands to run, show, pause, or resume the operational checks.
 ---
 
 # Amazon Operations Review
 
-Browser: Mixed (Seller Central and SellerSonar interactive checks; Google Drive, Slack, and task-system connectors for tracking and output).
+Browser: Mixed (Seller Central interactive checks; Google Drive, Slack, and task-system connectors for tracking and output). Fee, package dimension and package weight findings are precomputed from Keepa and read from a state file, so they need no browser at all.
 
 Keep this skill dormant by default. Loading or installing it must never create an automation, run a check, open Amazon, or write external data.
 
@@ -26,7 +26,7 @@ Use the Codex app automation manager for activation, pause, resume, inspection, 
 ## Run Boundaries
 
 - Daily Account Health owns policy, performance, and listing-blocker alerts. Do not repeat its full sequence.
-- Weekly Operations owns lightweight stock exceptions, stranded inventory, shipment exceptions, variation exceptions, negative-review tracking, and SellerSonar fee alerts.
+- Weekly Operations owns lightweight stock exceptions, stranded inventory, shipment exceptions, variation exceptions, negative-review tracking, and the precomputed Keepa fee, package dimension and package weight findings.
 - Monthly Operations owns returns, Voice of the Customer, and overstock review.
 - `amazon-inventory-planning` owns full reshipment calculations and requires fresh same-day reports. A stock exception creates or updates a planning task only.
 - `amazon-communications` owns any customer outreach or courtesy-refund follow-up.

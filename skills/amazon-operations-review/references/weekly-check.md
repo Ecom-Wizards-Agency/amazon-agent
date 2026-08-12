@@ -11,7 +11,11 @@ Run accounts in the configured stable regional order. Re-check open weekly findi
 5. Follow `shipment-exceptions.md` to check open, recently received, and reconciliation-eligible FBA shipments. Review exceptions only; do not reconcile every healthy shipment.
 6. Review only new variation alerts, suppressed or inactive children, and known open variation findings. Do not inspect every healthy family. Route repairs to `amazon-catalog`.
 7. Follow `review-tracking.md` for new 1- and 2-star reviews.
-8. Read SellerSonar fee, dimension, and weight alerts since the previous successful weekly run. Use Sellerboard only to confirm a specific alert when needed. Do not perform a manual Fee Preview sample.
+8. Read the precomputed Keepa findings from the configured market-signals state file for everything observed since the previous successful weekly run. Four issue types belong to this check: `fba_fee_changed`, `referral_fee_changed`, `package_dimensions_changed`, `package_weight_changed`. Never fetch market data yourself in this check.
+   - Confirmation source for a fee change is Amazon's own Referral Fee Preview report (`sc_vla_referral_fee_preview_report_0313`). Fetch it headlessly with `tools/report-fetcher/run.mjs` (`--report inventory --report-type sc_vla_referral_fee_preview_report_0313`). Keepa is the daily tripwire; that report is what settles it.
+   - Use Sellerboard only as a confirmation-only second opinion on a specific finding when needed. It never originates a finding.
+   - Do not perform a manual Seller Central Fee Preview sample.
+   - Coverage limit, state it rather than hide it: Keepa only sees ASINs registered in a profile's `monitoring` block. As of 12.08.2026 that covers 13 of 15 active profiles and 856 ASINs. The two large clothing catalogues (Kabooki DE and JBS DE) are monitored at parent level rather than per variant, so a change on a child variant alone is not seen. An unregistered ASIN is a coverage gap, not a clean account. Report it as a gap.
 9. Match every actionable item to an open task using account, marketplace, issue type, and ASIN, shipment ID, or review URL. Update the existing task when matched.
 
 ## Completion
@@ -20,7 +24,8 @@ Post one compact internal summary with:
 
 - Accounts checked and skipped.
 - Clean checks.
-- New and updated stock, stranded, shipment, variation, review, and fee findings.
+- New and updated stock, stranded, shipment, variation, review, fee, package dimension, and package weight findings.
+- Accounts or ASINs outside market-signal coverage, named as gaps rather than counted as clean.
 - Review rows appended or changed.
 - Tasks created or updated.
 - Reshipment-planning triggers.
