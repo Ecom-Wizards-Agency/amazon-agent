@@ -7,10 +7,10 @@ TOOL_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(TOOL_DIR))
 
 from narrative_scaffold import (  # noqa: E402
-    _hybrid_findings,
-    _hybrid_levers,
+    _hybrid_priorities,
     _hybrid_summary,
     _market_decision,
+    _priority_section_blocks,
 )
 
 
@@ -42,8 +42,7 @@ class EvidenceHybridTest(unittest.TestCase):
     def test_hybrid_copy_has_no_operator_placeholders(self):
         blocks = [
             _hybrid_summary(self.cfg, self.totals, self.buckets, ["SP", "SD"], "USD"),
-            str(_hybrid_findings(self.cfg, self.totals, self.buckets, self.placements, [], {})),
-            str(_hybrid_levers(self.cfg, self.totals, self.placements, ["SP", "SD"], ["SB"])),
+            str(_hybrid_priorities(self.cfg, self.totals, self.placements, ["SP", "SD"], ["SB"])),
             _market_decision({
                 "coverage": {"exact_relevancy_weekly_equivalent": 60000},
                 "benchmark": {"median_reviews": 5000},
@@ -54,6 +53,18 @@ class EvidenceHybridTest(unittest.TestCase):
         self.assertNotIn("<!-- short claim -->", rendered)
         self.assertIn("online control", rendered)
         self.assertIn("Restore the retail foundation", rendered)
+
+    def test_standard_and_hybrid_emit_one_combined_section(self):
+        priorities = _hybrid_priorities(
+            self.cfg, self.totals, self.placements, ["SP", "SD"], ["SB"]
+        )
+        for hybrid, rows in ((False, ()), (True, priorities)):
+            rendered = "\n".join(_priority_section_blocks(hybrid, rows, ["SB"]))
+            self.assertEqual(1, rendered.count("## Problems and Solutions"))
+            self.assertNotIn("## Good and Bad", rendered)
+            self.assertNotIn("## Growth Levers", rendered)
+            self.assertNotIn("## What I’d fix next", rendered)
+            self.assertNotIn("**Problem ", rendered)
 
 
 if __name__ == "__main__":

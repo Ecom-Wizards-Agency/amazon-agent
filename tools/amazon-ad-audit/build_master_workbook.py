@@ -13,7 +13,12 @@ from openpyxl.utils import get_column_letter
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ew_audit_style as ew
 from ew_audit_style import C, TL, F, BORDER, RIGHT, LEFT, LEFT_DATA, WRAP, copy_sheet
-from analyze_audit import load_config
+from analyze_audit import (
+    alignment_from_metrics,
+    blended_metrics_available,
+    blended_metrics_reason,
+    load_config,
+)
 
 INT = ew.INT; PCT = ew.PCT; RO = ew.RO
 
@@ -29,6 +34,8 @@ def build(config_path, outdir, audit_path, sqp_path):
     markets = ", ".join(M.get("marketplaces", []) or [])
     channels = M.get("channels_present", ["SP"])
     win = M.get("windows", {})
+    alignment = alignment_from_metrics(M)
+    windows_match = blended_metrics_available(M)
 
     def acos_fill(v):
         return ew.acos_fill(v, BE)
@@ -67,13 +74,23 @@ def build(config_path, outdir, audit_path, sqp_path):
             ws.cell(r[0], col).fill = ew.BAND_FILL
         r[0] += 1
 
-    organic = T["br_total_sales"] - T["sales"]
-    band(f"Account KPIs ({'/'.join(channels)}, {win.get('ads','30 days')})")
+    organic = T.get("organic_implied")
+    ad_share = T.get("ad_attributed_share", T.get("ad_dependency"))
+    band(f"Ads: {win.get('ads','')} · Business Report: {win.get('business_report','')}")
     kpis = [("Ad spend", T["spend"], MONEY, None), ("Ad sales", T["sales"], MONEY, None),
             ("Ad ACOS", T["acos"], PCT, "acos"), ("Ad ROAS", T["roas"], RO, None),
-            ("Total sales (all traffic)", T["br_total_sales"], MONEY, None), ("TACOS", T["tacos"], PCT, None),
-            ("Organic (implied)", organic, MONEY, None),
-            ("Ad : organic", f"{T['ad_dependency']*100:.0f} : {(1-T['ad_dependency'])*100:.0f}", None, None)]
+            ("Business Report sales", T["br_total_sales"], MONEY, None),
+            ("Window alignment", alignment["ads_vs_business_report"].title(), None, None)]
+    if windows_match:
+        kpis += [("TACOS", T.get("tacos"), PCT, None),
+                 ("Organic (implied)", organic, MONEY, None),
+                 ("Ad-attributed share", ad_share, PCT, None),
+                 ("Ad : organic", f"{ad_share*100:.0f} : {(1-ad_share)*100:.0f}", None, None)]
+    else:
+        kpis += [("TACOS", "N/A", None, None),
+                 ("Organic (implied)", "N/A", None, None),
+                 ("Ad-attributed share", "N/A", None, None),
+                 ("Ad : organic", "N/A", None, None)]
     ci = 1
     for lbl, val, fmt, metric in kpis:
         ws.cell(r[0], ci, lbl).font = F(9, False, C["mist"]); ws.cell(r[0], ci).border = BORDER
@@ -88,6 +105,12 @@ def build(config_path, outdir, audit_path, sqp_path):
         if ci > W:
             ci = 1; r[0] += 2
     r[0] += 2
+    if not windows_match:
+        ws.merge_cells(start_row=r[0], start_column=1, end_row=r[0], end_column=W)
+        ws.cell(r[0], 1, blended_metrics_reason(M)).font = F(9, False, C["mist"])
+        ws.cell(r[0], 1).alignment = WRAP
+        ws.row_dimensions[r[0]].height = 28
+        r[0] += 2
 
     st_cov = sum(v.get("spend", 0) for v in STB.values()) / T["spend"] if T["spend"] else 0
     band(f"Traffic mix: spend efficiency (ads) × purchase capture (SQP). Intent split covers {st_cov:.0%} of spend (SP by search term, SB by target)")
@@ -199,9 +222,11 @@ def _findings(M, SS, MONEY, channels):
     mp = (M.get("structure") or {}).get("multi_parent_ad_groups")
     if mp:
         out.append(f"{mp} of {(M.get('structure') or {}).get('ad_groups', '?')} ad groups advertise SEVERAL parent families in one ad group. Amazon, not you, picks which product serves each query; keyword→product fit and per-product stats are uncontrolled.")
-    miss = [c for c in ("SB", "SD", "RAS") if c not in channels]
+    # RAS is an optional retailer advertising format. Its absence is not an
+    # Amazon brand-defense or retargeting gap. Only SB and SD belong here.
+    miss = [c for c in ("SB", "SD") if c not in channels]
     if miss:
-        out.append(f"Channel gaps: no {', '.join(miss)} (no brand-defense / retargeting).")
+        out.append(f"Channel gaps: no {', '.join(miss)}. Add a format only where it has a clear job in the funnel.")
     gc = (SS.get("Generic", {}) or {}).get("capture")
     if gc is not None:
         out.append(f"SQP capture: {gc:.1%} of category purchases; the category demand is largely unconverted.")

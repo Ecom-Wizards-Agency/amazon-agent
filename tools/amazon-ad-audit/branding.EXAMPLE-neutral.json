@@ -1,5 +1,5 @@
 {
-  "_comment": "Legacy compatibility alias. Values intentionally match branding.EXAMPLE-neutral.json so rendering never depends on the active agent.",
+  "_comment": "Agent-neutral fallback used when no _local/branding/branding.json exists. No agency identity; footers stay generic until branding.json is configured.",
   "agency_name": "",
   "agency_url": "",
   "prepared_by_default": "",

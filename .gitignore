@@ -99,3 +99,7 @@ tools/sb-video-briefs/config.*.json
 # Python caches
 __pycache__/
 *.pyc
+
+# Codex runtime symlinks. These point into ~/.cache/codex-runtimes on one machine,
+# so committing one publishes a personal path and hands everyone else a dead link.
+tools/*/node_modules

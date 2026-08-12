@@ -19,7 +19,7 @@ the logic there.
     python3 tools/report-fetcher/launch-chrome-debug.py
 
 Env: CDP_PORT (9222) · CDP_PROFILE · CHROME_BIN · CDP_START_URL ·
-CDP_BROWSER_MODE (headless)
+CDP_BROWSER_MODE (headless) · CDP_WINDOW_SIZE (1920,1080)
 """
 import argparse
 import json
@@ -32,6 +32,7 @@ import urllib.request
 from pathlib import Path
 
 PORT = os.environ.get("CDP_PORT", "9222")
+WINDOW_W, WINDOW_H = (os.environ.get("CDP_WINDOW_SIZE", "1920,1080").split(",") + ["1080"])[:2]
 PROFILE = Path(os.environ.get("CDP_PROFILE",
                               str(Path.home() / ".amazon-agent" / "chrome-debug")))
 START_URL = os.environ.get("CDP_START_URL", "https://sellercentral.amazon.com")
@@ -255,10 +256,17 @@ def main() -> None:
     # picker offered "Vereinigte Staaten" while the automation looked for
     # "United States". Setting it here rather than on the Amazon account keeps
     # it a local browser preference and changes nothing on the seller profile.
+    # Always a full desktop viewport, headless included. Headless Chrome otherwise
+    # starts at 800x600, which is small enough that Amazon serves a narrow layout:
+    # lazy-loaded gallery and A+ modules never enter the viewport, screenshots come
+    # out cramped or clipped, and evidence captures land near the 600x350 floor the
+    # selector rejects. One size for every mode and both ports (9222 here, 9223 for
+    # the Wizards AI read browser, which launches through this same file).
     command = [chrome, f"--remote-debugging-port={PORT}",
                "--remote-debugging-address=127.0.0.1",
                f"--user-data-dir={PROFILE}", "--no-first-run",
                "--no-default-browser-check",
+               f"--window-size={WINDOW_W},{WINDOW_H}",
                "--lang=en-US", "--accept-lang=en-US,en"]
     if requested == "headless":
         command.append("--headless")

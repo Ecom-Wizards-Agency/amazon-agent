@@ -6,12 +6,14 @@ The standard mode leaves operator prompts around pre-filled KPIs. The evidence-h
 mode writes concise claims, evidence, and actions automatically so it can be rendered
 without a manual placeholder pass.
 Honors config.narrative flags (include_levers, include_30day_plan, include_what_can_be_reached).
+For compatibility, include_levers now controls the combined "Problems and Solutions" section.
 """
 from __future__ import annotations
 import json, sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from branding import load_branding as _load_branding
+from analyze_audit import blended_metrics_available, blended_metrics_reason
 
 
 def _prepared_by_org():
@@ -55,26 +57,6 @@ def _evidence(outdir, section):
     return [f"![{row['caption']}]({row['path']})\n" for row in rows if row.get("section") == section]
 
 
-def _client_claim_conclusions(outdir):
-    path = Path(outdir) / "internal" / "claim_matrix.json"
-    if not path.exists():
-        return []
-    rows = json.loads(path.read_text()).get("claims", [])
-    return [row for row in rows
-            if row.get("client_surface")
-            and row.get("verdict") != "Not verifiable from available data"]
-
-
-def _claim_reason(row):
-    evidence = row.get("evidence") or []
-    if not evidence:
-        return ""
-    first = evidence[0]
-    if isinstance(first, dict):
-        return first.get("reason") or ""
-    return str(first)
-
-
 def _market_sizing(cfg):
     path = (cfg.get("inputs", {}) or {}).get("market_sizing_json")
     if not path:
@@ -97,8 +79,10 @@ def _hybrid_summary(cfg, totals, searchterm_bucket, channels, currency):
             f"commercial baseline. The latest clean online control is {control}."
         )
     if totals.get("br_total_sales", 0):
+        # "The control data" only exists when a separate online-control window does.
+        source = "In the control data" if control else "In the window"
         parts.append(
-            f"In the control data, the product produced {_m(totals['br_total_sales'], currency)} "
+            f"{source}, the product produced {_m(totals['br_total_sales'], currency)} "
             f"in ordered-product sales from {totals.get('br_sessions', 0):,.0f} sessions."
         )
     if searchterm_bucket:
@@ -122,6 +106,9 @@ def _hybrid_summary(cfg, totals, searchterm_bucket, channels, currency):
 def _hybrid_findings(cfg, totals, searchterm_bucket, placements, claims, sqp_demand):
     findings = []
     comparison = cfg.get("comparison_windows", {}) or {}
+    # Relaunch language belongs to an incident audit. On a trading account it narrates a
+    # problem the client does not have, so every use of it is gated on this one flag.
+    relaunching = bool(comparison.get("disruption"))
     if comparison.get("disruption") and comparison.get("online_control"):
         findings.append({
             "claim": "Availability is the first constraint, not advertising efficiency",
@@ -146,7 +133,8 @@ def _hybrid_findings(cfg, totals, searchterm_bucket, placements, claims, sqp_dem
             "decision": (
                 "Do not use this claim as the basis for a recommendation."
                 if row.get("verdict") == "Not supported"
-                else "Carry this conclusion into the relaunch plan."
+                else ("Carry this conclusion into the relaunch plan." if relaunching
+                      else "Carry this conclusion into the recommendation it affects.")
             ),
         })
 
@@ -161,7 +149,9 @@ def _hybrid_findings(cfg, totals, searchterm_bucket, placements, claims, sqp_dem
                 f"Branded terms represent {branded.get('spend', 0) / total_spend:.0%} of captured spend.",
             ],
             "comparison": "The snapshot is too short for campaign grades, but it is enough to reject an absolute claim that non-branded advertising is absent.",
-            "decision": "Rebuild the full-window export after relaunch, then grade structure and efficiency against confirmed margin.",
+            "decision": ("Rebuild the full-window export after relaunch, then grade structure and efficiency against confirmed margin."
+                         if relaunching else
+                         "Grade structure and efficiency on the full-window export against confirmed margin."),
         })
 
     if sqp_demand and len(findings) < 4:
@@ -174,16 +164,19 @@ def _hybrid_findings(cfg, totals, searchterm_bucket, placements, claims, sqp_dem
                     f"The product captures {core.get('capture', 0):.1%} of measured core purchases.",
                 ],
                 "comparison": "Head terms are real demand, but they are too broad to treat as one listing's addressable market.",
-                "decision": "Build the relaunch around the strongest core terms and measure query-level share movement.",
+                "decision": ("Build the relaunch around the strongest core terms and measure query-level share movement."
+                             if relaunching else
+                             "Concentrate spend on the strongest core terms and measure query-level share movement."),
             })
     return findings[:5]
 
 
-def _hybrid_levers(cfg, totals, placements, channels, missing_channels):
-    levers = []
+def _hybrid_priorities(cfg, totals, placements, channels, missing_channels):
+    priorities = []
     comparison = cfg.get("comparison_windows", {}) or {}
+    relaunching = bool(comparison.get("disruption"))
     if comparison.get("disruption"):
-        levers.append((
+        priorities.append((
             "Restore the retail foundation",
             "Resolve suppression or availability, confirm the live PDP and Buy Box, then restart measurement.",
             f"The required window {comparison['disruption']} is disrupted.",
@@ -192,32 +185,60 @@ def _hybrid_levers(cfg, totals, placements, channels, missing_channels):
     if placements:
         best = min(placements.items(), key=lambda item: item[1].get("acos") if item[1].get("acos") is not None else 999)
         worst = max(placements.items(), key=lambda item: item[1].get("acos") if item[1].get("acos") is not None else -1)
-        levers.append((
-            "Rebalance placements after the listing is live",
+        priorities.append((
+            "Rebalance placements after the listing is live" if relaunching else "Rebalance the placements",
             f"Protect {best[0]} where efficiency is strongest and reduce exposure to {worst[0]} until it proves incremental value.",
             f"Available ACOS ranges from {(best[1].get('acos') or 0):.1%} to {(worst[1].get('acos') or 0):.1%} by placement.",
             "Placement ACOS and incremental ordered sales against confirmed break-even ACOS.",
         ))
-    levers.append((
+    priorities.append((
         "Use the listing as the conversion control",
         "Rebuild the gallery and A+ around the winning use case, proof, product facts, and objection handling before scaling generic traffic.",
         "The live-creative comparison and category evidence show what shoppers see at the decision point.",
         "Unit session percentage, click-to-cart, cart-to-purchase, and controlled experiment lift.",
     ))
-    levers.append((
+    priorities.append((
         "Win a narrow generic wedge",
         "Separate branded protection, competitor terms, winnable core queries, and undifferentiated head terms.",
         "SQP separates where demand exists from where the product actually captures purchases.",
         "Purchase share and organic rank on the selected core query set.",
     ))
     if missing_channels:
-        levers.append((
+        priorities.append((
             f"Test the missing formats: {', '.join(missing_channels)}",
-            "Add only the formats that match a clear job in the relaunch funnel.",
+            f"Add only the formats that match a clear job in the {'relaunch ' if relaunching else ''}funnel.",
             f"The available data contains {', '.join(channels)} and no measured {', '.join(missing_channels)} activity.",
             "Incremental reach, new-to-brand contribution where available, and blended ACOS.",
         ))
-    return levers[:5]
+    return priorities[:5]
+
+
+def _i_would(action):
+    """Turn an imperative action into spoken first-person recommendation copy."""
+    action = action.strip()
+    if not action:
+        return "I would define the next action after confirming the evidence."
+    return "I would " + action[0].lower() + action[1:]
+
+
+def _priority_section_blocks(hybrid, priorities=(), missing_channels=()):
+    """Render one findings-and-actions section for standard and hybrid deep audits."""
+    blocks = ["## Problems and Solutions\n"]
+    if hybrid:
+        for n, (title, action, evidence, measure) in enumerate(priorities, 1):
+            blocks.append(f"### Priority {n}: {title}")
+            blocks.append(evidence)
+            blocks.append(f"{_i_would(action)} Measure {measure[0].lower() + measure[1:]}\n")
+    else:
+        blocks.append("<!-- operator: use 5-7 action-led priorities. Give each one short diagnosis, one evidence sentence, and one sentence beginning 'I would'. Do not repeat the diagnosis elsewhere. -->\n")
+        for n in range(1, 6):
+            blocks.append(f"### Priority {n}: <!-- action-led title -->")
+            blocks.append("<!-- Short diagnosis and evidence. I would ... -->\n")
+        if missing_channels:
+            blocks.append("### Priority 6: <!-- add only the missing formats that have a clear job -->")
+            blocks.append(f"<!-- Evidence: no measured {', '.join(missing_channels)} activity. I would ... -->\n")
+    blocks.append("---\n")
+    return blocks
 
 
 def _market_decision(product):
@@ -247,7 +268,7 @@ def build(config_path, outdir, force=False):
     cur = M.get("currency", "USD"); T = M["totals"]; STB = M["searchterm_bucket"]; P = M["placement"]
     BE = M.get("breakeven", 0.50); CLIENT = M.get("client", "Client")
     markets = ", ".join(M.get("marketplaces", []) or [])
-    channels = M.get("channels_present", ["SP"]); miss = [c for c in ("SB", "SD", "RAS") if c not in channels]
+    channels = M.get("channels_present", ["SP"]); miss = [c for c in ("SB", "SD") if c not in channels]
     win = M.get("windows", {}); nflags = cfg.get("narrative", {})
     hybrid = nflags.get("mode") == "evidence_hybrid"
     L = []
@@ -264,7 +285,8 @@ def build(config_path, outdir, force=False):
     A("---\n")
 
     # ---- Ads Summary ----
-    organic = T["br_total_sales"] - T["sales"]
+    windows_match = blended_metrics_available(M)
+    organic = T.get("organic_implied")
     A("## Ads Summary\n")
     if hybrid:
         A(_hybrid_summary(cfg, T, STB, channels, cur) + "\n")
@@ -275,11 +297,18 @@ def build(config_path, outdir, force=False):
     A(f"| Ad spend | {_m(T['spend'],cur)} |")
     A(f"| Ad sales | {_m(T['sales'],cur)} |")
     A(f"| **Ad ACOS** | **{T['acos']:.1%}** |")
-    A(f"| Total ordered product sales | {_m(T['br_total_sales'],cur)} |")
-    A(f"| Organic / non-ad sales (implied) | {_m(organic,cur)} |")
-    A(f"| **TACOS** | **{T['tacos']:.1%}** |")
-    A(f"| **Ad : organic** | **{T['ad_dependency']*100:.0f} : {(1-T['ad_dependency'])*100:.0f}**"
-      + (f" ({T['sales']/organic:.2f} : 1)" if organic else "") + " |\n")
+    A(f"| Business Report sales | {_m(T['br_total_sales'],cur)} |")
+    if windows_match:
+        A(f"| Organic / non-ad sales (implied) | {_m(organic,cur)} |")
+        A(f"| **TACOS** | **{T['tacos']:.1%}** |")
+        A(f"| Ad-attributed share | {T['ad_attributed_share']:.1%} |")
+        A(f"| **Ad : organic** | **{T['ad_dependency']*100:.0f} : {(1-T['ad_dependency'])*100:.0f}**"
+          + (f" ({T['sales']/organic:.2f} : 1)" if organic else "") + " |")
+    else:
+        for label in ("Organic / non-ad sales (implied)", "TACOS", "Ad-attributed share", "Ad : organic"):
+            A(f"| {label} | N/A |")
+        A(f"\n*{blended_metrics_reason(M)} Blended Ads and Business Report KPIs are not reported.*")
+    A("")
     A("### Traffic mix (by customer search term)\n")
     A("| Bucket | Spend | % spend | Sales | ACOS | CVR |")
     A("|---|---|---|---|---|---|")
@@ -305,7 +334,10 @@ def build(config_path, outdir, force=False):
         br_sessions = sum(row.get("sessions", 0) for row in M["business_report"]["rows"])
         br_units = sum(row.get("units", 0) for row in M["business_report"]["rows"])
         cvr = br_units / br_sessions if br_sessions else 0
-        A(f"The product generated {br_units:,.0f} units from {br_sessions:,.0f} sessions in the control data, a {cvr:.1%} unit-session rate. This is the performance baseline to protect after the listing returns.\n")
+        control = (cfg.get("comparison_windows", {}) or {}).get("online_control")
+        source = "in the control data" if control else "in the window"
+        after = " to protect after the listing returns" if control else " to hold"
+        A(f"The product generated {br_units:,.0f} units from {br_sessions:,.0f} sessions {source}, a {cvr:.1%} unit-session rate. This is the performance baseline{after}.\n")
     else:
         A("<!-- operator: one-line read-through: which line carries revenue, $0 ASINs, CVR health. -->\n")
     for visual in _evidence(outdir, "performance"):
@@ -396,61 +428,25 @@ def build(config_path, outdir, force=False):
         for visual in _evidence(outdir, "organic") + _evidence(outdir, "datadive"):
             A(visual)
         if hybrid:
-            A("Price, rating, and review count set the trust threshold the relaunch has to cross. A claimed strength only counts when the live competitor set does not make the same claim or show the same proof.\n")
+            crosser = "the relaunch has" if (cfg.get("comparison_windows", {}) or {}).get("disruption") else "the listing has"
+            A(f"Price, rating, and review count set the trust threshold {crosser} to cross. A claimed strength only counts when the live competitor set does not make the same claim or show the same proof.\n")
         else:
             A("<!-- operator: frame the price/review moat: is the client a premium outlier? what does that do to generic conversion? -->")
             A("<!-- operator: uniqueness test (playbook check 4): before crediting any strength, confirm the competitors do not have it too. -->\n")
         A("---\n")
 
-    # ---- Good and Bad ----
-    A("## Good and Bad\n")
-    if hybrid:
-        findings = _hybrid_findings(cfg, T, STB, P, _client_claim_conclusions(outdir), SD)
-        for n, finding in enumerate(findings, 1):
-            A(f"### Finding {n}: {finding['claim']}")
-            for evidence in finding["evidence"][:4]:
-                A(f"- **Evidence:** {evidence}")
-            A(f"- **Market comparison:** {finding['comparison']}")
-            A(f"**Decision:** {finding['decision']}\n")
-    else:
-        A("<!-- operator: fold strengths inline as read-throughs. Then number the problems. -->\n")
-        A("**Problem 1: <!-- title -->.** <!-- evidence -->\n")
-        A("**Problem 2: <!-- title -->.** <!-- evidence -->\n")
-        A("**Problem 3: <!-- title -->.** <!-- evidence -->\n")
-    for visual in _evidence(outdir, "findings"):
-        A(visual)
-    A("---\n")
-
-    # The internal matrix stays internal. Only operator-selected contradictions or
-    # recommendation-changing conclusions become short narrative findings.
-    claim_conclusions = _client_claim_conclusions(outdir)
-    if claim_conclusions:
-        A("## What changed after checking the call\n")
-        A("We treated the call as a set of hypotheses. These are the points where the evidence changes the recommendation.\n")
-        for row in claim_conclusions:
-            A(f"### {row['claim']}")
-            A(f"**{row['verdict']}.** {_claim_reason(row)}\n")
-        A("---\n")
-
-    # ---- Growth Levers ----
+    # ---- Combined findings and actions ----
+    # Keep the legacy include_levers flag as the compatibility switch for this section.
     if nflags.get("include_levers", True):
-        A("## Growth Levers\n")
-        if hybrid:
-            for n, (title, action, evidence, measure) in enumerate(
-                    _hybrid_levers(cfg, T, P, channels, miss), 1):
-                A(f"**Lever {n}: {title}.** {action}")
-                A(f"- **Evidence:** {evidence}")
-                A(f"- **Measure:** {measure}\n")
-        else:
-            A("<!-- operator: order by impact on the ceiling. Offer track (reviews/expectations, positioning) usually leads; PPC restructure + placement + missing channels follow. -->\n")
-            A("**Lever 1: <!-- reviews / expectation reset -->.**\n")
-            A("**Lever 2: <!-- positioning / winning use case -->.**\n")
-            A("**Lever 3: <!-- restructure PPC (waste falls out of a clean setup) -->.**\n")
-            A("**Lever 4: <!-- narrow generic wedge -->.**\n")
-            A("**Lever 5: <!-- placement rebalance -->.**\n")
-        if miss and not hybrid:
-            A(f"**Lever 6: <!-- add {', '.join(miss)} -->.**\n")
-        A("---\n")
+        priorities = _hybrid_priorities(cfg, T, P, channels, miss) if hybrid else ()
+        for block in _priority_section_blocks(hybrid, priorities, miss):
+            A(block)
+        for visual in _evidence(outdir, "findings"):
+            A(visual)
+
+    # The call-claim matrix stays internal. Integrate only conclusions that materially
+    # change a diagnosis or recommendation into the relevant section. Never render a
+    # separate call-validation recap.
 
     if nflags.get("include_30day_plan", False):
         A("## Recommended 30-day plan\n")
@@ -464,8 +460,12 @@ def build(config_path, outdir, force=False):
         A("---\n")
     if nflags.get("include_what_can_be_reached", False):
         A("## What can be reached\n")
-        if hybrid:
+        if hybrid and (cfg.get("comparison_windows", {}) or {}).get("disruption"):
+            # Relaunch framing belongs to an incident audit only. On a healthy account it
+            # describes a problem the client does not have.
             A("The audit supports a staged relaunch target, not a revenue promise. Exact scale and campaign grades remain conditional on confirmed contribution margin, restored availability, and enough post-relaunch data to separate listing lift from traffic mix.\n")
+        elif hybrid:
+            A("The audit supports a directional target, not a revenue promise. Exact scale and campaign grades remain conditional on confirmed contribution margin and on enough post-change data to separate listing lift from traffic mix.\n")
         else:
             A("<!-- operator: directional outcomes; exact once margin is confirmed. -->\n")
         A("---\n")
@@ -499,7 +499,10 @@ def build(config_path, outdir, force=False):
     A("## Method notes\n")
     A(f"- **Break-even ACOS = {BE:.0%} is an assumption** pending margin.")
     A(f"- **Branded split** from the Search Term Report; Branded = {', '.join(cfg.get('brand_tokens',[]))}.")
-    A("- **Ad-vs-organic** is derived (total − ad-attributed); directional.")
+    if windows_match:
+        A("- **Ad-vs-organic** is derived from aligned source windows (total minus ad-attributed).")
+    else:
+        A(f"- **Window alignment:** {blended_metrics_reason(M)} TACOS, implied organic sales, ad-attributed share, and ad-to-organic ratio are N/A.")
     A("- **SQP** SV deduped per query+week; multi-ASIN exports cap the grid (SV is a floor).\n")
 
     md = "\n".join(L)

@@ -19,19 +19,19 @@ The **master** merges the audit + SQP tabs under a built one-page `① Overview`
 
 ## Required inputs (the contract, in `config.inputs`)
 
-| Input | Source | Who gathers it |
+| Input | Source | Required capability |
 |---|---|---|
-| Ads bulk `.xlsx` | Amazon Ads console (bulk operations) | Codex (connected browser download) |
-| Business Report `.csv` | Seller Central → Business Reports | Codex (connected browser download) |
-| Multi-ASIN SQP `.csv` (per product group) | Brand Analytics → Search Query Performance | Codex (connected browser download) |
-| DataDive niche JSON | DataDive MCP (`get_niche_keywords` / `get_niche_competitors`) | Claude (MCP pull) |
+| Ads bulk `.xlsx` | Amazon Ads console (bulk operations) | Connected browser |
+| Business Report `.csv` | Seller Central → Business Reports | Connected browser or report fetcher |
+| Multi-ASIN SQP `.csv` (per product group) | Brand Analytics → Search Query Performance | Connected browser or report fetcher |
+| DataDive niche JSON | DataDive MCP (`get_niche_keywords` / `get_niche_competitors`) | DataDive MCP |
 
-Run `build_audit.py --config <cfg> --preflight` to get a copy-ready Codex handoff for the missing browser downloads, or a READY status.
+Run `build_audit.py --config <cfg> --preflight` to get capability-based checklists for missing browser or DataDive MCP inputs, or a READY status.
 
 ## Commands
 
 ```bash
-# 1. Preflight — emits a Codex download task or READY
+# 1. Preflight: emits capability checklists or READY
 python3 tools/amazon-ad-audit/build_audit.py --config tools/amazon-ad-audit/config.<client>-<market>.json --preflight
 
 # 2. Build everything (analyze → 3 workbooks → master → narrative scaffold)
