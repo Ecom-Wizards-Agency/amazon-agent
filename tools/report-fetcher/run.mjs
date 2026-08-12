@@ -276,11 +276,22 @@ async function main() {
     console.log("Chrome:", v.Browser, "| debug port reachable");
     const sc = (await listPages()).filter((p) => /sellercentral\.amazon\./.test(p.url || ""));
     if (!sc.length) { console.log("Seller Central: no logged-in tab. Run tools/report-fetcher/launch-chrome-debug.sh --mode recovery, sign in, then return it to headless mode with tools/report-fetcher/launch-chrome-debug.sh."); process.exit(1); }
-    const s = await Session.open(sc[0].webSocketDebuggerUrl);
-    let st;
-    try {
-      st = await evaluate(s, `(function(){return {signin:/signin|ap\\/signin|authportal|\\/account-picker|\\/ax\\//i.test(location.href)||/sign[- ]?in/i.test(document.title)};})()`);
-    } finally { s.close(); }
+    // Probe every tab, not just the first: the operator may be signed in on
+    // tab 2 while tab 1 sits on a stale sign-in page. The account picker is an
+    // AUTHENTICATED state (choosing a seller requires a session), so it is
+    // deliberately absent from the signed-out pattern; counting it as
+    // signed-out produced false "NOT signed in" verdicts for months.
+    let anySignedIn = false;
+    for (const tab of sc) {
+      let st = null;
+      try {
+        const s = await Session.open(tab.webSocketDebuggerUrl);
+        try {
+          st = await evaluate(s, `(function(){return {signin:/signin|ap\\/signin|authportal|\\/ax\\//i.test(location.href)||/sign[- ]?in/i.test(document.title)};})()`);
+        } finally { s.close(); }
+      } catch { continue; }
+      if (st && !st.signin) { anySignedIn = true; break; }
+    }
     console.log(`Seller Central: ${sc.length} tab(s)`);
     for (const p of sc) {
       let host = "?", mcid = null;
@@ -290,8 +301,8 @@ async function main() {
       console.log(`  - ${host}${serves.length ? ` (${serves.join("/")})` : ""} → ${name || "(name unresolved)"} · ${mcid || "NO account param (session default)"}`);
     }
     if (sc.length > 1) console.log("  Note: more than one region/account is open. The runner picks the tab matching --marketplace; pass --account <merchant-id> to pin the seller.");
-    if (st && !st.signin) { console.log("Login: OK — session is active. Ready to fetch."); process.exit(0); }
-    console.log("Login: NOT signed in. Sign into Seller Central in the debug window, then re-run doctor.");
+    if (anySignedIn) { console.log("Login: OK — session is active. Ready to fetch."); process.exit(0); }
+    console.log("Login: NOT signed in on any open tab. Sign into Seller Central in the debug window, then re-run doctor.");
     process.exit(1);
   }
 
@@ -343,15 +354,19 @@ async function main() {
       await new Promise((r) => setTimeout(r, 14000));
       match = (await listPages()).find((p) => hostOf(p) === host) || opened;
       // A fresh regional tab can land on sign-in if the session does not extend
-      // there. Say so plainly instead of fetching an empty report.
+      // there. Say so plainly instead of fetching an empty report. On failure,
+      // close the tab we just created: a leaked sign-in tab becomes another
+      // doctor run's first probe target and poisons its verdict.
+      const closeOwned = async () => { try { await closePage(opened.targetId); } catch {} };
       const probe = await (async () => {
+        let s = null;
         try {
-          const s = await Session.open(match.webSocketDebuggerUrl);
+          s = await Session.open(match.webSocketDebuggerUrl);
           return JSON.parse(await evaluate(s, `JSON.stringify({p: !!document.querySelector("input[type=password]"), h: location.host})`, 25000));
-        } catch { return null; }
+        } catch { return null; } finally { if (s) try { s.close(); } catch {} }
       })();
-      if (probe && probe.p) die(`Opened https://${host}/home but it shows a sign-in page. Run tools/report-fetcher/launch-chrome-debug.sh --mode recovery, sign in to that region, then return to headless mode.`);
-      if (!match || hostOf(match) !== host) die(`Could not open a Seller Central tab on ${host} for --marketplace ${mp}.`);
+      if (probe && probe.p) { await closeOwned(); die(`Opened https://${host}/home but it shows a sign-in page. Run tools/report-fetcher/launch-chrome-debug.sh --mode recovery, sign in to that region, then return to headless mode.`); }
+      if (!match || hostOf(match) !== host) { await closeOwned(); die(`Could not open a Seller Central tab on ${host} for --marketplace ${mp}.`); }
     }
     origin = new URL(match.url).origin;
     const others = [...new Set(scTabs.map(hostOf))].filter((h) => h !== hostOf(match));
