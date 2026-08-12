@@ -78,8 +78,8 @@ def load_strategy(path: str) -> dict:
         die(f"strategy file missing: {path}\n"
             "  Copy tools/amazon-seo-keyword-workbook/ads-strategy.TEMPLATE.json to "
             "_local/ads-strategy/strategy.json and fill it in.\n"
-            "  Claude: refresh values from the Notion strategy playbooks. "
-            "Codex: ask the operator — do not guess thresholds.")
+            "  With Notion access, refresh values from the strategy playbooks. "
+            "Without it, ask the operator; do not guess thresholds.")
     raw = open(path, encoding="utf-8").read()
     # Exempt comments AND *_format values: a naming template legitimately holds
     # tokens like "<client>-<YYYY>W<ww>-<group>", which are the format itself,

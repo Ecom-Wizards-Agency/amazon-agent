@@ -262,12 +262,19 @@ def main() -> None:
     # out cramped or clipped, and evidence captures land near the 600x350 floor the
     # selector rejects. One size for every mode and both ports (9222 here, 9223 for
     # the Wizards AI read browser, which launches through this same file).
+    # No on-device model in a scraping profile. Chrome downloads Gemini Nano through
+    # the optimization guide for browser AI features we never use, and it is not small:
+    # on 12.08.2026 OptGuideOnDeviceModel held 4.0 GB of the port-9222 profile's 5.5 GB.
+    # The agent already brings its own model. Disabling the feature stops the download
+    # and the periodic re-download after each component update.
     command = [chrome, f"--remote-debugging-port={PORT}",
                "--remote-debugging-address=127.0.0.1",
                f"--user-data-dir={PROFILE}", "--no-first-run",
                "--no-default-browser-check",
                f"--window-size={WINDOW_W},{WINDOW_H}",
-               "--lang=en-US", "--accept-lang=en-US,en"]
+               "--lang=en-US", "--accept-lang=en-US,en",
+               "--disable-features=OptimizationGuideOnDeviceModel,"
+               "OptimizationGuideModelDownloading"]
     if requested == "headless":
         command.append("--headless")
     command.append(START_URL)

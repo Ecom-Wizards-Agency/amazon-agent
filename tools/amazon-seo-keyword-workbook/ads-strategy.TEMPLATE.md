@@ -8,9 +8,9 @@ it drives the Campaign Structure fill of the keyword workbook:
 - `strategy.md` (this file): the prose theory the AGENT reads to make judgment calls the script cannot.
 
 Refresh rule: the source of truth for the strategy is your team's playbook system (for Ecom Wizards:
-Notion). An agent with Notion access (Claude) should refresh this file from the source pages listed in the
-header below when it is stale. Agents without Notion access (Codex) must use this file as-is and ask the
-operator if it is missing or outdated. Never guess thresholds.
+Notion). An agent with Notion access should refresh this file from the source pages listed in the
+header below when it is stale. Without Notion access, use this file as-is and ask the operator if it
+is missing or outdated. Never guess thresholds.
 
 ---
 

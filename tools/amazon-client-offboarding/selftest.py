@@ -44,7 +44,7 @@ def make_branding(root: Path) -> tuple[Path, Path]:
     if not font_source:
         raise RuntimeError("self-test needs one installed TrueType font")
     shutil.copyfile(font_source, brand_dir / "Inter-Variable.ttf")
-    template = json.loads((REPO / "tools" / "amazon-ad-audit" / "branding.EXAMPLE-codex.json").read_text())
+    template = json.loads((REPO / "tools" / "amazon-ad-audit" / "branding.EXAMPLE-neutral.json").read_text())
     template["agency_name"] = "Ecom Wizards"
     template["agency_url"] = "https://example.com"
     template["fonts"]["doc_font_name"] = "Inter"
@@ -206,7 +206,7 @@ def run() -> None:
         assert wb.sheetnames == builder.WORKBOOK_TABS
         readme = wb["Read Me & Data Watermark"]
         assert str(readme["A2"].value).startswith("ECOM WIZARDS")
-        assert readme["A1"].fill.fgColor.rgb.endswith("0D0D0D")
+        assert readme["A1"].fill.fgColor.rgb.endswith("141821")
         ws = wb["Non-Brand RPC Diagnostics"]
         assert ws["L6"].value == "=IFERROR(G6/H6,0)"
         assert ws["M6"].value == "=IFERROR(I6/H6,0)"

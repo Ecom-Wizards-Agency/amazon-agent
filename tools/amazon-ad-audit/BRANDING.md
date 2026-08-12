@@ -1,8 +1,8 @@
-# Branding — the one place this is documented
+# Branding: the one place this is documented
 
 All branded output (the audit `.docx`, covers, the three audit `.xlsx` workbooks) takes its
 agency identity from ONE local file; the repo ships only the mechanism. Do not scatter branding
-rules across other READMEs, configs, or memories — extend this file.
+rules across other READMEs, configs, or memories. Extend this file instead.
 
 ## Where things live
 
@@ -23,7 +23,7 @@ rules across other READMEs, configs, or memories — extend this file.
    config `branding.branding_json`).
 2. No local file → `branding.EXAMPLE-neutral.json`, regardless of runtime. Footers stay generic
    (no agency name/URL). The legacy agent-named examples contain identical values for compatibility.
-3. Built-in neutral defaults — rendering always works.
+3. Built-in neutral defaults. Rendering always works.
 
 Consumers: `render_branded.py` + `brand_cover.py` (docs), `ew_audit_style.py` →
 `build_audit_workbook.py` / `build_sqp_workbook.py` / `build_master_workbook.py` (xlsx banners,
@@ -34,9 +34,9 @@ Specialist builders with an explicit approved branding path call
 identity the process-local default and prevents import-time example styling from leaving stale
 renderer globals behind.
 
-Everything here survives conversion to a native Google Doc, which is how documents are
-delivered. Verified 02.08.2026 on a full audit and an SB video briefing: cover, header
-lockup, footer fields, Inter, KPI cards, table styling and figures all import intact.
+The native Google Doc is the deliverable. Body styling, footer fields, Inter, KPI cards, tables, and
+figures survive conversion. Cover-section geometry and the right header zone do not survive every
+conversion. Normalize and verify those two surfaces in the native Doc after import.
 
 ## Document layout rules (agency-independent quality bar)
 
@@ -48,21 +48,22 @@ lockup, footer fields, Inter, KPI cards, table styling and figures all import in
   its content. Wrap `heading + intro + first content block` in a keep-together container
   (`break-inside: avoid`) and set `orphans/widows` on paragraphs.
 - Documents keep a WHITE page background. Accent colors are for rules, eyebrows, KPI top-borders,
-  callouts, and covers — never full-page backgrounds.
+  callouts, and covers. Never use full-page backgrounds.
 - Tables: dark ink header row, zebra rows, hairline horizontal borders only, tabular numbers.
 - KPI cards: light panel, accent top border, big number + small-caps label.
 - Neutrals dominate any surface (~70%); accent usage stays small (≤5%).
 
 ## Audit running header and footer (approved V2 treatment)
 
-- Keep the first-time audit cover unchanged: full white agency logo only, with no running header or footer duplicated over it.
+- The default report label is `Account Audit`. Preserve explicit client-specific `branding.doc_label` overrides.
+- The first-time cover must fill the complete A4 first page in the native Google Doc. Use a zero-margin first section, a next-page section break before body content, and no first-page header or footer.
 - Put the full black agency lockup at the left of every content-page header. Preserve its proportions and required clear space. Do not substitute the standalone mark.
-- Put `<REPORT LABEL> · <MONTH YYYY>` at the right of every content-page header in uppercase Inter and the configured Mist gray.
+- Put `<REPORT LABEL> · <MONTH YYYY>` at the right content edge in uppercase Inter and the configured Mist gray.
 - Use a text-only three-column footer on every content page: `<Report label> · <Client>` at left, `page X of Y` centered, and the agency website at right.
 - Use real `PAGE` and `NUMPAGES` fields. They import as live Google Docs page numbers. Keep the same Inter size, color, and baseline across all three footer zones.
-- Give the header and footer tables a fixed layout with explicit column widths. python-docx lays a table out as equal thirds otherwise, and both Word and Docs size the columns from that grid, which wraps a long footer label onto a second line and breaks the shared baseline.
+- Keep the three-zone footer treatment unchanged. In the header, use the native-safe two-zone behavior from the renderer and run `native_doc_normalize.py` after conversion. Google Docs can flatten an imported fixed table or land the first tab on its centre stop, so the native readback and visual check are mandatory.
 - Do not show the standalone rocket mark in the footer.
-- Verify the cover and every rendered content page. Check logo proportions, resolved page totals, clipping, overlap, and content reflow before delivery.
+- Verify the cover and every content page directly in the native Doc. Check full-page cover geometry, logo proportions, right-edge header alignment, resolved page totals, clipping, overlap, and content reflow before delivery.
 
 ## Toolchain notes (macOS)
 
@@ -70,6 +71,6 @@ lockup, footer fields, Inter, KPI cards, table styling and figures all import in
   `prepare_brand_assets.py`. Chrome binary override: env `EW_CHROME` or `BRAND_CHROME`.
 - QA on generated pages: `sips` for image checks. Page counts come from the delivered
   Google Doc, which resolves `NUMPAGES` on open.
-- There is no PDF renderer. Deliverables are `.docx` rendered by `render_branded.py` and then
-  converted to a native Google Doc on delivery (`tools/gdrive-deliver/`). When somebody needs
-  a PDF, they download it from the Doc.
+- There is no PDF deliverable or QA export. `render_branded.py` creates a DOCX intermediate, which
+  is converted and normalized into the sole deliverable: a native Google Doc. Create a PDF only
+  when the operator explicitly requests one.

@@ -298,11 +298,12 @@ as `[[number, label, sub-or-null], ...]` and the renderer needs no `totals` or `
 - **Cover page for first-time audits only** (`branding.first_time`, `--cover` / `--no-cover`), so
   `deep` gets one and `monthly` does not. Dark Obsidian, faint grid, white logo with an orange rule
   and eyebrow, big title, "Prepared for" plus the `branding.prepared_by` byline, "What's inside"
-  from the section names, footer `Confidential · <agency URL>`.
+  from the section names, footer `Confidential · <agency URL>`. In the native Google Doc, the cover
+  must fill the entire A4 first page with zero margins and no running header or footer.
 - **Content pages**: full black lockup at header left, uppercase report label plus month and year at
-  header right. Footer text only: report and client left, `page X of Y` centred, website right, in
-  Mist `#9AA5B4`. Never the standalone rocket mark in the footer. The cover carries no duplicated
-  running furniture.
+  the right content edge. Footer text only: report and client left, `page X of Y` centred, website
+  right, in Mist `#9AA5B4`. Never the standalone rocket mark in the footer. The cover carries no
+  duplicated running furniture.
 - **KPI stat-cards** auto-build from `metrics.json` and sit under the summary section.
 - **Page-break hygiene**: widow and orphan control, headings kept with their first lines, and KPI
   rows, tables and figures never split across a page.
@@ -323,8 +324,9 @@ as `[[number, label, sub-or-null], ...]` and the renderer needs no `totals` or `
 - `## H2` is a section header and also feeds the cover's "inside" list. A `> ` line is a pull-note.
   `![caption](rel.png)` is a figure, paths relative to the `.md`. Pipe tables get Ink headers.
   `<!-- ... -->` stubs are dropped. Inline code spans render italic.
-- **Render every page and look at it** before delivery: confirm the lockup is proportional on each
-  content page, `page X of Y` resolves, and nothing overlaps or clips.
+- **Inspect every native page directly** before delivery: confirm the first-page image is full-page,
+  the lockup is proportional on each content page, the header label reaches the right margin,
+  `page X of Y` resolves, and nothing overlaps or clips.
 
 **The narrative `.md` is protected from the builder.** `narrative_scaffold.build()` keeps any file
 that no longer contains `<!-- operator:` markers and prints `KEPT authored ...`. Pass
@@ -347,9 +349,16 @@ The renderers produce `.docx` and `.xlsx` because python-docx and openpyxl are w
 branded contract, but those files are intermediates. Deliver each with
 `python3 tools/gdrive-deliver/deliver.py <file> "<drive folder>" --name "<delivery filename>"`,
 which converts it in Drive and then deletes the Office file local and remote. The native Google Doc
-is the complete audit deliverable. Do not create, retain, upload, archive, or link a PDF unless the
-operator explicitly asks for one. A temporary PDF export may be used only to rasterize and inspect
-layout during QA; delete it after inspection.
+is the complete audit deliverable. Do not create, export, retain, upload, archive, or link a PDF
+unless the operator explicitly asks for one. Inspect layout directly in the native Google Doc.
+
+Immediately after importing a `deep` audit, fetch the full native document JSON and pass it to
+`build_native_account_audit_requests()` in `tools/amazon-ad-audit/native_doc_normalize.py`. Apply
+the returned requests in one revision-controlled Google Docs batch update. This replaces the
+imported page break with a next-page section, makes the first section zero-margin, reinserts the
+cover at full A4 size, removes imported first-page furniture, and repairs a header label that landed
+on Google's centre tab stop. Read the Doc back and verify the native geometry. The DOCX intermediate
+is not evidence that conversion preserved the cover or running header.
 
 An earlier version of this file claimed conversion broke the cover, the KPI cards and the font.
 That was measured on 02.08.2026 and is wrong. What does and does not survive is recorded once, in

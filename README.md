@@ -13,7 +13,7 @@ For most work:
 3. Operate in the browser per the Browser Standard in `AGENTS.md` with the logged-in Amazon session.
 4. Stop before externally visible or risky actions unless the operator explicitly approves the specific action.
 
-This project uses one main operator (Codex or Claude) with specialist skills, not separate permanent specialist agents. The full routing table lives in `AGENTS.md` under Specialist Skill Model. Each skill under `skills/` carries its own `SKILL.md` (Claude discovery) and `agents/openai.yaml` (Codex discovery).
+This project uses the current working agent as one main operator with specialist skills, not separate permanent specialist agents. The agent owns each workflow end to end when the required capabilities are available; any handoff is capability-based and optional. The full routing table lives in `AGENTS.md` under Specialist Skill Model. Each skill under `skills/` carries runtime-specific discovery manifests, but the shared instructions are agent-neutral.
 
 The search helper can search the local Amazon libraries:
 

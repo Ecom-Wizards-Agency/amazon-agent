@@ -20,7 +20,7 @@
  *   and asks the operator to open/refresh the Brand Analytics tab.
  *
  * EXECUTION PATHS (same as extract-amazon-listing-copy.js)
- *   A) Codex / Playwright — pass the source as a string that defines + calls the fn:
+ *   A) Internal browser / Playwright: pass the source as a string that defines + calls the fn:
  *        await tab.playwright.evaluate(`(function(){\n${src}\nreturn fetchSqp(${json});\n})()`)
  *   B) DevTools / injected — window.amazonAgentFetchSqp(params) /
  *        window.amazonAgentFetchBusinessReport(params)

@@ -28,7 +28,7 @@
  *   operator to open/refresh the Opportunity Explorer tab.
  *
  * EXECUTION PATHS (same as fetch-seller-reports.js)
- *   A) Codex / Playwright — pass the source as a string that defines + calls the fn:
+ *   A) Internal browser / Playwright: pass the source as a string that defines + calls the fn:
  *        await tab.playwright.evaluate(`(async function(){\n${src}\nreturn await fetchPoeNiche(${json});\n})()`)
  *   B) DevTools / CDP (run-poe.mjs) — window.amazonAgentFetchPoeNiche(params) /
  *        window.amazonAgentFetchPoeSearch(params) / window.amazonAgentFetchPoeContext() /

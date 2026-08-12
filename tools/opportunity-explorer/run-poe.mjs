@@ -180,7 +180,7 @@ async function inspectAuthenticationState(session) {
   return evaluate(session, `(()=>{
     const url=location.href;
     const body=(document.body?.innerText||"").slice(0,2000);
-    if (/captcha|\/ap\/cvf|account-recovery/i.test(url+" "+body)
+    if (/captcha|\\/ap\\/cvf|account-recovery/i.test(url+" "+body)
       || document.querySelector('input[name="guess"],img[src*="captcha"],input[autocomplete="one-time-code"],input[name="otpCode"]')) return "human_challenge";
     if (/signin|auth|login/i.test(url)
       || document.querySelector('input[type="password"],input[type="email"],#ap_email')) return "logged_out";
@@ -220,7 +220,7 @@ async function switchSellerCentralAccount(session, origin, profile) {
       e.scrollIntoView({block:"center"});const r=e.getBoundingClientRect();return{x:r.x+r.width/2,y:r.y+r.height/2,count:1,expanded:!!e.querySelector("[class*=expanded]")}})()`;
     const parentHit = await evaluate(session, parentBox);
     if (parentHit?.count !== 1) throw new Error(`ACCOUNT_SWITCH_BLOCKED: parent account is unavailable or ambiguous (${profile.parentAccountName})`);
-    if (!parentHit.expanded) await trustedClick(session, parentBox, `parent account ${profile.parentAccountName}`);
+    await trustedClick(session, parentBox, `parent account ${profile.parentAccountName}`);
     await sleep(500);
     accountHit = await evaluate(session, accountBox);
   }
