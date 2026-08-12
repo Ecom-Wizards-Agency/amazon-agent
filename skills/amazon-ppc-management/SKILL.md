@@ -5,7 +5,7 @@ description: Weekly PPC management loop for AdLabs-managed accounts. Trigger on 
 
 # Amazon PPC Management (weekly loop, AdLabs-managed accounts)
 
-For Sponsored Brands video concept tests, use `/Users/victoruhl/os/agency/Playbooks/amazon-sb-video-concept-testing-playbook.md` as the canonical test-cell, confidence, verdict, and learning method. PPC management owns scaling decisions under the account strategy. The editor brief and Creative Reference do not contain performance methodology.
+For Sponsored Brands video concept tests, use `<vault>/Playbooks/amazon-sb-video-concept-testing-playbook.md` (team vault, resolved via `AMAZON_AGENT_TEAM_VAULT` or `_local/team-vault-path.txt`) as the canonical test-cell, confidence, verdict, and learning method. PPC management owns scaling decisions under the account strategy. The editor brief and Creative Reference do not contain performance methodology.
 
 Browser: None (AdLabs MCP + DataDive MCP; Sellerboard CSV via the ads-monitor inbox convention).
 

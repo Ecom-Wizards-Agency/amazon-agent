@@ -328,7 +328,10 @@ Top-level folder roles:
 - `evidence/`: screenshots, UI proof, warning captures, visible tables, and operator notes.
 - `downloads/`: temporary raw Amazon exports before processing.
 - `_local-output/`: one-off local staging or migration scratch space.
+- `.codex-tmp/`: Codex one-shot scratch only (throwaway inspector scripts, probe output). Never a home for client deliverables: anything worth keeping moves to `output/{client}/{workflow}/` in the same session, and the folder is purged at least monthly.
 - `review-tracking/`: legacy ignored folder only. Keep existing local files there if they already exist, but do not create new review-management work there by default.
+
+These are the only sanctioned scratch roots. `tmp/`, `.tmp/`, `outputs/` and uppercase `Output/` are retired roots (consolidated into `output/` on 12.08.2026): they stay in `.gitignore` as tombstones, and nothing new gets created in them.
 
 Use ongoing client-first paths for new artifacts:
 

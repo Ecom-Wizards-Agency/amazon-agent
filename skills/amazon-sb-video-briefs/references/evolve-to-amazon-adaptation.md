@@ -124,7 +124,7 @@ Claims survive the move down, not up: a line that is compliant as visible listin
 
 ## 9. The learning handoff
 
-Launch, measurement, verdicts, confidence, and scaling live in `/Users/victoruhl/os/agency/Playbooks/amazon-sb-video-concept-testing-playbook.md` and the existing Notion A/B Test Program. This creative adaptation does not restate that method.
+Launch, measurement, verdicts, confidence, and scaling live in `<vault>/Playbooks/amazon-sb-video-concept-testing-playbook.md` (team vault, resolved via `AMAZON_AGENT_TEAM_VAULT` or `_local/team-vault-path.txt`) and the existing Notion A/B Test Program. This creative adaptation does not restate that method.
 
 Before writing the next batch, read the live test's creative learning and answer:
 
