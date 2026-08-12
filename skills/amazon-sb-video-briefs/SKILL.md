@@ -15,7 +15,7 @@ Create editor-ready Sponsored Brands video packages for Amazon search. The shopp
 2. `references/editor-brief-template.md` for the mandatory briefing shape.
 3. `references/creative-reference-doc.md` for the evergreen product and asset reference.
 4. `tools/sb-video-briefs/config.TEMPLATE.json` for the local config contract.
-5. `/Users/victoruhl/os/agency/Playbooks/amazon-sb-video-concept-testing-playbook.md` only when prior learnings or test readiness affect concept selection. Do not copy its measurement method into editor documents.
+5. `<vault>/Playbooks/amazon-sb-video-concept-testing-playbook.md` (team vault, resolved via `AMAZON_AGENT_TEAM_VAULT` or `_local/team-vault-path.txt`) only when prior learnings or test readiness affect concept selection. Do not copy its measurement method into editor documents.
 6. `skills/amazon-seo/references/health-claims-compliance.md` for internal claims QA when the category or copy needs it.
 
 ## Vocabulary

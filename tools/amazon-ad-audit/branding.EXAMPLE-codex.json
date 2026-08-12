@@ -1,22 +1,24 @@
 {
-  "_comment": "Fallback style used when no _local/branding/branding.json exists and the session runs under Codex. Near-black/teal aesthetic. No agency identity — footers stay generic until you create your own branding.json from branding.TEMPLATE.json.",
+  "_comment": "Legacy compatibility alias. Values intentionally match branding.EXAMPLE-neutral.json so rendering never depends on the active agent.",
   "agency_name": "",
   "agency_url": "",
   "prepared_by_default": "",
   "palette_doc": {
-    "ink": "0D0D0D", "cloud": "F7F7F8", "accent": "10A37F",
-    "mistline": "E3E3E6", "steel": "565869", "mist": "9B9DAB",
-    "cover_bg": "0D0D0D", "cover_slate": "2A2B32", "white": "FFFFFF"
+    "ink": "1F2430", "cloud": "F4F5F7", "accent": "3B6EF6",
+    "mistline": "E3E6EB", "steel": "5C6470", "mist": "9AA3B0",
+    "cover_bg": "141821", "cover_slate": "2C3442", "white": "FFFFFF"
   },
   "palette_xlsx": {
-    "obsidian": "0D0D0D", "carbon": "17181D", "slate": "202128",
-    "coral": "10A37F", "violet": "5436DA", "deep": "1A2E5C",
-    "mist": "9B9DAB", "cloud": "F7F7F8", "hairline": "E3E3E6",
-    "white": "FFFFFF", "ink": "202128"
+    "obsidian": "141821", "carbon": "1B2029", "slate": "232A35",
+    "coral": "3B6EF6", "violet": "6B7A99", "deep": "2B3B66",
+    "mist": "9AA3B0", "cloud": "F4F5F7", "hairline": "E3E6EB",
+    "white": "FFFFFF", "ink": "232A35"
   },
   "fonts": {
     "doc_font_name": "Inter", "doc_font_file": "Inter-Variable.ttf",
     "xlsx_font_display": "Aptos Display", "xlsx_font_body": "Aptos"
   },
-  "assets": { "brand_dir": "", "logo_white": "logo_white.png", "logo_black": "logo_black.png", "mark": "mark_black.png" }
+  "assets": {
+    "brand_dir": "", "logo_white": "logo_white.png", "logo_black": "logo_black.png", "mark": "mark_black.png"
+  }
 }

@@ -12,7 +12,8 @@ rules across other READMEs, configs, or memories — extend this file.
 | Agency brand-guide notes for operators | `_local/branding/brand-notes.md` | no |
 | Binary assets (font, logos, mark) | `tools/amazon-ad-audit/brand/` | no (regenerate: `prepare_brand_assets.py`) |
 | Schema + neutral template | `tools/amazon-ad-audit/branding.TEMPLATE.json` | yes |
-| Agent-style fallbacks | `branding.EXAMPLE-claude.json` / `branding.EXAMPLE-codex.json` | yes |
+| Agent-neutral fallback | `branding.EXAMPLE-neutral.json` | yes |
+| Legacy compatibility aliases | `branding.EXAMPLE-claude.json` / `branding.EXAMPLE-codex.json` | yes |
 | Loader | `tools/amazon-ad-audit/branding.py` | yes |
 | Per-document overrides (`prepared_by`, `cover_subtitle`, `doc_label`, `first_time`, `brand_dir`) | client config `branding` block | template yes, client configs no |
 
@@ -20,8 +21,8 @@ rules across other READMEs, configs, or memories — extend this file.
 
 1. `_local/branding/branding.json` (copy the TEMPLATE there and fill it in; path override via
    config `branding.branding_json`).
-2. No local file → `branding.EXAMPLE-claude.json` under Claude, `branding.EXAMPLE-codex.json`
-   under Codex (env-detected). Footers stay generic (no agency name/URL).
+2. No local file → `branding.EXAMPLE-neutral.json`, regardless of runtime. Footers stay generic
+   (no agency name/URL). The legacy agent-named examples contain identical values for compatibility.
 3. Built-in neutral defaults — rendering always works.
 
 Consumers: `render_branded.py` + `brand_cover.py` (docs), `ew_audit_style.py` →

@@ -195,6 +195,22 @@ export class Session {
   }
 }
 
+// Full desktop viewport on every programmatically created tab.
+//
+// The launcher already passes --window-size, but a tab created over CDP does not
+// always inherit it, and a page that renders at 800x600 is a different page: Amazon
+// serves a narrow layout, lazy-loaded gallery and A+ modules never enter the
+// viewport, and screenshots come out cramped or clipped. Setting it per tab makes
+// the size independent of how Chrome happened to be started. Failure is non-fatal,
+// because a data fetch does not care about layout.
+export const DESKTOP_VIEWPORT = { width: 1920, height: 1080, deviceScaleFactor: 1 };
+
+export async function setDesktopViewport(session, viewport = DESKTOP_VIEWPORT) {
+  try {
+    await session.send("Emulation.setDeviceMetricsOverride", { mobile: false, ...viewport });
+  } catch (_) { /* older target or a page that refuses emulation: keep going */ }
+}
+
 // Create a fresh page at `url`, return {targetId, session}. Uses the browser-level
 // endpoint so we don't disturb the operator's existing tabs.
 export async function createPage(url) {
@@ -208,7 +224,11 @@ export async function createPage(url) {
   for (let i = 0; i < 40; i++) {
     const pages = await listPages();
     const p = pages.find((x) => x.id === targetId);
-    if (p && p.webSocketDebuggerUrl) return { targetId, session: await Session.open(p.webSocketDebuggerUrl) };
+    if (p && p.webSocketDebuggerUrl) {
+      const session = await Session.open(p.webSocketDebuggerUrl);
+      await setDesktopViewport(session);
+      return { targetId, session };
+    }
     await new Promise((r) => setTimeout(r, 100));
   }
   throw new Error("created target never appeared in the page list");

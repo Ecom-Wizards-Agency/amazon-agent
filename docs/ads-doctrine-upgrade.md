@@ -1,4 +1,4 @@
-# Ads doctrine upgrade — pointer
+# Ads doctrine upgrade: pointer
 
 **Status: specified, not applied.** Nothing in this repo has been changed yet.
 The agent still runs the pre-review ads doctrine.
@@ -12,7 +12,7 @@ edit. Victor and João decided all 28 on 11.08.2026.
 
 - Decisions, with evidence and citations: team vault
   `Research/amazon-ads/challenges.md`
-- **The implementation spec — where each decision lands, how, and in what
+- **The implementation spec, covering where each decision lands, how, and in what
   order:** team vault `Decisions/2026-08-11-amazon-ads-doctrine-upgrade.md`
 
 Resolve the vault path from `_local/team-vault-path.txt` or
@@ -41,7 +41,7 @@ surface means writing each change in up to five places:
    prose, the skills and the tool defaults cite it instead of repeating it.
 2. **A drift check** in `tools/lint_agent_docs.py` that fails when a hard-coded
    threshold disagrees with the `strategy.json` key it mirrors.
-3. **Version history for `_local/ads-strategy/`** — currently gitignored, so the
+3. **Version history for `_local/ads-strategy/`**. It is currently gitignored, so the
    two files holding every operating threshold have no history at all. Needs an
    explicit call, since it affects what this public repo exposes.
 

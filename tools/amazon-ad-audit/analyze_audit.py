@@ -15,6 +15,7 @@ Generalizes the original per-client analyze script:
 from __future__ import annotations
 import csv, json, re, sys, warnings
 from collections import defaultdict
+from datetime import date
 from pathlib import Path
 warnings.filterwarnings("ignore")
 import openpyxl
@@ -119,6 +120,94 @@ def as_market_map(v, default_market):
     if isinstance(v, dict):
         return v
     return {default_market: v}
+
+
+_ISO_DATE_RE = re.compile(r"\b20\d{2}-\d{2}-\d{2}\b")
+
+
+def _normalized_date_window(raw):
+    """Return one unambiguous ISO date range from a source-window label.
+
+    Window labels are written for humans and may include explanatory prose. Exactly two
+    valid ISO dates are required. Anything else is unknown rather than guessed, because a
+    false match makes blended KPIs look authoritative when the source periods differ.
+    """
+    matches = _ISO_DATE_RE.findall(str(raw or ""))
+    if len(matches) != 2:
+        return None
+    try:
+        start, end = (date.fromisoformat(value) for value in matches)
+    except ValueError:
+        return None
+    if start > end:
+        return None
+    return (start.isoformat(), end.isoformat())
+
+
+def assess_ads_business_window_alignment(windows):
+    """Classify whether Ads and Business Report periods can support blended KPIs."""
+    windows = windows or {}
+    ads = _normalized_date_window(windows.get("ads"))
+    business = _normalized_date_window(windows.get("business_report"))
+    if ads is None or business is None:
+        status = "unknown"
+        reason = "Could not parse one unambiguous ISO date range from both source-window labels."
+    elif ads == business:
+        status = "matched"
+        reason = f"Ads and Business Report both cover {ads[0]}..{ads[1]}."
+    else:
+        status = "mismatched"
+        reason = (f"Ads covers {ads[0]}..{ads[1]}; Business Report covers "
+                  f"{business[0]}..{business[1]}.")
+    return {
+        "ads_vs_business_report": status,
+        "reason": reason,
+        "ads": list(ads) if ads else None,
+        "business_report": list(business) if business else None,
+    }
+
+
+def alignment_from_metrics(metrics):
+    """Read the persisted classification, with a safe fallback for older metrics files."""
+    saved = (metrics or {}).get("window_alignment") or {}
+    if saved.get("ads_vs_business_report") in {"matched", "mismatched", "unknown"}:
+        return saved
+    return assess_ads_business_window_alignment((metrics or {}).get("windows", {}))
+
+
+def blended_metrics_available(metrics):
+    """True only when alignment and every required blended value are present."""
+    alignment = alignment_from_metrics(metrics)
+    totals = (metrics or {}).get("totals", {})
+    required = ("tacos", "organic_implied", "ad_dependency", "ad_attributed_share")
+    return (alignment.get("ads_vs_business_report") == "matched"
+            and all(totals.get(key) is not None for key in required))
+
+
+def blended_metrics_reason(metrics):
+    alignment = alignment_from_metrics(metrics)
+    if alignment.get("ads_vs_business_report") != "matched":
+        return alignment["reason"]
+    return "Source windows align, but Business Report sales are zero or unavailable."
+
+
+def blended_totals(all_spend, all_sales, br_total, alignment):
+    """Return blended metrics only when the source windows are confirmed identical."""
+    matched = (alignment or {}).get("ads_vs_business_report") == "matched"
+    if not matched or not br_total:
+        return {
+            "tacos": None,
+            "organic_implied": None,
+            "ad_dependency": None,
+            "ad_attributed_share": None,
+        }
+    share = all_sales / br_total
+    return {
+        "tacos": all_spend / br_total,
+        "organic_implied": br_total - all_sales,
+        "ad_dependency": share,
+        "ad_attributed_share": share,
+    }
 
 # ----------------------------------------------------------------- ads bulk (per marketplace)
 SP_SHEET = "Sponsored Products Campaigns"
@@ -565,16 +654,19 @@ def build_metrics(cfg, agg, outdir):
         1 for asins in agg.get("ag_asins", {}).values()
         if len({pmap.get(a, a) for a in asins}) > 1)
     br_total = agg["br_total_sales"]
+    window_alignment = assess_ads_business_window_alignment(cfg.get("windows", {}))
+    blended = blended_totals(all_spend, all_sales, br_total, window_alignment)
     metrics = dict(
         client=cfg.get("client"), date=cfg.get("date"), marketplaces=cfg.get("marketplaces"),
         currency=cfg.get("currency", "USD"), breakeven=cfg.get("breakeven_acos", 0.50),
         windows=cfg.get("windows", {}),
+        window_alignment=window_alignment,
+        ads_snapshot_directional=bool(cfg.get("ads_snapshot_directional", False)),
         channels_present=sorted(channel_totals.keys()),
         channel_totals=channel_totals,
         totals=dict(spend=all_spend, sales=all_sales, orders=sp["orders"], clicks=sp["clicks"], impr=sp["impr"],
                     acos=acos(all_spend, all_sales), roas=(all_sales / all_spend if all_spend else 0),
-                    br_total_sales=br_total, tacos=(all_spend / br_total if br_total else 0),
-                    ad_dependency=(all_sales / br_total if br_total else 0)),
+                    br_total_sales=br_total, **blended),
         searchterm_bucket=STB,
         st_coverage=(sum(v["spend"] for v in STB.values()) / all_spend if all_spend else 0),
         st_method=("SP classified by customer search term; SB by customer search term "

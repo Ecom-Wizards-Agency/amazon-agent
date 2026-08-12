@@ -4,7 +4,7 @@
 Client- and agency-agnostic. Consumes the operator-written `*_Sales_Audit_SCAFFOLD.md` (the narrative),
 the run's `metrics.json` (for the KPI cards), the config (client / market / window / prepared_by /
 first_time), the agency identity from `_local/branding/branding.json` (see BRANDING.md; falls back to a
-Claude/Codex example style), and the local brand assets in `brand/`. Produces a light, readable body,
+agent-neutral example style), and the local brand assets in `brand/`. Produces a light, readable body,
 a dark **cover page** (first-time audits only), KPI stat-cards, restyled tables, a full-lockup running
 header, a text-only three-part footer, and smart page-break hygiene. Degrades gracefully to plain
 md_to_docx when assets are missing.
@@ -27,6 +27,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 
 import branding as _branding
+from analyze_audit import blended_metrics_available
 
 # palette/fonts — populated from the branding file (agency identity) via _apply_branding()
 INK_H = CLOUD_H = ORANGE_H = MISTLINE_H = STEEL_H = MIST_H = ""
@@ -61,7 +62,7 @@ def _bcfg(cfg, key, default=None):
 
 
 def _doc_label(cfg):
-    return _bcfg(cfg, "doc_label", "Amazon Ad & Sales Audit")
+    return _bcfg(cfg, "doc_label", "Account Audit")
 
 
 def _report_month(cfg, M):
@@ -103,16 +104,17 @@ def _kpis(M):
     if M.get("custom_kpis"):  # non-audit docs: [[number, label, sub-or-null], ...] in metrics.json
         return [(str(n), l, s) for n, l, s in M["custom_kpis"]]
     T = M["totals"]; cur = M.get("currency", "USD"); be = M.get("breakeven", 0.5)
-    # TACoS divides ad spend by TOTAL sales, which only the Business Report supplies.
-    # Without it br_total_sales is 0 and the ratio computes as 0 -- so the card claimed a
-    # flawless "0% TACoS" on exactly the accounts where the number was unknown. An audit
-    # may not state a metric it could not measure; say so on the card instead.
-    tacos = ((f"{T['tacos']*100:.0f}%", "TACoS", None) if T.get("br_total_sales")
-             else ("n/a", "TACoS", "no Business Report"))
-    return [(_money(T["spend"], cur), "Ad spend / month", None),
+    # Blended cards exist only when Ads and Business Report cover the same dates. When
+    # they do not, use ROAS from the Ads snapshot rather than putting a false TACoS beside
+    # two incompatible periods.
+    fourth = ((f"{T['tacos']*100:.0f}%", "TACoS", None)
+              if blended_metrics_available(M)
+              else (f"{T['roas']:.2f}x", "Ad ROAS", "same Ads window"))
+    spend_label = "Ad spend / snapshot" if M.get("ads_snapshot_directional") else "Ad spend / window"
+    return [(_money(T["spend"], cur), spend_label, None),
             (_money(T["sales"], cur), "Ad sales", None),
             (f"{T['acos']*100:.0f}%", "Blended ACoS", f"vs ~{be*100:.0f}% break-even"),
-            tacos]
+            fourth]
 
 
 # ------------------------------ markdown -> blocks ------------------------------
@@ -129,7 +131,41 @@ _CODE = re.compile(r'`([^`]+)`')
 _COMMENT = re.compile(r'<!--.*?-->', re.S)
 
 
+# A block construct starts a new block; anything else is a continuation of the line above.
+_BLOCK_START = re.compile(r'^\s*(?:#{1,6}\s|\||>\s|[-*]\s|\d+\.\s|!\[|---\s*$|—\s*$|\\pagebreak\s*$)', re.I)
+
+
+def unwrap_soft_breaks(md):
+    """Join hard-wrapped lines back into one paragraph per paragraph.
+
+    The block parser below is line-based, so a prose paragraph wrapped at 100 columns
+    used to become one docx paragraph per LINE, each with its own space-after. Worse,
+    inline spans are matched per line, so a `**bold**` that straddled a wrap shipped to
+    the client as literal asterisks. Four of them reached a delivered audit before this
+    was caught, which is exactly the failure mode that leaves no error behind.
+
+    Markdown already says consecutive non-blank text lines are one paragraph, so this
+    only makes the renderer agree with the format it claims to read. A blank line, a
+    heading, table row, bullet, quote, image or rule still starts a new block.
+    """
+    out = []
+    for line in md.splitlines():
+        stripped = line.strip()
+        if (out and stripped and out[-1].strip()
+                and not _BLOCK_START.match(line)
+                and not _BLOCK_START.match(out[-1])):
+            out[-1] = out[-1].rstrip() + " " + stripped
+        elif (out and stripped and out[-1].strip() and line.startswith(("  ", "\t"))
+              and _BLOCK_START.match(out[-1]) and not _BLOCK_START.match(line)):
+            # An indented continuation belongs to the bullet or list item above it.
+            out[-1] = out[-1].rstrip() + " " + stripped
+        else:
+            out.append(line)
+    return "\n".join(out)
+
+
 def parse_markdown(md, base_dir):
+    md = unwrap_soft_breaks(md)
     blocks = []; tbl = []; title = None
     def flush():
         nonlocal tbl
@@ -204,8 +240,8 @@ def _cover_kwargs(cfg, M, blocks, brand_dir):
 # ------------------------------ DOCX ------------------------------
 def _render_docx(blocks, M, cfg, brand_dir, cover_png, out):
     from docx import Document
-    from docx.shared import Pt, RGBColor, Inches
-    from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_LINE_SPACING, WD_TAB_ALIGNMENT
+    from docx.shared import Pt, RGBColor, Inches, Emu
+    from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_LINE_SPACING
     from docx.enum.table import WD_TABLE_ALIGNMENT, WD_CELL_VERTICAL_ALIGNMENT
     from docx.oxml import OxmlElement
     from docx.oxml.ns import qn
@@ -216,6 +252,20 @@ def _render_docx(blocks, M, cfg, brand_dir, cover_png, out):
     doc = Document()
     nm = doc.styles['Normal']; nm.font.name = FONT_NAME; nm.font.size = Pt(10.5); nm.font.color.rgb = INK
     pf = nm.paragraph_format; pf.line_spacing = 1.4; pf.space_after = Pt(7); pf.widow_control = True
+
+    # Google Docs may discard a run-level override when it imports or later promotes a
+    # paragraph to a named heading. Brand the named styles themselves so an inherited
+    # Heading 2 can never fall back to Google's default blue.
+    for style_name, size, color in (
+        ('Heading 1', 18, INK),
+        ('Heading 2', 12.5, INK),
+        ('Heading 3', 11, ORANGE),
+    ):
+        style = doc.styles[style_name]
+        style.font.name = FONT_NAME
+        style.font.size = Pt(size)
+        style.font.color.rgb = color
+        style.font.bold = True
 
     def font(r):
         r.font.name = FONT_NAME; rpr = r._element.get_or_add_rPr(); rf = rpr.find(qn('w:rFonts'))
@@ -287,17 +337,46 @@ def _render_docx(blocks, M, cfg, brand_dir, cover_png, out):
             x = OxmlElement('w:' + e); x.set(qn('w:val'), 'nil'); b.append(x)
         t._tbl.tblPr.append(b)
 
+    def no_cell_padding(t):
+        # A table cell carries 0.08in of side padding by default, so a right-aligned run
+        # in the last cell stops ~5.75pt short of the table edge. That is the same visible
+        # error the tab-stop layout had, arriving by a different route, and it is only
+        # findable by rendering the page and measuring the ink.
+        m = OxmlElement('w:tblCellMar')
+        for e in ('top', 'left', 'bottom', 'right'):
+            x = OxmlElement('w:' + e); x.set(qn('w:w'), '0'); x.set(qn('w:type'), 'dxa'); m.append(x)
+        t._tbl.tblPr.append(m)
+
     def col_widths(t, widths):
-        # Setting cell widths alone is not enough: python-docx lays a table out with an equal
-        # tblGrid, and both Word and Google Docs size the columns from that grid unless the
-        # table is explicitly fixed-layout. Without this the running header and footer columns
-        # stayed equal thirds, which is what wrapped a long footer label onto a second line.
+        # Widths are EMU, not inches, and must be split so they sum back to the total
+        # exactly. Converting each column through Inches() truncates every one of them, and
+        # a table that is a few EMU narrower than the text block is the whole class of bug
+        # this layout exists to avoid.
+        #
+        # Setting cell widths alone is not enough either: python-docx lays a table out with
+        # an equal tblGrid, and both Word and Google Docs size the columns from that grid
+        # unless the table is explicitly fixed-layout. Without this the running header and
+        # footer columns stayed equal thirds, which wrapped a long footer label onto a
+        # second line.
         tl = OxmlElement('w:tblLayout'); tl.set(qn('w:type'), 'fixed'); t._tbl.tblPr.append(tl)
         for col, w in zip(t.columns, widths):
-            col.width = Inches(w)
+            col.width = Emu(int(w))
         for row in t.rows:
             for c, w in zip(row.cells, widths):
-                c.width = Inches(w)
+                c.width = Emu(int(w))
+
+    def split_width(total, *shares):
+        """Split `total` EMU by share so the columns sum back to it exactly.
+
+        A tblGrid stores widths in TWIPS (1 twip = 635 EMU), so an arbitrary EMU value is
+        rounded on write and three rounded columns no longer add up to the text width.
+        Splitting in twips and giving the remainder to the last column keeps the total
+        exact in the unit the file actually stores.
+        """
+        twips = int(total) // 635
+        parts = [int(twips * s) for s in shares[:-1]]
+        parts.append(twips - sum(parts))
+        return [p * 635 for p in parts]
 
     def compact(p):
         p.paragraph_format.space_before = Pt(0); p.paragraph_format.space_after = Pt(0)
@@ -418,11 +497,15 @@ def _render_docx(blocks, M, cfg, brand_dir, cover_png, out):
     body.top_margin = Inches(0.85); body.bottom_margin = Inches(0.8)
     body.left_margin = Inches(0.85); body.right_margin = Inches(0.85)
     body.header_distance = Inches(0.25); body.footer_distance = Inches(0.25)
+    # One source of truth for the text width. It was written out as the literal 6.57 in
+    # three places and 3.285 in a fourth, and it has already drifted once (an older footer
+    # used 6.55), which silently desynchronizes the running furniture from the body.
+    content_w = body.page_width - body.left_margin - body.right_margin
     if cover_png:
         cp = doc.add_paragraph(); compact(cp)
         cp.paragraph_format.line_spacing_rule = WD_LINE_SPACING.SINGLE
         cr = cp.add_run(); cr.font.size = Pt(1)
-        cr.add_picture(str(cover_png), width=Inches(6.57))
+        cr.add_picture(str(cover_png), width=content_w)
         doc.add_page_break()
 
     # Running furniture. Populate both right-page and left-page parts, while keeping the
@@ -432,34 +515,70 @@ def _render_docx(blocks, M, cfg, brand_dir, cover_png, out):
     run = _running_text(cfg, M)
     logo = Path(brand_dir) / _B["assets"].get("logo_black", "logo_black.png")
     doc.settings.odd_and_even_pages_header_footer = True
-    body.different_first_page_header_footer = False
+    # An empty first-page header and footer, so the cover carries no furniture in the DOCX
+    # itself. Relying on the post-conversion useFirstPageHeaderFooter request meant a skipped
+    # or failed normalization shipped a cover with a header stamped across it.
+    body.different_first_page_header_footer = True
 
-    def populate_header(header):
+    # FIXED-WIDTH TABLES, never tab stops.
+    #
+    # python-docx builds header and footer parts from a default part whose paragraph carries
+    # the built-in Header/Footer styles, and those styles define US-LETTER tab stops: centre
+    # 4680 twips (3.25in) and right 9360 twips (6.5in). This document is A4 with 0.85in
+    # margins, so the content width is 6.57in and the centre is 3.285in. OOXML merges
+    # paragraph tabs with style tabs additively and replaces a stop only at an IDENTICAL
+    # position, so adding 3.285in and 6.57in does not clear 3.25in and 6.5in, it appends to
+    # them. Traversal reaches the Letter stops first and the correct ones are never used,
+    # which is why a delivered audit had its header label and footer URL sitting 5pt short of
+    # the text edge directly below them, and the page counter 2.5pt left of centre. A table
+    # cell width is absolute and inherits nothing, so it cannot drift that way.
+    def populate_header(header, blank=False):
         header.is_linked_to_previous = False
-        hp = header.paragraphs[0]; hp.text = ''; compact(hp)
-        hp.paragraph_format.tab_stops.add_tab_stop(Inches(6.57), WD_TAB_ALIGNMENT.RIGHT)
-        if logo.exists(): hp.add_run().add_picture(str(logo), width=Inches(0.9))
-        elif _B.get("agency_name"): runs(hp, _B["agency_name"], size=8, color=INK, bold=True)
-        hp.add_run('\t')
-        runs(hp, run["header_right"], size=7.5, color=MIST, bold=True, tracking=12)
+        header.paragraphs[0].text = ''
+        compact(header.paragraphs[0])
+        if blank:
+            return
+        t = header.add_table(rows=1, cols=2, width=content_w)
+        no_table_borders(t); no_cell_padding(t)
+        col_widths(t, split_width(content_w, 0.5, 0.5))
+        left, right = t.rows[0].cells
+        lp = left.paragraphs[0]; compact(lp)
+        if logo.exists():
+            lp.add_run().add_picture(str(logo), width=Inches(0.9))
+        elif _B.get("agency_name"):
+            runs(lp, _B["agency_name"], size=8, color=INK, bold=True)
+        rp = right.paragraphs[0]; compact(rp)
+        rp.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+        runs(rp, run["header_right"], size=7.5, color=MIST, bold=True, tracking=12)
 
-    def populate_footer(footer):
+    def populate_footer(footer, blank=False):
         footer.is_linked_to_previous = False
-        fp = footer.paragraphs[0]; fp.text = ''; compact(fp)
-        fp.paragraph_format.tab_stops.add_tab_stop(Inches(3.285), WD_TAB_ALIGNMENT.CENTER)
-        fp.paragraph_format.tab_stops.add_tab_stop(Inches(6.57), WD_TAB_ALIGNMENT.RIGHT)
-        runs(fp, run["footer_left"], size=8, color=MIST)
-        fp.add_run('\t')
-        runs(fp, "page ", size=8, color=MIST); field(fp, "PAGE", "1"); runs(fp, " of ", size=8, color=MIST); field(fp, "NUMPAGES", "1")
-        fp.add_run('\t')
-        runs(fp, run["footer_right"], size=8, color=MIST)
+        footer.paragraphs[0].text = ''
+        compact(footer.paragraphs[0])
+        if blank:
+            return
+        t = footer.add_table(rows=1, cols=3, width=content_w)
+        no_table_borders(t); no_cell_padding(t)
+        # The left zone carries the longest string, so it gets the slack. Equal thirds is
+        # what used to wrap a long client name onto a second line.
+        col_widths(t, split_width(content_w, 0.42, 0.24, 0.34))
+        left, mid, right = t.rows[0].cells
+        lp = left.paragraphs[0]; compact(lp)
+        runs(lp, run["footer_left"], size=8, color=MIST)
+        mp = mid.paragraphs[0]; compact(mp)
+        mp.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        runs(mp, "page ", size=8, color=MIST); field(mp, "PAGE", "1")
+        runs(mp, " of ", size=8, color=MIST); field(mp, "NUMPAGES", "1")
+        rp = right.paragraphs[0]; compact(rp)
+        rp.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+        runs(rp, run["footer_right"], size=8, color=MIST)
 
     populate_header(body.header)
     populate_header(body.even_page_header)
-    populate_header(body.first_page_header)
+    populate_header(body.first_page_header, blank=True)
     populate_footer(body.footer)
     populate_footer(body.even_page_footer)
-    populate_footer(body.first_page_footer)
+    populate_footer(body.first_page_footer, blank=True)
 
     # render blocks (+ KPI after the verdict/summary h2); -1 disables cards for non-audit docs
     kpi_idx = _kpi_after(blocks) if (M.get("custom_kpis") or M.get("totals")) else -1

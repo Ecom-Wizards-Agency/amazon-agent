@@ -24,7 +24,7 @@ Before creating a recurring automation, ask the operator:
 1. Which Seller Central accounts and marketplaces should be checked?
 2. Where is the account profile source, and which fields contain `Seller Central Name`, `Marketplace`, and `Status`?
 3. Where should daily updates be posted?
-4. Which alert source should be checked first, such as a SellerSonar Slack channel, dashboard, or CSV?
+4. Where is the precomputed Keepa market-signals state file the run reads first, and which ASINs are registered in each profile's `monitoring` block? The check never fetches market data itself.
 5. Should follow-up tasks be created? If yes, which task database/tracker, task type, and priority rules should be used?
 6. Who is the daily runner (works the action queue, default task owner), who is the escalation owner (true escalations only), and is there a strategic supervisor for a weekly digest? Record chat member IDs and task-system person IDs locally.
 7. Which browser does the operator prefer for live runs: the built-in in-app browser, or a Chromium browser connected through the browser extension (Chrome, Brave)? The preference is saved locally and used for all runs; the other approved browser is the fallback.
@@ -91,8 +91,8 @@ Account Health
 - AHR: {rating}
 - Policy Compliance: {summary}
 
-SellerSonar alerts
-- {None / severity + summary / alert source stale ({date})}
+Market signals (Keepa)
+- {None / severity + summary / market signals stale ({date}) / ASIN not in the monitoring block}
 
 Findings
 - [{NO ACTION / ACTION / ASSIGNED / WAITING / ESCALATE}] {scope} - {issue} - owner {name} - {task link / deadline / waiting on}
@@ -101,7 +101,10 @@ Findings
 - On the last run of the week, add a Weekly digest {@supervisor} comment: findings per account, new vs resolved, escalations raised, overdue count, recurring patterns.
 
 Daily check scope:
-- Read the latest {sellersonar_alert_source} report and capture relevant marketplace alerts: search suppression, Buy Box / Featured Offer suppression or drop, new seller or possible hijacker, category/sub-category change, rating/review drop, and major price or offer change.
+- Read the precomputed Keepa market signals from {market_signals_state_path} and capture the relevant marketplace signals: Buy Box / Featured Offer suppression or drop, new seller or possible hijacker, category/sub-category change, rating/review drop, major price or offer change, FBA and referral fee changes, and package dimension or weight changes. Never fetch market data during the run: the signals are computed before it so every account reads the same snapshot.
+- Keepa only sees ASINs registered in that profile's `monitoring` block. An unregistered ASIN gets no market signal at all, so report it as a coverage gap rather than as a clean ASIN.
+- Search suppression and inactive listings are not in the Keepa data. Read those from Seller Central directly.
+- Listing-content changes (title, bullets, images) are not in the Keepa data either. A separate listing watch (`listing_watch.py` in the Wizards AI checkout) covers them and reports them on its own. Do not re-derive them here.
 - Use Seller Central as the source of truth. Select the seller account by {seller_central_name_field} and country/region by {marketplace_field}.
 - Verify account, marketplace, page title/tool, and date/filter context before recording.
 - Check Account Health status, Account Health Rating, Policy Compliance, Performance Notifications, core performance metrics, and listing blockers.
@@ -115,8 +118,8 @@ Dispositions (routing layer):
 - Waiting: update the task with who it waits on and since when; set the closest waiting/blocked status the database offers.
 - Escalate (deactivation/suspension/warning, stop-before-risk decisions, identity/bank/tax/verification, legal/IP claims, unhandled deadline under 48h, login blocked in both browsers): task assigned to {escalation_owner} at the highest priority.
 - Update-don't-duplicate, matched by ledger key. Never set a completed status; never close an escalation task.
-- SellerSonar freshness guard: if the latest alert report is older than the previous business day, report "alert source stale" instead of "No alerts".
-- Degraded run (login blocked in both browsers): still post the queue from ledger + alert source, mark lines "not verified today", escalate the login blocker, still write the ledger.
+- Market-signals freshness guard: if {market_signals_state_path} is missing, or its `generated_at` is not from today, never report "No alerts". Report "market signals stale" as a blocker and carry on. A market-data outage never cancels the account-health check.
+- Degraded run (login blocked in both browsers): still post the queue from ledger + market signals, mark lines "not verified today", escalate the login blocker, still write the ledger.
 
 Out of scope unless directly triggered by a visible alert or known open issue:
 - Inventory, stranded inventory, FBA inbound shipments, shipment reconciliation, IPI/restock, Send to Amazon, returns, refunds, payments/reserve, coupons/promotions/deals, Seller Support case log, Amazon Ads, experiments, Creator Connections, Brand Customer Reviews, and Brand Registry alerts.

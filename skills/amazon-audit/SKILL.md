@@ -1,6 +1,6 @@
 ---
 name: amazon-audit
-description: Use for every Amazon ad or sales audit. First-time prospect audits always use downloaded Amazon files; monthly reviews and actions-only audits require an AdLabs-managed account. Trigger on `/amazon-audit`, ad audit, sales audit, account audit, monthly account review, or analyze this AdLabs account. Asks the job first, routes by posture, then asks only what is not already on file. Self-contained: narrative voice, workbook standard, figure set and branded-document contract all live here. Read-only.
+description: "Use for every Amazon ad or sales audit. First-time prospect audits always use downloaded Amazon files; monthly reviews and actions-only audits require an AdLabs-managed account. Trigger on `/amazon-audit`, ad audit, sales audit, account audit, monthly account review, or analyze this AdLabs account. Asks the job first, routes by posture, then asks only what is not already on file. Self-contained: narrative voice, workbook standard, figure set and branded-document contract all live here. Read-only."
 ---
 
 # Amazon Ad / Sales Audit
@@ -82,10 +82,16 @@ action leaves this skill and routes to `amazon-ppc-management`.
 
 Skip this stage entirely when the arguments already say it.
 
+**Named style shortcut.** If the operator says `same style as UltimaPeak`, `UltimaPeak style`, or
+`evidence-hybrid`, treat it as a request for the `deep` posture with
+`narrative.mode=evidence_hybrid`. This shortcut controls presentation and evidence selection only.
+It does not reuse UltimaPeak's ASINs, competitors, market, dates, claims, assumptions, or findings.
+Resolve the new prospect brief normally and build every conclusion from that prospect's evidence.
+
 | Job | Voice | Default scope | Deliverable |
 |---|---|---|---|
-| `deep` | Full narrative, blunt, organic-first | Lens A + Lens B | MASTER `.xlsx` + branded `.docx` **with cover** |
-| `monthly` | Lean, internal, learnings-forward, no roasting | Lens A + tripwire | Inline report **and** branded `.docx`, **no cover**. Workbook on request |
+| `deep` | Full narrative, blunt, organic-first | Lens A + Lens B | Native MASTER Google Sheet + branded Google Doc **with cover** |
+| `monthly` | Lean, internal, learnings-forward, no roasting | Lens A + tripwire | Inline report **and** branded Google Doc, **no cover**. Workbook on request |
 | `actions` | None | Lens A only | Prioritized action list with spend impact and GoTo links |
 
 ### Stage 2. Route and pre-fill. Silent, no questions.
@@ -155,8 +161,9 @@ about to launch.
 
 Turn every material call statement into an **internal hypothesis matrix** before writing. Verdicts
 are `Confirmed`, `Not supported`, `Mixed or confounded`, or `Not verifiable from available data`.
-Keep the full matrix internal. Surface only contradictions and conclusions that change the client
-recommendation. Goals and preferences remain labelled as goals, never verified facts.
+Keep the full matrix internal. Do not create a separate call-validation section. Integrate only
+contradictions and conclusions that change the client recommendation into the relevant diagnosis
+or action. Goals and preferences remain labelled as goals, never verified facts.
 
 For any cart-abandonment claim, use Search Catalog Performance for the absolute ASIN funnel and
 SQP for the same-query market comparison. A large absolute click-to-cart or cart-to-purchase drop
@@ -229,7 +236,7 @@ output with the reason.
 | A10 | Bid categories and budget caps; flag campaigns capped **and** unprofitable | ads bulk | guide formulas |
 | A11 | Missing channels: no SB, no SD, no DSP, no retargeting | channel presence in bulk | `campaign` ad-type bands, DSP |
 | A12 | Brand leak, and whether branded spend buys anything | search terms + SQP | `analyze(brand_spend_leak_detection)`, then manual variant scan |
-| A13 | TACOS against target, period-over-period | BR + bulk | `ACOTS`, `ACOTS_TO_TARGET`, profile deltas |
+| A13 | TACOS against target, period-over-period, only when Ads and sales windows align | BR + bulk; otherwise N/A | `ACOTS`, `ACOTS_TO_TARGET`, profile deltas |
 
 **A2 in detail.** Sponsored Products only serves while you hold the featured offer, so a
 hijacked listing silently caps how much the account is *able* to spend, and the ACOS you are
@@ -582,10 +589,21 @@ section skeleton, the operator voice, the cut-list, the standard operator plays,
 design system, the figure set, the branded A4 document and its markdown authoring contract, the
 delivery rules, and the method-note caveats that must appear in every deliverable.
 
-What the posture decides: `deep` ships the MASTER `.xlsx` plus a branded `.docx` with a cover.
-`monthly` ships an inline consolidated report plus a branded `.docx` with no cover, workbook on
+What the posture decides: `deep` ships the native MASTER Google Sheet plus a branded Google Doc
+with a cover. `monthly` ships an inline consolidated report plus a branded Google Doc with no cover, workbook on
 request. `actions` ships the prioritized change list only, with spend impact in the profile
 currency and GoTo links, and skips the narrative entirely.
+
+The native Google Doc is the audit deliverable. Never create or deliver a PDF unless the operator
+explicitly requests one. A temporary PDF export is allowed only for visual QA and must be deleted
+after inspection.
+
+After native Google conversion or any in-place heading edit, explicitly normalize every
+`Priority N:` heading to Inter 12.5 pt, bold, Ecom Wizards Ink `#11151C`. Never leave priority
+headings in Google Docs' default blue or another inherited Heading 2 colour.
+Keep every diagnosis, evidence sentence, and `I would` recommendation beneath a priority in
+regular Inter 10.5 pt Ink. Do not bold or italicize the whole supporting paragraph. Bold is
+reserved for the priority title and isolated metrics that genuinely need emphasis.
 
 ---
 
@@ -629,7 +647,7 @@ testing rather than a rule to apply to a client's account.
 
 - `references/source-adlabs.md`: the AdLabs MCP path. Entities and what each carries, the margin
   gap, and the MCP mechanics that silently return wrong rows.
-- `references/source-bulk.md`: the download path. Config contract, preflight and the Codex handoff,
+- `references/source-bulk.md`: the download path. Config contract, capability-based preflight,
   the window rule, the bulk parse traps, and the `--validate` gates.
 - `references/lens-b-shopper-creative.md`: POE reviews and returns at breadth, live creative
   capture for the client plus two competitors, image coverage, indexing, price and reviews.

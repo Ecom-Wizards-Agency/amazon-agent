@@ -1,26 +1,30 @@
 # Ad/Sales Audit — End-to-End Workflow
 
-Two-agent flow (Codex gathers browser downloads; Claude pulls DataDive, builds, writes). The config is the input contract; nothing in the code is client-specific.
+The current agent owns this workflow end to end. The config is the input contract; nothing in the code is client-specific.
 
-## Roles
+## Capability model
 
-- **Codex** (connected/internal browser): downloads the Amazon exports to the contract paths, captures evidence + caveats, then stops. Does NOT run the builder, write the narrative, or edit listings.
-- **Claude**: pulls DataDive via MCP, runs the builder, writes the narrative per the playbook, delivers.
+- **Connected/internal browser:** downloads Amazon exports to the contract paths and captures evidence and caveats.
+- **DataDive MCP:** pulls the niche, competitors, and rank inputs.
+- **Local build and writing:** runs the builder, writes the narrative, validates, and renders.
+- **Google Drive integration:** completes authorized internal delivery.
+
+The active agent uses every available capability and continues through the full run. If one capability is unavailable, hand off only that checklist and the exact contract paths to any capable agent.
 
 ## Steps
 
 1. **Scope** — client, marketplace(s), product lines + ASINs, break-even ACOS (assumption vs confirmed margin), brand + competitor tokens. Scaffold `config.<client>-<market>.json` (see `NEW-CLIENT.md`).
 
-2. **Preflight** — `build_audit.py --config <cfg> --preflight`. Emits a copy-ready Codex download task for missing inputs, or READY.
+2. **Preflight** — `build_audit.py --config <cfg> --preflight`. Emits capability-based checklists for missing inputs, or READY.
 
-3. **Codex gathers** (per the emitted task):
+3. **Gather browser inputs** (per the emitted checklist):
    - **Ads bulk `.xlsx`** — Amazon Ads console → Bulk Operations → download a Spend/Sales report for the window (SP required; SB/SB-Multi/SD/RAS sheets included if running). Download via the Chrome extension or the CDP debug Chrome; the file lands in `~/Downloads` and is read from there.
    - **Business Report `.csv`** — Seller Central → Reports → Business Reports → Detail Page Sales & Traffic by Child ASIN, for the window. (Or fetch it without the manual download: `tools/report-fetcher/` — see the `amazon-reporting` skill.)
    - **Multi-ASIN SQP `.csv`** (one per product group) — Brand Analytics → Search Query Performance → multi-ASIN export, weekly, for the product line's ASINs. (Caveat: the multi-ASIN tool caps the query grid; SV totals are a floor. For full data, export per single ASIN.) (Or fetch via `tools/report-fetcher/` — one ASIN per file gives uncapped SV.)
    - **Recommended extras (optional, won't block READY):** SB campaign placement report (the bulk's SB placement rows are incomplete) and the SP Search-Term Impression-Share report (ToS headroom). **Not needed:** SB/SD search-term reports — SB is intent-split by target from the bulk itself.
-   - Save each to the exact `inputs{}` path; note evidence + any caveats; stop.
+   - Save each to the exact `inputs{}` path and note evidence plus any caveats.
 
-4. **Claude pulls DataDive** — via MCP (`get_niche_keywords`, `get_niche_competitors` on the `datadive_niche`), save to the `datadive_niche_json` / `datadive_competitors_json` paths. Re-run `--preflight` → READY.
+4. **Pull DataDive** — via MCP (`get_niche_keywords`, `get_niche_competitors` on the `datadive_niche`), save to the `datadive_niche_json` / `datadive_competitors_json` paths. Re-run `--preflight` until READY and continue in the same run.
 
 5. **Build** — `build_audit.py --config <cfg>`. Runs analyze → audit workbook → SQP workbook → master → **standard figure set** (`build_figures.py`) → narrative scaffold (which references the figures that were produced). Figures are guarded: a missing input skips the chart, never fails the build. Needs matplotlib; without it the build warns and carries on.
 

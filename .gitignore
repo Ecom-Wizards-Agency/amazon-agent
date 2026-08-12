@@ -60,8 +60,11 @@ tools/amazon-campaign-builder/config.*.json
 !tools/amazon-campaign-builder/config.TEMPLATE.json
 !tools/amazon-campaign-builder/config.UPDATE.TEMPLATE.json
 
-# Local scratch dir (client artifacts, never ships)
+# Local scratch dirs (client artifacts, never ships). tmp/, .tmp/ and outputs/
+# are retired roots kept ignored so a stray recreation can never be committed;
+# new work goes in output/, downloads/, evidence/ or _local-output/ only.
 tmp/
+.tmp/
 
 # Temporary files
 *.tmp
@@ -99,3 +102,7 @@ tools/sb-video-briefs/config.*.json
 # Python caches
 __pycache__/
 *.pyc
+
+# Codex runtime symlinks. These point into ~/.cache/codex-runtimes on one machine,
+# so committing one publishes a personal path and hands everyone else a dead link.
+tools/*/node_modules

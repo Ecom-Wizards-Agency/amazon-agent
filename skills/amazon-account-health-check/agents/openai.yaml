@@ -1,4 +1,4 @@
 interface:
   display_name: "Amazon Account Health Check"
-  short_description: "Daily account health action queue with dispositions"
-  default_prompt: "Use $amazon-account-health-check to run today's account health queue and dispose every open finding."
+  short_description: "Daily account health: verify, dispose, write the findings ledger"
+  default_prompt: "Use $amazon-account-health-check to re-check open findings, verify Account Health in Seller Central, dispose every finding, and write the ledger plus this run's coverage entry. Post nothing except an immediate escalation; a separate pass posts the daily digest."

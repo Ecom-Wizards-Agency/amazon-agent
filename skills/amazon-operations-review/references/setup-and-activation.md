@@ -20,7 +20,7 @@ Collect or resolve the following without running an operational check:
 - Active account-profile source.
 - For every account: client slug, Seller Central account label, marketplace, Review Management tab, default task owner, and escalation owner.
 - Review Management workbook URL: `https://docs.google.com/spreadsheets/d/18otgJNjAKRlpDyTQkcCzhHAqKTxMJc6EgxrQBj8TG_A/edit`
-- SellerSonar fee-alert source.
+- Market-signals state file path. This is the precomputed Keepa state the weekly check reads for fee, package dimension and package weight findings. It is written by the deterministic market-signals pass in the Wizards AI checkout (`mentions/market-signals/state.json`), not by this skill.
 - Follow-up task database or tracker.
 - Internal Slack destination and permission to post operational summaries.
 - Browser preference and fallback.
@@ -35,7 +35,7 @@ When the user says `Set up the operational checks`:
 1. Read existing local configuration if present.
 2. Resolve accounts and marketplaces from the approved profile source.
 3. Inspect the Review Management workbook metadata read-only and match configured client-market tabs.
-4. Validate SellerSonar, task, Slack, and browser destinations read-only.
+4. Validate the market-signals state file, task, Slack, and browser destinations read-only. For the state file that means it exists, parses, and carries a recent `generated_at`. Never trigger a market-signals pass during setup.
 5. Record missing values as blockers. Do not guess account labels, marketplace mappings, owners, IDs, or permissions.
 6. Prepare the two automation prompts from `automation-prompts.md` with the local config path.
 7. Show the activation preview below and set state to `preview_pending` only when there are no blockers.
@@ -48,11 +48,11 @@ Amazon operational checks activation preview
 State: preview_pending
 Accounts: {account + marketplace + review tab}
 Weekly: Tuesday 10:00 {timezone}
-Weekly checks: stock, stranded inventory, shipment exceptions, variation exceptions, negative reviews, SellerSonar fee alerts
+Weekly checks: stock, stranded inventory, shipment exceptions, variation exceptions, negative reviews, Keepa fee/package dimension/package weight findings
 Monthly: day 2 at 11:00 {timezone}
 Monthly checks: returns, Voice of the Customer, overstock
 Review workbook: {title + URL}
-SellerSonar source: {source}
+Market signals: {market_signals_state_path}, generated {generated_at}, covering {profiles_monitored} of {profiles_active} active profiles and {asins_monitored} ASINs
 Tasks: {database + default owners}
 Internal output: {Slack destination}
 Missing review tabs to create after approval: {tabs or none}
