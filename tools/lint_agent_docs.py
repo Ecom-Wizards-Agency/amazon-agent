@@ -218,7 +218,11 @@ def main() -> int:
         except (OSError, UnicodeDecodeError):
             continue
         for lineno, line in enumerate(lines, 1):
-            if "/Users/" in line and "<" not in line and "{" not in line:
+            # /Users/<name> and /Users/{name} are placeholders describing the
+            # rule; /Users/ followed by a real username segment is a leak. The
+            # earlier "line contains a brace" exemption let a JSON fixture
+            # carry a personal path straight past this check (12.08.2026).
+            if re.search(r"/Users/[A-Za-z0-9._-]+/", line):
                 errors.append(f"{rel}:{lineno}: personal absolute path "
                               "(/Users/...); resolve through ew_paths, a "
                               "pointer file, or ~ instead")
