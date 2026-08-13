@@ -83,9 +83,12 @@ node tools/report-fetcher/run.mjs all --config tools/report-fetcher/config.<clie
 ```
 
 **Account gate (mandatory).** One login can hold several sellers and the debug Chrome can have several
-regions open. `doctor` prints the seller name + merchant id per tab; confirm the client before trusting a
-number, and pass `--expect-account "<Client Name>"` so a wrong-seller pull aborts instead of producing a
-correct-looking file. `--account <merchant-id>` pins it explicitly. Region is derived from `--marketplace`
+regions open. `doctor` probes every tab live (exit 0 signed in, 1 signed out, 2 INDETERMINATE: retry,
+never treat as logged out); confirm the client before trusting a number, and pass
+`--expect-account "<Client Name>"` so a wrong-seller pull aborts instead of producing a
+correct-looking file. `--account <merchant-id>` is enforced, not a hint: the run dies rather than
+falling back to the session default, and with config `account_name` + `marketplace_label` the runner
+drives Seller Central's own account picker to the right seller itself. Region is derived from `--marketplace`
 (US `.com`, EU `.de` + siblings, AU `.com.au`, ...), not from whichever tab is first. This class of bug is
 silent: the file has the right dates, shape and headers, and the wrong company's numbers.
 

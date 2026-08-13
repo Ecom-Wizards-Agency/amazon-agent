@@ -12,16 +12,25 @@ normal CDP commands start or reuse the headless profile automatically.
 ## Account safety
 
 One login can hold several sellers, and the debug Chrome can have several regions open at once.
-`doctor` prints the seller name and merchant id for every open tab. Confirm the name is the client
-you were asked for before trusting any number. A report pulled from the wrong seller looks
-completely normal: right shape, right dates, wrong company.
+`doctor` probes every open tab live and prints the seller name and id read from the page, naming
+the account chooser, sign-in pages and challenges explicitly. Confirm the name is the client you
+were asked for before trusting any number. A report pulled from the wrong seller looks completely
+normal: right shape, right dates, wrong company.
 
-Always pass `--expect-account "<Client Name>"` on data commands. It resolves the active account and
-aborts before fetching on a mismatch.
+Doctor exit codes: `0` signed in, `1` conclusively signed out or challenge-blocked (recovery-mode
+login needed), `2` INDETERMINATE (a tab could not be probed; retry doctor, and restart the debug
+Chrome if it persists). Never treat INDETERMINATE as logged out.
 
-If it aborts, switch the account in the debug Chrome and re-run. Do not use `--account` as a safety
-substitute: Seller Central may ignore that hint and return the tab's active seller. If you cannot
-switch the account, stop and ask the operator.
+Always pass `--expect-account "<Client Name>"` on data commands. It judges the live identity of
+the tab and aborts before fetching on a mismatch or when no identity is observable; its failure
+message names the tab URL, page kind and reason.
+
+If it aborts, either switch the account in the debug Chrome and re-run, or let the runner switch
+deterministically by passing `--account <merchant-id>` together with `--account-name` and
+`--marketplace-label` (config: `account`, `account_name`, `marketplace_label`); the runner drives
+Seller Central's own account picker and re-verifies before fetching. `--account` on its own is
+enforced, not a hint: the run dies rather than falling back to the session default seller. If you
+cannot switch the account, stop and ask the operator.
 
 Region comes from `--marketplace` (US `.com`, EU country through the applicable regional login,
 AU `.com.au`, and so on), not from whichever tab happens to be first. If no open tab serves the
@@ -44,7 +53,8 @@ CLIENT (must match the Seller Central account name): <CLIENT NAME>
    - The command starts or reuses headless CDP. If login is missing, run
      tools/report-fetcher/launch-chrome-debug.sh --mode recovery, ask the operator to sign in,
      and wait.
-   - Proceed only when it prints "Login: OK".
+   - Proceed only when it prints "Login: OK" (exit 0). On INDETERMINATE (exit 2), retry doctor
+     instead of assuming the session is logged out.
    - Check the account line. If no tab shows <CLIENT NAME>, stop. Do not fetch from another seller.
 2. node tools/report-fetcher/run.mjs all --config <CONFIG> --plan
 3. node tools/report-fetcher/run.mjs all --config <CONFIG> --expect-account "<CLIENT NAME>" --verbose

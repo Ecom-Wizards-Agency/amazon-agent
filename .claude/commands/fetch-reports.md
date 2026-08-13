@@ -22,7 +22,8 @@ Load the `amazon-reporting` skill first.
    - Unreachable → run `tools/report-fetcher/launch-chrome-debug.sh`, then ask the operator to
      sign into Seller Central in the debug window; wait. (The current agent can run the launcher; only the
      operator can complete the login.)
-   - Proceed only when it prints **"Login: OK"**.
+   - Proceed only when it prints **"Login: OK"** (exit 0). Exit 2 means INDETERMINATE: a tab
+     could not be probed; retry doctor rather than treating it as logged out.
 3. **Plan then fetch** (config-driven):
    ```bash
    node tools/report-fetcher/run.mjs <report|all> --config tools/report-fetcher/config.<client>.json --plan
