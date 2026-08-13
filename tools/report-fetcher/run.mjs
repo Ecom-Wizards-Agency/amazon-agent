@@ -36,6 +36,7 @@ import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { ensureChrome, listPages, createPage, closePage, evaluate, Session } from "./cdp.mjs";
+import { probeTab, doctorVerdict, readIdentity, inspectPage, switchAccount, accountMatches } from "./sc-account.mjs";
 import { format } from "./format-seller-reports.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -266,45 +267,52 @@ async function runSqpJob(origin, job, args, acct) {
   }
 }
 
+/*
+ * Connection + login health check. Every Seller Central tab is probed LIVE and
+ * in parallel with hard budgets (probeTab), so the output reflects the state
+ * at probe time, not a stale /json/list snapshot, and a hung tab costs 20 s,
+ * not 125 s. Three-state verdict: OK (exit 0), signed out / human challenge
+ * (exit 1), INDETERMINATE with a retry instruction (exit 2). A tab that cannot
+ * be probed is never reported as signed out; conflating the two is what
+ * produced the false "NOT signed in" verdict of 13.08.2026.
+ */
+async function doctor() {
+  const v = await ensureChrome();
+  console.log("Chrome:", v.Browser, "| debug port reachable");
+  const sc = (await listPages()).filter((p) => /sellercentral\.amazon\./.test(p.url || ""));
+  if (!sc.length) {
+    console.log("Seller Central: no tab open. Run tools/report-fetcher/launch-chrome-debug.sh --mode recovery, sign in, then return it to headless mode with tools/report-fetcher/launch-chrome-debug.sh.");
+    process.exit(1);
+  }
+  console.log(`Seller Central: ${sc.length} tab(s), probed live at ${new Date().toISOString()}`);
+  const results = await Promise.all(sc.map((p) => probeTab(p)));
+  for (const r of results) {
+    let host = "?";
+    try { host = new URL(r.url).host; } catch {}
+    const serves = Object.entries(MARKET_HOSTS).filter(([, hs]) => hs[0] === host).map(([m]) => m.toUpperCase());
+    let label;
+    if (r.state === "signed-in" && r.pageKind === "chooser") label = "account chooser open, NO account selected";
+    else if (r.state === "signed-in" && r.pageKind === "auth-failed") label = "authorization-failed page (authenticated, but this account cannot open that URL)";
+    else if (r.state === "signed-in") {
+      const id = r.identity || {};
+      label = `${id.displayName || "(name unresolved)"} · ${id.merchantId || id.partnerAccountId || (id.err ? `ids unavailable (${id.err})` : "no id")}`;
+    } else if (r.state === "signed-out") label = "sign-in page (logged out)";
+    else if (r.state === "challenge") label = "human challenge (captcha/OTP)";
+    else label = `indeterminate: ${r.reason}`;
+    console.log(`  - ${host}${serves.length ? ` (${serves.join("/")})` : ""}${r.stale ? " [stale url from snapshot]" : ""} → ${label}`);
+  }
+  if (sc.length > 1) console.log("  Note: more than one region/account is open. The runner picks the tab matching --marketplace; pass --account <merchant-id> to pin the seller.");
+  const verdict = doctorVerdict(results);
+  console.log(verdict.text);
+  process.exit(verdict.exitCode);
+}
+
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   const mp = (args.marketplace || "us").toLowerCase();
   const cfg = args.config ? JSON.parse(readFileSync(args.config, "utf8")) : null;
 
-  if (args._ === "doctor") {
-    const v = await ensureChrome();
-    console.log("Chrome:", v.Browser, "| debug port reachable");
-    const sc = (await listPages()).filter((p) => /sellercentral\.amazon\./.test(p.url || ""));
-    if (!sc.length) { console.log("Seller Central: no logged-in tab. Run tools/report-fetcher/launch-chrome-debug.sh --mode recovery, sign in, then return it to headless mode with tools/report-fetcher/launch-chrome-debug.sh."); process.exit(1); }
-    // Probe every tab, not just the first: the operator may be signed in on
-    // tab 2 while tab 1 sits on a stale sign-in page. The account picker is an
-    // AUTHENTICATED state (choosing a seller requires a session), so it is
-    // deliberately absent from the signed-out pattern; counting it as
-    // signed-out produced false "NOT signed in" verdicts for months.
-    let anySignedIn = false;
-    for (const tab of sc) {
-      let st = null;
-      try {
-        const s = await Session.open(tab.webSocketDebuggerUrl);
-        try {
-          st = await evaluate(s, `(function(){return {signin:/signin|ap\\/signin|authportal|\\/ax\\//i.test(location.href)||/sign[- ]?in/i.test(document.title)};})()`);
-        } finally { s.close(); }
-      } catch { continue; }
-      if (st && !st.signin) { anySignedIn = true; break; }
-    }
-    console.log(`Seller Central: ${sc.length} tab(s)`);
-    for (const p of sc) {
-      let host = "?", mcid = null;
-      try { const u = new URL(p.url); host = u.host; mcid = u.searchParams.get("mons_sel_dir_mcid"); } catch {}
-      const serves = Object.entries(MARKET_HOSTS).filter(([, hs]) => hs[0] === host).map(([m]) => m.toUpperCase());
-      const name = await readAccountName(p);
-      console.log(`  - ${host}${serves.length ? ` (${serves.join("/")})` : ""} → ${name || "(name unresolved)"} · ${mcid || "NO account param (session default)"}`);
-    }
-    if (sc.length > 1) console.log("  Note: more than one region/account is open. The runner picks the tab matching --marketplace; pass --account <merchant-id> to pin the seller.");
-    if (anySignedIn) { console.log("Login: OK — session is active. Ready to fetch."); process.exit(0); }
-    console.log("Login: NOT signed in on any open tab. Sign into Seller Central in the debug window, then re-run doctor.");
-    process.exit(1);
-  }
+  if (args._ === "doctor") return doctor();
 
   const reports = args._ === "all" ? ["sqp", "business", "scp", "tst", "inventory"].filter((r) => cfg && (cfg[r] || cfg[r === "business" ? "business_report" : r])) : [args._];
   if (!reports.length || !["sqp", "sqp-brand", "scp", "tst", "business", "inventory"].includes(reports[0]))

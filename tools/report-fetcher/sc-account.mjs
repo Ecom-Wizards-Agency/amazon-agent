@@ -95,7 +95,7 @@ const IDENTITY_JS = `(async function(){
         body: JSON.stringify({ operationName: "GetUserContext", variables: {},
           query: "query GetUserContext { userContext { partnerAccountId obfuscatedCustomerId monsSessionId monsSite antiCsrfToken marketplaceSelection merchantId requestId __typename } }" })
       });
-      if (res.status === 401 || res.status === 403) out.err = "not authorized (" + res.status + "): logged out or wrong account";
+      if (res.status === 401 || res.status === 403) out.err = "GetUserContext not authorized (" + res.status + ") on this page; ids unavailable here (normal outside Opportunity Explorer pages; the DOM display name still identifies the account)";
       else if (!res.ok) out.err = "GetUserContext failed with HTTP " + res.status;
       else {
         var parsed = await res.json();
