@@ -70,14 +70,17 @@ function defaultResult(method) {
   return method === "Runtime.evaluate" ? { result: { value: null } } : {};
 }
 
-export async function startFakeCdp({ targets = [] } = {}) {
+export async function startFakeCdp({ targets = [], onCreateTarget = null } = {}) {
   const sockets = new Set();
   const sent = []; // every command any client sent: {targetId, method, params}
 
   const server = createServer((req, res) => {
     if (req.url.startsWith("/json/version")) {
       res.setHeader("content-type", "application/json");
-      res.end(JSON.stringify({ Browser: "FakeChrome/1.0", "Protocol-Version": "1.3" }));
+      res.end(JSON.stringify({
+        Browser: "FakeChrome/1.0", "Protocol-Version": "1.3",
+        webSocketDebuggerUrl: `ws://127.0.0.1:${port}/devtools/browser/fake`,
+      }));
       return;
     }
     if (req.url.startsWith("/json/list") || req.url === "/json") {
@@ -100,6 +103,28 @@ export async function startFakeCdp({ targets = [] } = {}) {
     sockets.add(socket);
     socket.on("close", () => sockets.delete(socket));
     socket.on("error", () => {});
+    // Browser-level endpoint: enough of Target.createTarget for createPage().
+    // `onCreateTarget(params)` returns a target definition that joins the list.
+    if (req.url.includes("/devtools/browser/")) {
+      const key = req.headers["sec-websocket-key"];
+      socket.write(
+        "HTTP/1.1 101 Switching Protocols\r\n" +
+        "Upgrade: websocket\r\nConnection: Upgrade\r\n" +
+        `Sec-WebSocket-Accept: ${createHash("sha1").update(key + WS_MAGIC).digest("base64")}\r\n\r\n`,
+      );
+      socket.on("data", makeFrameParser((text) => {
+        const msg = JSON.parse(text);
+        sent.push({ targetId: "(browser)", method: msg.method, params: msg.params });
+        if (msg.method === "Target.createTarget" && onCreateTarget) {
+          const def = onCreateTarget(msg.params);
+          targets.push(def);
+          socket.write(encodeFrame(JSON.stringify({ id: msg.id, result: { targetId: def.id } })));
+          return;
+        }
+        socket.write(encodeFrame(JSON.stringify({ id: msg.id, result: {} })));
+      }));
+      return;
+    }
     const target = targets.find((t) => req.url.endsWith(`/devtools/page/${t.id}`));
     const b = (target && target.behavior) || {};
     if (b.refuseUpgrade) { socket.destroy(); return; }

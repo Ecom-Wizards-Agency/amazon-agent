@@ -222,28 +222,67 @@ function accountParamsFrom(url) {
   return out;
 }
 
-// Best-effort read of the seller display name from a Seller Central tab, so the operator (or
-// the current agent can eyeball WHICH CLIENT a pull belongs to instead of decoding a merchant id. Mirrors
-// the account-safety pattern in ../opportunity-explorer/run-poe.mjs.
-const ACCT_NAME_JS = `(function(){
-  var sels = ['[data-test="current-account"]','.dropdown-account-switcher-header',
-              '[data-testid*="account-switcher" i]','[id*="account-switcher" i]',
-              '[class*="partner-switcher" i]','[data-testid*="partner-switcher" i]',
-              '#sc-mkt-picker-switcher-select','[aria-label*="account" i][role="button"]'];
-  for (var i=0;i<sels.length;i++){
-    var el=document.querySelector(sels[i]);
-    var t=el&&(el.innerText||el.textContent||'').trim();
-    if(t) return t.split('\\n').map(function(x){return x.trim();}).filter(Boolean).slice(0,2).join(' / ');
-  }
-  return null;
-})()`;
+// Human-readable labels for classifyPage kinds, used in operator-facing messages.
+const PAGE_KIND_LABEL = {
+  chooser: "the account chooser (no account selected)",
+  "sign-in": "a sign-in page",
+  "auth-failed": "an authorization-failed page",
+  challenge: "a human challenge (captcha/OTP)",
+  app: "an authenticated Seller Central page",
+  unknown: "an unrecognized page",
+};
 
-async function readAccountName(page) {
-  if (!page || !page.webSocketDebuggerUrl) return null;
+/*
+ * Read the tab's LIVE state: page kind + auth state via one classify probe,
+ * then the account identity from the page itself when it is an authenticated
+ * non-chooser page. Never throws; failures land in `err`. This replaces the
+ * old URL-param + DOM-name guesswork that judged a stale /json/list snapshot.
+ */
+async function readLiveAccount(tab) {
+  const out = { err: null, pageKind: null, authState: null, url: tab.url, identity: null };
   let s;
-  try { s = await Session.open(page.webSocketDebuggerUrl); return await evaluate(s, ACCT_NAME_JS); }
-  catch { return null; }
-  finally { if (s) s.close(); }
+  try { s = await Session.open(tab.webSocketDebuggerUrl); }
+  catch (e) { out.err = `could not attach to the tab (${e.message})`; return out; }
+  try {
+    let page;
+    try { page = await inspectPage(s, { timeoutMs: 8000 }); }
+    catch (e) { out.err = `could not inspect the tab (${e.message})`; return out; }
+    out.pageKind = page.pageKind;
+    out.authState = page.authState;
+    out.url = page.facts.url;
+    if (page.authState === "authenticated" && page.pageKind !== "chooser") {
+      try { out.identity = await readIdentity(s, { timeoutMs: 30000 }); }
+      catch (e) { out.identity = { displayName: null, partnerAccountId: null, merchantId: null, marketplace: null, err: e.message }; }
+    }
+    return out;
+  } finally { s.close(); }
+}
+
+// Everything observed about the live account, for gate decisions and messages.
+// The URL's own mons_sel_dir_mcid is OBSERVED state (it reflects the tab's real
+// selection); the value the caller forces via --account never lands here.
+function observedOf(live) {
+  const id = (live && live.identity) || {};
+  let urlMcid = null;
+  try { urlMcid = new URL(live.url).searchParams.get("mons_sel_dir_mcid"); } catch {}
+  return {
+    displayName: id.displayName || null,
+    partnerAccountId: id.partnerAccountId || null,
+    merchantId: id.merchantId || urlMcid || null,
+    urlMcid,
+  };
+}
+
+function describeLive(live) {
+  const parts = [];
+  if (live.url) parts.push(`tab: ${live.url}`);
+  if (live.pageKind) parts.push(`page: ${PAGE_KIND_LABEL[live.pageKind] || live.pageKind}`);
+  const obs = observedOf(live);
+  if (obs.displayName) parts.push(`account: ${obs.displayName}`);
+  if (obs.merchantId || obs.partnerAccountId) parts.push(`id: ${obs.merchantId || obs.partnerAccountId}`);
+  if (live.err) parts.push(live.err);
+  else if (live.identity && live.identity.err && !obs.displayName) parts.push(live.identity.err);
+  return parts.join(" · ") || "(nothing observable)";
 }
 
 function withAccount(url, params) {
@@ -359,7 +398,8 @@ async function main() {
       const host = wanted[0];
       console.log(`Region: no tab serves --marketplace ${mp}; opening https://${host}/home`);
       const opened = await createPage(`https://${host}/home`);
-      await new Promise((r) => setTimeout(r, 14000));
+      // Give the fresh tab time to land + settle. Env override exists for tests.
+      await new Promise((r) => setTimeout(r, Number(process.env.REPORT_FETCHER_SETTLE_MS || 14000)));
       match = (await listPages()).find((p) => hostOf(p) === host) || opened;
       // A fresh regional tab can land on sign-in if the session does not extend
       // there. Say so plainly instead of fetching an empty report. On failure,
@@ -381,42 +421,98 @@ async function main() {
     console.log(`Region: ${new URL(origin).host} for --marketplace ${mp}${others.length ? ` (ignoring other open host(s): ${others.join(", ")})` : ""}`);
   }
 
-  // Account context. Prefer a tab on this origin that actually carries a selected account;
-  // otherwise we would inherit the session default and quietly audit the wrong seller.
-  const onOrigin = pages.filter((p) => (p.url || "").startsWith(origin));
-  const acct = accountParamsFrom((onOrigin.find((p) => /[?&]mons_sel_dir_mcid=/.test(p.url || "")) || onOrigin[0] || {}).url || "");
-  // OBSERVED identity = what the operator's tab actually is, read BEFORE we force anything.
-  // The gate below must judge against this, never against a value we supplied ourselves.
-  const observedMcid = acct.get("mons_sel_dir_mcid") || null;
-  const forcedAcct = args.account || (cfg && cfg.account);
-  if (forcedAcct) acct.set("mons_sel_dir_mcid", forcedAcct);
-  const mcid = acct.get("mons_sel_dir_mcid");
-  const acctName = await readAccountName(onOrigin.find((p) => /[?&]mons_sel_dir_mcid=/.test(p.url || "")) || onOrigin[0]);
-  const acctLabel = [acctName, mcid].filter(Boolean).join(" · ") || "(unresolved)";
-  if (mcid) console.log(`Account: ${acctLabel}${forcedAcct ? " (forced via --account)" : " (inherited from your Seller Central tab)"}`);
-  else console.log(`Account: ${acctLabel} — NO account param detected, falling back to the session DEFAULT seller. If this login holds several sellers the numbers may be another client's. Pass --account <merchant-id> (see: run.mjs doctor).`);
+  // ----- Account resolution: judge the LIVE page, enforce the gates. -----
+  // Re-list pages first. The regional branch above may have just opened the
+  // tab, and the pre-resolution snapshot cannot contain it; filtering the old
+  // snapshot made --expect-account fail with "(unknown)" on every fresh
+  // regional tab, and let the chooser page hide behind silent nulls.
+  const livePages = await listPages();
+  const onOrigin = livePages.filter((p) => (p.url || "").startsWith(origin));
+  if (!onOrigin.length) die(`No tab on ${origin} after region resolution. Retry; if it persists, restart the debug Chrome (launch-chrome-debug.sh).`);
+  const acctTab = onOrigin.find((p) => /[?&]mons_sel_dir_mcid=/.test(p.url || "")) || onOrigin[0];
 
-  // Hard gate, same contract as run-poe.mjs --expect-account: abort BEFORE any fetch if the
-  // resolved account does not match what the caller expected. Matches the merchant id exactly
-  // or the display name case-insensitively as a substring.
-  // --account is a HINT, not a guaranteed switch. Seller Central resolves the account
-  // server-side; supplying mons_sel_dir_mcid for a seller the session is not already on does
-  // NOT reliably switch it, and the returned report can still be the tab's seller. So warn
-  // loudly whenever the forced id disagrees with what the tab actually shows.
-  if (forcedAcct && observedMcid && forcedAcct !== observedMcid) {
-    console.log(`WARNING: --account ${forcedAcct} does not match the account your tab is on (${observedMcid}${acctName ? " / " + acctName : ""}). ` +
-      `Seller Central may ignore the override and return the TAB's seller instead. Switch the account in the debug Chrome and re-run rather than trusting this file.`);
+  const forcedAcct = args.account || (cfg && cfg.account) || null;
+  const accountName = args["account-name"] || (cfg && cfg.account_name) || null;
+  const marketplaceLabel = args["marketplace-label"] || (cfg && cfg.marketplace_label) || null;
+  const parentAccountName = args["parent-account-name"] || (cfg && cfg.parent_account_name) || null;
+  const expect = args["expect-account"] || (cfg && cfg.expect_account) || null;
+  const canSwitch = Boolean(accountName && marketplaceLabel);
+  const guarded = Boolean(forcedAcct || expect);
+
+  let live = await readLiveAccount(acctTab);
+  let switchAttempted = false;
+  const attemptSwitch = async () => {
+    switchAttempted = true;
+    console.log(`Account switch: driving the Seller Central account picker to "${accountName}" / "${marketplaceLabel}"`);
+    const s = await Session.open(acctTab.webSocketDebuggerUrl);
+    try { await switchAccount(s, origin, { accountName, marketplaceLabel, parentAccountName }); }
+    finally { s.close(); }
+    live = await readLiveAccount(acctTab);
+    console.log(`Account switch: done, the tab now shows ${describeLive(live)}`);
+  };
+
+  // Pages that cannot carry a seller context are explicit branches, never silent nulls.
+  if (live.pageKind === "sign-in") die(`The ${origin} tab shows a sign-in page. Run tools/report-fetcher/launch-chrome-debug.sh --mode recovery, sign in, return it to headless mode, and re-run. Nothing fetched.`);
+  if (live.pageKind === "challenge") die(`The ${origin} tab is blocked by a human challenge (captcha/OTP). Run launch-chrome-debug.sh --mode recovery and complete it. Nothing fetched.`);
+  if (live.pageKind === "chooser") {
+    if (canSwitch) await attemptSwitch();
+    else die(`The ${origin} session sits on the account chooser: NO account is selected, so any fetch would silently use the session default. Pick the account in the debug window, or pass --account-name and --marketplace-label (config: account_name/marketplace_label) so the runner selects it. Nothing fetched. Observed ${describeLive(live)}`);
+  }
+  if (live.err || live.authState !== "authenticated" || live.pageKind === "chooser") {
+    const msg = `Account resolution on ${origin} is not conclusive. Observed ${describeLive(live)}`;
+    if (guarded) die(`${msg}. Nothing fetched (fail-closed because --account/--expect-account was requested). Fix the session, or pass account_name/marketplace_label to let the runner switch, then re-run.`);
+    console.log(`WARNING: ${msg}. Proceeding because no account guard was requested; the fetch will use whatever seller this session resolves to.`);
   }
 
-  const expect = args["expect-account"] || (cfg && cfg.expect_account);
+  let observed = observedOf(live);
+
+  // --account is ENFORCED. The old behavior treated it as a URL hint, warned on
+  // a visible mismatch (and said nothing at all when the tab carried no account
+  // param), then proceeded on the session default seller. That silent fallback
+  // is how a wrong-account pull happens; it is gone.
+  if (forcedAcct) {
+    let verifiedBy = null;
+    if (accountMatches(observed, forcedAcct)) verifiedBy = `--account ${forcedAcct}`;
+    if (!verifiedBy && canSwitch && !switchAttempted) {
+      await attemptSwitch();
+      observed = observedOf(live);
+      if (accountMatches(observed, forcedAcct)) verifiedBy = `--account ${forcedAcct}`;
+    }
+    // A completed switch is itself verification: switchAccount clicked exactly
+    // one account button whose text equals account_name and confirmed leaving
+    // the picker, and the re-read display name agrees.
+    if (!verifiedBy && switchAttempted && accountName && accountMatches(observed, accountName)) {
+      verifiedBy = `the post-switch account name "${accountName}"`;
+    }
+    // Generic Seller Central pages often cannot serve the merchant id (see
+    // readIdentity); a name match against --expect-account still proves the
+    // right account is active, and the id keeps riding on the URL as a hint.
+    if (!verifiedBy && expect && accountMatches(observed, expect)) {
+      verifiedBy = `--expect-account "${expect}" (name match; the --account id itself is not readable on this page)`;
+    }
+    if (!verifiedBy) {
+      die(`--account ${forcedAcct} could not be verified against the live session. Observed ${describeLive(live)}. Nothing fetched. Remedies: pass --account-name and --marketplace-label (config: account_name/marketplace_label) so the runner drives the account switcher; or switch the account in the debug window and re-run; or verify by name with --expect-account.`);
+    }
+    console.log(`Account: ${observed.displayName || "(name unresolved)"} · ${observed.merchantId || observed.partnerAccountId || forcedAcct} (verified via ${verifiedBy})`);
+  } else {
+    const label = [observed.displayName, observed.merchantId || observed.partnerAccountId].filter(Boolean).join(" · ");
+    if (label) console.log(`Account: ${label} (inherited from the live tab)`);
+    else console.log(`Account: UNRESOLVED on an authenticated page. The fetch will use the session DEFAULT seller; if this login holds several sellers the numbers may be another client's. Pass --expect-account "<name or merchant-id>" to make this fail closed (see: run.mjs doctor).`);
+  }
+
+  // --expect-account stays fail-closed and judges ONLY observed identity (live
+  // page reads + the tab URL's own account param), never a caller-supplied value.
   if (expect) {
-    // Judge ONLY against independently observed identity. Matching against `mcid` would be
-    // circular when --account is set: the caller supplies the value and then it validates itself.
-    const hit = (observedMcid && (observedMcid === expect || observedMcid.endsWith(expect))) ||
-      (acctName && acctName.toLowerCase().includes(String(expect).toLowerCase()));
-    if (!hit) die(`--expect-account "${expect}" does NOT match the account actually signed in (${acctName || "unknown"}${observedMcid ? " · " + observedMcid : ""}). Nothing fetched. Switch the account in the debug Chrome and re-run. Note --account alone cannot satisfy this check, by design.`);
-    console.log(`Account check: OK — the signed-in account matches --expect-account "${expect}"`);
+    const cands = [observed.displayName, observed.partnerAccountId, observed.merchantId].filter(Boolean);
+    if (!cands.length) die(`--expect-account "${expect}" cannot be verified: no account identity was observable. Observed ${describeLive(live)}. Nothing fetched (fail-closed by design). Fix the session and re-run, or run doctor for a live view.`);
+    if (!accountMatches(observed, expect)) die(`--expect-account "${expect}" does NOT match the signed-in account. Observed ${describeLive(live)}. Nothing fetched. Switch the account (in the debug window, or via --account-name/--marketplace-label) and re-run. Note --account alone cannot satisfy this check, by design.`);
+    console.log(`Account check: OK, the signed-in account matches --expect-account "${expect}"`);
   }
+
+  // URL account params: forced id first, else whatever the live tab carries.
+  // This stays a HINT on the report URLs; every judgement above used live reads.
+  const acct = accountParamsFrom(live.url || acctTab.url || "");
+  if (forcedAcct) acct.set("mons_sel_dir_mcid", forcedAcct);
 
   for (const job of jobs) {
     if (job.report === "sqp") await runSqpJob(origin, job, args, acct);
