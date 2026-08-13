@@ -56,19 +56,19 @@ const BUSINESS_ARGS = ["business", "--start", "2026-06-01", "--end", "2026-06-30
 
 test("fresh regional tab: gate judges the re-listed LIVE tab (stale-snapshot regression)", { concurrency: false }, async () => {
   const comFacts = { url: "https://sellercentral.amazon.com/home", title: "Seller Central", csrfMeta: true, chooserButtonCount: 0 };
-  const comIdentity = { displayName: "UltimaPeak / United States", partnerAccountId: "A1US", merchantId: null, marketplace: null, err: null };
+  const comIdentity = { displayName: "Example Brand / United States", partnerAccountId: "A1US", merchantId: null, marketplace: null, err: null };
   const deFacts = { url: "https://sellercentral.amazon.de/home", title: "Seller Central", csrfMeta: true, chooserButtonCount: 0 };
-  const deIdentity = { displayName: "UltimaPeak Deutschland", partnerAccountId: "A1DE", merchantId: null, marketplace: null, err: null };
+  const deIdentity = { displayName: "Example Brand Deutschland", partnerAccountId: "A1DE", merchantId: null, marketplace: null, err: null };
   const fake = await startFakeCdp({
     targets: [{ id: "COM1", url: comFacts.url, behavior: pageBehavior({ facts: comFacts, identity: comIdentity }) }],
     onCreateTarget: (params) => ({ id: `NEW${Math.random().toString(36).slice(2, 8)}`, url: params.url, behavior: pageBehavior({ facts: deFacts, identity: deIdentity }) }),
   });
   try {
-    const { code, out } = await runCli(fake.port, [...BUSINESS_ARGS, "--marketplace", "de", "--expect-account", "UltimaPeak Deutschland"]);
+    const { code, out } = await runCli(fake.port, [...BUSINESS_ARGS, "--marketplace", "de", "--expect-account", "Example Brand Deutschland"]);
     // Pre-fix this died with "(unknown)": the fresh .de tab was filtered out of
     // the pre-resolution snapshot, so no identity was ever observed.
     assert.match(out, /Account check: OK/, out);
-    assert.match(out, /UltimaPeak Deutschland/, out);
+    assert.match(out, /Example Brand Deutschland/, out);
     assert.doesNotMatch(out, /does NOT match/, out);
     // The fetch itself fails on the fake (no report data); only the gate is under test.
     assert.notEqual(code, null);
@@ -84,7 +84,7 @@ test("--expect-account mismatch dies fail-closed naming the observed account", {
     targets: [{ id: "T1", url: facts.url, behavior: pageBehavior({ facts, identity }) }],
   });
   try {
-    const { code, out } = await runCli(fake.port, [...BUSINESS_ARGS, "--marketplace", "us", "--expect-account", "UltimaPeak"]);
+    const { code, out } = await runCli(fake.port, [...BUSINESS_ARGS, "--marketplace", "us", "--expect-account", "Example Brand"]);
     assert.equal(code, 1, out);
     assert.match(out, /does NOT match/);
     assert.match(out, /SomeOther Brand/);
@@ -112,7 +112,7 @@ test("account chooser without structured fields dies actionably, never session-d
 
 test("--account is enforced: unverifiable id without structured fields dies with remedies", { concurrency: false }, async () => {
   const facts = { url: "https://sellercentral.amazon.com/home", title: "Seller Central", csrfMeta: true, chooserButtonCount: 0 };
-  const identity = { displayName: "UltimaPeak / United States", partnerAccountId: null, merchantId: null, marketplace: null, err: "GetUserContext not authorized (403) on this page" };
+  const identity = { displayName: "Example Brand / United States", partnerAccountId: null, merchantId: null, marketplace: null, err: "GetUserContext not authorized (403) on this page" };
   const fake = await startFakeCdp({
     targets: [{ id: "T1", url: facts.url, behavior: pageBehavior({ facts, identity }) }],
   });
@@ -129,13 +129,13 @@ test("--account is enforced: unverifiable id without structured fields dies with
 
 test("--account verified via matching --expect-account name proceeds with the hint note", { concurrency: false }, async () => {
   const facts = { url: "https://sellercentral.amazon.com/home", title: "Seller Central", csrfMeta: true, chooserButtonCount: 0 };
-  const identity = { displayName: "UltimaPeak / United States", partnerAccountId: null, merchantId: null, marketplace: null, err: "GetUserContext not authorized (403) on this page" };
+  const identity = { displayName: "Example Brand / United States", partnerAccountId: null, merchantId: null, marketplace: null, err: "GetUserContext not authorized (403) on this page" };
   const fake = await startFakeCdp({
     targets: [{ id: "T1", url: facts.url, behavior: pageBehavior({ facts, identity }) }],
   });
   try {
-    const { out } = await runCli(fake.port, [...BUSINESS_ARGS, "--marketplace", "us", "--account", "amzn1.merchant.o.SOMEID", "--expect-account", "UltimaPeak"]);
-    assert.match(out, /verified via --expect-account "UltimaPeak"/, out);
+    const { out } = await runCli(fake.port, [...BUSINESS_ARGS, "--marketplace", "us", "--account", "amzn1.merchant.o.SOMEID", "--expect-account", "Example Brand"]);
+    assert.match(out, /verified via --expect-account "Example Brand"/, out);
     assert.match(out, /Account check: OK/, out);
   } finally {
     await fake.close();

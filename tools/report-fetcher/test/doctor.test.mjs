@@ -28,7 +28,7 @@ const factsResult = (facts) => ({ result: { value: facts } });
 
 test("doctor: healthy signed-in tab exits 0 with the live identity", { concurrency: false }, async () => {
   const facts = { url: "https://sellercentral.amazon.com/home", title: "Seller Central", csrfMeta: true, chooserButtonCount: 0 };
-  const identity = { displayName: "UltimaPeak / United States", partnerAccountId: "A1FAKE", merchantId: "amzn1.merchant.o.FAKE", marketplace: null, err: null };
+  const identity = { displayName: "Example Brand / United States", partnerAccountId: "A1FAKE", merchantId: "amzn1.merchant.o.FAKE", marketplace: null, err: null };
   const fake = await startFakeCdp({
     targets: [{
       id: "T1", url: facts.url,
@@ -39,7 +39,7 @@ test("doctor: healthy signed-in tab exits 0 with the live identity", { concurren
     const { code, out } = await runDoctor(fake.port);
     assert.equal(code, 0, out);
     assert.match(out, /Login: OK/);
-    assert.match(out, /UltimaPeak \/ United States/);
+    assert.match(out, /Example Brand \/ United States/);
   } finally {
     await fake.close();
   }

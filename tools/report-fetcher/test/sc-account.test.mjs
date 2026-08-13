@@ -47,10 +47,10 @@ test("accountPickerUrl carries the returnTo and normalizes the origin", () => {
 });
 
 test("accountMatches matches ids exactly and names as substrings", () => {
-  const acct = { displayName: "SwissKlip United States", partnerAccountId: "A1UOCFOJBIIPMH", merchantId: "amzn1.merchant.o.XYZ" };
-  assert.equal(accountMatches(acct, "A1UOCFOJBIIPMH"), true);
-  assert.equal(accountMatches(acct, "swissklip"), true);
-  assert.equal(accountMatches(acct, "UltimaPeak"), false);
+  const acct = { displayName: "Example Brand United States", partnerAccountId: "A1EXAMPLEPARTNER", merchantId: "amzn1.merchant.o.XYZ" };
+  assert.equal(accountMatches(acct, "A1EXAMPLEPARTNER"), true);
+  assert.equal(accountMatches(acct, "example brand"), true);
+  assert.equal(accountMatches(acct, "Unrelated Brand"), false);
   assert.equal(accountMatches(acct, null), true); // nothing expected: vacuously true
   assert.equal(accountMatches({}, "anything"), false);
 });
@@ -100,7 +100,7 @@ test("probeTab: dead target is indeterminate, not signed-out", { concurrency: fa
 
 test("probeTab: app page resolves identity from the live page", { concurrency: false }, async () => {
   const facts = { url: "https://sellercentral.amazon.com/business-reports", title: "Business Reports", csrfMeta: true, chooserButtonCount: 0 };
-  const identity = { displayName: "UltimaPeak / United States", partnerAccountId: "A1FAKE", merchantId: "amzn1.merchant.o.FAKE", marketplace: "ATVPDKIKX0DER", err: null };
+  const identity = { displayName: "Example Brand / United States", partnerAccountId: "A1FAKE", merchantId: "amzn1.merchant.o.FAKE", marketplace: "ATVPDKIKX0DER", err: null };
   const fake = await startFakeCdp({
     targets: [{
       id: "T1", url: "https://sellercentral.amazon.com/stale-snapshot-url",
@@ -113,7 +113,7 @@ test("probeTab: app page resolves identity from the live page", { concurrency: f
     assert.equal(r.state, "signed-in");
     assert.equal(r.pageKind, "app");
     assert.equal(r.url, facts.url, "url must come from the live page, not the snapshot");
-    assert.equal(r.identity.displayName, "UltimaPeak / United States");
+    assert.equal(r.identity.displayName, "Example Brand / United States");
   } finally {
     await fake.close();
   }
