@@ -256,22 +256,19 @@ def post(region_label: str, manifests: list[dict], blocked: list[dict], run_date
     quiet = [m for m in manifests if m["sendUnits"] == 0]
     units = sum(m["sendUnits"] for m in sending)
 
+    # Exceptions-only thread (operator decision, 13.08.2026): the parent carries
+    # the all-clear as a compact count, and only accounts that actually need
+    # units or are blocked earn a reply. Per-account "No reshipment needed"
+    # lists and the repeated methodology block were noise the reader had to
+    # scroll past to find the exceptions.
     parent = (f"*Reshipment Plan ({region_label}) {stamp}* · {len(manifests)} planned · "
               f"{units:,} unit(s) to send")
+    if quiet:
+        parent += f" · {len(quiet)} need nothing"
     if blocked:
         parent += f" · {len(blocked)} blocked"
     result = json.loads(slack_helper.run_helper("post", CHANNEL, parent))
     thread = result["ts"]
-
-    slack_helper.run_helper("post", CHANNEL, "\n".join([
-        "*How it was calculated*",
-        f"• Demand: Business Report units ordered over the last {DEMAND_DAYS} days, "
-        "counting only ASINs that hold an FBA offer",
-        "• Required units: (30d demand ÷ 30) × scaling multiplier × effective coverage days",
-        "• Effective coverage: target stock days + lead time + Amazon booking buffer, "
-        "from each client's team-vault profile",
-        "• Reshipment: round up max(0, required units - available - inbound - reserved)",
-    ]), thread)
 
     for m in sending:
         body = m["_slack"].read_text(encoding="utf-8") if m["_slack"].exists() else ""
@@ -280,12 +277,6 @@ def post(region_label: str, manifests: list[dict], blocked: list[dict], run_date
         slack_helper.run_helper("post", CHANNEL, (
             f"*{entry['brand']} {entry['market']}* · {m['sendUnits']:,} unit(s) · "
             f"{m['effectiveCoverageDays']}d coverage\n{detail}").strip(), thread)
-
-    if quiet:
-        slack_helper.run_helper("post", CHANNEL, "*No reshipment needed*\n" + "\n".join(
-            f"• {m['_entry']['brand']} {m['_entry']['market']}"
-            + (f" · {m['excessUnits']:,} excess unit(s)" if m["excessUnits"] else "")
-            for m in quiet), thread)
 
     if blocked:
         slack_helper.run_helper("post", CHANNEL, "*Not planned this run*\n" + "\n".join(
