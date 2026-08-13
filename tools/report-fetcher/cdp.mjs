@@ -20,6 +20,10 @@ let startupPromise = null;
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+// CDP_DEBUG=1 prints one stderr line per protocol call with its round-trip time,
+// which is how a hang gets localized to a method without touching the code.
+const DEBUG = /^(1|true|yes|on)$/i.test(String(process.env.CDP_DEBUG || ""));
+
 function autoStartEnabled() {
   return !/^(0|false|no|off)$/i.test(String(process.env.CDP_AUTOSTART || "1"));
 }
@@ -127,9 +131,19 @@ export async function listPages() {
 export class Session {
   constructor(ws) { this.ws = ws; this.id = 0; this.pending = new Map(); this.events = []; }
 
-  static async open(webSocketDebuggerUrl) {
+  static async open(webSocketDebuggerUrl, { timeoutMs = 10000 } = {}) {
     const ws = new WebSocket(webSocketDebuggerUrl);
-    await new Promise((res, rej) => { ws.onopen = res; ws.onerror = () => rej(new Error("CDP WebSocket failed to open")); });
+    // A destroyed target's ws endpoint can accept the TCP connection and then
+    // never complete the upgrade, firing neither onopen nor onerror.
+    await new Promise((res, rej) => {
+      const timer = setTimeout(() => {
+        // reject before close: closing a half-open socket fires onerror synchronously
+        rej(new Error(`CDP WebSocket handshake timed out after ${timeoutMs} ms`));
+        try { ws.close(); } catch (_) {}
+      }, timeoutMs);
+      ws.onopen = () => { clearTimeout(timer); res(); };
+      ws.onerror = () => { clearTimeout(timer); rej(new Error("CDP WebSocket failed to open")); };
+    });
     const s = new Session(ws);
     ws.onmessage = (m) => {
       const msg = JSON.parse(m.data);
@@ -142,6 +156,12 @@ export class Session {
         const subs = s._subs || {};
         for (const fn of [...(subs[msg.method] || []), ...(subs["*"] || [])]) {
           try { fn(msg.params, msg.method); } catch (_) { /* subscriber errors must not kill the socket */ }
+        }
+        // A detached/crashed target keeps its socket open but will never answer
+        // another command (an account switch navigating the tab does exactly
+        // this). Fail every in-flight call now, with a name, instead of hanging.
+        if (msg.method === "Inspector.detached" || msg.method === "Inspector.targetCrashed") {
+          s._rejectPending(`CDP target detached${msg.params?.reason ? `: ${msg.params.reason}` : ""}`);
         }
       }
     };
@@ -163,7 +183,10 @@ export class Session {
     (this._subs[method] = this._subs[method] || []).push(fn);
   }
 
-  send(method, params = {}) {
+  // `timeoutMs` is opt-in: the default remains wait-forever because long-lived
+  // callers (POE evaluates, endpoint-discovery listeners) legitimately wait
+  // minutes. Control-plane calls (Runtime.enable, Page.enable) should pass one.
+  send(method, params = {}, { timeoutMs } = {}) {
     const id = ++this.id;
     return new Promise((resolve, reject) => {
       // Node's built-in global WebSocket does not keep the event loop alive while
@@ -172,8 +195,23 @@ export class Session {
       // with "unsettled top-level await" (exit 13) before Chrome replies. A ref'd
       // keepalive timer holds the loop open until the response lands.
       const keepalive = setInterval(() => {}, 1 << 30);
-      const done = (fn) => (v) => { clearInterval(keepalive); fn(v); };
+      const t0 = DEBUG ? Date.now() : 0;
+      let timer;
+      const done = (fn) => (v) => {
+        clearInterval(keepalive);
+        if (timer) clearTimeout(timer);
+        if (DEBUG) console.error(`[cdp] ${method} → ${Date.now() - t0} ms`);
+        fn(v);
+      };
       this.pending.set(id, { resolve: done(resolve), reject: done(reject) });
+      if (timeoutMs) {
+        timer = setTimeout(() => {
+          const entry = this.pending.get(id);
+          if (!entry) return;
+          this.pending.delete(id);
+          entry.reject(new Error(`CDP ${method} timed out after ${timeoutMs} ms`));
+        }, timeoutMs);
+      }
       this.ws.send(JSON.stringify({ id, method, params }));
     });
   }
@@ -240,7 +278,6 @@ export async function closePage(targetId) {
 
 // Run an async expression in the page main world and return its (JSON) value.
 export async function evaluate(session, expression, timeoutMs = 120000) {
-  await session.send("Runtime.enable");
   let hardTimer;
   const hardTimeoutMs = timeoutMs + 5000;
   const timeout = new Promise((_, reject) => {
@@ -251,10 +288,16 @@ export async function evaluate(session, expression, timeoutMs = 120000) {
   });
   let r;
   try {
+    // The hard timer is armed BEFORE Runtime.enable so the whole call is
+    // budgeted. A mid-navigation target that never answers Runtime.enable used
+    // to hang the process forever here (13.08.2026 account-chooser incident).
     r = await Promise.race([
-      session.send("Runtime.evaluate", {
-        expression, awaitPromise: true, returnByValue: true, timeout: timeoutMs,
-      }),
+      (async () => {
+        await session.send("Runtime.enable", {}, { timeoutMs: 10000 });
+        return session.send("Runtime.evaluate", {
+          expression, awaitPromise: true, returnByValue: true, timeout: timeoutMs,
+        });
+      })(),
       timeout,
     ]);
   } finally {
