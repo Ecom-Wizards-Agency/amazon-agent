@@ -497,6 +497,17 @@ Before any Brand Customer Reviews, promotion/sale-discount, or courtesy-refund o
 
 ## Workflow
 
+**Gate, before any step below touches a browser or an external service:** verify the
+selected account, marketplace, brand, and date range, and say which ones they are.
+Re-check immediately before a write, upload, download, or submission. This is step 4
+restated at the top because it is the most frequently skipped rule in this file, and a
+download from the wrong account is indistinguishable from a correct one afterwards.
+
+**For any export or download**, state the exact grid, view, filter set, and date range
+before starting, and verify the row count and the applied filters against that
+statement before saving. An export from the wrong grid looks identical to a correct
+one once it is a file on disk.
+
 1. Classify the request:
    Seller Central, Amazon Ads UI, Amazon Ads API/docs, Creator Connections, MAG SOP procedure, or cross-functional.
 
