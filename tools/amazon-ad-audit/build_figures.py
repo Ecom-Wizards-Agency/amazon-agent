@@ -62,7 +62,7 @@ Design rules (from the dataviz standard):
 Run standalone:  python3 tools/amazon-ad-audit/build_figures.py --config <cfg> --outdir <dir>
 """
 from __future__ import annotations
-import csv, json, sys
+import csv, json, os, sys
 from collections import defaultdict
 from pathlib import Path
 
@@ -109,6 +109,46 @@ def _palette():
                 font_file=b["assets"].get("brand_dir") or "", fonts=b["fonts"])
 
 
+def _register_inter(f, font_manager):
+    """Register real Regular and Bold instances of the variable Inter.
+
+    matplotlib's addfont() takes only the variable font's default instance, so every
+    fontweight="bold" in this module silently rendered at 400 — the same collapsed
+    hierarchy we reject in client documents. Instance the wght axis once with fontTools
+    and cache the statics. Falls back to the old single-instance behaviour if fontTools
+    is unavailable, so a figure never fails to draw over a font.
+    """
+    cache = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache")) / "ecom-wizards" / "fonts"
+    try:
+        from fontTools.ttLib import TTFont
+        from fontTools.varLib.instancer import instantiateVariableFont
+    except ImportError:
+        font_manager.fontManager.addfont(str(f))
+        return font_manager.FontProperties(fname=str(f)).get_name()
+
+    stamp = f"{f.stat().st_size}-{int(f.stat().st_mtime)}"
+    name = None
+    for label, wght in (("Regular", 400), ("Bold", 700)):
+        static = cache / f"Inter-{label}-{stamp}.ttf"
+        if not static.exists():
+            cache.mkdir(parents=True, exist_ok=True)
+            vf = TTFont(str(f))
+            # updateFontNames needs a STAT table with axis values; Inter-Variable has
+            # none. Skip it and set the subfamily by hand — matplotlib classifies a face
+            # by OS/2 usWeightClass, which instantiateVariableFont already rewrites.
+            instantiateVariableFont(vf, {"wght": wght}, inplace=True, updateFontNames=False)
+            for rec in vf["name"].names:
+                if rec.nameID in (2, 17):
+                    rec.string = label
+            tmp = static.with_suffix(".tmp")
+            vf.save(str(tmp))
+            tmp.replace(static)
+        font_manager.fontManager.addfont(str(static))
+        if label == "Regular":
+            name = font_manager.FontProperties(fname=str(static)).get_name()
+    return name
+
+
 def _setup(P):
     import matplotlib
     matplotlib.use("Agg")
@@ -116,8 +156,9 @@ def _setup(P):
     from matplotlib import font_manager
     f = HERE / "brand" / P["fonts"]["doc_font_file"]
     if f.exists():
-        font_manager.fontManager.addfont(str(f))
-        plt.rcParams["font.family"] = font_manager.FontProperties(fname=str(f)).get_name()
+        family = _register_inter(f, font_manager)
+        if family:
+            plt.rcParams["font.family"] = family
     plt.rcParams.update({
         "text.color": P["ink"], "axes.labelcolor": P["ink"],
         "xtick.color": P["ink"], "ytick.color": P["ink"],

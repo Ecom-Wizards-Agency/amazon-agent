@@ -214,9 +214,11 @@ Campaigns, Discovery Campaigns, Branded Keywords, Action List, Legacy, Sources &
 
 ### Design system, all tabs
 
-- **Palette** from `_local/branding/branding.json` (see `tools/amazon-ad-audit/BRANDING.md`).
-  Reference values: obsidian `0F1318`, coral `FD4807`, violet `3322E0`, deep `0E01A2`, mist
-  `5B6573`, cloud `F5F6F8`, hairline `E3E7ED`, ink `1E242C`.
+- **Palette** from `_local/branding/branding.json`, which is a symlink to the canonical
+  identity in the `ecom-wizards-brand` skill. Do not restate hex values here — the full
+  workbook palette is in that skill's `references/workbook-contract.md`, and the copy that
+  used to sit in this bullet had already drifted (it listed mist as `5B6573`, which is Steel
+  from the *document* palette; workbook mist is `9AA5B4`).
 - **Fonts**: Aptos body, Aptos Display headers.
 - **Traffic-light fills on decision columns only**, soft pastels: good `C6EFCE`, ok `E2EFDA`,
   warn `FFEB9C`, bad `FFC7CE`. Keep colouring restrained: decision cells, not whole tables.

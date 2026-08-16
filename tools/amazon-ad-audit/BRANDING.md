@@ -1,8 +1,19 @@
-# Branding: the one place this is documented
+# Branding: the mechanism
 
 All branded output (the audit `.docx`, covers, the three audit `.xlsx` workbooks) takes its
-agency identity from ONE local file; the repo ships only the mechanism. Do not scatter branding
-rules across other READMEs, configs, or memories. Extend this file instead.
+agency identity from ONE local file; this repo ships only the mechanism. Do not scatter branding
+rules across other READMEs, configs, or memories.
+
+**This file owns the mechanism — resolution order, schema, consumers, toolchain. It does not own
+the values.** Since 16.08.2026 the palette, type scale, page geometry, header/footer contract and
+the routing table for every client-facing artifact live in the `ecom-wizards-brand` skill in
+`company-ai-skills`, and `_local/branding/branding.json` is a symlink to that skill's copy,
+installed by `skills/ecom-wizards-brand/scripts/fetch-brand-kit.py` and enforced by the
+`brand-identity-file` check in `company-setup/roles.json`.
+
+This repo is public, which is why the identity is gitignored here — and that is exactly why it
+cannot be canonical here. Extend the skill for a values or contract change; extend this file for
+a mechanism change.
 
 ## Where things live
 
