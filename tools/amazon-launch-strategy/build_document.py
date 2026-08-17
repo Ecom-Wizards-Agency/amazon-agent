@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -14,14 +15,22 @@ from docx.oxml.ns import qn
 from docx.shared import Inches, Pt, RGBColor
 
 
-INK = "11151C"
-ACCENT = "FD4807"
-CLOUD = "F5F6F8"
-MISTLINE = "E4E7EC"
-STEEL = "5B6573"
-MIST = "9AA5B4"
-WHITE = "FFFFFF"
-FONT = "Inter"
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "amazon-ad-audit"))
+import branding as _branding  # noqa: E402
+
+# These values were correct by luck, not by construction: they were hand-copied and happened
+# to match. Load them instead, so a brand change reaches this builder like every other.
+# Contract: company-ai-skills/skills/ecom-wizards-brand/.
+_BRAND = _branding.load_branding({})
+_DOC = _BRAND["palette_doc"]
+INK = _DOC["ink"]
+ACCENT = _DOC["accent"]
+CLOUD = _DOC["cloud"]
+MISTLINE = _DOC["mistline"]
+STEEL = _DOC["steel"]
+MIST = _DOC["mist"]
+WHITE = _DOC["white"]
+FONT = _BRAND["fonts"]["doc_font_name"]
 TABLE_WIDTH_DXA = 9360
 TABLE_INDENT_DXA = 120
 
