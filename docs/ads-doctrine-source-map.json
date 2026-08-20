@@ -1,0 +1,61 @@
+{
+  "schema": "amazon-agent.ads-doctrine-source-map.v1",
+  "canonical_strategy": "_local/ads-strategy/strategy.json",
+  "decision_record": "Decisions/2026-08-11-amazon-ads-doctrine-upgrade.md",
+  "mirrors": [
+    {
+      "id": "run-rate-warn-above",
+      "canonical_key": "management.run_rate.warn_above",
+      "required": false,
+      "consumer": {
+        "path": "tools/amazon-ads-monitor/pacing.py",
+        "pattern": "^\\s*\"warn_above\"\\s*:\\s*(?P<value>-?\\d+(?:\\.\\d+)?)"
+      }
+    },
+    {
+      "id": "run-rate-act-above",
+      "canonical_key": "management.run_rate.act_above",
+      "required": false,
+      "consumer": {
+        "path": "tools/amazon-ads-monitor/pacing.py",
+        "pattern": "^\\s*\"act_above\"\\s*:\\s*(?P<value>-?\\d+(?:\\.\\d+)?)"
+      }
+    },
+    {
+      "id": "run-rate-underpace-below",
+      "canonical_key": "management.run_rate.underpace_below",
+      "required": false,
+      "consumer": {
+        "path": "tools/amazon-ads-monitor/pacing.py",
+        "pattern": "^\\s*\"underpace_below\"\\s*:\\s*(?P<value>-?\\d+(?:\\.\\d+)?)"
+      }
+    },
+    {
+      "id": "discovery-spend-share",
+      "canonical_key": "discovery.spend_share_max",
+      "required": false,
+      "consumer": {
+        "path": "tools/amazon-ads-monitor/flags.py",
+        "pattern": "^\\s*\"discovery_share_max\"\\s*:\\s*(?P<value>-?\\d+(?:\\.\\d+)?)"
+      }
+    },
+    {
+      "id": "out-of-budget-minimum-capped-days",
+      "canonical_key": "management.checks.out_of_budget.minimum_capped_days",
+      "required": false,
+      "consumer": {
+        "path": "tools/amazon-ads-monitor/flags.py",
+        "pattern": "^\\s*\"budget_capped_min_days\"\\s*:\\s*(?P<value>-?\\d+(?:\\.\\d+)?)"
+      }
+    },
+    {
+      "id": "staged-apply-cooldown-days",
+      "canonical_key": "management.staged_apply.cooldown_days",
+      "required": false,
+      "consumer": {
+        "path": "tools/amazon-ppc-management/batches.py",
+        "pattern": "add_argument\\(\"--cooldown-days\",\\s*type=int,\\s*default=(?P<value>-?\\d+(?:\\.\\d+)?)\\)"
+      }
+    }
+  ]
+}

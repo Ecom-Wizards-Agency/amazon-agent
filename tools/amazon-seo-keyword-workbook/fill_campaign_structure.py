@@ -52,11 +52,11 @@ SECTION_ANCHORS = {
     "pat (stronger)": ("pat_stronger", "asins"),
     "pat (weaker)": ("pat_weaker", "asins"),
 }
-EXPECTED_BUCKETS = {"rank_skw", "shield_skw", "halo", "discovery_bmm", "discovery_phrase",
-                    "shield_discovery_bmm", "shield_discovery_phrase", "pat_stronger", "pat_weaker"}
-KEYWORD_BUCKETS = {"rank_skw", "shield_skw", "halo", "discovery_bmm", "discovery_phrase",
-                   "shield_discovery_bmm", "shield_discovery_phrase"}
-DISCOVERY_BUCKETS = {"discovery_bmm", "discovery_phrase", "shield_discovery_bmm", "shield_discovery_phrase"}
+EXPECTED_BUCKETS = {"rank_skw", "shield_skw", "halo", "discovery_phrase",
+                    "shield_discovery_phrase", "pat_stronger", "pat_weaker"}
+KEYWORD_BUCKETS = {"rank_skw", "shield_skw", "halo", "discovery_phrase",
+                   "shield_discovery_phrase"}
+DISCOVERY_BUCKETS = {"discovery_phrase", "shield_discovery_phrase"}
 ASIN_RE = re.compile(r"^B0[A-Z0-9]{8}$")
 
 
@@ -118,6 +118,7 @@ def scan_scaffold(ws) -> dict:
 
     pair_headers = {"keywords": ("keyword", "search volume"), "asins": ("asins", "brand")}
     slots: list[dict] = []
+    disabled_bmm_slots: list[dict] = []
     last_sum_row = 0
 
     # group anchors by row so sections sharing a row (Rank/Shield) split by column
@@ -148,31 +149,40 @@ def scan_scaffold(ws) -> dict:
                     continue
                 # label: nearest non-empty cell above the header in this column
                 label = ""
+                label_row = None
                 for lr in range(header_row - 1, ar, -1):
                     if grid.get((lr, c)) is not None:
                         label = str(grid[(lr, c)]).strip()
+                        label_row = lr
                         break
                 # sum row: scan down this kw column
                 sum_row = next((sr for sr in range(header_row + 1, header_row + 40)
                                 if norm(grid.get((sr, c))) == "sum"), None)
                 if sum_row is None:
                     die(f"section '{bucket}' column {c}: no Sum row found below header row {header_row}")
+                last_sum_row = max(last_sum_row, sum_row)
                 slot_bucket = bucket
                 if bucket in ("discovery", "shield_discovery"):
-                    slot_bucket = f"{bucket}_bmm" if "bmm" in norm(label) else f"{bucket}_phrase"
+                    if "bmm" in norm(label):
+                        disabled_bmm_slots.append({
+                            "label": label, "label_row": label_row, "kw_col": c,
+                            "sv_col": sv_col, "data_start": header_row + 1,
+                            "data_end": sum_row - 1,
+                        })
+                        continue
+                    slot_bucket = f"{bucket}_phrase"
                 slots.append({
                     "bucket": slot_bucket, "label": label, "kw_col": c, "sv_col": sv_col,
                     "header_row": header_row, "data_start": header_row + 1,
                     "data_end": sum_row - 1, "capacity": sum_row - 1 - header_row,
                 })
-                last_sum_row = max(last_sum_row, sum_row)
 
     found = {s["bucket"] for s in slots}
     missing = EXPECTED_BUCKETS - found
     if missing:
         die(f"scaffold scan incomplete — missing buckets {sorted(missing)}. "
             "Template scaffold changed? Update fill_campaign_structure.py.")
-    return {"slots": slots, "last_sum_row": last_sum_row}
+    return {"slots": slots, "disabled_bmm_slots": disabled_bmm_slots, "last_sum_row": last_sum_row}
 
 
 # --------------------------------------------------------------- workbook readers
@@ -442,12 +452,13 @@ def cmd_extract(cfg: dict, cfg_path: str, args: argparse.Namespace) -> int:
     asins_out = []
     for c in comps:
         r = rev.get(c["asin"])
-        sugg = None
+        strength_signal = None
         if r is not None and median is not None:
-            sugg = "stronger" if r >= median else "weaker"
+            strength_signal = "stronger" if r >= median else "weaker"
         asins_out.append({**c, "revenue_30d": r,
                           "revenue_source": "competitors_csv" if r is not None else "none",
-                          "suggested_pat": sugg})
+                          "strength_signal": strength_signal,
+                          "suggested_pat": None})
 
     out = {
         "schema": SCHEMA_CANDIDATES,
@@ -465,8 +476,10 @@ def cmd_extract(cfg: dict, cfg_path: str, args: argparse.Namespace) -> int:
         "keywords": kws,
         "roots": roots,
         "asins": asins_out,
+        "pat_grouping_rule": ("Group first by shopper intent, product type, or relevant price band. "
+                              "Within those cohorts, use strength signals when the group supports a useful comparison."),
         "next_step": ("Agent: read strategy_md, assign keywords/ASINs to scaffold slots, write "
-                      "classification.json (schema amazon-agent.campaign-classification.v1), then run --apply. "
+                      "classification.json (schema amazon-agent.campaign-classification.v1), applying pat_grouping_rule, then run --apply. "
                       "VISUAL FILL ONLY — do not create campaign bulk files from this data."),
     }
     dest = args.extract
@@ -567,9 +580,8 @@ def cmd_apply(cfg: dict, cfg_path: str, args: argparse.Namespace) -> int:
                 fails.append(f"{s['bucket']}/{s['label']}: shield keyword lacks an own-brand token: {a['keyword']!r}"
                              + ("" if own_cfg else " (set campaign_structure.own_brand_tokens in the config)"))
                 continue
-            # dedupe: strict within/across exact-match buckets; discovery may reuse
-            # the same root across BMM and Phrase (intended duplication per theory),
-            # but not twice within the same bucket; exact-vs-discovery overlap = WARN.
+            # dedupe: strict within/across exact-match buckets and within Phrase
+            # discovery; exact-vs-discovery overlap remains a warning.
             prev = seen_kw.get(term)
             if prev:
                 same_family = (prev in DISCOVERY_BUCKETS) == (is_discovery)
@@ -725,6 +737,12 @@ def cmd_apply(cfg: dict, cfg_path: str, args: argparse.Namespace) -> int:
 
     # ---- clear + write
     forbidden = set()
+    for s in scaffold.get("disabled_bmm_slots", []):
+        if s.get("label_row"):
+            ws.cell(s["label_row"], s["kw_col"]).value = "SP BMM disabled"
+        for r in range(s["data_start"], s["data_end"] + 1):
+            ws.cell(r, s["kw_col"]).value = None
+            ws.cell(r, s["sv_col"]).value = None
     for s in scaffold["slots"]:
         for r in range(s["data_start"], s["data_end"] + 1):
             ws.cell(r, s["kw_col"]).value = None

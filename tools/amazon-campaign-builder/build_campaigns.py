@@ -119,7 +119,6 @@ def campaign_forms(cfg):
             "swap_name_order": bool(spec.get("swap_name_order")),
             "skw_include_keyword_in_name": bool(spec.get("skw_include_keyword_in_name", True)),
             "match_type": spec.get("match_type") or "",
-            "bmm_modifier": bool(spec.get("bmm_modifier")),
             "daily_budget": float(pick("daily_budget", DEFAULT_BUDGET)),
             "keyword_bid": float(pick("keyword_bid", DEFAULT_BID)),
             "bidding_strategy": pick("bidding_strategy", ""),
@@ -175,7 +174,7 @@ def preflight(cfg):
         if not vendor and not skus:
             issues.append(f"{tag}: sku(s) required for the Product Ad rows (seller accounts advertise by SKU)")
         kws = [k for k in form["keywords_raw"].split("\n") if k.strip()]
-        if ctype in ("SKW", "Halo", "BMM", "Phrase") and not kws:
+        if ctype in ("SKW", "Halo", "Phrase") and not kws:
             issues.append(f"{tag}: keywords[] is required for {ctype}")
         if ctype == "PAT" and not kws:
             issues.append(f"{tag}: target_asins[] or target_categories[] is required for PAT")
@@ -245,7 +244,7 @@ def preflight(cfg):
             issues.append(f"{tag}: fans out to several identically-named campaigns; add 'Counter' "
                           f"(or, for Halo/Auto, 'CampCounter') to naming.variable_order (Amazon rejects "
                           f"duplicate campaign names)")
-        if ctype in ("BMM", "Phrase") and not form["negative_keywords"]:
+        if ctype == "Phrase" and not form["negative_keywords"]:
             notes.append(f"{tag}: discovery campaign has no negative_keywords; naming-convention.md QC "
                          f"requires a Never-Ever/negative-phrase list at ad-group level from day one")
         purpose_for_qc = form["campaign_purpose"] or CAMPAIGN_TYPE_DEFAULT_PURPOSE.get(ctype, "")

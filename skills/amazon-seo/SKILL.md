@@ -51,11 +51,13 @@ Naming note: the operator noted that Amazon's Rufus AI naming is moving/has move
 ## Workflow
 
 1. Identify whether the task is keyword cleanup, SEO writing, Rufus/semantic optimization, audit, or publishing support.
-2. Load only the relevant knowledge-base skill reference, not every SEO reference.
-3. Search Amazon first-party docs for current constraints before finalizing copy or recommendations.
-4. Use MAG SEO SOPs when the user needs the step-by-step agency workflow or Seller Central movement.
-5. For regulated categories (supplements, foods with claims, health & beauty, medical-adjacent), apply `references/health-claims-compliance.md`: check restricted claims against `references/eu-compliance-matrix.md` (EU) or the US regime section, run the SAS-style self-check before delivery, and fix findings via the RJ-preserving rewrite ladder (never bare deletion) so Ranking Juice and semantic coverage survive the compliance pass. Standard-tier categories (household/general) get the claims-lite pass and may keep more aggressive wording.
-6. Stop before saving or publishing listing changes, uploading flat files, or editing live catalog content.
+2. For an SEO audit, major SEO change, or Rank-readiness check, run `python3 tools/ads_recall.py seo-rank-gate` and read the returned decision and Research files in order. Continue quietly when it returns no paths.
+3. Load only the relevant knowledge-base skill reference, not every SEO reference.
+4. Search Amazon first-party docs for current constraints before finalizing copy or recommendations.
+5. Use MAG SEO SOPs when the user needs the step-by-step agency workflow or Seller Central movement.
+6. For regulated categories (supplements, foods with claims, health & beauty, medical-adjacent), apply `references/health-claims-compliance.md`: check restricted claims against `references/eu-compliance-matrix.md` (EU) or the US regime section, run the SAS-style self-check before delivery, and fix findings via the RJ-preserving rewrite ladder (never bare deletion) so Ranking Juice and semantic coverage survive the compliance pass. Standard-tier categories (household/general) get the claims-lite pass and may keep more aggressive wording.
+7. Before approving a major SEO change or a full Rank push, verify Product Type, browse-node assignment, and required category attributes for every relevant child ASIN. Use backend catalog data, a category listing report, FlatFilePro, or equivalent evidence. Page source alone is not sufficient. Fix child-level classification drift first; any intentional browse-node change needs a documented expected outcome, monitoring plan, and rollback criteria.
+8. Stop before saving or publishing listing changes, uploading flat files, or editing live catalog content.
 
 ## Listing Field Terminology
 

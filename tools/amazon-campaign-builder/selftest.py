@@ -67,8 +67,6 @@ def test_create_legacy():
              "sku": ["SKU-1"], "keywords": ["red widget", "blue widget"]},
             {"campaign_type": "Halo", "product_name": "Widget", "target_descriptor": "long-tail",
              "sku": ["SKU-1"], "keywords": ["red widget for kitchen", "red widget for office"]},
-            {"campaign_type": "BMM", "product_name": "Widget", "target_descriptor": "widget",
-             "sku": ["SKU-1"], "keywords": ["widget"]},
             {"campaign_type": "Phrase", "product_name": "Widget", "target_descriptor": "widget",
              "sku": ["SKU-1"], "keywords": ["widget"]},
             {"campaign_type": "Auto", "product_name": "Widget", "target_descriptor": "auto",
@@ -100,7 +98,6 @@ def test_create_legacy():
           skw[0]["bidding_strategy"] == "Fixed bids", skw[0]["bidding_strategy"])
 
     check("Halo bidding unchanged: Down only", by_type["Halo"]["bidding_strategy"] == "Down only")
-    check("BMM bidding unchanged: Down only", by_type["BMM"]["bidding_strategy"] == "Down only")
     check("Phrase bidding unchanged: Down only", by_type["Phrase"]["bidding_strategy"] == "Down only")
     check("Auto bidding unchanged: Up and down", by_type["Auto"]["bidding_strategy"] == "Up and down")
     check("PAT bidding unchanged: Down only", by_type["PAT"]["bidding_strategy"] == "Down only")
@@ -134,6 +131,22 @@ def test_create_legacy():
         and all(value and not value.isdigit() for value in ad_group_ids),
         str(ad_group_ids),
     )
+
+
+def test_sp_bmm_disabled():
+    section("A2. create mode: Sponsored Products BMM fails closed")
+    cfg = {
+        "client": "Selftest BMM", "brand": "Selftest", "marketplace": "US",
+        "defaults": {"daily_budget": 10.0, "keyword_bid": 0.5, "state": "paused"},
+        "campaigns": [
+            {"campaign_type": "BMM", "product_name": "Widget", "sku": ["SKU-1"],
+             "keywords": ["widget"]},
+        ],
+    }
+    cfg_path = TMP / "cfg_bmm_disabled.json"
+    cfg_path.write_text(json.dumps(cfg))
+    loaded = bc.load_config(str(cfg_path))
+    check("BMM config is rejected by preflight", bc.preflight(loaded) != 0)
 
 
 # =================================================================== B. create/EW
@@ -224,7 +237,7 @@ def test_create_ew():
     check("preflight READY", rc_pre == 0)
     check("preflight NOTEs the bidding_strategy override on the competitor PAT campaign",
           "differs from the naming-convention.md default" in out_text, out_text)
-    check("preflight NOTEs missing negative_keywords on discovery-less check n/a (no BMM/Phrase here)",
+    check("preflight NOTEs missing negative_keywords on discovery-less check n/a (no Phrase here)",
           True)
 
     out = TMP / "ew.xlsx"
@@ -318,15 +331,13 @@ def _write_campaign_structure_fixture(path):
         ws.cell(h3 + 1 + i, 2, 300)
     ws.cell(h3 + 4, 1, "Sum")
 
-    # Discovery-Root Keywords: BMM and Phrase columns, distinguished by a label row
-    # between the section title and the Keyword/Search Volume header (this is how
-    # scan_campaign_structure_sections tells them apart; see keyword_workbook.py).
-    h4 = section(20, 1, "Discovery-Root Keywords", "keywords", label="BMM Root")
+    # Discovery-Root Keywords: two Phrase campaign slots distinguished by label.
+    h4 = section(20, 1, "Discovery-Root Keywords", "keywords", label="Phrase Root A")
     ws.cell(h4 + 1, 1, "widget")
     ws.cell(h4 + 1, 2, 5000)
     ws.cell(h4 + 3, 1, "Sum")
 
-    h5 = section(20, 4, "Discovery-Root Keywords", "keywords", label="Phrase Root")
+    h5 = section(20, 4, "Discovery-Root Keywords", "keywords", label="Phrase Root B")
     ws.cell(h5 + 1, 4, "widget accessory")
     ws.cell(h5 + 1, 5, 4000)
     ws.cell(h5 + 3, 4, "Sum")
@@ -355,7 +366,7 @@ def test_keyword_file():
     types = [s["campaign_type"] for s in specs]
     check("includes 2 plain SKW rank specs", types.count("SKW") == 3, str(types))  # rank(2) + shield(1)
     check("includes 1 Halo spec (all halo keywords bundled)", types.count("Halo") == 1, str(types))
-    check("includes BMM + Phrase discovery specs", "BMM" in types and "Phrase" in types, str(types))
+    check("includes two Phrase discovery specs", types.count("Phrase") == 2, str(types))
     check("includes 2 PAT specs (stronger + weaker)", types.count("PAT") == 2, str(types))
     shield_spec = next(s for s in specs if s["campaign_type"] == "SKW" and s["campaign_purpose"] == "SHIELD")
     check("shield SKW spec carries campaign_purpose=SHIELD", shield_spec["keywords"] == ["acme widget"])
@@ -657,6 +668,7 @@ def test_update_broken(export_path):
 # =================================================================== main
 def main():
     test_create_legacy()
+    test_sp_bmm_disabled()
     test_create_ew()
     test_keyword_file()
     export_path = test_update_good()

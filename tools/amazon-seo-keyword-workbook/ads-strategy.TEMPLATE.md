@@ -25,12 +25,12 @@ is missing or outdated. Never guess thresholds.
 1. **Intent tiering** for Rank/Shield SKW waves: which keywords are close, high-buying-intent words
    (Wave 1) vs high-volume low-intent (Wave 2) vs very broad/supplementary (Wave 3)?
    `<your definitions and examples>`
-2. **Discovery root specificity**: which root keywords are specific enough for a BMM/Phrase campaign?
+2. **Discovery root specificity**: which root keywords are specific enough for a Phrase campaign?
    `<your rule, with a good and a bad example>`
 3. **Halo grouping**: how to theme long-tail keywords into halo campaigns (by root/word group)?
    `<your rule>`
-4. **PAT strength**: how to call Stronger vs Weaker competitors when revenue data is missing?
-   `<your fallback signals: rating, review count, market knowledge>`
+4. **PAT grouping**: group by shopper intent, product type, or relevant price band first. When a cohort is large enough, how do you separate Stronger vs Weaker competitors?
+   `<your intent/price rules and fallback strength signals: rating, review count, market knowledge>`
 5. **Promotion from the review band**: when does a keyword outside the mechanical bands still deserve
    a slot, and in which wave?
    `<your rule>`
@@ -42,6 +42,8 @@ is missing or outdated. Never guess thresholds.
 - Launch phasing: `<...>`
 - Negative-keyword philosophy: `<...>`
 - Bid philosophy: `<...>`
+
+Sponsored Products BMM is disabled. Opening bids come from RPC times role target ACOS and must account for active placement modifiers. Amazon's suggested range is a visibility reference, not the bid formula. Starting budgets are sized per role from expected CPC, intended daily clicks, account scale, and the available monthly budget; do not use one flat budget for every bucket.
 
 ## Boundaries the script already enforces (do not re-decide these)
 

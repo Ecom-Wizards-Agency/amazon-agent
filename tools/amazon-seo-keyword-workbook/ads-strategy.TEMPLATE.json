@@ -20,8 +20,7 @@
   },
 
   "pat_split": {
-    "method": "<median_revenue | revenue_floor | agent>",
-    "revenue_floor": null
+    "method": "<shopper_intent_then_strength | agent>"
   },
 
   "expanded_candidate_filter": {
@@ -31,15 +30,13 @@
   },
 
   "bids": {
-    "_comment": "Visual plan only — rendered into the Proposed Campaign Names block, never pushed anywhere. start_bid_pct_of_recommended: your launch rule as a signed percent (e.g. -30 = start 30% below the recommended/suggested bid; applied to the MKL 'Sugg. bid & range' value when present, otherwise shown as a rule). Placement modifiers are percents (0 = none). Mirrors the bulk-creator webapp default_settings fields.",
-    "start_bid_pct_of_recommended": "<signed int, e.g. -30>",
+    "_comment": "Visual plan only. Opening bids are calculated per run from RPC times role target ACOS and back-calculated around active placement modifiers. Amazon's suggested range is reference data only. start_bid_pct_of_recommended is a retired compatibility field and must remain null. Placement modifiers are percents (0 = none).",
+    "start_bid_pct_of_recommended": null,
     "by_bucket": {
       "rank_skw": { "daily_budget": "<number>", "top_of_search_placement": "<int %>", "rest_of_search_placement": 0, "product_pages_placement": 0 },
       "shield_skw": { "daily_budget": "<number>", "top_of_search_placement": 0, "rest_of_search_placement": 0, "product_pages_placement": 0 },
       "halo": { "daily_budget": "<number>", "top_of_search_placement": 0, "rest_of_search_placement": 0, "product_pages_placement": 0 },
-      "discovery_bmm": { "daily_budget": "<number>", "top_of_search_placement": 0, "rest_of_search_placement": 0, "product_pages_placement": 0 },
       "discovery_phrase": { "daily_budget": "<number>", "top_of_search_placement": 0, "rest_of_search_placement": 0, "product_pages_placement": 0 },
-      "shield_discovery_bmm": { "daily_budget": "<number>", "top_of_search_placement": 0, "rest_of_search_placement": 0, "product_pages_placement": 0 },
       "shield_discovery_phrase": { "daily_budget": "<number>", "top_of_search_placement": 0, "rest_of_search_placement": 0, "product_pages_placement": 0 },
       "pat_stronger": { "daily_budget": "<number>", "top_of_search_placement": 0, "rest_of_search_placement": 0, "product_pages_placement": 0 },
       "pat_weaker": { "daily_budget": "<number>", "top_of_search_placement": 0, "rest_of_search_placement": 0, "product_pages_placement": 0 }
@@ -57,13 +54,11 @@
     "custom1_label": "", "custom1_value": "",
     "custom2_label": "", "custom2_value": "",
     "by_bucket": {
-      "_comment": "ctx per bucket for name generation. descriptor placeholders: {keyword} {root} {counter}. goal values must be Discovery|Rank|Profit; match_type EXACT|BROAD|PHRASE|ASIN_EXACT; campaign_type SKW|Halo|BMM|Phrase|PAT.",
+      "_comment": "ctx per bucket for name generation. descriptor placeholders: {keyword} {root} {counter}. goal values must be Discovery|Rank|Profit; match_type EXACT|PHRASE|ASIN_EXACT; campaign_type SKW|Halo|Phrase|PAT.",
       "rank_skw": { "goal": "Rank", "match_type": "EXACT", "campaign_type": "SKW", "descriptor": "{keyword}" },
       "shield_skw": { "goal": "<goal for brand-defense SKW campaigns>", "match_type": "EXACT", "campaign_type": "SKW", "descriptor": "<e.g. Brand {keyword}>" },
       "halo": { "goal": "Profit", "match_type": "EXACT", "campaign_type": "Halo", "descriptor": "{root}" },
-      "discovery_bmm": { "goal": "Discovery", "match_type": "BROAD", "campaign_type": "BMM", "descriptor": "{root}" },
       "discovery_phrase": { "goal": "Discovery", "match_type": "PHRASE", "campaign_type": "Phrase", "descriptor": "{root}" },
-      "shield_discovery_bmm": { "goal": "<goal>", "match_type": "BROAD", "campaign_type": "BMM", "descriptor": "<e.g. Brand {root}>" },
       "shield_discovery_phrase": { "goal": "<goal>", "match_type": "PHRASE", "campaign_type": "Phrase", "descriptor": "<e.g. Brand {root}>" },
       "pat_stronger": { "goal": "<goal for stronger-competitor PAT>", "match_type": "ASIN_EXACT", "campaign_type": "PAT", "descriptor": "<e.g. Stronger {counter}>" },
       "pat_weaker": { "goal": "<goal for weaker-competitor PAT>", "match_type": "ASIN_EXACT", "campaign_type": "PAT", "descriptor": "<e.g. Weaker {counter}>" }

@@ -17,6 +17,8 @@ separate, operator-confirmed action in `amazon-ads` or
 
 ## Source of truth
 
+Before a run, execute `python3 tools/ads_recall.py monitor` and read the returned decision, Playbook, and Research files in order. Continue quietly when it returns no paths. Numeric thresholds belong only in `_local/ads-strategy/strategy.json`; the ownership map is `docs/ads-doctrine-sources.md`.
+
 1. **Toolkit:** `tools/amazon-ads-monitor/` -- `datasource.py` (pluggable
    data-source layer + adapters, incl. `SellerboardDataSource`),
    `analyze.py` (deltas/trends + `aggregate_week` for the weekly WoW
@@ -37,9 +39,9 @@ separate, operator-confirmed action in `amazon-ads` or
    flag in `flags.py` is written to respect this; do not override or
    second-guess the suppression rules below without updating the
    toolkit itself.
-4. **Corroborated heuristics:** `_local/ads-knowledge/knowledge-digest.md`
-   (bidding/troubleshooting/reporting-metrics themes) for the reasoning
-   behind each flag's likely cause text.
+4. **Evidence and tested practice:** the ordered Playbook and Research files
+   returned by `tools/ads_recall.py`. Research explains likely causes but never
+   overrides the tracked skill, local strategy, or approved decision record.
 
 ## Data source priority
 
@@ -259,7 +261,7 @@ docstring for exact signatures.
    into the shape `recommendations.normalize_entities` expects (`{
    entity_type, name, campaign_name, campaign_id, category (optional),
    match_type, impressions, clicks, spend, sales, orders, daily_budget,
-   budget_capped_days}`), write it to a JSON file, and pass it via
+   budget_capped_days, time_in_budget (when available)}`), write it to a JSON file, and pass it via
    `--adlabs-json`. Omitting it is a valid run -- Push/Pause-Optimize
    just come back empty with a note, not an error.
 
@@ -272,6 +274,11 @@ docstring for exact signatures.
    `_local/ads-monitor/inbox/<brand>/searchterms_weekly_<week_end>.json`)
    with per-term: term, campaign, ad group, match type, impressions,
    clicks, spend, sales, orders.
+
+   Classify every search term as branded or nonbrand before reporting or proposing
+   optimization. The account may intentionally keep profitable brand traffic in Auto
+   or product targeting, but aggregate ACOS must never hide how much performance came
+   from branded demand.
 
    **Two AdLabs quirks discovered in testing, both required for a
    correct pull:**
@@ -306,6 +313,18 @@ docstring for exact signatures.
    fixed cut order: waste -> discovery -> profit; Rank last and ONLY by
    explicit operator decision. MTD needs Sellerboard history back to the
    1st of the month -- raise `--window-days` late in the month.
+
+   **2d. Per-campaign budget delivery.** After the stock read and before proposals,
+   use Amazon's time-in-budget metric when available. Otherwise flag campaigns whose
+   spend repeatedly approaches the daily budget and verify that they are actually
+   capping. A capped campaign at or below target ACOS is a budget-increase or
+   reallocation proposal, subject to monthly pacing. A capped campaign above target
+   ACOS is a bid-reduction proposal so the same budget lasts longer. An intentionally
+   capped Rank campaign stays capped until the operator decides otherwise.
+
+   When the operator has declared event mode, record its dates, objective, approved
+   budget, and loss limits. Do not let the normal pacing status recommend cuts to
+   approved event spend. Separate event data from normal performance after the event.
 
 3. **Run the recommendations engine.** This happens inside step 1's CLI
    call (`recommendations.build_recommendations`): it classifies every
@@ -440,5 +459,12 @@ specific change named, never execute it from this skill.
   items that map to this week's actual signals (vetted backlog or the
   signal digest) -- an empty Test list is a correct, expected outcome,
   not a gap to fill.
+- **Weekly SQP movements are signals.** Do not let one weekly movement trigger an
+  action. Decisions require a sufficient representative multi-week sample and
+  confirmation against sales, CVR, PPC delivery, rank, promotions, and the longer
+  trend.
+- **Zero-spend is not performance evidence.** Exclude zero-spend targets from
+  performance comparisons, but surface enabled targets above their calculated bid
+  ceiling before a traffic-routing change makes them active.
 - Run `python3 tools/amazon-ads-monitor/selftest.py` after any change to
   the toolkit -- it must stay green.

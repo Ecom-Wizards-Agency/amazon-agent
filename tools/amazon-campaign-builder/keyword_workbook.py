@@ -41,8 +41,8 @@ import re
 CAMPAIGN_STRUCTURE_TAB = "5. Campaign Structure"
 
 # (campaign_type, campaign_purpose, kind, default_descriptor). "__discovery__" is
-# resolved to BMM/Phrase by the column label ("BMM" appearing in the label vs not)
-# once the section is found. default_descriptor fills target_descriptor when the
+# resolved to Phrase unless a legacy BMM label is present, which fails closed.
+# default_descriptor fills target_descriptor when the
 # sheet has no per-column label above the header (e.g. distinguishing the two PAT
 # buckets from each other so they don't collide on the same campaign name).
 SECTION_ANCHORS = {
@@ -132,7 +132,7 @@ def scan_campaign_structure_sections(ws):
                     continue
                 effective_ctype = ctype
                 if ctype == "__discovery__":
-                    effective_ctype = "BMM" if "bmm" in _norm(label) else "Phrase"
+                    effective_ctype = "UNSUPPORTED_SP_BMM" if "bmm" in _norm(label) else "Phrase"
                 sections.append({"campaign_type": effective_ctype, "campaign_purpose": purpose,
                                  "label": label or default_descriptor, "kind": kind, "values": values})
     return sections
@@ -142,6 +142,11 @@ def sections_to_campaign_specs(sections, *, product_name="", sku=None, asin=None
     """Bucketed sections -> campaigns[] spec dicts (config.TEMPLATE.json shape)."""
     specs = []
     for s in sections:
+        if s["campaign_type"] == "UNSUPPORTED_SP_BMM":
+            raise ValueError(
+                "Sponsored Products BMM is disabled by agency doctrine. "
+                "Move approved roots to Phrase or an explicitly approved plain-Broad test."
+            )
         base = {
             "campaign_type": s["campaign_type"],
             "campaign_purpose": s["campaign_purpose"],
@@ -158,16 +163,16 @@ def sections_to_campaign_specs(sections, *, product_name="", sku=None, asin=None
         elif s["campaign_type"] == "Halo":
             specs.append({**base, "keywords": [kw for kw, _sv in s["values"]],
                          "target_descriptor": s["label"]})
-        else:  # BMM / Phrase discovery: one root keyword per campaign
+        else:  # Phrase discovery: one root keyword per campaign
             for kw, _sv in s["values"]:
-                specs.append({**base, "keywords": [kw], "target_descriptor": kw,
-                             "bmm_modifier": s["campaign_type"] == "BMM"})
+                specs.append({**base, "keywords": [kw], "target_descriptor": kw})
     return specs
 
 
 # --------------------------------------------------------------- generic tolerant fallback
-_TYPE_ALIASES = {"skw": "SKW", "single keyword": "SKW", "halo": "Halo", "bmm": "BMM",
-                 "broad match modifier": "BMM", "phrase": "Phrase", "auto": "Auto",
+_TYPE_ALIASES = {"skw": "SKW", "single keyword": "SKW", "halo": "Halo",
+                 "bmm": "UNSUPPORTED_SP_BMM", "broad match modifier": "UNSUPPORTED_SP_BMM",
+                 "phrase": "Phrase", "auto": "Auto",
                  "pat": "PAT", "product targeting": "PAT"}
 
 
@@ -197,6 +202,11 @@ def parse_flat_table(ws):
         ctype = _TYPE_ALIASES.get(_norm(row[ci_type]))
         if ctype is None:
             continue
+        if ctype == "UNSUPPORTED_SP_BMM":
+            raise ValueError(
+                "Sponsored Products BMM is disabled by agency doctrine. "
+                "Use Phrase or an explicitly approved plain-Broad test."
+            )
         kw = str(row[ci_kw]).strip() if ci_kw < len(row) and row[ci_kw] else ""
         if not kw:
             continue

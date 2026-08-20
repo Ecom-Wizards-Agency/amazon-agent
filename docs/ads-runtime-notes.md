@@ -35,11 +35,12 @@ paused by default; uploading stays a separate operator-confirmed step. See
 GitHub intentionally excludes `_local/`. Without it the skills describe the work but cannot run real
 reports. Get `_local/` from the Amazon Agent Team Pack (shared privately), not from GitHub:
 - `_local/ads-strategy/` : rank-first strategy + PPC naming convention (source of truth, from Notion)
-- `_local/ads-knowledge/` : distilled PPC knowledge base + vetted test backlog
 - `_local/ads-signals/`  : news/creator sources + the weekly signal digest
 - `_local/ads-monitor/`  : `sellerboard-feeds.json` (SECRET tokens), config,
   `inbox/` (delivered CSVs), `samples/`
 Each teammate keeps their own `_local/` plus their own connector credentials.
+Tested practice and external evidence now resolve from the shared team vault through
+`python3 tools/ads_recall.py <surface>`; do not maintain a second local knowledge digest.
 
 ## Cowork vs Slack - who runs what
 

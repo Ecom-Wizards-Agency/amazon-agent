@@ -48,7 +48,7 @@ from __future__ import annotations
 from datetime import date
 
 # ----------------------------------------------------------------- domain constants (1:1 app)
-CAMPAIGN_TYPES = ("SKW", "Halo", "BMM", "Phrase", "Auto", "PAT")
+CAMPAIGN_TYPES = ("SKW", "Halo", "Phrase", "Auto", "PAT")
 GOALS = ("Discovery", "Rank", "Profit", "Brand")
 MATCH_TYPES = ("EXACT", "BROAD", "PHRASE", "ASIN_EXACT", "ASIN_EXPANDED", "AUTO")
 NEGATIVE_MATCH_TYPES = ("NEGATIVE_EXACT", "NEGATIVE_PHRASE")
@@ -60,7 +60,6 @@ SITE_RESTRICTIONS = ("Amazon", "Amazon Business")
 CAMPAIGN_TYPE_GOALS = {
     "SKW": ["Rank", "Brand"],
     "Halo": ["Profit"],
-    "BMM": ["Discovery", "Brand"],
     "Phrase": ["Discovery", "Brand"],
     "Auto": ["Discovery"],
     "PAT": ["Discovery", "Rank", "Profit", "Brand"],
@@ -69,7 +68,6 @@ CAMPAIGN_TYPE_GOALS = {
 CAMPAIGN_TYPE_MATCH = {
     "SKW": "EXACT",
     "Halo": "EXACT",
-    "BMM": "BROAD",
     "Phrase": "PHRASE",
     "Auto": "AUTO",
     "PAT": "ASIN_EXACT",
@@ -78,7 +76,6 @@ CAMPAIGN_TYPE_MATCH = {
 CAMPAIGN_TYPE_BIDDING = {
     "SKW": "Fixed bids",   # naming-convention.md: Rank SKW = Fixed bid
     "Halo": "Down only",
-    "BMM": "Down only",
     "Phrase": "Down only",
     "Auto": "Up and down",
     "PAT": "Down only",
@@ -87,7 +84,7 @@ CAMPAIGN_TYPE_BIDDING = {
 # ----------------------------------------------------------------- campaign purpose (naming-convention.md)
 # The QC-enforced bidding-strategy table is keyed by *purpose*, which is more
 # granular than campaign_type: a Shield or Self-Targeting campaign can be
-# built on top of SKW/BMM/Phrase/PAT but takes a different bidding default
+# built on top of SKW/Phrase/PAT but takes a different bidding default
 # than that type's usual one. Config specs may set `campaign_purpose`
 # explicitly (SHIELD / SELF_TARGETING / CATEGORY); otherwise it's inferred
 # from campaign_type below.
@@ -96,10 +93,9 @@ CAMPAIGN_PURPOSES = ("RANK_SKW", "HALO", "DISCOVERY", "AUTO", "CATEGORY", "SELF_
 CAMPAIGN_TYPE_DEFAULT_PURPOSE = {
     "SKW": "RANK_SKW",
     "Halo": "HALO",
-    "BMM": "DISCOVERY",
     "Phrase": "DISCOVERY",
     "Auto": "AUTO",
-    "PAT": "DISCOVERY",  # competitor-ASIN targeting ("BMM & Phrase & PAT ASIN" row); self
+    "PAT": "DISCOVERY",  # competitor-ASIN targeting; self
                          # PAT sets campaign_purpose="SELF_TARGETING" explicitly to get up/down.
 }
 
@@ -111,7 +107,7 @@ CAMPAIGN_PURPOSE_BIDDING = {
     "CATEGORY": "Up and down",
     "SELF_TARGETING": "Up and down",
     "SHIELD": "Down only",
-    "DISCOVERY": "Down only",  # Broad Match Modifier & Phrase & PAT ASIN
+    "DISCOVERY": "Down only",  # Phrase and competitor PAT ASIN
     "HALO": "Down only",
 }
 
@@ -119,7 +115,7 @@ CAMPAIGN_PURPOSE_BIDDING = {
 # "The trigger word must exactly match the campaign type" (naming-convention.md).
 # For the three purposes that aren't literal campaign_type values (Shield,
 # Self-Targeting, Category) we use their own label; everything else falls back
-# to the literal campaign_type (SKW/Halo/BMM/Phrase/Auto/PAT).
+# to the literal campaign_type (SKW/Halo/Phrase/Auto/PAT).
 TRIGGER_WORD_LABELS = {
     "SHIELD": "Shield",
     "SELF_TARGETING": "Self-Targeting",
@@ -286,10 +282,6 @@ def _chunk(arr, size):
     return [arr[i:i + size] for i in range(0, len(arr), size)]
 
 
-def apply_bmm_modifier(keyword):
-    return " ".join(f"+{w}" for w in keyword.split())
-
-
 def _format_start_date(iso_date):
     if not iso_date:
         return ""
@@ -344,8 +336,7 @@ def generate_campaigns(form, naming_settings, today=None):
     targeting_type = "AUTO" if form["campaign_type"] == "Auto" else "MANUAL"
 
     raw_keywords = [k.strip() for k in form.get("keywords_raw", "").split("\n") if k.strip()]
-    keywords = ([apply_bmm_modifier(k) for k in raw_keywords]
-                if form.get("bmm_modifier") and form["campaign_type"] == "BMM" else raw_keywords)
+    keywords = raw_keywords
 
     def ctx(target_descriptor, counter):
         return {
