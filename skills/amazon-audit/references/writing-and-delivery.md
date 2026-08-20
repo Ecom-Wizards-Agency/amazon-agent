@@ -133,23 +133,24 @@ The reusable profile is:
 
 Check each one, and fold it into **Problems and Solutions** where the data supports it.
 
-- **Placement mechanism.** Do not stop at "product pages bleed". Read base bid times placement
-  multiplier on the big campaigns. Multipliers are **campaign-level**: a $10 base bid with a 500%
-  top-of-search boost authorizes about $50 per click. Mixed match types in one campaign make
-  placement control impossible, and one match type per campaign is the fix. Reduce bids gradually;
-  it is rarely smart to just cut. Tie-break bids: bid $10.01, not the round $10 everyone picks, and
-  never round a bid or a percentage.
-- **Brand negatives in generic campaigns.** Branded search terms leaking into non-branded campaigns
-  flatter their numbers. Exclude the brand as a negative phrase from every generic campaign. Negatives
-  always go on the ad group, never the campaign.
+- **Placement mechanism.** Do not stop at "product pages bleed". Treat the base bid and all placement
+  modifiers as one system and compare the effective ToS, RoS, and Product Pages bids. For profit
+  optimization, relative modifiers come from placement RPC with sufficient data. Target ACOS scales
+  the whole system and placement ACOS diagnoses the result. Mixed match types in one campaign make
+  placement control impossible, and one match type per campaign is the fix.
+- **Brand traffic in generic campaigns.** Branded search terms can flatter generic performance, so
+  every audit separates branded and nonbrand attribution. Do not automatically negate profitable
+  brand safety-net traffic in Auto or product targeting. When it distorts bidding or allocation,
+  recommend a staged isolation test. Use ad-group negatives by default for single-ad-group SP;
+  campaign-level negatives are valid when one exclusion must cover every ad group.
 - **CTR-good, CVR-bad.** Relevant keyword, good CTR, solid impression share, below-market CVR: fix
   the listing, then push that keyword into its own exact campaign (SB and keyword-specific video too).
   Target mid-size terms near the use case, not the giant heads. Match imagery to the query.
 - **SD retargeting window.** For non-rebuy products, views and purchases lookback is the last 7 days
   only, ROAS-focused. Top and mid-funnel SD only after the basics work.
-- **Branded-spend verdict is about execution, not allocation.** A high branded share with solid ACOS
-  is okay in itself. Critique the bids, placements and measurability, and note that organic holds
-  brand demand while generic pushes lift overall relevance.
+- **Branded-spend verdict tests incrementality.** A high share is a review flag, not an automatic cap.
+  Evaluate branded SQP purchase share, demand, conquest pressure, product priorities, and staged
+  reductions. Attributed ACOS alone never proves the spend created the sale.
 - **Hijackers are an ads problem, not just brand protection.** When resellers hold the Buy Box the
   client cannot scale spend and cannot trust ACOS, so it outranks every optimisation lever. Sequence:
   short-term price under the resellers, then a registered trademark, then Transparency (roughly 44
@@ -215,7 +216,7 @@ Campaigns, Discovery Campaigns, Branded Keywords, Action List, Legacy, Sources &
 ### Design system, all tabs
 
 - **Palette** from `_local/branding/branding.json`, which is a symlink to the canonical
-  identity in the `ecom-wizards-brand` skill. Do not restate hex values here — the full
+  identity in the `ecom-wizards-brand` skill. Do not restate hex values here. The full
   workbook palette is in that skill's `references/workbook-contract.md`, and the copy that
   used to sit in this bullet had already drifted (it listed mist as `5B6573`, which is Steel
   from the *document* palette; workbook mist is `9AA5B4`).
@@ -345,6 +346,10 @@ rebuild and verify by looking at the rendered pages: captions drift from figures
 | `deep` | MASTER workbook as a Google Sheet + branded Google Doc with cover, to the client's Drive audit folder |
 | `monthly` | Inline consolidated report **and** branded Google Doc, no cover. Workbook on request |
 | `actions` | Prioritized action list inline: bids to cut, negatives, budgets, reallocations, each with spend impact in the profile currency and a GoTo link |
+
+For client-facing and prospect audits, add a short recorded walkthrough as the presentation layer.
+It explains the narrative and priorities but never replaces the written findings, evidence, workbook,
+or prioritized recommendations. Internal recurring reviews remain written-first when video adds no value.
 
 **The deliverables are native Google files**, the narrative a Doc and the MASTER workbook a Sheet.
 The renderers produce `.docx` and `.xlsx` because python-docx and openpyxl are what give us the

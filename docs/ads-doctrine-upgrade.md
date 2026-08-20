@@ -1,7 +1,9 @@
 # Ads doctrine upgrade: pointer
 
-**Status: specified, not applied.** Nothing in this repo has been changed yet.
-The agent still runs the pre-review ads doctrine.
+**Status: phase one implemented on 20.08.2026.** The canonical-source map,
+drift-lint foundation, team-knowledge recall, obsolete-reference cleanup, and
+decision-complete non-numeric rules are active. Numeric strategy migration and
+named TBDs remain deliberately deferred.
 
 ## What happened
 
@@ -11,14 +13,14 @@ disagreed with our own tested practice was filed as a challenge rather than an
 edit. Victor and João decided all 28 on 11.08.2026.
 
 - Decisions, with evidence and citations: team vault
-  `Research/amazon-ads/challenges.md`
+  `Research/amazon-ads/challenges.md` (all 28 synchronized from the approved review)
 - **The implementation spec, covering where each decision lands, how, and in what
   order:** team vault `Decisions/2026-08-11-amazon-ads-doctrine-upgrade.md`
 
 Resolve the vault path from `_local/team-vault-path.txt` or
 `AMAZON_AGENT_TEAM_VAULT`.
 
-## Files this upgrade will change
+## Full-program surfaces
 
 | Path | Nature of the change |
 |---|---|
@@ -32,18 +34,24 @@ Resolve the vault path from `_local/team-vault-path.txt` or
 | `AGENTS.md` | Sponsored-Products-only scope stated explicitly |
 | `tools/amazon-ads-monitor/{flags,pacing}.py`, `tools/amazon-ppc-management/batches.py`, `tools/amazon-campaign-builder/campaign_model.py` | Hard-coded thresholds reconciled with `strategy.json` |
 
-## Before any of that, three structural fixes
+## Phase-one structural foundation
 
-The spec sequences these first, because applying 28 decisions onto the current
-surface means writing each change in up to five places:
+The spec sequences these first, because applying the decisions onto the former
+surface meant writing each change in up to five places:
 
-1. **One canonical home per number.** `strategy.json` is the source of truth; the
-   prose, the skills and the tool defaults cite it instead of repeating it.
-2. **A drift check** in `tools/lint_agent_docs.py` that fails when a hard-coded
-   threshold disagrees with the `strategy.json` key it mirrors.
-3. **Version history for `_local/ads-strategy/`**. It is currently gitignored, so the
-   two files holding every operating threshold have no history at all. Needs an
-   explicit call, since it affects what this public repo exposes.
+1. **One canonical home per number.** `_local/ads-strategy/strategy.json` is the
+   source of truth. `docs/ads-doctrine-sources.md` records rule ownership and
+   `docs/ads-doctrine-source-map.json` registers every tracked numeric mirror.
+2. **A drift check** in `tools/lint_agent_docs.py` validates every registered
+   consumer now. It starts comparing a mirror automatically when the numeric phase
+   adds that canonical strategy key.
+3. **Ordered recall** through `tools/ads_recall.py` loads the approved decision,
+   matching Playbook, and relevant Research without making the private vault a
+   repository dependency.
+
+Versioning `_local/ads-strategy/` remains deferred. It affects what the public repo
+exposes and still needs a separate explicit operator decision.
 
 The spec also records values that were deliberately left open. Do not invent
-them; see its "Named TBDs" section.
+them; see its "Named TBDs" section. Phase one intentionally does not add those
+keys or change current numeric defaults.

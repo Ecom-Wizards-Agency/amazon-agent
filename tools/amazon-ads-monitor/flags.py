@@ -2,17 +2,15 @@
 
 Every flag carries metric, threshold crossed, likely cause, and severity
 (info/warn/alert/critical). Grounded in _local/ads-strategy/strategy.md
-(the rank-first philosophy) and the corroborated heuristics in
-_local/ads-knowledge/knowledge-digest.md.
+(the rank-first philosophy) and the ordered Playbook/Research recall set
+resolved by tools/ads_recall.py.
 
 CRITICAL: some things that look like anomalies are expected by the
 strategy and must be suppressed, not alerted on -- most importantly, high
 top-of-search ACOS (and wide day-to-day ACOS swings) on a Rank/SKW
 campaign, which is a known last-click-attribution artifact, not a real
 problem (strategy.md: "ACOS is an indicator, not a decision factor...
-last-click attribution makes ToF/MoF ACOS unreliable"; digest.md bidding
-theme: "ACOS is a lagging, distorted indicator ... the single most
-corroborated principle in the entire corpus"). `evaluate()` returns both
+last-click attribution makes ToF/MoF ACOS unreliable"). `evaluate()` returns both
 the active flags and a separate suppressed list so a report can show
 "noted, not flagged" instead of silently dropping the signal.
 

@@ -36,7 +36,6 @@ reading before that upload.
 |---|---|---|---|---|
 | SKW | exact | Rank | **Fixed bid** (Rank SKW) | one campaign per keyword |
 | Halo | exact | Profit | down only | one campaign, all keywords |
-| BMM | broad (optional `+word` modifier) | Discovery | down only | one campaign, or chunked via `transpose_keywords` |
 | Phrase | phrase | Discovery | down only | one campaign |
 | Auto | auto | Discovery | up and down | 4 targeting groups with per-group bid/state |
 | PAT | `asin=` / `asin-expanded=` | any | down only (competitor) / up and down (self, via `campaign_purpose`) | one campaign over `target_asins[]` |
@@ -44,7 +43,7 @@ reading before that upload.
 ### Per-type bidding defaults (naming-convention.md, QC-enforced)
 
 The bidding-strategy table is keyed by campaign **purpose**, not just `campaign_type`. Some
-purposes cut across types (a Shield campaign can be SKW, BMM, or Phrase; PAT can be
+purposes cut across types (a Shield campaign can be SKW or Phrase; PAT can be
 competitor-targeting or self-targeting). Set `campaign_purpose` on a spec to opt into one of
 these; leave it empty for the plain per-type default:
 
@@ -55,7 +54,7 @@ these; leave it empty for the plain per-type default:
 | Category (`campaign_purpose: CATEGORY`) | Dynamic bids - up and down | `Category` |
 | Self-Targeting (`campaign_purpose: SELF_TARGETING`) | Dynamic bids - up and down | `Self-Targeting` |
 | Shield / Brand Defence (`campaign_purpose: SHIELD`) | Dynamic bids - down only | `Shield` |
-| Discovery: BMM/Phrase/competitor PAT (default for `BMM`/`Phrase`/`PAT`) | Dynamic bids - down only | literal type |
+| Discovery: Phrase/competitor PAT (default for `Phrase`/`PAT`) | Dynamic bids - down only | literal type |
 | Halo (default for `Halo`) | Dynamic bids - down only | `Halo` |
 
 Preflight NOTEs (not blocks) whenever a config's explicit `bidding_strategy` overrides this
@@ -99,7 +98,7 @@ See `keyword_workbook.py` for the two supported shapes:
 1. The EW SEO keyword workbook's **"5. Campaign Structure"** tab (see
    `tools/amazon-seo-keyword-workbook/fill_campaign_structure.py`, which scaffolds/fills the
    same tab): bucketed sections (Rank-SKW, Shield-SKW, Long-Tails (Halo), Discovery-Root
-   Keywords ×2 [BMM/Phrase], Shield Discovery-Brand Keywords, PAT (Stronger)/(Weaker)), each
+   Keywords [Phrase], Shield Discovery-Brand Keywords, PAT (Stronger)/(Weaker)), each
    parsed independently of that sibling tool (no import-time coupling).
 2. A generic tolerant flat table (any sheet with recognizable campaign-type/keyword/
    product/match-type/bid columns), grouped one campaign per (type, product).
@@ -111,6 +110,11 @@ degrades gracefully if the "5. Campaign Structure" scan finds no sections.
 
 `keyword_file_defaults` in the config supplies `product_name`/`sku`/`asin` (the workbook
 itself doesn't carry those).
+
+Legacy keyword workbooks or flat tables that request Sponsored Products BMM fail closed.
+Move approved roots to Phrase or route an explicitly approved plain-Broad test through
+the interactive `amazon-ads` workflow. Existing live BMM-like targets may still be read
+or updated through update mode, but create mode never makes new ones.
 
 ## Update mode
 
