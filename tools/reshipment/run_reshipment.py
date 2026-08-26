@@ -58,6 +58,24 @@ def wizards_config() -> Path:
     raise SystemExit("wizards-ai config.json not found; cannot resolve Seller Central profiles.")
 
 
+def provider_script() -> Path:
+    """The wizards-inventory provider, at its home in the wizards-ai repo.
+
+    The tool moved from amazon-agent/tools/ into wizards-ai on 12.08.2026
+    (0c80813 removed this repo's copy); the last candidate tolerates an old
+    checkout that still hosts it, same rollout tolerance as wizards_config().
+    """
+    for candidate in ("~/os/wizards-ai/tools/wizards-inventory/provider.mjs",
+                      "~/Automations/wizards-ai/tools/wizards-inventory/provider.mjs"):
+        path = Path(candidate).expanduser()
+        if path.exists():
+            return path
+    legacy = REPO / "tools" / "wizards-inventory" / "provider.mjs"
+    if legacy.exists():
+        return legacy
+    raise SystemExit("wizards-inventory provider.mjs not found; it lives in the wizards-ai repo.")
+
+
 def provider_config(roster: dict, run_date: str) -> Path:
     """A run-scoped copy of the wizards-ai config with AWD set from the roster.
 
@@ -106,7 +124,7 @@ def pull_account(account: dict, region: dict, run_date: str, cdp_env: dict,
     outdir.mkdir(parents=True, exist_ok=True)
 
     try:
-        proc = run(["node", "tools/wizards-inventory/provider.mjs",
+        proc = run(["node", str(provider_script()),
                     "--config", str(config_path),
                     "--profile", account["profile_key"], "--all-skus"], timeout=900)
     except subprocess.TimeoutExpired:
