@@ -37,6 +37,9 @@ Flow
    (skip with `--no-daily-flags`).
 7. Render the weekly markdown + Slack payload (`report.render_weekly_markdown`
    / `report.render_weekly_slack`) and write them out.
+8. When `--json-out` is supplied, write the stable account-level metrics
+   contract consumed by Wizards AI's weekly client reporter. This output is
+   intentionally free of feed URLs, tokens, client context, and Slack data.
 
 Examples
 --------
@@ -128,6 +131,11 @@ def _parse_args(argv=None) -> argparse.Namespace:
     p.add_argument("--out", type=str, default="output", help="Base output directory (default: output)")
     p.add_argument("--window-days", type=int, default=21, help="Days of Sellerboard history to fetch before week_end (default: 21 -- covers this+last week plus a daily-flag trailing-7 average)")
     p.add_argument("--slack-json", type=str, default=None, help="Write the Slack payload here ('-' for stdout)")
+    p.add_argument(
+        "--json-out", type=str, default=None,
+        help="Write machine-readable account-level weekly metrics here ('-' for stdout). "
+             "This is the stable Wizards AI integration surface and never includes feed URLs.",
+    )
     p.add_argument("--no-daily-flags", action="store_true", help="Skip the optional day-level goal-aware flags section (included by default)")
     p.add_argument("--quiet", action="store_true", help="Suppress the console summary")
     return p.parse_args(argv)
@@ -206,6 +214,57 @@ def run_account(
     return weekly_analysis, recommendations, markdown, slack_payload
 
 
+def serialize_weekly_metrics(account: str, weekly_analysis) -> dict:
+    """Return the narrow, versioned weekly metrics contract for automation.
+
+    Keep this account-level and source-neutral. The caller owns currency and
+    client/account identity mapping because neither is present in Sellerboard's
+    Dashboard Totals rows. Missing metrics remain ``None`` rather than being
+    converted to zero.
+    """
+    metric_names = {
+        "revenue": "total_sales",
+        "ad_sales": "sales",
+        "ad_spend": "spend",
+        "net_profit": "net_profit",
+        "margin": "margin",
+        "tacos": "tacos",
+        "orders": "orders",
+    }
+    metrics = {}
+    for public_name, internal_name in metric_names.items():
+        delta = weekly_analysis.deltas.get(internal_name)
+        metrics[public_name] = {
+            "value": delta.this_week if delta else None,
+            "prior_value": delta.last_week if delta else None,
+            "absolute_change": delta.abs_change if delta else None,
+            "percent_change": delta.pct_change if delta else None,
+        }
+
+    all_rows = list(weekly_analysis.last_week_rows) + list(weekly_analysis.this_week_rows)
+    dates = sorted({row.date for row in all_rows})
+    return {
+        "schema_version": 1,
+        "account": account,
+        "period": {
+            "start": weekly_analysis.this_week_start.isoformat(),
+            "end": weekly_analysis.week_end.isoformat(),
+            "previous_start": weekly_analysis.last_week_start.isoformat(),
+            "previous_end": weekly_analysis.last_week_end.isoformat(),
+        },
+        "coverage": {
+            "start": dates[0].isoformat() if dates else None,
+            "end": dates[-1].isoformat() if dates else None,
+            "current_days": len({row.date for row in weekly_analysis.this_week_rows}),
+            "previous_days": len({row.date for row in weekly_analysis.last_week_rows}),
+            "current_complete": len({row.date for row in weekly_analysis.this_week_rows}) == 7,
+            "previous_complete": len({row.date for row in weekly_analysis.last_week_rows}) == 7,
+        },
+        "metrics": metrics,
+        "generated_at": dt.datetime.now(dt.timezone.utc).isoformat(),
+    }
+
+
 def main(argv=None) -> int:
     args = _parse_args(argv)
     week_end = dt.date.fromisoformat(args.date) if args.date else _yesterday()
@@ -260,6 +319,20 @@ def main(argv=None) -> int:
             Path(args.slack_json).write_text(rendered, encoding="utf-8")
             if not args.quiet:
                 print(f"Slack payload written to {args.slack_json}")
+
+    if args.json_out:
+        rendered = json.dumps(
+            serialize_weekly_metrics(account, weekly_analysis),
+            indent=2,
+            sort_keys=True,
+        )
+        if args.json_out == "-":
+            print(rendered)
+        else:
+            Path(args.json_out).parent.mkdir(parents=True, exist_ok=True)
+            Path(args.json_out).write_text(rendered + "\n", encoding="utf-8")
+            if not args.quiet:
+                print(f"Weekly metrics JSON written to {args.json_out}")
 
     return 0
 

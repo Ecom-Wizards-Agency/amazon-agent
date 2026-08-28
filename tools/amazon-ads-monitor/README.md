@@ -161,6 +161,16 @@ python3 tools/amazon-ads-monitor/run_weekly.py \
   --out output --slack-json -
 ```
 
+For deterministic downstream reporting, add `--json-out <path>` (or `-` for
+stdout). The versioned JSON contains only the account slug, period, source
+coverage and account-level weekly metrics. It never contains a Sellerboard feed
+URL, token, Slack payload or client context. Wizards AI consumes this CLI
+surface for the weekly client performance and time dashboard.
+
+Use `tools/amazon-ads-monitor/sellerboard-feeds.TEMPLATE.json` as the schema for
+the gitignored `_local/ads-monitor/sellerboard-feeds.json` file. The populated
+file is machine-local and secret.
+
 Aggregates this week vs last week (`analyze.aggregate_week`) from the
 Sellerboard CSV, runs `recommendations.build_recommendations` over the
 (optional) AdLabs weekly entities + (optional) signal digest, and renders
