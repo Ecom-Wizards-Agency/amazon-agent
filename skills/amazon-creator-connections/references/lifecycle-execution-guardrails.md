@@ -13,6 +13,19 @@ The shared Creator Connections tracker is the only durable source of truth. Its 
 
 No routine task may be performed from chat memory, a separate spreadsheet, or a prior Slack post. Before each external action, the bot reads the resolved Creator Record ID and current row from the tracker, validates it through the control runner, completes the action, and writes the outcome back before selecting the next creator.
 
+## Multi-client run isolation
+
+Read the enabled-client roster from `_local/creator-connections/enabled-clients.json`. Process enabled clients sequentially so one browser account, tracker binding, or local cache cannot bleed into the next client.
+
+Before each client run, hard-verify all of these bindings against that client's local config:
+
+- advertiser/account label, brand account ID, entity ID, and marketplace
+- tracker spreadsheet ID and active campaign ID
+- unique creator-record prefix
+- client-specific registry export and message-watermark file
+
+If any binding differs, write nothing for that client, do not advance its watermark, and raise a PII-free exception. A completed run for one client must never satisfy or mask a failed run for another. Each client keeps a separate Creator Registry, Creator Action Log, Daily Action Queue, registry export, and message-watermark file. Daily Slack reporting also uses one parent thread per client, brand, and date.
+
 ## Durable creator identity
 
 Issue a non-PII Creator Record ID only after the creator is resolved. Format: `CCR-{brand-code}-{YY}-{sequence}`, for example `CCR-SW-26-0001`.

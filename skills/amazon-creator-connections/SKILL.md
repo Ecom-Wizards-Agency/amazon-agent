@@ -117,6 +117,8 @@ Default mode is `audit`. Read the relevant reference file before acting:
 
 Per-client settings live in `_local/creator-connections/<client>-config.json`. `_local/` is gitignored.
 
+Daily multi-client automation reads `_local/creator-connections/enabled-clients.json` and processes only entries whose `enabled` value is `true`. Every roster entry must point to its own client config, tracker binding, creator-record prefix, registry export, and message-watermark file. Never reuse those bindings across clients.
+
 Use this shape:
 
 ```json
@@ -125,6 +127,9 @@ Use this shape:
   "brand": "<brand shown in Creator Connections>",
   "advertiser": "<Amazon Ads account label>",
   "marketplace": "United States",
+  "brand_account_id": "<private brand account ID>",
+  "entity_id": "<private entity ID>",
+  "creator_record_prefix": "<unique non-PII prefix>",
   "profiles": ["<message profile names>"],
   "tracker_sheet_url": "<private tracker URL>",
   "slack_channel_id": "<internal Slack channel ID>",
@@ -137,11 +142,16 @@ Use this shape:
     "auto_send": false,
     "notes": "Routine sends require current approval unless standing permission exists."
   },
+  "automation": {
+    "enabled": false,
+    "daily_sweep": false,
+    "follow_up_cadence_days": 2
+  },
   "message_coverage": {
     "drain_infinite_scroll": true,
     "open_all_non_archived_threads": true,
     "reopen_archived_on_new_signature": true,
-    "checkpoint_file": "_local/creator-connections/message-watermarks.json",
+    "checkpoint_file": "_local/creator-connections/<client>-message-watermarks.json",
     "require_zero_unmatched_threads": true
   }
 }

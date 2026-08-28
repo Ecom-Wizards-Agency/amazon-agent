@@ -12,6 +12,7 @@ For unattended work, the bot uses a dedicated persistent CDP browser profile, no
 - One durable Creator Record ID per creator. The ID is not based on a name, address, product, or row number. It follows the creator when the final product changes.
 - A central non-PII registry links the creator ID to canonical storefront and identity evidence. A separate non-PII action log records each bot decision and result.
 - The bot reads current state, builds a daily action queue, and works routine items only when the local permission and Slack-helper controls are configured.
+- Multi-client runs use an enabled-client roster and separate account, tracker, creator-ID, registry, queue, and message-watermark bindings for every client. A binding mismatch stops that client without affecting another client's run.
 
 ## Internal reporting cadence
 
