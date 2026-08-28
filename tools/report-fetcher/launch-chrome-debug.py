@@ -19,7 +19,7 @@ the logic there.
     python3 tools/report-fetcher/launch-chrome-debug.py
 
 Env: CDP_PORT (9222) · CDP_PROFILE · CHROME_BIN · CDP_START_URL ·
-CDP_BROWSER_MODE (headless) · CDP_WINDOW_SIZE (1920,1080)
+CDP_BROWSER_MODE (machine policy, otherwise headless) · CDP_WINDOW_SIZE (1920,1080)
 """
 import argparse
 import json
@@ -31,11 +31,43 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
+POLICY_PATH = Path(os.environ.get(
+    "AMAZON_BROWSER_POLICY",
+    str(Path.home() / ".amazon-agent" / "browser-runtime" / "policy.json"),
+))
+
+
+def read_port_policy(port: str) -> dict:
+    try:
+        policy = json.loads(POLICY_PATH.read_text(encoding="utf-8"))
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
+    if policy.get("schema_version") not in (None, 1):
+        raise RuntimeError("BROWSER_POLICY_INVALID: unsupported schema_version")
+    value = (policy.get("ports") or {}).get(str(port)) or {}
+    if not isinstance(value, dict):
+        raise RuntimeError("BROWSER_POLICY_INVALID: port policy must be an object")
+    return value
+
+
 PORT = os.environ.get("CDP_PORT", "9222")
+PORT_POLICY = read_port_policy(PORT)
+DEFAULT_PROFILE = (Path.home() / ".amazon-agent" /
+                   ("wizards-ai-chrome" if PORT == "9223" else "chrome-debug"))
 WINDOW_W, WINDOW_H = (os.environ.get("CDP_WINDOW_SIZE", "1920,1080").split(",") + ["1080"])[:2]
 PROFILE = Path(os.environ.get("CDP_PROFILE",
-                              str(Path.home() / ".amazon-agent" / "chrome-debug")))
-START_URL = os.environ.get("CDP_START_URL", "https://sellercentral.amazon.com")
+                              str(PORT_POLICY.get("profile")
+                                  or DEFAULT_PROFILE))).expanduser()
+START_URL = os.environ.get("CDP_START_URL",
+                           str(PORT_POLICY.get("start_url")
+                               or "https://sellercentral.amazon.com"))
+DEFAULT_MODE = os.environ.get("CDP_BROWSER_MODE",
+                              str(PORT_POLICY.get("mode") or "headless"))
+WINDOW_CLASS = os.environ.get("CDP_WINDOW_CLASS",
+                              str(PORT_POLICY.get("window_class") or ""))
+RESTART_REASON = os.environ.get("CDP_EXPLICIT_RESTART_REASON", "").strip()
+RESTART_AUTHORIZED = (os.environ.get("CDP_BROWSERCTL_RESTART") == "1"
+                      and bool(RESTART_REASON))
 STATE_FILE = PROFILE / ".amazon-agent-browser.json"
 
 CHROMES = [
@@ -71,7 +103,7 @@ def port_is_up(attempts: int = 3) -> bool:
 
 
 def find_chrome() -> str:
-    override = os.environ.get("CHROME_BIN", "")
+    override = os.environ.get("CHROME_BIN", "") or str(PORT_POLICY.get("chrome_bin") or "")
     if override:
         if not Path(override).exists():
             sys.exit(f"CHROME_BIN points at {override}, which does not exist.")
@@ -88,8 +120,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--mode",
         choices=("headed", "headless", "recovery", "stop", "status"),
-        default=os.environ.get("CDP_BROWSER_MODE", "headless"),
-        help="headless is the normal background mode; recovery is a visible operator session",
+        default=DEFAULT_MODE,
+        help="defaults to the machine policy; mode changes require browserctl restart",
     )
     parser.add_argument(
         "--adopt-existing",
@@ -206,6 +238,10 @@ def main() -> None:
         return
 
     if options.mode == "stop":
+        if not RESTART_AUTHORIZED:
+            raise RuntimeError(
+                "EXPLICIT_RESTART_REQUIRED: stop Chrome through browserctl restart with a reason"
+            )
         if port_is_up():
             if not state:
                 raise RuntimeError(
@@ -218,6 +254,11 @@ def main() -> None:
         return
 
     requested = options.mode
+    if requested != DEFAULT_MODE and not RESTART_AUTHORIZED:
+        raise RuntimeError(
+            "MODE_CHANGE_REQUIRES_RESTART: change Chrome mode through browserctl restart "
+            "with a reason"
+        )
     if port_is_up():
         if not state and options.adopt_existing:
             legacy = find_matching_process()
@@ -226,18 +267,21 @@ def main() -> None:
                     f"Debug port {PORT} is active, but no Chrome process matches profile {PROFILE}."
                 )
             pid, detected_mode = legacy
-            adopted_mode = "recovery" if requested == "recovery" and detected_mode == "headed" else detected_mode
-            state = write_state(pid, adopted_mode, adopted=True)
-            print(f"Adopted legacy Chrome pid {pid} on port {PORT} ({adopted_mode} mode).")
+            state = write_state(pid, detected_mode, adopted=True)
+            print(f"Adopted legacy Chrome pid {pid} on port {PORT} ({detected_mode} mode).")
         if state.get("mode") == requested:
             print(f"Debug port {PORT} already up in {requested} mode.")
             return
         if not state:
             raise RuntimeError(
                 f"Debug port {PORT} is already used by an unmanaged dedicated Chrome. "
-                f"Close that one profile before switching to {requested} mode."
+                f"Adopt it explicitly before managing it."
             )
-        stop_managed_browser(state)
+        raise RuntimeError(
+            f"MODE_CHANGE_REQUIRES_RESTART: debug port {PORT} is running in "
+            f"{state.get('mode') or 'unknown'} mode; requested {requested}. "
+            "Use browserctl restart with an explicit reason."
+        )
 
     chrome = find_chrome()
     protect_profile()
@@ -275,6 +319,10 @@ def main() -> None:
                "--lang=en-US", "--accept-lang=en-US,en",
                "--disable-features=OptimizationGuideOnDeviceModel,"
                "OptimizationGuideModelDownloading"]
+    if WINDOW_CLASS:
+        if not all(character.isalnum() or character in "._-" for character in WINDOW_CLASS):
+            raise RuntimeError("BROWSER_POLICY_INVALID: unsafe window class")
+        command.append(f"--class={WINDOW_CLASS}")
     if requested == "headless":
         command.append("--headless")
     command.append(START_URL)

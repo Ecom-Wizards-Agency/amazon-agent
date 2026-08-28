@@ -29,20 +29,47 @@
  *                                   inherited from your Seller Central tab, NOT the session default)
  *          --origin https://sellercentral.amazon.<tld> (force the region; normally derived from
  *                                   --marketplace via MARKET_HOSTS)
- * The runner starts/reuses the dedicated headless Chrome automatically. The
- * operator signs in once through launch-chrome-debug.sh --mode recovery.
+ * The runner starts or reuses the policy-configured Chrome automatically. The
+ * authentication is handled through browserctl or an explicit attended recovery restart.
  */
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { ensureChrome, listPages, createPage, closePage, evaluate, Session } from "./cdp.mjs";
+import { ensureChrome, listPages, createPage, releasePage, evaluate, Session } from "./cdp.mjs";
 import { probeTab, doctorVerdict, readIdentity, inspectPage, switchAccount, accountMatches } from "./sc-account.mjs";
 import { format } from "./format-seller-reports.mjs";
+import { ArtifactRun } from "../artifactctl/client.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FETCH_SRC = readFileSync(join(HERE, "fetch-seller-reports.js"), "utf8");
 const LEGACY = { child: "102:DetailSalesTrafficByChildItem", parent: "102:DetailSalesTrafficByParentItem",
   sku: "102:DetailSalesTrafficBySKU", date: "102:SalesTrafficTimeSeries" };
+let artifactContext = null;
+let artifactRun = null;
+
+function registerReportArtifact(file) {
+  if (!artifactContext) return;
+  artifactRun ||= new ArtifactRun({
+    owner: "report-fetcher",
+    workflow: "amazon-reporting",
+    client: artifactContext.client,
+  });
+  const disposition = artifactContext.client ? "archive-pcloud" : "preserve";
+  artifactRun.register(file, disposition, disposition === "archive-pcloud" ? {
+    archive: {
+      client: artifactContext.client,
+      dataset: "reporting",
+      market: artifactContext.marketplace.toUpperCase(),
+      month: new Date().toISOString().slice(0, 7),
+      report_type: "SELLER-REPORT",
+      scope: "FETCHER-RUN",
+    },
+  } : {});
+}
+
+process.on("exit", () => {
+  if (artifactRun?.state === "active") artifactRun.complete("failed");
+});
 
 // Which Seller Central host serves each marketplace, in preference order. A seller signs into
 // ONE host per region and reaches every marketplace in it, so the fallbacks are the regional
@@ -97,10 +124,14 @@ async function waitReady(session, needMetaTag) {
 }
 async function runFetch(pageUrl, needMetaTag, call) {
   const { targetId, session } = await createPage(pageUrl);
+  let outcome = "success";
   try {
     await waitReady(session, needMetaTag);
     return await evaluate(session, `(async()=>{ ${FETCH_SRC}\n; return await ${call}; })()`);
-  } finally { session.close(); await closePage(targetId); }
+  } catch (error) {
+    outcome = "error";
+    throw error;
+  } finally { session.close(); await releasePage(targetId, { outcome }); }
 }
 
 // Write one report doc to a CSV (+ optional raw json), with error/verbose handling.
@@ -109,18 +140,21 @@ function emit(doc, outPath, verbose, desc) {
   if (verbose) {
     const rawPath = outPath.replace(/\.csv$/, "") + ".raw.json";
     ensureDir(rawPath); writeFileSync(rawPath, JSON.stringify(doc, null, 1));
+    registerReportArtifact(rawPath);
     const firstRow = (doc.batches || []).flatMap((b) => b.rows || [])[0] || {};
     console.log("[verbose]", rawPath, "| column ids:", Object.keys(firstRow).join(", ") || "(none)");
   }
   if (doc.error) die(`fetch error: ${doc.error}\n  (${desc}) — tab logged out / wrong marketplace, or a payload field changed. --verbose captures the raw response.`);
   if (doc.report === "file") {             // inventory/listing report: raw file, no reformatting
     ensureDir(outPath); writeFileSync(outPath, doc.text || "");
+    registerReportArtifact(outPath);
     const lines = (doc.text || "").split("\n").filter((l) => l.trim()).length;
     console.log(`OK — ${outPath} (${Math.max(0, lines - 1)} rows) · ${desc} · ${doc.filename || ""}`);
     return;
   }
   const csv = format(doc);                 // throws + lists columns if a required one is unmapped
   ensureDir(outPath); writeFileSync(outPath, csv);
+  registerReportArtifact(outPath);
   const rows = csv.split("\n").filter((l) => l.trim()).length - 1;
   console.log(`OK — ${outPath} (${rows} rows) · ${desc}`);
   if (doc.truncated) console.log(`   NOTE: ${doc.note}`);
@@ -320,7 +354,7 @@ async function doctor() {
   console.log("Chrome:", v.Browser, "| debug port reachable");
   const sc = (await listPages()).filter((p) => /sellercentral\.amazon\./.test(p.url || ""));
   if (!sc.length) {
-    console.log("Seller Central: no tab open. Run tools/report-fetcher/launch-chrome-debug.sh --mode recovery, sign in, then return it to headless mode with tools/report-fetcher/launch-chrome-debug.sh.");
+    console.log("Seller Central: no tab open. Run browserctl ensure for this port; use an explicit recovery restart only for a human authentication challenge.");
     process.exit(1);
   }
   console.log(`Seller Central: ${sc.length} tab(s), probed live at ${new Date().toISOString()}`);
@@ -381,7 +415,7 @@ async function main() {
     if (!pages.some((p) => (p.url || "").startsWith(origin))) die(`No debug-Chrome tab on ${origin}. Open Seller Central there (signed in) and retry.`);
   } else {
     const scTabs = pages.filter((p) => /sellercentral\.amazon\./.test(p.url || ""));
-    if (!scTabs.length) die("No logged-in Seller Central tab found. Run tools/report-fetcher/launch-chrome-debug.sh --mode recovery, sign in, then return it to headless mode with tools/report-fetcher/launch-chrome-debug.sh.");
+    if (!scTabs.length) die("No Seller Central tab found. Run browserctl ensure for this port; use an explicit recovery restart only for a human authentication challenge.");
     // Pick the tab whose HOST actually serves the requested marketplace, in preference order.
     // Never just take the first Seller Central tab: with .com and .com.au both open that is a
     // coin flip, and the wrong one returns another country's (or another seller's) numbers.
@@ -405,7 +439,9 @@ async function main() {
       // there. Say so plainly instead of fetching an empty report. On failure,
       // close the tab we just created: a leaked sign-in tab becomes another
       // doctor run's first probe target and poisons its verdict.
-      const closeOwned = async () => { try { await closePage(opened.targetId); } catch {} };
+      const releaseOwned = async (outcome) => {
+        try { opened.session?.close(); await releasePage(opened.targetId, { outcome }); } catch {}
+      };
       const probe = await (async () => {
         let s = null;
         try {
@@ -413,8 +449,9 @@ async function main() {
           return JSON.parse(await evaluate(s, `JSON.stringify({p: !!document.querySelector("input[type=password]"), h: location.host})`, 25000));
         } catch { return null; } finally { if (s) try { s.close(); } catch {} }
       })();
-      if (probe && probe.p) { await closeOwned(); die(`Opened https://${host}/home but it shows a sign-in page. Run tools/report-fetcher/launch-chrome-debug.sh --mode recovery, sign in to that region, then return to headless mode.`); }
-      if (!match || hostOf(match) !== host) { await closeOwned(); die(`Could not open a Seller Central tab on ${host} for --marketplace ${mp}.`); }
+      if (probe && probe.p) { await releaseOwned("inspection"); die(`Opened https://${host}/home but it shows a sign-in page. Authenticate the preserved tab or use browserctl restart --mode recovery for attended recovery.`); }
+      if (!match || hostOf(match) !== host) { await releaseOwned("inspection"); die(`Could not open a Seller Central tab on ${host} for --marketplace ${mp}.`); }
+      await releaseOwned("interactive");
     }
     origin = new URL(match.url).origin;
     const others = [...new Set(scTabs.map(hostOf))].filter((h) => h !== hostOf(match));
@@ -428,7 +465,7 @@ async function main() {
   // regional tab, and let the chooser page hide behind silent nulls.
   const livePages = await listPages();
   const onOrigin = livePages.filter((p) => (p.url || "").startsWith(origin));
-  if (!onOrigin.length) die(`No tab on ${origin} after region resolution. Retry; if it persists, restart the debug Chrome (launch-chrome-debug.sh).`);
+  if (!onOrigin.length) die(`No tab on ${origin} after region resolution. Retry; if it persists, use an explicit browserctl restart with a reason.`);
   const acctTab = onOrigin.find((p) => /[?&]mons_sel_dir_mcid=/.test(p.url || "")) || onOrigin[0];
 
   const forcedAcct = args.account || (cfg && cfg.account) || null;
@@ -452,8 +489,8 @@ async function main() {
   };
 
   // Pages that cannot carry a seller context are explicit branches, never silent nulls.
-  if (live.pageKind === "sign-in") die(`The ${origin} tab shows a sign-in page. Run tools/report-fetcher/launch-chrome-debug.sh --mode recovery, sign in, return it to headless mode, and re-run. Nothing fetched.`);
-  if (live.pageKind === "challenge") die(`The ${origin} tab is blocked by a human challenge (captcha/OTP). Run launch-chrome-debug.sh --mode recovery and complete it. Nothing fetched.`);
+  if (live.pageKind === "sign-in") die(`The ${origin} tab shows a sign-in page. Run browserctl auth for the preserved target; use an explicit recovery restart only if it returns a human challenge. Nothing fetched.`);
+  if (live.pageKind === "challenge") die(`The ${origin} tab is blocked by a human challenge (captcha/OTP). Run browserctl restart --mode recovery with a reason and complete it. Nothing fetched.`);
   if (live.pageKind === "chooser") {
     if (canSwitch) await attemptSwitch();
     else die(`The ${origin} session sits on the account chooser: NO account is selected, so any fetch would silently use the session default. Pick the account in the debug window, or pass --account-name and --marketplace-label (config: account_name/marketplace_label) so the runner selects it. Nothing fetched. Observed ${describeLive(live)}`);
@@ -509,6 +546,11 @@ async function main() {
     console.log(`Account check: OK, the signed-in account matches --expect-account "${expect}"`);
   }
 
+  artifactContext = {
+    client: args.client || (cfg && cfg.client) || null,
+    marketplace: mp,
+  };
+
   // URL account params: forced id first, else whatever the live tab carries.
   // This stays a HINT on the report URLs; every judgement above used live reads.
   const acct = accountParamsFrom(live.url || acctTab.url || "");
@@ -518,6 +560,7 @@ async function main() {
     if (job.report === "sqp") await runSqpJob(origin, job, args, acct);
     else { const doc = await runFetch(withAccount(origin + job.pageUrl, acct), job.needMetaTag, job.call); emit(doc, job.out, args.verbose, job.desc); }
   }
+  if (artifactRun) artifactRun.complete("success");
 }
 
 main().catch((e) => die(e.message));

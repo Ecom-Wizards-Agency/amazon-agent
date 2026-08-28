@@ -20,7 +20,7 @@
  *   client-side routes — no per-tab requests exist.
  *
  * SAFETY
- *   Dedicated CDP browser in its normal headless mode.
+ *   Dedicated CDP browser in its machine-policy mode.
  *   Read-only: these operations only READ niche data. ~5 s spacing between
  *   heavy requests (mirrors real usage); one niche per invocation. If there is
  *   no active session (network error / 401/403 / non-JSON) the function returns

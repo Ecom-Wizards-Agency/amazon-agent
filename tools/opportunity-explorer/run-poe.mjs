@@ -5,8 +5,7 @@
  * dedicated debug Chrome profile, started/reused automatically and logged into
  * Seller Central once through visible recovery mode.
  *
- *   tools/report-fetcher/launch-chrome-debug.sh --mode recovery  # visible only for login/recovery
- *   tools/report-fetcher/launch-chrome-debug.sh            # normal headless mode
+ *   node tools/browserctl/browserctl.mjs ensure --port 9222
  *   node tools/opportunity-explorer/run-poe.mjs doctor
  *   node tools/opportunity-explorer/run-poe.mjs niche  --niche-id <id> --marketplace de --client <slug> [--verbose]
  *   node tools/opportunity-explorer/run-poe.mjs search --query "kollagen pulver" --marketplace de --client <slug>
@@ -30,7 +29,7 @@
  *   --out-dir  (default: output/<client>/opportunity-data/)
  * --verbose additionally saves the raw envelope JSON.
  *
- * Safety: dedicated CDP Chrome in its normal headless mode, read-only GraphQL
+ * Safety: dedicated CDP Chrome in its machine-policy mode, read-only GraphQL
  * reads in the operator's session, ~5 s pacing inside fetch-poe.js, one niche
  * per invocation. On {error} → exit non-zero and tell the operator.
  */
@@ -38,13 +37,48 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { ensureChrome, listPages, createPage, closePage, evaluate } from "../report-fetcher/cdp.mjs";
-import { normalizeOrigin, accountPickerUrl, accountMatches, switchAccount, readIdentity } from "../report-fetcher/sc-account.mjs";
+import { ensureChrome, listPages, createPage, releasePage, evaluate } from "../report-fetcher/cdp.mjs";
+import { normalizeOrigin, accountPickerUrl, accountMatches, switchAccount, readIdentity, inspectPage, waitFor } from "../report-fetcher/sc-account.mjs";
 import { formatEnvelope } from "./format-poe.mjs";
 import { archiveClient } from "./pcloud-archive.mjs";
+import { ArtifactRun } from "../artifactctl/client.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const FETCH_SRC = fs.readFileSync(path.join(HERE, "fetch-poe.js"), "utf8");
+let artifactContext = null;
+let artifactRun = null;
+
+function configureArtifacts(client, marketplace) {
+  artifactContext = { client, marketplace: String(marketplace || "").toUpperCase() };
+}
+
+function registerPoeArtifact(file, env) {
+  if (!artifactContext) return;
+  artifactRun ||= new ArtifactRun({
+    owner: "poe-downloader",
+    workflow: "amazon-opportunity-explorer",
+    client: artifactContext.client,
+  });
+  const disposition = artifactContext.client ? "archive-pcloud" : "preserve";
+  artifactRun.register(file, disposition, disposition === "archive-pcloud" ? {
+    archive: {
+      client: artifactContext.client,
+      dataset: "opportunity-data",
+      market: artifactContext.marketplace,
+      month: String(env.capturedAt || new Date().toISOString()).slice(0, 7),
+      report_type: "POE",
+      scope: "CAPTURE-RUN",
+    },
+  } : {});
+}
+
+function completeArtifacts() {
+  if (artifactRun) artifactRun.complete("success");
+}
+
+process.on("exit", () => {
+  if (artifactRun?.state === "active") artifactRun.complete("failed");
+});
 
 const CC_MP = {
   us: "ATVPDKIKX0DER", de: "A1PA6795UKMFR9", it: "APJ6JRA9NG5V4",
@@ -134,15 +168,68 @@ async function findOrCreatePoePage(origin) {
   return { targetId, session, temp: true };
 }
 
+function poeReadinessError({ pageKind = "unknown", authState = "ambiguous", facts = {} } = {}) {
+  const url = facts.url || "(URL unavailable)";
+  const details = `Observed ${pageKind}/${authState} at ${url}`;
+  let message;
+  let code;
+  if (pageKind === "chooser") {
+    code = "POE_ACCOUNT_CHOOSER";
+    message = `Seller Central is authenticated but stopped at the account chooser. ${details}. Select the account and marketplace in the preserved tab, or pass the structured account options so the runner can recover it.`;
+  } else if (pageKind === "sign-in") {
+    code = "POE_SIGNED_OUT";
+    message = `Seller Central redirected this origin to sign-in. ${details}. Complete login in recovery mode.`;
+  } else if (pageKind === "challenge") {
+    code = "POE_HUMAN_CHALLENGE";
+    message = `Seller Central is blocked by a human authentication challenge. ${details}. Complete it in recovery mode.`;
+  } else if (pageKind === "auth-failed") {
+    code = "POE_AUTHORIZATION_FAILED";
+    message = `Seller Central loaded an authorization-failed page instead of Opportunity Explorer. ${details}. Verify this account has Opportunity Explorer access.`;
+  } else {
+    code = "POE_NOT_READY";
+    message = `Opportunity Explorer did not become ready within the timeout. ${details}.`;
+  }
+  const error = new Error(message);
+  error.code = code;
+  error.preservePoeTab = true;
+  return error;
+}
+
 async function waitPoeReady(session, timeoutMs = 30000) {
   const t0 = Date.now();
   while (Date.now() - t0 < timeoutMs) {
     const ok = await evaluate(session,
-      `document.readyState === "complete" && !!document.querySelector('meta[name="anti-csrftoken-a2z"]')`);
+      `document.readyState === "complete" && !!document.querySelector('meta[name="anti-csrftoken-a2z"]')`).catch(() => false);
     if (ok) return;
     await new Promise((r) => setTimeout(r, 500));
   }
-  throw new Error("POE page never became ready (readyState/meta tag). Is the session logged in?");
+  const page = await inspectPage(session, { timeoutMs: 10000 }).catch(() => ({
+    pageKind: "unknown",
+    authState: "ambiguous",
+    facts: {},
+  }));
+  throw poeReadinessError(page);
+}
+
+async function waitPoeEntryState(session, timeoutMs = 30000) {
+  // createPage returns as soon as the CDP target exists, before navigation has
+  // necessarily committed. Identity recovery must not run against that brief
+  // loading/about:blank state or a valid session is misread as unknown.
+  try {
+    await waitFor(session, `document.readyState === "complete" && (
+      !!document.querySelector('meta[name="anti-csrftoken-a2z"]')
+      || document.querySelectorAll('button.full-page-account-switcher-account-details').length > 0
+      || /signin|auth|login|mfa|captcha|\\/ap\\/cvf/.test(location.href)
+      || !!document.querySelector('input[type="password"],input[autocomplete="one-time-code"],input[name="guess"]')
+    )`, "Opportunity Explorer app, account chooser, or authentication state", timeoutMs);
+  } catch {
+    const page = await inspectPage(session, { timeoutMs: 10000 }).catch(() => ({
+      pageKind: "unknown",
+      authState: "ambiguous",
+      facts: {},
+    }));
+    throw poeReadinessError(page);
+  }
 }
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -157,15 +244,22 @@ async function switchSellerCentralAccount(session, origin, profile) {
   await waitPoeReady(session);
 }
 
-async function withPoePage(origin, work) {
+async function withPoePage(origin, work, { requireReady = true } = {}) {
   await ensureChrome();
   const { targetId, session, temp } = await findOrCreatePoePage(origin);
+  let outcome = "success";
   try {
-    await waitPoeReady(session);
+    if (requireReady) await waitPoeReady(session);
     return await work(session);
+  } catch (error) {
+    outcome = error?.preservePoeTab ? "inspection" : "error";
+    if (temp && targetId && error?.preservePoeTab) {
+      console.error(`Preserving the blocked POE tab for inspection/recovery (${error.code || "POE_BLOCKED"}).`);
+    }
+    throw error;
   } finally {
     session.close();
-    if (temp && targetId) await closePage(targetId);
+    if (temp && targetId) await releasePage(targetId, { outcome });
   }
 }
 
@@ -255,9 +349,14 @@ async function accountPreflight(session) {
 
 async function withAccountCheckedPoePage(origin, work) {
   const result = await withPoePage(origin, async (session) => {
+    await waitPoeEntryState(session);
     if (!await accountPreflight(session)) return { accountCheckFailed: true };
+    // Account recovery must be allowed to run from the authenticated chooser.
+    // Requiring the POE meta tag before this point made recovery unreachable
+    // and mislabeled a valid login as a login failure.
+    await waitPoeReady(session);
     return { value: await work(session) };
-  });
+  }, { requireReady: false });
   if (result.accountCheckFailed) process.exit(1);
   return result.value;
 }
@@ -269,10 +368,15 @@ function finish(env, { outDir, verbose }) {
     process.exit(1);
   }
   const files = formatEnvelope(env, { outDir });
-  for (const f of files) console.log(path.join(outDir, f.name));
+  for (const f of files) {
+    const written = path.join(outDir, f.name);
+    registerPoeArtifact(written, env);
+    console.log(written);
+  }
   if (verbose) {
     const raw = path.join(outDir, `raw_${env.kind}_${(env.capturedAt || "").replace(/[:]/g, "-")}.json`);
     fs.writeFileSync(raw, JSON.stringify(env, null, 1));
+    registerPoeArtifact(raw, env);
     console.log(raw);
   }
 }
@@ -291,6 +395,8 @@ if (cmd === "self-test") {
     [accountPickerUrl("https://sellercentral.amazon.com", "/opportunity-explorer"), "https://sellercentral.amazon.com/account-switcher/default/merchantMarketplace?returnTo=%2Fopportunity-explorer"],
     [accountMatches({ displayName: "SwissKlip United States", partnerAccountId: "A1UOCFOJBIIPMH" }, "A1UOCFOJBIIPMH"), true],
     [accountMatches({ displayName: "Other account", partnerAccountId: "OTHER" }, "A1UOCFOJBIIPMH"), false],
+    [poeReadinessError({ pageKind: "chooser", authState: "authenticated", facts: { url: "https://sellercentral.amazon.de/account-switcher/default/merchantMarketplace" } }).code, "POE_ACCOUNT_CHOOSER"],
+    [poeReadinessError({ pageKind: "sign-in", authState: "logged_out", facts: { url: "https://sellercentral.amazon.de/ap/signin" } }).code, "POE_SIGNED_OUT"],
   ];
   for (const [actual, expected] of checks) {
     if (actual !== expected) throw new Error(`self-test failed: expected ${expected}, got ${actual}`);
@@ -303,7 +409,7 @@ if (cmd === "self-test") {
   const pages = await listPages();
   const sc = pages.filter((p) => /sellercentral\.amazon\./.test(p.url));
   console.log(`Seller Central tabs: ${sc.length}${sc.length ? " → " + sc.map((p) => p.url.replace(/^https:\/\//, "").slice(0, 60)).join(", ") : ""}`);
-  if (!sc.length) { console.log("Run tools/report-fetcher/launch-chrome-debug.sh --mode recovery, sign into Seller Central, then return it to headless mode with tools/report-fetcher/launch-chrome-debug.sh."); process.exit(1); }
+  if (!sc.length) { console.log("Run browserctl ensure for port 9222. If authentication is needed, use browserctl auth; reserve an explicit recovery restart for a human challenge."); process.exit(1); }
   const origins = resolveDoctorOrigins(sc, opt("origin", null));
   const results = await Promise.all(origins.map(async (origin) => {
     try {
@@ -332,12 +438,14 @@ if (cmd === "self-test") {
   const outDir = opt("out-dir", client ? `output/${client}/opportunity-data` : null);
   if (!outDir) { console.error("--client <slug> or --out-dir required"); process.exit(1); }
   const marketplace = opt("marketplace", null);
+  configureArtifacts(client, marketplace);
   const mp = requestedMarketplace(marketplace);
   const origin = resolveDataOrigin(marketplace, opt("origin", null));
   const env = await withAccountCheckedPoePage(origin, (session) =>
     runFetch(session, `fetchPoeNiche(${JSON.stringify({ nicheId, obfuscatedMarketplaceId: mp })})`));
   assertMarketplace(env, mp);
   finish(env, { outDir, verbose: flag("verbose") });
+  completeArtifacts();
 } else if (cmd === "search") {
   const query = opt("query", null);
   if (!query) usage();
@@ -345,12 +453,14 @@ if (cmd === "self-test") {
   const outDir = opt("out-dir", client ? `output/${client}/opportunity-data` : null);
   if (!outDir) { console.error("--client <slug> or --out-dir required"); process.exit(1); }
   const marketplace = opt("marketplace", null);
+  configureArtifacts(client, marketplace);
   const mp = requestedMarketplace(marketplace);
   const origin = resolveDataOrigin(marketplace, opt("origin", null));
   const env = await withAccountCheckedPoePage(origin, (session) =>
     runFetch(session, `fetchPoeSearch(${JSON.stringify({ query, obfuscatedMarketplaceId: mp })})`));
   assertMarketplace(env, mp);
   finish(env, { outDir, verbose: flag("verbose") });
+  completeArtifacts();
 } else if (cmd === "batch") {
   // search → union/dedupe → download every kept niche in full.
   const queries = (opt("queries", opt("query", "")) || "").split(",").map((q) => q.trim()).filter(Boolean);
@@ -361,6 +471,7 @@ if (cmd === "self-test") {
   if (!outDir) { console.error("--client <slug> or --out-dir required"); process.exit(1); }
   const top = flag("all") ? Infinity : Number(opt("top", "15"));
   const marketplace = opt("marketplace", null);
+  configureArtifacts(client, marketplace);
   const mp = requestedMarketplace(marketplace);
   const origin = resolveDataOrigin(marketplace, opt("origin", null));
   await withAccountCheckedPoePage(origin, async (session) => {
@@ -392,16 +503,19 @@ if (cmd === "self-test") {
     console.error(`batch done: ${ok}/${ids.length} niches downloaded${failed.length ? `, ${failed.length} FAILED` : ""}`);
     if (failed.length) { console.error(JSON.stringify(failed, null, 1)); process.exit(1); }
   });
+  completeArtifacts();
 } else if (cmd === "merchant-niches") {
   const client = opt("client", null);
   const outDir = opt("out-dir", client ? `output/${client}/opportunity-data` : ".");
   const marketplace = opt("marketplace", null);
+  configureArtifacts(client, marketplace);
   const mp = requestedMarketplace(marketplace);
   const origin = resolveDataOrigin(marketplace, opt("origin", null));
   const env = await withAccountCheckedPoePage(origin, (session) =>
     runFetch(session, `fetchPoeMerchantNiches(${JSON.stringify({ obfuscatedMarketplaceId: mp })})`));
   assertMarketplace(env, mp);
   finish(env, { outDir, verbose: flag("verbose") });
+  completeArtifacts();
 } else if (cmd === "archive") {
   const client = opt("client", null);
   if (!client) { console.error("--client <slug> required"); process.exit(1); }

@@ -3,12 +3,16 @@
  * WebSocket + fetch). Used to run the report fetch in the page's REAL main world
  * (which has fetch + the logged-in session), driven from the terminal.
  *
- * `ensureChrome()` starts or reuses the dedicated headless browser.
+ * `ensureChrome()` starts or reuses the policy-configured dedicated browser.
  * `assertChrome()` remains a read-only probe for setup checks and diagnostics.
  */
 
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import {
+  acquireLease, defaultLeaseOwner, releaseLease, touchLease,
+} from "../browserctl/lease-registry.mjs";
+import { loadBrowserPolicy } from "../browserctl/policy.mjs";
 
 const HOST = process.env.CDP_HOST || "127.0.0.1";
 const PORT = process.env.CDP_PORT || "9222";
@@ -17,6 +21,11 @@ const BASE = `http://${URL_HOST}:${PORT}`;
 const LAUNCHER = process.env.CDP_LAUNCHER
   || fileURLToPath(new URL("./launch-chrome-debug.py", import.meta.url));
 let startupPromise = null;
+
+function leaseTrackingEnabled() {
+  return [9222, 9223].includes(Number(PORT))
+    || /^(1|true|yes|on)$/i.test(String(process.env.CDP_ENABLE_TEST_LEASES || ""));
+}
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -33,7 +42,7 @@ function isLoopback(host) {
   return normalized === "localhost" || normalized === "127.0.0.1";
 }
 
-async function runLauncher() {
+async function runLauncherArguments(args) {
   const configured = process.env.CDP_PYTHON;
   const candidates = configured
     ? [configured]
@@ -42,7 +51,7 @@ async function runLauncher() {
   for (const python of candidates) {
     try {
       const result = await new Promise((resolve, reject) => {
-        const child = spawn(python, [LAUNCHER, "--mode", "headless"], {
+        const child = spawn(python, [LAUNCHER, ...args], {
           env: process.env,
           stdio: ["ignore", "pipe", "pipe"],
           windowsHide: true,
@@ -58,7 +67,7 @@ async function runLauncher() {
         const detail = (result.stderr || result.stdout || `exit ${result.code}`).trim();
         throw new Error(`dedicated Chrome launcher failed: ${detail}`);
       }
-      return;
+      return result;
     } catch (error) {
       if (error?.code === "ENOENT") {
         missing = error;
@@ -72,6 +81,25 @@ async function runLauncher() {
   );
 }
 
+async function runLauncher() {
+  await runLauncherArguments([]);
+}
+
+async function assertConfiguredMode() {
+  const result = await runLauncherArguments(["--mode", "status"]);
+  const status = JSON.parse(result.stdout || "{}");
+  if (!status.managed) {
+    throw new Error(`UNMANAGED_CDP_BROWSER: port ${PORT} is reachable but is not owned by browserctl`);
+  }
+  if (!status.mode) throw new Error(`MANAGED_BROWSER_MODE_UNKNOWN: port ${PORT}`);
+  const configured = loadBrowserPolicy().ports[String(Number(PORT))]?.mode;
+  if (configured && status.mode !== configured) {
+    throw new Error(
+      `MODE_CHANGE_REQUIRES_RESTART: port ${PORT} is ${status.mode}; configured mode is ${configured}`,
+    );
+  }
+}
+
 export async function httpJson(path) {
   const r = await fetch(BASE + path);
   if (!r.ok) throw new Error(`CDP HTTP ${r.status} on ${path}`);
@@ -83,18 +111,22 @@ export async function assertChrome() {
   catch (e) {
     throw new Error(
       `Cannot reach Chrome debug port at ${BASE}. Launch Chrome with the debug port first:\n` +
-      `  tools/report-fetcher/launch-chrome-debug.sh\n` +
-      `Use --mode recovery only if Seller Central login is required. (${e.message})`);
+      `  node tools/browserctl/browserctl.mjs ensure --port ${PORT}\n` +
+      `Use browserctl auth for allowlisted login and an explicit recovery restart only for a human challenge. (${e.message})`);
   }
 }
 
-/** Start or reuse the dedicated headless Chrome, then return its version.
+/** Start or reuse the policy-configured dedicated Chrome, then return its version.
  *
  * The optional `start` injection exists for tests; production callers should
  * call `ensureChrome()` with no arguments. Concurrent callers share one launch.
  */
 export async function ensureChrome({ start = runLauncher, timeoutMs = 15000, pollMs = 250 } = {}) {
-  try { return await assertChrome(); }
+  try {
+    const version = await assertChrome();
+    if (start === runLauncher) await assertConfiguredMode();
+    return version;
+  }
   catch (initialError) {
     if (!autoStartEnabled()) {
       throw new Error(`CDP automatic startup is disabled by CDP_AUTOSTART. ${initialError.message}`);
@@ -119,7 +151,7 @@ export async function ensureChrome({ start = runLauncher, timeoutMs = 15000, pol
     await sleep(pollMs);
   } while (Date.now() < deadline);
   throw new Error(
-    `Dedicated headless Chrome did not become ready at ${BASE}. ${lastError?.message || ""}`.trim(),
+    `Dedicated Chrome did not become ready at ${BASE}. ${lastError?.message || ""}`.trim(),
   );
 }
 
@@ -129,7 +161,9 @@ export async function listPages() {
 
 // A live CDP session over one target's WebSocket.
 export class Session {
-  constructor(ws) { this.ws = ws; this.id = 0; this.pending = new Map(); this.events = []; }
+  constructor(ws, { targetId = null } = {}) {
+    this.ws = ws; this.id = 0; this.pending = new Map(); this.events = []; this.targetId = targetId;
+  }
 
   static async open(webSocketDebuggerUrl, { timeoutMs = 10000 } = {}) {
     const ws = new WebSocket(webSocketDebuggerUrl);
@@ -144,7 +178,8 @@ export class Session {
       ws.onopen = () => { clearTimeout(timer); res(); };
       ws.onerror = () => { clearTimeout(timer); rej(new Error("CDP WebSocket failed to open")); };
     });
-    const s = new Session(ws);
+    const targetId = /\/devtools\/page\/([^/?#]+)/.exec(webSocketDebuggerUrl)?.[1] || null;
+    const s = new Session(ws, { targetId });
     ws.onmessage = (m) => {
       const msg = JSON.parse(m.data);
       if (msg.id && s.pending.has(msg.id)) {
@@ -187,6 +222,10 @@ export class Session {
   // callers (POE evaluates, endpoint-discovery listeners) legitimately wait
   // minutes. Control-plane calls (Runtime.enable, Page.enable) should pass one.
   send(method, params = {}, { timeoutMs } = {}) {
+    if (this.targetId && leaseTrackingEnabled()
+        && (method.startsWith("Input.") || method === "Page.navigate" || method === "Page.bringToFront")) {
+      touchLease({ port: Number(PORT), targetId: this.targetId, kind: "activity" }).catch(() => {});
+    }
     const id = ++this.id;
     return new Promise((resolve, reject) => {
       // Node's built-in global WebSocket does not keep the event loop alive while
@@ -228,6 +267,7 @@ export class Session {
   }
 
   close() {
+    if (this._leaseHeartbeat) clearInterval(this._leaseHeartbeat);
     this._rejectPending("CDP session closed");
     try { this.ws.close(); } catch (_) {}
   }
@@ -251,7 +291,39 @@ export async function setDesktopViewport(session, viewport = DESKTOP_VIEWPORT) {
 
 // Create a fresh page at `url`, return {targetId, session}. Uses the browser-level
 // endpoint so we don't disturb the operator's existing tabs.
-export async function createPage(url) {
+const ACTIVITY_TRACKER = `(()=>{
+  if(globalThis.__ewBrowserLeaseTrackerInstalled)return globalThis.__ewBrowserLeaseActivityAt||Date.now();
+  Object.defineProperty(globalThis,"__ewBrowserLeaseTrackerInstalled",{value:true,writable:false});
+  globalThis.__ewBrowserLeaseActivityAt=Date.now();
+  const touch=()=>{globalThis.__ewBrowserLeaseActivityAt=Date.now()};
+  for(const name of ["pointerdown","keydown","scroll","focus","pageshow"]){
+    addEventListener(name,touch,{capture:true,passive:true});
+  }
+  document.addEventListener("visibilitychange",touch,{capture:true,passive:true});
+  return globalThis.__ewBrowserLeaseActivityAt;
+})()`;
+
+export async function installLeaseActivityTracker(session) {
+  await session.send("Page.enable", {}, { timeoutMs: 10000 });
+  await session.send("Page.addScriptToEvaluateOnNewDocument", { source: ACTIVITY_TRACKER }, { timeoutMs: 10000 });
+  await evaluate(session, ACTIVITY_TRACKER, 10000);
+}
+
+export async function readLeaseActivity(session) {
+  try {
+    const value = await evaluate(session,
+      `typeof globalThis.__ewBrowserLeaseActivityAt==="number"?globalThis.__ewBrowserLeaseActivityAt:null`,
+      10000);
+    return { ok: Number.isFinite(value), value: Number.isFinite(value) ? value : null };
+  } catch (error) {
+    return { ok: false, value: null, error: error.message };
+  }
+}
+
+export async function createPage(url, {
+  leaseClass = "background-active", owner = defaultLeaseOwner(), anchorKey = null,
+  register = leaseTrackingEnabled(),
+} = {}) {
   const ver = await httpJson("/json/version");
   const browser = await Session.open(ver.webSocketDebuggerUrl);
   // background: true keeps the temp tab from stealing focus / flashing to the
@@ -265,6 +337,21 @@ export async function createPage(url) {
     if (p && p.webSocketDebuggerUrl) {
       const session = await Session.open(p.webSocketDebuggerUrl);
       await setDesktopViewport(session);
+      if (register) {
+        let origin = null;
+        try { origin = new URL(url).origin; } catch (_) {}
+        await acquireLease({
+          port: Number(PORT), targetId, leaseClass, owner, origin, anchorKey,
+        });
+        await installLeaseActivityTracker(session).catch(() => {});
+        if (leaseClass === "background-active") {
+          const interval = loadBrowserPolicy().cleanup.heartbeat_interval_ms;
+          session._leaseHeartbeat = setInterval(() => {
+            touchLease({ port: Number(PORT), targetId, kind: "heartbeat" }).catch(() => {});
+          }, interval);
+          session._leaseHeartbeat.unref?.();
+        }
+      }
       return { targetId, session };
     }
     await new Promise((r) => setTimeout(r, 100));
@@ -272,8 +359,17 @@ export async function createPage(url) {
   throw new Error("created target never appeared in the page list");
 }
 
-export async function closePage(targetId) {
-  try { await fetch(`${BASE}/json/close/${targetId}`); } catch (_) {}
+export async function releasePage(targetId, { outcome = "success" } = {}) {
+  if (!leaseTrackingEnabled()) return null;
+  return releaseLease({ port: Number(PORT), targetId, outcome });
+}
+
+export async function closePageImmediately(targetId, { explicit = false, reason = "" } = {}) {
+  if (!explicit || !String(reason).trim()) {
+    throw new Error("RAW_TAB_CLOSE_REFUSED: explicit authorization and reason are required");
+  }
+  const response = await fetch(`${BASE}/json/close/${encodeURIComponent(targetId)}`);
+  if (!response.ok) throw new Error(`CDP HTTP ${response.status} while closing target`);
 }
 
 // Run an async expression in the page main world and return its (JSON) value.
