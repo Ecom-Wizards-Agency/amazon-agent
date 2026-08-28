@@ -14,23 +14,25 @@ fetched CSVs match the manual Seller Central export to the penny.
 
 The runner drives Chrome's REAL page main world over the DevTools Protocol (CDP), so it
 uses your existing login. No console paste, no browser-evaluate sandbox. Any agent with
-shell access can run it. Every CDP runner starts or reuses the dedicated headless Chrome
+shell access can run it. Every CDP runner starts or reuses the policy-configured Chrome
 automatically; `CDP_AUTOSTART=0` is available for probe-only diagnostics.
 
-One-time setup: Chrome 136+ ignores `--remote-debugging-port` on your normal profile
-(a Chrome security change), so the runner uses a dedicated debug Chrome that runs
-**alongside** your normal Chrome. Open its visible recovery window to sign into Seller
-Central **once**; the login persists in the debug profile for every future headless run.
+One-time setup: Chrome 136+ ignores `--remote-debugging-port` on an unapproved default
+profile, so the runner uses the managed profile declared by the machine policy. Ensure
+the browser, then use the broker for an allowlisted login. A human challenge requires
+an explicit attended recovery restart; the session persists in the managed profile.
 
 ```bash
-tools/report-fetcher/launch-chrome-debug.sh --mode recovery  # visible only for login/recovery
-# → in that new window, sign into Seller Central once (first run only)
-tools/report-fetcher/launch-chrome-debug.sh      # switches to normal headless background mode
+node tools/browserctl/browserctl.mjs ensure --port 9222
+node tools/browserctl/browserctl.mjs auth --port 9222 --target <target-id>
+# Human challenge only:
+node tools/browserctl/browserctl.mjs restart --port 9222 --mode recovery --reason "attended login"
+# After login, explicitly restart to the mode configured for this machine.
 node tools/report-fetcher/run.mjs doctor         # confirms the connection + a logged-in tab
 ```
 
 After this one-time login, `run.mjs`, `run-poe.mjs`, listing capture, and the other shared
-CDP runners start the headless profile on demand when it is not already running.
+CDP runners start or reuse the policy-configured profile on demand.
 
 Then fetch. **Copy-paste path: fill a per-client config once, then a fixed command** (copy
 `config.TEMPLATE.json` → `config.<client>.json`, gitignored, and fill ASIN groups / dates):

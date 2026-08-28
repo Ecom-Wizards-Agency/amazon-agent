@@ -28,9 +28,9 @@ For each account-marketplace:
    - FBA or referral fee change
    - package dimension or weight change
 
-   Two of these need a word when you report them. A **root category** change re-benchmarks BSR against a different category, so that ASIN's rank history stops being comparable with itself — say so rather than reporting the rank move alone. A **displayed half-star** change is the star graphic a shopper sees: Amazon rounds to the nearest half, so 4.2 shows as 4.0 and 4.3 shows as 4.5, and a one-tenth move flips the badge. `rating_display_improved` is the one signal here that is not a problem: dispose it `no_action` and do **not** write it to the ledger, because it is an event rather than a state and would sit open forever.
+   Two of these need a word when you report them. A **root category** change re-benchmarks BSR against a different category, so that ASIN's rank history stops being comparable with itself. Say so rather than reporting the rank move alone. A **displayed half-star** change is the star graphic a shopper sees: Amazon rounds to the nearest half, so 4.2 shows as 4.0 and 4.3 shows as 4.5, and a one-tenth move flips the badge. `rating_display_improved` is the one signal here that is not a problem: dispose it `no_action` and do **not** write it to the ledger, because it is an event rather than a state and would sit open forever.
 
-   No competitor ASINs are registered for any profile, deliberately, so `bsr_competitor_proximity` cannot fire on any account today. Report a BSR figure as unanchored rather than implying nobody is closing on us, and never raise the empty competitor set as a finding or a task — it is the intended state.
+   No competitor ASINs are registered for any profile, deliberately, so `bsr_competitor_proximity` cannot fire on any account today. Report a BSR figure as unanchored rather than implying nobody is closing on us, and never raise the empty competitor set as a finding or a task. It is the intended state.
 
    Search-suppressed and inactive listings are not in Keepa. They come from Seller Central in the steps below.
 4. Open Seller Central and verify the account by `{seller_central_name_field}` and the country/region by `{marketplace_field}`.

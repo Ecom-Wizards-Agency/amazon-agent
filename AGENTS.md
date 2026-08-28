@@ -27,38 +27,78 @@ CDP-first for scripted workflows: the repo keeps a dedicated debug Chrome profil
 CDP runners start or reuse this dedicated profile lazily through the shared
 `ensureChrome()` helper. `assertChrome()` is the read-only probe for setup and
 diagnostics. Set `CDP_AUTOSTART=0` only when a caller explicitly needs probe-only
-behavior. Automatic startup is always headless; visible recovery remains an
-operator-attended login step.
+behavior. Mode, profile, window class, anchors, and cleanup timings come from
+`~/.amazon-agent/browser-runtime/policy.json`. `ensureChrome()` never restarts a
+reachable browser to change mode. A mismatch fails with
+`MODE_CHANGE_REQUIRES_RESTART`; only `browserctl restart` may intentionally stop
+and relaunch a managed browser, and it requires an explicit reason.
 
-Port 9222 runs headlessly by default, like the Wizards AI port-9223 browser. Do not open or bring its window to the front during normal work. Use `--mode recovery` only when the operator must log in or explicitly asks to see the browser. A workflow that cannot function with Chrome's headless renderer may temporarily use `--mode headed`, but the window stays behind other apps unless the operator must interact. Return the profile to headless mode with the normal launcher command as soon as the visible step is complete. Headless operation does not relax any login, account, marketplace, evidence, or stop-before-risk checkpoint.
+The standard machine preset remains headless. Evo X1 explicitly runs ports 9222
+and 9223 headed, with distinct window classes and US, DE, and AUS Seller Central
+anchor tabs on both. Anchor maintenance is additive: it creates a missing anchor
+but never navigates, repurposes, or closes another page. The Evo X1 five-minute
+cleanup pass also maintains these anchors, so a closed or navigated country
+anchor is replaced without waiting for another workflow to call `ensureChrome()`.
+
+Every programmatically created tab has a machine-local lease. Active background
+tasks heartbeat every 30 seconds. A successful release receives a 10-minute
+grace period. Interactive tabs and inspection tabs receive a 2-hour inactivity
+window. Errors, challenges, blocked work, and lost heartbeats become inspection
+leases. Unknown or user-created tabs are never auto-closed. Cleanup must preserve
+a tab when its activity cannot be measured, and raw CDP closure is reserved for
+an expired registered lease or an explicit operator request.
+
+Managed Chrome CDP on port 9222 is the default browser for Amazon Agent work.
+Port 9223 is the separate Wizards AI browser for its read workflows.
+The T3 Code in-app browser is not a first-choice browser and is never a silent fallback from
+either CDP port: it does not share the managed Chrome profile, cannot use the
+exact-port authentication broker, and is not the supported local file upload
+surface. Use it only when the operator explicitly requests it or for a narrowly
+public, session-free inspection with no login, download, or upload dependency.
+If a required CDP browser is unavailable, stop and recover that browser.
+
+New downloaded and generated local files are registered by exact path under a
+workflow run ID. Successful runs become eligible after seven days. The weekly
+artifactctl job verifies the exact file and its disposition, moves eligible
+files into a 30-day local quarantine, and then purges only that registered file.
+Failed, blocked, active, modified, unregistered, out-of-scope, or manually
+supplied files are preserved. Verified weekly cleanup is the sole permitted
+automatic local-cleanup exception. It never deletes or modifies remote data in
+FlatFilePro, pCloud, or Google Drive. Handoffs list created paths, disposition,
+and eligibility date; only unclassified or blocked artifacts need approval.
 
 **Set a local delivery postcode before reading or screenshotting any Amazon RETAIL page.** Without one, an automated session sits on Amazon's default ship-to (it renders as "Kazakhstan" on the EU stores) and every listing comes back with no price, no Add to Cart and "No disponible / Currently unavailable", including products that are in stock and selling. Search results are reordered, so the client's own ASINs fall off page one. Nothing errors, so the wrong answer looks like a finding. Use `tools/report-fetcher/marketplace-postcode.mjs`: `ensureDeliveryPostcode(session, "es")` sets it, and `assertDeliveryPostcode(session, "es")` re-checks it. The postcode is per marketplace and per big city (Madrid 28001, Berlin 10115, London SW1A 1AA, New York 10001, and so on), because coverage is best in a city and a rural code can add a real delivery restriction. Amazon also drops the ship-to on a new tab that has not been reloaded, so re-assert after every navigation you are about to read from. This is a browsing preference on our own debug profile: it changes nothing on any Amazon account and touches no cookie or storage directly. Seller Central pages do not need it.
 
 Interactive UI work (FlatFilePro mapping, Creator Connections inbox, visual checks, anything without a script path) runs over the same CDP debug Chrome. CDP is not limited to scripted fetches: it dispatches real mouse and key events, captures screenshots as evidence, polls for late-loading elements, attaches local files to file inputs (`DOM.setFileInputFiles`), and captures downloads to a chosen folder (`Browser.setDownloadBehavior`). Verified 31.07.2026, including a live Seller Central account switch driven entirely from the terminal.
 
-Use the **Chrome extension** instead when the task must run inside the operator's own logged-in session rather than the debug profile. DataDive is the standing example: the debug profile has no DataDive login, and creating one risks displacing the operator's. The two profiles hold independent sessions and do not interfere.
+Use the **Chrome extension** instead when the task must run inside the operator's own logged-in session rather than the debug profile. DataDive is the standing example. On machines where the two are separate profiles, the debug profile has no DataDive login, creating one risks displacing the operator's, and the sessions do not interfere. On the Linux primary (since 25.08.2026) they are deliberately **one merged profile**: `~/.amazon-agent/chrome-debug` is a symlink to the operator profile (`~/.config/google-chrome-amazon-operator`), which holds the Seller Central and DataDive logins and the Data Dive extension. The CDP-vs-extension routing rule below is unchanged (it picks the transport), but on that machine both paths share one session store, so treat every CDP action there as acting inside the operator's live session.
 
 Choose by session, not by agent: **CDP when the agent should work in its own sandbox, the extension when the task needs the operator's live session.** Everywhere this document says "the browser," it means whichever of these applies to the current task.
 
 Every skill declares its path in one standardized line right under its title (`Browser: CDP|Extension|None|Mixed`, enforced by `tools/lint_agent_docs.py`). Trust that line when a skill is loaded; the full per-workflow table is `docs/browser-routing-map.md`.
 
-If an Amazon page shows a login screen, switch port 9222 to `--mode recovery`, bring it forward, and ask the operator to log in. Return it to headless mode after login. The agent must not handle passwords, one-time codes, authenticator prompts, cookies, local storage, session stores, or other credentials.
+If an allowlisted site shows a login screen, the local authentication broker may
+complete it on ports 9222 or 9223. The broker, not the reasoning process, retrieves
+and enters credentials. It validates the exact page origin, CDP port, adapter,
+and 1Password item route before retrieval. It emits structured non-secret status
+only. CAPTCHA, device approval, account recovery, identity verification, and
+invalid-credential states remain human-only. The agent must not inspect passwords,
+one-time codes, cookies, local storage, session stores, or browser profile data.
 
-One narrow unattended exception is approved for Wizards AI. Its dedicated
-port-9223 Chrome uses a separate delegated least-privilege Amazon service account.
+The delegated least-privilege Amazon service account remains the Wizards AI read
+identity even though its login can now be brokered on either CDP port.
 SPP grants View wherever available plus four explicit Edit exceptions: Reports,
 `Manage Inventory/Add a Product`, `Manage FBA Inventory/Shipments`, and
 `Inventory Planning`. The three Inventory exceptions expose required read data
 and never authorize runtime writes.
-When `~/os/wizards-ai/config.json` explicitly enables the scoped
-1Password service-account mode, wizards-ai's `tools/wizards-inventory/` may retrieve only
-that read-runtime login from the custom `Wizards AI Automation` vault through a
-token stored in macOS Keychain. The code must assert port 9223, the preserved
-view-only runtime-policy identifiers,
-allowed Amazon authentication origins, and no fallback before retrieving a
-credential. CAPTCHA, device approval, account recovery, identity verification,
-and every port-9222 login remain human-only. This exception never permits cookie
-or browser-storage inspection and does not apply to attended Amazon Agent work.
+`~/os/wizards-ai/config.json` owns the exact authentication route allowlist.
+Initially it permits Seller Central `.com`, `.de`, and `.com.au`, their Amazon
+authentication origins, and `app.flatfile.pro`, on ports 9222 and 9223. Routes
+use a pinned 1Password item or an exact-origin match that must resolve to exactly
+one Login item. Authentication availability never broadens a workflow's action
+rights. FlatFilePro still stops before Update Listings, and port-9223 inventory
+work remains read-only. The exception never permits cookie or browser-storage
+inspection.
 
 Before every Amazon task, verify the browser session is logged in and confirm the selected account/advertiser, marketplace/country, visible page title/tool, and date range or filters when relevant. If the task names a client, brand, advertiser, seller account, or marketplace, switch to that exact account and marketplace before doing any task work, downloading files, reading reports, or confirming statuses. When the requested account and marketplace are visibly selected, continue without asking for an additional account-safety confirmation. Stop only when a different account is active, the requested account is unavailable, the selection is ambiguous, or login/session friction prevents verification. Repeat this verification after switching tools, opening a new Amazon area, changing marketplaces, changing advertiser/seller accounts, or returning from a login/session timeout. If the browser is unavailable or not logged in, pause and ask the operator to open it, complete login, or name which browser/session to use.
 
@@ -369,10 +409,12 @@ Do not create a separate global overview tracker by default. If a workflow needs
 ## Durable Storage
 
 This repository supplies temporary `downloads/`, `output/` and `evidence/`
-defaults only. Durable destinations and run-close cleanup belong to the operator's
-local storage policy. When no local policy is installed, keep files in the
-gitignored defaults and report that no durable route was available rather than
-guessing or copying the same artifact to several systems.
+defaults only. New files use `tools/artifactctl/artifactctl`: register exact
+paths under a run, complete the run with its real outcome, and leave weekly
+verification, quarantine, restoration, and purge to the machine-local policy.
+When no local policy is installed, keep files in the gitignored defaults and
+report that no durable route was available rather than guessing or copying the
+same artifact to several systems.
 
 ## Google Drive Delivery
 
@@ -403,7 +445,7 @@ What agents deliver to Drive:
 | Human-facing monthly reports | `<Client> - Shared/<Reports>/` |
 | SB video briefing + Creative Reference Google Docs | `<Client> - Shared/<Video Briefings>/` (one file per batch and per product line, edited in place) |
 | FlatFilePro upload CSVs | NOT in Drive. `output/{client}/catalog/` |
-| Raw Seller Central listing exports (Category Listings Report) | NOT in Drive. Generic working path: `downloads/{client}/catalog/`; apply the installed local archive/cleanup policy at run close. |
+| Raw Seller Central listing exports (Category Listings Report) | NOT in Drive. Generic working path: `downloads/{client}/catalog/`; register under the run and apply the installed artifact lifecycle. |
 
 Subfolder names inside `<Client> - Shared/` vary per client for historical reasons (`Keyword Research` in one, `02 Keyword Research` in another). Before saving, LIST the folder and reuse the existing one. Never create a spelling or numbering variant next to an existing folder, and never create a new top-level subfolder inside `<Client> - Shared/`. The delivery rows above are not a complete inventory of what the client sees. The rule for anything else in the folder: if you did not create it, leave it exactly as it is. Do not move, rename, reorganize, or flag it as misplaced. A client folder legitimately holds team-managed folders that no agent ever writes to, `Creative Assets` being one example, and the absence of a folder from the delivery rows says nothing about whether it belongs. If an artifact you generated does not fit a delivery row, follow the installed local policy or leave it in `output/` when none is installed.
 
@@ -416,7 +458,7 @@ YYYY-MM-DD_<Client>_<Market>_<Artifact>_v<N>.<ext>
 
 Date first and ISO always, so folders sort chronologically. Keep the client name even though the folder already carries it, because the file has to stay identifiable after it is downloaded or forwarded. Omit `<Market>` only when the artifact genuinely spans all marketplaces. Do not reuse the older `<Client> <Market> - <Artifact> - DD.MM.YYYY` or trailing-date forms. `<Artifact>` comes from the controlled list in the team SOP; if nothing fits, add it there rather than inventing one here. A native Google Doc or Sheet carries the same name without the extension.
 
-**Deliverables become native Google files, never `.docx` or `.xlsx`.** Documents become Google Docs and workbooks become Google Sheets. An Office file in Drive cannot be commented on the way a native one can, and "Open with Google Docs/Sheets" hands the client a detached copy. Renderers still produce Office files because python-docx and openpyxl are what carry the branded contract, so those files are intermediates: convert with `python3 tools/gdrive-deliver/deliver.py <file> "<drive folder>" --name "<delivery filename>"`, which gets the file into Drive, converts it, verifies the result, then deletes the Office file both locally and in Drive. Nothing is deleted unless the conversion verified, so a failure leaves the file in the folder rather than losing it.
+**Deliverables become native Google files, never `.docx` or `.xlsx`.** Documents become Google Docs and workbooks become Google Sheets. An Office file in Drive cannot be commented on the way a native one can, and "Open with Google Docs/Sheets" hands the client a detached copy. Renderers still produce Office files because python-docx and openpyxl carry the branded contract. Convert with `python3 tools/gdrive-deliver/deliver.py <file> "<drive folder>" --name "<delivery filename>" --artifact-run <run-id>`. The helper verifies the native destination, emits a non-secret receipt, and retains the local Office file for artifactctl. The staged uploaded Office copy is removed unless explicitly retained; the native destination is never deleted by artifactctl.
 
 The destination can be a Drive folder path or a Drive folder id, and the script picks the route from it. One-time setup on a machine is `python3 tools/gdrive-deliver/setup_google.py`; without it, delivery still works and prints the browser steps instead. **the gdrive-deliver README in `company-ai-skills/lib/gdrive-deliver/` is the source of truth** for the routes, the size limits, the account check and what survives conversion (the implementation moved there on 12.08.2026; `tools/gdrive-deliver/` here holds forwarders so every documented command keeps working). Read it when delivery does something unexpected, not before every delivery.
 
@@ -569,6 +611,9 @@ For downloads:
 
 - Confirm the destination if the operator has not specified one.
 - Record the account, marketplace, report type, filters, and date range.
+- Register every new exact path under the active artifact run. A FlatFilePro
+  export may use `source-backed` only when its source origin is exactly
+  `https://app.flatfile.pro`; manual inputs default to `preserve`.
 
 For troubleshooting:
 

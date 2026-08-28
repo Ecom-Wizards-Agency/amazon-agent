@@ -2,8 +2,8 @@
 
 ## Chrome Setup
 
-- Use the Chrome plugin/browser-control surface because FlatFilePro depends on the logged-in Chrome session.
-- If Chrome is not connected or FlatFilePro is logged out, ask the operator to open/login and tell you when ready.
+- Use managed Chrome CDP, normally port 9222, because FlatFilePro depends on its logged-in session and native file-upload support.
+- If managed Chrome is unavailable, recover it rather than switching to the T3 Code in-app browser. If FlatFilePro is logged out, run the exact-origin authentication broker and stop for the operator on any human challenge.
 - Do not inspect passwords, cookies, local storage, tokens, or session data.
 
 ## Account And Marketplace
@@ -24,9 +24,14 @@ If switching is needed:
 1. Navigate to FlatFilePro `Upload`.
 2. Click `UPLOAD FILE`.
 3. Select the prepared `.xlsx`.
-4. If selecting the local path through Chrome's picker is slow, optionally copy the `.xlsx` to Downloads first, then select it from the top of Downloads.
+4. If selecting the local path through Chrome's picker is slow, optionally copy the `.xlsx` to Downloads first, then select it from the top of Downloads. Register only that new exact copy as `reproducible` in the active artifact run.
 5. Choose `SKU` matching unless the user asked for a different basis.
 6. Select the file column that contains the SKU.
+
+An export newly downloaded from `https://app.flatfile.pro` is registered as
+`source-backed` with that exact source origin. Do not copy it to Drive or
+pCloud. Existing or operator-supplied inputs default to `preserve` and are not
+auto-adopted into cleanup.
 
 If the operator already selected the file or matched SKU, do not restart. Continue from the current upload/mapping screen.
 

@@ -4,10 +4,10 @@ Canonical, client-agnostic prompt for pulling Seller Central reports with the re
 Use the current runtime's shell and connected browser capability. Fill the placeholders; nothing
 here names a client.
 
-Prerequisite (one-time): initialize the dedicated debug Chrome login with
-`tools/report-fetcher/launch-chrome-debug.sh --mode recovery`, sign into Seller Central, then
-return it to headless mode with `tools/report-fetcher/launch-chrome-debug.sh`. The login persists;
-normal CDP commands start or reuse the headless profile automatically.
+Prerequisite (one-time): install the browser lifecycle policy and run
+`node tools/browserctl/browserctl.mjs ensure --port 9222`. If login is required, run
+`node tools/browserctl/browserctl.mjs auth --port <port> --target <id>`. Use an explicit recovery
+restart only for a human challenge. Normal CDP commands reuse the configured process.
 
 ## Account safety
 
@@ -50,8 +50,9 @@ CONFIG: tools/report-fetcher/config.<CLIENT_SLUG>.json
 CLIENT (must match the Seller Central account name): <CLIENT NAME>
 
 1. node tools/report-fetcher/run.mjs doctor
-   - The command starts or reuses headless CDP. If login is missing, run
-     tools/report-fetcher/launch-chrome-debug.sh --mode recovery, ask the operator to sign in,
+   - The command starts or reuses the policy-configured CDP browser. If login is missing,
+     run `browserctl auth` for the target. Use an explicit `browserctl restart --mode recovery
+     --reason "attended login"` only for a human challenge, ask the operator to finish it,
      and wait.
    - Proceed only when it prints "Login: OK" (exit 0). On INDETERMINATE (exit 2), retry doctor
      instead of assuming the session is logged out.

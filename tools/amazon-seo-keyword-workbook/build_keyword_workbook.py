@@ -46,6 +46,7 @@ import json
 import os
 import re
 import shutil
+import subprocess
 import sys
 import unicodedata
 from typing import Any
@@ -84,6 +85,7 @@ DEFAULTS = {
     "curated_tabs": "",  # optional: JSON of curated tab content to write deterministically.
     "drive_dir": "",  # optional: folder to copy the finished .xlsx into (e.g. the synced Drive folder). Off by default.
     "handoff_note": "",
+    "artifact_run": "",  # active artifactctl run; workbook waits for a Drive receipt, manifest is reproducible.
 }
 
 
@@ -2367,8 +2369,8 @@ def _browser_input_checklist(cfg: dict, args: dict, missing: list[str]) -> str:
         "(direct tab URLs render header-only; Download clicks work even when the download event times out — check ~/Downloads).",
         "- Amazon listing pages may render in English despite locale URL params — switch the Amazon site "
         "language preference to the marketplace language (e.g. 'italiano - IT'), then re-run the capture.",
-        "- After the canonical files pass preflight and validation, delete duplicate/raw intermediate downloads "
-        "(NEVER the canonical contract paths).",
+        "- After the canonical files pass preflight and validation, register duplicate/raw intermediate downloads "
+        "as reproducible (NEVER the canonical contract paths).",
         "",
         "Then: re-run preflight and continue the end-to-end workflow when READY. If this checklist was "
         "handed off because the originating runtime lacked browser access, report the exact saved paths and caveats.",
@@ -2825,6 +2827,25 @@ def main() -> int:
     print(f"Saved manifest: {args['manifest']}")
     if handoff_path:
         print(f"Saved handoff note: {handoff_path}")
+
+    if args.get("artifact_run"):
+        artifactctl = os.path.join(REPO, "tools", "artifactctl", "artifactctl")
+        registrations = [
+            (args["out"], "verify-drive"),
+            (args["manifest"], "reproducible"),
+        ]
+        for artifact_path, disposition in registrations:
+            result = subprocess.run(
+                [artifactctl, "register", "--run", args["artifact_run"],
+                 "--path", artifact_path, "--disposition", disposition],
+                capture_output=True, text=True, check=False,
+            )
+            if result.returncode != 0:
+                raise RuntimeError(
+                    "artifact registration failed for " + artifact_path + ": "
+                    + (result.stderr or result.stdout).strip()
+                )
+        print(f"Registered workbook and manifest in artifact run: {args['artifact_run']}")
 
     # --- Console summary ---------------------------------------------------- #
     print("\n=== VALIDATIONS ===")
