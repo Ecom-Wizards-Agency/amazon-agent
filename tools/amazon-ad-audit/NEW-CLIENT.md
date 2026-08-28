@@ -17,6 +17,8 @@ Fill every `<...>` placeholder:
 - **`competitor_tokens`** — competitor brand names (from the DataDive niche competitors + known rivals). Used for the conquesting bucket.
 - **`asin_groups`** — map each product line to its ASINs (matches the SQP file split and Business-Report ASINs). Use `null`/`{}` for an ungrouped single line.
 - **`windows`** — ads / business-report / SQP-weeks / DataDive dates for the subtitle + method notes.
+- **`comparison_windows`** — when the product is offline or suppressed, keep the required incident
+  window separate from the latest four complete weeks it was continuously online. Never blend them.
 - **`datadive_niche`** — the DataDive `nicheId` (from `list_niches`). Leave empty to skip the organic overlay.
 
 ## 2. Gather the inputs (preflight-driven)
@@ -25,9 +27,9 @@ Fill every `<...>` placeholder:
 python3 tools/amazon-ad-audit/build_audit.py --config tools/amazon-ad-audit/config.<client>-<market>.json --preflight
 ```
 
-- If it prints **WAITING ON CODEX**, paste the emitted block to Codex. Codex downloads the ads bulk `.xlsx`, Business Report `.csv`, and multi-ASIN SQP `.csv`(s) to the exact paths in `inputs{}` (connected browser; file downloads use the @Chrome extension per the Codex download rule), captures evidence + caveats, and stops. Codex does **not** run the builder or write the narrative. (The Business Report + SQP files can also be fetched without manual download via `tools/report-fetcher/` — see the `amazon-reporting` skill. The ads bulk `.xlsx` still comes from the Ads console.)
-- **Claude** pulls the DataDive niche via MCP (`get_niche_keywords`, `get_niche_competitors`) and saves them to the `datadive_niche_json` / `datadive_competitors_json` paths.
-- Re-run `--preflight` until it prints **READY**.
+- Gather every **MISSING BROWSER INPUT** into the exact `inputs{}` paths using the connected browser. Business Report and SQP can also come from `tools/report-fetcher/`; the ads bulk `.xlsx` still comes from the Ads console.
+- Gather every **MISSING DATADIVE MCP INPUT** with `get_niche_keywords` and `get_niche_competitors`, saving the raw responses to the printed paths.
+- Re-run `--preflight` until it prints **READY**, then continue through build, narrative, QA, and authorized internal delivery. If one capability is unavailable, hand off only its checklist to any capable agent.
 
 ## 3. Build
 
@@ -47,7 +49,19 @@ All gates must PASS (spend reconciliation, no >100% ACOS colored green, master t
 
 ## 5. Write the narrative
 
-Open the `.md` scaffold — KPIs and tables are pre-filled. Write the prose, Problems, and Growth Levers per `skills/amazon-audit/SKILL.md` (operator voice, second person, keep it lean — no 30-day plan / "what can be reached" / "bottom line" unless the config flags them on). Reference screenshots inline with `![caption](file.png)` (paths relative to the `.md`). Re-run the build to regenerate the branded `.docx`.
+Open the `.md` scaffold. KPIs and tables are pre-filled. Write the prose, Problems, and Growth Levers per `skills/amazon-audit/SKILL.md` (operator voice, second person, keep it lean; no 30-day plan, "what can be reached", or "bottom line" unless the config flags them on). Set `narrative.mode` to `evidence_hybrid` when the operator asks for `same style as UltimaPeak`, `UltimaPeak style`, or `evidence-hybrid`. Capture candidates with `capture_audit_evidence.mjs`, select them with `audit_evidence.py`, and reference selected screenshots inline with `![caption](file.png)` (paths relative to the `.md`). SQP and workbook screenshots are forbidden. Re-run the build to regenerate the branded `.docx`.
+
+### Copy-ready request for the next prospect
+
+```text
+/amazon-audit deep. Run a first-time audit for [Brand] in [Market] using the same evidence-hybrid
+style as UltimaPeak. The main product is [Product] ([ASIN]). Use [break-even ACOS or "assume X%"]
+and verify the claims from [call/date]. Add directional market sizing for [optional products]. If
+the listing is offline or suppressed, preserve the latest-four-week incident window and compare it
+separately with the latest four complete weeks it was continuously online. Build the branded native
+Google Doc and MASTER Google Sheet, but ask before placing or sharing them where the prospect can
+see them.
+```
 
 ## 5b. Branding (agency identity from `_local/branding/` — see BRANDING.md)
 

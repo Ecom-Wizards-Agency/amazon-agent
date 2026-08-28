@@ -1,6 +1,6 @@
 # Public Release / Pre-Push Checklist
 
-This repo is being prepared as a public-safe, reusable workspace. Run this checklist before **any commit that will be pushed to a public remote**. It is agent-neutral: whichever agent performs the push (Claude Code or Codex) and the operator both follow it. This file is itself public; keep real names, IDs, and client brands out of it.
+This repo is being prepared as a public-safe, reusable workspace. Run this checklist before **any commit that will be pushed to a public remote**. It is agent-neutral: the current pushing agent and the operator both follow it. This file is itself public; keep real names, IDs, and client brands out of it.
 
 ## 1. Git identity (do not publish a personal machine identity)
 
@@ -40,9 +40,9 @@ No API keys, tokens, cookies, bearer/refresh tokens, passwords, tax IDs, payment
 - Work on a branch; never commit straight to `main`.
 - Open a PR to `main` and let the operator review the **full diff** before merge. Do not force-push shared branches. Do not push at all unless the operator has explicitly asked for this specific push.
 
-## 6. Handoff to the pushing agent (e.g. Codex)
+## 6. Handoff to the pushing agent
 
-Because Codex holds the shared runtime for git work in the two-agent model, the push is often executed by Codex. Whoever hands off must give a copy-ready block containing: the exact branch, the files intended for the commit, confirmation that sections 1–4 passed (with the commands run), the target base branch for the PR, and any files deliberately left untracked. The pushing agent re-runs sections 1–4 before committing rather than trusting the handoff blindly.
+Whoever hands off must give a copy-ready block containing: the exact branch, the files intended for the commit, confirmation that sections 1–4 passed (with the commands run), the target base branch for the PR, and any files deliberately left untracked. The pushing agent re-runs sections 1–4 before committing rather than trusting the handoff blindly.
 
 ## Change log of verified-safe additions
 

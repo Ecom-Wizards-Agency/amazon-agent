@@ -5,6 +5,8 @@ description: Weekly PPC management loop for AdLabs-managed accounts. Trigger on 
 
 # Amazon PPC Management (weekly loop, AdLabs-managed accounts)
 
+For Sponsored Brands video concept tests, use `<vault>/Playbooks/amazon-sb-video-concept-testing-playbook.md` (team vault, resolved via `AMAZON_AGENT_TEAM_VAULT` or `_local/team-vault-path.txt`) as the canonical test-cell, confidence, verdict, and learning method. PPC management owns scaling decisions under the account strategy. The editor brief and Creative Reference do not contain performance methodology.
+
 Browser: None (AdLabs MCP + DataDive MCP; Sellerboard CSV via the ads-monitor inbox convention).
 
 Use this when the operator asks to RUN a managed account's week: adjust bids, budgets, opt-groups, harvests. It is the operating counterpart to `amazon-audit` (diagnose) and `amazon-ads-monitor` (observe). Prospects and bulk-file accounts also route to `amazon-audit`; this skill requires a live AdLabs connection.

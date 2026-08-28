@@ -20,7 +20,7 @@
  *   and asks the operator to open/refresh the Brand Analytics tab.
  *
  * EXECUTION PATHS (same as extract-amazon-listing-copy.js)
- *   A) Codex / Playwright — pass the source as a string that defines + calls the fn:
+ *   A) Internal browser / Playwright: pass the source as a string that defines + calls the fn:
  *        await tab.playwright.evaluate(`(function(){\n${src}\nreturn fetchSqp(${json});\n})()`)
  *   B) DevTools / injected — window.amazonAgentFetchSqp(params) /
  *        window.amazonAgentFetchBusinessReport(params)
@@ -224,6 +224,36 @@ async function fetchSqp(params) {
   return out;
 }
 
+// Brand-view SQP fallback for a historically single-ASIN brand when Amazon no longer
+// accepts the suppressed or deleted ASIN in ASIN View. This is never silently treated
+// as ASIN-level data: the output carries sourceView and proxyAsin metadata.
+// params: { brand:"<brand id>", proxyAsin?:"B0...", marketplace:"us",
+//           reportingRange:"weekly", periodEndDates:[...], maxPages?:200 }
+async function fetchBrandSqp(params) {
+  var base = location.origin;
+  var url = base + "/api/brand-analytics/v1/dashboard/query-performance/reports";
+  var range = (params.reportingRange || "weekly").toLowerCase();
+  var mp = (params.marketplace || "us").toLowerCase();
+  if (!params.brand) {
+    return { schemaVersion: "amazon-agent.seller-report.v1", report: "sqp",
+      sourceView: "brand", marketplace: mp, reportingRange: range,
+      capturedAt: new Date().toISOString(), columns: [], batches: [],
+      error: "brand-view SQP requires a brand id" };
+  }
+  var res = await _rfDashboardFetch(url, range, mp, params.periodEndDates,
+    "query-performance-brand-report-table", "query-performance-brands-view",
+    "qp-query-rank", true, [{ id: "brand", value: String(params.brand), valueType: null }],
+    params.maxPages || 200);
+  var out = Object.assign({ schemaVersion: "amazon-agent.seller-report.v1", report: "sqp",
+    sourceView: "brand", brand: String(params.brand), proxyAsin: params.proxyAsin || "",
+    marketplace: mp, reportingRange: range, capturedAt: new Date().toISOString() }, res);
+  for (var bi = 0; bi < (out.batches || []).length; bi++) {
+    out.batches[bi].asin = params.proxyAsin || "";
+    out.batches[bi].sourceView = "brand";
+  }
+  return out;
+}
+
 // ---------------------------------------------------------------- SCP (Brand Catalog Performance)
 // params: { marketplace:"us", reportingRange, periodEndDates:[...], asins?:[...], brand?:"<brand id>" }
 async function fetchScp(params) {
@@ -346,6 +376,7 @@ async function fetchBusinessReport(params) {
 
 try {
   window.amazonAgentFetchSqp = fetchSqp;
+  window.amazonAgentFetchBrandSqp = fetchBrandSqp;
   window.amazonAgentFetchBusinessReport = fetchBusinessReport;
   window.amazonAgentFetchScp = fetchScp;
   window.amazonAgentFetchTst = fetchTst;

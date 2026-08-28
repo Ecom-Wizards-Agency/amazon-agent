@@ -19,7 +19,7 @@ the logic there.
     python3 tools/report-fetcher/launch-chrome-debug.py
 
 Env: CDP_PORT (9222) · CDP_PROFILE · CHROME_BIN · CDP_START_URL ·
-CDP_BROWSER_MODE (headless)
+CDP_BROWSER_MODE (headless) · CDP_WINDOW_SIZE (1920,1080)
 """
 import argparse
 import json
@@ -32,6 +32,7 @@ import urllib.request
 from pathlib import Path
 
 PORT = os.environ.get("CDP_PORT", "9222")
+WINDOW_W, WINDOW_H = (os.environ.get("CDP_WINDOW_SIZE", "1920,1080").split(",") + ["1080"])[:2]
 PROFILE = Path(os.environ.get("CDP_PROFILE",
                               str(Path.home() / ".amazon-agent" / "chrome-debug")))
 START_URL = os.environ.get("CDP_START_URL", "https://sellercentral.amazon.com")
@@ -179,10 +180,16 @@ def stop_managed_browser(state: dict) -> None:
 
 
 def protect_profile() -> None:
-    PROFILE.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    parent = PROFILE.parent
+    parent_created = not parent.exists()
+    parent.mkdir(parents=True, exist_ok=True, mode=0o700)
     PROFILE.mkdir(parents=True, exist_ok=True, mode=0o700)
     if not sys.platform.startswith("win"):
-        os.chmod(PROFILE.parent, 0o700)
+        # Harden the standard private root and parents created by this launcher.
+        # A custom profile may sit under /tmp or another shared directory whose
+        # permissions this process neither owns nor should change.
+        if parent_created or parent == Path.home() / ".amazon-agent":
+            os.chmod(parent, 0o700)
         os.chmod(PROFILE, 0o700)
 
 
@@ -242,10 +249,32 @@ def main() -> None:
         kwargs["creationflags"] = getattr(subprocess, "DETACHED_PROCESS", 0)
     else:
         kwargs["start_new_session"] = True
+    # Pin the UI language for every marketplace. Seller Central renders in the
+    # browser's language, so a .de or .co.jp host otherwise hands back a page
+    # whose account names, marketplace names and button labels are localized.
+    # On 11.08.2026 that silently broke every scheduled inventory pass: the
+    # picker offered "Vereinigte Staaten" while the automation looked for
+    # "United States". Setting it here rather than on the Amazon account keeps
+    # it a local browser preference and changes nothing on the seller profile.
+    # Always a full desktop viewport, headless included. Headless Chrome otherwise
+    # starts at 800x600, which is small enough that Amazon serves a narrow layout:
+    # lazy-loaded gallery and A+ modules never enter the viewport, screenshots come
+    # out cramped or clipped, and evidence captures land near the 600x350 floor the
+    # selector rejects. One size for every mode and both ports (9222 here, 9223 for
+    # the Wizards AI read browser, which launches through this same file).
+    # No on-device model in a scraping profile. Chrome downloads Gemini Nano through
+    # the optimization guide for browser AI features we never use, and it is not small:
+    # on 12.08.2026 OptGuideOnDeviceModel held 4.0 GB of the port-9222 profile's 5.5 GB.
+    # The agent already brings its own model. Disabling the feature stops the download
+    # and the periodic re-download after each component update.
     command = [chrome, f"--remote-debugging-port={PORT}",
                "--remote-debugging-address=127.0.0.1",
                f"--user-data-dir={PROFILE}", "--no-first-run",
-               "--no-default-browser-check"]
+               "--no-default-browser-check",
+               f"--window-size={WINDOW_W},{WINDOW_H}",
+               "--lang=en-US", "--accept-lang=en-US,en",
+               "--disable-features=OptimizationGuideOnDeviceModel,"
+               "OptimizationGuideModelDownloading"]
     if requested == "headless":
         command.append("--headless")
     command.append(START_URL)

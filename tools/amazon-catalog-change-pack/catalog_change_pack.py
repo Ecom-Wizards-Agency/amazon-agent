@@ -17,6 +17,7 @@ import re
 import shutil
 import sys
 import zipfile
+import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
@@ -376,15 +377,15 @@ def load_template(path: Path) -> TemplateInfo:
 
 
 FIELD_CANDIDATES = {
-    "sku": ["item_sku"],
+    "sku": ["item_sku", "contribution_sku#1.value"],
     "product_type": ["product_type"],
     "action": ["::record_action"],
     "parentage": ["parentage_level#1.value", "parentage_level.value"],
     "parent_sku": ["child_parent_sku_relationship#1.parent_sku"],
     "variation_theme": ["variation_theme#1.name"],
     "title": ["item_name#1.value"],
-    "external_product_id": ["externally_assigned_product_identifier#1.value"],
-    "external_product_id_type": ["externally_assigned_product_identifier#1.type"],
+    "external_product_id": ["externally_assigned_product_identifier#1.value", "amzn1.volt.ca.product_id_value"],
+    "external_product_id_type": ["externally_assigned_product_identifier#1.type", "amzn1.volt.ca.product_id_type"],
     "price": ["purchasable_offer#1.our_price#1.schedule#1.value_with_tax"],
     "quantity": ["fulfillment_availability#1.quantity"],
     "fulfillment_channel": ["fulfillment_availability#1.fulfillment_channel_code"],
@@ -404,6 +405,27 @@ def resolve_column(info: TemplateInfo, field: str, *, required: bool = True) -> 
         matches = [col for attr, col in info.attributes.items() if attr.startswith(candidate + "#")]
         if len(matches) == 1:
             return matches[0]
+    # Newer Seller Central templates qualify many attributes with marketplace,
+    # language, and audience selectors before the occurrence marker. Resolve
+    # those columns against the same canonical candidates without hard-coding
+    # one marketplace ID into the change-pack utility.
+    for candidate in candidates:
+        matches = [
+            col
+            for attr, col in info.attributes.items()
+            if re.sub(r"\[[^\]]+\]", "", attr) == candidate
+            or re.sub(r"\[[^\]]+\]", "", attr).startswith(candidate + "#")
+        ]
+        if len(matches) == 1:
+            return matches[0]
+        if len(matches) > 1 and candidate.startswith("purchasable_offer"):
+            retail_matches = [
+                col
+                for attr, col in info.attributes.items()
+                if col in matches and "[audience=ALL]" in attr
+            ]
+            if len(retail_matches) == 1:
+                return retail_matches[0]
     if required:
         raise CatalogError(f"Template is missing required attribute column: {field}")
     return None
@@ -529,6 +551,47 @@ def hash_member(path: Path, member: str) -> str | None:
         return None
 
 
+def workbook_sheet_member(path: Path, sheet_title: str) -> str:
+    """Return the worksheet ZIP member for a title in an OOXML workbook."""
+    with zipfile.ZipFile(path) as archive:
+        workbook = ET.fromstring(archive.read("xl/workbook.xml"))
+        relationships = ET.fromstring(archive.read("xl/_rels/workbook.xml.rels"))
+    relationship_id = None
+    for sheet in workbook.findall("{http://schemas.openxmlformats.org/spreadsheetml/2006/main}sheets/{http://schemas.openxmlformats.org/spreadsheetml/2006/main}sheet"):
+        if sheet.attrib.get("name") == sheet_title:
+            relationship_id = sheet.attrib.get("{http://schemas.openxmlformats.org/officeDocument/2006/relationships}id")
+            break
+    if not relationship_id:
+        raise CatalogError(f"Could not resolve worksheet package member for: {sheet_title}")
+    for relationship in relationships:
+        if relationship.attrib.get("Id") != relationship_id:
+            continue
+        target = str(relationship.attrib.get("Target") or "").lstrip("/")
+        if not target.startswith("xl/"):
+            target = "xl/" + target
+        return target
+    raise CatalogError(f"Could not resolve worksheet relationship for: {sheet_title}")
+
+
+def restore_template_container(template: Path, modified: Path, sheet_title: str) -> None:
+    """Keep Amazon's OOXML package intact and graft in only the edited sheet."""
+    member = workbook_sheet_member(template, sheet_title)
+    temporary = modified.with_name(f".{modified.name}.container.tmp")
+    try:
+        with zipfile.ZipFile(template) as source, zipfile.ZipFile(modified) as edited:
+            edited_members = {
+                member: edited.read(member),
+                "xl/styles.xml": edited.read("xl/styles.xml"),
+            }
+            with zipfile.ZipFile(temporary, "w") as target:
+                for item in source.infolist():
+                    target.writestr(item, edited_members.get(item.filename, source.read(item.filename)))
+        temporary.replace(modified)
+    finally:
+        if temporary.exists():
+            temporary.unlink()
+
+
 def write_workbook(template: Path, output: Path, rows: list[dict[str, Any]]) -> None:
     output.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(template, output)
@@ -538,8 +601,10 @@ def write_workbook(template: Path, output: Path, rows: list[dict[str, Any]]) -> 
         row_number = info.data_row + offset
         for field, value in values.items():
             set_value(info, row_number, field, value)
+    sheet_title = info.sheet.title
     info.workbook.save(output)
     close_workbook(info.workbook)
+    restore_template_container(template, output, sheet_title)
 
 
 def markdown_table(headers: list[str], rows: Iterable[Iterable[Any]]) -> str:

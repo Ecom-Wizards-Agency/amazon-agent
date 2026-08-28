@@ -1,47 +1,55 @@
-# Slack Output, Notion Follow-Up Defaults, and Finish Note
+# Digest Contract, Notion Follow-Up Defaults, and Finish Note
 
-## Slack Output
+## What The Run Posts
 
-Use one parent post per daily run in `{daily_update_channel}`. Do not post this workflow to client-specific channels unless setup explicitly chooses that destination. The parent post is the action queue - the daily runner's to-do list - not just a coverage list.
+The run posts nothing. It reads, disposes every finding into the ledger, writes its coverage entry, and returns its structured result. A separate deterministic pass reads that ledger once a day and posts the single digest in `{daily_update_channel}`, covering every region together. That is why the run stays quiet: three region runs each posting a parent plus one comment per account produced roughly 1,900 words a day across three threads, including comments for accounts nobody had read. The reader wants one overview of what matters today.
 
-Parent format:
+The one exception is an **immediate escalation**, and only for something that cannot wait for the digest:
 
-```text
-Daily Amazon Account Health Check - {Mon D}
+- an Amazon deactivation warning
+- a policy deadline inside 3 days
+- a high-severity finding with no owner
 
-Action queue {@daily_runner}
-1. :red_circle: ESCALATE {@escalation_owner} - {account} {marketplace} - {issue + deadline} - {task link}
-2. :large_orange_circle: ACTION - {account} {marketplace} - {scope} {issue} - {next step} by {date} - {task link}
-3. :large_yellow_circle: ASSIGNED - {account} {marketplace} - {issue} - {owner}, open {N}d{, OVERDUE} - {task link}
-4. :hourglass_flowing_sand: WAITING - {account} {marketplace} - {issue} - waiting on {target}, day {N}{, deadline {date}} - {task link}
+Post it the moment you find it. One line, in `{daily_update_channel}`, no thread, no parent post to hang it under. Then set `last_reported` on that finding so the digest does not repeat what the reader already saw.
 
-Clean: {N} of {M} accounts - no action needed
-Skipped/blocked: {none / account + reason}
-```
-
-Order the queue: escalations first, then action items, then assigned-overdue, then assigned, then waiting. If the queue is empty, write exactly `Action queue: empty` - a missing parent post means the run failed, not that everything was clean. Mention `{escalation_owner}` only on escalation lines.
-
-Thread comment per account:
+Escalation line format:
 
 ```text
-{{seller_central_name}} {{marketplace}}
-
-Account Health
-- Status: {Healthy / At risk / Issue found}
-- AHR: {rating}
-- Policy Compliance: {summary}
-
-SellerSonar alerts
-- {None / severity + alert summary / alert source stale ({date})}
-
-Findings
-- [{NO ACTION / ACTION / ASSIGNED / WAITING / ESCALATE}] {scope} - {issue} - owner {name} - {task link / deadline / waiting on}
+:red_circle: ESCALATE {@escalation_owner} - {account} {marketplace} - {issue}{, deadline DD.MM.YYYY} - {task link or task proposal}
 ```
 
-Keep comments short and human-readable. Do not include raw tables unless an issue needs the detail.
-If an account is fully clean, the Findings section is exactly: `No action needed.`
+Mention `{escalation_owner}` on escalation lines only, never anywhere else. Do not post this workflow to client-specific channels unless setup explicitly chooses that destination.
 
-When a `{supervisor}` is configured, add one extra thread comment on the last run of the week starting with `Weekly digest {@supervisor}`: findings per account this week, new vs resolved counts, escalations raised, overdue count, and recurring or systemic patterns from ledger history. Strategic summary, not a task list.
+Dates in prose and in any posted line are `DD.MM.YYYY`. ISO `YYYY-MM-DD` is only for ledger day keys such as `coverage[YYYY-MM-DD]`. A `Mon D` stamp is not allowed anywhere: it is neither format, and the run is claimed by its coverage entry rather than by a post title, so a stamp like that reads as a date nobody can match.
+
+## Severity Vocabulary
+
+Four labels, exactly these, wherever a finding is labelled: the ledger, the digest, and an escalation line.
+
+```text
+ESCALATE
+ACTION
+ASSIGNED
+WAITING
+```
+
+Do not invent a fifth. `CLEAN`, `WATCH` and `BLOCKED` are not labels in this workflow. A clean finding is disposed `No action needed` and simply does not appear. A blocker is not a finding label either: it goes in the finish note, and a browser blocker that stopped the run reading anything is posted by the runner's preflight before this check ever starts.
+
+## What The Run Writes To The Ledger
+
+The digest can only be as honest as the ledger, so per finding:
+
+- disposition, severity, owner, task link, deadline, and the account, marketplace and scope that identify it
+- `last_movement`: the date the observed state actually changed
+- `last_reported`: set it when you post an immediate escalation, so the stall timer re-arms
+
+And once per run, at the top level of the ledger:
+
+- `coverage[YYYY-MM-DD][<region>]` with `checked`, `in_scope` and `skipped`, written even when the run failed, with `checked: 0`
+
+Field semantics and the reasons behind them are in `dispositions-and-ledger.md`.
+
+When a `{supervisor}` is configured, the weekly digest is built from ledger history by the same digest pass on the last run of the week: findings per account, new vs resolved counts, escalations raised, overdue count, and recurring or systemic patterns. Strategic summary, not a task list. The check itself still posts nothing.
 
 ## Notion Follow-Up Defaults
 
@@ -55,7 +63,7 @@ Disposition mapping (update-don't-duplicate, matched by ledger key):
 - Waiting: update/comment the existing task with who it waits on and since when; set the closest waiting/blocked status the database offers; owner stays `{daily_runner}`.
 - Escalate: task assigned to `{escalation_owner}` at the highest priority.
 
-Never set a completed/done status and never close an escalation task - only the escalation owner resolves those. When a finding is verified resolved in Seller Central, comment `verified resolved {date}` and report it in the queue for the owner to close.
+Never set a completed/done status and never close an escalation task - only the escalation owner resolves those. When a finding is verified resolved in Seller Central, comment `verified resolved {DD.MM.YYYY}`, set the ledger entry's `resolved_date` and `last_movement`, and leave the task open for the owner to close.
 
 Default fields on creation:
 
@@ -78,17 +86,20 @@ Task body must include:
 - Context
 - Evidence
 - Objective
-- Acceptance criteria, including posting a done-note in the daily update thread
+- Acceptance criteria, including a done-note on the task itself
 - Stop-before-risk note
-- Link to the day's account thread comment and the ledger key
+- The ledger key of the finding, and the date the state last moved
 
 ## Finish Note
 
+The finish note is the run's structured JSON result. It is never posted to Slack: the digest pass owns the daily post, and duplicating the note there is exactly the noise the digest replaced.
+
 Report:
 
-- Slack parent link and account comment link.
-- Queue counts by disposition, overdue count, and escalations raised.
-- Notion task titles and URLs created or updated.
+- Counts by disposition, overdue count, and escalations raised.
+- Any immediate escalation posted, with its finding key, so it is clear why the digest will not repeat it.
+- The coverage entry written for this run: region, `checked`, `in_scope`, and the `skipped` list.
+- Notion task titles and URLs created or updated, or the task proposals when the stage forbids live writes.
 - Accounts checked or skipped.
 - Ledger written yes/no, and which browser was used (preferred or fallback).
-- Any blockers, login needs, or actions requiring the operator approval.
+- Any blockers, including a missing or stale market-signal state file, login needs, or actions requiring the operator's approval.

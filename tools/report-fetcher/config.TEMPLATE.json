@@ -2,6 +2,13 @@
   "_README": "TEMPLATE — copy to config.<client>-<market>.json (gitignored) for per-client defaults. Then a fixed command runs everything: node tools/report-fetcher/run.mjs all --config <this>. All fields optional; any can be passed as a --flag instead. marketplace = lowercase country code (us, de, it, uk, ...). See README.md.",
   "client": "<client slug, lowercase-kebab>",
   "marketplace": "us",
+  "_account_comment": "Account safety. expect_account: name or merchant id the signed-in account MUST match, judged against the live tab; scripted runs must set it. account: merchant id to pin; ENFORCED (the run dies rather than falling back to the session default). account_name + marketplace_label (+ parent_account_name when the account nests under a parent): exact display names from Seller Central's account picker; with these the runner can drive the picker itself when the wrong account is active. origin: optional https://sellercentral.amazon.<tld> override when several regions are open.",
+  "expect_account": "<seller display name or merchant id>",
+  "account": "<optional merchant id to pin>",
+  "account_name": "<optional picker display name, e.g. Acme GmbH>",
+  "marketplace_label": "<optional picker marketplace label, e.g. United States>",
+  "parent_account_name": "<optional parent account display name>",
+  "origin": "<optional https://sellercentral.amazon.tld override>",
   "sqp": {
     "_comment": "One entry per ASIN group. Each group => one combined CSV (rows tagged by ASIN — a valid inputs.sqp_csvs group file), or one file per ASIN when split=true. Each ASIN is fetched with a single-ASIN call (uncapped SV). reporting_range: weekly|monthly|quarterly. period_end_dates: period-END dates YYYY-MM-DD (weekly = week-ending Saturday; monthly/quarterly = last day of the period), America/Los_Angeles.",
     "reporting_range": "weekly",

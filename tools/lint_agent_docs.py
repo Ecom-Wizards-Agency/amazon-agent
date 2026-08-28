@@ -46,6 +46,9 @@ EXEMPT_PARTS = [
     # Temporary: em-dash sweep deferred while the branding-doc rework is in
     # flight in the operator's working tree (2026-07-15). Remove once swept.
     "tools/amazon-ad-audit/",
+    # Third-party dependencies. Our house writing style does not apply to somebody
+    # else's README, and an installed package can put thousands of them in the tree.
+    "node_modules/",
 ]
 
 CLAUDE_ONLY_TOOLS = ["AskUserQuestion"]
@@ -194,6 +197,52 @@ def main() -> int:
     for rel, lineno, ref in missing_paths:
         if ref not in ignored:
             errors.append(f"{rel}:{lineno}: names `{ref}`, which does not exist")
+
+    # 6. No personal machine identity in tracked files. A committed
+    # /Users/<name>/ path publishes who ran the tool and breaks on every other
+    # machine; the public-release checklist demands neither ever happens. A
+    # path spelled with a <placeholder> is describing the rule, not leaking.
+    try:
+        tracked = subprocess.run(["git", "ls-files"], cwd=ROOT, text=True,
+                                 capture_output=True, check=True).stdout.splitlines()
+    except (OSError, subprocess.SubprocessError):
+        tracked = []
+    for rel in tracked:
+        if rel in PATH_CHECK_EXEMPT or rel == "tools/lint_agent_docs.py":
+            continue
+        if not rel.endswith((".py", ".md", ".mjs", ".js", ".json", ".sh",
+                             ".ps1", ".yaml", ".yml")):
+            continue
+        try:
+            lines = (ROOT / rel).read_text(encoding="utf-8").splitlines()
+        except (OSError, UnicodeDecodeError):
+            continue
+        for lineno, line in enumerate(lines, 1):
+            # /Users/<name> and /Users/{name} are placeholders describing the
+            # rule; /Users/ followed by a real username segment is a leak. The
+            # earlier "line contains a brace" exemption let a JSON fixture
+            # carry a personal path straight past this check (12.08.2026).
+            if re.search(r"/Users/[A-Za-z0-9._-]+/", line):
+                errors.append(f"{rel}:{lineno}: personal absolute path "
+                              "(/Users/...); resolve through ew_paths, a "
+                              "pointer file, or ~ instead")
+
+    # 7. No untracked-and-unignored top-level directory. That state is one
+    # `git add -A` away from committing client work to a public remote; .tmp/
+    # sat that way for weeks before 12.08.2026. New work goes in a sanctioned
+    # scratch root or gets an explicit .gitignore entry in the same change.
+    try:
+        status = subprocess.run(["git", "status", "--porcelain"], cwd=ROOT,
+                                text=True, capture_output=True, check=True).stdout
+    except (OSError, subprocess.SubprocessError):
+        status = ""
+    for line in status.splitlines():
+        if line.startswith("?? "):
+            entry = line[3:]
+            if entry.endswith("/") and entry.count("/") == 1:
+                errors.append(f"{entry}: untracked top-level directory that is "
+                              "not gitignored; move the contents to a "
+                              "sanctioned scratch root or gitignore it")
 
     # 4. AGENTS.md routing table names resolve to skill dirs.
     agents_md = (ROOT / "AGENTS.md").read_text(encoding="utf-8")

@@ -5,9 +5,7 @@ Resolution order (first hit wins, deep-merged over the built-in neutral defaults
   1. `_local/branding/branding.json` at the repo root (operator/agency identity —
      gitignored; copy `branding.TEMPLATE.json` there and fill it in), path
      overridable via config `branding.branding_json`.
-  2. An agent-style example that ships with the repo: `branding.EXAMPLE-claude.json`
-     when running under Claude Code (env CLAUDECODE/CLAUDE_CODE*), or
-     `branding.EXAMPLE-codex.json` under Codex (env CODEX_*). Claude style otherwise.
+  2. The agent-neutral example that ships with the repo: `branding.EXAMPLE-neutral.json`.
   3. Built-in neutral defaults (grayscale + blue accent) — rendering always works.
 
 Per-document keys (prepared_by, cover_subtitle, doc_label, first_time, brand_dir)
@@ -19,7 +17,6 @@ See BRANDING.md for the full schema and the document layout rules.
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -69,14 +66,8 @@ def _deep_merge(base: dict, over: dict) -> dict:
     return out
 
 
-def _agent_example() -> Path:
-    # Claude markers first: a Claude Code session may also carry CODEX_* vars
-    # from the installed codex-companion plugin.
-    if os.environ.get("CLAUDECODE") or any(k.startswith("CLAUDE_CODE") for k in os.environ):
-        return HERE / "branding.EXAMPLE-claude.json"
-    if any(k.startswith("CODEX") for k in os.environ):
-        return HERE / "branding.EXAMPLE-codex.json"
-    return HERE / "branding.EXAMPLE-claude.json"
+def _neutral_example() -> Path:
+    return HERE / "branding.EXAMPLE-neutral.json"
 
 
 def load_branding(cfg: dict | None = None) -> dict:
@@ -89,7 +80,7 @@ def load_branding(cfg: dict | None = None) -> dict:
     if path.exists():
         data, src = json.loads(path.read_text(encoding="utf-8")), str(path)
     else:
-        ex = _agent_example()
+        ex = _neutral_example()
         if ex.exists():
             data, src = json.loads(ex.read_text(encoding="utf-8")), ex.name
         else:
@@ -99,6 +90,20 @@ def load_branding(cfg: dict | None = None) -> dict:
     b = _deep_merge(_DEFAULTS, data)
     b["_source"] = src
     _CACHE[key] = b
+    return b
+
+
+def activate_branding(cfg: dict) -> dict:
+    """Make an explicit approved brand the process-local default for specialist builders.
+
+    Shared renderers initialize their module globals from the default branding path when
+    imported. A specialist workflow with an explicit brand config must activate it before
+    importing those renderers, so an absent repository-local file cannot briefly select a
+    neutral/example identity and leave stale globals behind.
+    """
+    b = load_branding(cfg)
+    default_path = REPO / "_local" / "branding" / "branding.json"
+    _CACHE[str(default_path)] = b
     return b
 
 

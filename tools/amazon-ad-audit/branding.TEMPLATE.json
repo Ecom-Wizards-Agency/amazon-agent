@@ -1,5 +1,5 @@
 {
-  "_comment": "TEMPLATE: copy to _local/branding/branding.json (gitignored) and replace every <placeholder>. This is your agency identity for all branded audit outputs (docx/pdf covers, content-page headers/footers, and xlsx banners). Schema + layout rules: tools/amazon-ad-audit/BRANDING.md. Without this file the renderers fall back to a built-in Claude- or Codex-style example depending on the agent running.",
+  "_comment": "TEMPLATE: copy to _local/branding/branding.json (gitignored) and replace every <placeholder>. This is your agency identity for all branded audit outputs (docx/pdf covers, content-page headers/footers, and xlsx banners). Schema + layout rules: tools/amazon-ad-audit/BRANDING.md. Without this file the renderers use the same agent-neutral fallback in every runtime.",
   "agency_name": "<Your Agency Name: appears in bylines, headers, and workbook banners>",
   "agency_url": "<www.youragency.com: cover and content-page footer>",
   "prepared_by_default": "<Default 'prepared by' person, e.g. Jane Doe, Founder>",

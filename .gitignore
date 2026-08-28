@@ -42,6 +42,8 @@ tools/amazon-seo-keyword-workbook/seo_content.*.json
 tools/reshipment/config.json
 tools/reshipment/config.*.json
 !tools/reshipment/config.TEMPLATE.json
+# Run-scoped copy of the wizards-ai config (Seller Central profile names).
+tools/reshipment/.provider-config-*.json
 
 # Ad/Sales Audit tool: client configs + saved DataDive JSON stay LOCAL ONLY; only the template ships.
 tools/amazon-ad-audit/config.*.json
@@ -58,8 +60,11 @@ tools/amazon-campaign-builder/config.*.json
 !tools/amazon-campaign-builder/config.TEMPLATE.json
 !tools/amazon-campaign-builder/config.UPDATE.TEMPLATE.json
 
-# Local scratch dir (client artifacts, never ships)
+# Local scratch dirs (client artifacts, never ships). tmp/, .tmp/ and outputs/
+# are retired roots kept ignored so a stray recreation can never be committed;
+# new work goes in output/, downloads/, evidence/ or _local-output/ only.
 tmp/
+.tmp/
 
 # Temporary files
 *.tmp
@@ -68,8 +73,18 @@ tmp/
 *.swp
 ~$*
 
+# Agent scratch scripts and generated client deliverables (never source)
+.codex-tmp/
+outputs/
+tools/reshipment/logs/
+
 # Local runtimes and assistant permissions
 .venv/
+node_modules/
+.dev.vars
+.dev.vars.*
+.env
+.env.*
 .claude/settings.local.json
 
 # sqp-supa client configs (local-only)
@@ -87,3 +102,7 @@ tools/sb-video-briefs/config.*.json
 # Python caches
 __pycache__/
 *.pyc
+
+# Codex runtime symlinks. These point into ~/.cache/codex-runtimes on one machine,
+# so committing one publishes a personal path and hands everyone else a dead link.
+tools/*/node_modules

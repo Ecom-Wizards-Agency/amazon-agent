@@ -2294,9 +2294,9 @@ def write_handoff_note(path: str, cfg: dict, args: dict, manifest: dict) -> str:
 
 
 # --------------------------------------------------------------------------- #
-# Preflight (auto-generated cross-agent handoff)
+# Preflight (capability-based input checklists)
 # --------------------------------------------------------------------------- #
-# DataDive inputs the MCP can supply — Claude generates these from saved MCP JSON
+# DataDive inputs the MCP can supply are generated from saved MCP JSON
 # via datadive_mcp_to_csv.py (get_niche_roots / get_niche_keywords / get_niche_competitors),
 # so they are NOT part of the browser task. Validated byte-for-data-identical to the
 # UI exports on a validation run (roots 222/222, Core 257/257, 0 mismatches). The full
@@ -2311,19 +2311,19 @@ BROWSER_INPUT_KEYS = [
 SETUP_INPUT_KEYS = ["template", "seo_content"]
 
 
-def _codex_handoff_block(cfg: dict, args: dict, missing: list[str]) -> str:
+def _browser_input_checklist(cfg: dict, args: dict, missing: list[str]) -> str:
     pa = cfg["product_anchor"]
     client = (pa.get("client") or "").strip()
     product = (pa.get("product") or "").strip()
     # Avoid "Acme Acme Collagen" when the product name already starts with the client.
     subject = product if product.lower().startswith(client.lower()) and client else f"{client} {product}".strip()
     lines = [
-        "TASK: Gather the missing keyword-workbook inputs for the connected/internal browser + DataDive UI.",
+        "CAPABILITY CHECKLIST: Gather the missing keyword-workbook browser inputs.",
         "",
         f"Objective: produce the inputs below for {subject} "
         f"({pa.get('marketplace')}), DataDive niche {pa.get('datadive_niche')}, anchor ASIN {pa.get('asin')}.",
         "",
-        "Do NOT: run the builder, write SEO, edit listings, commit/push, or inspect cookies/session/credentials.",
+        "Read-only collection only: do not edit listings, change shared settings, commit/push, or inspect cookies/session/credentials.",
         "",
         "Produce these files at exactly these paths:",
     ]
@@ -2359,7 +2359,7 @@ def _codex_handoff_block(cfg: dict, args: dict, missing: list[str]) -> str:
         "- DataDive export buttons may emit NO detectable download event. If exports don't land, ask the operator to "
         "click them manually, then map the files in ~/Downloads by filename/timestamp/rows/headers "
         "(Core 30% includes a 'Sugg. bid & range' column; the Expanded 1% file has many more rows). Report the "
-        "row counts + headers per file so Claude can cross-check them against the DataDive MCP niche statistics.",
+        "row counts + headers per file and cross-check them against the DataDive MCP niche statistics.",
         "- POE: use the API-first downloader — ONE command per niche produces ALL POE contract files "
         "(tools/opportunity-explorer/run-poe.mjs niche --niche-id <id> --marketplace <cc> --client <slug>; "
         "search/batch for the related-niches JSON; EU marketplaces all via --origin https://sellercentral.amazon.de). "
@@ -2367,10 +2367,11 @@ def _codex_handoff_block(cfg: dict, args: dict, missing: list[str]) -> str:
         "(direct tab URLs render header-only; Download clicks work even when the download event times out — check ~/Downloads).",
         "- Amazon listing pages may render in English despite locale URL params — switch the Amazon site "
         "language preference to the marketplace language (e.g. 'italiano - IT'), then re-run the capture.",
-        "- After Claude confirms the canonical files, delete duplicate/raw intermediate downloads "
+        "- After the canonical files pass preflight and validation, delete duplicate/raw intermediate downloads "
         "(NEVER the canonical contract paths).",
         "",
-        "Stop and report: the exact saved paths + the caveats above, then hand back to Claude.",
+        "Then: re-run preflight and continue the end-to-end workflow when READY. If this checklist was "
+        "handed off because the originating runtime lacked browser access, report the exact saved paths and caveats.",
         "",
         # Per-run protocol is self-contained rather than appended to one shared file: the shared
         # team vault when the client has a folder there, otherwise the repo output tree. Falls
@@ -2414,7 +2415,7 @@ def run_preflight(cfg: dict, args: dict) -> int:
         niche = cfg["product_anchor"].get("datadive_niche", "<NICHE>")
         anchor = cfg["product_anchor"].get("asin", "<ANCHOR>")
         print(
-            "\nSTATUS: NEEDS MCP GEN — Claude generates these from the DataDive MCP (no browser download):\n"
+            "\nSTATUS: MISSING DATADIVE MCP INPUTS (no browser download):\n"
             "  1) Call get_niche_roots / get_niche_keywords / get_niche_competitors for niche "
             f"{niche}; save each raw JSON response to a file.\n"
             "  2) Cross-check len(keywords) == get_niche_competitors numVisibleKeywords before trusting Core.\n"
@@ -2424,14 +2425,14 @@ def run_preflight(cfg: dict, args: dict) -> int:
             f"       --out-roots \"{args['roots_csv']}\" --out-core \"{args['master_csv']}\" --out-competitors \"{args['competitors_csv']}\"\n"
         )
     if missing_browser:
-        print("\nSTATUS: WAITING ON BROWSER INPUTS. Use the block below as the browser-half checklist:\n")
-        print(_codex_handoff_block(cfg, args, missing_browser))
+        print("\nSTATUS: MISSING BROWSER INPUTS. Use the capability checklist below:\n")
+        print(_browser_input_checklist(cfg, args, missing_browser))
     elif missing_mcp:
         pass
     elif missing_setup:
         print(f"\nSTATUS: NEEDS SETUP — provide: {', '.join(missing_setup)}")
     else:
-        print("\nSTATUS: READY — all inputs present. Hand to Claude to write SEO + build, or run:\n")
+        print("\nSTATUS: READY. All inputs are present; continue the current run with SEO writing and build:\n")
         print(_build_command(args))
     return 0
 
@@ -2444,7 +2445,7 @@ def main() -> int:
     for k, v in DEFAULTS.items():
         ap.add_argument("--" + k.replace("_", "-"), default=v)
     ap.add_argument("--preflight", action="store_true",
-                    help="Check inputs and print the cross-agent handoff / build-readiness status; do not build.")
+                    help="Check inputs and print capability checklists / build-readiness status; do not build.")
     args = vars(ap.parse_args())
     args = {k.replace("-", "_"): v for k, v in args.items()}
 

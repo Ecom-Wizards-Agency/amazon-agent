@@ -10,19 +10,29 @@ Process account-marketplaces by region in this order:
 2. US accounts second.
 3. Any remaining non-Europe, non-US marketplaces last, unless the operator gives a different order.
 
-Within each region, keep a stable marketplace/account order for the run so Slack output is easy to scan.
+Within each region, keep a stable marketplace/account order for the run so the ledger and the digest read in a predictable order.
 
 For each account-marketplace:
 
 1. Open `{preferred_browser}` and confirm Seller Central is logged in.
-2. Read the latest report from `{sellersonar_alert_source}`. Freshness guard: if the latest report is older than the previous business day, never report `No alerts` - report `alert source stale ({report date})` and treat alert-source checks as not performed.
-3. Record relevant alerts:
-   - search suppression
-   - Buy Box / Featured Offer suppression or drop
-   - new seller or possible hijacker
-   - category/sub-category change
-   - rating/review drop
-   - major price or offer change
+2. Read this account's precomputed Keepa market signals from `{market_signals_state_path}`. They are computed from Keepa before the run starts. Never fetch market signals during the check. Freshness guard: if the file is missing or its `generated_at` is not from today, record that as a blocker, treat market coverage as not performed for this run, and carry on with the rest of the check. An account whose ASINs are not registered for monitoring has no market coverage at all: record that as `not monitored`, which is not the same as clean.
+
+   A fresh file does not mean this account was covered. The sweep is paced against Keepa's refill and carries forward the last observation for anything it did not reach, so `generated_at` can be from today while a given ASIN's record is from yesterday. **Check `observed_at` on the ASIN records themselves**, not just `generated_at` on the file. If an account's records are not from today, it has no market coverage for this run: report it as `not covered`, leave its existing market findings carried forward untouched, and do not re-verify or resolve them. Not covered is not clean.
+3. Record the relevant market signals as findings:
+   - BSR move, and proximity to the named competitor it is measured against
+   - Buy Box / Featured Offer holder change, loss, or a new seller that looks like a hijacker
+   - category / browse-node change, and root category change
+   - average rating change, or reviews disappearing
+   - displayed half-star change, in either direction
+   - Buy Box price or offer change
+   - FBA or referral fee change
+   - package dimension or weight change
+
+   Two of these need a word when you report them. A **root category** change re-benchmarks BSR against a different category, so that ASIN's rank history stops being comparable with itself — say so rather than reporting the rank move alone. A **displayed half-star** change is the star graphic a shopper sees: Amazon rounds to the nearest half, so 4.2 shows as 4.0 and 4.3 shows as 4.5, and a one-tenth move flips the badge. `rating_display_improved` is the one signal here that is not a problem: dispose it `no_action` and do **not** write it to the ledger, because it is an event rather than a state and would sit open forever.
+
+   No competitor ASINs are registered for any profile, deliberately, so `bsr_competitor_proximity` cannot fire on any account today. Report a BSR figure as unanchored rather than implying nobody is closing on us, and never raise the empty competitor set as a finding or a task — it is the intended state.
+
+   Search-suppressed and inactive listings are not in Keepa. They come from Seller Central in the steps below.
 4. Open Seller Central and verify the account by `{seller_central_name_field}` and the country/region by `{marketplace_field}`.
 5. Check Account Health:
    - overall status and Account Health Rating

@@ -1,9 +1,23 @@
 # SOP Draft: Daily Amazon Account Health Check
 
 Date: 2026-06-07
-Status: ready for review
+Status: SUPERSEDED 12.08.2026. Historical record only. Do NOT follow it.
 Owner: Amazon operations
-Related workflow: Daily account health monitoring, SellerSonar alert triage, Seller Central account checks
+Related workflow: Daily account health monitoring, Seller Central account checks
+
+> **Superseded.** This draft describes the June 2026 routine and is kept as
+> history. Two things in it are now wrong, and `AGENTS.md` tells agents to read
+> `sop-drafts/` as a recent-learning signal, so they are called out here rather
+> than left to mislead:
+>
+> - **SellerSonar is fully retired.** Market signals come from the Keepa API,
+>   precomputed into a state file before the run starts. Nothing should open
+>   `#sellersonar` or the SellerSonar dashboard.
+> - **There is no daily thread with a comment per account.** The run writes the
+>   findings ledger and posts nothing but an immediate escalation. One
+>   deterministic pass posts a single daily digest for every region together.
+>
+> The live contract is `skills/amazon-account-health-check/`.
 
 ## Purpose
 

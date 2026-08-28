@@ -14,7 +14,8 @@ fetched CSVs match the manual Seller Central export to the penny.
 
 The runner drives Chrome's REAL page main world over the DevTools Protocol (CDP), so it
 uses your existing login. No console paste, no browser-evaluate sandbox. Any agent with
-shell access (Codex `@computer`) can run it.
+shell access can run it. Every CDP runner starts or reuses the dedicated headless Chrome
+automatically; `CDP_AUTOSTART=0` is available for probe-only diagnostics.
 
 One-time setup: Chrome 136+ ignores `--remote-debugging-port` on your normal profile
 (a Chrome security change), so the runner uses a dedicated debug Chrome that runs
@@ -27,6 +28,9 @@ tools/report-fetcher/launch-chrome-debug.sh --mode recovery  # visible only for 
 tools/report-fetcher/launch-chrome-debug.sh      # switches to normal headless background mode
 node tools/report-fetcher/run.mjs doctor         # confirms the connection + a logged-in tab
 ```
+
+After this one-time login, `run.mjs`, `run-poe.mjs`, listing capture, and the other shared
+CDP runners start the headless profile on demand when it is not already running.
 
 Then fetch. **Copy-paste path: fill a per-client config once, then a fixed command** (copy
 `config.TEMPLATE.json` → `config.<client>.json`, gitignored, and fill ASIN groups / dates):
@@ -58,7 +62,7 @@ Options: `--range weekly|monthly|quarterly` (SQP/SCP/TST) · `--weeks a,b` (mult
 fetch nothing) · `--verbose` (also writes `<out>.raw.json` + column ids, for troubleshooting a
 first run). Each SQP ASIN is fetched with a single-ASIN call (uncapped Search Query Volume).
 The runner opens its own background tab, writes the CSV, closes the tab; it never disturbs
-your other tabs. The canonical copy-paste Codex prompt is in `CODEX-PROMPT.md`.
+your other tabs. The canonical copy-paste browser prompt is in `BROWSER-PROMPT.md`.
 
 ## Account safety (read this)
 
@@ -71,18 +75,35 @@ Region: sellercentral.amazon.com for --marketplace us (ignoring other open host(
 Account: <SELLER NAME> / United States · amzn1.merchant.d.<MERCHANT-ID>
 ```
 
-- `run.mjs doctor` lists every open Seller Central tab with its **seller name + merchant id**.
+- `run.mjs doctor` probes every open Seller Central tab **live and in parallel** (hard 20 s budget
+  per tab) and prints the seller name + id read from the page itself, naming the account chooser,
+  sign-in pages, authorization-failed pages and human challenges explicitly. Three-state verdict:
+  exit `0` signed in (the chooser counts as authenticated, with a "NO account selected" line),
+  exit `1` conclusively signed out or challenge-blocked, exit `2` INDETERMINATE (a tab could not
+  be probed; retry, and restart the debug Chrome if it persists). It never claims "NOT signed in"
+  unless every tab conclusively was; an unprobeable tab says nothing about the session.
 - `--expect-account "<name or merchant-id>"` aborts **before fetching** on a mismatch. Use it in
   anything scripted or delegated; a wrong-account pull is otherwise indistinguishable from a right one.
-  It judges the account the browser is actually signed into, so `--account` cannot satisfy it.
-- `--account <merchant-id>` is a **hint, not a guaranteed switch.** Seller Central resolves the seller
-  server-side, so supplying an id the session is not already on may be ignored and you get the tab's
-  seller anyway (verified 2026-07-27). The runner warns when the two disagree. **The reliable way to
-  change account is to switch it in the debug Chrome and re-run.**
+  It judges the LIVE identity of the tab (page-read display name + ids), so `--account` cannot satisfy
+  it, and it fails closed when no identity is observable, naming the tab URL, page kind and reason.
+- `--account <merchant-id>` is **enforced** (changed 2026-08-13; it used to be a hint that fell back
+  to the session default with a warning). The run proceeds only when the live identity matches the id,
+  or the runner can verify by name via `--expect-account`, or the structured fields below let it
+  **drive Seller Central's own account picker** (trusted CDP clicks, fail-closed on any ambiguity).
+  Otherwise it dies naming everything it observed and the remedies.
+- `--account-name "<display name>"` + `--marketplace-label "<label>"` (+ optional
+  `--parent-account-name`) enable the deterministic switch: the picker matches display names, so an
+  id alone cannot drive it. Config keys: `account`, `expect_account`, `account_name`,
+  `marketplace_label`, `parent_account_name`.
+- A run given neither `--account` nor `--expect-account` still proceeds (interactive convenience)
+  but prints the live identity it inherited; if the session sits on the account chooser it dies
+  instead of silently pulling the session default. Scripted runs must set `expect_account`.
 
 Before this existed the runner inherited the **session default** seller, which is not necessarily
 the one your tab is displaying. That silently returned another client's Business Report with the
 correct dates and shape. If you have historical pulls whose account you cannot confirm, re-pull them.
+The account primitives (page classification, live identity, the picker driver) live in
+`sc-account.mjs`, shared with `run-poe.mjs`.
 
 **Regions (US / EU / AU / …).** The region is chosen from `--marketplace` via the host table in
 `run.mjs` (US → `.com`, DE/IT/ES/FR/NL/SE/PL/BE/IE/TR/UK → `.de` and its siblings, AU → `.com.au`,
@@ -135,7 +156,7 @@ Preconditions: the connected browser is on a logged-in `sellercentral.amazon.*` 
 account + marketplace confirmed (the standard browser checkpoint). For SQP, be on a Brand
 Analytics page so the `anti-csrftoken-a2z` meta tag is present.
 
-**1. Fetch (in the browser).** Pass the source string + a call (Playwright / Codex path):
+**1. Fetch (in the browser).** Pass the source string plus a call through the page-evaluate path:
 
 ```js
 // SQP: one product line, two weeks

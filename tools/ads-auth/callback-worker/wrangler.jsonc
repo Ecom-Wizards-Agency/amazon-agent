@@ -1,0 +1,30 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "ecom-wizards-amazon-ads-oauth",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-08",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": false,
+  "preview_urls": false,
+  "routes": [
+    {
+      "pattern": "auth.ecomwizards.agency",
+      "custom_domain": true
+    }
+  ],
+  "vars": {
+    "AMAZON_AUTHORIZE_URL": "https://na.account.amazon.com/ap/oa",
+    "CLIENT_ID": "amzn1.application-oa2-client.6c760c65ad124a44bae67ac27e5669ae",
+    "OAUTH_SCOPE": "advertising::campaign_management",
+    "REDIRECT_URI": "https://auth.ecomwizards.agency/amazon/callback"
+  },
+  "secrets": {
+    "required": ["STATE_SIGNING_KEY"]
+  },
+  "observability": {
+    "enabled": true,
+    "logs": {
+      "invocation_logs": false
+    }
+  }
+}

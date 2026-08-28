@@ -13,7 +13,12 @@ from openpyxl.utils import get_column_letter
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ew_audit_style as ew
 from ew_audit_style import C, TL, F, BORDER, RIGHT, LEFT, LEFT_DATA, WRAP, copy_sheet
-from analyze_audit import load_config
+from analyze_audit import (
+    alignment_from_metrics,
+    blended_metrics_available,
+    blended_metrics_reason,
+    load_config,
+)
 
 INT = ew.INT; PCT = ew.PCT; RO = ew.RO
 
@@ -29,6 +34,8 @@ def build(config_path, outdir, audit_path, sqp_path):
     markets = ", ".join(M.get("marketplaces", []) or [])
     channels = M.get("channels_present", ["SP"])
     win = M.get("windows", {})
+    alignment = alignment_from_metrics(M)
+    windows_match = blended_metrics_available(M)
 
     def acos_fill(v):
         return ew.acos_fill(v, BE)
@@ -40,7 +47,7 @@ def build(config_path, outdir, audit_path, sqp_path):
     for c, wd in enumerate([30, 16, 14, 16, 16, 20], 1):
         ws.column_dimensions[get_column_letter(c)].width = wd
     ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=W)
-    c = ws.cell(1, 1, f"{CLIENT} — {markets} Amazon Audit  ·  Master Summary"); c.font = F(16, True, C["white"], ew.DISPLAY); c.fill = ew.HDR_FILL; c.alignment = LEFT
+    c = ws.cell(1, 1, f"{CLIENT}: {markets} Amazon Audit  ·  Master Summary"); c.font = F(16, True, C["white"], ew.DISPLAY); c.fill = ew.HDR_FILL; c.alignment = LEFT
     for col in range(1, W + 1):
         ws.cell(1, col).fill = ew.HDR_FILL
     ws.merge_cells(start_row=2, start_column=1, end_row=2, end_column=W)
@@ -55,7 +62,7 @@ def build(config_path, outdir, audit_path, sqp_path):
     br_cap = (SS.get("Branded", {}) or {}).get("capture")
     OV = cfg.get("overview", {}) or {}
     oneliner = OV.get("oneliner") or (
-        f"Profitable in aggregate — but branded carries it. Generic prospecting runs at {gen_acos:.0%} ACOS"
+        f"Profitable in aggregate, but branded carries it. Generic prospecting runs at {gen_acos:.0%} ACOS"
         + (f", and the SQP data shows why: the brand captures {gen_cap:.1%} of category purchases vs {br_cap:.0%} on its own name." if gen_cap is not None else "."))
     ws.merge_cells(start_row=r[0], start_column=1, end_row=r[0], end_column=W)
     ws.cell(r[0], 1, oneliner).font = F(10, True, C["coral"]); ws.cell(r[0], 1).alignment = WRAP; ws.row_dimensions[r[0]].height = 40; r[0] += 2
@@ -67,13 +74,23 @@ def build(config_path, outdir, audit_path, sqp_path):
             ws.cell(r[0], col).fill = ew.BAND_FILL
         r[0] += 1
 
-    organic = T["br_total_sales"] - T["sales"]
-    band(f"Account KPIs ({'/'.join(channels)}, {win.get('ads','30 days')})")
+    organic = T.get("organic_implied")
+    ad_share = T.get("ad_attributed_share", T.get("ad_dependency"))
+    band(f"Ads: {win.get('ads','')} · Business Report: {win.get('business_report','')}")
     kpis = [("Ad spend", T["spend"], MONEY, None), ("Ad sales", T["sales"], MONEY, None),
             ("Ad ACOS", T["acos"], PCT, "acos"), ("Ad ROAS", T["roas"], RO, None),
-            ("Total sales (all traffic)", T["br_total_sales"], MONEY, None), ("TACOS", T["tacos"], PCT, None),
-            ("Organic (implied)", organic, MONEY, None),
-            ("Ad : organic", f"{T['ad_dependency']*100:.0f} : {(1-T['ad_dependency'])*100:.0f}", None, None)]
+            ("Business Report sales", T["br_total_sales"], MONEY, None),
+            ("Window alignment", alignment["ads_vs_business_report"].title(), None, None)]
+    if windows_match:
+        kpis += [("TACOS", T.get("tacos"), PCT, None),
+                 ("Organic (implied)", organic, MONEY, None),
+                 ("Ad-attributed share", ad_share, PCT, None),
+                 ("Ad : organic", f"{ad_share*100:.0f} : {(1-ad_share)*100:.0f}", None, None)]
+    else:
+        kpis += [("TACOS", "N/A", None, None),
+                 ("Organic (implied)", "N/A", None, None),
+                 ("Ad-attributed share", "N/A", None, None),
+                 ("Ad : organic", "N/A", None, None)]
     ci = 1
     for lbl, val, fmt, metric in kpis:
         ws.cell(r[0], ci, lbl).font = F(9, False, C["mist"]); ws.cell(r[0], ci).border = BORDER
@@ -88,9 +105,15 @@ def build(config_path, outdir, audit_path, sqp_path):
         if ci > W:
             ci = 1; r[0] += 2
     r[0] += 2
+    if not windows_match:
+        ws.merge_cells(start_row=r[0], start_column=1, end_row=r[0], end_column=W)
+        ws.cell(r[0], 1, blended_metrics_reason(M)).font = F(9, False, C["mist"])
+        ws.cell(r[0], 1).alignment = WRAP
+        ws.row_dimensions[r[0]].height = 28
+        r[0] += 2
 
     st_cov = sum(v.get("spend", 0) for v in STB.values()) / T["spend"] if T["spend"] else 0
-    band(f"Traffic mix — spend efficiency (ads) × purchase capture (SQP) — intent split covers {st_cov:.0%} of spend (SP by search term, SB by target)")
+    band(f"Traffic mix: spend efficiency (ads) × purchase capture (SQP). Intent split covers {st_cov:.0%} of spend (SP by search term, SB by target)")
     hdr = ["Bucket", "Ad spend", "% spend", "Ad ACOS", "SQP SV share", "SQP purchase capture"]
     for c, h in enumerate(hdr, 1):
         cell = ws.cell(r[0], c, h); cell.fill = ew.HDR_FILL; cell.font = F(9, True, C["white"]); cell.border = BORDER; cell.alignment = Alignment(horizontal="center", wrap_text=True)
@@ -134,7 +157,7 @@ def build(config_path, outdir, audit_path, sqp_path):
         r[0] += 1
     r[0] += 1
 
-    band("Placement — same keywords, different ROI")
+    band("Placement: same keywords, different ROI")
     for c, h in enumerate(["Placement", "Spend", "ACOS"], 1):
         cell = ws.cell(r[0], c, h); cell.fill = ew.HDR_FILL; cell.font = F(9, True, C["white"]); cell.border = BORDER
     r[0] += 1
@@ -149,14 +172,14 @@ def build(config_path, outdir, audit_path, sqp_path):
     r[0] += 1
 
     band("Top findings")
-    for t in _findings(M, SS, MONEY, channels):
+    for t in (OV.get("findings") or _findings(M, SS, MONEY, channels)):
         ws.merge_cells(start_row=r[0], start_column=1, end_row=r[0], end_column=W)
         ws.cell(r[0], 1, t).font = F(10); ws.cell(r[0], 1).alignment = WRAP; ws.row_dimensions[r[0]].height = 26; r[0] += 1
     band(OV.get("recommendations_title") or "Recommendations (short / medium term)")
     for t in OV.get("recommendations") or [
-        "Lever 1 — Earn 5-star reviews by resetting buyer expectations (accurate imagery/sizing/claims + Vine/inserts). The rating gap is the true cap on category demand.",
-        "Lever 2 — Focus positioning on the winning use case across listing, brand store & brand videos (stop the 'works everywhere' dilution).",
-        "Ads track (parallel) — Restructure PPC (waste falls out of a clean setup); rebalance toward Top of Search; add the missing channel motions.",
+        "Lever 1: Earn 5-star reviews by resetting buyer expectations (accurate imagery/sizing/claims + Vine/inserts). The rating gap is the true cap on category demand.",
+        "Lever 2: Focus positioning on the winning use case across listing, brand store & brand videos (stop the 'works everywhere' dilution).",
+        "Ads track (parallel): Restructure PPC (waste falls out of a clean setup); rebalance toward Top of Search; add the missing channel motions.",
     ]:
         ws.merge_cells(start_row=r[0], start_column=1, end_row=r[0], end_column=W)
         ws.cell(r[0], 1, t).font = F(10); ws.cell(r[0], 1).alignment = WRAP; ws.row_dimensions[r[0]].height = 28; r[0] += 1
@@ -190,21 +213,23 @@ def _findings(M, SS, MONEY, channels):
     T = M["totals"]; STB = M["searchterm_bucket"]; P = M["placement"]
     br = STB.get("Branded", {}); gen = STB.get("Generic", {})
     out = [f"Branded carries the account ({br.get('spend',0)/T['spend']:.0%} spend @ {(br.get('acos') or 0):.0%} ACOS)."]
-    out.append(f"Generic bleeds — {gen.get('spend',0)/T['spend']:.0%} spend @ {(gen.get('acos') or 0):.0%} ACOS.")
+    out.append(f"Generic bleeds: {gen.get('spend',0)/T['spend']:.0%} spend @ {(gen.get('acos') or 0):.0%} ACOS.")
     if P:
         best = min(P.items(), key=lambda x: (x[1]['acos'] if x[1]['acos'] else 9))
         worst = max(P.items(), key=lambda x: (x[1]['acos'] if x[1]['acos'] else 0) * (x[1]['spend'] > 0))
         if best[0] != worst[0]:
-            out.append(f"Placement gap — {worst[0]} {worst[1]['acos']:.0%} vs {best[0]} {best[1]['acos']:.0%}.")
+            out.append(f"Placement gap: {worst[0]} {worst[1]['acos']:.0%} vs {best[0]} {best[1]['acos']:.0%}.")
     mp = (M.get("structure") or {}).get("multi_parent_ad_groups")
     if mp:
-        out.append(f"{mp} of {(M.get('structure') or {}).get('ad_groups', '?')} ad groups advertise SEVERAL parent families in one ad group — Amazon, not you, picks which product serves each query; keyword→product fit and per-product stats are uncontrolled.")
-    miss = [c for c in ("SB", "SD", "RAS") if c not in channels]
+        out.append(f"{mp} of {(M.get('structure') or {}).get('ad_groups', '?')} ad groups advertise SEVERAL parent families in one ad group. Amazon, not you, picks which product serves each query; keyword→product fit and per-product stats are uncontrolled.")
+    # RAS is an optional retailer advertising format. Its absence is not an
+    # Amazon brand-defense or retargeting gap. Only SB and SD belong here.
+    miss = [c for c in ("SB", "SD") if c not in channels]
     if miss:
-        out.append(f"Channel gaps — no {', '.join(miss)} (no brand-defense / retargeting).")
+        out.append(f"Channel gaps: no {', '.join(miss)}. Add a format only where it has a clear job in the funnel.")
     gc = (SS.get("Generic", {}) or {}).get("capture")
     if gc is not None:
-        out.append(f"SQP capture — {gc:.1%} of category purchases; the category demand is largely unconverted.")
+        out.append(f"SQP capture: {gc:.1%} of category purchases; the category demand is largely unconverted.")
     return [f"{i}. {s}" for i, s in enumerate(out, 1)]
 
 

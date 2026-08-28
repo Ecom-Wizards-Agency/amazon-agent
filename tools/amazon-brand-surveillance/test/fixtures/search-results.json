@@ -1,0 +1,7 @@
+[
+  {"asin":"B0HDH2KNFY","title":"TMRW Example Product","price":"$29.99","url":"https://www.amazon.com/dp/B0HDH2KNFY","sponsored":false,"query":"TMRW"},
+  {"asin":"B0BBBBBBBB","title":"TMRW Example Product New Size","price":"$31.99","url":"https://www.amazon.com/dp/B0BBBBBBBB","sponsored":true,"query":"TMRW"},
+  {"asin":"B0CCCCCCCC","title":"Unrelated Tomorrow Planner","price":"$9.99","url":"https://www.amazon.com/dp/B0CCCCCCCC","sponsored":false,"query":"TMRW"},
+  {"asin":"B0DDDDDDDD","title":"TMRW Podcast","price":"$0.99","url":"https://www.amazon.com/dp/B0DDDDDDDD","sponsored":false,"query":"TMRW"},
+  {"asin":"B0BBBBBBBB","title":"TMRW Example Product New Size","price":"$31.99","url":"https://www.amazon.com/dp/B0BBBBBBBB","sponsored":true,"query":"TMRW Example Product"}
+]

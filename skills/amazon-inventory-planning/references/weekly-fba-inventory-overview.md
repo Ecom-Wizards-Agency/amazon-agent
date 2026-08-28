@@ -18,7 +18,7 @@ Do not include Globex, Umbrella, or Stark unless the operator explicitly expands
 Post only in the internal Slack `#amazon-check` channel for review:
 
 - Channel id: `<slack-channel-id>` (the real id lives in the local reshipment config, not in this file)
-- Send through `~/Automations/wizards-ai/slack.sh` as Wizards AI. Do not use a personal Slack identity or the Slack connector for posting.
+- Send through the Wizards AI helper as Wizards AI: `~/os/wizards-ai/slack.sh`, or `~/Automations/wizards-ai/slack.sh` on an unmigrated machine. Do not use a personal Slack identity or the Slack connector for posting.
 - Do not post to client channels unless the operator explicitly approves a client-channel send after reviewing the staging output.
 
 ## Browser And Login Rules
@@ -133,7 +133,7 @@ The thread contains separate flat replies in this exact order:
 3. Show the 10 highest-quantity reshipment rows. If more exist, add `Plus N more low-volume rows in the workbook.` Then add `Total: X units`.
 4. `*Excess Inventory / Plan Sales*`: always a separate reply when actionable. Never combine excess units with the reshipment reply. Show the 6 highest excess rows, note the remaining count, and add the total.
 
-Do not replace the account threads with aggregate replies such as `Run status`, `Send stock`, `Completed safely`, or cross-account totals. Slack is for the per-account copyable list. Put blockers, scope summaries, and login notes in the Codex task unless they directly qualify an account's source line.
+Do not replace the account threads with aggregate replies such as `Run status`, `Send stock`, `Completed safely`, or cross-account totals. Slack is for the per-account copyable list. Put blockers, scope summaries, and login notes in the task summary unless they directly qualify an account's source line.
 
 After the individual reshipment threads, create one short channel parent for all included accounts with zero positive reshipment quantities:
 
@@ -145,7 +145,7 @@ After the individual reshipment threads, create one short channel parent for all
 
 Use real Slack line breaks, not escaped `\n` text. Post this parent through `tools/reshipment/post_slack_no_reshipment.py` so formatting is preserved.
 
-Do not include blocked, incomplete, excluded, or unverified accounts in this list. They belong in the Codex task summary.
+Do not include blocked, incomplete, excluded, or unverified accounts in this list. They belong in the task summary.
 
 Client-channel delivery is v2 and is not active. Until Victor explicitly approves v2, post only to `#amazon-check`.
 

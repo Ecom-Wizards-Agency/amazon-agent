@@ -5,16 +5,19 @@ the grant by listing advertiser profiles in all three regions.
 
 Usage (run these yourself in a terminal; tokens never leave _local/):
 
+  python3 tools/ads-auth/exchange_token.py configure
+      Securely prompts for the LWA client secret without echoing it and stores
+      it in the ignored local configuration. The public client ID and exact
+      redirect URI are filled automatically.
+
   python3 tools/ads-auth/exchange_token.py url
-      Prints the consent URL to open in the browser. Sign in with the main
-      agency login (the one that manages all client ad accounts) and click
-      Allow. You land on the redirect URL with ?code=... in the address bar.
+      Prints the secure Ecom Wizards start URL. Open it while signed in as
+      amazon@ecomwizards.agency and click Allow.
 
   python3 tools/ads-auth/exchange_token.py auth
-      Prompts for that full redirect URL, exchanges the code for a refresh
-      token, and merges it into _local/ads-monitor/config.json under "lwa"
-      (existing keys in the file are preserved). The code expires within
-      minutes of consent, so run this right away.
+      Prompts without echo for either the displayed authorization code or the
+      full callback URL. It exchanges the code immediately, merges the refresh
+      token into _local/ads-monitor/config.json, and tests all three regions.
 
   python3 tools/ads-auth/exchange_token.py test
       Uses the stored refresh token to call GET /v2/profiles on the NA, EU,
@@ -22,13 +25,12 @@ Usage (run these yourself in a terminal; tokens never leave _local/):
       (profile ID, country, account name). Copy the profile IDs you need
       into config.accounts[].
 
-Setup: _local/ads-monitor/config.json needs the LWA app credentials first
-(developer.amazon.com > Login with Amazon > security profile "Ecom Wizards
-Ads Tool" > Web Settings):
+Setup: run the configure command and enter the LWA client secret locally. Do
+not paste it into chat. The resulting ignored config block is:
 
-  "lwa": {"client_id": "amzn1.application-oa2-client....",
+  "lwa": {"client_id": "amzn1.application-oa2-client.6c760...",
           "client_secret": "...",
-          "redirect_uri": "https://ecomwizards.com/amazon/callback"}
+          "redirect_uri": "https://auth.ecomwizards.agency/amazon/callback"}
 
 The redirect_uri must also be listed as an Allowed Return URL in that same
 Web Settings screen, or Amazon rejects the consent page.
@@ -38,24 +40,29 @@ app advertising scopes. The "Assign API access" step at
 https://advertising.amazon.com/developer/overview links the approval to the
 security profile. Until that is done, the consent page fails with "This LWA
 app doesn't have access to the Amazon Ads API scopes" and the profile shows
-only profile/profile:name scopes. Assign it while signed in as the SAME
-Amazon user account that requested API access; a mismatch can only be undone
-by ads-api-onboarding@amazon.com.
+only profile/profile:name scopes. Assign it while signed in as the same Amazon
+user account that requested API access. If Amazon says another person initiated
+onboarding, follow the Jira service-desk instruction shown on that page.
 """
 
+import getpass
 import json
+import os
 import sys
+import tempfile
 import urllib.error
 import urllib.parse
 import urllib.request
 from pathlib import Path
+from typing import NoReturn
 
 ROOT = Path(__file__).resolve().parents[2]
 CONFIG_PATH = ROOT / "_local" / "ads-monitor" / "config.json"
 
 LWA_TOKEN_URL = "https://api.amazon.com/auth/o2/token"
-CONSENT_URL = "https://www.amazon.com/ap/oa"
-SCOPE = "advertising::campaign_management"
+START_URL = "https://auth.ecomwizards.agency/amazon/start"
+CLIENT_ID = "amzn1.application-oa2-client.6c760c65ad124a44bae67ac27e5669ae"
+REDIRECT_URI = "https://auth.ecomwizards.agency/amazon/callback"
 ADS_HOSTS = {
     "na": "https://advertising-api.amazon.com",
     "eu": "https://advertising-api-eu.amazon.com",
@@ -63,7 +70,7 @@ ADS_HOSTS = {
 }
 
 
-def die(msg: str) -> None:
+def die(msg: str) -> NoReturn:
     print(f"ERROR: {msg}")
     sys.exit(1)
 
@@ -72,6 +79,24 @@ def load_config() -> dict:
     if not CONFIG_PATH.exists():
         die(f"missing {CONFIG_PATH}")
     return json.loads(CONFIG_PATH.read_text())
+
+
+def write_config(cfg: dict) -> None:
+    CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
+    temp_path = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            "w", dir=CONFIG_PATH.parent, prefix="config.", suffix=".tmp",
+            delete=False
+        ) as temp:
+            json.dump(cfg, temp, indent=2)
+            temp.write("\n")
+            temp_path = Path(temp.name)
+        temp_path.chmod(0o600)
+        os.replace(temp_path, CONFIG_PATH)
+    finally:
+        if temp_path and temp_path.exists():
+            temp_path.unlink()
 
 
 def lwa_block(cfg: dict, *required: str) -> dict:
@@ -92,54 +117,103 @@ def lwa_request(payload: dict) -> dict:
             return json.loads(resp.read().decode())
     except urllib.error.HTTPError as e:
         body = e.read().decode(errors="replace")
-        die(f"LWA token endpoint returned {e.code}: {body}")
+        try:
+            error_body = json.loads(body)
+        except json.JSONDecodeError:
+            error_body = {}
+        error = error_body.get("error", "request_failed")
+        description = error_body.get(
+            "error_description", "No safe error details returned"
+        )
+        die(f"LWA token endpoint returned {e.code}: {error}: {description}")
 
 
 def mask(value: str) -> str:
     return value[:6] + "..." + value[-4:] if len(value) > 12 else "***"
 
 
-def cmd_url() -> None:
-    lwa = lwa_block(load_config(), "client_id", "redirect_uri")
-    params = urllib.parse.urlencode({
-        "client_id": lwa["client_id"],
-        "scope": SCOPE,
-        "response_type": "code",
-        "redirect_uri": lwa["redirect_uri"],
+def validate_public_config(lwa: dict) -> None:
+    if lwa.get("client_id") not in (None, CLIENT_ID):
+        die("config.json contains a different LWA client_id")
+    if lwa.get("redirect_uri") not in (None, REDIRECT_URI):
+        die("config.json contains a different redirect_uri")
+
+
+def cmd_configure() -> None:
+    cfg = load_config()
+    lwa = cfg.setdefault("lwa", {})
+    validate_public_config(lwa)
+    client_secret = getpass.getpass("Enter the LWA client secret (input hidden): ").strip()
+    if not client_secret:
+        die("client secret cannot be empty")
+    lwa.update({
+        "client_id": CLIENT_ID,
+        "client_secret": client_secret,
+        "redirect_uri": REDIRECT_URI,
     })
-    print("Open this in the browser, signed in as the main agency login:\n")
-    print(f"{CONSENT_URL}?{params}")
-    print("\nAfter clicking Allow, copy the full URL you land on and run:")
+    write_config(cfg)
+    print(f"OK: LWA configuration stored locally in {CONFIG_PATH} with mode 600")
+    print(f"Next: python3 {Path(__file__).relative_to(ROOT)} url")
+
+
+def cmd_url() -> None:
+    print("Only continue if Amazon's developer overview lists the Ads API scope.")
+    print("Open this in the browser, signed in as amazon@ecomwizards.agency:\n")
+    print(START_URL)
+    print("\nAfter clicking Allow, copy the displayed code and run immediately:")
     print(f"  python3 {Path(__file__).relative_to(ROOT)} auth")
+
+
+def authorization_code(value: str) -> str:
+    parsed = urllib.parse.urlparse(value)
+    if parsed.scheme and parsed.netloc:
+        query = urllib.parse.parse_qs(parsed.query)
+        if query.get("error"):
+            description = (query.get("error_description") or query["error"])[0]
+            die(f"Amazon did not grant access: {description}")
+        code = (query.get("code") or [""])[0].strip()
+        if not code:
+            die("no code= found in that callback URL")
+        return code
+    code = value.strip()
+    if not code:
+        die("authorization code cannot be empty")
+    return code
 
 
 def cmd_auth() -> None:
     cfg = load_config()
-    lwa = lwa_block(cfg, "client_id", "client_secret", "redirect_uri")
-    url = input("Paste the full redirect URL from the address bar: ").strip()
-    query = urllib.parse.parse_qs(urllib.parse.urlparse(url).query)
-    code = (query.get("code") or [None])[0]
-    if not code:
-        die("no code= found in that URL. Make sure you copied the final URL "
-            "after clicking Allow on the consent screen.")
+    lwa = lwa_block(cfg, "client_secret")
+    validate_public_config(lwa)
+    value = getpass.getpass(
+        "Paste the authorization code or full callback URL (input hidden): "
+    ).strip()
+    code = authorization_code(value)
     result = lwa_request({
         "grant_type": "authorization_code",
         "code": code,
-        "client_id": lwa["client_id"],
+        "client_id": CLIENT_ID,
         "client_secret": lwa["client_secret"],
-        "redirect_uri": lwa["redirect_uri"],
+        "redirect_uri": REDIRECT_URI,
     })
     refresh_token = result.get("refresh_token")
     if not refresh_token:
-        die(f"no refresh_token in LWA response: {json.dumps(result)[:200]}")
-    cfg.setdefault("lwa", {})["refresh_token"] = refresh_token
-    CONFIG_PATH.write_text(json.dumps(cfg, indent=2) + "\n")
+        safe_keys = ", ".join(sorted(result.keys()))
+        die(f"no refresh_token in LWA response (returned keys: {safe_keys})")
+    cfg.setdefault("lwa", {}).update({
+        "client_id": CLIENT_ID,
+        "redirect_uri": REDIRECT_URI,
+        "refresh_token": refresh_token,
+    })
+    write_config(cfg)
     print(f"OK: refresh token {mask(refresh_token)} merged into {CONFIG_PATH}")
-    print(f"Next: python3 {Path(__file__).relative_to(ROOT)} test")
+    print("Testing advertiser profiles in NA, EU, and FE now.")
+    test_profiles(cfg)
 
 
-def cmd_test() -> None:
-    lwa = lwa_block(load_config(), "client_id", "client_secret", "refresh_token")
+def test_profiles(cfg: dict) -> None:
+    lwa = lwa_block(cfg, "client_id", "client_secret", "refresh_token")
+    validate_public_config(lwa)
     access = lwa_request({
         "grant_type": "refresh_token",
         "refresh_token": lwa["refresh_token"],
@@ -150,13 +224,13 @@ def cmd_test() -> None:
     for region, host in ADS_HOSTS.items():
         req = urllib.request.Request(f"{host}/v2/profiles")
         req.add_header("Authorization", f"Bearer {access}")
-        req.add_header("Amazon-Ads-ClientId", lwa["client_id"])
         req.add_header("Amazon-Advertising-API-ClientId", lwa["client_id"])
         try:
             with urllib.request.urlopen(req, timeout=30) as resp:
                 profiles = json.loads(resp.read().decode())
         except urllib.error.HTTPError as e:
-            print(f"{region.upper()}: HTTP {e.code} {e.read().decode(errors='replace')[:200]}")
+            e.read()
+            print(f"{region.upper()}: HTTP {e.code} request_failed")
             continue
         print(f"{region.upper()}: {len(profiles)} profiles")
         for p in profiles:
@@ -168,8 +242,17 @@ def cmd_test() -> None:
           "is LIVE; copy the IDs you need into config.accounts[].")
 
 
+def cmd_test() -> None:
+    test_profiles(load_config())
+
+
 def main() -> None:
-    cmds = {"url": cmd_url, "auth": cmd_auth, "test": cmd_test}
+    cmds = {
+        "configure": cmd_configure,
+        "url": cmd_url,
+        "auth": cmd_auth,
+        "test": cmd_test,
+    }
     if len(sys.argv) >= 2 and sys.argv[1] in cmds:
         cmds[sys.argv[1]]()
     else:

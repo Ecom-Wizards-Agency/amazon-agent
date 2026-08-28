@@ -65,11 +65,11 @@ Chrome for operational Ads report and bulk-export work. Downloads are captured w
 
 ## Fetch reports without manual download (Business Reports + SQP)
 
-`tools/report-fetcher/` pulls Business Reports (Detail Page Sales & Traffic) and Search Query Performance straight from Seller Central's own report APIs in the connected/internal browser: no clicking through the UI, no manual CSV download. The output CSVs match the exact headers `build_sqp_workbook.py` and `analyze_audit.py` read, so they satisfy the ad-audit preflight's Business-Report + SQP CODEX tasks directly.
+`tools/report-fetcher/` pulls Business Reports (Detail Page Sales & Traffic) and Search Query Performance straight from Seller Central's own report APIs in the connected/internal browser: no clicking through the UI, no manual CSV download. The output CSVs match the exact headers `build_sqp_workbook.py` and `analyze_audit.py` read, so they satisfy the ad-audit preflight's Business-Report and SQP browser inputs directly.
 
 Preconditions: the headless-by-default CDP browser on a logged-in `sellercentral.amazon.*` tab; correct account + marketplace confirmed via the browser checkpoint; for SQP, a Brand Analytics page (so the `anti-csrftoken-a2z` meta tag is present). Use visible recovery only for login or when the operator asks to see it.
 
-Reports: `sqp` (Search Query Performance), `business` (Detail Sales & Traffic), `scp` (Brand Catalog Performance), `tst` (Top Search Terms), `all`. Slash command: `/fetch-reports`. Canonical copy-paste prompt: `tools/report-fetcher/CODEX-PROMPT.md`.
+Reports: `sqp` (Search Query Performance), `business` (Detail Sales & Traffic), `scp` (Brand Catalog Performance), `tst` (Top Search Terms), `all`. Slash command: `/fetch-reports`. Canonical copy-paste prompt: `tools/report-fetcher/BROWSER-PROMPT.md`.
 
 Hands-off (preferred; needs Chrome on the debug port; an agent with shell/`@computer` runs and troubleshoots it). Copy-paste path: fill a per-client config once (`config.TEMPLATE.json` → `config.<client>.json`, gitignored), then a fixed command:
 
@@ -83,9 +83,12 @@ node tools/report-fetcher/run.mjs all --config tools/report-fetcher/config.<clie
 ```
 
 **Account gate (mandatory).** One login can hold several sellers and the debug Chrome can have several
-regions open. `doctor` prints the seller name + merchant id per tab; confirm the client before trusting a
-number, and pass `--expect-account "<Client Name>"` so a wrong-seller pull aborts instead of producing a
-correct-looking file. `--account <merchant-id>` pins it explicitly. Region is derived from `--marketplace`
+regions open. `doctor` probes every tab live (exit 0 signed in, 1 signed out, 2 INDETERMINATE: retry,
+never treat as logged out); confirm the client before trusting a number, and pass
+`--expect-account "<Client Name>"` so a wrong-seller pull aborts instead of producing a
+correct-looking file. `--account <merchant-id>` is enforced, not a hint: the run dies rather than
+falling back to the session default, and with config `account_name` + `marketplace_label` the runner
+drives Seller Central's own account picker to the right seller itself. Region is derived from `--marketplace`
 (US `.com`, EU `.de` + siblings, AU `.com.au`, ...), not from whichever tab is first. This class of bug is
 silent: the file has the right dates, shape and headers, and the wrong company's numbers.
 

@@ -1,6 +1,6 @@
 ---
 name: amazon-sop-maintenance
-description: Use for Amazon SOP maintenance commands and requests, including /create-sop, /fix-sop, outdated SOPs, broken SOP links, wrong SOP steps, questionable MAG SOP guidance, verified SOP corrections, synced SOP update notes, and new SOP drafts. Distinguishes human/team SOPs from Codex skills.
+description: Use for Amazon SOP maintenance commands and requests, including /create-sop, /fix-sop, outdated SOPs, broken SOP links, wrong SOP steps, questionable MAG SOP guidance, verified SOP corrections, synced SOP update notes, and new SOP drafts. Distinguishes human/team SOPs from agent skills.
 ---
 
 # Amazon SOP Maintenance
@@ -13,7 +13,7 @@ Use this skill when the operator asks to create, review, fix, or draft an SOP, e
 
 Create or update a SOP when documenting a human/team Amazon process, checklist, browser workflow, or operating procedure.
 
-Create or update a skill only when changing how Codex behaves, routes work, uses tools/scripts, or applies repeatable AI workflow instructions.
+Create or update a skill only when changing how the current agent behaves, routes work, uses tools/scripts, or applies repeatable AI workflow instructions.
 
 If someone asks vaguely for a workflow, default to a SOP when it is human/team process documentation. Default to a skill only when the change is about AI behavior.
 

@@ -13,7 +13,7 @@ For most work:
 3. Operate in the browser per the Browser Standard in `AGENTS.md` with the logged-in Amazon session.
 4. Stop before externally visible or risky actions unless the operator explicitly approves the specific action.
 
-This project uses one main operator (Codex or Claude) with specialist skills, not separate permanent specialist agents. The full routing table lives in `AGENTS.md` under Specialist Skill Model. Each skill under `skills/` carries its own `SKILL.md` (Claude discovery) and `agents/openai.yaml` (Codex discovery).
+This project uses the current working agent as one main operator with specialist skills, not separate permanent specialist agents. The agent owns each workflow end to end when the required capabilities are available; any handoff is capability-based and optional. The full routing table lives in `AGENTS.md` under Specialist Skill Model. Each skill under `skills/` carries runtime-specific discovery manifests, but the shared instructions are agent-neutral.
 
 The search helper can search the local Amazon libraries:
 
@@ -47,6 +47,11 @@ The complete visual MAG SOP archive (all captured SOPs plus every screenshot/GIF
 ## Browser Choice
 
 Routing is by session, not by agent, and lives in the Browser Standard in `AGENTS.md`: the CDP debug Chrome (port 9222) by default, the Chrome extension when the task needs the operator's own logged-in session. The per-workflow table is `docs/browser-routing-map.md`. Browser choice never overrides account/marketplace verification or stop-before-risk rules.
+
+CDP runners start or reuse the dedicated headless profile automatically on the
+first applicable task. The operator still performs the one-time sign-in through
+`tools/report-fetcher/launch-chrome-debug.sh --mode recovery`; credentials are
+never automated.
 
 ## Client Profiles
 

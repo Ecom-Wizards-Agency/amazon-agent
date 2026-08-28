@@ -16,7 +16,6 @@ Do not store screenshots, GIFs, exports, zip files, client deliverables, or othe
 
 Create or update a SOP when documenting a human/team Amazon process, checklist, browser workflow, or operating procedure.
 
-Create or update a skill only when changing how Codex behaves, routes work, uses tools/scripts, or applies repeatable AI workflow instructions.
+Create or update a skill only when changing how the current agent behaves, routes work, uses tools/scripts, or applies repeatable AI workflow instructions.
 
 If someone asks vaguely for a workflow, default to a SOP when it is human/team process documentation. Default to a skill only when the change is about AI behavior.
-

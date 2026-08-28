@@ -62,7 +62,7 @@ Design rules (from the dataviz standard):
 Run standalone:  python3 tools/amazon-ad-audit/build_figures.py --config <cfg> --outdir <dir>
 """
 from __future__ import annotations
-import csv, json, sys
+import csv, json, os, sys
 from collections import defaultdict
 from pathlib import Path
 
@@ -78,6 +78,28 @@ import branding as _branding  # noqa: E402
 # Top-Opportunities tab uses, kept here so the two agree.
 MIN_BRAND_SV = 500
 
+STANDARD_FIGURE_NAMES = (
+    "fig_rank_movement.png",
+    "fig_rank_distribution.png",
+    "fig_visibility_vs_competition.png",
+    "fig_price_vs_rating.png",
+    "fig_demand_segments.png",
+    "fig_purchases_vs_market.png",
+    "fig_brand_name_leak.png",
+)
+
+
+def _clear_standard_figures(outdir):
+    """Remove only toolkit-owned charts so an obsolete figure cannot survive a rebuild."""
+    outdir = Path(outdir)
+    removed = []
+    for name in STANDARD_FIGURE_NAMES:
+        path = outdir / name
+        if path.exists():
+            path.unlink()
+            removed.append(path)
+    return removed
+
 
 def _palette():
     b = _branding.load_branding({})
@@ -87,6 +109,46 @@ def _palette():
                 font_file=b["assets"].get("brand_dir") or "", fonts=b["fonts"])
 
 
+def _register_inter(f, font_manager):
+    """Register real Regular and Bold instances of the variable Inter.
+
+    matplotlib's addfont() takes only the variable font's default instance, so every
+    fontweight="bold" in this module silently rendered at 400 — the same collapsed
+    hierarchy we reject in client documents. Instance the wght axis once with fontTools
+    and cache the statics. Falls back to the old single-instance behaviour if fontTools
+    is unavailable, so a figure never fails to draw over a font.
+    """
+    cache = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache")) / "ecom-wizards" / "fonts"
+    try:
+        from fontTools.ttLib import TTFont
+        from fontTools.varLib.instancer import instantiateVariableFont
+    except ImportError:
+        font_manager.fontManager.addfont(str(f))
+        return font_manager.FontProperties(fname=str(f)).get_name()
+
+    stamp = f"{f.stat().st_size}-{int(f.stat().st_mtime)}"
+    name = None
+    for label, wght in (("Regular", 400), ("Bold", 700)):
+        static = cache / f"Inter-{label}-{stamp}.ttf"
+        if not static.exists():
+            cache.mkdir(parents=True, exist_ok=True)
+            vf = TTFont(str(f))
+            # updateFontNames needs a STAT table with axis values; Inter-Variable has
+            # none. Skip it and set the subfamily by hand — matplotlib classifies a face
+            # by OS/2 usWeightClass, which instantiateVariableFont already rewrites.
+            instantiateVariableFont(vf, {"wght": wght}, inplace=True, updateFontNames=False)
+            for rec in vf["name"].names:
+                if rec.nameID in (2, 17):
+                    rec.string = label
+            tmp = static.with_suffix(".tmp")
+            vf.save(str(tmp))
+            tmp.replace(static)
+        font_manager.fontManager.addfont(str(static))
+        if label == "Regular":
+            name = font_manager.FontProperties(fname=str(static)).get_name()
+    return name
+
+
 def _setup(P):
     import matplotlib
     matplotlib.use("Agg")
@@ -94,8 +156,9 @@ def _setup(P):
     from matplotlib import font_manager
     f = HERE / "brand" / P["fonts"]["doc_font_file"]
     if f.exists():
-        font_manager.fontManager.addfont(str(f))
-        plt.rcParams["font.family"] = font_manager.FontProperties(fname=str(f)).get_name()
+        family = _register_inter(f, font_manager)
+        if family:
+            plt.rcParams["font.family"] = family
     plt.rcParams.update({
         "text.color": P["ink"], "axes.labelcolor": P["ink"],
         "xtick.color": P["ink"], "ytick.color": P["ink"],
@@ -431,15 +494,31 @@ def _price_vs_rating(plt, P, cfg, comps, asins, out):
     return out
 
 
+def _material_branded_leak_query(cfg, kws, asins):
+    """Return the highest-volume material branded query where a rival outranks us."""
+    own = {str(asin).upper() for asin in asins}
+    candidates = []
+    for keyword in kws:
+        if classify(cfg, keyword.get("keyword") or "") != "Branded":
+            continue
+        if (keyword.get("searchVolume") or 0) < MIN_BRAND_SV:
+            continue
+        ranks = keyword.get("asinRanks") or {}
+        mine = [rank for asin, rank in ranks.items()
+                if str(asin).upper() in own and rank is not None]
+        rivals = [rank for asin, rank in ranks.items()
+                  if str(asin).upper() not in own and rank is not None]
+        if mine and rivals and min(rivals) < min(mine):
+            candidates.append(keyword)
+    return max(candidates, key=lambda row: row.get("searchVolume") or 0) if candidates else None
+
+
 def _brand_name_leak(plt, P, cfg, kws, comps, asins, out):
     """Rank on the brand's highest-volume branded query, by seller. Lower is better, so
     the bar length reads as 'how far from the top you are' and a leaking brand owns the
     longest bar on its own name. Guarded on real branded demand."""
-    branded = [k for k in kws if classify(cfg, k.get("keyword") or "") == "Branded"]
-    if not branded:
-        return None
-    top = max(branded, key=lambda k: k.get("searchVolume") or 0)
-    if (top.get("searchVolume") or 0) < MIN_BRAND_SV:
+    top = _material_branded_leak_query(cfg, kws, asins)
+    if not top:
         return None
     ranks = top.get("asinRanks") or {}
     brand_of = {c["asin"]: (c.get("brand") or c["asin"]) for c in comps}
@@ -451,7 +530,7 @@ def _brand_name_leak(plt, P, cfg, kws, comps, asins, out):
         b = brand_of.get(asin, asin)
         if b not in best or r < best[b][0]:
             best[b] = (r, asin)
-    if len(best) < 3:
+    if len(best) < 2:
         return None
     rows = [dict(brand=b, rank=r, is_me=a in asins) for b, (r, a) in best.items()]
     rows.sort(key=lambda x: x["rank"])
@@ -688,6 +767,11 @@ def build(config_path, outdir) -> list:
     except Exception as e:
         print(f"[fig] skipped (no matplotlib: {e})")
         return []
+
+    # A relevance gate can turn a previously valid chart into no chart. Clear every
+    # toolkit-owned figure before generation so a stale PNG cannot be reinserted.
+    for stale in _clear_standard_figures(outdir):
+        print(f"[fig] removed stale {stale.name}")
 
     asins = _client_asins(cfg)
     made = []

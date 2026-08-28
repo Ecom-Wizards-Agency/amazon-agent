@@ -1,108 +1,122 @@
 ---
 name: amazon-sb-video-briefs
-description: Use for Amazon Sponsored Brands VIDEO creative work, keyword-driven video ad planning, video editor briefings, SB video scripts, video angle testing, and adapting Meta-style creative playbooks to Amazon search. Builds a data-selected shortlist of query clusters (POE + DataDive + SQP + ads data), then a branded editor briefing (one doc per batch, one section per video, three named angles over one shared second half) with script tables, sound-off design rules, Amazon specs, and an advisory health-claims table. Also owns the per-product-line Creative Reference & Asset Library. Route pure PPC structure work to amazon-campaign-builder or amazon-audit, listing SEO to amazon-seo-keyword-workflow, and creator sourcing to amazon-creator-connections.
+description: Use for Amazon Sponsored Brands video creative work, keyword-driven concept selection, editor briefings, three-angle scripts, and per-product Creative Reference and Asset Libraries. Builds a wide POE, DataDive, Drive-keyword, SQP, ads, listing, and price evidence layer, then delivers branded native Google Docs. Testing methodology lives in the agency playbook and live results live in Notion.
 ---
 
 # Amazon SB Video Briefs
 
-Browser: Mixed. CDP (`run-poe.mjs` over the shared debug Chrome) for POE pulls; DataDive and AdLabs via MCP with no browser; delivery as a branded native Google Doc via `tools/gdrive-deliver/deliver.py`.
+Browser: Mixed. POE uses CDP over the shared debug Chrome. DataDive and AdLabs use MCP. Google Drive and Google Docs use their connected tools.
 
-Turn search data into Sponsored Brands video briefs a video editor can execute without knowing Amazon. Core premise: Amazon is pull marketing. The shopper typed a query and is comparing tiles on a SERP. Videos are built per query cluster, designed sound-off, and tested with a fixed feedback loop. Meta-playbook techniques are used only through the adaptation layer, never raw.
+Create editor-ready Sponsored Brands video packages for Amazon search. The shopper has already typed a query and is comparing products. Each confirmed query cluster produces one video concept with three distinct openings over one shared second half.
 
 ## Load Order
 
-1. `references/evolve-to-amazon-adaptation.md`: the methodology. Read before scripting anything.
-2. `references/editor-brief-template.md`: the mandatory brief structure.
-3. `references/creative-reference-doc.md`: the standing per-product-line reference the brief draws from.
-4. `tools/sb-video-briefs/config.TEMPLATE.json`: per-client config contract (client configs are local-only, gitignored).
-5. `skills/amazon-seo/references/health-claims-compliance.md` when the claims table is built (via the health-claims-check flow).
+1. `references/evolve-to-amazon-adaptation.md` for creative translation only.
+2. `references/editor-brief-template.md` for the mandatory briefing shape.
+3. `references/creative-reference-doc.md` for the evergreen product and asset reference.
+4. `tools/sb-video-briefs/config.TEMPLATE.json` for the local config contract.
+5. `<vault>/Playbooks/amazon-sb-video-concept-testing-playbook.md` (team vault, resolved via `AMAZON_AGENT_TEAM_VAULT` or `_local/team-vault-path.txt`) only when prior learnings or test readiness affect concept selection. Do not copy its measurement method into editor documents.
+6. `skills/amazon-seo/references/health-claims-compliance.md` for internal claims QA when the category or copy needs it.
 
-## Vocabulary (Evolve-aligned, one system across Amazon and Meta)
+## Vocabulary
 
-- **Batch** = one video. One shelf, one buying criterion family, one shared second half.
-- **Angle 1 / 2 / 3** = the three openings. Never "Hook A/B/C". The tracker column in Evolve is `ANGLE(S)`; stay in that vocabulary.
-- **Cut** = one angle plus the shared Part 2. Angles and cuts are 1:1, so there is no third tracking level.
-- **Awareness level** = Solution Aware, Product Aware, or Most Aware only. Problem Aware and Unaware do not exist on Amazon search.
+- Batch: one video concept for one query cluster.
+- Angle 1, 2, 3: three openings that lead on different buying criteria.
+- Cut: one angle plus the shared Part 2. There are exactly three cuts per concept.
+- Awareness level: Solution Aware, Product Aware, or Most Aware only.
 
-Cadence is roughly **3 angles per month**. Meta-scale creative programmes (50 briefs a week off an ad-intelligence tool) do not port to Amazon and must not be proposed as a production target. They are useful only as a coverage map.
+## Required Inputs
 
-## Required Data Inputs
+- Latest relevant Google Drive keyword-research workbook. Prefer the pinned workbook URL in config; otherwise find the latest authoritative workbook in the existing client Keyword Research folder.
+- DataDive niche keywords and roots.
+- POE full niche packs selected through the breadth workflow below.
+- Per-ASIN SQP from AdLabs `search_query`.
+- Current ad performance from AdLabs `target` and `ad_group`: spend, CTR, CVR, raw ACOS, and placement context where available.
+- Current live listing reference JSON for each target ASIN.
+- Current price and shelf-price context.
+- Product facts, brand kit, and verified footage sources.
 
-Per client and product line, before cluster selection:
+## Seller Central Account Recovery
 
-- POE Search Terms + Products for the niche (`tools/opportunity-explorer/run-poe.mjs`; observe the Account Safety rules in `skills/amazon-opportunity-explorer/SKILL.md`, including `--expect-account`). Reuse an existing POE designer pack when one is on disk rather than re-pulling.
-- DataDive niche keyword grid and roots via the DataDive MCP (`get_niche_keywords`, `get_niche_roots`) for cluster boundaries and our organic rank.
-- SQP per-ASIN via the AdLabs MCP `search_query` entity for impression share vs click share per query.
-- Current ads performance via the AdLabs MCP `target` and `ad_group` entities: spend, CTR, CVR, ACOS, top-of-search share. An existing high-spend low-CTR SB target is the single best video candidate in the account.
-- Listing reference JSON for the target ASINs (listing-capture) to verify ad-to-listing congruence and to source every claim.
-- Product facts and brand kit from the client config. Never invent product claims: facts come from the config, the live listing, or the operator.
+Pass these config values to every POE command:
+
+- `--account-name`
+- `--expected-partner-account-id`
+- optional `--parent-account-name`
+- `--marketplace-label`
+
+`run-poe.mjs` reads the live identity before the first search or niche request. If it is wrong, it uses trusted CDP clicks to select the configured account and marketplace, reloads POE, and re-reads `partnerAccountId`. Fetching begins only after the identity matches.
+
+Stop with zero POE fetches when the account or marketplace is unavailable or ambiguous, the user is logged out, a human challenge appears, or the post-switch identity still differs. Never handle credentials, MFA, CAPTCHA, or account recovery.
+
+## POE Breadth Workflow
+
+1. Read the latest relevant Drive keyword workbook and DataDive roots before choosing seeds.
+2. Produce 8 to 12 deduplicated, non-branded seeds. Cover the head term, product form, mechanism, principal uses, and meaningful attributes. Do not pad with spelling variants.
+3. Search every seed. Union related niches by `nicheId`, retain seed provenance, and exclude branded, wrong-product, wrong-form, wrong-audience, and wrong-use niches.
+4. Download 5 to 10 relevant full niche packs. If fewer than five qualify, download all relevant niches and record the limitation in the coverage manifest.
+5. Reuse a cached pack only when it is no more than 14 days old and satisfies the same seed, relevance, and full-pack coverage requirements.
+6. Mark an insufficient prior pack as `superseded` in the run manifest. Never delete historical raw data.
+
+The coverage manifest records workbook URL, DataDive niche, roots by source, final seeds by category, related niches considered, exclusions with reasons, selected full packs, capture timestamps, cache decisions, and limitations.
 
 ## Workflow
 
-1. Intake: client, marketplace, **product line**, target ASINs, break-even ACOS, language, whether footage exists, and the Drive creative folder. Copy `config.TEMPLATE.json` to a local client config on first run. Never carry values from another client.
-2. Data layer: pull the inputs above. Build the candidate cluster table (cluster, volume, our organic rank, impression vs click share, current spend and CTR/CVR/ACOS, price congruence against the shelf median).
-3. Shortlist: apply the scorecard gates and ranking from the adaptation reference, section 5. Cap at 3 to 5 clusters. Present the shortlist with one line of evidence per cluster, and name any cluster that is **not** a creative problem (CTR already at or above shelf rate, or wrong-intent traffic) so it is not briefed by mistake. Get operator confirmation before scripting.
-4. Creative Reference doc: build or refresh it per `references/creative-reference-doc.md` before the brief. The brief draws its claims and its differentiation from that doc and does not restate the evidence.
-5. Classify each confirmed cluster with the query-to-awareness map (adaptation reference, section 4). Mine reviews and query phrasing for the shopper's own words.
-6. Script: build the brief per `references/editor-brief-template.md`. Three angles over one shared Part 2 per video. Every angle leads on a different buying criterion; that is the isolated variable. All on-screen text is final copy in the marketplace language.
-7. Claims pass (advisory): run the health-claims-check flow over every on-screen card and any VO line. One claims table for the whole batch, sorted with HIGH and MEDIUM first. Every line traces to a live-listing phrase or is flagged. Record operator decisions inline, with the source and date for anything authorised against the listing. Verify claim-critical label facts against the packaging artwork when it is reachable, and if a banned term is PRINTED on the pack, add a legibility framing rule for label close-ups.
-8. Deliver: render branded via `tools/amazon-ad-audit/render_branded.py` with no cover page, then convert and place with `tools/gdrive-deliver/deliver.py` (see Delivery Rule).
-9. Campaign structure: one campaign per keyword, one ad group per angle (the batch). See Measurement below. Campaign creation itself routes to amazon-campaign-builder; this skill stops at the naming and the read plan.
-10. Learnings loop: when results exist, run the verdict rules and learnings checklist (adaptation reference, section 9), then write what changed back into the **Creative Reference doc**, not into a tracker.
+1. Intake: client, marketplace, product line, ASINs, language, Seller Central identity, Drive folder, and footage state. Migrate the config when legacy break-even, flat account, or testing keys appear. Ignore those legacy values after warning.
+2. Build the research layer using the breadth workflow.
+3. Build 3 to 5 candidate clusters. Gate on non-branded intent, product fit, listing support, factual copy support, and solvable production requirements.
+4. Rank candidates using search volume, organic rank, impression-to-click-share gap, spend, CTR, CVR, raw ACOS, price congruence, and listing support. Do not use break-even ACOS.
+5. Identify clusters that are not creative problems, such as healthy CTR with a post-click conversion issue or wrong-intent traffic.
+6. Present the shortlist with one evidence line per cluster. Pause for operator confirmation of one cluster per product before scripting.
+7. Build or refresh the Creative Reference from the confirmed facts, shelf map, shopper language, cluster coverage, price constraint, and verified asset inventory.
+8. Script the briefing. Every concept has three named angles leading on distinct buying criteria, one identical Part 2, final on-screen copy, filmable directions, sound-off rules, and a textless looping end frame.
+9. Run internal line-by-line claims QA. Every visible line and VO line must trace to the live listing, packaging, or an explicit operator decision. Resolve medium and high risk before delivery. Do not include the risk table in either editor document.
+10. Retain one concise absolute do-not list in the briefing so the editor cannot accidentally introduce forbidden language or imagery.
+11. Run `build_and_deliver.py`. It creates both native Docs on first delivery and updates both canonical document ids in place on later runs. The command completes only after title, folder, MIME type, content readback, and PDF-export QA pass for both Docs.
+12. When live test learnings exist, read them from the existing Notion A/B Test Program and use the creative learning in the next cluster or execution decision. Do not write performance methodology or results into the brief or reference.
 
-## Measurement (structural, not a preference)
+## Internal Claims QA
 
-AdLabs has no creative-level entity for Sponsored Brands: `advertised_product` and `product` exclude SB, and `creative_type` returns empty on SB video ad groups. Three creatives inside one ad group are invisible to reporting.
+- Claims validation remains a hard internal gate even though no claims appendix is delivered.
+- Reject unsupported final cards and VO lines.
+- Verify claim-critical product facts against packaging when available.
+- When forbidden words are printed on packaging, add a framing rule that keeps them illegible.
+- The editor never chooses alternate claims wording.
 
-So every angle test is built the same way:
+## Editor Deliverable QA
 
-- One campaign per keyword, following the account's existing campaign convention. One ad group per angle (the batch) inside it, named `Angle N - <name>`. Never leave the Amazon default `Ad group - <timestamp>` name: it makes every AdLabs pull unreadable.
-- Same keywords, same match types, same bids across the angles. The ad group name is the only difference.
-- Budget sits at campaign level, so impressions will not split evenly. Read CTR, which is a rate, not click counts. If one angle sits far behind on impressions, pause the leaders until it catches up.
-- **Stage 1 is CTR**, roughly 5,000 impressions per angle. Cheap, needs impressions not clicks.
-- **Stage 2 is CVR and ACOS**, on the survivor only, roughly 100 to 150 clicks. Price it in the brief at the observed CPC so the operator sees the cost before agreeing.
-- SQP click share is profile-level and organic plus paid. It reads at batch level only, never per angle.
+- All mandatory template sections and the verbatim specs box are present.
+- Frame 1 shows the product in action. No logo intro, fade-in, title card, empty pack shot, blank frame, or language error.
+- Exactly three distinguishable cuts are specified: one angle plus the identical shared Part 2.
+- Each angle leads on a distinct buying criterion.
+- Every scripted card is filmable, legible at thumbnail size, no longer than seven words, and source-traceable internally.
+- The final frame is textless and loops cleanly.
+- The brief contains no claims appendix, testing thresholds, measurement method, or break-even ACOS.
+- The reference contains no testing method or performance result. Its asset section is section 5.
+- Missing visual strategy direction is not a blocker. Missing required footage is an exact production gap.
 
-**Pre-registered read.** Write win and kill thresholds into the brief before launch **only where a like-for-like control exists** (same product, same shelf, same ad type). Where none exists, the first batch creates the baseline: leave the verdict open and record the result in the Creative Reference doc afterwards. Never build a threshold from a blended figure that mixes branded and generic cohorts.
+## Delivery
 
-## QA Gates
+Run:
 
-- Every brief section of the template is present; the specs box is verbatim.
-- Frame-1 rule holds in every angle: product in action, no logo intro, no fade-in, no title card.
-- Each angle leads on a **different buying criterion**, and the brief says in one line what differs across the three.
-- The awareness level is stated with a one-line justification tied to the query the shopper types.
-- One claim per video; the claim is not what the top tiles for the query already say (check the Creative Reference shelf map).
-- No em-dashes, no English text in non-English marketplace briefs, numerals not words.
-- Claims table covers 100% of on-screen cards and VO lines; every MEDIUM and HIGH line has a suggested rewrite and an operator decision with a source.
-- Every scripted line names what is on screen (filmable test). Cards without product substance are cut.
-- Ad-to-listing congruence: the led criterion is visible in the live listing copy; if not, flag it in the brief instead of shipping silently.
-- The final card of each shared Part 2 is textless and reads as a clean restart for the loop.
+`python3 tools/sb-video-briefs/build_and_deliver.py --config <config> --brief-md <file> --reference-md <file>`
 
-## Delivery Rule
-
-Briefs and Creative Reference docs deliver as **branded native Google Docs, no cover page**, rendered as `.docx` with `tools/amazon-ad-audit/render_branded.py`. Two ways in, both fine: call `render_branded.render(cfg, outdir, md_path, cover=False)` from python, or run the CLI and simply omit `--cover`. Do not write `--cover=False` on the CLI: it is a bare switch and argparse rejects an explicit value. Leave `custom_kpis` out of `metrics.json` so the KPI card strip is suppressed. Run it with the repo `.venv` python, which has python-docx.
-
-Deliver them with `python3 tools/gdrive-deliver/deliver.py <docx> "<folder>" --name "<title>"` into `01_Client Sheets/<Client>/<Client> - Shared/Creative/` (client-facing, so inside the `- Shared` folder; reuse the existing folder name if it differs). That converts the `.docx` to a Google Doc and deletes it afterwards. ONE canonical Doc per batch and per product line, title WITHOUT a version suffix: the link never changes and Docs keeps version history.
-
-Up to first delivery the Doc is the agent's and re-rendering over it is fine. After that it is the operator's: they edit it directly, and re-importing a fresh render would detach their comments. So once delivered, ALWAYS re-read the live Doc and edit it in place rather than re-rendering, and never resurrect content the operator removed.
-
-Naming:
+Canonical titles:
 
 - `<Client> <Market> - <Product Line> SB Video Briefing`
 - `<Client> <Market> - <Product Line> - Creative Reference & Asset Library`
 
-Keep the source markdown in `output/<client>/creative-reference/` so a re-render is reproducible.
+Keep source Markdown in `output/<client>/creative-reference/`. Never add version suffixes. If a canonical Doc already exists, edit it in place. Preserve its file id, URL, comments, permissions, and version history. Retain render intermediaries when delivery or QA fails.
 
-## Outputs
+## Ownership Boundary
 
-- Candidate cluster table and confirmed shortlist (in-chat).
-- One Creative Reference & Asset Library per product line (evergreen).
-- One branded editor briefing per batch: global rules, one section per video, three named angles over one shared Part 2, one claims table.
-- Learnings written back into the Creative Reference doc after each test window.
+- This skill prepares testable concepts and consumes past learnings.
+- `amazon-ads` and `amazon-ppc-management` own launch, measurement, verdict, and scaling under the canonical agency playbook.
+- Live tests and results belong in the existing Notion A/B Test Program and brand portal.
+- Campaign creation and performance writes are outside `build_and_deliver.py`.
 
 ## Stop Before Risk
 
-- Stop for operator confirmation at the shortlist (step 3) and before delivering any brief whose claims table still has undecided MEDIUM or HIGH lines.
-- Never launch campaigns, change bids, or upload creatives from this skill.
-- POE pulls follow the account-identity safety rules; abort on account mismatch.
-- Never script a claim the live listing contradicts without an explicit, dated operator authorisation recorded in the claims table, and always name the listing-alignment fix that removes the moderation risk.
+- Pause at the shortlist confirmation checkpoint.
+- Never create campaigns, upload creatives, change bids or budgets, edit listings, or make another Amazon-visible change.
+- Stop POE before the first data request unless Seller Central account identity and marketplace have been verified.

@@ -8,7 +8,7 @@ argument-hint: "[client + which reports + ASINs + timeframe] (e.g. 'acme us sqp 
 Fetch Seller Central reports hands-off with `tools/report-fetcher/`: no manual download,
 no console paste. Runs in the operator's logged-in Chrome over the debug protocol. Read-only
 (report reads only); never change Seller Central settings. Full reference:
-`tools/report-fetcher/README.md`; copy-paste prompts: `tools/report-fetcher/CODEX-PROMPT.md`.
+`tools/report-fetcher/README.md`; copy-paste prompts: `tools/report-fetcher/BROWSER-PROMPT.md`.
 
 Load the `amazon-reporting` skill first.
 
@@ -20,15 +20,16 @@ Load the `amazon-reporting` skill first.
    (copy from `config.TEMPLATE.json`, gitignored) so runs are a fixed command.
 2. **Check the debug Chrome**: `node tools/report-fetcher/run.mjs doctor`.
    - Unreachable → run `tools/report-fetcher/launch-chrome-debug.sh`, then ask the operator to
-     sign into Seller Central in the debug window; wait. (Codex can run the launcher; only the
+     sign into Seller Central in the debug window; wait. (The current agent can run the launcher; only the
      operator can complete the login.)
-   - Proceed only when it prints **"Login: OK"**.
+   - Proceed only when it prints **"Login: OK"** (exit 0). Exit 2 means INDETERMINATE: a tab
+     could not be probed; retry doctor rather than treating it as logged out.
 3. **Plan then fetch** (config-driven):
    ```bash
    node tools/report-fetcher/run.mjs <report|all> --config tools/report-fetcher/config.<client>.json --plan
    node tools/report-fetcher/run.mjs <report|all> --config tools/report-fetcher/config.<client>.json --verbose
    ```
-   Or explicit flags (see CODEX-PROMPT.md section B). SQP defaults to one combined CSV per
+   Or explicit flags (see BROWSER-PROMPT.md section B). SQP defaults to one combined CSV per
    group; add `--split` for one file per ASIN.
 4. **Report** the row count per file and where each CSV landed
    (`output/<client>/reporting/`). SQP → `inputs.sqp_csvs`, Business → `inputs.business_report_csv`.

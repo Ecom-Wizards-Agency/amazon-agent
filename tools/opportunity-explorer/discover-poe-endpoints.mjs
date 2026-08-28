@@ -33,7 +33,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import readline from "node:readline";
-import { assertChrome, listPages, Session } from "../report-fetcher/cdp.mjs";
+import { ensureChrome, listPages, Session } from "../report-fetcher/cdp.mjs";
 
 const BODY_CAP = 4096; // bytes of response body kept per record
 
@@ -86,7 +86,7 @@ async function pickTab() {
 }
 
 async function main() {
-  await assertChrome();
+  await ensureChrome();
   fs.mkdirSync(OUT_DIR, { recursive: true });
   fs.mkdirSync(EVIDENCE_DIR, { recursive: true });
 

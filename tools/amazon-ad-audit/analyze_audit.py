@@ -15,6 +15,7 @@ Generalizes the original per-client analyze script:
 from __future__ import annotations
 import csv, json, re, sys, warnings
 from collections import defaultdict
+from datetime import date
 from pathlib import Path
 warnings.filterwarnings("ignore")
 import openpyxl
@@ -120,6 +121,94 @@ def as_market_map(v, default_market):
         return v
     return {default_market: v}
 
+
+_ISO_DATE_RE = re.compile(r"\b20\d{2}-\d{2}-\d{2}\b")
+
+
+def _normalized_date_window(raw):
+    """Return one unambiguous ISO date range from a source-window label.
+
+    Window labels are written for humans and may include explanatory prose. Exactly two
+    valid ISO dates are required. Anything else is unknown rather than guessed, because a
+    false match makes blended KPIs look authoritative when the source periods differ.
+    """
+    matches = _ISO_DATE_RE.findall(str(raw or ""))
+    if len(matches) != 2:
+        return None
+    try:
+        start, end = (date.fromisoformat(value) for value in matches)
+    except ValueError:
+        return None
+    if start > end:
+        return None
+    return (start.isoformat(), end.isoformat())
+
+
+def assess_ads_business_window_alignment(windows):
+    """Classify whether Ads and Business Report periods can support blended KPIs."""
+    windows = windows or {}
+    ads = _normalized_date_window(windows.get("ads"))
+    business = _normalized_date_window(windows.get("business_report"))
+    if ads is None or business is None:
+        status = "unknown"
+        reason = "Could not parse one unambiguous ISO date range from both source-window labels."
+    elif ads == business:
+        status = "matched"
+        reason = f"Ads and Business Report both cover {ads[0]}..{ads[1]}."
+    else:
+        status = "mismatched"
+        reason = (f"Ads covers {ads[0]}..{ads[1]}; Business Report covers "
+                  f"{business[0]}..{business[1]}.")
+    return {
+        "ads_vs_business_report": status,
+        "reason": reason,
+        "ads": list(ads) if ads else None,
+        "business_report": list(business) if business else None,
+    }
+
+
+def alignment_from_metrics(metrics):
+    """Read the persisted classification, with a safe fallback for older metrics files."""
+    saved = (metrics or {}).get("window_alignment") or {}
+    if saved.get("ads_vs_business_report") in {"matched", "mismatched", "unknown"}:
+        return saved
+    return assess_ads_business_window_alignment((metrics or {}).get("windows", {}))
+
+
+def blended_metrics_available(metrics):
+    """True only when alignment and every required blended value are present."""
+    alignment = alignment_from_metrics(metrics)
+    totals = (metrics or {}).get("totals", {})
+    required = ("tacos", "organic_implied", "ad_dependency", "ad_attributed_share")
+    return (alignment.get("ads_vs_business_report") == "matched"
+            and all(totals.get(key) is not None for key in required))
+
+
+def blended_metrics_reason(metrics):
+    alignment = alignment_from_metrics(metrics)
+    if alignment.get("ads_vs_business_report") != "matched":
+        return alignment["reason"]
+    return "Source windows align, but Business Report sales are zero or unavailable."
+
+
+def blended_totals(all_spend, all_sales, br_total, alignment):
+    """Return blended metrics only when the source windows are confirmed identical."""
+    matched = (alignment or {}).get("ads_vs_business_report") == "matched"
+    if not matched or not br_total:
+        return {
+            "tacos": None,
+            "organic_implied": None,
+            "ad_dependency": None,
+            "ad_attributed_share": None,
+        }
+    share = all_sales / br_total
+    return {
+        "tacos": all_spend / br_total,
+        "organic_implied": br_total - all_sales,
+        "ad_dependency": share,
+        "ad_attributed_share": share,
+    }
+
 # ----------------------------------------------------------------- ads bulk (per marketplace)
 SP_SHEET = "Sponsored Products Campaigns"
 CHANNEL_SHEETS = {
@@ -130,6 +219,47 @@ CHANNEL_SHEETS = {
 }
 
 SB_SHEETS = ["SB Multi Ad Group Campaigns", "Sponsored Brands Campaigns"]  # superset first
+
+
+class CIHeaders(dict):
+    """Column-name index that tolerates Amazon's inconsistent header casing.
+
+    Third instance of the same failure mode as the sheet names and Entity labels, in one
+    file: the search-term sheets are headed "Customer search term" while the code, and
+    Amazon's own docs, say "Customer Search Term". An exact lookup silently dropped the
+    ENTIRE Sponsored Products intent split, leaving a branded/generic/competitor breakdown
+    built from Sponsored Brands alone and a coverage figure that looked like thin data
+    rather than a bug. Behaves as a normal dict for iteration; folds case on lookup."""
+
+    @staticmethod
+    def _k(key):
+        return str(key).strip().casefold()
+
+    def __init__(self, mapping):
+        super().__init__(mapping)
+        self._fold = {self._k(k): v for k, v in mapping.items()}
+
+    def __contains__(self, key):
+        return self._k(key) in self._fold
+
+    def __getitem__(self, key):
+        try:
+            return self._fold[self._k(key)]
+        except KeyError:
+            raise KeyError(key) from None
+
+    def get(self, key, default=None):
+        return self._fold.get(self._k(key), default)
+
+
+def same_entity(a, b):
+    """Compare two Amazon bulk Entity labels case-insensitively.
+
+    Amazon's bulk export is not consistent about casing, within a single file: one ES
+    export carried "Keyword" and "Campaign" beside "Product targeting". An exact match
+    silently drops a whole entity class, which under-reports spend without failing any
+    reconciliation, because the buckets and the search-term rows are truncated together."""
+    return str(a or "").strip().casefold() == str(b or "").strip().casefold()
 
 # Bounds for streaming the ads bulk (see sheet_io): Amazon writes a bogus "A1:A1" dimension
 # that openpyxl read_only clips to, so iter_rows is forced past it with explicit maxima.
@@ -146,7 +276,22 @@ def parse_bulk(cfg, market, path, agg):
     wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
     _sheet_cache = {}
 
+    # Amazon is NOT consistent about sheet-name casing. One real ES export carried
+    # "Sponsored Products Campaigns" and "SB Multi Ad Group Campaigns" beside
+    # "Sponsored Brands campaigns" and "Sponsored Display campaigns" (lowercase c).
+    # An exact-match lookup silently skips the whole channel: SD vanished entirely and
+    # SB was counted from one sheet only, under-reporting spend by ~36% while every
+    # internal reconciliation still passed. Resolve names case-insensitively.
+    _actual_sheet = {s.strip().casefold(): s for s in wb.sheetnames}
+
+    def resolve(sheet):
+        """Workbook's real name for `sheet`, case-insensitively, or None if absent."""
+        return _actual_sheet.get(str(sheet).strip().casefold())
+
     def sheet_io(sheet):
+        sheet = resolve(sheet)
+        if sheet is None:
+            return [], {}, []
         if sheet in _sheet_cache:
             return _sheet_cache[sheet]
         ws = wb[sheet]
@@ -163,7 +308,7 @@ def parse_bulk(cfg, market, path, agg):
         while H and H[-1] is None:              # drop the None cells beyond the real header
             H.pop()
         ncol = len(H)
-        I = {h: i for i, h in enumerate(H)}
+        I = CIHeaders({h: i for i, h in enumerate(H)})
         rows = []
         if ncol:
             for r in ws.iter_rows(min_row=2, max_row=BULK_MAX_ROWS, min_col=1, max_col=ncol,
@@ -178,27 +323,27 @@ def parse_bulk(cfg, market, path, agg):
     # sheet (superset wins) and only count/parse it there.
     sb_owner = {}  # campaign_id -> sheet that owns it
     for sheet in SB_SHEETS:
-        if sheet not in wb.sheetnames:
+        if resolve(sheet) is None:
             continue
         _, I, rows = sheet_io(sheet)
         cid = I.get("Campaign ID")
         if cid is None or "Entity" not in I:
             continue
         for r in rows:
-            if r[I["Entity"]] == "Campaign" and r[cid] is not None:
+            if same_entity(r[I["Entity"]], "Campaign") and r[cid] is not None:
                 sb_owner.setdefault(r[cid], sheet)
     agg["_sb_owner"] = sb_owner
 
     # ---- channel presence + additive totals ----
     # SB (both sheets, deduped by owner) collapse into one "SB" channel.
     for sheet in SB_SHEETS:
-        if sheet not in wb.sheetnames:
+        if resolve(sheet) is None:
             continue
         _, I, rows = sheet_io(sheet)
         if not rows or "Entity" not in I:
             continue
         cid = I.get("Campaign ID")
-        camp = [r for r in rows if r[I["Entity"]] == "Campaign"
+        camp = [r for r in rows if same_entity(r[I["Entity"]], "Campaign")
                 and (cid is None or sb_owner.get(r[cid]) == sheet)]
         sp = sum(nf(r[I["Spend"]]) for r in camp if "Spend" in I)
         sa = sum(nf(r[I["Sales"]]) for r in camp if "Sales" in I)
@@ -209,12 +354,12 @@ def parse_bulk(cfg, market, path, agg):
             agg["channels"]["SB"]["campaigns"] += len(camp)
     # SD / RAS — independent sheets, no dedup needed
     for ch, sheet in (("SD", "Sponsored Display Campaigns"), ("RAS", "RAS Campaigns")):
-        if sheet not in wb.sheetnames:
+        if resolve(sheet) is None:
             continue
         _, I, rows = sheet_io(sheet)
         if not rows or "Entity" not in I:
             continue
-        camp = [r for r in rows if r[I["Entity"]] == "Campaign"]
+        camp = [r for r in rows if same_entity(r[I["Entity"]], "Campaign")]
         sp = sum(nf(r[I["Spend"]]) for r in camp if "Spend" in I)
         sa = sum(nf(r[I["Sales"]]) for r in camp if "Sales" in I)
         if sp or sa or camp:
@@ -226,7 +371,12 @@ def parse_bulk(cfg, market, path, agg):
     # ---- Sponsored Products (full detail) ----
     H, I, R = sheet_io(SP_SHEET)
     def g(row, col): return row[I[col]] if col in I else None
-    ENT = lambda e: [r for r in R if g(r, "Entity") == e]
+    # Entity labels carry the same casing inconsistency as the sheet names: one real ES
+    # export used "Product targeting" (lowercase t) while the same file said "Keyword" and
+    # "Campaign". Matching exactly dropped EUR 11,575 of Product-targeting spend, i.e. half
+    # of Sponsored Products, and every internal reconciliation still passed because the
+    # buckets agreed with the (equally truncated) search-term rows. Compare case-folded.
+    ENT = lambda e: [r for r in R if same_entity(g(r, "Entity"), e)]
     camp_rows = ENT("Campaign"); ag_rows = ENT("Ad Group")
     kw_rows = ENT("Keyword"); pt_rows = ENT("Product Targeting")
     ba_rows = ENT("Bidding Adjustment")
@@ -311,7 +461,7 @@ def parse_bulk(cfg, market, path, agg):
     # which is what an intent split is meant to measure. SB falls back to its TARGETS
     # only when its search-term report does not cover the channel (see below).
     for sheet in ("SP Search Term Report",):
-        if sheet not in wb.sheetnames:
+        if resolve(sheet) is None:
             continue
         SH, SI, SR = sheet_io(sheet)
         if "Customer Search Term" not in SI:
@@ -342,7 +492,7 @@ def parse_bulk(cfg, market, path, agg):
     sb_channel_spend = agg.get("channels", {}).get("SB", {}).get("spend", 0.0)
     sb_st_sheet = "SB Search Term Report"
     sb_st_spend = 0.0
-    if sb_st_sheet in wb.sheetnames:
+    if resolve(sb_st_sheet):
         _, _SI, _SR = sheet_io(sb_st_sheet)
         if "Customer Search Term" in _SI and "Spend" in _SI:
             sb_st_spend = sum(nf(r[_SI["Spend"]]) for r in _SR)
@@ -383,7 +533,7 @@ def parse_bulk(cfg, market, path, agg):
     # Dedupe across the two SB sheets by the owner map so overlapping campaigns'
     # targets aren't counted twice.
     for sheet in sb_target_sheets:
-        if sheet not in wb.sheetnames:
+        if resolve(sheet) is None:
             continue
         SBH, SBI, SBR = sheet_io(sheet)
         if "Entity" not in SBI:
@@ -395,9 +545,9 @@ def parse_bulk(cfg, market, path, agg):
             if cid_val is not None and sb_owner.get(cid_val, sheet) != sheet:
                 continue  # this campaign is owned by the other SB sheet — skip (dedupe)
             ent = bg("Entity")
-            if ent == "Keyword":
+            if same_entity(ent, "Keyword"):
                 label = bg("Keyword Text"); b = classify_target(cfg, label)
-            elif ent == "Product Targeting":
+            elif same_entity(ent, "Product Targeting"):
                 label = str(bg("Product Targeting Expression") or "") + " " + \
                         str(bg("Resolved Product Targeting Expression (Informational only)") or "")
                 b = classify_target(cfg, label.strip())
@@ -504,16 +654,19 @@ def build_metrics(cfg, agg, outdir):
         1 for asins in agg.get("ag_asins", {}).values()
         if len({pmap.get(a, a) for a in asins}) > 1)
     br_total = agg["br_total_sales"]
+    window_alignment = assess_ads_business_window_alignment(cfg.get("windows", {}))
+    blended = blended_totals(all_spend, all_sales, br_total, window_alignment)
     metrics = dict(
         client=cfg.get("client"), date=cfg.get("date"), marketplaces=cfg.get("marketplaces"),
         currency=cfg.get("currency", "USD"), breakeven=cfg.get("breakeven_acos", 0.50),
         windows=cfg.get("windows", {}),
+        window_alignment=window_alignment,
+        ads_snapshot_directional=bool(cfg.get("ads_snapshot_directional", False)),
         channels_present=sorted(channel_totals.keys()),
         channel_totals=channel_totals,
         totals=dict(spend=all_spend, sales=all_sales, orders=sp["orders"], clicks=sp["clicks"], impr=sp["impr"],
                     acos=acos(all_spend, all_sales), roas=(all_sales / all_spend if all_spend else 0),
-                    br_total_sales=br_total, tacos=(all_spend / br_total if br_total else 0),
-                    ad_dependency=(all_sales / br_total if br_total else 0)),
+                    br_total_sales=br_total, **blended),
         searchterm_bucket=STB,
         st_coverage=(sum(v["spend"] for v in STB.values()) / all_spend if all_spend else 0),
         st_method=("SP classified by customer search term; SB by customer search term "
@@ -632,6 +785,37 @@ def build_metrics(cfg, agg, outdir):
         (clean / "sqp_demand.json").write_text(json.dumps(sqp_demand, indent=2))
         metrics["sqp_demand"] = sqp_demand
 
+        # Query-level cart-claim evidence. Every metric is the average across the
+        # weeks in which that ASIN/query row appeared. Never use a four-week sum:
+        # Amazon's capped query grid changes from week to week. The resulting JSON
+        # feeds the internal call-claim verifier and is also the auditable source
+        # for the MASTER workbook reference. Commercially relevant queries sort
+        # first by the ASIN's average purchases.
+        cart_rows = []
+        for (group, ql), weekmap in sqp["grp_wk"].items():
+            common = [w for w in weekmap if w in sqp["mkt_wk"].get(ql, {})]
+            if not common:
+                continue
+            ours = weekmap
+            market = sqp["mkt_wk"][ql]
+            query = sqp["grp_qtext"].get((group, ql), ql)
+            cart_rows.append(dict(
+                group=group,
+                query=query,
+                segment=classify_demand(cfg, query),
+                weeks=len(common),
+                impressions=mean([ours[w]["imp"] for w in common]),
+                clicks=mean([ours[w]["clk"] for w in common]),
+                cart_adds=mean([ours[w]["cart"] for w in common]),
+                purchases=mean([ours[w]["pur"] for w in common]),
+                market_impressions=mean([market[w]["imp"] for w in common]),
+                market_clicks=mean([market[w]["clk"] for w in common]),
+                market_cart_adds=mean([market[w]["cart"] for w in common]),
+                market_purchases=mean([market[w]["pur"] for w in common]),
+            ))
+        cart_rows.sort(key=lambda row: (-row["purchases"], -row["clicks"], row["query"].lower()))
+        (clean / "cart_claim_query_averages.json").write_text(json.dumps(cart_rows, indent=2))
+
     # DataDive summary
     if agg.get("dd"):
         dd = agg["dd"]["keywords"]
@@ -690,14 +874,57 @@ def run(config_path, outdir=None):
     parse_sqp(cfg, agg)
     parse_datadive(cfg, agg)
     m = build_metrics(cfg, agg, outdir)
+    acos_text = f"{m['totals']['acos']:.1%}" if m["totals"]["acos"] is not None else "n/a"
     print(f"[analyze] {cfg['client']}: spend {m['totals']['spend']:,.0f} sales {m['totals']['sales']:,.0f} "
-          f"ACOS {m['totals']['acos']:.1%} | channels {m['channels_present']} | outdir {outdir}")
+          f"ACOS {acos_text} | channels {m['channels_present']} | outdir {outdir}")
     return outdir, m
 
 def _slug(s):
     return re.sub(r"[^a-z0-9]+", "-", (s or "client").lower()).strip("-")
 
+def _self_test():
+    """Guard the bulk-parser casing contract.
+
+    Amazon's bulk export varies the casing of BOTH sheet names and Entity labels, within
+    one file. Matching either exactly drops a whole channel or a whole entity class, and
+    it does so silently: the buckets and the search-term rows truncate together, so spend
+    reconciliation still passes and the audit ships plausible, wrong numbers. On the
+    V Gummies ES export that hid EUR 11,576 of Product-targeting spend and all of
+    Sponsored Display, understating account spend by 29%."""
+    fails = []
+
+    def check(name, got, want):
+        if got != want:
+            fails.append(f"{name}: got {got!r}, want {want!r}")
+
+    # Entity labels differ in case across a single real export.
+    check("entity exact", same_entity("Keyword", "Keyword"), True)
+    check("entity lower t", same_entity("Product targeting", "Product Targeting"), True)
+    check("entity upper", same_entity("PRODUCT TARGETING", "Product Targeting"), True)
+    check("entity padded", same_entity("  Campaign ", "Campaign"), True)
+    check("entity distinct", same_entity("Keyword", "Campaign"), False)
+    check("entity none", same_entity(None, "Campaign"), False)
+
+    # Sheet-name resolution uses the same fold; mirror it here so the contract is pinned
+    # even though `resolve` is scoped inside parse_bulk.
+    actual = {s.strip().casefold(): s for s in
+              ["Sponsored Products Campaigns", "Sponsored Brands campaigns",
+               "SB Multi Ad Group Campaigns", "Sponsored Display campaigns"]}
+    check("sheet lower c", actual.get("sponsored display campaigns"), "Sponsored Display campaigns")
+    check("sheet asked title-case", actual.get("Sponsored Display Campaigns".casefold()),
+          "Sponsored Display campaigns")
+    check("sheet absent", actual.get("ras campaigns"), None)
+
+    if fails:
+        print("SELF-TEST FAILED"); [print("  " + f) for f in fails]; return 1
+    print(f"self-test OK — {9} casing assertions on sheet names and Entity labels")
+    return 0
+
+
 if __name__ == "__main__":
+    if len(sys.argv) > 1 and sys.argv[1] == "--self-test":
+        sys.exit(_self_test())
     if len(sys.argv) < 2:
-        print("usage: analyze_audit.py <config.json> [outdir]"); sys.exit(1)
+        print("usage: analyze_audit.py <config.json> [outdir]\n"
+              "       analyze_audit.py --self-test"); sys.exit(1)
     run(sys.argv[1], sys.argv[2] if len(sys.argv) > 2 else None)

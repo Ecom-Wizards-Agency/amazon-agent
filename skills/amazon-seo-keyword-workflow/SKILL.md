@@ -1,6 +1,6 @@
 ---
 name: amazon-seo-keyword-workflow
-description: Use for the end-to-end keyword-research workbook BUILD pipeline: DataDive 30%/1% exports plus POE/OEI evidence in; Never Ever frequency analysis, outlier triage, and validation; styled XLSX workbook out, with Google Drive delivery and the Codex-Claude handoff. For SEO writing, listing re-optimization, or compliance checks use amazon-seo.
+description: Use for the end-to-end keyword-research workbook BUILD pipeline: DataDive 30%/1% exports plus POE/OEI evidence in; Never Ever frequency analysis, outlier triage, and validation; styled XLSX workbook out, with Google Drive delivery and an optional capability-based handoff. For SEO writing, listing re-optimization, or compliance checks use amazon-seo.
 ---
 
 # Amazon SEO Keyword Workflow
@@ -9,11 +9,9 @@ Browser: Mixed (build is local; DataDive via MCP; the full keyword pool via thre
 
 Use this when the operator asks for a full Amazon SEO keyword workbook, not only listing copy.
 
-## Standby Command
-
-`/seo-standby` means the operator is starting a keyword-research workbook flow but the actionable instructions are expected from Claude. Acknowledge standby, load this workflow if needed, and wait. Do not open DataDive, Seller Central, Amazon listings, run the builder, write SEO, create Drive outputs, edit listings, commit/push, or inspect browser credentials/session data until the operator provides Claude's concrete handoff.
-
-When the handoff arrives, the browser half of the run is: gather the requested browser/UI inputs, save them to the exact contract paths, report saved paths plus caveats, and stop. One agent can now do both halves in a single session; the split below is a checklist, not a runtime boundary.
+The current agent runs this workflow end to end: gather MCP and browser inputs, write SEO, build,
+validate, and complete authorized internal delivery. If one required capability is unavailable,
+hand off only the blocked checklist and exact contract paths to any capable agent.
 
 ## Load Order
 
@@ -56,7 +54,7 @@ Validated 31.07.2026 on niche `rJdlqdE49c`: 500 + 127 + 2,662 = **3,289 unique k
 
 `Update Niche` is the separate re-dive path. It is **not** needed for the tail; treat it as quota-bearing and never trigger it for this workflow.
 
-Procedure (Claude, before the build):
+Procedure (current agent, before the build):
 1. Call `get_niche_roots`, `get_niche_keywords`, `get_niche_competitors` for the niche; save each raw JSON response to a file.
 2. **Guardrail:** confirm `len(get_niche_keywords.keywords) == get_niche_competitors.numVisibleKeywords` before trusting the Core file. If they diverge, fall back to the UI Core export.
 3. Run the generator to write the three contract CSVs:
@@ -69,24 +67,22 @@ Notes: the Core file's `Sugg. bid & range` column is left blank (the builder nev
 
 Record DataDive export metadata for both Core and Expanded MKL: Min Relevancy, Min SV/Max SV if changed, visible keyword count, visible search volume, export timestamp, niche ID, marketplace, and hero keyword. **Capture these at export time, while the grid is on screen**; do not backfill later.
 
-DataDive UI export locations (so Codex doesn't hunt for them):
+DataDive UI export locations:
 - **Roots CSV**: the **Roots** grid's leftmost **Export** tab, for **Normalized Root**.
 - **Competitors CSV**: **Niche Tracker > Export Competitors**. Prefer the real UI export over MCP fallback. NOTE: the genuine UI export is TRANSPOSED (attribute rows, one column per ASIN); the builder handles both shapes.
 - Core/Expanded MKL: always record Min Rel, visible keyword count, visible search volume, and export timestamp at export time.
 - Before fallback or rank injection, confirm the Core MKL has the exact anchor ASIN as a real DataDive column.
-- **Anchor not tracked in an existing niche: ADD the ASIN, do NOT re-dive.** When a niche already exists for the product's market but our anchor ASIN is not one of its tracked columns (the usual case for a niche someone dived around competitors), do not spend a full `create_niche_dive`. Instead add just our ASIN to that existing niche so it gains a rank column and the existing roots/MKL/competitor research is reused (≈1 dive token vs ~10, and one niche instead of a duplicate). The DataDive **MCP has no add-ASIN action**, so this is a Codex UI step: DataDive → Niche Tracker → add competitor ASIN → let it re-research; the ASIN then appears in `get_niche_keywords.asinRanks`. Only `create_niche_dive` (spending a full dive, ideally seeded on OUR ASIN) when **no** niche exists for the product yet. Verify with `get_niche_competitors`/`get_niche_keywords` that the anchor is a tracked column after the add, before rank injection. See [[keyword-research-config-scaffolding]].
+- **Anchor not tracked in an existing niche: ADD the ASIN, do NOT re-dive.** When a niche already exists for the product's market but our anchor ASIN is not one of its tracked columns (the usual case for a niche someone dived around competitors), do not spend a full `create_niche_dive`. Instead add just our ASIN to that existing niche so it gains a rank column and the existing roots/MKL/competitor research is reused (≈1 dive token vs ~10, and one niche instead of a duplicate). The DataDive **MCP has no add-ASIN action**, so this is a connected-browser UI step: DataDive → Niche Tracker → add competitor ASIN → let it re-research; the ASIN then appears in `get_niche_keywords.asinRanks`. Only `create_niche_dive` (spending a full dive, ideally seeded on OUR ASIN) when **no** niche exists for the product yet. Verify with `get_niche_competitors`/`get_niche_keywords` that the anchor is a tracked column after the add, before rank injection. See [[keyword-research-config-scaffolding]].
 - **If you do fall back to a UI export, do not trust the download event.** DataDive's export buttons emit no detectable download event in some browser runtimes (confirmed 2026-06-12, still true for Codex on 31.07.2026; the Chrome extension handled it cleanly). Robust pattern: snapshot `~/Downloads`, click Export, then poll for a new `niche-{id}-data*.zip` and validate it by timestamp, size, ZIP members, headers, and row counts. Cross-check against `get_niche_competitors` (`numVisibleKeywords`/`totalSvOfVisibleKeywords` for the visible set, `numKeywords`/`totalSvOfKeywords` for the full pool) before accepting. Prefer the three read-only endpoints above, which avoid this entirely.
-- POE inputs come from the API-first downloader: `tools/opportunity-explorer/run-poe.mjs` (`search` → related-niches JSON; `niche` → Products/SearchTerms CSVs + sentiment-labeled CRI + Returns + overview JSON, all builder-ready and locale-independent). One `.de` login covers every EU marketplace (`--origin https://sellercentral.amazon.de --marketplace de|it|es|fr|…`); US uses the `.com` origin. Whoever has the debug Chrome (Claude via CDP, or Codex via internal-browser evaluate of `fetch-poe.js`) can produce these; no manual tab clicking. Capture context (account, marketplace, niche, last-updated) comes from the overview JSON.
+- POE inputs come from the API-first downloader: `tools/opportunity-explorer/run-poe.mjs` (`search` → related-niches JSON; `niche` → Products/SearchTerms CSVs + sentiment-labeled CRI + Returns + overview JSON, all builder-ready and locale-independent). One `.de` login covers every EU marketplace (`--origin https://sellercentral.amazon.de --marketplace de|it|es|fr|…`); US uses the `.com` origin. An agent with the debug Chrome can use the CDP runner; an agent with a supported internal browser can evaluate `fetch-poe.js`. No manual tab clicking is required. Capture context (account, marketplace, niche, last-updated) comes from the overview JSON.
 - **⚠️ ALWAYS pass `--origin https://sellercentral.amazon.de` for any EU client, on `doctor` too.** `origin` DEFAULTS to `https://sellercentral.amazon.com`, so a bare `run-poe.mjs doctor` reads the account context from the `.com` page and reports whatever account is active there (typically an unrelated US account) even when a `.de` tab is open and the EU client is the selected merchant. It looks like the "wrong account", and the account-safety abort will misfire. The debug Chrome is a **separate profile** from your normal Chrome: switching accounts in your everyday Chrome does nothing; switch the merchant in the port-9222 debug Chrome's account picker, then `doctor --origin https://sellercentral.amazon.de` should report the expected EU merchant, e.g. `<Merchant Name> [partnerAccountId=<partner-account-id>] marketplace=A1PA6795UKMFR9`. Confirmed 2026-07-21. (Note: EU cross-market still uses the `.de` login origin with a different `--marketplace`; do NOT derive origin from the marketplace domain.) POE also requires the account to actually have Opportunity Explorer / Brand Analytics access. If `search`/`niche` hang with an "unsettled top-level await" while `readAccount` succeeds, the account likely lacks OEI access for that marketplace.
-- **POE niche selection: Codex picks and pulls, no pause for Claude.** (Operator 2026-07-26.) Once the correct Seller Central account is selected, Codex runs the POE keyword search, takes the closest matching niche itself, and downloads the full set in the same session. Do NOT stop to have Claude choose the niche ID. The account check is the only gate that still blocks; niche choice is not. Report the chosen niche (id + label + T90 SV) and any close runners-up in the handback so Claude can re-pull if the pick was wrong, which is cheaper than a round-trip on every run. If the search returns no plausible niche at all, say so and stop.
+- **POE niche selection stays in the active run.** Once the correct Seller Central account is selected, the current agent runs the POE keyword search, takes the closest matching niche, and downloads the full set in the same session. Do not pause for a second agent to choose the niche ID. The account check is the only gate that still blocks; niche choice is not. Report the chosen niche (id + label + T90 SV) and any close runners-up so it can be re-pulled cheaply if the pick was wrong. If the search returns no plausible niche at all, say so and stop.
 - **Saving POE so it actually reaches the workbook.** The POE files only become tabs if they land on the exact `inputs{}` contract paths that `--preflight` prints. Nothing else is read. Six files, six destinations: `poe_products_csv` and `poe_search_terms_csv` are EXACT-PASTE into `POE Raw - Products` / `POE Raw - Search Terms`, so their raw column layout must survive untouched (no reordering, no de-duping, no header edits). `poe_reviews_json`, `poe_returns_json`, `related_niches_json` and `poe_structured_json` are REBUILT into `POE Raw - Reviews`, `POE Raw - Returns`, `POE Raw - Related Niches` and `POE Semantic Insights`. Rename downloads to the contract paths rather than pointing the config at `~/Downloads`. After the files land, re-run `--preflight` and require every POE line to flip to PRESENT before building; a path typo shows up as a silently skipped or placeholder tab, not as an error. Then let the QA gates confirm it: `required_current_tabs`, the POE-tabs-match-current-files gate, and the `stale_data_guard` forbidden-terms sweep together prove the tabs hold this product's data and not the template lineage's.
 - POE fallback quirks (manual export only): direct tab URLs render header-only, so click the in-page tab; the Download click works even when the download event times out; check `~/Downloads` and rename to the contract path.
-- After Claude accepts the canonical inputs, Codex deletes duplicate/raw intermediate downloads (never the canonical contract paths).
+- After the canonical inputs pass preflight and validation, delete duplicate/raw intermediate downloads (never the canonical contract paths).
 - Sparse POE Review Insights or Returns routes still get a visible JSON capture plus an explicit caveat.
 - Listing capture uses the local-language Amazon path and preserves both requested ASIN and resolved ASIN. Flag same-brand sibling redirects and cross-family edge cases.
 - Collagen has no authorized EU health claim; flag skin, hair, nails, joints, bones, wrinkles, anti-age, and elasticity terms in live copy.
-
-**Cross-agent:** Codex captures the browser/UI inputs while Claude writes SEO + builds. Codex waits on Claude's handoff with the **`/seo-standby`** command, then writes to the contract paths and stops.
 
 ## Delivery Rule
 
@@ -156,7 +152,7 @@ The vault root comes from the `AMAZON_AGENT_TEAM_VAULT` env var or `_local/team-
 
 The builder never creates a client folder in the shared vault. That vault syncs to every teammate, so a folder invented by a script, or a near-miss spelling next to the real one, is worse than no note. An unmatched client falls back to `output/` and the run warns you to create the client's hub note in the vault first.
 
-The preflight Codex block's `Protocol:` line points at whatever path this resolves to, falling back to the repo's `docs/handoff-template.md` only when nothing resolves.
+The preflight browser checklist's `Protocol:` line points at whatever path this resolves to, falling back to the repo's `docs/handoff-template.md` only when nothing resolves.
 
 ## Campaign Structure Fill (on request)
 
@@ -166,8 +162,9 @@ bulk-creator webapp is the operator's manual step. Never emit campaign bulk file
 
 Preconditions: a built, QA-passed workbook; `_local/ads-strategy/strategy.json` + `strategy.md`
 present with no `<placeholders>` (copy from `tools/amazon-seo-keyword-workbook/ads-strategy.TEMPLATE.*`).
-The strategy files are proprietary and local-only. Claude refreshes them from the Notion playbooks
-listed in the strategy.md header when stale; Codex uses them as-is and asks the operator if missing.
+The strategy files are proprietary and local-only. An agent with Notion access refreshes them from
+the playbooks listed in the strategy.md header when stale. Without that access, use current files
+as-is or ask the operator when they are missing or outdated. Never guess thresholds.
 Set `campaign_structure.own_brand_tokens` and `product_name_for_naming` in the client config.
 
 Three phases:

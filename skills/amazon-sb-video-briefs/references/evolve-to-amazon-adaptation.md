@@ -35,7 +35,7 @@ Three consequences:
 | 43 to 45 seconds, VO-led, sound on | 15 to 30 seconds, text-led, designed for mute; audio is a bonus layer |
 | Hook, Bridge, Hold, CTA | Frame-1 proof, Differentiator, Proof block, Brand lockup (section 6) |
 | CTA drives to a landing page you control | CTA is soft; the click lands on the listing, so ad-to-listing congruence replaces ad-to-lander congruence |
-| Meta benchmarks: hook rate 25%, CTR 1% | SB video benchmarks: judge CTR against the account's SB baseline and CVR against the ASIN's Business Report CVR (section 9) |
+| Meta benchmarks: hook rate 25%, CTR 1% | SB video results are measured under the canonical agency concept-testing playbook, outside editor documents |
 | Compliance: watch "root cause" claims | Compliance is a hard layer: Amazon creative policy plus health-claims regimes (section 8) |
 
 ## 4. Query-to-awareness map
@@ -68,7 +68,7 @@ Inputs, in priority order:
 Scorecard per candidate cluster (gate, then rank):
 
 - Gates: search volume above the niche's long-tail floor; offer actually fits the query intent; listing supports the claim; no unresolvable compliance block; never a branded (own-brand) cluster: no videos for branded keywords (operator rule).
-- Rank by: spend already flowing to the cluster, volume, gap between impression share and click share, margin headroom vs break-even ACOS.
+- Rank by: volume, organic rank, gap between impression share and click share, spend, CTR, CVR, raw ACOS, price congruence, and listing support.
 
 Output: 3 to 5 clusters max per batch. One excellent brief a day beats five rushed ones, same rule as Evolve.
 
@@ -118,53 +118,22 @@ Policy floor for every video (rejection triggers):
 - No competitor names or marks. No review quotes unless verbatim, attributed, and unedited.
 - No before-and-after imagery for weight loss or disease-adjacent outcomes.
 
-Health-claims gate (advisory mode): run the /health-claims-check flow on the full script text plus every on-screen text card before the brief ships. The brief carries a per-line risk table (LOW, MEDIUM, HIGH) with a suggested compliant rewrite next to every MEDIUM and HIGH line. The operator decides per line. The editor never resolves claims wording alone.
+Health-claims gate: run the /health-claims-check flow on the full script text plus every on-screen text card before the brief ships. Resolve every MEDIUM and HIGH line internally. The editor brief receives only the final approved copy and the concise absolute do-not list. The editor never resolves claims wording alone.
 
 Claims survive the move down, not up: a line that is compliant as visible listing copy is usually safe in a video. A line that was backend-only in the keyword workbook must never appear on screen.
 
-## 9. The testing loop
+## 9. The learning handoff
 
-Launch:
+Launch, measurement, verdicts, confidence, and scaling live in `<vault>/Playbooks/amazon-sb-video-concept-testing-playbook.md` (team vault, resolved via `AMAZON_AGENT_TEAM_VAULT` or `_local/team-vault-path.txt`) and the existing Notion A/B Test Program. This creative adaptation does not restate that method.
 
-- 1 SB video campaign per keyword, nothing else in the campaign. The campaign is the test cell.
-- **One ad group per angle (the batch), named `Angle N - <name>`.** Not three creatives in one ad group. AdLabs has no creative-level entity for Sponsored Brands (`advertised_product` excludes SB, `creative_type` is empty on SB video ad groups), so three creatives sharing an ad group cannot be told apart in reporting. Same keywords and same bids across the three; the ad group name is the only difference.
-- Budget sits at campaign level, so impressions will not split evenly. Read CTR, which is a rate, not click counts. If one angle falls far behind on impressions, pause the leaders until it catches up.
-- Set bids to actually win the video slot: an untested video at a starvation bid produces no learnings.
-
-Read in two stages, because the two halves cost very different amounts:
-
-- **Stage 1, CTR.** Roughly 5,000 impressions per angle. Needs impressions, not clicks, so it is cheap and fast.
-- **Stage 2, CVR and ACOS.** Survivor only, roughly 100 to 150 clicks. Price it at the observed CPC before agreeing to it.
-- SQP click share is profile-level and organic plus paid, so it reads at batch level only, never per angle.
-
-**Pre-register the verdict only where a like-for-like control exists** (same product, same shelf, same ad type). Where none exists, the first batch creates the baseline: leave the verdict open and record the result afterwards. Never build a threshold from a blended figure that mixes branded and generic cohorts, since branded creative inflates the average and would condemn a working generic video.
-
-Read (after meaningful spend, not before roughly 2 weeks or a click volume worth reading):
-
-| Metric | Compare against | What it tells you |
-|---|---|---|
-| CTR | The account's SB baseline and the cluster's SP CTR | Frame-1 and hook quality: are we chosen on the shelf |
-| VTR (5s views / impressions) | Own account history | Hook hold, the Amazon cousin of Evolve's hook rate |
-| CVR | The ASIN's Business Report CVR for the same period | Ad-to-listing congruence: did the video promise what the listing sells |
-| ACOS vs break-even | Client's real margin | Whether the cluster scales |
-| SQP click share, before vs after | Same query, prior period | The shelf-level win, the metric the whole system exists to move |
-
-Verdict rules, Evolve-adapted:
-
-- High CTR, low CVR: the video wins the click but breaks congruence. Fix the listing or the promise, not the hook.
-- Low CTR, decent CVR on the clicks that come: frame-1 problem. Sniper-iterate the opening only, keep the hold.
-- All variants flat after honest spend: angle problem, not execution. Re-run cluster selection; the criterion you led with is not the buying criterion.
-- A winner: scale bids and coverage, then Marksman a new angle batch on the next cluster. Do not iterate the winner into overload.
-
-Learnings questions per video (the adapted checklist):
+Before writing the next batch, read the live test's creative learning and answer:
 
 1. Does frame 1 show the product doing the thing, muted, at thumbnail size?
 2. Does the first text card mirror the query language of the cluster?
 3. Could a shopper get the full message at 5 seconds?
-4. Is there exactly one claim, and is it different from the top 10 tiles?
-5. Would every scripted line survive Amazon moderation and the claims table?
-6. Does the listing deliver what the video promises?
-7. What did the previous winner teach, and where is it applied here?
+4. Is there exactly one factual promise, and is it different from the top tiles?
+5. Does the listing deliver what the video promises?
+6. What did the prior relative winner teach, and where is it applied here?
 
 ## 10. Vocabulary map
 
@@ -183,4 +152,4 @@ Learnings questions per video (the adapted checklist):
 | Sniper | Iterations on the winning angle's opening |
 | Growth guide hypothesis | The shortlist case. Not carried into the editor brief |
 | Batch tracking | The brief itself. No separate tracker sheet |
-| Learnings questions | Section 9 checklist, written back into the Creative Reference doc |
+| Learnings questions | Section 9 checklist, consumed from the live Notion test before the next batch |

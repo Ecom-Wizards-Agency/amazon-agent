@@ -33,7 +33,7 @@ Captured-vs-visible verification: `references/poe-gap-matrix.md`.
 
 ## Usage
 
-### Path B: terminal/CDP (Claude or any agent with shell access)
+### Path B: terminal/CDP (any agent with shell access)
 
 ```bash
 tools/report-fetcher/launch-chrome-debug.sh --mode recovery  # visible only for login/recovery
@@ -90,7 +90,7 @@ marketplace. A mismatch aborts. Output goes to
 envelope JSON. Account verification and the data request share one POE page
 session, preventing a second unprimed background tab from stalling the fetch.
 
-### Path A: Codex / internal-browser evaluate
+### Path A: internal-browser page evaluation
 
 Open any `/opportunity-explorer` page in the internal browser (logged in,
 correct account + marketplace), then evaluate the source with the call

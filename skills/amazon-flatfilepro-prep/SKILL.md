@@ -13,7 +13,7 @@ Browser: None (local build from export + label evidence).
 `prepare_flatfilepro_upload.py` an `--output` path ending in `.xlsx` and it
 writes a workbook; the writer switches on the extension. A `.csv` path still works and
 is useful for diffing or eyeballing a change set, but it is **not** the artifact that
-gets uploaded, and handing Codex a CSV just makes it convert the file first.
+gets uploaded, and handing the upload step a CSV just forces an unnecessary conversion first.
 
 Two things to check on any `.xlsx` you hand over, because a spreadsheet round-trip is
 where they break: that the **separator glyphs survive** (the title's en-dash ` – ` and
@@ -120,7 +120,7 @@ Prefer these outputs:
 
 For upload-file creation from reviewed changes, use `scripts/prepare_flatfilepro_upload.py` with an `.xlsx` `--output` (it writes either format; the extension decides). Read `references/flatfilepro-prep-rules.md` before building complex upload files. When reading physical labels or packaging, map label sections to backend fields with `references/label-to-backend-mapping.md`.
 
-After the `.xlsx` is created, use `amazon-flatfilepro-upload-mapper` when the operator asks Codex to upload the file in Chrome, match by SKU, map columns in FlatFilePro, or leave the flow ready for the operator's final click. Keep this skill focused on preparing the file and audit.
+After the `.xlsx` is created, use `amazon-flatfilepro-upload-mapper` when the operator asks to upload the file in Chrome, match by SKU, map columns in FlatFilePro, or leave the flow ready for the operator's final click. Keep this skill focused on preparing the file and audit.
 
 ## Communication
 
