@@ -646,13 +646,24 @@ One durable, non-sensitive access note worth keeping here: the correct Creator C
 
 Before any Slack write, read `_local/slack-posting.md`. This is mandatory even when the destination channel and message are already known.
 
-**When the operator has a posting bot configured, every agent-authored Slack post goes out through it.** Never use the Slack connector to send an agent-authored message under the operator's own personal identity, and never add a ChatGPT or Claude attribution. The Slack connector is for reading/searching Slack and for creating personal drafts only when the operator explicitly requests that workflow.
+Slack authorship follows the actor. An attended session supervised by Victor,
+João or Danica posts through that operator's verified native Slack MCP identity.
+If personal MCP access is missing, prepare a draft or stop; never fall back to
+Wizards AI.
 
-If no bot is configured for the current operator, ask how they want the message posted. Do not default to their personal identity.
+Scheduled/background Evo work, `@Wizards AI` responses and explicit
+human-approved bot sends use the guarded Wizards AI helper. Missing bot access
+fails closed and never falls back to a personal identity. Approved bot sends
+must include requester ID and source event so the helper can record the
+resulting permalink in its internal control thread and receipt.
 
 The house writing standard is enforced by the helper itself and documented in `_local/slack-posting.md` (per-operator) and the company `integration-routing.md` (policy). Do not use a long channel-parent post or bypass the helper's house-style enforcement.
 
-The bot identity, helper script path, channel allowlist, and any operator-specific deviations from the standard above are per-operator configuration and live in `_local/slack-posting.md`. If that file does not exist, the helper is unavailable, the channel is not allowlisted, or the configured bot identity cannot be verified, stop and ask the operator. Do not silently fall back to a personal user account or the Slack connector.
+The bot identity, helper script path and channel allowlist live in
+`_local/slack-posting.md`. Read it before a bot write. If it is missing, the
+helper is unavailable, the channel is not allowlisted, or the bot identity
+cannot be verified, stop. Both personal and bot posts follow the same short
+parent and detailed-thread house style.
 
 Generic rules regardless of operator:
 

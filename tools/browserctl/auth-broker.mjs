@@ -1,4 +1,5 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+import { createConnection } from "node:net";
 import { homedir } from "node:os";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -16,8 +17,56 @@ const AUTH_MODULE = resolve(
   (process.env.WIZARDS_AUTH_MODULE
     || `${homedir()}/os/wizards-ai/tools/wizards-inventory/auth.mjs`).replace(/^~/, homedir()),
 );
+const TRANSPORT_SOCKET = process.env.WIZARDS_AI_BROKER_SOCKET || "/run/wizards-ai/transport.sock";
+const TRANSPORT_REQUIRED = /^(1|true|yes|on)$/i.test(
+  String(process.env.WIZARDS_AI_BROKER_REQUIRED || ""),
+);
 
 const sleep = (ms) => new Promise((resolveSleep) => setTimeout(resolveSleep, ms));
+
+async function authenticateThroughTransport(port, targetId) {
+  const request = `${JSON.stringify({
+    version: 1,
+    operation: "browser.authenticate",
+    params: { port: Number(port), targetId: String(targetId) },
+  })}\n`;
+  const raw = await new Promise((resolveResponse, rejectResponse) => {
+    const socket = createConnection(TRANSPORT_SOCKET);
+    let output = "";
+    const timeout = setTimeout(() => {
+      socket.destroy();
+      rejectResponse(new Error("BROWSER_TRANSPORT_UNAVAILABLE: authentication timed out"));
+    }, 195_000);
+    socket.setEncoding("utf8");
+    socket.on("connect", () => socket.write(request));
+    socket.on("data", (chunk) => {
+      output += chunk;
+      if (output.length > 1024 * 1024) {
+        socket.destroy();
+        rejectResponse(new Error("BROWSER_TRANSPORT_UNAVAILABLE: response exceeded byte cap"));
+      } else if (output.includes("\n")) {
+        clearTimeout(timeout);
+        socket.end();
+        resolveResponse(output.split("\n", 1)[0]);
+      }
+    });
+    socket.on("error", (error) => {
+      clearTimeout(timeout);
+      rejectResponse(new Error(`BROWSER_TRANSPORT_UNAVAILABLE: ${error.message}`));
+    });
+    socket.on("end", () => {
+      if (!output.includes("\n")) {
+        clearTimeout(timeout);
+        rejectResponse(new Error("BROWSER_TRANSPORT_UNAVAILABLE: incomplete response"));
+      }
+    });
+  });
+  const response = JSON.parse(raw);
+  if (response.version !== 1 || !response.ok) {
+    throw new Error(`${response.code || "BROWSER_TRANSPORT_REFUSED"}: ${response.message || "operation refused"}`);
+  }
+  return response.result;
+}
 
 async function cdpForPort(port, policy) {
   const config = policyForPort(port, policy);
@@ -179,14 +228,22 @@ async function fillStep(cdp, session, state, login, getOtp) {
 
 export async function authenticateTarget({
   port, targetId, policy = loadBrowserPolicy(), configPath = CONFIG_PATH,
+  config: suppliedConfig = null, authProvider = null,
 } = {}) {
+  if (!authProvider && (existsSync(TRANSPORT_SOCKET) || TRANSPORT_REQUIRED)) {
+    if (!existsSync(TRANSPORT_SOCKET)) {
+      throw new Error(`BROWSER_TRANSPORT_UNAVAILABLE: ${TRANSPORT_SOCKET} is missing`);
+    }
+    return authenticateThroughTransport(port, targetId);
+  }
   const cdp = await cdpForPort(port, policy);
   await cdp.assertChrome();
   const page = (await cdp.listPages()).find((candidate) => candidate.id === targetId);
   if (!page) throw new Error("AUTH_TARGET_UNAVAILABLE: target does not exist");
   const session = await cdp.Session.open(page.webSocketDebuggerUrl);
-  const config = JSON.parse(readFileSync(configPath, "utf8"));
-  const auth = await import(`${pathToFileURL(AUTH_MODULE).href}?broker=${Date.now()}-${Math.random()}`);
+  const config = suppliedConfig || JSON.parse(readFileSync(configPath, "utf8"));
+  const auth = authProvider
+    || await import(`${pathToFileURL(AUTH_MODULE).href}?broker=${Date.now()}-${Math.random()}`);
   try {
     await session.send("Page.enable", {}, { timeoutMs: 10000 });
     await session.send("Runtime.enable", {}, { timeoutMs: 10000 });

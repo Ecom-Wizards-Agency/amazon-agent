@@ -203,8 +203,10 @@ firecrawl fallback that costs Firecrawl credits:
 - AdLabs: `start_chat_session`, `read_resource`, `get_entity_data`
   (and `query` for anything the entity-data shape doesn't cover).
 - Notion: `search`, `fetch` (meeting-note context).
-- Slack: `read_channel` (brand + `#amazon-check` context), `send_message`
-  (posting the final report to `#amazon-daily-report`).
+- Slack: `read_channel` (brand + `#amazon-check` context). An attended run uses
+  the supervising operator's verified native Slack MCP `send_message`; a
+  scheduled/background Evo run posts through the guarded Wizards AI helper.
+  Missing access never falls back across identities.
 
 ## Weekly variant
 
@@ -342,7 +344,9 @@ docstring for exact signatures.
 5. **Deliver -- detailed, threaded (operator feedback 2026-07-14:
    "more detailed analysis, bullet points, actual keywords/targets to
    harvest and negatives to negate").**
-   - **Slack MCP -- send_message**: post to **#amazon-daily-report**
+   - **Slack identity**: for an attended run, use the supervising operator's
+     native Slack MCP `send_message`. For a scheduled/background Evo run, use
+     the guarded Wizards AI helper. Post to **#amazon-daily-report**
      (channel ID from `slack_channel_id` in the `_local/ads-monitor/`
      config; resolve by name if unset) as a THREAD. Parent message: the
      `<!channel>` mention, a one-line header ("<!channel> Weekly Amazon
