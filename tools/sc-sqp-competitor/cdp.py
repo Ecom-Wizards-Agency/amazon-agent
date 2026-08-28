@@ -1,4 +1,4 @@
-import json, os, subprocess, sys, time, urllib.error, urllib.request
+import json, os, subprocess, time, urllib.error, urllib.request
 from pathlib import Path
 
 import websocket
@@ -7,7 +7,7 @@ HOST = os.environ.get("CDP_HOST", "127.0.0.1")
 PORT = os.environ.get("CDP_PORT", "9222")
 URL_HOST = f"[{HOST}]" if ":" in HOST and not HOST.startswith("[") else HOST
 BASE = f"http://{URL_HOST}:{PORT}"
-LAUNCHER = Path(__file__).resolve().parents[1] / "report-fetcher" / "launch-chrome-debug.py"
+BROWSERCTL = Path(__file__).resolve().parents[1] / "browserctl" / "browserctl.mjs"
 
 
 def _auto_start_enabled():
@@ -30,12 +30,12 @@ def ensure_chrome():
         if not loopback:
             raise RuntimeError(f"refusing local Chrome startup for non-local CDP_HOST={HOST}")
     launched = subprocess.run(
-        [sys.executable, str(LAUNCHER), "--mode", "headless"],
+        ["node", str(BROWSERCTL), "ensure", "--port", str(PORT)],
         capture_output=True, text=True, env=os.environ.copy(), check=False,
     )
     if launched.returncode:
         detail = (launched.stderr or launched.stdout or "launcher failed").strip()
-        raise RuntimeError(f"could not start dedicated Chrome: {detail}")
+        raise RuntimeError(f"could not ensure managed Chrome: {detail}")
     deadline = time.time() + 15
     while time.time() < deadline:
         try:

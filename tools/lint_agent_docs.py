@@ -12,6 +12,7 @@ Checks:
 5. Every repo file path a doc names actually exists. A renamed tool leaves its old
    name behind in every doc that told an agent to run it, and nothing fails until
    somebody runs the command. This is the mechanical half of that.
+6. Browser priority and local-artifact handoff invariants remain explicit.
 
 Exit code 0 when clean, 1 when any check fails.
 """
@@ -246,6 +247,15 @@ def main() -> int:
 
     # 4. AGENTS.md routing table names resolve to skill dirs.
     agents_md = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
+    required_operating_rules = (
+        "Managed Chrome CDP on port 9222 is the default browser",
+        "Port 9223 is the separate Wizards AI browser",
+        "The T3 Code in-app browser is not a first-choice browser",
+        "Verified weekly cleanup is the sole permitted",
+    )
+    for rule in required_operating_rules:
+        if rule not in agents_md:
+            errors.append(f"AGENTS.md: missing operating invariant `{rule}`")
     routing = re.search(r"Default routing:\n(.*?)\n\n", agents_md, re.S)
     if not routing:
         errors.append("AGENTS.md: `Default routing:` block not found")

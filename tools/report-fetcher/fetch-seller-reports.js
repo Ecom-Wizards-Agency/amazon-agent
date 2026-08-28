@@ -13,7 +13,7 @@
  *   in. Report JSON is returned to the caller and never sent anywhere else.
  *
  * SAFETY
- *   Dedicated CDP browser in its normal headless mode. Read-only: these endpoints
+ *   Dedicated CDP browser in its machine-configured mode. Read-only: these endpoints
  *   only READ reports. ~5 s spacing between requests (mirrors real
  *   usage). If there is no active session (network error / 403 / missing token) the
  *   function returns an { error } object and changes nothing — the agent then stops

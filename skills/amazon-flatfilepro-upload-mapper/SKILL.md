@@ -11,6 +11,10 @@ Browser: CDP (logged-in FlatFilePro session; hidden native file input, MUI autoc
 
 Use the operator's browser with the logged-in FlatFilePro session, per the Browser Standard in `AGENTS.md` (Chrome is the operator default). This skill is for operating the FlatFilePro upload/mapping UI after the upload file already exists. **FlatFilePro expects `.xlsx`** (operator, 2026-07-26); if you are handed a `.csv`, convert it to `.xlsx` before uploading rather than uploading the CSV. If the file still needs to be created from labels or backend exports, use `amazon-flatfilepro-prep` first.
 
+Use managed Chrome CDP, normally port 9222. Do not switch this workflow to the
+T3 Code in-app browser: that surface does not carry the managed login broker or
+the supported `DOM.setFileInputFiles` upload path.
+
 Stop before the final action that applies catalog changes, such as `Done`, `Update`, `Submit`, `Apply`, or any force/update switch, unless the operator explicitly approves that exact final click in the current chat.
 
 **The hard stop is the preview screen headed "Make your changes and click submit below."** Leave it visible with the mapped chips and preview grid loaded, and do NOT click **Update Listings**. That button is not a confirmation step: it posts the bulk update and Amazon begins processing the catalog change. Never toggle the small force switch beside it either, which relabels the button **Force Update**. Verified 31.07.2026.
@@ -34,16 +38,20 @@ Before asking for repeated account or mapping details, check `_local/flatfilepro
 ## Workflow
 
 1. Load and follow the Chrome control skill before operating Chrome.
-2. Check the visible FlatFilePro `Seller & Marketplace` whenever possible.
-3. If the wrong account or marketplace is selected, switch to the target Seller & Marketplace and verify the page updates.
-4. Open FlatFilePro `Upload` only if not already on the upload flow.
-5. Click `UPLOAD FILE` and select the prepared `.xlsx` if no file is already selected.
-6. If file picker navigation is awkward, copying the `.xlsx` to Downloads is allowed as an optional convenience step.
-7. In the matching step, use `SKU` as the default match basis.
-8. Select the file's SKU column unless the operator already matched it.
-9. Map remaining columns one by one.
-10. Run the mandatory pre-handoff verification below.
-11. Capture validation issues and stop at the final review/confirmation screen.
+2. Start an `artifactctl` run for this attended workflow before creating,
+   copying, or downloading a local file.
+3. Check the visible FlatFilePro `Seller & Marketplace` whenever possible.
+4. If the wrong account or marketplace is selected, switch to the target Seller & Marketplace and verify the page updates.
+5. Open FlatFilePro `Upload` only if not already on the upload flow.
+6. Click `UPLOAD FILE` and select the prepared `.xlsx` if no file is already selected.
+7. If file picker navigation is awkward, copying the `.xlsx` to Downloads is allowed as an optional convenience step. Register that new exact copy as `reproducible`; do not adopt the pre-existing source file.
+8. Register any export downloaded from the exact `https://app.flatfile.pro` origin as `source-backed` with that origin. Files supplied manually by the operator remain `preserve`.
+9. In the matching step, use `SKU` as the default match basis.
+10. Select the file's SKU column unless the operator already matched it.
+11. Map remaining columns one by one.
+12. Run the mandatory pre-handoff verification below.
+13. Capture validation issues and stop at the final review/confirmation screen.
+14. Complete the artifact run as `success` only when the mapping run itself completed. Use `blocked` or `failed` otherwise. The handoff lists registered paths, dispositions, and the seven-day eligibility date.
 
 ## Mandatory Pre-Handoff Verification
 

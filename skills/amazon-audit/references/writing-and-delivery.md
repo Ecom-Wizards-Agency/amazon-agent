@@ -215,7 +215,7 @@ Campaigns, Discovery Campaigns, Branded Keywords, Action List, Legacy, Sources &
 ### Design system, all tabs
 
 - **Palette** from `_local/branding/branding.json`, which is a symlink to the canonical
-  identity in the `ecom-wizards-brand` skill. Do not restate hex values here — the full
+  identity in the `ecom-wizards-brand` skill. Do not restate hex values here. The full
   workbook palette is in that skill's `references/workbook-contract.md`, and the copy that
   used to sit in this bullet had already drifted (it listed mist as `5B6573`, which is Steel
   from the *document* palette; workbook mist is `9AA5B4`).
@@ -350,7 +350,8 @@ rebuild and verify by looking at the rendered pages: captions drift from figures
 The renderers produce `.docx` and `.xlsx` because python-docx and openpyxl are what give us the
 branded contract, but those files are intermediates. Deliver each with
 `python3 tools/gdrive-deliver/deliver.py <file> "<drive folder>" --name "<delivery filename>"`,
-which converts it in Drive and then deletes the Office file local and remote. The native Google Doc
+which converts it in Drive, verifies the native file, emits a receipt, and retains the local
+Office file for artifactctl. The native Google Doc
 is the complete audit deliverable. Do not create, export, retain, upload, archive, or link a PDF
 unless the operator explicitly asks for one. Inspect layout directly in the native Google Doc.
 

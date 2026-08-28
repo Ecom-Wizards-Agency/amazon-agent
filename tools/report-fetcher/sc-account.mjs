@@ -179,20 +179,27 @@ export async function switchAccount(session, origin, profile, { returnTo = "/hom
 
   const account = JSON.stringify(profile.accountName);
   const marketplace = JSON.stringify(profile.marketplaceLabel);
+  const parent = JSON.stringify(profile.parentAccountName || "");
+  // The picker renders its agency parent before the asynchronously loaded
+  // seller accounts. Waiting for merely "any button" made a valid account look
+  // unavailable whenever this second render had not completed yet.
+  await waitFor(session, `(()=>{const norm=s=>(s||"").replace(/\\s*\\((aktuell|current)\\)\\s*$/i,"").trim();
+    const labels=[...document.querySelectorAll("button.full-page-account-switcher-account-details")].map(e=>norm(e.innerText));
+    return labels.includes(${account}) || (${parent} && labels.includes(${parent}));})()`,
+  `requested Seller Central account ${profile.accountName}`);
   const accountBox = `(()=>{const norm=s=>(s||"").replace(/\\s*\\((aktuell|current)\\)\\s*$/i,"").trim();
     const matches=[...document.querySelectorAll("button.full-page-account-switcher-account-details")].filter(e=>norm(e.innerText)===${account});
     if(matches.length!==1)return {count:matches.length};const e=matches[0];e.scrollIntoView({block:"center"});const r=e.getBoundingClientRect();
     return{x:r.x+r.width/2,y:r.y+r.height/2,count:1,expanded:!!e.querySelector("[class*=expanded]")}})()`;
   let accountHit = await evaluate(session, accountBox, 10000);
   if (accountHit?.count === 0 && profile.parentAccountName) {
-    const parent = JSON.stringify(profile.parentAccountName);
     const parentBox = `(()=>{const matches=[...document.querySelectorAll("button.full-page-account-switcher-account-details")]
       .filter(e=>(e.innerText||"").trim()===${parent});if(matches.length!==1)return {count:matches.length};const e=matches[0];
       e.scrollIntoView({block:"center"});const r=e.getBoundingClientRect();return{x:r.x+r.width/2,y:r.y+r.height/2,count:1,expanded:!!e.querySelector("[class*=expanded]")}})()`;
     const parentHit = await evaluate(session, parentBox, 10000);
     if (parentHit?.count !== 1) throw new Error(`ACCOUNT_SWITCH_BLOCKED: parent account is unavailable or ambiguous (${profile.parentAccountName})`);
     await trustedClick(session, parentBox, `parent account ${profile.parentAccountName}`);
-    await sleep(500);
+    await waitFor(session, `(${accountBox}).count === 1`, `seller account ${profile.accountName} under ${profile.parentAccountName}`);
     accountHit = await evaluate(session, accountBox, 10000);
   }
   if (accountHit?.count !== 1) throw new Error(`ACCOUNT_SWITCH_BLOCKED: account is unavailable or ambiguous (${profile.accountName})`);
@@ -292,7 +299,7 @@ export async function probeTab(page, opts = {}) {
 // unless every tab was conclusively probed as signed out.
 export function doctorVerdict(tabs) {
   if (!tabs.length) {
-    return { exitCode: 1, text: "Login: no Seller Central tab is open. Run tools/report-fetcher/launch-chrome-debug.sh --mode recovery, sign in, then return it to headless mode." };
+    return { exitCode: 1, text: "Login: no Seller Central tab is open. Run browserctl ensure; use an explicit recovery restart only for a human authentication challenge." };
   }
   const byState = (st) => tabs.filter((t) => t.state === st);
   const signedIn = byState("signed-in");
@@ -306,12 +313,12 @@ export function doctorVerdict(tabs) {
     };
   }
   if (byState("challenge").length) {
-    return { exitCode: 1, text: "Login: BLOCKED by a human challenge (captcha/OTP). Run launch-chrome-debug.sh --mode recovery, complete it, then re-run doctor." };
+    return { exitCode: 1, text: "Login: BLOCKED by a human challenge (captcha/OTP). Run browserctl restart --mode recovery with a reason, complete it, then re-run doctor." };
   }
   const indeterminate = byState("indeterminate");
   if (indeterminate.length) {
     const reasons = [...new Set(indeterminate.map((t) => t.reason).filter(Boolean))].join("; ");
-    return { exitCode: 2, text: `Login: INDETERMINATE. Could not conclusively probe ${indeterminate.length} of ${tabs.length} tab(s)${reasons ? ` (${reasons})` : ""}. Retry doctor; if it persists, restart the debug Chrome with launch-chrome-debug.sh.` };
+    return { exitCode: 2, text: `Login: INDETERMINATE. Could not conclusively probe ${indeterminate.length} of ${tabs.length} tab(s)${reasons ? ` (${reasons})` : ""}. Retry doctor; if it persists, use an explicit browserctl restart with a reason.` };
   }
-  return { exitCode: 1, text: "Login: NOT signed in on any open tab. Sign into Seller Central in the debug window (launch-chrome-debug.sh --mode recovery), then re-run doctor." };
+  return { exitCode: 1, text: "Login: NOT signed in on any open tab. Run browserctl auth for the target; use an explicit recovery restart only for a human challenge, then re-run doctor." };
 }

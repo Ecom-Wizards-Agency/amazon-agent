@@ -42,6 +42,7 @@ The digest can only be as honest as the ledger, so per finding:
 - disposition, severity, owner, task link, deadline, and the account, marketplace and scope that identify it
 - `last_movement`: the date the observed state actually changed
 - `last_reported`: set it when you post an immediate escalation, so the stall timer re-arms
+- `impact`, `current_state`, `next_step`: the digest's card fields (summary is the Issue). Impact in money/risk terms; current_state is what the page showed this run, dated and refreshed every verifying run; next_step is one concrete action with a named owner. A finding without them renders as a one-line fallback instead of a card
 
 And once per run, at the top level of the ledger:
 
