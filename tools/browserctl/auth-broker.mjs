@@ -24,6 +24,10 @@ const TRANSPORT_REQUIRED = /^(1|true|yes|on)$/i.test(
 
 const sleep = (ms) => new Promise((resolveSleep) => setTimeout(resolveSleep, ms));
 
+export function requiresCredentialTransport(config = {}) {
+  return config.authentication?.mode === "onepassword_service_account";
+}
+
 async function authenticateThroughTransport(port, targetId) {
   const request = `${JSON.stringify({
     version: 1,
@@ -230,7 +234,9 @@ export async function authenticateTarget({
   port, targetId, policy = loadBrowserPolicy(), configPath = CONFIG_PATH,
   config: suppliedConfig = null, authProvider = null,
 } = {}) {
-  if (!authProvider && (existsSync(TRANSPORT_SOCKET) || TRANSPORT_REQUIRED)) {
+  const config = suppliedConfig || JSON.parse(readFileSync(configPath, "utf8"));
+  const transportOnly = requiresCredentialTransport(config);
+  if (!authProvider && (transportOnly || existsSync(TRANSPORT_SOCKET) || TRANSPORT_REQUIRED)) {
     if (!existsSync(TRANSPORT_SOCKET)) {
       throw new Error(`BROWSER_TRANSPORT_UNAVAILABLE: ${TRANSPORT_SOCKET} is missing`);
     }
@@ -241,7 +247,6 @@ export async function authenticateTarget({
   const page = (await cdp.listPages()).find((candidate) => candidate.id === targetId);
   if (!page) throw new Error("AUTH_TARGET_UNAVAILABLE: target does not exist");
   const session = await cdp.Session.open(page.webSocketDebuggerUrl);
-  const config = suppliedConfig || JSON.parse(readFileSync(configPath, "utf8"));
   const auth = authProvider
     || await import(`${pathToFileURL(AUTH_MODULE).href}?broker=${Date.now()}-${Math.random()}`);
   try {

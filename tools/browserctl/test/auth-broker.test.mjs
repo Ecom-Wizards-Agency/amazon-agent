@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { classifyAuthenticationPage, publicAuthenticationStatus } from "../auth-broker.mjs";
+import {
+  classifyAuthenticationPage, publicAuthenticationStatus, requiresCredentialTransport,
+} from "../auth-broker.mjs";
 
 const base = {
   origin: "https://example.test", path: "/", email: false, password: false,
@@ -40,4 +42,11 @@ test("public authentication statuses cannot include secret values", () => {
     ["adapter", "origin", "port", "route_id", "status", "targetId"].sort());
   assert.equal(result.origin, "https://app.flatfile.pro");
   assert.equal(/user@example|password-secret|123456|token=/.test(serialized), false);
+});
+
+test("1Password service-account mode fails closed onto the credential transport", () => {
+  assert.equal(requiresCredentialTransport({
+    authentication: { mode: "onepassword_service_account" },
+  }), true);
+  assert.equal(requiresCredentialTransport({ authentication: { mode: "interactive" } }), false);
 });
