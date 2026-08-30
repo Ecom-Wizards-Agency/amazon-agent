@@ -3,7 +3,7 @@
 Condensed, team-shareable version of the Ecom Wizards SEO method so the skill is
 runnable from the repo alone (no Obsidian vault required). The vault
 (`<your-vault>/Skills/`: `amazon-seo-writer`,
-`keyword-classifier-and-filter`, `rufus-optimization`, `direct-response-copywriter`)
+`keyword-classifier-and-filter`, `rufus-optimization`, `conversion-offers-and-copy`)
 remains the deeper source. Always pair with `eu-compliance-matrix.md`.
 
 Two phases run in order: **classify keywords → write copy → audit coverage.**

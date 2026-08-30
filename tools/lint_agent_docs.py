@@ -24,9 +24,12 @@ import subprocess
 import sys
 from pathlib import Path
 
-import yaml
-
 ROOT = Path(__file__).resolve().parents[1]
+COMPANY_SKILL_LIB = ROOT.parent / "company-ai-skills" / "lib"
+sys.path.insert(0, str(COMPANY_SKILL_LIB))
+
+from skill_catalog_lint import validate_skill_directory as validate_shared_skill_directory
+
 EM_DASH = " — "
 
 # Authored surfaces for the writing-style check.
@@ -55,13 +58,6 @@ EXEMPT_PARTS = [
 ]
 
 CLAUDE_ONLY_TOOLS = ["AskUserQuestion"]
-
-MAX_SKILL_NAME_LENGTH = 64
-MAX_SKILL_DESCRIPTION_LENGTH = 300
-MIN_UI_SHORT_DESCRIPTION_LENGTH = 25
-MAX_UI_SHORT_DESCRIPTION_LENGTH = 64
-SKILL_NAME = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
-ALLOWED_SKILL_FRONTMATTER = {"name", "description", "license", "allowed-tools", "metadata"}
 
 TABLE_NULL_CELL = re.compile(r"\|\s*—\s*\|")
 INLINE_CODE = re.compile(r"`[^`]*`")
@@ -172,129 +168,9 @@ def em_dash_violations(path: Path) -> list[int]:
     return hits
 
 
-def load_yaml_mapping(text: str, label: str) -> tuple[dict | None, str | None]:
-    """Parse one YAML document and return a useful lint error instead of raising."""
-    try:
-        parsed = yaml.safe_load(text)
-    except yaml.YAMLError as exc:
-        return None, f"{label}: invalid YAML: {exc}"
-    if not isinstance(parsed, dict):
-        return None, f"{label}: YAML document must be a mapping"
-    return parsed, None
-
-
-def load_skill_frontmatter(path: Path) -> tuple[dict | None, str, str | None]:
-    """Return parsed frontmatter, its raw text, and an optional error."""
-    content = path.read_text(encoding="utf-8")
-    match = re.match(r"^---\n(.*?)\n---(?:\n|$)", content, re.S)
-    if not match:
-        return None, "", f"{path}: missing or malformed YAML frontmatter"
-    raw = match.group(1)
-    parsed, error = load_yaml_mapping(raw, str(path))
-    return parsed, raw, error
-
-
-def yaml_scalar_is_quoted(raw: str, key: str) -> bool:
-    """The maintained manifests use one-line quoted strings for stable parsing."""
-    match = re.search(rf"^{re.escape(key)}:\s*(.+)$", raw, re.M)
-    if not match:
-        return False
-    value = match.group(1).lstrip()
-    return value.startswith(('"', "'"))
-
-
 def validate_skill_directory(skill_dir: Path) -> list[str]:
-    """Validate both discovery manifests and the shared Browser declaration."""
-    errors: list[str] = []
-    skill_md = skill_dir / "SKILL.md"
-    if not skill_md.exists():
-        return [f"{skill_dir}: missing SKILL.md"]
-
-    fm, raw_frontmatter, fm_error = load_skill_frontmatter(skill_md)
-    if fm_error:
-        errors.append(fm_error)
-        fm = {}
-
-    unexpected = set(fm) - ALLOWED_SKILL_FRONTMATTER
-    if unexpected:
-        errors.append(
-            f"{skill_md}: unexpected frontmatter keys: {', '.join(sorted(unexpected))}"
-        )
-
-    name = fm.get("name")
-    if not isinstance(name, str) or not name:
-        errors.append(f"{skill_md}: frontmatter `name` must be a non-empty string")
-        name = skill_dir.name
-    else:
-        if name != skill_dir.name:
-            errors.append(f"{skill_md}: frontmatter name `{name}` != dir `{skill_dir.name}`")
-        if len(name) > MAX_SKILL_NAME_LENGTH or not SKILL_NAME.fullmatch(name):
-            errors.append(
-                f"{skill_md}: name must be hyphen-case and at most {MAX_SKILL_NAME_LENGTH} characters"
-            )
-
-    description = fm.get("description")
-    if not isinstance(description, str) or not description.strip():
-        errors.append(f"{skill_md}: frontmatter `description` must be a non-empty string")
-    else:
-        if len(description) > MAX_SKILL_DESCRIPTION_LENGTH:
-            errors.append(
-                f"{skill_md}: description is {len(description)} characters; maximum is "
-                f"{MAX_SKILL_DESCRIPTION_LENGTH}"
-            )
-        if "<" in description or ">" in description:
-            errors.append(f"{skill_md}: description cannot contain angle brackets")
-        if not yaml_scalar_is_quoted(raw_frontmatter, "description"):
-            errors.append(f"{skill_md}: description must be a quoted one-line YAML string")
-
-    body = skill_md.read_text(encoding="utf-8")
-    decls = re.findall(r"^Browser: (CDP|Extension|None|Mixed)\b", body, re.M)
-    if len(decls) != 1:
-        errors.append(
-            f"{skill_md}: needs exactly one `Browser: CDP|Extension|None|Mixed` line "
-            f"(found {len(decls)})"
-        )
-
-    openai_yaml = skill_dir / "agents" / "openai.yaml"
-    if not openai_yaml.exists():
-        errors.append(f"{skill_dir}: missing agents/openai.yaml (invisible to Codex)")
-        return errors
-
-    raw_openai = openai_yaml.read_text(encoding="utf-8")
-    openai, openai_error = load_yaml_mapping(raw_openai, str(openai_yaml))
-    if openai_error:
-        errors.append(openai_error)
-        return errors
-    interface = openai.get("interface")
-    if not isinstance(interface, dict):
-        errors.append(f"{openai_yaml}: `interface` must be a mapping")
-        return errors
-
-    for key in ("display_name", "short_description", "default_prompt"):
-        value = interface.get(key)
-        if not isinstance(value, str) or not value.strip():
-            errors.append(f"{openai_yaml}: `interface.{key}` must be a non-empty string")
-
-    short_description = interface.get("short_description")
-    if isinstance(short_description, str) and not (
-        MIN_UI_SHORT_DESCRIPTION_LENGTH
-        <= len(short_description)
-        <= MAX_UI_SHORT_DESCRIPTION_LENGTH
-    ):
-        errors.append(
-            f"{openai_yaml}: short_description is {len(short_description)} characters; "
-            f"expected {MIN_UI_SHORT_DESCRIPTION_LENGTH}-{MAX_UI_SHORT_DESCRIPTION_LENGTH}"
-        )
-
-    default_prompt = interface.get("default_prompt")
-    if isinstance(default_prompt, str) and f"${name}" not in default_prompt:
-        errors.append(f"{openai_yaml}: default_prompt must mention `${name}` exactly")
-
-    for key in ("display_name", "short_description", "default_prompt"):
-        if not re.search(rf"^\s*{key}:\s*[\"']", raw_openai, re.M):
-            errors.append(f"{openai_yaml}: `{key}` must be a quoted YAML string")
-
-    return errors
+    """Validate both manifests plus Amazon's required Browser declaration."""
+    return validate_shared_skill_directory(skill_dir, require_browser=True)
 
 
 def main() -> int:
