@@ -1,4 +1,4 @@
 interface:
   display_name: "Amazon Listing Capture"
-  short_description: "Capture live listing copy into reference JSON"
-  default_prompt: "Use $amazon-listing-capture to capture live listing copy for this ASIN and its competitors."
+  short_description: "Capture live Amazon listing copy"
+  default_prompt: "Use $amazon-listing-capture to capture live Amazon listing copy for this request."

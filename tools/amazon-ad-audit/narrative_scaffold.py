@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Amazon Ad/Sales Audit narrative scaffold generator.
-Emits a Markdown draft following skills/amazon-audit/SKILL.md's section skeleton.
+Emits a Markdown draft following the amazon-audit workflow reference.
 The standard mode leaves operator prompts around pre-filled KPIs. The evidence-hybrid
 mode writes concise claims, evidence, and actions automatically so it can be rendered
 without a manual placeholder pass.

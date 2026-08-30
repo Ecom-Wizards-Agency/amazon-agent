@@ -20,7 +20,7 @@ Every rule respects the rank-first philosophy from `_local/ads-strategy/
 strategy.md` (ACOS is an indicator, not a decision factor -- a Rank/SKW
 target is never proposed for a cut on ACOS grounds alone). This module
 recommends; it never executes. Any resulting change routes to
-`amazon-ads`/`amazon-campaign-builder` with explicit operator approval.
+`amazon-ads-console`/`amazon-sponsored-products-bulk-files` with explicit operator approval.
 """
 
 from __future__ import annotations

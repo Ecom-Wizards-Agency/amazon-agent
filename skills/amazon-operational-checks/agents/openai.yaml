@@ -1,0 +1,4 @@
+interface:
+  display_name: "Amazon Operational Checks"
+  short_description: "Run gated weekly and monthly Amazon checks"
+  default_prompt: "Use $amazon-operational-checks to run gated weekly and monthly Amazon checks for this request."

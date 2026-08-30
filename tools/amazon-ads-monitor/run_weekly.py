@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""run_weekly.py -- CLI for the amazon-ads-monitor toolkit's WEEKLY brief.
+"""run_weekly.py -- CLI for the amazon-ads-performance-briefs toolkit's WEEKLY brief.
 
 Read-only. Never touches campaigns. Produces a markdown weekly brief per
 account under `output/{account}/ads-monitor/{week_end}_weekly.md` and,
@@ -22,7 +22,7 @@ Flow
 3. Load the week's normalized AdLabs campaign/target-level rows (already
    filtered/shaped by the skill layer -- see
    `recommendations.normalize_entities` and the two AdLabs quirks
-   documented in the amazon-ads-monitor SKILL.md) from `--adlabs-json`;
+   documented in the amazon-ads-performance-briefs SKILL.md) from `--adlabs-json`;
    omitted/empty is fine -- Push/Pause-Optimize come back empty with a
    note, not an error.
 4. Parse the week's external-signal digest (`--signal-digest`, see
@@ -89,7 +89,7 @@ def _yesterday() -> dt.date:
 
 def _parse_args(argv=None) -> argparse.Namespace:
     p = argparse.ArgumentParser(
-        description="amazon-ads-monitor: weekly WoW Amazon Ads brief (Push/Pause-Optimize/Test proposals). Read-only."
+        description="amazon-ads-performance-briefs: weekly WoW Amazon Ads brief (Push/Pause-Optimize/Test proposals). Read-only."
     )
     p.add_argument("--date", type=str, default=None, help="Week-end report date YYYY-MM-DD; must be a fully-completed day (default: yesterday)")
     p.add_argument(

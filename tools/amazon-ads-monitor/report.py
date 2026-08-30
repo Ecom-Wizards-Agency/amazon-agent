@@ -521,7 +521,7 @@ def _slack_weekly_item_lines(items: list, empty_label: str, max_items: int = 5) 
 PROPOSAL_DISCLAIMER = (
     "These are PROPOSALS for operator approval, not executed changes. This brief is read-only: any "
     "resulting bid, budget, keyword, or campaign change requires the operator's explicit go-ahead in "
-    "`amazon-ads` (interactive Console work) or `amazon-campaign-builder` (bulk create/update)."
+    "`amazon-ads-console` (interactive Console work) or `amazon-sponsored-products-bulk-files` (bulk create/update)."
 )
 
 

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Amazon Forecasting Sources"
+  short_description: "Ground forecasts in client sources and evidence"
+  default_prompt: "Use $amazon-forecasting-sources to ground forecasts in client sources and evidence for this request."

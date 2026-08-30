@@ -1,4 +1,0 @@
-interface:
-  display_name: "Amazon Inventory Planning"
-  short_description: "FBA inventory overview and reshipment planning"
-  default_prompt: "Use $amazon-inventory-planning to run the weekly FBA inventory overview for this account."

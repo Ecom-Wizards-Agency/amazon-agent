@@ -1,0 +1,4 @@
+interface:
+  display_name: "Amazon Sponsored Products Bulk Files"
+  short_description: "Build Sponsored Products bulk files"
+  default_prompt: "Use $amazon-sponsored-products-bulk-files to build Sponsored Products bulk files for this request."

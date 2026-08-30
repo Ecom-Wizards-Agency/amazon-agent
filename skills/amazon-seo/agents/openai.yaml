@@ -1,4 +1,4 @@
 interface:
   display_name: "Amazon SEO"
-  short_description: "Write and audit Amazon listing SEO and claims"
-  default_prompt: "Use $amazon-seo to rewrite or audit this listing's title, bullets and backend terms."
+  short_description: "Research keywords and optimize Amazon listings"
+  default_prompt: "Use $amazon-seo to research keywords and optimize Amazon listings for this request."

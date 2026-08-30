@@ -1,6 +1,6 @@
 ---
 name: amazon-launch-strategy
-description: Use for forward-looking Amazon launch plans and launch-readiness decisions covering 13-week sales scenarios, bottom-up PPC budgets, product pricing and discounts, contribution-margin constraints, stock and reorder timing, Vine and review-request policy, and explicit external-channel halo assumptions. Trigger on requests for an Amazon launch plan, 90-day launch strategy, PPC launch budget, launch pricing, launch stock forecast, or review strategy. Read-only planning only; historical performance audits belong to amazon-audit and live execution belongs to the relevant operating skill.
+description: "Build read-only 13-week Amazon launch plans covering sales scenarios, PPC budgets, pricing, stock, reorders, reviews, and open decisions."
 ---
 
 # Amazon Launch Strategy
@@ -43,8 +43,8 @@ Read `references/output-contract.md` when building or reviewing deliverables. Th
 ## Boundaries And Handoffs
 
 - Historical sales or advertising diagnosis: `amazon-audit`.
-- Sponsored Products bulk files: `amazon-campaign-builder`.
-- Live PPC changes: `amazon-ads` or `amazon-ppc-management`.
+- Sponsored Products bulk files: `amazon-sponsored-products-bulk-files`.
+- Live PPC changes: `amazon-ads-console` or `amazon-ppc-weekly-management`.
 - Packaging, variations, UPCs, listing eligibility, or review-history questions: `amazon-catalog`.
 - Shipment creation or inbound execution: `amazon-logistics`.
 

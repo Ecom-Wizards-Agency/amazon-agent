@@ -1,6 +1,6 @@
 ---
 name: amazon-client-offboarding
-description: Build a complete, branded, read-only Amazon client handover as a native Google Doc plus a five-tab native Google Sheet. Use when an Amazon engagement is ending, account ownership is transferring, a successor needs the operating history and evidence, or the user asks for an offboarding, handover, transition pack, or account inheritance document spanning advertising and other supported Amazon areas.
+description: "Build a branded, read-only Amazon client handover as a native Google Doc and five-tab evidence workbook."
 ---
 
 # Amazon Client Offboarding

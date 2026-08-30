@@ -2,7 +2,7 @@
 
 Synthesized from Amazon's official docs at
 `https://advertising.amazon.com/API/docs/en-us/no-code-tools/bulksheets/2-0/*`
-for the `amazon-campaign-builder` toolkit (SP/SB/SD bulk-upload `.xlsx` generator).
+for the `amazon-sponsored-products-bulk-files` toolkit (SP/SB/SD bulk-upload `.xlsx` generator).
 
 **Scrape coverage:** 23 of the 29 target pages were retrieved in full; 5 were retrieved
 partially (oversized pages, content extracted via targeted excerpts rather than a full

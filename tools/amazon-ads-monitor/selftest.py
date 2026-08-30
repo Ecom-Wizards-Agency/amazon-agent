@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""selftest.py -- regression suite for the amazon-ads-monitor toolkit.
+"""selftest.py -- regression suite for the amazon-ads-performance-briefs toolkit.
 
 Synthetic fixtures only, no network access. Run after any change:
 

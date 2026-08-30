@@ -1,0 +1,4 @@
+interface:
+  display_name: "Amazon FBA Inventory Planning"
+  short_description: "Plan FBA inventory and reshipments"
+  default_prompt: "Use $amazon-fba-inventory-planning to plan FBA inventory and reshipments for this request."

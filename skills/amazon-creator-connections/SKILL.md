@@ -1,6 +1,6 @@
 ---
 name: amazon-creator-connections
-description: Use for Amazon Creator Connections work: auditing/triaging the creator message inbox, mapping messages to products and campaign tracker tabs, drafting creator replies (operator-confirmed sends), preparing campaigns up to the publish checkpoint, creating/reconciling tracker tabs, and finding tracker gaps. Trigger on requests like go through the Creator Connections messages, run the message audit, update the creator tracker, answer the creators, prepare a Creator Connections campaign, or reconcile the creator system.
+description: "Triage Creator Connections messages, update campaign trackers, draft replies, and prepare campaigns while stopping before send or publish."
 ---
 
 # Amazon Creator Connections

@@ -1,6 +1,6 @@
 ---
 name: amazon-communications
-description: Use for Amazon communication workflows: Seller Support cases, case replies, buyer-seller messages, Brand Customer Reviews outreach, courtesy-refund follow-ups, and message drafting. Creator replies inside Creator Connections belong to amazon-creator-connections.
+description: "Draft Seller Support cases, buyer-seller messages, review outreach, and approved follow-ups; Creator Connections replies use their dedicated skill."
 ---
 
 # Amazon Communications

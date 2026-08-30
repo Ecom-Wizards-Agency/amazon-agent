@@ -5,15 +5,15 @@ argument-hint: "[.xlsx path + target Seller & Marketplace, or 'continue from the
 
 # FlatFilePro Upload Mapper
 
-Operate the FlatFilePro upload/mapping UI to push an **already-prepared** `.xlsx`. Do not duplicate logic here. Route into the `amazon-flatfilepro-upload-mapper` skill.
+Operate the FlatFilePro upload/mapping UI to push an **already-prepared** `.xlsx`. Do not duplicate logic here. Route into the `amazon-flatfilepro` skill.
 
 The user's target is: **$ARGUMENTS**
 
 ## Steps
 
-1. **Precondition: the upload `.xlsx` must already exist.** If it still needs building from an export/labels/SEO copy, use `/flatfilepro-prepare` (the `amazon-flatfilepro-prep` skill) first.
+1. **Precondition: the upload `.xlsx` must already exist.** If it still needs building from an export/labels/SEO copy, use `/flatfilepro-prepare` (the `amazon-flatfilepro` skill) first.
 
-2. **Load the Chrome control skill first**, then the `amazon-flatfilepro-upload-mapper` skill as source of truth. Check `_local/flatfilepro-upload-mapper/local-notes.md` for the operator's recurring Seller & Marketplace labels / mapping quirks before asking.
+2. **Load the Chrome control skill first**, then the `upload-map` mode in `amazon-flatfilepro` as source of truth. Check `_local/flatfilepro/local-notes.md` for the operator's recurring Seller & Marketplace labels / mapping quirks before asking.
 
 3. **Confirm inputs.** Ask briefly only for what's missing: the `.xlsx` path and the target FlatFilePro **Seller & Marketplace** (or continue from the screen the operator already opened).
 

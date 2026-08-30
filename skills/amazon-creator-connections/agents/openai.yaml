@@ -1,4 +1,4 @@
 interface:
   display_name: "Amazon Creator Connections"
-  short_description: "Triage the Creator Connections inbox and draft replies"
-  default_prompt: "Use $amazon-creator-connections to triage the creator inbox and draft replies for approval."
+  short_description: "Triage creators, trackers, replies, and campaigns"
+  default_prompt: "Use $amazon-creator-connections to triage creators, trackers, replies, and campaigns for this request."

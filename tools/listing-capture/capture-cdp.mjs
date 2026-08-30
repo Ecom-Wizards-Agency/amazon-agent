@@ -3,6 +3,7 @@
 // Usage: node tools/listing-capture/capture-cdp.mjs <ASIN[,ASIN...]> <out.json> [tld=com] [lang=en_US]
 import fs from "node:fs";
 import { ensureChrome, createPage, releasePage, evaluate } from "../report-fetcher/cdp.mjs";
+import { ensureDeliveryPostcode } from "../report-fetcher/marketplace-postcode.mjs";
 
 const asins = (process.argv[2] || "").split(",").map((s) => s.trim()).filter(Boolean);
 const out = process.argv[3];
@@ -42,6 +43,8 @@ for (const asin of asins) {
   let leaseOutcome = "success";
   try {
     page = await createPage(url);
+    const delivery = await ensureDeliveryPostcode(page.session, tld);
+    if (!delivery.ok) throw new Error(`delivery postcode verification failed: ${JSON.stringify(delivery)}`);
     // The tab keeps navigating/redirecting for a moment after it appears, which
     // destroys the eval context. Retry until a fresh context returns the title.
     let r = null;

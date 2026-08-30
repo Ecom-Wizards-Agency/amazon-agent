@@ -49,7 +49,7 @@ All gates must PASS (spend reconciliation, no >100% ACOS colored green, master t
 
 ## 5. Write the narrative
 
-Open the `.md` scaffold. KPIs and tables are pre-filled. Write the prose, Problems, and Growth Levers per `skills/amazon-audit/SKILL.md` (operator voice, second person, keep it lean; no 30-day plan, "what can be reached", or "bottom line" unless the config flags them on). Set `narrative.mode` to `evidence_hybrid` when the operator asks for `same style as UltimaPeak`, `UltimaPeak style`, or `evidence-hybrid`. Capture candidates with `capture_audit_evidence.mjs`, select them with `audit_evidence.py`, and reference selected screenshots inline with `![caption](file.png)` (paths relative to the `.md`). SQP and workbook screenshots are forbidden. Re-run the build to regenerate the branded `.docx`.
+Open the `.md` scaffold. KPIs and tables are pre-filled. Write the prose, Problems, and Growth Levers per `skills/amazon-audit/references/audit-workflow.md` and `writing-and-delivery.md` (operator voice, second person, keep it lean; no 30-day plan, "what can be reached", or "bottom line" unless the config flags them on). Set `narrative.mode` to `evidence_hybrid` when the operator asks for `same style as UltimaPeak`, `UltimaPeak style`, or `evidence-hybrid`. Capture candidates with `capture_audit_evidence.mjs`, select them with `audit_evidence.py`, and reference selected screenshots inline with `![caption](file.png)` (paths relative to the `.md`). SQP and workbook screenshots are forbidden. Re-run the build to regenerate the branded `.docx`.
 
 ### Copy-ready request for the next prospect
 

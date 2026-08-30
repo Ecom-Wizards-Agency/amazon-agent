@@ -100,7 +100,7 @@ def read_csv(path: str) -> list[list[str]]:
 def drop_leading_empty_columns(rows: list[list[str]]) -> list[list[str]]:
     """Strip leading column(s) that are blank in the header AND every data row.
 
-    DataDive's Core/Expanded MKL CSV exports prepend a blank column (empty
+    DataDive's Core and complete-pool MKL CSV inputs prepend a blank column (empty
     header + empty cells, the UI's select/checkbox gutter). Pasted 1:1 it shows
     up as an empty column A in the Master List / Expanded MKL tabs. This removes
     only fully-blank leading columns, so CSVs without the gutter (roots,
@@ -2279,7 +2279,7 @@ def write_handoff_note(path: str, cfg: dict, args: dict, manifest: dict) -> str:
         "",
         "```text",
         f"You are working in `<repo-root>`.",
-        "Use the project-local skill `skills/amazon-seo-keyword-workflow/SKILL.md`.",
+        "Use the project-local skill `skills/amazon-seo/SKILL.md`.",
         f"Continue from workbook `{manifest['outputs']['workbook_local']}` and manifest `{manifest['outputs']['manifest']}`.",
         "Do not edit live listings or upload anything to Seller Central without the operator's explicit approval.",
         "Verify health-claim-sensitive language against the actual product label and Amazon/EU compliance before final copy.",
@@ -2332,7 +2332,7 @@ def _browser_input_checklist(cfg: dict, args: dict, missing: list[str]) -> str:
     label = {
         "roots_csv": "DataDive UI — niche analysis roots CSV",
         "master_csv": "DataDive UI — Core MKL CSV at 30% Min Rel.",
-        "expanded_mkl_csv": "DataDive UI — Expanded MKL CSV at 1% Min Rel.",
+        "expanded_mkl_csv": "DataDive read-only full keyword pool filtered at 1% Min Rel.",
         "competitors_csv": "DataDive UI (or MCP fallback) — competitors CSV",
         "poe_products_csv": "POE — Products CSV (auto: `run-poe.mjs niche` → *_NicheDetailsProductsTab.csv; manual tab export = fallback)",
         "poe_search_terms_csv": "POE — Search Terms CSV (auto: `run-poe.mjs niche` → *_NicheDetailsSearchTermsTab.csv)",

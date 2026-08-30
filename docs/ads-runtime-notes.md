@@ -1,11 +1,11 @@
-# Ads Monitor & Campaign Builder v2 - Team Runtime Notes
+# Ads Performance Briefs And Sponsored Products Bulk Files - Team Runtime Notes
 
 Added 2026-07. Read `AGENTS.md` first; this note covers the new advertising capabilities and how the
 team runs them.
 
 ## New capabilities
 
-### amazon-ads-monitor (daily + weekly performance briefs)
+### amazon-ads-performance-briefs (daily + weekly performance briefs)
 Read-only. Posts to Slack. Data comes from two sources, cross-checked:
 - Sellerboard = whole-account truth (revenue, ad sales, ad spend, TACOS, margin, orders).
 - AdLabs = granular advertising detail (campaign/target spend, sales, ACOS) for the same period.
@@ -23,7 +23,7 @@ python3 tools/amazon-ads-monitor/run_weekly.py  --csv <csvs> --adlabs-json <adla
 python3 tools/amazon-ads-monitor/selftest.py    # regression suite
 ```
 
-### amazon-campaign-builder v2 (create AND update)
+### amazon-sponsored-products-bulk-files v2 (create AND update)
 Creates SP campaigns and now UPDATES existing ones as Bulk Operations files, from a text brief or a
 keyword-research workbook, using the EW naming convention and per-type bidding. File-only output,
 paused by default; uploading stays a separate operator-confirmed step. See

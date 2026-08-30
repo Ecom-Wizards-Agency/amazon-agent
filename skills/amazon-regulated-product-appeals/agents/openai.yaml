@@ -1,0 +1,4 @@
+interface:
+  display_name: "Amazon Regulated Product Appeals"
+  short_description: "Build regulated-product appeal packs"
+  default_prompt: "Use $amazon-regulated-product-appeals to build regulated-product appeal packs for this request."

@@ -1,6 +1,6 @@
 ---
 name: amazon-listing-capture
-description: Use to capture live Amazon listing copy (title, bullet points, canonical link) for an anchor ASIN and its siblings/competitors into the listing-reference JSON the keyword-workbook builder ingests. Trigger on requests like capture the listing copy or grab title and bullets for these ASINs. Browser-based extractor; feeds the ASINs tab and replaces the legacy ZeroWork scrape.
+description: "Capture live Amazon titles, bullets, and canonical URLs for anchor and competitor ASINs into validated listing-reference JSON."
 ---
 
 # Amazon Listing Capture

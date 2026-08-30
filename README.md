@@ -21,7 +21,7 @@ The search helper can search the local Amazon libraries:
 python3 "tools/search_amazon_libraries.py" "send to amazon shipment create fba shipment" --library mag --limit 5
 ```
 
-Doc/skill consistency is linted by `python3 tools/lint_agent_docs.py` (skill manifests, routing-table names, writing style, agent-neutral wording). Run it before committing doc or skill changes.
+Doc/skill consistency is linted by `python3 tools/lint_agent_docs.py` (parsed skill manifests, bounded UI metadata, routing-table names, writing style, and agent-neutral wording). Run it before committing doc or skill changes.
 
 ## GitHub Repo
 

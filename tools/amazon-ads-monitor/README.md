@@ -139,7 +139,7 @@ python3 tools/amazon-ads-monitor/run_monitor.py --source sellerboard \
 
 The CSV comes from the brand's Sellerboard "Dashboard Totals" feed --
 see `_local/ads-monitor/SELLERBOARD-FORMAT.md` for the column mapping and
-the `amazon-ads-monitor` skill for the file-first (delivered to
+the `amazon-ads-performance-briefs` skill for the file-first (delivered to
 `_local/ads-monitor/inbox/<brand>/`) / firecrawl-fallback flow that
 obtains the file. `--goal` and `--adlabs-json` are both optional: omit
 `--goal` for the neutral lens; omit `--adlabs-json` to skip the
@@ -179,7 +179,7 @@ and `--signal-digest` are both optional -- omitting either is a valid,
 complete run (Push/Pause-Optimize/Test just come back empty with a note
 in place of a fabricated result). `--date` must be a fully-completed day
 -- Sellerboard's `total_*` columns (and AdLabs figures) can read 0 for
-the still-in-progress current day. See the `amazon-ads-monitor` skill's
+the still-in-progress current day. See the `amazon-ads-performance-briefs` skill's
 "Weekly variant" section for the full MCP-enrichment flow (AdLabs
 campaign/target pull with its two documented quirks, goal-lens
 resolution, Slack delivery).

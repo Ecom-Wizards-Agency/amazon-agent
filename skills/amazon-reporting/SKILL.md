@@ -1,6 +1,6 @@
 ---
 name: amazon-reporting
-description: "Use for fetching and formatting Amazon reports (`/fetch-reports`): Seller Central Business Reports, SQP, SCP, Ads reports, search term reports, bulk downloads, period comparisons, and Excel/CSV workbook outputs. Not for audit narratives: route full ad/sales audits to `amazon-audit`."
+description: "Fetch and format Seller Central and Ads reports, including SQP, SCP, TST, Business reports, and SQP competitor benchmarks; use Amazon Audit for narrative diagnosis."
 ---
 
 # Amazon Reporting
@@ -19,11 +19,16 @@ Browser: Mixed (CDP for scripted Seller Central fetches; CDP interactive for Ads
 
 ## Workflow
 
-1. Confirm account, marketplace, report type, date range, entity level, and destination folder.
-2. Search official docs for report definitions/current UI.
-3. Use internal analytics references for workbook generation and interpretation.
-4. Save deliverables under `output/{client}/reporting/` with dates in filenames unless the user specifies pCloud/Drive. `{client}` is the normalized lowercase-kebab client slug from `AGENTS.md`, with marketplace in filenames, not folder names.
-5. Stop before creating scheduled reports, changing report settings, or downloading sensitive reports to an unclear destination.
+1. Route the request to report fetch/format, Ads Console export, or SQP competitor benchmark.
+2. Confirm account, marketplace, report type, date range, entity level, and destination folder.
+3. Search official docs for report definitions/current UI.
+4. Use internal analytics references for workbook generation and interpretation.
+5. Save deliverables under `output/{client}/reporting/` with dates in filenames unless the user specifies pCloud/Drive. `{client}` is the normalized lowercase-kebab client slug from `AGENTS.md`, with marketplace in filenames, not folder names.
+6. Stop before creating scheduled reports, changing report settings, or downloading sensitive reports to an unclear destination.
+
+## SQP Competitor Benchmark
+
+When the operator asks for an “SQP competitor check,” exact-query competitor ASIN shares, prices, or a benchmark against a selected ASIN, read `references/sqp-competitor-benchmark.md`. Use its scripted `tools/sc-sqp-competitor/` capture path first and preserve its account, period, interpretation, and read-only gates.
 
 ## Amazon Ads Console exports
 

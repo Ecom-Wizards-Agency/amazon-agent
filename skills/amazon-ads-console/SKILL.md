@@ -1,0 +1,21 @@
+---
+name: amazon-ads-console
+description: "Operate and troubleshoot Amazon Ads Console bids, budgets, placements, targeting, and settings; use the dedicated bulk-file, audit, monitoring, or reporting skills for those workflows."
+---
+
+# Amazon Ads Console
+
+For Sponsored Brands video concept tests, use `<vault>/Playbooks/amazon-sb-video-concept-testing-playbook.md` (team vault, resolved via `AMAZON_AGENT_TEAM_VAULT` or `_local/team-vault-path.txt`) as the canonical measurement method. Keep live tests in the existing Notion A/B Test Program. Do not copy the method into editor briefings or Creative References.
+
+Browser: CDP (Ads Campaign Manager; stop before changes).
+
+## Workflow
+
+1. Use `https://advertising.amazon.com/campaign-manager` as the starting point for Ads Console work.
+2. Verify advertiser/account, brand, country, marketplace, and date range.
+3. Search Advertising Help After Login for current Ads Console UI behavior.
+4. Search Amazon Ads Help for API, bulk/no-code tools, and technical docs.
+5. Use internal strategy notes for campaign logic and MAG SOPs for practical operator steps.
+6. Stop before saving bids, budgets, targeting, campaigns, billing/payment settings, scheduled reports, or Creator Connections sends.
+
+Creator Connections route: Campaign Manager > account selector > Brand content > Creator connections.

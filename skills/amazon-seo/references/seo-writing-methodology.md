@@ -25,7 +25,7 @@ Filtering uses **word-boundary matching**: a phrase containing ANY X/B/C word is
 excluded; phrases of only-blank words are included → the Master List.
 
 In the keyword-workbook builder this maps to: the **`2 Never KWs`** tab (generated
-from the Expanded 1% MKL) and the **Outlier triage** categories
+from the complete keyword pool filtered at 1%) and the **Outlier triage** categories
 (`Competitor/brand term`=B, `Wrong product form`/`Negative candidate`=X/C).
 Protect real product intent: a high-frequency word is only `Never Ever` when it's
 genuinely irrelevant/wrong-form/unsafe after checking examples + relevancy.

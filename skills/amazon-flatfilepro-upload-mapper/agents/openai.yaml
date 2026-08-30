@@ -1,4 +1,0 @@
-interface:
-  display_name: "FlatFilePro Upload Mapper"
-  short_description: "Upload and map a FlatFilePro .xlsx in Chrome"
-  default_prompt: "Use $amazon-flatfilepro-upload-mapper to upload this .xlsx, match by SKU and map the columns."

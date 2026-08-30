@@ -1,4 +1,4 @@
-"""datasource.py -- pluggable data-source layer for amazon-ads-monitor.
+"""datasource.py -- pluggable data-source layer for amazon-ads-performance-briefs.
 
 Returns per-account, per-day rows (account-level and campaign-level) with
 the raw metrics (impressions, clicks, spend, sales, orders) plus a shared
@@ -864,7 +864,7 @@ class SPAdsApiDataSource(DataSource):
         acceptance of this body; duplicate-request 425 handling; real
         rate limits -- see Amazon's retry-with-backoff guidance)."""
         body = {
-            "name": f"amazon-ads-monitor {group_by} {start.isoformat()}..{end.isoformat()}",
+            "name": f"amazon-ads-performance-briefs {group_by} {start.isoformat()}..{end.isoformat()}",
             "startDate": start.isoformat(),
             "endDate": end.isoformat(),
             "configuration": {
