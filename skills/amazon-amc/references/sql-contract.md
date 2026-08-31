@@ -5,12 +5,30 @@ Read this before drafting custom AMC SQL. Re-read the live AdLabs AMC guide when
 ## Measurement Queries
 
 - Confirm every table and column with AMC `get_data_sources` for the selected profile.
-- Queries run through AdLabs must contain both `BUILT_IN_PARAMETER('TIME_WINDOW_START')` and `BUILT_IN_PARAMETER('TIME_WINDOW_END')`. Do not bake dates into reusable SQL.
-- Do not put `ORDER BY` or `LIMIT` on the outermost query. Sort the fetched result downstream.
 - Avoid `SELECT *`, `RIGHT JOIN`, and correlated subqueries.
 - Every non-aggregated output field must appear in the matching `GROUP BY`.
 - Never expose `user_id` in measurement output. Aggregate distinct users inside a CTE and return only threshold-safe measures.
-- Protect division with `NULLIF`. Build percentage-of-total metrics from a separate totals CTE. This is clearer and more portable than relying on window aggregates over already aggregated rows.
+- Protect division with `NULLIF` or a `CASE` expression that handles a zero denominator.
+- A separate totals CTE is the portable default for percentage-of-total metrics. A window total is
+  acceptable for a one-time query after runtime validation, but keep it as a portability warning.
+
+### One-Time Executions
+
+An observed AdLabs one-time execution succeeded with its date range supplied by the execution
+arguments, no built-in time-window tokens, and an outer `ORDER BY`. The local validator therefore
+treats those two conditions as portability warnings in `one-time` context, not failures.
+
+- Always supply and report the exact execution date range.
+- Use both built-in time-window tokens or neither. A partial pair is an error.
+- Outer `LIMIT` remains unsupported because the observed run did not validate it.
+- Runtime acceptance applies only to one-time execution. It does not establish schedule compatibility.
+
+### Scheduled Queries
+
+- Require both `BUILT_IN_PARAMETER('TIME_WINDOW_START')` and
+  `BUILT_IN_PARAMETER('TIME_WINDOW_END')`. Do not bake dates into reusable SQL.
+- Do not put `ORDER BY` or `LIMIT` on the outermost query. Sort fetched results downstream.
+- Keep the stricter contract until a scheduled execution provides contrary runtime evidence.
 
 ## Dates And Units
 
@@ -27,6 +45,10 @@ Sponsored Ads spend is commonly stored in microcents and divided by `100000000.0
 ## Privacy And Grain
 
 AMC applies column-specific aggregation thresholds. A syntactically valid query can still suppress rows. Choose a grain broad enough to clear privacy thresholds, especially when combining campaign, ASIN, audience, and daily dimensions.
+
+AMC can suppress individual output dimensions after the source rows pass the SQL filters. Reconcile
+rows with blank or null dimensions separately and describe them as dimension-suppressed unless the
+output proves a more specific cause.
 
 Check the unit of every metric before joining:
 
@@ -58,6 +80,7 @@ Prefer an AdLabs library template when one covers the requested audience. Resolv
 - Currency conversion matches the source table.
 - Join keys and grains cannot multiply rows.
 - Privacy threshold is plausible at the requested grain.
-- Calculated metrics use `NULLIF` and compatible units.
+- Calculated metrics use `NULLIF` or a guarded `CASE` expression and compatible units.
+- Validation context matches one-time execution, scheduled query, or audience SQL.
 - Local validator passes.
 - Execution, schedule, or audience creation has separate approval.

@@ -12,16 +12,20 @@ Use this skill for Amazon Marketing Cloud SQL, AMC measurement workflows, schedu
 ## Route The Request
 
 1. Identify the requested outcome: draft SQL, validate SQL, one-time query, recurring schedule, or audience.
-2. Start one AdLabs chat session and read `adlabs://instructions`, `adlabs://guides/amc_sql`, and `adlabs://docs/amc_actions`. Current AdLabs documentation overrides this repository when the execution contract changes.
+2. Start one AdLabs chat session and read `adlabs://instructions`, `adlabs://guides/amc_sql`, and `adlabs://docs/amc_actions`. Current AdLabs documentation is the default execution authority. The narrower one-time compatibility exceptions in [references/sql-contract.md](references/sql-contract.md) apply only where a successful runtime execution has already verified them; they do not relax scheduled-query rules.
 3. Resolve the exact team and profile. Confirm AMC is connected to that profile before promising execution.
 4. Call AMC `get_data_sources` before using a table or field. AMC schemas vary by profile; a static example never proves availability.
 5. Read [references/sql-contract.md](references/sql-contract.md). For a starting point, adapt [references/starter-queries.sql](references/starter-queries.sql) only after checking its tables and fields against the selected profile.
 6. Validate custom SQL locally:
 
    ```bash
-   python3 tools/amazon-amc/validate_sql.py <query.sql> --mode query
+   python3 tools/amazon-amc/validate_sql.py <query.sql> --mode query --execution-context one-time
+   python3 tools/amazon-amc/validate_sql.py <query.sql> --mode query --execution-context scheduled
    python3 tools/amazon-amc/validate_sql.py <audience.sql> --mode audience
    ```
+
+   Match the validation context to the requested destination. A successful one-time execution does
+   not prove that the same SQL is portable to a recurring schedule.
 
 7. Drafting and validation are the default. Do not execute, schedule, create, update, or delete anything unless the operator asked for that exact action.
 

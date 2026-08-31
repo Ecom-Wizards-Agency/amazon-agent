@@ -14,6 +14,8 @@ TOKENS = (
     "BUILT_IN_PARAMETER('TIME_WINDOW_END')",
 )
 
+IDENTIFIER = r"(?:[A-Za-z_][A-Za-z0-9_]*\.)*[A-Za-z_][A-Za-z0-9_]*"
+
 
 def strip_comments(sql: str) -> str:
     sql = re.sub(r"/\*.*?\*/", " ", sql, flags=re.S)
@@ -64,7 +66,37 @@ def outer_select(sql: str) -> str:
     return flat[start:start + end_match.start()] if end_match else flat[start:]
 
 
-def validate(sql: str, mode: str) -> tuple[list[str], list[str]]:
+def unguarded_divisors(sql: str) -> list[str]:
+    """Return identifier divisors without an obvious NULLIF or CASE zero guard."""
+    unguarded: list[str] = []
+    for match in re.finditer(rf"/\s*({IDENTIFIER})", sql):
+        denominator = match.group(1)
+        tail = sql[match.start(1):]
+        if denominator.upper() == "NULLIF" and re.match(r"NULLIF\s*\(", tail, flags=re.I):
+            continue
+
+        escaped = re.escape(denominator)
+        nullif_guard = re.search(
+            rf"NULLIF\s*\(\s*{escaped}\s*,\s*0(?:\.0+)?\s*\)",
+            sql,
+            flags=re.I,
+        )
+        case_guard = re.search(
+            rf"CASE\b.*?WHEN\s+(?:{escaped}\s*=\s*0(?:\.0+)?|0(?:\.0+)?\s*=\s*{escaped})"
+            rf"\s+THEN\b.*?ELSE\b.*?/\s*{escaped}\b.*?END\b",
+            sql,
+            flags=re.I | re.S,
+        )
+        if not nullif_guard and not case_guard and denominator not in unguarded:
+            unguarded.append(denominator)
+    return unguarded
+
+
+def validate(
+    sql: str,
+    mode: str,
+    execution_context: str = "one-time",
+) -> tuple[list[str], list[str]]:
     clean = strip_comments(sql)
     upper = clean.upper()
     top = top_level_text(clean)
@@ -79,15 +111,29 @@ def validate(sql: str, mode: str) -> tuple[list[str], list[str]]:
     if re.search(r"\bRIGHT\s+(?:OUTER\s+)?JOIN\b", upper):
         errors.append("RIGHT JOIN is not allowed in AMC SQL")
     if re.search(r"\bORDER\s+BY\b", top, flags=re.I):
-        errors.append("outer ORDER BY is not supported; sort fetched results downstream")
+        if mode == "query" and execution_context == "one-time":
+            warnings.append(
+                "outer ORDER BY was accepted in an observed one-time execution but is not "
+                "portable to scheduled SQL"
+            )
+        else:
+            errors.append("outer ORDER BY is not supported; sort fetched results downstream")
     if re.search(r"\bLIMIT\b", top, flags=re.I):
         errors.append("outer LIMIT is not supported; limit fetched results downstream")
 
     present = [token in upper for token in TOKENS]
     if mode == "query":
-        for token, found in zip(TOKENS, present):
-            if not found:
-                errors.append(f"measurement query is missing {token}")
+        if execution_context == "scheduled":
+            for token, found in zip(TOKENS, present):
+                if not found:
+                    errors.append(f"scheduled query is missing {token}")
+        elif any(present) and not all(present):
+            errors.append("one-time query must use both time-window tokens or neither")
+        elif not any(present):
+            warnings.append(
+                "one-time query uses the execution date range without SQL time-window tokens; "
+                "add both tokens before scheduling"
+            )
         if re.search(r"\bUSER_ID\b", selected, flags=re.I):
             errors.append("measurement output must not expose user_id")
     else:
@@ -98,8 +144,12 @@ def validate(sql: str, mode: str) -> tuple[list[str], list[str]]:
 
     if re.search(r"\bOVER\s*\(", upper):
         warnings.append("window aggregate found; prefer a totals CTE for portable percentage-of-total metrics")
-    if not re.search(r"\bNULLIF\s*\(", upper) and "/" in clean:
-        warnings.append("division found without NULLIF; verify divide-by-zero handling")
+    unsafe_divisors = unguarded_divisors(clean)
+    if unsafe_divisors:
+        warnings.append(
+            "division by identifier without an obvious NULLIF or CASE zero guard: "
+            + ", ".join(unsafe_divisors)
+        )
     return errors, warnings
 
 
@@ -107,9 +157,15 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Validate AMC SQL before an AdLabs run")
     parser.add_argument("sql_file", type=Path)
     parser.add_argument("--mode", choices=("query", "audience"), default="query")
+    parser.add_argument(
+        "--execution-context",
+        choices=("one-time", "scheduled"),
+        default="one-time",
+        help="measurement-query destination; ignored for audience SQL",
+    )
     args = parser.parse_args()
     sql = args.sql_file.read_text(encoding="utf-8-sig")
-    errors, warnings = validate(sql, args.mode)
+    errors, warnings = validate(sql, args.mode, args.execution_context)
     for warning in warnings:
         print(f"[WARN] {warning}")
     for error in errors:
