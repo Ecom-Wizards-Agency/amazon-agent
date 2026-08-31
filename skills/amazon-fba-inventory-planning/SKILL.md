@@ -33,6 +33,8 @@ Important planner files:
 - `src/utils/calculations.ts`
 - `src/types.ts`
 
+When the operator requests a broader aged-inventory, excess, fee, or action-ledger view, read `references/inventory-health-workbook.md`. It adds an optional workbook layer without changing the planner's same-day source precedence or client-specific settings.
+
 ## Core Rules
 
 - Resolve each brand-market's shared team-vault `Amazon Ops.md` profile before calculating. Use its reshipment settings and product exclusions through `tools/client-profiles/find-client-profile.mjs`; never copy stable target, lead-time, booking-buffer, scaling, threshold, or FBM-exclusion values into a local run config.
@@ -53,5 +55,6 @@ For each brand-market, produce:
 
 - `YYYY-MM-DD_Inventory Overview_[Brand]_[Market].csv`
 - `YYYY-MM-DD_Inventory Overview_[Brand]_[Market].xlsx`
+- Optional inventory-health tabs from `references/inventory-health-workbook.md` when requested.
 - Raw report files moved to the account's pCloud raw report folder after final approval when needed, with dates in filenames.
 - Slack staging copy for internal `#amazon` when actionable items exist.

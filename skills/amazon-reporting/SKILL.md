@@ -19,12 +19,18 @@ Browser: Mixed (CDP for scripted Seller Central fetches; CDP interactive for Ads
 
 ## Workflow
 
-1. Route the request to report fetch/format, Ads Console export, or SQP competitor benchmark.
+1. Route the request to report fetch/format, Ads Console export, general SQP analysis, or SQP competitor benchmark.
 2. Confirm account, marketplace, report type, date range, entity level, and destination folder.
 3. Search official docs for report definitions/current UI.
 4. Use internal analytics references for workbook generation and interpretation.
 5. Save deliverables under `output/{client}/reporting/` with dates in filenames unless the user specifies pCloud/Drive. `{client}` is the normalized lowercase-kebab client slug from `AGENTS.md`, with marketplace in filenames, not folder names.
 6. Stop before creating scheduled reports, changing report settings, or downloading sensitive reports to an unclear destination.
+
+## SQP Analysis
+
+For multi-week SQP comparisons, parent-level rollups, top-query selection, or a reusable SQP workbook, read `references/sqp-quality-gates.md`. Apply its published-week, parent-deduplication, query-prioritization, and reconciliation gates before calculating changes.
+
+This mode does not replace the organic-first diagnosis in `amazon-audit` or the weekly per-keyword SQP and PPC join in `tools/sqp-supa/`. Reporting prepares the evidence; the audit explains the account; SUPA monitors paid support by query.
 
 ## SQP Competitor Benchmark
 
