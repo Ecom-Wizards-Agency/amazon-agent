@@ -18,12 +18,14 @@ An MCF order is an external paid action. It requires the current operator instru
 
 1. Lock the Creator Record ID for the pre-flight so another queue item cannot target the same creator/product.
 2. Resolve the live tracker headers and read the exact selected row, registry entry, and latest thread.
-3. Apply every MCF pre-flight check in `lifecycle-execution-guardrails.md`.
-4. Capture a pre-flight screenshot/evidence reference that visibly shows the recipient, selected SKU/ASIN, exactly one unit, shipping selection, and estimated fee.
+3. Apply every MCF pre-flight check in `lifecycle-execution-guardrails.md`, including the explicit FBA/AFN channel, live MCF-fulfillable quantity, inventory-check timestamp, and private evidence reference. Seller-fulfilled or FBM stock does not count.
+4. Capture a pre-flight screenshot/evidence reference that visibly shows the recipient, selected SKU/ASIN, MCF-fulfillable inventory, exactly one unit, shipping selection, and estimated fee.
 5. Create the order only after all controls pass. Re-read the confirmation screen and match order ID, recipient, product, quantity, and dates to the locked record.
 6. Update the tracker and action log, then send the standard confirmation only after confirmed fulfillment.
 
 The order ID is `CC-{BRAND}-{PRODUCTCODE}-{CREATOR}-{ASIN}-{YYMMDD}`. Standard shipping is the default only when permitted by the client policy. Never use expedited shipping without an explicit rule.
+
+If the exact ASIN cannot be added to MCF, stop. Do not substitute. Run the product-switch preflight, offer only a same-campaign alternate that is already verified as MCF-fulfillable, and wait for the creator to reply with the exact alternate ASIN before changing the row or rerunning MCF.
 
 ## Content and performance
 

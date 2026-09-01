@@ -1,4 +1,4 @@
 interface:
   display_name: "Amazon Reporting"
-  short_description: "Download and analyze Seller Central and Ads reports"
-  default_prompt: "Use $amazon-reporting to pull and format the reports needed for this question."
+  short_description: "Fetch and analyze Amazon reports"
+  default_prompt: "Use $amazon-reporting to fetch and analyze Amazon reports for this request."

@@ -11,7 +11,7 @@
 // Runs against the dedicated debug Chrome over CDP (port 9222), same profile as the
 // report fetcher, so it uses the operator's existing session. It opens its own tab and
 // closes it again.
-import { ensureChrome, createPage, closePage, evaluate } from '../report-fetcher/cdp.mjs';
+import { ensureChrome, createPage, releasePage, evaluate } from '../report-fetcher/cdp.mjs';
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 
@@ -85,6 +85,7 @@ const EXPR = `(() => {
 await ensureChrome();
 // createPage returns an already-open Session, not a ws URL.
 const { targetId, session: s } = await createPage(url);
+let leaseOutcome = 'success';
 try {
   await s.send('Runtime.enable', {});
   // let the image block hydrate
@@ -99,7 +100,10 @@ try {
   console.log(`title: ${(data.title || '').slice(0, 90)}`);
   console.log(`price: ${data.price} · rating: ${data.rating} · reviews: ${data.reviewCount}`);
   if (!out) console.log(json);
+} catch (error) {
+  leaseOutcome = 'error';
+  throw error;
 } finally {
   try { s.close(); } catch (_) {}
-  await closePage(targetId);
+  await releasePage(targetId, { outcome: leaseOutcome });
 }

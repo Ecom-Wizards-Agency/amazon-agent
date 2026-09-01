@@ -1,4 +1,4 @@
-"""analyze.py -- trend + delta computation for amazon-ads-monitor.
+"""analyze.py -- trend + delta computation for amazon-ads-performance-briefs.
 
 Pure functions over DailyRow lists: no I/O, no MCP, fully unit-testable.
 For the report date (default = yesterday, decided by the CLI), computes

@@ -1,4 +1,4 @@
 interface:
   display_name: "Amazon Catalog"
-  short_description: "Variation, parentage and catalog change workflows"
-  default_prompt: "Use $amazon-catalog to plan and validate this variation, parentage or catalog change."
+  short_description: "Plan and validate Amazon catalog changes"
+  default_prompt: "Use $amazon-catalog to plan and validate Amazon catalog changes for this request."

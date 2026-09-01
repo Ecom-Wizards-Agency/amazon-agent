@@ -5,7 +5,7 @@ argument-hint: "setup|weekly|monthly|show|pause|resume"
 
 # Amazon Operational Checks
 
-Load and follow the `amazon-operations-review` skill as the source of truth.
+Load and follow the `amazon-operational-checks` skill as the source of truth.
 
 The requested action is: **$ARGUMENTS**
 

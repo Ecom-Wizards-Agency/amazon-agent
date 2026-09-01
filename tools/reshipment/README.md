@@ -4,7 +4,7 @@ Builds per-account reshipment + excess-inventory workbooks (CSV, XLSX, Slack sta
 and a JSON manifest) from same-day Amazon MCP/SP-API data or narrow same-day Seller Central
 fallback reports. MCP/SP-API is the default source. Browser downloads are used only when a
 required field is unavailable or stale through MCP. This is the script behind the
-`amazon-inventory-planning` skill's "Weekly FBA Inventory Overview".
+`amazon-fba-inventory-planning` skill's "Weekly FBA Inventory Overview".
 
 ## Setup
 

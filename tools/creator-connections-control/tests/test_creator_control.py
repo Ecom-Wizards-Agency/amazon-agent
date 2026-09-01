@@ -35,11 +35,49 @@ def proposal(**overrides):
         "tracker_asin": "B0EXAMPLE1",
         "selected_asin": "B0EXAMPLE1",
         "selected_sku": "SKU-1",
-        "product_catalog": {"B0EXAMPLE1": {"asin": "B0EXAMPLE1", "sku": "SKU-1"}},
+        "product_catalog": {
+            "B0EXAMPLE1": {
+                "asin": "B0EXAMPLE1",
+                "sku": "SKU-1",
+                "fulfillment_channel": "FBA",
+                "mcf_fulfillable": True,
+                "fulfillable_quantity": 10,
+                "inventory_checked_at": "2026-08-05T10:00:00Z",
+                "fulfillment_evidence_reference": "private-evidence/mcf-search.json",
+            }
+        },
         "quantity": 1,
         "shipping_speed": "Standard",
         "visible_fee_cents": 799,
         "approved_fee_cap_cents": 800,
+    }
+    value.update(overrides)
+    return value
+
+
+def switch_proposal(**overrides):
+    alternate = "B0ALTERNATE"
+    value = {
+        "phase": "offer",
+        "creator": creator(),
+        "original_asin": "B0EXAMPLE1",
+        "tracker_asin": "B0EXAMPLE1",
+        "alternate_asin": alternate,
+        "alternate_sku": "SKU-ALT",
+        "campaign_asins": ["B0EXAMPLE1", alternate],
+        "original_unavailable_reason": "not_mcf_fulfillable",
+        "original_blocker_evidence_reference": "private-evidence/original-search.json",
+        "product_catalog": {
+            alternate: {
+                "asin": alternate,
+                "sku": "SKU-ALT",
+                "fulfillment_channel": "FBA",
+                "mcf_fulfillable": True,
+                "fulfillable_quantity": 6,
+                "inventory_checked_at": "2026-08-05T10:05:00Z",
+                "fulfillment_evidence_reference": "private-evidence/alternate-search.json",
+            }
+        },
     }
     value.update(overrides)
     return value
@@ -133,6 +171,28 @@ class CreatorControlTests(unittest.TestCase):
         self.assertEqual(verification["gate_result"], "PENDING_APPROVAL")
         self.assertEqual(content["gate_result"], "PENDING_APPROVAL")
 
+    def test_product_switch_queue_requires_exact_alternate_and_schedules_follow_up(self):
+        missing = cc.queue_item(
+            creator(
+                creator_record_id="CCR-EX-26-0001",
+                status="Product Switch Pending",
+                proposed_alternate_asin="",
+            ),
+            date(2026, 8, 5),
+        )
+        self.assertEqual(missing["action_type"], "RECONCILE_PRODUCT_SWITCH")
+        follow_up = cc.queue_item(
+            creator(
+                creator_record_id="CCR-EX-26-0001",
+                status="Product Switch Pending",
+                proposed_alternate_asin="B0ALTERNATE",
+                follow_up_date="2026-08-05",
+            ),
+            date(2026, 8, 5),
+        )
+        self.assertEqual(follow_up["action_type"], "SEND_PRODUCT_SWITCH_FOLLOW_UP")
+        self.assertEqual(follow_up["gate_result"], "PENDING_APPROVAL")
+
     def test_preflight_rejects_wrong_quantity_and_asin(self):
         identifier = cc.issue_record_id(self.registry, creator(), self.secret, date(2026, 8, 5))
         proposed = {"creator": creator(), "tracker_asin": "B0EXAMPLE1", "selected_asin": "B0OTHER", "selected_sku": "SKU-1", "product_catalog": {"B0OTHER": {"sku": "SKU-1"}}, "quantity": 2, "shipping_speed": "Standard", "visible_fee_cents": 799, "approved_fee_cap_cents": 800}
@@ -151,6 +211,81 @@ class CreatorControlTests(unittest.TestCase):
         self.assertEqual(result["result"], "HOLD")
         self.assertIn("catalog_asin_mismatch", result["errors"])
         self.assertIn("sku_not_mapped_to_selected_asin", result["errors"])
+
+    def test_preflight_holds_instead_of_crashing_on_invalid_quantity(self):
+        cc.issue_record_id(self.registry, creator(), self.secret, date(2026, 8, 5))
+        result = cc.mcf_preflight(self.registry, proposal(quantity="one"), self.secret)
+        self.assertEqual(result["result"], "HOLD")
+        self.assertIn("quantity_invalid", result["errors"])
+        self.assertIn("quantity_must_equal_1", result["errors"])
+
+    def test_preflight_rejects_fbm_inventory_even_when_units_exist(self):
+        cc.issue_record_id(self.registry, creator(), self.secret, date(2026, 8, 5))
+        item = proposal()["product_catalog"]["B0EXAMPLE1"] | {
+            "fulfillment_channel": "FBM",
+            "mcf_fulfillable": False,
+            "fulfillable_quantity": 85,
+        }
+        result = cc.mcf_preflight(
+            self.registry,
+            proposal(product_catalog={"B0EXAMPLE1": item}),
+            self.secret,
+        )
+        self.assertEqual(result["result"], "HOLD")
+        self.assertIn("selected_sku_not_fba_fulfilled", result["errors"])
+        self.assertIn("selected_sku_not_mcf_fulfillable", result["errors"])
+
+    def test_preflight_requires_fresh_inventory_evidence_and_enough_units(self):
+        cc.issue_record_id(self.registry, creator(), self.secret, date(2026, 8, 5))
+        item = proposal()["product_catalog"]["B0EXAMPLE1"] | {
+            "fulfillable_quantity": 0,
+            "inventory_checked_at": "",
+            "fulfillment_evidence_reference": "",
+        }
+        result = cc.mcf_preflight(
+            self.registry,
+            proposal(product_catalog={"B0EXAMPLE1": item}),
+            self.secret,
+        )
+        self.assertEqual(result["result"], "HOLD")
+        self.assertIn("insufficient_mcf_fulfillable_quantity", result["errors"])
+        self.assertIn("mcf_inventory_check_missing", result["errors"])
+        self.assertIn("mcf_inventory_evidence_missing", result["errors"])
+
+    def test_product_switch_offer_requires_campaign_membership_and_mcf_stock(self):
+        cc.issue_record_id(self.registry, creator(), self.secret, date(2026, 8, 5))
+        passing = cc.product_switch_preflight(self.registry, switch_proposal(), self.secret)
+        self.assertEqual(passing["result"], "PASS")
+        self.assertEqual(passing["required_next_state"], "Product Switch Pending")
+        held = cc.product_switch_preflight(
+            self.registry,
+            switch_proposal(campaign_asins=["B0EXAMPLE1"]),
+            self.secret,
+        )
+        self.assertEqual(held["result"], "HOLD")
+        self.assertIn("alternate_asin_not_in_campaign", held["errors"])
+
+    def test_product_switch_confirmation_must_name_the_verified_alternate(self):
+        cc.issue_record_id(self.registry, creator(), self.secret, date(2026, 8, 5))
+        missing = cc.product_switch_preflight(
+            self.registry,
+            switch_proposal(phase="confirm"),
+            self.secret,
+        )
+        self.assertEqual(missing["result"], "HOLD")
+        self.assertIn("creator_confirmation_asin_mismatch", missing["errors"])
+        self.assertIn("creator_confirmation_evidence_missing", missing["errors"])
+        passing = cc.product_switch_preflight(
+            self.registry,
+            switch_proposal(
+                phase="confirm",
+                creator_confirmed_asin="B0ALTERNATE",
+                creator_confirmation_evidence_reference="private-evidence/creator-thread.json",
+            ),
+            self.secret,
+        )
+        self.assertEqual(passing["result"], "PASS")
+        self.assertEqual(passing["required_next_state"], "Approved for Sample")
 
     def test_reservation_blocks_a_second_mcf_preflight(self):
         cc.issue_record_id(self.registry, creator(), self.secret, date(2026, 8, 5))

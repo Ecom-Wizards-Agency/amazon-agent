@@ -1,0 +1,4 @@
+interface:
+  display_name: "Amazon Sponsored Brands Video Briefs"
+  short_description: "Build Sponsored Brands video briefs"
+  default_prompt: "Use $amazon-sponsored-brands-video-briefs to build Sponsored Brands video briefs for this request."

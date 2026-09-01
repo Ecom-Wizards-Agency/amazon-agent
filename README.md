@@ -21,7 +21,7 @@ The search helper can search the local Amazon libraries:
 python3 "tools/search_amazon_libraries.py" "send to amazon shipment create fba shipment" --library mag --limit 5
 ```
 
-Doc/skill consistency is linted by `python3 tools/lint_agent_docs.py` (skill manifests, routing-table names, writing style, agent-neutral wording). Run it before committing doc or skill changes.
+Doc/skill consistency is linted by `python3 tools/lint_agent_docs.py` (parsed skill manifests, bounded UI metadata, routing-table names, writing style, and agent-neutral wording). Run it before committing doc or skill changes.
 
 ## GitHub Repo
 
@@ -48,10 +48,22 @@ The complete visual MAG SOP archive (all captured SOPs plus every screenshot/GIF
 
 Routing is by session, not by agent, and lives in the Browser Standard in `AGENTS.md`: the CDP debug Chrome (port 9222) by default, the Chrome extension when the task needs the operator's own logged-in session. The per-workflow table is `docs/browser-routing-map.md`. Browser choice never overrides account/marketplace verification or stop-before-risk rules.
 
-CDP runners start or reuse the dedicated headless profile automatically on the
-first applicable task. The operator still performs the one-time sign-in through
-`tools/report-fetcher/launch-chrome-debug.sh --mode recovery`; credentials are
-never automated.
+Managed Chrome on port 9222 is the normal browser default; port 9223 is reserved
+for Wizards AI's separate read session. The T3 Code in-app browser is explicit
+only and is never a silent fallback, especially for login, upload, or download
+work.
+
+CDP runners start or reuse the machine-policy profile automatically on the first
+applicable task. Seller Central and FlatFilePro may use the exact-origin
+authentication broker on ports 9222 and 9223. Human challenges still require an
+explicit attended `browserctl restart` with a reason.
+
+New downloads and generated files are tracked by exact path with `artifactctl`.
+Successful runs become eligible after seven days, then a weekly verified job
+moves eligible files into a 30-day local quarantine before exact-file purge.
+Changed, unregistered, failed-run, manual, and unresolved files remain
+preserved. The lifecycle never deletes remote FlatFilePro, pCloud, or Drive
+data.
 
 ## Client Profiles
 

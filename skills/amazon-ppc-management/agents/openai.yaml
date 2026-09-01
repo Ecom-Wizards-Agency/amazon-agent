@@ -1,4 +1,0 @@
-interface:
-  display_name: "PPC Weekly Management"
-  short_description: "Weekly PPC loop: preview, approval, staged apply"
-  default_prompt: "Use $amazon-ppc-management to run this week's PPC loop for the client, stopping at each approval gate."

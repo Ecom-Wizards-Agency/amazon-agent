@@ -5,7 +5,7 @@ argument-hint: "[client-market or the brief itself, e.g. acme-us: 5 SKW + 1 auto
 
 # Create Campaigns (SP bulk file)
 
-Build Sponsored Products campaigns from the operator's text brief. Do not duplicate logic here. Route into the `amazon-campaign-builder` skill and the `tools/amazon-campaign-builder/` toolkit.
+Build Sponsored Products campaigns from the operator's text brief. Do not duplicate logic here. Route into the `amazon-sponsored-products-bulk-files` skill and the `tools/amazon-campaign-builder/` toolkit.
 
 The user's brief is: **$ARGUMENTS**
 
@@ -13,7 +13,7 @@ The user's brief is: **$ARGUMENTS**
 
 1. **Confirm the brief. Ask first.** Collect with a single AskUserQuestion, skipping what `$ARGUMENTS`/the conversation already supplies: client/brand · marketplace + account · SKUs (or ASINs for vendors) · campaign types (SKW/Halo/BMM/Phrase/Auto/PAT) · keywords or target ASINs · daily budget + bid · portfolio · negatives · start date · paused (default) vs enabled. Never carry a prior client's values.
 
-2. **Load the skill** `amazon-campaign-builder` as source of truth.
+2. **Load the skill** `amazon-sponsored-products-bulk-files` as source of truth.
 
 3. **Scaffold the config**: copy `tools/amazon-campaign-builder/config.TEMPLATE.json` → `config.<client>-<market>.json` and fill `campaigns[]` from the brief.
 

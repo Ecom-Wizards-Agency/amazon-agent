@@ -18,7 +18,7 @@
  */
 import { writeFileSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
-import { ensureChrome, listPages, createPage, closePage, Session } from "./cdp.mjs";
+import { ensureChrome, listPages, createPage, releasePage, Session } from "./cdp.mjs";
 
 function arg(name, def) { const i = process.argv.indexOf("--" + name); return i > 0 ? process.argv[i + 1] : def; }
 const SECONDS = Number(arg("seconds", "180"));
@@ -77,13 +77,20 @@ async function main() {
 
   if (NAV.length) {
     const { targetId, session } = await createPage(NAV[0]);
-    await session.send("Page.enable");
-    for (const u of NAV) {
-      console.log("navigate →", u);
-      try { await session.send("Page.navigate", { url: u }); } catch (e) { console.log("  (navigate failed:", e.message + ")"); }
-      await sleep(14000);   // let the page fire its data XHRs
+    let outcome = "success";
+    try {
+      await session.send("Page.enable");
+      for (const u of NAV) {
+        console.log("navigate →", u);
+        try { await session.send("Page.navigate", { url: u }); } catch (e) { console.log("  (navigate failed:", e.message + ")"); }
+        await sleep(14000);   // let the page fire its data XHRs
+      }
+    } catch (error) {
+      outcome = "error";
+      throw error;
+    } finally {
+      session.close(); await releasePage(targetId, { outcome });
     }
-    session.close(); await closePage(targetId);
   } else {
     await sleep(SECONDS * 1000);
   }

@@ -45,6 +45,12 @@ python tools/creator-connections-control/creator_control.py preflight `
   --registry _local/creator-connections/registry.json `
   --input _local/creator-connections/mcf-proposal.json
 
+# Validate an MCF-blocked product switch before offering it, then validate the
+# creator's explicit alternate-ASIN confirmation before changing the tracker.
+python tools/creator-connections-control/creator_control.py preflight-switch `
+  --registry _local/creator-connections/registry.json `
+  --input _local/creator-connections/product-switch.json
+
 # Lock the exact record/ASIN after a passing pre-flight, then confirm it only
 # after the authorized worker has a real Amazon order ID and evidence reference.
 python tools/creator-connections-control/creator_control.py reserve-mcf --registry <registry> --input <proposal>
@@ -71,7 +77,23 @@ Historic tracker rows are intentionally not assigned IDs from their row position
 
 The score is computed, not typed manually. Each item is worth one point: complete fulfillment details, requested ASIN, exact product match, storefront, recent visible post, strong content quality, strong category fit, performance/revenue evidence, specific ASIN mention, and low spam risk. Only exactly `10/10` is eligible for `Approved for Sample`.
 
-`preflight` also requires one resolved record, the matching ASIN/SKU in the approved product catalog, no prior sample for that creator and ASIN, one unit, Standard shipping, fee within the approved cap, complete address/contact data, and no UI validation or truncation warnings.
+`preflight` also requires one resolved record, the matching ASIN/SKU in the approved product catalog, verified FBA/MCF eligibility, enough currently fulfillable units, a dated private evidence reference for the inventory check, no prior sample for that creator and ASIN, one unit, Standard shipping, fee within the approved cap, complete address/contact data, and no UI validation or truncation warnings. An active FBM listing never satisfies the MCF gate.
+
+The selected catalog item uses these fulfillment fields:
+
+```json
+{
+  "asin": "B0EXAMPLE1",
+  "sku": "SKU-1",
+  "fulfillment_channel": "FBA",
+  "mcf_fulfillable": true,
+  "fulfillable_quantity": 10,
+  "inventory_checked_at": "2026-08-05T10:00:00Z",
+  "fulfillment_evidence_reference": "private-evidence/mcf-search.json"
+}
+```
+
+`preflight-switch` has two phases. `offer` proves the original ASIN has a documented MCF blocker and that the proposed alternative is in the same campaign, has an exact SKU mapping, and is FBA/MCF-fulfillable before the creator is contacted. `confirm` additionally requires the creator's explicit reply naming that alternate ASIN and a private thread evidence reference. Until `confirm` passes, keep `Product Switch Pending`, keep Sample Decision `Hold`, and do not change the active ASIN or create an order.
 
 After a passing pre-flight, `reserve-mcf` writes a record lock for that exact Creator Record ID and ASIN. The executor cannot use another creator's data while the lock exists. `confirm-mcf` releases the lock only when it receives the resulting Amazon order ID and private evidence reference. A failed order stays locked and is escalated. This protects against double-sends and concurrent operators.
 

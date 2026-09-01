@@ -1,6 +1,6 @@
 ---
 name: amazon-listing-capture
-description: Use to capture live Amazon listing copy (title, bullet points, canonical link) for an anchor ASIN and its siblings/competitors into the listing-reference JSON the keyword-workbook builder ingests. Trigger on requests like capture the listing copy or grab title and bullets for these ASINs. Browser-based extractor; feeds the ASINs tab and replaces the legacy ZeroWork scrape.
+description: "Capture live Amazon titles, bullets, and canonical URLs for anchor and competitor ASINs into validated listing-reference JSON."
 ---
 
 # Amazon Listing Capture
@@ -13,11 +13,11 @@ listing-reference JSON that `tools/amazon-seo-keyword-workbook/build_keyword_wor
 
 This replaces a legacy ZeroWork workflow. The old capture artifacts are intentionally
 not shipped because they can contain account-specific tables, screenshots, and example
-ASINs. Capture runs over the **CDP debug Chrome**. Amazon PDPs may block the headless
-renderer, so this workflow is the technical exception to the headless default. If a PDP
-fails headlessly, temporarily use `--mode headed`, keep the window behind other apps, and
-return to the normal headless mode immediately after capture. Never inspect cookies,
-storage, tokens, or credentials.
+ASINs. Capture runs over the **CDP debug Chrome** in the mode declared by the machine
+policy. If a headless machine cannot render a PDP, use an explicit `browserctl restart`
+with a reason to enter headed mode, then explicitly return to that machine's configured
+mode after capture. Evo X1 is already headed. Never inspect cookies, storage, tokens, or
+credentials.
 
 ## Inputs
 - The **ASINs tab `link` column** (anchor + siblings + competitors) is the input link list,

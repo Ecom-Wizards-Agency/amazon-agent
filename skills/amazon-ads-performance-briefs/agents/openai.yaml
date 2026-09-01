@@ -1,0 +1,4 @@
+interface:
+  display_name: "Amazon Ads Performance Briefs"
+  short_description: "Build daily and weekly Amazon Ads briefs"
+  default_prompt: "Use $amazon-ads-performance-briefs to build daily and weekly Amazon Ads briefs for this request."

@@ -1,0 +1,9 @@
+{
+  "_note": "Copy to _local/ads-monitor/sellerboard-feeds.json and add each private Sellerboard Dashboard Totals export URL there. Never commit the populated file.",
+  "feeds": {
+    "example-us": {
+      "url": "https://example.invalid/private-sellerboard-export",
+      "currency": "USD"
+    }
+  }
+}

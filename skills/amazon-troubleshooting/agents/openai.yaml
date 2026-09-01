@@ -1,4 +1,4 @@
 interface:
   display_name: "Amazon Troubleshooting"
-  short_description: "Diagnose Amazon errors, suppressions and account health"
-  default_prompt: "Use $amazon-troubleshooting to diagnose this error or suppression before taking any action."
+  short_description: "Diagnose blocked Amazon workflows"
+  default_prompt: "Use $amazon-troubleshooting to diagnose blocked Amazon workflows for this request."

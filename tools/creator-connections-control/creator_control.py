@@ -395,7 +395,16 @@ def queue_item(record: dict[str, Any], today: date) -> dict[str, Any] | None:
         if score["score"] != 10:
             return base | {"action_type": "RECONCILE_QUALIFICATION", "gate_result": "BLOCKED", "queue_state": "Escalated", "reason": "status_score_drift"}
         return base | {"action_type": "MCF_PREFLIGHT", "gate_result": "HOLD", "queue_state": "Queued", "reason": "paid_order_requires_preflight_and_authorized_executor"}
-    if status in {"sample sent", "delivered", "awaiting content", "follow up"}:
+    if status == "product switch pending":
+        alternate_asin = normalized(record.get("proposed_alternate_asin")).upper()
+        if not alternate_asin:
+            return base | {"action_type": "RECONCILE_PRODUCT_SWITCH", "gate_result": "BLOCKED", "queue_state": "Escalated", "reason": "missing_verified_alternate_asin"}
+        if attempts >= 3:
+            return base | {"action_type": "ESCALATE_PRODUCT_SWITCH_UNRESPONSIVE", "gate_result": "BLOCKED", "queue_state": "Escalated", "reason": "three_product_switch_follow_ups_without_exact_asin_confirmation"}
+        if due <= today:
+            return base | {"action_type": "SEND_PRODUCT_SWITCH_FOLLOW_UP", "gate_result": "PENDING_APPROVAL", "queue_state": "Queued", "reason": f"message_send_requires_current_approval;await_exact_confirmation_{alternate_asin}"}
+        return None
+    if status in {"sample sent", "delivered", "awaiting content", "delivered / awaiting content", "follow up"}:
         expected = parse_date(record.get("expected_delivery_date"))
         content_due = (expected + timedelta(days=3)) if expected else due
         if attempts >= 3:
@@ -403,6 +412,97 @@ def queue_item(record: dict[str, Any], today: date) -> dict[str, Any] | None:
         if today >= content_due and due <= today:
             return base | {"action_type": "SEND_CONTENT_FOLLOW_UP", "gate_result": "PENDING_APPROVAL", "queue_state": "Queued", "reason": "message_send_requires_current_approval;track_performance_and_request_video_link"}
     return None
+
+
+def mcf_inventory_errors(catalog_item: dict[str, Any], quantity: int) -> list[str]:
+    errors: list[str] = []
+    channel = normalized(catalog_item.get("fulfillment_channel"))
+    if channel not in {"fba", "afn", "amazon", "amazon fulfilled", "mcf"}:
+        errors.append("selected_sku_not_fba_fulfilled")
+    if catalog_item.get("mcf_fulfillable") is not True:
+        errors.append("selected_sku_not_mcf_fulfillable")
+    try:
+        fulfillable_quantity = int(catalog_item.get("fulfillable_quantity"))
+    except (TypeError, ValueError):
+        fulfillable_quantity = -1
+    if fulfillable_quantity < quantity:
+        errors.append("insufficient_mcf_fulfillable_quantity")
+    if not normalized(catalog_item.get("inventory_checked_at")):
+        errors.append("mcf_inventory_check_missing")
+    if not normalized(catalog_item.get("fulfillment_evidence_reference")):
+        errors.append("mcf_inventory_evidence_missing")
+    return errors
+
+
+def product_switch_preflight(registry: dict[str, Any], proposal: dict[str, Any], secret: bytes) -> dict[str, Any]:
+    record = proposal.get("creator") or {}
+    identity = resolve_record(registry, record, secret)
+    errors: list[str] = []
+    if identity.get("result") == "CONFLICT":
+        lock_conflicting_records(registry, identity)
+    if identity.get("result") != "RESOLVED":
+        errors.append("identity_not_resolved")
+    resolved = next((item for item in registry["records"] if item.get("creator_record_id") == identity.get("creator_record_id")), {})
+    if normalized(resolved.get("lock_state")) not in {"", "unlocked"}:
+        errors.append("record_not_unlocked_for_product_switch")
+
+    phase = normalized(proposal.get("phase"))
+    if phase not in {"offer", "confirm"}:
+        errors.append("invalid_product_switch_phase")
+    original_asin = normalized(proposal.get("original_asin")).upper()
+    current_requested_asin = normalized(record.get("requested_asin")).upper()
+    tracker_asin = normalized(proposal.get("tracker_asin")).upper()
+    alternate_asin = normalized(proposal.get("alternate_asin")).upper()
+    campaign_asins = {normalized(value).upper() for value in (proposal.get("campaign_asins") or []) if normalized(value)}
+    if not original_asin or len({original_asin, current_requested_asin, tracker_asin}) != 1:
+        errors.append("original_asin_mismatch")
+    if not alternate_asin or alternate_asin == original_asin:
+        errors.append("alternate_asin_not_distinct")
+    if alternate_asin not in campaign_asins:
+        errors.append("alternate_asin_not_in_campaign")
+    if normalized(proposal.get("original_unavailable_reason")) not in {
+        "not mcf fulfillable",
+        "not_mcf_fulfillable",
+        "out of stock",
+        "out_of_stock",
+        "not found",
+        "not_found",
+    }:
+        errors.append("original_mcf_blocker_not_verified")
+    if not normalized(proposal.get("original_blocker_evidence_reference")):
+        errors.append("original_mcf_blocker_evidence_missing")
+
+    catalog = proposal.get("product_catalog") or {}
+    catalog_item = catalog.get(alternate_asin, {})
+    selected_sku = normalized(proposal.get("alternate_sku")).upper()
+    if normalized(catalog_item.get("asin")).upper() != alternate_asin:
+        errors.append("alternate_catalog_asin_mismatch")
+    if not selected_sku or normalized(catalog_item.get("sku")).upper() != selected_sku:
+        errors.append("alternate_sku_not_mapped_to_asin")
+    errors.extend(mcf_inventory_errors(catalog_item, 1))
+
+    if phase == "confirm":
+        if normalized(proposal.get("creator_confirmed_asin")).upper() != alternate_asin:
+            errors.append("creator_confirmation_asin_mismatch")
+        if not normalized(proposal.get("creator_confirmation_evidence_reference")):
+            errors.append("creator_confirmation_evidence_missing")
+
+    if errors:
+        required_next_state = "Conflict or Held"
+    elif phase == "offer":
+        required_next_state = "Product Switch Pending"
+    else:
+        required_next_state = "Approved for Sample"
+    return {
+        "result": "PASS" if not errors else "HOLD",
+        "phase": phase,
+        "creator_record_id": identity.get("creator_record_id"),
+        "errors": errors,
+        "required_next_state": required_next_state,
+        "original_asin": original_asin,
+        "alternate_asin": alternate_asin,
+        "alternate_sku": selected_sku,
+    }
 
 
 def mcf_preflight(registry: dict[str, Any], proposal: dict[str, Any], secret: bytes) -> dict[str, Any]:
@@ -430,7 +530,13 @@ def mcf_preflight(registry: dict[str, Any], proposal: dict[str, Any], secret: by
     if normalized(catalog_item.get("asin")).upper() != selected_asin: errors.append("catalog_asin_mismatch")
     if not selected_sku or normalized(catalog_item.get("sku")).upper() != selected_sku:
         errors.append("sku_not_mapped_to_selected_asin")
-    if int(proposal.get("quantity") or 0) != 1: errors.append("quantity_must_equal_1")
+    try:
+        quantity = int(proposal.get("quantity") or 0)
+    except (TypeError, ValueError):
+        quantity = 0
+        errors.append("quantity_invalid")
+    if quantity != 1: errors.append("quantity_must_equal_1")
+    errors.extend(mcf_inventory_errors(catalog_item, max(quantity, 1)))
     if normalized(proposal.get("shipping_speed")) != "standard": errors.append("shipping_must_be_standard")
     fee = int(proposal.get("visible_fee_cents") or 0)
     cap = int(proposal.get("approved_fee_cap_cents") or -1)
@@ -544,6 +650,9 @@ def main() -> None:
     preflight = sub.add_parser("preflight")
     preflight.add_argument("--registry", required=True)
     preflight.add_argument("--input", required=True)
+    switch = sub.add_parser("preflight-switch")
+    switch.add_argument("--registry", required=True)
+    switch.add_argument("--input", required=True)
     reserve = sub.add_parser("reserve-mcf")
     reserve.add_argument("--registry", required=True)
     reserve.add_argument("--input", required=True)
@@ -582,6 +691,13 @@ def main() -> None:
             result = mutate_registry(
                 args.registry,
                 lambda registry: mcf_preflight(registry, proposal, secret),
+            )
+            emit(result, 0 if result["result"] == "PASS" else 2)
+        if args.command == "preflight-switch":
+            proposal = read_json(args.input)
+            result = mutate_registry(
+                args.registry,
+                lambda registry: product_switch_preflight(registry, proposal, secret),
             )
             emit(result, 0 if result["result"] == "PASS" else 2)
         if args.command == "reserve-mcf":

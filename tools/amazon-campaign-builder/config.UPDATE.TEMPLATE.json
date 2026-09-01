@@ -26,7 +26,8 @@
         "placements": {
           "top_of_search_placement": null,
           "rest_of_search_placement": null,
-          "product_pages_placement": null
+          "product_pages_placement": null,
+          "amazon_business_placement": null
         }
       }
     ],

@@ -1,6 +1,6 @@
 ---
 name: amazon-account-health-check
-description: Use for the daily Amazon account health check across Seller Central accounts: re-check open findings from the local findings ledger, read the precomputed Keepa market signals from the state file the caller supplies, verify Account Health in Seller Central, dispose every finding, write the ledger and the run's coverage entry, and create or update follow-up tasks. The run itself posts nothing except an immediate escalation; a separate deterministic pass posts the one daily digest.
+description: "Run daily or ad hoc Seller Central Account Health checks, resolve the findings ledger, and escalate urgent issues; use operational checks for non-Account-Health reviews."
 ---
 
 # Amazon Account Health Check

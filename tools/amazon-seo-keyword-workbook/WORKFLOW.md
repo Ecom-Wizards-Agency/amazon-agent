@@ -2,15 +2,15 @@
 
 > **Current-agent rule:** the active agent gathers MCP and browser inputs, writes SEO, builds, validates, and completes authorized internal delivery. A handoff is used only when a required capability is unavailable.
 >
-> **Known capture quirks** (baked into the preflight browser checklist; details in the `amazon-seo-keyword-workflow` skill): DataDive export buttons may emit no download event → map files by rows/headers and cross-check counts against DataDive MCP; POE inputs come from the API-first downloader (`run-poe.mjs`, one command per niche; manual tab-click/CSV export is fallback only); Amazon may render EN → switch the site language preference before listing capture; clean up duplicate downloads only after canonical inputs pass validation.
+> **Known capture quirks** (baked into the preflight browser checklist; details in the `amazon-seo` skill): DataDive export buttons may emit no download event → map files by rows/headers and cross-check counts against DataDive MCP; POE inputs come from the API-first downloader (`run-poe.mjs`, one command per niche; manual tab-click/CSV export is fallback only); Amazon may render EN → switch the site language preference before listing capture; clean up duplicate downloads only after canonical inputs pass validation.
 
 ## 1. Gather DataDive Exports
 
-**MCP-first:** generate **roots**, **Core 30% MKL**, and **competitors** from the DataDive MCP via `datadive_mcp_to_csv.py`. Validated identical to the UI exports; see the `datadive-mcp-vs-download` memory and the `amazon-seo-keyword-workflow` skill. The **full keyword pool** (formerly called the "Expanded 1% MKL") needs no UI download either: merge three read-only endpoints (`/mkl/{id}?includeAsinCatalog=true`, `/outlier/{id}`, `/residue-kw-list/{id}`) and filter `relevancy` locally. Never change the niche's Min. Relevancy setting; it mutates shared state for the whole team.
+**MCP-first:** generate **roots**, **Core 30% MKL**, and **competitors** from the DataDive MCP via `datadive_mcp_to_csv.py`. Validated identical to the UI exports; see the `datadive-mcp-vs-download` memory and the `amazon-seo` skill. The **full keyword pool** (formerly called the "Expanded 1% MKL") needs no UI download either: merge three read-only endpoints (`/mkl/{id}?includeAsinCatalog=true`, `/outlier/{id}`, `/residue-kw-list/{id}`) and filter `relevancy` locally. Never change the niche's Min. Relevancy setting; it mutates shared state for the whole team.
 
 - **roots CSV**: MCP `get_niche_roots` → generator (or Roots grid's leftmost **Export** tab for **Normalized Root**).
 - **Core MKL CSV at `30% Min Rel.`**: MCP `get_niche_keywords` → generator (confirm `len(keywords)==numVisibleKeywords` first).
-- **Expanded MKL CSV at `1% Min Rel.`**: **UI DOWNLOAD ONLY** (export the full grid as a real CSV; never recover by scrolling; never substitute the 30% file; NOT MCP-reproducible).
+- **Complete keyword-pool CSV filtered at `1% Min Rel.`**: merge the three read-only endpoints above, verify that the partition count matches `numKeywords`, then write it to the legacy `expanded_mkl_csv` contract path. Never substitute the 30% Core file.
 - **competitors CSV**: MCP `get_niche_competitors` → generator (or **Niche Tracker > Export Competitors**).
 
 At export time, record for **both** MKLs in the config: **Min Rel., visible keyword count, visible search volume, and export timestamp** (don't backfill these later; capture them while the grid is on screen).
@@ -126,4 +126,4 @@ Fill the `5. Campaign Structure` tab from the built workbook via
 `fill_campaign_structure.py` (`/fill-campaigns`): extract candidates → agent classifies per
 `_local/ads-strategy/strategy.md` → dry-run → apply. Visual plan + Proposed Campaign Names block
 only (no bulk files); the operator pastes into the bulk-creator webapp. Details in the
-`amazon-seo-keyword-workflow` skill, section "Campaign Structure Fill".
+`skills/amazon-seo/references/keyword-research-workbook.md`, section "Campaign Structure Fill".

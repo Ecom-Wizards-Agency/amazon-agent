@@ -6,7 +6,7 @@ Source inputs: `Message_templates_Creator_Connections_(2).docx`, `Creator_Connec
 
 ## Related References
 
-- [Amazon Ads operator skill](../skills/amazon-ads/SKILL.md)
+- [Amazon Ads operator skill](../skills/amazon-ads-console/SKILL.md)
 - [Amazon Agent routing (AGENTS.md, Specialist Skill Model)](../AGENTS.md)
 - [Creator Connections navigation note (AGENTS.md, Amazon Ads Account Selection)](../AGENTS.md)
 - [Advertising Help After Login README](../Advertising%20Help%20After%20Login/README.md)

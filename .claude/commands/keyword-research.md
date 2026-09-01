@@ -28,7 +28,7 @@ The user's target is: **$ARGUMENTS**
 
    Everything else (DataDive CSVs, POE exports, competitor + anchor listing copy) is gathered by the current agent through the available MCP and connected-browser capabilities, not something the user hand-provides.
 
-2. **Load the workflow.** Use the `amazon-seo-keyword-workflow` skill as the source of truth for load order, data inputs, workbook rules, and QA gates. Pull in `amazon-seo` (writing/compliance), `amazon-opportunity-explorer` (POE/OEI), and `amazon-listing-capture` (live title/bullets/link for anchor + competitors) as that skill directs.
+2. **Load the workflow.** Use the `keyword-research` mode in `amazon-seo` as the source of truth for load order, data inputs, workbook rules, and QA gates. Pull in `amazon-opportunity-explorer` (POE/OEI) and `amazon-listing-capture` (live title/bullets/link for anchor + competitors) as that mode directs.
 
 3. **Resolve the config. Always scaffold a new product/client.** Every run is a new product/client, so don't offer or auto-pick an existing `config.*.json`. Using the brief from step 1, follow `tools/amazon-seo-keyword-workbook/NEW-CLIENT.md` to scaffold a fresh `config.<brand>-<product>-<market>.json` (from `config.TEMPLATE.json`) plus a matching `seo_content.<brand>-<market>.json` (copied from an existing `seo_content.*.json`). The only exception: if `$ARGUMENTS` explicitly names an existing config to **continue an in-progress run**, reuse `tools/amazon-seo-keyword-workbook/config.<that>.json` instead of scaffolding.
 

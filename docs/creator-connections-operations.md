@@ -22,7 +22,7 @@ Each Monday, the bot creates one parent post for the prior week's summary and po
 
 ## Qualification and fulfillment
 
-The bot background-checks visible storefront and content evidence before asking for proof. It requests only the information still needed. A sample can proceed only at 10/10, with a final ASIN, complete recipient details, a confirmed identity, low risk, no duplicate sample, and an MCF pre-flight that proves a single unit and the correct SKU. The local `tools/creator-connections-control/` runner is mandatory for identity resolution, score computation, the daily action queue, and MCF pre-flight. It has no Amazon credentials and does not place an order.
+The bot background-checks visible storefront and content evidence before asking for proof. It requests only the information still needed. A sample can proceed only at 10/10, with a final ASIN, complete recipient details, a confirmed identity, low risk, no duplicate sample, and an MCF pre-flight that proves the correct SKU, FBA/AFN fulfillment, live MCF availability, and exactly one unit. An active FBM listing is not MCF inventory. When the exact ASIN is blocked, the system verifies a same-campaign MCF-fulfillable alternative before contacting the creator, then waits for an explicit alternate-ASIN reply before changing the record. The local `tools/creator-connections-control/` runner is mandatory for identity resolution, score computation, the daily action queue, product-switch validation, and MCF pre-flight. It has no Amazon credentials and does not place an order.
 
 ## Automation readiness and SP-API dependency
 

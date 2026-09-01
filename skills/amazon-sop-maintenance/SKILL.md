@@ -1,6 +1,6 @@
 ---
 name: amazon-sop-maintenance
-description: Use for Amazon SOP maintenance commands and requests, including /create-sop, /fix-sop, outdated SOPs, broken SOP links, wrong SOP steps, questionable MAG SOP guidance, verified SOP corrections, synced SOP update notes, and new SOP drafts. Distinguishes human/team SOPs from agent skills.
+description: "Create, verify, and correct Amazon SOP drafts, links, steps, and update notes while keeping SOPs distinct from agent skills."
 ---
 
 # Amazon SOP Maintenance

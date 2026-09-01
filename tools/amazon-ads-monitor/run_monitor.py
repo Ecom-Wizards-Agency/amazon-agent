@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""run_monitor.py -- CLI for the amazon-ads-monitor toolkit.
+"""run_monitor.py -- CLI for the amazon-ads-performance-briefs toolkit.
 
 Read-only. Never touches campaigns. Produces a markdown report per
 account under `output/{account}/ads-monitor/{date}_daily.md` and,
@@ -15,7 +15,7 @@ Mock mode, no credentials needed, all sample accounts, yesterday's date:
 
 Sellerboard CSV (PRIMARY real source, as of 2026-07-14) -- one brand at a
 time, a delivered or firecrawl-fetched Dashboard Totals CSV (see
-_local/ads-monitor/SELLERBOARD-FORMAT.md and the amazon-ads-monitor skill
+_local/ads-monitor/SELLERBOARD-FORMAT.md and the amazon-ads-performance-briefs skill
 for the file-first/firecrawl-fallback flow):
 
     python3 tools/amazon-ads-monitor/run_monitor.py --source sellerboard \\
@@ -58,7 +58,7 @@ def _yesterday() -> dt.date:
 
 
 def _parse_args(argv=None) -> argparse.Namespace:
-    p = argparse.ArgumentParser(description="amazon-ads-monitor: daily previous-day Amazon Ads report")
+    p = argparse.ArgumentParser(description="amazon-ads-performance-briefs: daily previous-day Amazon Ads report")
     p.add_argument("--date", type=str, default=None, help="Report date YYYY-MM-DD (default: yesterday)")
     p.add_argument("--source", choices=sorted(DATASOURCES), default="mock", help="Data source adapter (default: mock)")
     p.add_argument("--accounts", type=str, default=None, help="Comma-separated account list (default: all accounts the source knows about; for --source sellerboard with --csv, names the single account the CSV belongs to -- inferred from the filename if omitted)")
@@ -127,7 +127,7 @@ def _build_datasource(source: str, config: dict, csv_paths: list = None, account
             raise SPAdsApiConfigError(
                 "--source sellerboard requires --csv <path[,path...]> pointing at the delivered "
                 "Sellerboard 'Dashboard Totals' CSV (file-first) or the firecrawl-fetched copy saved "
-                "to _local/ads-monitor/inbox/<brand>/ (fallback) -- see the amazon-ads-monitor skill "
+                "to _local/ads-monitor/inbox/<brand>/ (fallback) -- see the amazon-ads-performance-briefs skill "
                 "and _local/ads-monitor/SELLERBOARD-FORMAT.md."
             )
         account = account_hint or _infer_account_from_csv_path(csv_paths[0])

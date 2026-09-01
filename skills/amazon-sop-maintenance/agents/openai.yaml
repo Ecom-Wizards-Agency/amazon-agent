@@ -1,4 +1,4 @@
 interface:
   display_name: "Amazon SOP Maintenance"
-  short_description: "Report, draft and verify Amazon SOP corrections"
-  default_prompt: "Use $amazon-sop-maintenance to draft or correct an SOP from what we just learned."
+  short_description: "Create and correct Amazon SOPs"
+  default_prompt: "Use $amazon-sop-maintenance to create and correct Amazon SOPs for this request."

@@ -2,7 +2,8 @@
 // Read-only: navigates to each PDP, extracts title/bullets/description/images/price/brand.
 // Usage: node tools/listing-capture/capture-cdp.mjs <ASIN[,ASIN...]> <out.json> [tld=com] [lang=en_US]
 import fs from "node:fs";
-import { ensureChrome, createPage, closePage, evaluate } from "../report-fetcher/cdp.mjs";
+import { ensureChrome, createPage, releasePage, evaluate } from "../report-fetcher/cdp.mjs";
+import { ensureDeliveryPostcode } from "../report-fetcher/marketplace-postcode.mjs";
 
 const asins = (process.argv[2] || "").split(",").map((s) => s.trim()).filter(Boolean);
 const out = process.argv[3];
@@ -39,8 +40,11 @@ const listings = [];
 for (const asin of asins) {
   const url = `https://www.amazon.${tld}/dp/${asin}?language=${lang}&th=1&psc=1`;
   let page;
+  let leaseOutcome = "success";
   try {
     page = await createPage(url);
+    const delivery = await ensureDeliveryPostcode(page.session, tld);
+    if (!delivery.ok) throw new Error(`delivery postcode verification failed: ${JSON.stringify(delivery)}`);
     // The tab keeps navigating/redirecting for a moment after it appears, which
     // destroys the eval context. Retry until a fresh context returns the title.
     let r = null;
@@ -57,10 +61,14 @@ for (const asin of asins) {
     console.error(`  ${asin}: ${r.status} | "${(r.title||'').slice(0,60)}" | ${(r.bullets||[]).length} bullets | ${(r.galleryImages||[]).length} imgs${r.resolvedAsin&&r.resolvedAsin!==asin?` (-> ${r.resolvedAsin})`:''}`);
     listings.push(r);
   } catch (e) {
+    leaseOutcome = "error";
     console.error(`  ${asin}: ERROR ${e.message}`);
     listings.push({ asin, status: "error", error: e.message });
   } finally {
-    if (page) await closePage(page.targetId);
+    if (page) {
+      page.session.close();
+      await releasePage(page.targetId, { outcome: leaseOutcome });
+    }
   }
 }
 fs.mkdirSync(out.replace(/\/[^/]+$/, ""), { recursive: true });

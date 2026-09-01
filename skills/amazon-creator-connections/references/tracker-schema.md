@@ -114,5 +114,6 @@ Use the existing chip color when a label already exists. New client-specific lab
 - One active creator row per Creator Record ID and final product/ASIN.
 - A creator who has not confirmed the final product remains in `Undecided`.
 - On a verified product switch, make the final-product row active and retain the old row as historical only. Never leave two active sample paths.
+- When the current ASIN is not MCF-fulfillable, retain it as the active ASIN while the creator is `Product Switch Pending`. Record the verified alternate and fulfillment evidence in Notes/Risk Flags, keep Sample Decision `Hold`, and do not move or rewrite the active ASIN until the creator explicitly confirms the alternate.
 - Never merge or move rows from display-name similarity. Resolve the Creator Record ID first.
 - Do not delete historical sample records. Mark their current state and link the same Creator Record ID when verified.

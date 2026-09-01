@@ -1,4 +1,4 @@
 interface:
   display_name: "Amazon Communications"
-  short_description: "Draft safe Amazon support, buyer and creator messages"
-  default_prompt: "Use $amazon-communications to draft this support case, buyer message or creator reply."
+  short_description: "Draft Amazon support and buyer messages"
+  default_prompt: "Use $amazon-communications to draft Amazon support and buyer messages for this request."

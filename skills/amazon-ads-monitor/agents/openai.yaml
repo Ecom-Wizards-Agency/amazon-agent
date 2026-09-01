@@ -1,4 +1,0 @@
-interface:
-  display_name: "Amazon Ads Monitor"
-  short_description: "Daily and weekly Amazon Ads performance briefs"
-  default_prompt: "Use $amazon-ads-monitor to produce the read-only daily or weekly Ads brief for this brand."

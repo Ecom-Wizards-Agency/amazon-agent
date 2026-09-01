@@ -1,6 +1,6 @@
 ---
 name: amazon-troubleshooting
-description: Use when something is broken or blocked on Amazon: exact error messages, suppressed listings, blocked Seller Central or Ads workflows, warnings, policy issues, permissions, missing reports, campaign eligibility, feed failures, and support-case-worthy problems. For the scheduled daily account-health run use amazon-account-health-check; for routine ads performance work use amazon-ads.
+description: "Diagnose Amazon errors, suppressions, warnings, permissions, feed failures, missing reports, and blocked workflows before corrective action."
 ---
 
 # Amazon Troubleshooting

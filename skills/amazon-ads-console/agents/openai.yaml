@@ -1,0 +1,4 @@
+interface:
+  display_name: "Amazon Ads Console"
+  short_description: "Operate and troubleshoot Amazon Ads Console"
+  default_prompt: "Use $amazon-ads-console to operate and troubleshoot Amazon Ads Console for this request."

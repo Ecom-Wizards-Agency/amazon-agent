@@ -21,6 +21,13 @@ Set `state: "paused"` with `child_state: "enabled"` when a file should be fully 
 but only the Campaign rows should remain paused. Explicit Auto targeting-group states still
 take precedence.
 
+Placement adjustments support top of search, rest of search, product pages, and Amazon
+Business through `top_of_search_placement`, `rest_of_search_placement`,
+`product_pages_placement`, and `amazon_business_placement`. Values are whole percentages from
+0 through 900. Amazon Business placement adjustment is distinct from `site_restriction`:
+the placement field changes the bid when an impression is eligible for Amazon Business, while
+the site field controls campaign serving scope where Amazon supports it.
+
 **Output is a file only.** This tool never uploads or touches live campaigns. Uploading via
 Campaign Manager → Bulk Operations (or any AdLabs push) is a separate, operator-confirmed
 action (stop-before-risk applies). **Update mode is the one exception to "nothing is live

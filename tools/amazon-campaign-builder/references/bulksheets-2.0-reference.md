@@ -2,7 +2,7 @@
 
 Synthesized from Amazon's official docs at
 `https://advertising.amazon.com/API/docs/en-us/no-code-tools/bulksheets/2-0/*`
-for the `amazon-campaign-builder` toolkit (SP/SB/SD bulk-upload `.xlsx` generator).
+for the `amazon-sponsored-products-bulk-files` toolkit (SP/SB/SD bulk-upload `.xlsx` generator).
 
 **Scrape coverage:** 23 of the 29 target pages were retrieved in full; 5 were retrieved
 partially (oversized pages, content extracted via targeted excerpts rather than a full
@@ -159,7 +159,10 @@ Row-by-row build order (temp IDs at each step, reused by children):
 1. **Define the campaign entity.** Required fields: `Product, Entity, Operation, Campaign
    ID (temp), Campaign Name, Start Date, Targeting Type, State, Daily Budget`.
 2. **Bidding Adjustment entity (optional)**: references the same Campaign ID (temp),
-   defines `Placement`/`Percentage` bid modifiers.
+   defines `Placement`/`Percentage` bid modifiers. Supported Sponsored Products values include
+   top of search, product pages, rest of search, and Amazon Business. The toolkit uses
+   `Placement Top`, `Placement Product Page`, `Placement Rest Of Search`, and
+   `Placement Amazon Business`.
 3. **Ad Group entity**: new temp `Ad Group ID`, references parent `Campaign ID`.
 4. **Product Ad entity**: references `Campaign ID` + `Ad Group ID`, carries `SKU`/`ASIN`.
 5. **Keyword / Product Targeting entities**: reference `Campaign ID` + `Ad Group ID`, each

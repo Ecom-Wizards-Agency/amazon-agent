@@ -1,0 +1,4 @@
+interface:
+  display_name: "Amazon Marketing Cloud"
+  short_description: "Write and operate privacy-safe AMC SQL"
+  default_prompt: "Use $amazon-amc to write and validate an AMC query for this measurement question."

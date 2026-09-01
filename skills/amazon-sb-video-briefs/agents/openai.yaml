@@ -1,4 +1,0 @@
-interface:
-  display_name: "Amazon SB Video Briefs"
-  short_description: "Sponsored Brands video briefs for editors"
-  default_prompt: "Use $amazon-sb-video-briefs to build a Sponsored Brands video brief batch for this product line."

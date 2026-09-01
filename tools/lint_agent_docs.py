@@ -2,9 +2,8 @@
 """Lint the agent docs and skills for cross-agent consistency.
 
 Checks:
-1. Every skill under skills/ has a SKILL.md with `name:` + `description:`
-   frontmatter (Claude discovery) and an agents/openai.yaml with
-   display_name / short_description / default_prompt (Codex discovery).
+1. Every skill under skills/ has valid, bounded YAML discovery manifests for
+   both runtimes: SKILL.md frontmatter and agents/openai.yaml UI metadata.
 2. No spaced em-dash (" -- " as em-dash) in authored surfaces. Captured
    libraries and generated files are exempt.
 3. No Claude-only tool names (AskUserQuestion) inside shared skill files.
@@ -12,6 +11,8 @@ Checks:
 5. Every repo file path a doc names actually exists. A renamed tool leaves its old
    name behind in every doc that told an agent to run it, and nothing fails until
    somebody runs the command. This is the mechanical half of that.
+6. Browser priority, the DataDive CDP route, and local-artifact handoff
+   invariants remain explicit.
 
 Exit code 0 when clean, 1 when any check fails.
 """
@@ -24,6 +25,11 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+COMPANY_SKILL_LIB = ROOT.parent / "company-ai-skills" / "lib"
+sys.path.insert(0, str(COMPANY_SKILL_LIB))
+
+from skill_catalog_lint import validate_skill_directory as validate_shared_skill_directory
+
 EM_DASH = " — "
 
 # Authored surfaces for the writing-style check.
@@ -72,6 +78,45 @@ TRIM = ".,;:!?)]'\"`"
 # deliberately deleted is correct, and rewriting it to satisfy a check would make it
 # lie. Same principle the vault linter uses to exclude its decision records.
 PATH_CHECK_EXEMPT = ("docs/public-release-checklist.md",)
+
+DATADIVE_ROUTE_REQUIREMENTS = {
+    "AGENTS.md": "DataDive web app navigation, read-only endpoint fetches, downloads, and",
+    "docs/browser-routing-map.md": (
+        '| DataDive full keyword pool (the old "Expanded 1% MKL") | '
+        "`amazon-seo` | CDP (9222) |"
+    ),
+    "skills/amazon-seo/references/keyword-research-workbook.md": (
+        "logged-in DataDive session through managed Chrome CDP on port 9222"
+    ),
+}
+
+DATADIVE_STALE_ROUTES = {
+    "AGENTS.md": "DataDive is the standing example",
+    "docs/browser-routing-map.md": (
+        '| DataDive full keyword pool (the old "Expanded 1% MKL") | '
+        " `amazon-seo` | Extension |"
+    ),
+    "skills/amazon-seo/references/keyword-research-workbook.md": (
+        "full keyword pool uses three read-only DataDive endpoints in the extension browser"
+    ),
+}
+
+
+def validate_datadive_routing(root: Path = ROOT) -> list[str]:
+    """Keep DataDive web work on Evo X1's managed port-9222 browser."""
+    errors: list[str] = []
+    for rel, required in DATADIVE_ROUTE_REQUIREMENTS.items():
+        path = root / rel
+        if not path.exists():
+            errors.append(f"{rel}: missing DataDive routing authority")
+            continue
+        text = path.read_text(encoding="utf-8")
+        if required not in text:
+            errors.append(f"{rel}: missing required DataDive CDP routing contract")
+        stale = DATADIVE_STALE_ROUTES.get(rel)
+        if stale and stale in text:
+            errors.append(f"{rel}: contains stale DataDive extension-default route")
+    return errors
 
 
 def git_ignored(paths: set[str]) -> set[str]:
@@ -123,51 +168,21 @@ def em_dash_violations(path: Path) -> list[int]:
     return hits
 
 
-def frontmatter(path: Path) -> dict[str, str]:
-    lines = path.read_text(encoding="utf-8").splitlines()
-    if not lines or lines[0].strip() != "---":
-        return {}
-    fields = {}
-    for line in lines[1:]:
-        if line.strip() == "---":
-            break
-        m = re.match(r"^([A-Za-z_][\w-]*):\s*(.*)$", line)
-        if m:
-            fields[m.group(1)] = m.group(2).strip()
-    return fields
+def validate_skill_directory(skill_dir: Path) -> list[str]:
+    """Validate both manifests plus Amazon's required Browser declaration."""
+    return validate_shared_skill_directory(skill_dir, require_browser=True)
 
 
 def main() -> int:
     errors: list[str] = []
     missing_paths: list[tuple[str, int, str]] = []
 
+    errors.extend(validate_datadive_routing())
+
     # 1. Skill manifests for both agents.
     skill_dirs = sorted(d for d in (ROOT / "skills").iterdir() if d.is_dir())
     for d in skill_dirs:
-        skill_md = d / "SKILL.md"
-        if not skill_md.exists():
-            errors.append(f"{d.relative_to(ROOT)}: missing SKILL.md")
-            continue
-        fm = frontmatter(skill_md)
-        for key in ("name", "description"):
-            if not fm.get(key):
-                errors.append(f"{skill_md.relative_to(ROOT)}: frontmatter missing `{key}:`")
-        if fm.get("name") and fm["name"] != d.name:
-            errors.append(f"{skill_md.relative_to(ROOT)}: frontmatter name `{fm['name']}` != dir `{d.name}`")
-        body = skill_md.read_text(encoding="utf-8")
-        decls = re.findall(r"^Browser: (CDP|Extension|None|Mixed)\b", body, re.M)
-        if len(decls) != 1:
-            errors.append(
-                f"{skill_md.relative_to(ROOT)}: needs exactly one `Browser: CDP|Extension|None|Mixed` line (found {len(decls)})"
-            )
-        oy = d / "agents" / "openai.yaml"
-        if not oy.exists():
-            errors.append(f"{d.relative_to(ROOT)}: missing agents/openai.yaml (invisible to Codex)")
-        else:
-            text = oy.read_text(encoding="utf-8")
-            for key in ("display_name:", "short_description:", "default_prompt:"):
-                if key not in text:
-                    errors.append(f"{oy.relative_to(ROOT)}: missing `{key}`")
+        errors.extend(validate_skill_directory(d))
 
     # 2 + 3. Writing style and Claude-only tool names.
     seen: set[Path] = set()
@@ -246,14 +261,31 @@ def main() -> int:
 
     # 4. AGENTS.md routing table names resolve to skill dirs.
     agents_md = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
-    routing = re.search(r"Default routing:\n(.*?)\n\n", agents_md, re.S)
+    required_operating_rules = (
+        "Managed Chrome CDP on port 9222 is the default browser",
+        "Port 9223 is the separate Wizards AI browser",
+        "The T3 Code in-app browser is not a first-choice browser",
+        "Verified weekly cleanup is the sole permitted",
+    )
+    for rule in required_operating_rules:
+        if rule not in agents_md:
+            errors.append(f"AGENTS.md: missing operating invariant `{rule}`")
+    routing = re.search(
+        r"^Default routing:\s*\n(.*?)(?=^Operational-check trigger phrases:)",
+        agents_md,
+        re.S | re.M,
+    )
     if not routing:
         errors.append("AGENTS.md: `Default routing:` block not found")
     else:
         skill_names = {d.name for d in skill_dirs}
-        for name in re.findall(r"^- `([a-z0-9-]+)`:", routing.group(1), re.M):
-            if name not in skill_names:
-                errors.append(f"AGENTS.md routing table: `{name}` has no skills/{name}/ dir")
+        routed_names = re.findall(r"^- `([a-z0-9-]+)`:", routing.group(1), re.M)
+        for name in sorted(set(routed_names) - skill_names):
+            errors.append(f"AGENTS.md routing table: `{name}` has no skills/{name}/ dir")
+        for name in sorted(skill_names - set(routed_names)):
+            errors.append(f"AGENTS.md routing table: missing `{name}`")
+        for name in sorted({name for name in routed_names if routed_names.count(name) > 1}):
+            errors.append(f"AGENTS.md routing table: duplicate `{name}`")
 
     if errors:
         print(f"lint_agent_docs: {len(errors)} problem(s)")

@@ -1,4 +1,0 @@
-interface:
-  display_name: "Amazon SEO Keyword Workflow"
-  short_description: "Build keyword workbooks from DataDive and POE, and fill their campaign structure"
-  default_prompt: "Use $amazon-seo-keyword-workflow to build the keyword research workbook for this product, or to fill its Campaign Structure tab from a built workbook."

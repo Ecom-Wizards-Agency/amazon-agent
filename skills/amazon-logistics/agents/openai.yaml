@@ -1,4 +1,4 @@
 interface:
   display_name: "Amazon Logistics"
-  short_description: "FBA shipments, Send to Amazon, removals and AWD"
-  default_prompt: "Use $amazon-logistics to plan or reconcile this FBA shipment."
+  short_description: "Execute and troubleshoot FBA logistics"
+  default_prompt: "Use $amazon-logistics to execute and troubleshoot FBA logistics for this request."

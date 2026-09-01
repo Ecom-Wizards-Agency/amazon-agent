@@ -30,7 +30,7 @@ read it from the CLR (`product_type#1.value`) before generating.
 
 ## Rule 2: Know the modern template anatomy before touching it
 
-Everything is declared in cell A1 (the `settings=` string): `labelRow`, 
+Everything is declared in cell A1 (the `settings=` string): `labelRow`,
 `attributeRow`, `dataRow`, `flavor`, marketplace, product type (`ptds`, base64).
 Observed: label row 4, attribute row 5; **dataRow differs by flavor** (CLR
 `inventory-report-ump` = 7; blank `full-seller` = 8). Always read it, never assume.

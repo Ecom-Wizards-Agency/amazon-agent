@@ -59,11 +59,11 @@ Exclude Slack, Notion, localhost, internal Drive material, broken links, duplica
 
 Load only the specialist skills needed by the evidence that exists:
 
-- advertising history and state: `amazon-ads`, `amazon-ppc-management`, `amazon-reporting`;
+- advertising history and state: `amazon-ads-console`, `amazon-ppc-weekly-management`, `amazon-reporting`;
 - rank and query evidence: `amazon-audit`, `amazon-opportunity-explorer`, DataDive/AdLabs routes;
 - listing and creative: `amazon-listing-capture`, `amazon-seo`, `amazon-opportunity-explorer`;
 - catalog: `amazon-catalog`;
-- inventory and buyability: `amazon-inventory-planning`, `amazon-reporting`;
+- inventory and buyability: `amazon-fba-inventory-planning`, `amazon-reporting`;
 - Account Health: `amazon-account-health-check`.
 
 These sources are read-only inputs for offboarding. Their action workflows do not grant permission to mutate the account.

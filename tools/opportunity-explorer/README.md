@@ -23,7 +23,7 @@ Captured-vs-visible verification: `references/poe-gap-matrix.md`.
   Returns JSON+CSV (explicit not-exposed handling), overview JSON (builder-regex
   compatible `text`/`textLines`), related-niches v1 JSON+CSV, full-niche JSON.
 - `run-poe.mjs`: one-command CDP runner (shares `../report-fetcher/cdp.mjs`
-  and `launch-chrome-debug.sh`).
+  and the `browserctl` lifecycle policy).
 - `discover-poe-endpoints.mjs`: network-capture logger used to (re)discover
   the API contract when Amazon changes POE. Attach, click through the UI,
   read the NDJSON.
@@ -36,8 +36,8 @@ Captured-vs-visible verification: `references/poe-gap-matrix.md`.
 ### Path B: terminal/CDP (any agent with shell access)
 
 ```bash
-tools/report-fetcher/launch-chrome-debug.sh --mode recovery  # visible only for login/recovery
-tools/report-fetcher/launch-chrome-debug.sh      # normal headless background mode
+node tools/browserctl/browserctl.mjs ensure --port 9222
+# If needed: node tools/browserctl/browserctl.mjs auth --port 9222 --target <target-id>
 node tools/opportunity-explorer/run-poe.mjs doctor
 
 # find the niche (keyword search; also produces the related-niches files)
@@ -115,7 +115,7 @@ session. The only header added is `anti-csrftoken-a2z`, read from the page's
 OWN meta tag, the same sanctioned mechanism as `tools/report-fetcher/` (see
 the carve-out in `AGENTS.md`). Never reads cookies, local/session storage,
 passwords, or bearer/refresh tokens; never logs in. Dedicated CDP browser in its
-normal headless mode. ~5 s jittered pacing between heavy requests; one niche
+machine-policy mode. ~5 s jittered pacing between heavy requests; one niche
 per invocation; on `{error}` the tools stop and ask the operator (no retry
 loops, no fabricated data).
 

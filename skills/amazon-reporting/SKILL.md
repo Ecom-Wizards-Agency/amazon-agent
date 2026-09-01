@@ -1,6 +1,6 @@
 ---
 name: amazon-reporting
-description: "Use for fetching and formatting Amazon reports (`/fetch-reports`): Seller Central Business Reports, SQP, SCP, Ads reports, search term reports, bulk downloads, period comparisons, and Excel/CSV workbook outputs. Not for audit narratives: route full ad/sales audits to `amazon-audit`."
+description: "Fetch and format Seller Central and Ads reports, including SQP, SCP, TST, Business reports, and SQP competitor benchmarks; use Amazon Audit for narrative diagnosis."
 ---
 
 # Amazon Reporting
@@ -19,11 +19,22 @@ Browser: Mixed (CDP for scripted Seller Central fetches; CDP interactive for Ads
 
 ## Workflow
 
-1. Confirm account, marketplace, report type, date range, entity level, and destination folder.
-2. Search official docs for report definitions/current UI.
-3. Use internal analytics references for workbook generation and interpretation.
-4. Save deliverables under `output/{client}/reporting/` with dates in filenames unless the user specifies pCloud/Drive. `{client}` is the normalized lowercase-kebab client slug from `AGENTS.md`, with marketplace in filenames, not folder names.
-5. Stop before creating scheduled reports, changing report settings, or downloading sensitive reports to an unclear destination.
+1. Route the request to report fetch/format, Ads Console export, general SQP analysis, or SQP competitor benchmark.
+2. Confirm account, marketplace, report type, date range, entity level, and destination folder.
+3. Search official docs for report definitions/current UI.
+4. Use internal analytics references for workbook generation and interpretation.
+5. Save deliverables under `output/{client}/reporting/` with dates in filenames unless the user specifies pCloud/Drive. `{client}` is the normalized lowercase-kebab client slug from `AGENTS.md`, with marketplace in filenames, not folder names.
+6. Stop before creating scheduled reports, changing report settings, or downloading sensitive reports to an unclear destination.
+
+## SQP Analysis
+
+For multi-week SQP comparisons, parent-level rollups, top-query selection, or a reusable SQP workbook, read `references/sqp-quality-gates.md`. Apply its published-week, parent-deduplication, query-prioritization, and reconciliation gates before calculating changes.
+
+This mode does not replace the organic-first diagnosis in `amazon-audit` or the weekly per-keyword SQP and PPC join in `tools/sqp-supa/`. Reporting prepares the evidence; the audit explains the account; SUPA monitors paid support by query.
+
+## SQP Competitor Benchmark
+
+When the operator asks for an “SQP competitor check,” exact-query competitor ASIN shares, prices, or a benchmark against a selected ASIN, read `references/sqp-competitor-benchmark.md`. Use its scripted `tools/sc-sqp-competitor/` capture path first and preserve its account, period, interpretation, and read-only gates.
 
 ## Amazon Ads Console exports
 
@@ -67,15 +78,15 @@ Chrome for operational Ads report and bulk-export work. Downloads are captured w
 
 `tools/report-fetcher/` pulls Business Reports (Detail Page Sales & Traffic) and Search Query Performance straight from Seller Central's own report APIs in the connected/internal browser: no clicking through the UI, no manual CSV download. The output CSVs match the exact headers `build_sqp_workbook.py` and `analyze_audit.py` read, so they satisfy the ad-audit preflight's Business-Report and SQP browser inputs directly.
 
-Preconditions: the headless-by-default CDP browser on a logged-in `sellercentral.amazon.*` tab; correct account + marketplace confirmed via the browser checkpoint; for SQP, a Brand Analytics page (so the `anti-csrftoken-a2z` meta tag is present). Use visible recovery only for login or when the operator asks to see it.
+Preconditions: the policy-configured CDP browser on a logged-in `sellercentral.amazon.*` tab; correct account + marketplace confirmed via the browser checkpoint; for SQP, a Brand Analytics page (so the `anti-csrftoken-a2z` meta tag is present). Use the allowlisted broker for login and an explicit attended recovery restart only for a human challenge.
 
 Reports: `sqp` (Search Query Performance), `business` (Detail Sales & Traffic), `scp` (Brand Catalog Performance), `tst` (Top Search Terms), `all`. Slash command: `/fetch-reports`. Canonical copy-paste prompt: `tools/report-fetcher/BROWSER-PROMPT.md`.
 
 Hands-off (preferred; needs Chrome on the debug port; an agent with shell/`@computer` runs and troubleshoots it). Copy-paste path: fill a per-client config once (`config.TEMPLATE.json` → `config.<client>.json`, gitignored), then a fixed command:
 
 ```bash
-tools/report-fetcher/launch-chrome-debug.sh --mode recovery  # one-time visible login/recovery
-tools/report-fetcher/launch-chrome-debug.sh        # normal headless background mode
+node tools/browserctl/browserctl.mjs ensure --port 9222
+node tools/browserctl/browserctl.mjs auth --port 9222 --target <target-id>
 node tools/report-fetcher/run.mjs doctor           # connection + login + WHICH SELLER each tab is on
 node tools/report-fetcher/run.mjs all --config tools/report-fetcher/config.<client>.json --plan
 node tools/report-fetcher/run.mjs all --config tools/report-fetcher/config.<client>.json \

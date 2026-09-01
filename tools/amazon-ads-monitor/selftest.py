@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""selftest.py -- regression suite for the amazon-ads-monitor toolkit.
+"""selftest.py -- regression suite for the amazon-ads-performance-briefs toolkit.
 
 Synthetic fixtures only, no network access. Run after any change:
 
@@ -849,6 +849,35 @@ def test_cli_end_to_end_weekly_csv_only():
             check("weekly_csv_only_no_adlabs_note_present", "No AdLabs campaign/target-level rows supplied" in text)
 
 
+def test_weekly_metrics_json_contract():
+    with tempfile.TemporaryDirectory() as tmp:
+        csv_path = Path(tmp, "weekly_dashboardtotals.csv")
+        csv_path.write_text(_build_synthetic_weekly_csv(), encoding="utf-8")
+        json_path = Path(tmp, "metrics.json")
+        exit_code = run_weekly.main([
+            "--csv", str(csv_path),
+            "--account", "weekly-contract",
+            "--date", "2026-07-10",
+            "--out", tmp,
+            "--json-out", str(json_path),
+            "--quiet",
+            "--no-daily-flags",
+        ])
+        check("weekly_metrics_json_exit_zero", exit_code == 0, exit_code)
+        check("weekly_metrics_json_written", json_path.exists())
+        if json_path.exists():
+            payload = json.loads(json_path.read_text(encoding="utf-8"))
+            check("weekly_metrics_json_schema", payload.get("schema_version") == 1, payload)
+            check("weekly_metrics_json_account", payload.get("account") == "weekly-contract", payload)
+            check("weekly_metrics_json_period_end", payload.get("period", {}).get("end") == "2026-07-10", payload)
+            check("weekly_metrics_json_coverage", payload.get("coverage", {}).get("current_days") == 7, payload)
+            revenue = payload.get("metrics", {}).get("revenue", {})
+            check("weekly_metrics_json_revenue", revenue.get("value") == 7000.0, revenue)
+            check("weekly_metrics_json_wow", abs(revenue.get("percent_change") - 0.0) < 1e-9, revenue)
+            rendered = json.dumps(payload)
+            check("weekly_metrics_json_no_secret_url", "sellerboard" not in rendered.lower() and "http" not in rendered.lower(), rendered)
+
+
 # ---------------------------------------------------------------------------
 # pacing.py: month-to-date run-rate governor math, goal-lens threshold
 # layering, coverage honesty, and the flag severities.
@@ -1019,6 +1048,7 @@ def main() -> int:
     test_pacing_and_graduate_rendering(weekly, over_pacing, radar_result)
     test_cli_end_to_end_weekly()
     test_cli_end_to_end_weekly_csv_only()
+    test_weekly_metrics_json_contract()
 
     print(f"\n{len(PASSES)} passed, {len(FAILURES)} failed")
     if FAILURES:

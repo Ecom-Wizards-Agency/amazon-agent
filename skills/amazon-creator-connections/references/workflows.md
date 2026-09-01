@@ -119,9 +119,10 @@ Use for: “audit everything,” “make sure all campaigns and trackers are cle
    - unanswered inquiries
    - creators in the wrong product tab
 5. Move unresolved product matches to `Undecided`.
-6. Move confirmed product switches to the final product tab.
-7. Preserve historical notes without keeping duplicate active sample rows.
-8. Report manager decisions needed and exact next steps.
+6. For an MCF-blocked exact ASIN, verify the original blocker and a same-campaign FBA/MCF-fulfillable alternative before sending a switch request. Keep the original ASIN active and Sample Decision `Hold` until the creator explicitly replies with the alternate ASIN.
+7. Move confirmed product switches to the final product tab only after `preflight-switch --phase confirm` passes.
+8. Preserve historical notes without keeping duplicate active sample rows.
+9. Report manager decisions needed and exact next steps.
 
 ## `explain`: explain the system
 

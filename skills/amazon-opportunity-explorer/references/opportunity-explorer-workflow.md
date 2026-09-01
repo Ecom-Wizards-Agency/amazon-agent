@@ -66,7 +66,7 @@ Use the exported data with:
 - `oei-product-strategy` for product concepts and differentiation.
 - `rufus-optimization` for Rufus/Alexa AI semantic search strategy.
 - `amazon-seo-writer` when the OEI insights should become listing copy.
-- `direct-response-copywriter` when image text/Bildtexte need stronger persuasion.
+- `conversion-offers-and-copy` when image text or Bildtexte need stronger persuasion.
 
 ## Stop Points
 

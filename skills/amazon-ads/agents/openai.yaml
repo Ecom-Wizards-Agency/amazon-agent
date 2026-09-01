@@ -1,4 +1,0 @@
-interface:
-  display_name: "Amazon Ads"
-  short_description: "Ads Console, PPC, bulk sheets and campaign operations"
-  default_prompt: "Use $amazon-ads to work on this account's campaigns, bids, budgets or targeting."

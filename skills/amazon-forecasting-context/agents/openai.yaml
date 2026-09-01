@@ -1,4 +1,0 @@
-interface:
-  display_name: "Amazon Forecasting Context"
-  short_description: "Per-client forecasting sources, assumptions, and caveats"
-  default_prompt: "Use $amazon-forecasting-context to ground this Amazon forecast in the correct sources and caveats."

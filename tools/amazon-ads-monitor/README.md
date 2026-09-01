@@ -139,7 +139,7 @@ python3 tools/amazon-ads-monitor/run_monitor.py --source sellerboard \
 
 The CSV comes from the brand's Sellerboard "Dashboard Totals" feed --
 see `_local/ads-monitor/SELLERBOARD-FORMAT.md` for the column mapping and
-the `amazon-ads-monitor` skill for the file-first (delivered to
+the `amazon-ads-performance-briefs` skill for the file-first (delivered to
 `_local/ads-monitor/inbox/<brand>/`) / firecrawl-fallback flow that
 obtains the file. `--goal` and `--adlabs-json` are both optional: omit
 `--goal` for the neutral lens; omit `--adlabs-json` to skip the
@@ -161,6 +161,16 @@ python3 tools/amazon-ads-monitor/run_weekly.py \
   --out output --slack-json -
 ```
 
+For deterministic downstream reporting, add `--json-out <path>` (or `-` for
+stdout). The versioned JSON contains only the account slug, period, source
+coverage and account-level weekly metrics. It never contains a Sellerboard feed
+URL, token, Slack payload or client context. Wizards AI consumes this CLI
+surface for the weekly client performance and time dashboard.
+
+Use `tools/amazon-ads-monitor/sellerboard-feeds.TEMPLATE.json` as the schema for
+the gitignored `_local/ads-monitor/sellerboard-feeds.json` file. The populated
+file is machine-local and secret.
+
 Aggregates this week vs last week (`analyze.aggregate_week`) from the
 Sellerboard CSV, runs `recommendations.build_recommendations` over the
 (optional) AdLabs weekly entities + (optional) signal digest, and renders
@@ -169,7 +179,7 @@ and `--signal-digest` are both optional -- omitting either is a valid,
 complete run (Push/Pause-Optimize/Test just come back empty with a note
 in place of a fabricated result). `--date` must be a fully-completed day
 -- Sellerboard's `total_*` columns (and AdLabs figures) can read 0 for
-the still-in-progress current day. See the `amazon-ads-monitor` skill's
+the still-in-progress current day. See the `amazon-ads-performance-briefs` skill's
 "Weekly variant" section for the full MCP-enrichment flow (AdLabs
 campaign/target pull with its two documented quirks, goal-lens
 resolution, Slack delivery).

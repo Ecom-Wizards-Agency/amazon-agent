@@ -5,7 +5,7 @@ argument-hint: "[client-market, e.g. acme-de; plus attach/point to the FlatFileP
 
 # FlatFilePro Prepare (upload .xlsx)
 
-Build a narrow, upload-ready FlatFilePro **.xlsx** from a FlatFilePro export + source-of-truth evidence. Do not duplicate logic here. Route into the `amazon-flatfilepro-prep` skill and its `scripts/prepare_flatfilepro_upload.py`.
+Build a narrow, upload-ready FlatFilePro **.xlsx** from a FlatFilePro export + source-of-truth evidence. Do not duplicate logic here. Route into the `amazon-flatfilepro` skill and its `scripts/prepare_flatfilepro_upload.py`.
 
 The user's target is: **$ARGUMENTS**
 
@@ -13,7 +13,7 @@ The user's target is: **$ARGUMENTS**
 
 1. **Confirm inputs. Ask first.** Collect with a single AskUserQuestion, skipping what `$ARGUMENTS`/the conversation already supplies: client/brand · marketplace(s) + account · the **FlatFilePro export** path (per market) · affected ASINs/SKUs · which fields change · the source of truth for the new values (label/PDF for compliance, or the SEO copy for a listing refresh). Never carry a prior client's values.
 
-2. **Load the skill** `amazon-flatfilepro-prep` as source of truth (field-mapping rules, SKU keying, audit-note format).
+2. **Load the `prepare` mode** in `amazon-flatfilepro` as source of truth (field-mapping rules, SKU keying, audit-note format).
 
 3. **Read the export headers FIRST, and know they may not be upload-shaped.** Exports come in two conventions: canonical dot/0-based (`item_name.0.value`) and mangled double-underscore/1-based (`item_name__1__value`). Author `--changes` against whatever the export uses; the script normalises to canonical on write and prints the renames. Verify the finished file has no `__N__` header left.
 
@@ -23,7 +23,7 @@ The user's target is: **$ARGUMENTS**
 
 5. **Build.** Author the `sku,attribute,value` changes CSV, then:
    ```bash
-   python3 skills/amazon-flatfilepro-prep/scripts/prepare_flatfilepro_upload.py \
+   python3 skills/amazon-flatfilepro/scripts/prepare_flatfilepro_upload.py \
      --source <FFP export> --changes <changes.csv> --output <upload.xlsx>
    ```
    Build **separate .xlsx files per marketplace** from each market's own export (enum spellings diverge, e.g. DE `Gramm` vs IT `Grammi`/`grammo`).

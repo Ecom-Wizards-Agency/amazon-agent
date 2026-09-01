@@ -1,4 +1,0 @@
-interface:
-  display_name: "Amazon FlatFilePro Prep"
-  short_description: "Build narrow FlatFilePro .xlsx upload files"
-  default_prompt: "Use $amazon-flatfilepro-prep to build a narrow FlatFilePro upload file from this export and label evidence."

@@ -137,7 +137,7 @@ def campaign_forms(cfg):
             bid, state = spec.get(f"auto_{grp}_bid"), spec.get(f"auto_{grp}_state")
             form[f"auto_{grp}_bid"] = bid if bid not in ("", None) else None
             form[f"auto_{grp}_state"] = state if state in STATES else None
-        for key in ("top_of_search_placement", "rest_of_search_placement", "product_pages_placement"):
+        for key in PLACEMENT_LABELS:
             v = spec.get(key)
             form[key] = None if v in ("", None) else int(v)
         forms.append(form)
@@ -221,8 +221,7 @@ def preflight(cfg):
             issues.append(f"{tag}: keyword_bid {form['keyword_bid']} outside [{MIN_BID}, {MAX_BID}]")
         if form["daily_budget"] < MIN_BUDGET:
             issues.append(f"{tag}: daily_budget {form['daily_budget']} below Amazon's minimum {MIN_BUDGET}")
-        for placement_key in ("top_of_search_placement", "rest_of_search_placement",
-                              "product_pages_placement"):
+        for placement_key in PLACEMENT_LABELS:
             pct = form[placement_key]
             if pct is not None and not 0 <= pct <= 900:
                 issues.append(f"{tag}: {placement_key} {pct} outside [0, 900]")

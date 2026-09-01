@@ -168,7 +168,7 @@
     }
   },
   "campaign_structure": {
-    "_comment": "OPTIONAL — Campaign Structure fill (visual PPC plan in the '5. Campaign Structure' tab; see fill_campaign_structure.py and the amazon-seo-keyword-workflow skill). Thresholds + naming live LOCAL-ONLY in _local/ads-strategy/ (copy ads-strategy.TEMPLATE.{json,md}); never put them here.",
+    "_comment": "OPTIONAL — Campaign Structure fill (visual PPC plan in the '5. Campaign Structure' tab; see fill_campaign_structure.py and the amazon-seo skill). Thresholds + naming live LOCAL-ONLY in _local/ads-strategy/ (copy ads-strategy.TEMPLATE.{json,md}); never put them here.",
     "strategy_json": "_local/ads-strategy/strategy.json",
     "strategy_md": "_local/ads-strategy/strategy.md",
     "workbook": "",

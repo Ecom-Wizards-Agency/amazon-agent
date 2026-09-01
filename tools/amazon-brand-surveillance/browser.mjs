@@ -1,5 +1,5 @@
 import fs from "node:fs";
-import { ensureChrome, createPage, closePage, evaluate } from "../report-fetcher/cdp.mjs";
+import { ensureChrome, createPage, releasePage, evaluate } from "../report-fetcher/cdp.mjs";
 import { classifyPdp } from "./lib.mjs";
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -118,6 +118,7 @@ const SEARCH_EXTRACTOR = (query) => `(async () => {
 
 async function freshPageEvaluation(url, expression, timeoutMs = 30000) {
   const page = await createPage(url);
+  let outcome = "success";
   try {
     let lastError;
     for (let attempt = 0; attempt < 5; attempt++) {
@@ -129,8 +130,12 @@ async function freshPageEvaluation(url, expression, timeoutMs = 30000) {
       }
     }
     throw lastError || new Error("Page evaluation failed");
+  } catch (error) {
+    outcome = "error";
+    throw error;
   } finally {
-    await closePage(page.targetId);
+    page.session.close();
+    await releasePage(page.targetId, { outcome });
   }
 }
 
@@ -144,6 +149,7 @@ export async function verifyDeliveryLocation(marketplace, settings, probeAsin = 
   const route = probeAsin ? `/dp/${probeAsin}` : "/";
   const url = `https://www.amazon.${marketplace}${route}?language=${encodeURIComponent(settings.language || "en_US")}`;
   const page = await createPage(url);
+  let outcome = "success";
   try {
     await sleep(3500);
     let label = await evaluate(page.session, LOCATION_TEXT, 10000);
@@ -183,9 +189,11 @@ export async function verifyDeliveryLocation(marketplace, settings, probeAsin = 
     }
     return { ok: verified(), label, reason: verified() ? "" : `Expected one of: ${settings.verifyTokens.join(", ")}` };
   } catch (error) {
+    outcome = "error";
     return { ok: false, label: "", reason: error.message };
   } finally {
-    await closePage(page.targetId);
+    page.session.close();
+    await releasePage(page.targetId, { outcome });
   }
 }
 
@@ -224,13 +232,18 @@ export async function exactAsinSearch(marketplace, asin, language = "en_US") {
 export async function captureScreenshot(url, outputPath) {
   await ensureChrome();
   const page = await createPage(url);
+  let outcome = "success";
   try {
     await sleep(3000);
     await page.session.send("Page.enable");
     const shot = await page.session.send("Page.captureScreenshot", { format: "png", captureBeyondViewport: false });
     fs.writeFileSync(outputPath, Buffer.from(shot.data, "base64"));
     return outputPath;
+  } catch (error) {
+    outcome = "error";
+    throw error;
   } finally {
-    await closePage(page.targetId);
+    page.session.close();
+    await releasePage(page.targetId, { outcome });
   }
 }

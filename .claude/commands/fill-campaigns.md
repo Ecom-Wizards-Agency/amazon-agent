@@ -10,7 +10,7 @@ strategy. Output = the filled tab + a Proposed Campaign Names block. **This flow
 campaign bulk files, never uploads anything, and never touches Amazon.** Pasting the plan into the
 bulk-creator webapp is the operator's manual step afterwards.
 
-Load the `amazon-seo-keyword-workflow` skill (section "Campaign Structure Fill") first.
+Load the `campaign-structure-fill` mode in `amazon-seo`, then read `skills/amazon-seo/references/keyword-research-workbook.md` section "Campaign Structure Fill".
 
 ## Steps
 

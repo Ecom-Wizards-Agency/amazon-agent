@@ -10,7 +10,7 @@ The workbook template is used only as a style source. Every product-specific tab
 
 - DataDive roots CSV.
 - DataDive Core MKL CSV at `30% Min Rel.`.
-- DataDive Expanded MKL CSV at `1% Min Rel.`.
+- DataDive complete keyword-pool CSV filtered locally at `1% Min Rel.` and stored at the legacy `expanded_mkl_csv` contract path.
 - DataDive competitors CSV or MCP-derived competitor CSV.
 - DataDive Ranking Juice snapshot in the SEO content JSON.
 - POE Products and Search Terms CSVs.

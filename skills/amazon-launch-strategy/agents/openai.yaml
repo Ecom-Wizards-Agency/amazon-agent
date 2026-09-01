@@ -1,4 +1,4 @@
 interface:
   display_name: "Amazon Launch Strategy"
-  short_description: "90-day PPC, pricing, stock, and review plans"
-  default_prompt: "Use $amazon-launch-strategy to build a clear 90-day Amazon launch plan for this brand."
+  short_description: "Build 13-week Amazon launch plans"
+  default_prompt: "Use $amazon-launch-strategy to build 13-week Amazon launch plans for this request."

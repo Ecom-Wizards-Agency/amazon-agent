@@ -1,4 +1,0 @@
-interface:
-  display_name: "Amazon Campaign Builder"
-  short_description: "Sponsored Products campaigns as bulk-upload xlsx"
-  default_prompt: "Use $amazon-campaign-builder to turn this brief or keyword workbook into a bulk-upload .xlsx."

@@ -1,6 +1,6 @@
 ---
 name: amazon-creator-connections
-description: Use for Amazon Creator Connections operations: campaign preparation, creator inbox audits, campaign-level Google Sheet tracking, identity-safe qualification, operator-authorized creator replies and MCF fulfillment, posted-content monitoring, product-switch reconciliation, and Slack-helper sweep reporting. Trigger on requests like run a Creator Connections sweep, check new creator messages, create/update a campaign tracker, launch a Creator Connections campaign, score sample candidates, prepare MCF sample details, update the priority sample lane, post a Slack sweep, or explain the Creator Connections system.
+description: "Run Amazon Creator Connections operations: exhaustive inbox sweeps, identity-safe tracking, background checks, 10/10 scoring, product-switch reconciliation, operator-authorized replies and MCF fulfillment, campaign preparation, and Slack-helper reporting."
 ---
 
 # Amazon Creator Connections
@@ -161,12 +161,13 @@ Put recurring UI quirks, approved wording, and client-specific exceptions in `_l
 
 ## Deterministic control runner
 
-Before a state-changing action, use `tools/creator-connections-control/creator_control.py` with local, private run files. It is the required guardrail for record resolution, the computed 10/10 gate, daily queue generation, and MCF pre-flight.
+Before a state-changing action, use `tools/creator-connections-control/creator_control.py` with local, private run files. It is the required guardrail for record resolution, the computed 10/10 gate, daily queue generation, product-switch validation, and MCF pre-flight.
 
 - Issue or resolve the immutable Creator Record ID with `register`. Never assign an ID from a name, row number, or spreadsheet formula.
 - Run `score` after every background check or creator reply. Do not overwrite the score with a manually typed value when its visible evidence no longer supports it.
 - Build the dated machine-readable queue with `queue` before the daily sweep. Sync its results to `Daily Action Queue` and `Creator Action Log` only after the record ID is resolved.
-- Run `preflight` immediately before any MCF order. A `HOLD` result means no order and an escalation. Until SP-API access is authorized, MCF creation remains a controlled browser/operator action after a passing pre-flight.
+- Run `preflight-switch --phase offer` before proposing an alternate ASIN for an MCF-blocked product. Offer only a same-campaign alternative with verified FBA/MCF-fulfillable inventory. Run `preflight-switch --phase confirm` after the creator explicitly replies with that ASIN and before changing the active product record.
+- Run `preflight` immediately before any MCF order. It requires live FBA/MCF-fulfillable inventory evidence in addition to the exact ASIN/SKU match. A `HOLD` result means no order and an escalation. Until SP-API access is authorized, MCF creation remains a controlled browser/operator action after a passing pre-flight.
 
 See `tools/creator-connections-control/README.md` for the input format and local HMAC-secret setup. Never commit run files, the registry, screenshots, raw addresses, or the HMAC secret.
 

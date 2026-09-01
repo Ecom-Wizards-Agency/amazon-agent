@@ -3,7 +3,7 @@
 Condensed, team-shareable version of the Ecom Wizards SEO method so the skill is
 runnable from the repo alone (no Obsidian vault required). The vault
 (`<your-vault>/Skills/`: `amazon-seo-writer`,
-`keyword-classifier-and-filter`, `rufus-optimization`, `direct-response-copywriter`)
+`keyword-classifier-and-filter`, `rufus-optimization`, `conversion-offers-and-copy`)
 remains the deeper source. Always pair with `eu-compliance-matrix.md`.
 
 Two phases run in order: **classify keywords → write copy → audit coverage.**
@@ -25,7 +25,7 @@ Filtering uses **word-boundary matching**: a phrase containing ANY X/B/C word is
 excluded; phrases of only-blank words are included → the Master List.
 
 In the keyword-workbook builder this maps to: the **`2 Never KWs`** tab (generated
-from the Expanded 1% MKL) and the **Outlier triage** categories
+from the complete keyword pool filtered at 1%) and the **Outlier triage** categories
 (`Competitor/brand term`=B, `Wrong product form`/`Negative candidate`=X/C).
 Protect real product intent: a high-frequency word is only `Never Ever` when it's
 genuinely irrelevant/wrong-form/unsafe after checking examples + relevancy.

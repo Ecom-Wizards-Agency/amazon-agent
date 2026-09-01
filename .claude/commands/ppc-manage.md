@@ -5,7 +5,7 @@ argument-hint: "<client/profile> [week-end date]"
 
 # Weekly PPC Management
 
-Load and follow the `amazon-ppc-management` skill as the source of truth.
+Load and follow the `amazon-ppc-weekly-management` skill as the source of truth.
 
 The requested target is: **$ARGUMENTS**
 

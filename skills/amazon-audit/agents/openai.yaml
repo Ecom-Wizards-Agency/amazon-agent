@@ -1,4 +1,4 @@
 interface:
-  display_name: "Amazon Account Audit"
-  short_description: "One account-audit skill: deep, monthly, or actions only"
-  default_prompt: "Use $amazon-audit to audit this Amazon account. Detect the data source first, then confirm the report posture before pulling anything."
+  display_name: "Amazon Audit"
+  short_description: "Audit Amazon ad and sales performance"
+  default_prompt: "Use $amazon-audit to audit Amazon ad and sales performance for this request."

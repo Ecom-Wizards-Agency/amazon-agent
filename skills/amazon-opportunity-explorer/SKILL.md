@@ -1,6 +1,6 @@
 ---
 name: amazon-opportunity-explorer
-description: Use for Amazon Product Opportunity Explorer workflows, wide seed-based niche discovery, full POE pack downloads, niche scoring, image and product strategy, and connecting Amazon-native demand and customer language to SEO and creative work.
+description: "Discover and score Amazon Product Opportunity Explorer niches, download full POE evidence packs, and turn findings into product, SEO, or creative strategy."
 ---
 
 # Amazon Opportunity Explorer

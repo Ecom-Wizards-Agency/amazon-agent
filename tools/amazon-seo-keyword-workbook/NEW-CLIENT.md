@@ -11,7 +11,7 @@ cp tools/amazon-seo-keyword-workbook/config.TEMPLATE.json \
 ```
 Fill every `<...>` and `TO_RECORD_*`:
 - **`product_anchor`**: client, account, marketplace, product, **anchor ASIN** (must be a DataDive-tracked column in the master CSV), DataDive niche id, POE niche.
-  - If a niche already exists but the anchor ASIN is **not** a tracked column, ADD the ASIN to that existing niche in the connected browser (Niche Tracker → add competitor) instead of running a new dive. That reuses the research, ~1 token, no duplicate niche. Only dive when no niche exists. See the "Anchor not tracked in an existing niche" rule in `skills/amazon-seo-keyword-workflow/SKILL.md`.
+  - If a niche already exists but the anchor ASIN is **not** a tracked column, ADD the ASIN to that existing niche in the connected browser (Niche Tracker → add competitor) instead of running a new dive. That reuses the research, ~1 token, no duplicate niche. Only dive when no niche exists. See the "Anchor not tracked in an existing niche" rule in `skills/amazon-seo/references/keyword-research-workbook.md`.
 - **`product_facts`**: physical facts from the **label/PDP**: `form`, **`blend_or_single`**, the `ingredients[]` list (names + any branded raw materials, e.g. Fibregum™), `certifications`, and `key_attributes`. These gate the **title framing** (a blend must not lead the title with one ingredient) and compliance (ingredient *names* are factual; ingredient *effects* are health claims). The builder warns if this block is missing.
 - **`related_niche_filter.keep` / `exclude_examples`**: only the genuinely relevant POE related niches; list known drift to drop (validation fails if drift survives).
 - **`triage` tokens**: `brand_tokens` from the DataDive competitors; `form/claim/negative` for this product form + marketplace language. For `claim_tokens`, check `skills/amazon-seo/references/eu-compliance-matrix.md`.
@@ -27,7 +27,7 @@ Fill every `<...>` and `TO_RECORD_*`:
 ```
 - Preflight tags each missing input `(MCP)`, `(BROWSER)`, or `(setup)`.
 - **`(MCP)` (generated locally, no browser):** roots, Core 30% MKL, and competitors come from the DataDive MCP. Call `get_niche_roots` / `get_niche_keywords` / `get_niche_competitors`, save each raw JSON, confirm `len(keywords) == numVisibleKeywords`, then run `datadive_mcp_to_csv.py` to write the three contract CSVs. (Validated identical to the UI exports; see the `datadive-mcp-vs-download` memory.)
-- **`(BROWSER)`:** the **full DataDive keyword pool** (three read-only GETs merged locally, NOT a UI export and NOT a settings change: see the `amazon-seo-keyword-workflow` skill), POE Products/Search Terms CSVs, POE related-niches/reviews/returns/structured JSON, and a listing-reference JSON. Save to the contract paths, re-run preflight, and continue when READY. Hand off only a capability that the current runtime lacks.
+- **`(BROWSER)`:** the **full DataDive keyword pool** (three read-only GETs merged locally, NOT a UI export and NOT a settings change: see the `amazon-seo` skill), POE Products/Search Terms CSVs, POE related-niches/reviews/returns/structured JSON, and a listing-reference JSON. Save to the contract paths, re-run preflight, and continue when READY. Hand off only a capability that the current runtime lacks.
 
 ## 3. Write the SEO content
 ```bash

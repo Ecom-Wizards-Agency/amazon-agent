@@ -4,7 +4,7 @@ Client-agnostic builder for the Ecom Wizards Amazon ad/sales audit — the same 
 
 **One config, drop the inputs, run.** Nothing is client-specific in the code. To start a new audit, copy `config.TEMPLATE.json` and follow `NEW-CLIENT.md`. Local `config.<client>-<market>.json` files are worked examples (gitignored); only `config.TEMPLATE.json` is committed.
 
-The narrative voice, section structure, and workbook layout follow `skills/amazon-audit/SKILL.md` (the standard). This toolkit produces the workbooks and a numbers-filled narrative **scaffold**; the operator writes the prose, findings, and levers per the playbook.
+The narrative voice, section structure, and workbook layout follow `skills/amazon-audit/references/audit-workflow.md` and `writing-and-delivery.md`. This toolkit produces the workbooks and a numbers-filled narrative **scaffold**; the operator writes the prose, findings, and levers per those references.
 
 ## What it produces
 

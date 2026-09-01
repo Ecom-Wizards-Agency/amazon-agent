@@ -95,9 +95,21 @@ All checks must pass in the same run immediately before order creation:
 4. Full name, street address, city, state/province, ZIP/postal code, phone, and email are present in the selected creator row.
 5. No prior sample exists for the same Creator Record ID and final product/ASIN. The synchronized registry's `sample_history` is authoritative for the deterministic gate; reconcile it against the tracker and MCF order history before pre-flight. Caller-supplied proposal history may add evidence but can never hide registry history.
 6. Quantity equals exactly `1`. Standard shipping is selected. The visible fee is within the client-approved cap.
-7. There are no page validation errors, recipient mismatches, or field truncations.
+7. The selected SKU is explicitly FBA/AFN fulfilled, is MCF-fulfillable, and has at least one currently fulfillable unit. Record the inventory-check timestamp and a private evidence reference from live MCF or an approved SP-API worker. An active FBM listing or seller-fulfilled quantity does not pass this gate.
+8. There are no page validation errors, recipient mismatches, or field truncations.
 
 Capture the pre-flight evidence reference before creating the order. If any check fails, lock the record and escalate. Never make a corrective second order to compensate for an uncertain first order.
+
+## MCF-blocked product switches
+
+Do not substitute another ASIN when the creator's exact selection is unavailable, out of stock, FBM-only, or missing from MCF.
+
+1. Capture the exact original-ASIN blocker and private evidence reference.
+2. Check every proposed alternative in live MCF or the approved SP-API worker before contacting the creator.
+3. Offer only an alternative that belongs to the same campaign, has an exact ASIN/SKU mapping, is FBA/MCF-fulfillable, and has at least one fulfillable unit.
+4. Set `Product Switch Pending` and Sample Decision `Hold` after the offer is sent.
+5. Require a creator reply that explicitly names the alternate ASIN. Do not interpret a generic acknowledgement as confirmation.
+6. Only after `preflight-switch --phase confirm` passes may the tracker and registry move to the alternate ASIN. Recompute the 10/10 gate and rerun the normal MCF pre-flight immediately before creating exactly one order.
 
 ## Audit records
 

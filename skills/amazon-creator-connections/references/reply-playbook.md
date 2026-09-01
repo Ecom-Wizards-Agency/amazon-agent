@@ -79,6 +79,22 @@ Just to make sure we send the correct sample and track the right product, could 
 Once confirmed, we’ll review under that product instead of the original campaign.
 ```
 
+### Exact ASIN unavailable for MCF
+
+Use only after the original ASIN's MCF blocker is captured and the proposed alternative has passed `preflight-switch --phase offer`. Never list an unverified alternative.
+
+```text
+Hi {first name}, thank you again for your patience.
+
+The {original product} option you selected (ASIN {original ASIN}) is currently unavailable for sample fulfillment through our shipping system.
+
+We do have {alternate product} (ASIN {alternate ASIN}) available. Would you be happy to switch to this ASIN?
+
+Please reply with {alternate ASIN} to confirm. Once confirmed, we can prepare your sample.
+
+Thank you!
+```
+
 ### Recipient mismatch clarification
 
 Use when shipping recipient and content creator appear different.

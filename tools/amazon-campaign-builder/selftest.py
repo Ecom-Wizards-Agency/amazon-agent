@@ -145,6 +145,7 @@ def test_create_ew():
         "campaigns": [
             {"campaign_type": "SKW", "product_name": "Widget", "sku": ["SKU-1"],
              "keywords": ["red widget"], "top_of_search_placement": 55,
+             "amazon_business_placement": 35,
              "child_state": "enabled"},
             {"campaign_type": "SKW", "campaign_purpose": "SHIELD", "product_name": "Widget",
              "sku": ["SKU-1"], "keywords": ["acme widget"]},
@@ -238,6 +239,13 @@ def test_create_ew():
     check("campaign-level placement override is written to the bulk file",
           any(row[24] == 55 for row in placement_rows),
           str([(row[23], row[24]) for row in placement_rows]))
+    business_placement_rows = [
+        row for row in built.iter_rows(values_only=True)
+        if row[1] == "Bidding Adjustment" and row[23] == "Placement Amazon Business"
+    ]
+    check("Amazon Business placement override is written to the bulk file",
+          any(row[24] == 35 for row in business_placement_rows),
+          str([(row[23], row[24]) for row in business_placement_rows]))
     rows = list(built.iter_rows(min_row=2, values_only=True))
     rank_campaign_id = next(
         row[3] for row in rows
@@ -478,7 +486,7 @@ def _good_change_set(export_file):
         "changes": {
             "campaigns": [
                 {"campaign_id": "111111111", "daily_budget": 25.0, "bidding_strategy": "Up and down",
-                 "placements": {"top_of_search_placement": 50}},
+                 "placements": {"top_of_search_placement": 50, "amazon_business_placement": 20}},
                 {"campaign_id": "111111112", "name": "Discovery | SP | Broad | Widget | widget v2 | EW"},
             ],
             "ad_groups": [
@@ -548,7 +556,13 @@ def test_update_good():
           camp_b_row["Portfolio ID"] == "", repr(camp_b_row["Portfolio ID"]))
 
     placement_rows = [r for r in rows if r["Entity"] == "Bidding Adjustment"]
-    check("placement update row emitted", len(placement_rows) == 1 and placement_rows[0]["Percentage"] == 50)
+    check("top-of-search placement update row emitted", any(
+        row["Placement"] == "Placement Top" and row["Percentage"] == 50 for row in placement_rows
+    ), placement_rows)
+    check("Amazon Business placement update row emitted", any(
+        row["Placement"] == "Placement Amazon Business" and row["Percentage"] == 20
+        for row in placement_rows
+    ), placement_rows)
 
     product_ad_enable = [r for r in rows if r["Entity"] == "Product Ad"
                          and r["Operation"] == "Update" and r["Ad ID"] == "666666666"]

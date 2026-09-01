@@ -5,9 +5,8 @@ argument-hint: "[client-market] [first-time|monthly|actions] (e.g. acme-us, or '
 
 # Amazon Ad / Sales Audit
 
-Drive the audit. Do not duplicate logic here. Route into the `amazon-audit` skill, which is
-self-contained: the lens, the narrative standard, the workbook design and the branded-document
-contract all live in `skills/amazon-audit/SKILL.md`.
+Drive the audit. Do not duplicate logic here. Route into the self-contained `amazon-audit` skill.
+Its entrypoint selects the posture and loads the detailed analysis and delivery references.
 
 The user's target is: **$ARGUMENTS**
 
