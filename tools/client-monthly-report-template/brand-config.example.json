@@ -1,0 +1,95 @@
+{
+  "report": {
+    "month_name": "July",
+    "working_directory": "output/example-us/reporting",
+    "multi_marketplace": false,
+    "part_number": 1
+  },
+  "brand": {
+    "slug": "example-us",
+    "display_name": "Example",
+    "marketplace": "US",
+    "currency_symbol": "$",
+    "aliases": ["example", "example misspelling"]
+  },
+  "period": {
+    "current_start": "2026-07-01",
+    "current_end": "2026-07-31",
+    "previous_start": "2026-06-01",
+    "previous_end": "2026-06-30"
+  },
+  "sources": {
+    "sellerboard_account": "Example",
+    "sellerboard_grouping": "parent",
+    "adlabs_profile": "Example",
+    "adlabs_profile_id": "000000000000000",
+    "adlabs_dashboard": "Example",
+    "adlabs_dashboard_id": "00000",
+    "adlabs_currency": "USD",
+    "adlabs_last_refreshed_utc": "2026-08-01T00:00:00Z",
+    "adlabs_dashboard_preflight": {
+      "required": true,
+      "current_period_verified": true,
+      "comparison_period_verified": true,
+      "screenshot_comparison_matches": true,
+      "comparison_source_when_mismatched": "exact-dated AdLabs MCP"
+    },
+    "datadive_marketplace_supported": true,
+    "slack_channel": "#example-amazon-ew",
+    "slack_channel_id": "C0000000000",
+    "slack_review": {
+      "required": true,
+      "include_all_month_threads": true,
+      "include_thread_replies": true,
+      "cross_brand_exclusion": true
+    },
+    "operator_handoff": {
+      "ask_only_if_missing_stale_or_changed": true,
+      "sellerboard": {
+        "current_month_screenshot_required": true,
+        "previous_month_screenshot_required": true,
+        "required_grouping": "parent"
+      },
+      "adlabs_dashboard": {
+        "screenshot_required": true,
+        "show_current_and_previous_complete_months": true
+      },
+      "meeting_notes": {
+        "required_or_confirm_none": true,
+        "post_period_notes_are_planning_context_only": true
+      },
+      "slack": {
+        "retrieve_from_saved_config": true,
+        "ask_only_if_missing_ambiguous_or_inaccessible": true
+      }
+    }
+  },
+  "traffic": {
+    "segments": ["Branded", "Non-Branded"],
+    "branded_terms": ["example", "example misspelling"],
+    "semi_branded_terms": []
+  },
+  "focus_products": [
+    {
+      "name": "Focus Product",
+      "parent_asin": "B000000000",
+      "rank_radar_id": "replace-me",
+      "rank_radar_url": "https://2.datadive.tools/rank-radar/replace-me",
+      "full_month_screenshot_required_each_run": true,
+      "rank_radar_previous_period_source": "previous approved monthly report",
+      "include_sqp": true
+    }
+  ],
+  "optional_sections": {
+    "enabled": [],
+    "available": [
+      "compliance_recap",
+      "inventory_diagnosis",
+      "buy_box_or_hijacker_impact",
+      "pricing_test_review",
+      "marketplace_expansion",
+      "product_launch",
+      "handover_summary"
+    ]
+  }
+}
