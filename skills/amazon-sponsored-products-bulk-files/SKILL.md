@@ -49,4 +49,5 @@ Copy `tools/amazon-campaign-builder/config.UPDATE.TEMPLATE.json` → `config.UPD
 - **Never hand-edit the builders per client.** Everything client-specific lives in the config/change-set. If the code can't express something, extend the toolkit, not a fork.
 - **Keyword/Match-Type/Product-Targeting-Expression are immutable** in update mode: "changing" one is always Archive-old + Create-new, never an Update to the text. Negatives can only be archived, never paused.
 - SP only. SB/SD requests: say so and fall back to the `amazon-ads-console` skill / manual console flow (the row builders are channel-keyed for a later SB/SD port).
+- Amazon Business placement bid adjustments are supported in create and update mode. Keep `amazon_business_placement` separate from `site_restriction`; one changes a placement modifier and the other changes serving scope.
 - Run `python3 tools/amazon-campaign-builder/selftest.py` after any code change to the toolkit: it must stay green.

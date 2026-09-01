@@ -1,6 +1,6 @@
 ---
 name: amazon-audit
-description: "Create read-only Amazon ad and sales audits in deep, monthly, or actions-only mode, with the required evidence workbook and branded narrative."
+description: "Create read-only Amazon ad and sales audits, including falling-sales and rising-ACOS diagnosis, in deep, monthly, or actions-only mode."
 ---
 
 # Amazon Audit
@@ -12,6 +12,8 @@ Use this skill for every Amazon ad or sales audit. It owns three postures:
 - `deep`: first-time prospect or onboarding audit from downloaded Amazon files.
 - `monthly`: recurring review for an AdLabs-managed account.
 - `actions`: recommendations only for an AdLabs-managed account.
+
+It also owns diagnostic requests such as "why are sales falling?", "why did ACOS rise?", "traffic dropped", and "conversion declined". Route those requests into the relevant branch of `references/audit-workflow.md`; do not create a separate troubleshooting skill that omits stock, Buy Box, organic rank, market demand, or the account change log.
 
 ## Route The Run
 

@@ -169,6 +169,7 @@ PLACEMENT_LABELS = {
     "top_of_search_placement": "Placement Top",
     "rest_of_search_placement": "Placement Rest Of Search",
     "product_pages_placement": "Placement Product Page",
+    "amazon_business_placement": "Placement Amazon Business",
 }
 AUTO_EXPRESSIONS = ("close-match", "loose-match", "substitutes", "complements")
 

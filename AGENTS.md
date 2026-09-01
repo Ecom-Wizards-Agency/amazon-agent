@@ -188,6 +188,8 @@ Default routing:
 - `amazon-seo`: keyword research, listing SEO, Ranking Juice, Rufus/semantic optimization, SEO audits, and updating/re-optimizing an existing listing's title/bullets/Item Highlights/backend (load it for any "update the title/bullets/SEO" or "make the listing compliant" request, and run its product-facts intake before writing). Includes the health-claims compliance layer (`/health-claims-check`): category-tiered (regulated vs standard), EU + US regimes, SAS-style per-claim self-check, RJ-preserving rewrite ladder; mandatory self-check for regulated-tier deliverables.
 - `amazon-catalog`: variations, parentage, flat files, listing edits, catalog conflicts.
 - `amazon-ads-console`: Ads Console, PPC, bidding, budgets, targeting.
+- `amazon-amc`: Amazon Marketing Cloud SQL, one-time measurement queries, recurring AMC schedules, and AMC audiences through AdLabs. SQL drafting and validation are read-only; runs, schedules, audiences, updates, and deletions keep their own approval gates.
+- `amazon-dayparting`: Sponsored Products hourly-report analysis, Amazon-native schedule-rule recommendations, and AdLabs 7 by 24 bid schedules. Analysis is local and read-only; every schedule or campaign-assignment write requires a dry run and explicit approval.
 - `amazon-sponsored-products-bulk-files`: creating Sponsored Products campaigns from a text brief → bulk-upload `.xlsx` via `tools/amazon-campaign-builder/` (file-only; upload stays operator-confirmed).
 - `amazon-ads-performance-briefs`: automated daily (and weekly) Amazon Ads performance brief with trends, % changes, a Sellerboard-vs-AdLabs data cross-check, and goal-lens-aware philosophy-aware flags, posted to Slack → `tools/amazon-ads-monitor/` (read-only; Sellerboard "Dashboard Totals" CSV + AdLabs cross-check primary, SP Ads API v3 secondary, mock/PREVIEW fallback with no credentials).
 - `amazon-ppc-weekly-management`: weekly AdLabs-managed operating loop with stock and pacing gates, preview, explicit approval, staged apply, and rollback tracking.
@@ -227,6 +229,26 @@ Launch strategy trigger phrases:
 - `review strategy before launch`
 
 Route these phrases to `amazon-launch-strategy`. The workflow is read-only and may consume audit findings, keyword workbooks, POE, listing drafts, client briefs, and live project context. It never duplicates the `amazon-audit` historical diagnosis model. Campaign files, live PPC changes, catalog changes, shipments, and client messages remain separate authorized actions.
+
+AMC trigger phrases:
+
+- `Amazon Marketing Cloud`
+- `AMC SQL`
+- `AMC query`
+- `AMC audience`
+- `schedule an AMC query`
+
+Route these phrases to `amazon-amc`. Writing or validating SQL does not authorize a one-time run, schedule, audience, update, or deletion. Confirm the exact AMC execution mode before any write.
+
+Dayparting trigger phrases:
+
+- `dayparting`
+- `hourly campaign report`
+- `hourly bid schedule`
+- `schedule bid rules`
+- `AdLabs dayparting`
+
+Route these phrases to `amazon-dayparting`. Keep Amazon-native increase-only schedule rules separate from AdLabs grids, which can contain positive and negative whole percentages.
 
 Inventory planning trigger phrases:
 

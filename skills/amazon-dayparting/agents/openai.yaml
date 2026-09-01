@@ -1,0 +1,4 @@
+interface:
+  display_name: "Amazon Dayparting"
+  short_description: "Analyze hourly ads and prepare bid grids"
+  default_prompt: "Use $amazon-dayparting to analyze this hourly Sponsored Products report and prepare a reviewable schedule."

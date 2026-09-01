@@ -159,7 +159,10 @@ Row-by-row build order (temp IDs at each step, reused by children):
 1. **Define the campaign entity.** Required fields: `Product, Entity, Operation, Campaign
    ID (temp), Campaign Name, Start Date, Targeting Type, State, Daily Budget`.
 2. **Bidding Adjustment entity (optional)**: references the same Campaign ID (temp),
-   defines `Placement`/`Percentage` bid modifiers.
+   defines `Placement`/`Percentage` bid modifiers. Supported Sponsored Products values include
+   top of search, product pages, rest of search, and Amazon Business. The toolkit uses
+   `Placement Top`, `Placement Product Page`, `Placement Rest Of Search`, and
+   `Placement Amazon Business`.
 3. **Ad Group entity**: new temp `Ad Group ID`, references parent `Campaign ID`.
 4. **Product Ad entity**: references `Campaign ID` + `Ad Group ID`, carries `SKU`/`ASIN`.
 5. **Keyword / Product Targeting entities**: reference `Campaign ID` + `Ad Group ID`, each

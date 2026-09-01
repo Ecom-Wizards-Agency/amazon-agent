@@ -36,6 +36,7 @@
     "top_of_search_placement": 0,
     "rest_of_search_placement": 0,
     "product_pages_placement": 0,
+    "amazon_business_placement": 0,
     "site_restriction": "Amazon"
   },
   "campaigns": [
@@ -75,6 +76,10 @@
       "child_state": "",
       "start_date": "",
       "site_restriction": "",
+      "top_of_search_placement": null,
+      "rest_of_search_placement": null,
+      "product_pages_placement": null,
+      "amazon_business_placement": null,
       "auto_close_match_bid": null,
       "auto_close_match_state": "",
       "auto_loose_match_bid": null,
