@@ -108,6 +108,18 @@ Canonical titles:
 
 Keep source Markdown in `output/<client>/creative-reference/`. Never add version suffixes. If a canonical Doc already exists, edit it in place. Preserve its file id, URL, comments, permissions, and version history. Retain render intermediaries when delivery or QA fails.
 
+Local Markdown, DOCX, PDFs, ZIPs, and `output/` paths are staging evidence, never
+the delivered briefing. A briefing is complete only when the native Google Doc
+MIME type, exact client folder, content readback, and final URL are verified. If
+Drive delivery is unavailable, report that exact blocker and retain the staging
+files; do not upload a briefing ZIP to Slack or call the local pack ready.
+
+When an operator changes the placement from Sponsored Brands Video to Prime
+Video or Streaming TV, adapt the research and creative format to that placement
+and skip SBV-only checkpoints that no longer apply. The delivery invariant does
+not change: every human-facing briefing and Creative Reference still goes to the
+existing client `Video Briefings` folder as a native Google Doc.
+
 ## Ownership Boundary
 
 - This skill prepares testable concepts and consumes past learnings.

@@ -52,10 +52,11 @@ The run manifest must record sources, seed categories, related niches, exclusion
 1. Confirm intended client, account, marketplace, product or niche, and output type.
 2. Apply account recovery and post-switch identity verification before any POE request.
 3. Run wide discovery when the question is exploratory. Run a direct niche pull only when a specific authoritative niche ID is already in scope.
-4. Format outputs into `output/<client>/opportunity-data/` with market in filenames.
-5. Trace each recommendation to POE search terms, products, reviews, returns, trends, or price structure.
-6. Stop before changing listings, uploading assets, publishing copy, or making an Amazon-visible change.
+4. Format outputs into `output/<client>/opportunity-data/` with market in filenames. This is a staging location, not delivery.
+5. Archive the complete evidence set and its manifest through the installed pCloud API route into the client's existing `_Data/opportunity-data/` tree. Verify every remote checksum and report the durable pCloud path. If archival is unavailable, say the local research exists but pCloud archival is blocked; never call the pack delivered.
+6. Trace each recommendation to POE search terms, products, reviews, returns, trends, or price structure.
+7. Stop before changing listings, uploading assets, publishing copy, or making an Amazon-visible change.
 
 ## Outputs
 
-For creative or image strategy, provide concrete visual recommendations and data citations. For product strategy, provide positioning, feature, price, and entry implications. For SEO or Alexa AI strategy, provide semantic phrase and intent clusters tied to Amazon-native evidence.
+For creative or image strategy, provide concrete visual recommendations and data citations. For product strategy, provide positioning, feature, price, and entry implications. For SEO or Alexa AI strategy, provide semantic phrase and intent clusters tied to Amazon-native evidence. The reported output must distinguish the analysis from its evidence archive and include the checksum-verified pCloud `_Data/opportunity-data/` destination for every complete pack.
