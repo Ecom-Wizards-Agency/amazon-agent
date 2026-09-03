@@ -1,6 +1,6 @@
 ---
 name: amazon-catalog
-description: "Plan and validate Amazon catalog changes, including variations, parentage, attributes, feeds, A+ content, images, and Brand Registry conflicts."
+description: "Plan and validate Amazon catalog changes, including variations, parentage, attributes, feeds, A+ content, images, Brand Stores, and Brand Registry conflicts."
 ---
 
 # Amazon Catalog
@@ -42,3 +42,16 @@ For creating or editing variation families (parentage) or any targeted flat-file
 - Read the Feed Processing Summary per SKU; "successful with other errors" = change applied, pre-existing listing issues flagged separately.
 - When merging existing ASINs, capture the pre-merge KPI baseline first (see playbook).
 - For delete, detach, reparent, and rebuild operations, generate ordered files and enforce a processing/verification gate between file 01 and file 02. Never combine the destructive step with the rebuild.
+
+## Brand Store Updates
+
+For every Brand Store build or update, first load the team vault's
+`Playbooks/amazon-brand-stores-playbook.md`.
+
+- Always create a **new named content version** and make every change inside that
+  draft. Never edit the currently published content version in place, including
+  when Store Builder opens it by default.
+- Record the published version and status before building, then verify after the
+  draft build that the published Store is unchanged.
+- Treat preview, submission for moderation, scheduling, and publishing as separate
+  actions. Do not submit, schedule, or publish without approval for that exact action.
