@@ -1,0 +1,4 @@
+interface:
+  display_name: "Amazon Client Onboarding"
+  short_description: "Run a safe Amazon Day 0 onboarding"
+  default_prompt: "Use $amazon-client-onboarding to run the Amazon onboarding access preflight and prepare a Day 0 change plan."

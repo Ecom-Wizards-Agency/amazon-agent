@@ -221,6 +221,7 @@ Default routing:
 - `amazon-reporting`: fetching and formatting Seller/Ads reports, SQP, business reports, analytics workbooks, and exact-query SQP competitor benchmarks; Business Reports + SQP can be fetched without manual download via `tools/report-fetcher/`. Not for audit narratives (that is `amazon-audit`).
 - `amazon-launch-strategy`: read-only forward-looking Day 0 and 13-week launch plans covering low/base/high sales scenarios, bottom-up PPC budgets, pricing and discount constraints, stock and reorder timing, compliant review paths, owners, and open confirmations. Historical diagnosis remains in `amazon-audit`; live execution routes to the relevant operating skill.
 - `amazon-client-offboarding`: complete, branded, read-only Amazon account handovers when an engagement ends or ownership transfers. Produces the client operating narrative plus the exact five-tab evidence workbook; it is not an audit posture and never mutates the account.
+- `amazon-client-onboarding`: Amazon new-client access preflight, Day 0 account baseline, FBA disposal protection, 15% all-eligible-audience Brand Tailored Promotion plans, approval-gated setup changes, independent inventory verification, and seven-day onboarding monitoring. Permissions are a preflight gate and create a task only when missing.
 - `amazon-fba-inventory-planning`: weekly FBA inventory overview, reshipment planning, pCloud outputs, Slack staging.
 - `amazon-opportunity-explorer`: Product Opportunity Explorer/OEI/POE exports, image strategy, product strategy, Alexa/Rufus semantic insights.
 - `amazon-listing-capture`: capture live listing copy (title/bullets/link) for anchor + competitors via the connected-browser extractor; feeds the keyword-workbook ASINs tab; replaces the legacy ZeroWork scrape.
@@ -229,6 +230,15 @@ Default routing:
 - `amazon-communications`: support cases, buyer messages, courtesy-refund follow-ups (creator replies inside Creator Connections → `amazon-creator-connections`).
 - `amazon-flatfilepro`: prepare narrow `.xlsx` files from backend exports and evidence, or upload and map an already prepared workbook in FlatFilePro; both modes stop before any catalog update is submitted.
 - `amazon-forecasting-sources`: per-client source precedence, historical evidence, assumptions, and caveats for forecasting questions. The skill is the structure; the filled-in pack lives outside this repo under `_local/forecasting-context/<client>/`. It is a context layer, not an audit or launch-plan builder.
+
+Amazon client onboarding trigger phrases:
+
+- `Check Amazon onboarding access for <client>`
+- `Run Amazon onboarding setup for <client>`
+- `Approve Amazon onboarding changes <run_id>`
+- `Verify Amazon onboarding <run_id>`
+
+Route these phrases to `amazon-client-onboarding`. Access checks and Day 0 assessment are read-only. Approval authorizes only the current fingerprinted change batch. A different human must verify inventory settings before GREEN signoff.
 
 Operational-check trigger phrases:
 
@@ -464,6 +474,7 @@ Controlled workflow names:
 - `support-prep`
 - `sop-maintenance`
 - `creator-connections`
+- `onboarding`
 - `offboarding`
 
 Do not create a separate global overview tracker by default. If a workflow needs local context, put `README.md` or `operator-note.md` inside the relevant workflow folder. Use Notion for ongoing team status.
