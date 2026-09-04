@@ -16,12 +16,15 @@ Never use a name, email fragment, address, or old tracker row alone as the MCF t
 
 An MCF order is an external paid action. It requires the current operator instruction or matching local standing permission.
 
-1. Lock the Creator Record ID for the pre-flight so another queue item cannot target the same creator/product.
+1. Resolve the explicit Creator Record ID and run `reserve-mcf` after pre-flight. Retain its unique reservation ID.
 2. Resolve the live tracker headers and read the exact selected row, registry entry, and latest thread.
 3. Apply every MCF pre-flight check in `lifecycle-execution-guardrails.md`, including the explicit FBA/AFN channel, live MCF-fulfillable quantity, inventory-check timestamp, and private evidence reference. Seller-fulfilled or FBM stock does not count.
-4. Capture a pre-flight screenshot/evidence reference that visibly shows the recipient, selected SKU/ASIN, MCF-fulfillable inventory, exactly one unit, shipping selection, and estimated fee.
-5. Create the order only after all controls pass. Re-read the confirmation screen and match order ID, recipient, product, quantity, and dates to the locked record.
-6. Update the tracker and action log, then send the standard confirmation only after confirmed fulfillment.
+4. Populate MCF from the selected row, then capture evidence that visibly shows the recipient, selected SKU/ASIN, exactly one unit, Standard shipping, and estimated fee.
+5. Run `verify-mcf` against the reservation. Submit only after it returns `PASS` for the same creator, campaign, tracker row, product, recipient, and reservation ID.
+6. Re-read the confirmation screen and run `confirm-mcf` with the matching reservation ID, ASIN, SKU, one unit, order ID, and evidence.
+7. Update the tracker and action log, then send the standard confirmation only after confirmed fulfillment.
+
+If submission definitively failed, run `cancel-mcf` with the supported reason code and evidence so the reservation can be released safely. Never hand-edit the registry. If the request timed out or the outcome is unknown, do not cancel or retry: retain the lock, mark `Reconciliation Required`, and check Amazon order history first.
 
 The order ID is `CC-{BRAND}-{PRODUCTCODE}-{CREATOR}-{ASIN}-{YYMMDD}`. Standard shipping is the default only when permitted by the client policy. Never use expedited shipping without an explicit rule.
 

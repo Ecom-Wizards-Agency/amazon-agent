@@ -51,10 +51,16 @@ python3 tools/creator-connections-control/creator_control.py preflight-switch \
   --registry _local/creator-connections/registry.json \
   --input _local/creator-connections/product-switch.json
 
-# Lock the exact record/ASIN after a passing pre-flight, then confirm it only
-# after the authorized worker has a real Amazon order ID and evidence reference.
+# Lock the exact creator/campaign/tracker-row/product/recipient manifest, verify
+# the populated MCF screen against it, then confirm the resulting order.
 python3 tools/creator-connections-control/creator_control.py reserve-mcf --registry <registry> --input <proposal>
-python3 tools/creator-connections-control/creator_control.py confirm-mcf --registry <registry> --creator-record-id <id> --asin <asin> --order-id <order-id> --evidence-reference <private-evidence-path>
+python3 tools/creator-connections-control/creator_control.py verify-mcf --registry <registry> --input <populated-screen-evidence>
+python3 tools/creator-connections-control/creator_control.py confirm-mcf --registry <registry> --creator-record-id <id> --reservation-id <reservation-id> --asin <asin> --sku <sku> --quantity 1 --order-id <order-id> --evidence-reference <private-evidence-path>
+
+# Release a reservation only when evidence proves no order was created. Timeout,
+# missing confirmation, and unknown outcomes stay locked for reconciliation.
+python3 tools/creator-connections-control/creator_control.py list-mcf --registry <registry>
+python3 tools/creator-connections-control/creator_control.py cancel-mcf --registry <registry> --creator-record-id <id> --reservation-id <reservation-id> --reason-code <definitive-code> --evidence-reference <private-evidence-path>
 ```
 
 Exit code `0` means the control result passed. Exit code `2` means it is safely held. The JSON output is the audit artifact to reference from the tracker and action log.
@@ -77,7 +83,7 @@ Historic tracker rows are intentionally not assigned IDs from their row position
 
 The score is computed, not typed manually. Each item is worth one point: complete fulfillment details, requested ASIN, exact product match, storefront, recent visible post, strong content quality, strong category fit, performance/revenue evidence, specific ASIN mention, and low spam risk. Only exactly `10/10` is eligible for `Approved for Sample`.
 
-`preflight` also requires one resolved record, the matching ASIN/SKU in the approved product catalog, verified FBA/MCF eligibility, enough currently fulfillable units, a dated private evidence reference for the inventory check, no prior sample for that creator and ASIN, one unit, Standard shipping, fee within the approved cap, complete address/contact data, and no UI validation or truncation warnings. An active FBM listing never satisfies the MCF gate.
+`preflight` also requires one explicit Creator Record ID, one matching campaign ID and tracker source reference, complete recipient fingerprints, matching ASIN/SKU in the approved product catalog, verified FBA/MCF eligibility, enough currently fulfillable units, dated private evidence references for the thread, pre-flight, and inventory check, no prior sample for that creator and ASIN, one unit, Standard shipping, fee within the approved cap, complete address/contact data, and no UI validation or truncation warnings. An active FBM listing never satisfies the MCF gate.
 
 The selected catalog item uses these fulfillment fields:
 
@@ -85,6 +91,8 @@ The selected catalog item uses these fulfillment fields:
 {
   "asin": "B0EXAMPLE1",
   "sku": "SKU-1",
+  "product_title": "Example Product",
+  "campaign_id": "campaign-1",
   "fulfillment_channel": "FBA",
   "mcf_fulfillable": true,
   "fulfillable_quantity": 10,
@@ -95,7 +103,9 @@ The selected catalog item uses these fulfillment fields:
 
 `preflight-switch` has two phases. `offer` proves the original ASIN has a documented MCF blocker and that the proposed alternative is in the same campaign, has an exact SKU mapping, and is FBA/MCF-fulfillable before the creator is contacted. `confirm` additionally requires the creator's explicit reply naming that alternate ASIN and a private thread evidence reference. Until `confirm` passes, keep `Product Switch Pending`, keep Sample Decision `Hold`, and do not change the active ASIN or create an order.
 
-After a passing pre-flight, `reserve-mcf` writes a record lock for that exact Creator Record ID and ASIN. The executor cannot use another creator's data while the lock exists. `confirm-mcf` releases the lock only when it receives the resulting Amazon order ID and private evidence reference. A failed order stays locked and is escalated. This protects against double-sends and concurrent operators.
+After a passing pre-flight, `reserve-mcf` creates a unique reservation ID and immutable manifest binding the Creator Record ID, campaign, tracker row, ASIN, SKU, one-unit quantity, recipient fingerprint, fee cap, and evidence. The executor cannot use another creator, campaign, row, product, or recipient while the lock exists. `verify-mcf` compares the populated Amazon form to that manifest. `confirm-mcf` accepts an order only after that screen verification and only when the reservation ID, ASIN, SKU, and quantity match exactly.
+
+`list-mcf` shows active reservation IDs without contact data. It also gives old reservations a stable `MCFR-LEGACY-*` identifier so they can be reconciled without editing the registry. `cancel-mcf` releases a failed reservation only for a definitive, evidenced outcome: `amazon_rejected`, `definitive_not_created`, `expired_before_submit`, `inventory_unavailable_before_submit`, `operator_aborted_before_submit`, or `validation_failed_before_submit`. `request_timeout`, `confirmation_missing`, and `outcome_unknown` change the reservation to `Reconciliation Required` and keep it locked because an order may exist. Cancellation is idempotent, and every released reservation remains in the non-PII reservation history.
 
 Registry mutations are serialized through a per-registry lock file. Each command rereads the registry after it owns the lock and replaces the JSON atomically only after the mutation succeeds. Concurrent reservations for the same creator/ASIN therefore produce one lock and one held result. A leftover `.lock` file indicates an interrupted process and must be reviewed rather than bypassed automatically.
 

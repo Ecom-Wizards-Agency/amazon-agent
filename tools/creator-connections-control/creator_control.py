@@ -13,6 +13,7 @@ import hmac
 import json
 import os
 import re
+import secrets
 import sys
 import tempfile
 import time
@@ -172,6 +173,90 @@ def record_fingerprints(record: dict[str, Any], secret: bytes) -> dict[str, str]
         "phone_fp": fingerprint(secret, "phone", normalize_phone(record.get("phone"))),
         "address_fp": fingerprint(secret, "address", normalize_address(record)),
     }
+
+
+def recipient_binding_fingerprint(record: dict[str, Any], secret: bytes) -> str:
+    """Bind the complete MCF recipient without storing raw contact details."""
+    value = "|".join(
+        (
+            normalized(record.get("full_name")),
+            normalize_email(record.get("email")),
+            normalize_phone(record.get("phone")),
+            normalize_address(record),
+        )
+    )
+    if not all(value.split("|", 3)):
+        return ""
+    return fingerprint(secret, "mcf_recipient", value)
+
+
+def find_registry_record(registry: dict[str, Any], identifier: str) -> dict[str, Any] | None:
+    wanted = normalized(identifier).upper()
+    return next(
+        (
+            item
+            for item in registry.get("records", [])
+            if normalized(item.get("creator_record_id")).upper() == wanted
+        ),
+        None,
+    )
+
+
+DEFINITIVE_MCF_CANCELLATION_REASONS = {
+    "amazon_rejected",
+    "definitive_not_created",
+    "expired_before_submit",
+    "inventory_unavailable_before_submit",
+    "operator_aborted_before_submit",
+    "validation_failed_before_submit",
+}
+
+UNCERTAIN_MCF_CANCELLATION_REASONS = {
+    "confirmation_missing",
+    "outcome_unknown",
+    "request_timeout",
+}
+
+
+def active_reservation_id(entry: dict[str, Any]) -> str:
+    """Return a stable ID, including for reservations created before IDs existed."""
+    reservation = entry.get("mcf_reservation") or {}
+    identifier = normalized(reservation.get("reservation_id")).upper()
+    if identifier:
+        return identifier
+    seed = "|".join(
+        (
+            normalized(entry.get("creator_record_id")).upper(),
+            normalized(reservation.get("asin")).upper(),
+            normalized(reservation.get("reserved_at")),
+        )
+    )
+    if not reservation or not normalized(entry.get("creator_record_id")):
+        return ""
+    return "MCFR-LEGACY-" + hashlib.sha256(seed.encode("utf-8")).hexdigest()[:12].upper()
+
+
+def list_mcf_reservations(registry: dict[str, Any]) -> dict[str, Any]:
+    """List active locks without exposing creator contact data."""
+    items = []
+    for entry in registry.get("records", []):
+        reservation = entry.get("mcf_reservation") or {}
+        if normalized(entry.get("lock_state")) != "locked for mcf" or not reservation:
+            continue
+        items.append(
+            {
+                "creator_record_id": entry.get("creator_record_id"),
+                "reservation_id": active_reservation_id(entry),
+                "state": reservation.get("state") or "Legacy Reserved",
+                "campaign_id": reservation.get("campaign_id") or entry.get("campaign_id"),
+                "asin": reservation.get("asin"),
+                "sku": reservation.get("sku") or "",
+                "product_title": reservation.get("product_title") or "",
+                "quantity": reservation.get("quantity") or 1,
+                "reserved_at": reservation.get("reserved_at") or "",
+            }
+        )
+    return {"result": "PASS", "active_reservations": items, "count": len(items)}
 
 
 def new_registry() -> dict[str, Any]:
@@ -513,15 +598,50 @@ def mcf_preflight(registry: dict[str, Any], proposal: dict[str, Any], secret: by
         lock_conflicting_records(registry, identity)
     if identity.get("result") != "RESOLVED":
         errors.append("identity_not_resolved")
-    resolved = next((item for item in registry["records"] if item.get("creator_record_id") == identity.get("creator_record_id")), {})
+    resolved = find_registry_record(registry, identity.get("creator_record_id") or "") or {}
+    explicit_identifier = normalized(proposal.get("creator_record_id")).upper()
+    if not explicit_identifier:
+        errors.append("creator_record_id_missing")
+    elif explicit_identifier != normalized(identity.get("creator_record_id")).upper():
+        errors.append("creator_record_id_mismatch")
     if normalized(resolved.get("lock_state")) not in {"", "unlocked"}:
         errors.append("record_not_unlocked_for_preflight")
+    tracker_campaign_id = normalized(proposal.get("tracker_campaign_id"))
+    record_campaign_id = normalized(record.get("campaign_id"))
+    registry_campaign_id = normalized(resolved.get("campaign_id"))
+    if not tracker_campaign_id:
+        errors.append("tracker_campaign_id_missing")
+    elif len({tracker_campaign_id, record_campaign_id, registry_campaign_id}) != 1:
+        errors.append("campaign_id_mismatch")
+    if not normalized(proposal.get("tracker_source_ref")):
+        errors.append("tracker_source_reference_missing")
+    if not normalized(proposal.get("thread_evidence_reference")):
+        errors.append("thread_evidence_reference_missing")
+    if not normalized(proposal.get("preflight_evidence_reference")):
+        errors.append("preflight_evidence_reference_missing")
+    current_fingerprints = record_fingerprints(record, secret)
+    for key in ("full_name_fp", "email_fp", "phone_fp", "address_fp"):
+        if not current_fingerprints.get(key) or not resolved.get(key):
+            errors.append(f"recipient_{key}_missing")
+        elif current_fingerprints[key] != resolved[key]:
+            errors.append(f"recipient_{key}_mismatch")
+    recipient_binding = recipient_binding_fingerprint(record, secret)
+    if not recipient_binding:
+        errors.append("recipient_binding_incomplete")
     requested = normalized(record.get("requested_asin")).upper()
     tracker_asin = normalized(proposal.get("tracker_asin")).upper()
     selected_asin = normalized(proposal.get("selected_asin")).upper()
     catalog = proposal.get("product_catalog") or {}
     selected_sku = normalized(proposal.get("selected_sku")).upper()
     catalog_item = catalog.get(selected_asin, {})
+    catalog_product_title = str(catalog_item.get("product_title") or "").strip()
+    if not normalized(catalog_product_title):
+        errors.append("catalog_product_title_missing")
+    catalog_campaign_id = normalized(catalog_item.get("campaign_id"))
+    if not catalog_campaign_id:
+        errors.append("catalog_campaign_id_missing")
+    elif catalog_campaign_id != tracker_campaign_id:
+        errors.append("catalog_campaign_id_mismatch")
     score = score_record(record)
     if normalized(record.get("status")) != "approved for sample": errors.append("status_not_approved_for_sample")
     if score["score"] != 10: errors.append("qualification_not_10_of_10")
@@ -582,6 +702,10 @@ def mcf_preflight(registry: dict[str, Any], proposal: dict[str, Any], secret: by
         "approved_fee_cap_cents": cap,
         "selected_asin": selected_asin,
         "selected_sku": selected_sku,
+        "product_title": catalog_product_title,
+        "campaign_id": tracker_campaign_id,
+        "tracker_source_ref": str(proposal.get("tracker_source_ref") or "").strip(),
+        "recipient_binding": recipient_binding,
     }
 
 
@@ -591,30 +715,231 @@ def reserve_mcf(registry: dict[str, Any], proposal: dict[str, Any], secret: byte
     if result["result"] != "PASS":
         return result
     identifier, asin = result["creator_record_id"], result["selected_asin"]
+    reservation_id = "MCFR-" + secrets.token_hex(8).upper()
+    reservation = {
+        "reservation_id": reservation_id,
+        "state": "Reserved",
+        "creator_record_id": identifier,
+        "campaign_id": result["campaign_id"],
+        "tracker_source_ref": result["tracker_source_ref"],
+        "asin": asin,
+        "sku": result["selected_sku"],
+        "product_title": result["product_title"],
+        "quantity": 1,
+        "recipient_binding": result["recipient_binding"],
+        "visible_fee_cents": result["visible_fee_cents"],
+        "approved_fee_cap_cents": result["approved_fee_cap_cents"],
+        "thread_evidence_reference": str(proposal.get("thread_evidence_reference") or "").strip(),
+        "preflight_evidence_reference": str(proposal.get("preflight_evidence_reference") or "").strip(),
+        "inventory_evidence_reference": str(
+            (proposal.get("product_catalog") or {}).get(asin, {}).get("fulfillment_evidence_reference") or ""
+        ).strip(),
+        "reserved_at": datetime.now(timezone.utc).isoformat(),
+    }
     for entry in registry["records"]:
         if entry.get("creator_record_id") == identifier:
             entry["lock_state"] = "Locked for MCF"
-            entry["mcf_reservation"] = {"asin": asin, "reserved_at": datetime.now(timezone.utc).isoformat()}
+            entry["mcf_reservation"] = reservation
             entry["version"] = int(entry.get("version") or 0) + 1
-            return result | {"reservation": "LOCKED_FOR_MCF"}
+            public_result = {key: value for key, value in result.items() if key != "recipient_binding"}
+            return public_result | {
+                "reservation": "LOCKED_FOR_MCF",
+                "reservation_id": reservation_id,
+                "reservation_state": "Reserved",
+            }
     raise Hold("Resolved record vanished before MCF reservation.")
 
 
-def confirm_mcf(registry: dict[str, Any], identifier: str, asin: str, order_id: str, evidence_reference: str) -> dict[str, Any]:
-    if not identifier or not asin or not order_id or not evidence_reference:
-        raise Hold("Confirmation requires Creator Record ID, ASIN, order ID, and evidence reference.")
-    for entry in registry["records"]:
-        if entry.get("creator_record_id") != identifier:
-            continue
-        reservation = entry.get("mcf_reservation") or {}
-        if normalized(entry.get("lock_state")) != "locked for mcf" or normalized(reservation.get("asin")).upper() != normalized(asin).upper():
-            raise Hold("MCF confirmation does not match an active reservation.")
-        entry["sample_history"] = entry.get("sample_history", []) + [{"asin": asin.upper(), "order_id": order_id, "evidence_reference": evidence_reference, "confirmed_at": datetime.now(timezone.utc).isoformat()}]
-        entry["lock_state"] = "Unlocked"
-        entry.pop("mcf_reservation", None)
+def verify_mcf(registry: dict[str, Any], payload: dict[str, Any], secret: bytes) -> dict[str, Any]:
+    """Verify the populated MCF form against the immutable reservation manifest."""
+    identifier = normalized(payload.get("creator_record_id")).upper()
+    entry = find_registry_record(registry, identifier)
+    if not entry:
+        raise Hold("Creator Record ID does not exist in the registry.")
+    reservation = entry.get("mcf_reservation") or {}
+    errors: list[str] = []
+    if normalized(entry.get("lock_state")) != "locked for mcf":
+        errors.append("record_not_locked_for_mcf")
+    if normalized(payload.get("reservation_id")).upper() != normalized(reservation.get("reservation_id")).upper():
+        errors.append("reservation_id_mismatch")
+    if normalized(reservation.get("state")) not in {"reserved", "verified for submit"}:
+        errors.append("reservation_not_verifiable")
+    comparisons = {
+        "creator_record_id": identifier,
+        "campaign_id": normalized(payload.get("campaign_id")),
+        "tracker_source_ref": normalized(payload.get("tracker_source_ref")),
+        "asin": normalized(payload.get("screen_asin")).upper(),
+        "sku": normalized(payload.get("screen_sku")).upper(),
+    }
+    for key, actual in comparisons.items():
+        expected = normalized(reservation.get(key))
+        if key in {"creator_record_id", "asin", "sku"}:
+            expected = expected.upper()
+        if not actual or actual != expected:
+            errors.append(f"screen_{key}_mismatch")
+    try:
+        quantity = int(payload.get("quantity") or 0)
+    except (TypeError, ValueError):
+        quantity = 0
+        errors.append("quantity_invalid")
+    if quantity != 1 or quantity != int(reservation.get("quantity") or 0):
+        errors.append("quantity_must_equal_reserved_one")
+    if normalized(payload.get("shipping_speed")) != "standard":
+        errors.append("shipping_must_be_standard")
+    try:
+        visible_fee = int(payload.get("visible_fee_cents"))
+    except (TypeError, ValueError):
+        visible_fee = -1
+        errors.append("fee_missing_or_invalid")
+    if visible_fee < 0 or visible_fee > int(reservation.get("approved_fee_cap_cents") or -1):
+        errors.append("fee_exceeds_reserved_cap")
+    if recipient_binding_fingerprint(payload.get("recipient") or {}, secret) != reservation.get("recipient_binding"):
+        errors.append("screen_recipient_mismatch")
+    if normalized(payload.get("product_title")) != normalized(reservation.get("product_title")):
+        errors.append("screen_product_title_mismatch")
+    if payload.get("page_errors"):
+        errors.append("page_validation_error")
+    if payload.get("field_truncated"):
+        errors.append("field_truncation_detected")
+    evidence_reference = str(payload.get("evidence_reference") or "").strip()
+    if not evidence_reference:
+        errors.append("mcf_screen_evidence_missing")
+    if errors:
+        return {
+            "result": "HOLD",
+            "creator_record_id": identifier,
+            "reservation_id": reservation.get("reservation_id"),
+            "errors": errors,
+            "required_next_state": "Locked for MCF",
+        }
+    reservation["state"] = "Verified for Submit"
+    reservation["verified_at"] = datetime.now(timezone.utc).isoformat()
+    reservation["verification_evidence_reference"] = evidence_reference
+    reservation["verified_product_title"] = str(payload.get("product_title")).strip()
+    entry["version"] = int(entry.get("version") or 0) + 1
+    return {
+        "result": "PASS",
+        "creator_record_id": identifier,
+        "reservation_id": reservation["reservation_id"],
+        "reservation_state": reservation["state"],
+        "selected_asin": reservation["asin"],
+        "selected_sku": reservation["sku"],
+        "quantity": reservation["quantity"],
+    }
+
+
+def confirm_mcf(
+    registry: dict[str, Any],
+    identifier: str,
+    reservation_id: str,
+    asin: str,
+    sku: str,
+    quantity: int,
+    order_id: str,
+    evidence_reference: str,
+) -> dict[str, Any]:
+    if not all((identifier, reservation_id, asin, sku, order_id, evidence_reference)) or quantity != 1:
+        raise Hold("Confirmation requires the reservation, exact product, one unit, order ID, and evidence.")
+    entry = find_registry_record(registry, identifier)
+    if not entry:
+        raise Hold("Creator Record ID does not exist in the registry.")
+    reservation = entry.get("mcf_reservation") or {}
+    if normalized(entry.get("lock_state")) != "locked for mcf":
+        raise Hold("MCF confirmation does not match an active reservation.")
+    if normalized(reservation.get("state")) != "verified for submit":
+        raise Hold("MCF reservation must pass populated-screen verification before confirmation.")
+    expected = (
+        normalized(reservation.get("reservation_id")).upper(),
+        normalized(reservation.get("asin")).upper(),
+        normalized(reservation.get("sku")).upper(),
+        int(reservation.get("quantity") or 0),
+    )
+    actual = (normalized(reservation_id).upper(), normalized(asin).upper(), normalized(sku).upper(), quantity)
+    if actual != expected:
+        raise Hold("MCF confirmation fields do not match the active reservation manifest.")
+    entry["sample_history"] = entry.get("sample_history", []) + [{
+        "reservation_id": reservation_id.upper(),
+        "campaign_id": reservation.get("campaign_id"),
+        "tracker_source_ref": reservation.get("tracker_source_ref"),
+        "asin": asin.upper(),
+        "sku": sku.upper(),
+        "quantity": 1,
+        "order_id": order_id,
+        "status": "Confirmed",
+        "evidence_reference": evidence_reference,
+        "confirmed_at": datetime.now(timezone.utc).isoformat(),
+    }]
+    entry["lock_state"] = "Unlocked"
+    entry.pop("mcf_reservation", None)
+    entry["version"] = int(entry.get("version") or 0) + 1
+    return {
+        "result": "PASS",
+        "creator_record_id": identifier,
+        "reservation_id": reservation_id.upper(),
+        "order_id": order_id,
+        "state": "sample_confirmed",
+    }
+
+
+def cancel_mcf(
+    registry: dict[str, Any],
+    identifier: str,
+    reservation_id: str,
+    reason_code: str,
+    evidence_reference: str,
+) -> dict[str, Any]:
+    """Release only a definitively unsubmitted or definitively failed order."""
+    if not all((identifier, reservation_id, reason_code, evidence_reference)):
+        raise Hold("Cancellation requires Creator Record ID, reservation ID, reason code, and evidence.")
+    entry = find_registry_record(registry, identifier)
+    if not entry:
+        raise Hold("Creator Record ID does not exist in the registry.")
+    wanted_reservation = normalized(reservation_id).upper()
+    for historical in entry.get("mcf_reservation_history") or []:
+        if normalized(historical.get("reservation_id")).upper() == wanted_reservation:
+            if normalized(historical.get("status")) == "cancelled":
+                return {
+                    "result": "PASS",
+                    "creator_record_id": identifier,
+                    "reservation_id": wanted_reservation,
+                    "state": "already_released",
+                }
+            raise Hold("Reservation history shows a non-cancellable terminal state.")
+    reservation = entry.get("mcf_reservation") or {}
+    if active_reservation_id(entry) != wanted_reservation:
+        raise Hold("Cancellation does not match the active MCF reservation.")
+    reason = normalized(reason_code).replace(" ", "_")
+    if reason in UNCERTAIN_MCF_CANCELLATION_REASONS:
+        reservation["state"] = "Reconciliation Required"
+        reservation["reconciliation_reason"] = reason
+        reservation["reconciliation_evidence_reference"] = evidence_reference
+        entry["lock_state"] = "Locked for MCF"
         entry["version"] = int(entry.get("version") or 0) + 1
-        return {"result": "PASS", "creator_record_id": identifier, "order_id": order_id, "state": "sample_confirmed"}
-    raise Hold("Creator Record ID does not exist in the registry.")
+        raise Hold("Order outcome is uncertain. Reservation remains locked for reconciliation.")
+    if reason not in DEFINITIVE_MCF_CANCELLATION_REASONS:
+        raise Hold("Cancellation reason is not an allowed definitive failure code.")
+    entry["mcf_reservation_history"] = entry.get("mcf_reservation_history", []) + [{
+        "reservation_id": wanted_reservation,
+        "campaign_id": reservation.get("campaign_id"),
+        "tracker_source_ref": reservation.get("tracker_source_ref"),
+        "asin": reservation.get("asin"),
+        "sku": reservation.get("sku"),
+        "quantity": reservation.get("quantity"),
+        "status": "Cancelled",
+        "reason_code": reason,
+        "evidence_reference": evidence_reference,
+        "cancelled_at": datetime.now(timezone.utc).isoformat(),
+    }]
+    entry["lock_state"] = "Unlocked"
+    entry.pop("mcf_reservation", None)
+    entry["version"] = int(entry.get("version") or 0) + 1
+    return {
+        "result": "PASS",
+        "creator_record_id": identifier,
+        "reservation_id": wanted_reservation,
+        "state": "reservation_cancelled_and_released",
+        "reason_code": reason,
+    }
 
 
 def migrate_legacy(registry: dict[str, Any], payload: dict[str, Any], secret: bytes, today: date) -> dict[str, Any]:
@@ -664,12 +989,26 @@ def main() -> None:
     reserve = sub.add_parser("reserve-mcf")
     reserve.add_argument("--registry", required=True)
     reserve.add_argument("--input", required=True)
+    verify = sub.add_parser("verify-mcf")
+    verify.add_argument("--registry", required=True)
+    verify.add_argument("--input", required=True)
     confirm = sub.add_parser("confirm-mcf")
     confirm.add_argument("--registry", required=True)
     confirm.add_argument("--creator-record-id", required=True)
+    confirm.add_argument("--reservation-id", required=True)
     confirm.add_argument("--asin", required=True)
+    confirm.add_argument("--sku", required=True)
+    confirm.add_argument("--quantity", required=True, type=int)
     confirm.add_argument("--order-id", required=True)
     confirm.add_argument("--evidence-reference", required=True)
+    cancel = sub.add_parser("cancel-mcf")
+    cancel.add_argument("--registry", required=True)
+    cancel.add_argument("--creator-record-id", required=True)
+    cancel.add_argument("--reservation-id", required=True)
+    cancel.add_argument("--reason-code", required=True)
+    cancel.add_argument("--evidence-reference", required=True)
+    list_reservations = sub.add_parser("list-mcf")
+    list_reservations.add_argument("--registry", required=True)
     migrate = sub.add_parser("migrate-legacy")
     migrate.add_argument("--registry", required=True)
     migrate.add_argument("--input", required=True)
@@ -715,18 +1054,42 @@ def main() -> None:
                 lambda registry: reserve_mcf(registry, proposal, secret),
             )
             emit(result, 0 if result["result"] == "PASS" else 2)
+        if args.command == "verify-mcf":
+            payload = read_json(args.input)
+            result = mutate_registry(
+                args.registry,
+                lambda registry: verify_mcf(registry, payload, secret),
+            )
+            emit(result, 0 if result["result"] == "PASS" else 2)
         if args.command == "confirm-mcf":
             result = mutate_registry(
                 args.registry,
                 lambda registry: confirm_mcf(
                     registry,
                     args.creator_record_id,
+                    args.reservation_id,
                     args.asin,
+                    args.sku,
+                    args.quantity,
                     args.order_id,
                     args.evidence_reference,
                 ),
             )
             emit(result)
+        if args.command == "cancel-mcf":
+            result = mutate_registry(
+                args.registry,
+                lambda registry: cancel_mcf(
+                    registry,
+                    args.creator_record_id,
+                    args.reservation_id,
+                    args.reason_code,
+                    args.evidence_reference,
+                ),
+            )
+            emit(result)
+        if args.command == "list-mcf":
+            emit(list_mcf_reservations(load_registry(args.registry)))
         if args.command == "migrate-legacy":
             today = parse_date(args.date)
             if not today: raise Hold("Legacy migration date is invalid.")
