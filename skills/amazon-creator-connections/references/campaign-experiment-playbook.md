@@ -16,7 +16,9 @@ Each campaign must map to one product or tightly controlled ASIN set and one acq
 - creator cohort rule
 - primary and guardrail metrics
 
-Use a 28 to 56 day test window when the client asks for a one-to-two-month experiment. The client owns the final duration. Do not compare tests with different dates, products, stock conditions, or commission rates as though title wording alone caused the result.
+The campaign record must also carry an immutable product identity block: experiment ID, campaign ID, marketplace, exact product title, ASIN, approved SKU, and tracker tab/source reference. A creator application inherits that block. Any later product change requires the documented product-switch confirmation flow; it is never inferred from a name or moved silently.
+
+Use a 30-day test window for the standard acquisition experiment. Amazon currently requires campaign duration between 30 and 365 days, so never configure less than 30 days. The client owns the final dates. Do not compare tests with different dates, products, stock conditions, or commission rates as though title wording alone caused the result.
 
 ## Title structure
 
@@ -25,6 +27,8 @@ Lead with relevance, not vague excitement:
 `{Product or problem} | {specific creator fit or content opportunity} | {approved incentive, optional}`
 
 Good title hypotheses make the creator recognize three things quickly: what the product is, who it is useful for, and what content opportunity exists. Avoid unsupported outcomes, urgency that is not real, guaranteed earnings, and generic wording such as `Amazing Product Opportunity`.
+
+Keep the public campaign name at or below Amazon's current 80-character maximum. Keep the complete creator message at or below the current 5,000-character maximum, including disclosure language.
 
 Commission percentage is an optional test variable, not a default. Include it in one controlled title variant only when the client has approved the exact percentage and the campaign setup matches it. A percentage can improve initial attention, but it may also attract incentive-first applicants with weak product fit. Compare it against a relevance-led title while holding product, dates, description, stock, and eligibility constant.
 
@@ -85,6 +89,8 @@ What changed from the control:
 ```
 
 The final check must confirm exact product mapping, supported talking points, complete must/must-not guidance, approved commercial terms, inventory readiness, non-overlapping experiment logic, and no private creator or client data in reusable repository files.
+
+Recheck the current Amazon Ads help page `https://advertising.amazon.com/help/GMANECFAFD49W23Y` before launch because platform limits can change.
 
 ## Future platform expansion
 
