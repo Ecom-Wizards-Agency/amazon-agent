@@ -18,7 +18,8 @@
  */
 import { writeFileSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
-import { ensureChrome, listPages, createPage, releasePage, Session } from "./cdp.mjs";
+import { ensureChrome, listPages, Session } from "./cdp.mjs";
+import { acquireTaskPage, releaseTaskPage, taskIdFor } from "../browserctl/task-tabs.mjs";
 
 function arg(name, def) { const i = process.argv.indexOf("--" + name); return i > 0 ? process.argv[i + 1] : def; }
 const SECONDS = Number(arg("seconds", "180"));
@@ -76,7 +77,12 @@ async function main() {
   }, 1500);
 
   if (NAV.length) {
-    const { targetId, session } = await createPage(NAV[0]);
+    const taskPage = await acquireTaskPage({
+      taskId: taskIdFor("endpoint-capture", `${OUT}|${NAV.join(",")}`),
+      workflow: "amazon-reporting-endpoint-capture", initialUrl: "about:blank",
+      exclusiveContext: true,
+    });
+    const { session } = taskPage;
     let outcome = "success";
     try {
       await session.send("Page.enable");
@@ -89,7 +95,7 @@ async function main() {
       outcome = "error";
       throw error;
     } finally {
-      session.close(); await releasePage(targetId, { outcome });
+      await releaseTaskPage(taskPage, { outcome }).catch(() => {});
     }
   } else {
     await sleep(SECONDS * 1000);

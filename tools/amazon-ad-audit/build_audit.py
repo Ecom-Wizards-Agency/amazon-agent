@@ -17,6 +17,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -38,6 +39,17 @@ SPEND_TOL = 0.01  # currency units
 
 def outdir_for(cfg) -> Path:
     return REPO / "output" / _slug(cfg["client"]) / "reporting"
+
+
+def _artifact_slug(s: str) -> str:
+    """Case-preserving slug used in workbook FILENAMES.
+
+    Must stay identical to the one in build_audit_workbook / build_sqp_workbook /
+    build_master_workbook, which is what actually names the files. Do not swap
+    this for analyze_audit._slug: that one lowercases, and it names the client
+    OUTPUT FOLDER, which is a different thing.
+    """
+    return re.sub(r"[^A-Za-z0-9]+", "-", (s or "x")).strip("-")
 
 
 # ----------------------------------------------------------------- preflight
@@ -262,7 +274,12 @@ def validate(cfg, cfg_path) -> int:
     # Reference the toolkit's OWN canonical outputs only — the outdir may also hold
     # hand-delivered / stale workbooks (e.g. dated _Branded files) that must not be scored.
     markets = "-".join(M.get("marketplaces", []) or ["x"])
-    stem = f"{_slug(cfg['client'])}_{_slug(markets)}"
+    # The builders name their outputs with a CASE-PRESERVING slug, while
+    # analyze_audit._slug lowercases (it is the client-FOLDER slug). Using the
+    # lowercasing one here made both workbook gates look at paths that never
+    # exist for any client whose name carries a capital: gate (b) silently
+    # scanned 0 workbooks and gate (c) always failed. Match the builders.
+    stem = f"{_artifact_slug(cfg['client'])}_{_artifact_slug(markets)}"
     audit = outdir / f"{stem}_Ad_Audit.xlsx"
     sqp = outdir / f"{stem}_SQP_Intelligence.xlsx"
     master = outdir / f"{stem}_Amazon_Audit_MASTER.xlsx"

@@ -115,6 +115,10 @@ export function loadBrowserPolicy(path = POLICY_PATH) {
   if (!new Set(["audit", "active"]).has(cleanupMode)) {
     throw new Error(`BROWSER_POLICY_INVALID: cleanup.mode must be audit or active`);
   }
+  const adoptUnregisteredTabs = raw.cleanup?.adopt_unregistered_tabs ?? false;
+  if (typeof adoptUnregisteredTabs !== "boolean") {
+    throw new Error("BROWSER_POLICY_INVALID: cleanup.adopt_unregistered_tabs must be boolean");
+  }
   const defaultPort = Number(raw.routing?.default_cdp_port ?? 9222);
   const wizardsPort = Number(raw.routing?.wizards_ai_cdp_port ?? 9223);
   const inAppPriority = raw.routing?.in_app_browser_priority || "explicit-only";
@@ -130,6 +134,7 @@ export function loadBrowserPolicy(path = POLICY_PATH) {
     path,
     cleanup: {
       mode: cleanupMode,
+      adopt_unregistered_tabs: adoptUnregisteredTabs,
       background_grace_ms: positiveDuration(raw.cleanup?.background_grace_ms, 10 * 60 * 1000, "background_grace_ms"),
       interactive_idle_ms: positiveDuration(raw.cleanup?.interactive_idle_ms, 2 * 60 * 60 * 1000, "interactive_idle_ms"),
       heartbeat_interval_ms: positiveDuration(raw.cleanup?.heartbeat_interval_ms, 30 * 1000, "heartbeat_interval_ms"),

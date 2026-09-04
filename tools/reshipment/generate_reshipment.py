@@ -93,6 +93,22 @@ def load_config(config_path):
         client["minimum_monthly_sales_for_fba"] = reshipment.get("minimum_monthly_sales_for_fba")
         client["fba_exclude_patterns"] = reshipment.get("fba_exclude_patterns", [])
         client["fba_exclude_asins"] = reshipment.get("fba_exclude_asins", [])
+        # Optional per-ASIN display and packing data. Both live in the shared
+        # profile like every other stable planning input: carton_units maps
+        # ASIN -> units per shipping carton (from Send to Amazon case-pack
+        # templates or the client), short_names maps ASIN -> the name humans
+        # use, so Slack never shows a truncated Amazon title.
+        carton_specs = reshipment.get("carton_specs") or {}
+        client["carton_units"] = {
+            **{
+                asin: spec.get("units_per_box")
+                for asin, spec in carton_specs.items()
+                if isinstance(spec, dict) and spec.get("units_per_box")
+            },
+            **(reshipment.get("carton_units") or {}),
+        }
+        client["carton_specs"] = carton_specs
+        client["short_names"] = reshipment.get("short_names") or {}
         client["profile_source"] = profile.get("source_file")
         client["profile_components"] = {
             "target_stock_days": reshipment.get("target_stock_days"),
@@ -118,13 +134,6 @@ def n(value):
 
 def i(value):
     return int(round(n(value)))
-
-
-def short(text, limit=66):
-    text = re.sub(r"\s+", " ", str(text or "")).strip()
-    if len(text) <= limit:
-        return text
-    return text[: limit - 3].rstrip() + "..."
 
 
 def read_rows(path):
@@ -169,6 +178,24 @@ def calculate(client, cfg):
     }
     run_date = cfg["run_date"]
     output_root = cfg["output_root"]
+    planning_blocker = str(client.get("planning_blocker") or "").strip()
+    # AWD stock replenishes FBA on its own, so it counts against the send
+    # quantity. awd_by_key maps SKU or ASIN (case-insensitive) to units; when
+    # only an account-level total exists it must NOT be subtracted blindly
+    # (there is no per-product attribution), it becomes a loud warning instead.
+    awd_by_key = {
+        str(key).strip().upper(): int(value or 0)
+        for key, value in (client.get("awd_by_key") or {}).items()
+        if str(key).strip()
+    }
+    awd_stored = int(client.get("awd_stored") or 0)
+    awd_consumed = set()
+    committed_by_key = {
+        str(key).strip().upper(): int(value or 0)
+        for key, value in (client.get("committed_shipments_by_key") or {}).items()
+        if str(key).strip()
+    }
+    committed_consumed = set()
 
     items = defaultdict(dict)
     source_files = []
@@ -195,6 +222,9 @@ def calculate(client, cfg):
             available=i(row.get("available")),
             inbound=i(row.get("inbound-quantity")),
             reserved=i(row.get("Total Reserved Quantity")),
+            fba_fc_transfer=i(row.get("FC Transfer")),
+            fba_customer_order=i(row.get("Customer Order Reserved")),
+            fba_fc_processing=i(row.get("FC Processing")),
             unfulfillable=i(row.get("unfulfillable-quantity")),
             fba_units_30=i(row.get("units-shipped-t30")),
             fba_units_7=i(row.get("units-shipped-t7")),
@@ -232,6 +262,10 @@ def calculate(client, cfg):
         add_item(items, asin, sku=row.get("sku"), price=n(row.get("price")), sources={"inventory"})
     if client["inventory"] and client["inventory"].exists():
         source_files.append(str(client["inventory"]))
+    for evidence in client.get("evidence_files") or []:
+        evidence_path = Path(evidence).expanduser()
+        if evidence_path.exists():
+            source_files.append(str(evidence_path))
 
     rows = []
     for asin, item in sorted(items.items()):
@@ -239,9 +273,12 @@ def calculate(client, cfg):
         demand_source = "Business Report" if item.get("business_units") else ("FBA Inventory" if item.get("fba_units_30") else "Restock Report")
         available = max(item.get("available", 0), item.get("restock_available", 0))
         inbound = max(item.get("inbound", 0), item.get("restock_inbound", 0))
+        fc_transfer = max(item.get("fba_fc_transfer", 0), item.get("restock_fc_transfer", 0))
+        fc_processing = max(item.get("fba_fc_processing", 0), item.get("restock_fc_processing", 0))
+        customer_order = max(item.get("fba_customer_order", 0), item.get("restock_customer_order", 0))
         reserved = max(
             item.get("reserved", 0),
-            item.get("restock_fc_transfer", 0) + item.get("restock_fc_processing", 0) + item.get("restock_customer_order", 0),
+            fc_transfer + fc_processing + customer_order,
         )
         required = demand / report_days * multiplier * target_days
         product_identity = f"{item.get('title', '')} {item.get('sku', '')}"
@@ -253,11 +290,28 @@ def calculate(client, cfg):
             isinstance(minimum_monthly_sales, (int, float))
             and demand < minimum_monthly_sales
         )
-        reship = (
+        sku_key = str(item.get("sku", "")).strip().upper()
+        asin_key = asin.strip().upper()
+        awd_key = sku_key if sku_key in awd_by_key else (asin_key if asin_key in awd_by_key else None)
+        awd_units = awd_by_key[awd_key] if awd_key else 0
+        if awd_key:
+            awd_consumed.add(awd_key)
+        committed_key = (sku_key if sku_key in committed_by_key
+                         else asin_key if asin_key in committed_by_key else None)
+        committed_units = committed_by_key[committed_key] if committed_key else 0
+        if committed_key:
+            committed_consumed.add(committed_key)
+        raw_reship = (
             0
             if (fba_excluded or below_fba_threshold)
-            else int(math.ceil(max(0, required - available - inbound - reserved)))
+            else int(math.ceil(max(0, required - available - inbound
+                                   - fc_transfer - fc_processing - awd_units
+                                   - committed_units)))
         )
+        per_carton = client["carton_units"].get(asin)
+        per_carton = int(per_carton) if isinstance(per_carton, (int, float)) and per_carton > 0 else None
+        reship_boxes = math.ceil(raw_reship / per_carton) if raw_reship and per_carton else ""
+        reship = reship_boxes * per_carton if reship_boxes else raw_reship
         excess = item.get("estimated_excess", 0)
         if not excess and demand > 0 and available > (demand / report_days * 120):
             excess = int(max(0, available - demand / report_days * 90))
@@ -270,9 +324,17 @@ def calculate(client, cfg):
                 "Demand Source": demand_source,
                 "Available": available,
                 "Inbound": inbound,
+                "Committed Shipment Units": committed_units,
                 "Reserved": reserved,
+                "FC Transfer": fc_transfer,
+                "FC Processing": fc_processing,
+                "Customer Order Reserved": customer_order,
+                "AWD Units": awd_units,
                 "Unfulfillable": item.get("unfulfillable", 0),
                 f"Required Units ({target_days}d x {multiplier})": round(required, 1),
+                "Raw Reshipment Units": raw_reship,
+                "Units per Box": per_carton or "",
+                "Reshipment Boxes": reship_boxes,
                 "Reshipment Units": reship,
                 "Estimated Excess Units": excess,
                 "Days of Supply": item.get("days_of_supply", ""),
@@ -331,25 +393,79 @@ def calculate(client, cfg):
 
     send_rows = [r for r in rows if r["Reshipment Units"] > 0]
     excess_rows = [r for r in rows if r["Estimated Excess Units"] > 0]
+    missing_carton_asins = sorted(
+        r["ASIN"] for r in send_rows if not r["Units per Box"]
+    )
+    awd_attributed = sum(awd_by_key[key] for key in awd_consumed)
+    awd_unattributed = max(0, awd_stored - awd_attributed)
+    committed_attributed = sum(committed_by_key[key] for key in committed_consumed)
+    committed_unattributed = sum(
+        units for key, units in committed_by_key.items() if key not in committed_consumed)
     parts = [
         f"Source: {client['notes']} Shared profile: {client['profile_key']} ({target_days} effective coverage days, {multiplier}x demand multiplier). Output saved: `{csv_path.name}` / `{xlsx_path.name}`.",
     ]
+    if planning_blocker:
+        parts.insert(0, f"⚠️ PLAN BLOCKED - {planning_blocker} Calculated quantities are diagnostic only and must not be shipped.")
+    # Slack lines lead with the actionable quantity in bold: the units needed
+    # were mid-line and easy to miss, and the truncated Amazon title with its
+    # "..." buried them further (feedback 31.08.2026). A profile short_name
+    # replaces the title entirely; without one the title is clipped at a word
+    # boundary, never with an ellipsis. When carton_units knows the pack size,
+    # the recommendation is whole boxes - nobody ships 1,234 units in 80-packs.
+    def display_name(row):
+        name = client["short_names"].get(row["ASIN"])
+        if name:
+            return name
+        title = re.sub(r"\s+", " ", str(row["Product Name"] or "")).strip()
+        return title if len(title) <= 44 else title[:44].rsplit(" ", 1)[0]
+
+    def quantity_lead(row):
+        if row["Units per Box"]:
+            lead = (f"*Send {row['Reshipment Boxes']} boxes × {row['Units per Box']} = "
+                    f"{row['Reshipment Units']:,} units*")
+            if row["Reshipment Units"] != row["Raw Reshipment Units"]:
+                lead += f" (raw need {row['Raw Reshipment Units']:,})"
+            return lead
+        return f"*Send {row['Reshipment Units']:,} units* (carton size missing)"
+
     if send_rows:
         parts.extend(["", "*Reshipment*"])
         for row in send_rows[:10]:
+            lead = quantity_lead(row)
+            awd_note = f" · awd {row['AWD Units']:,}" if row["AWD Units"] else ""
+            committed_note = (f" · committed shipment {row['Committed Shipment Units']:,}"
+                              if row["Committed Shipment Units"] else "")
             parts.append(
-                f"`{row['ASIN']}` {short(row['Product Name'])} - {row['Reshipment Units']:,} units needed | Available: {row['Available']:,} | Inbound: {row['Inbound']:,} | Reserved: {row['Reserved']:,}"
+                f"{lead} - {display_name(row)} (`{row['ASIN']}`) · avail {row['Available']:,} · inbound {row['Inbound']:,}{committed_note} · reserved {row['Reserved']:,}{awd_note}"
             )
         if len(send_rows) > 10:
             parts.append(f"Plus {len(send_rows) - 10} more low-volume rows in the workbook.")
-        parts.append(f"Total: {sum(r['Reshipment Units'] for r in send_rows):,} units")
+        rounded_total = sum(r["Reshipment Units"] for r in send_rows)
+        raw_total = sum(r["Raw Reshipment Units"] for r in send_rows)
+        total_note = f"Total: {rounded_total:,} shippable units"
+        if rounded_total != raw_total:
+            total_note += f" (raw need {raw_total:,})"
+        parts.append(total_note)
+        if missing_carton_asins:
+            parts.append(
+                f"⚠️ Carton size is missing for {len(missing_carton_asins)} positive-send ASIN(s); "
+                "those rows remain provisional unit quantities."
+            )
     else:
         parts.extend(["", "*Reshipment*", "No positive reshipment quantities from today’s source data."])
+    if awd_unattributed:
+        parts.append(
+            f"⚠️ AWD holds {awd_unattributed:,} unit(s) with no per-SKU attribution; send quantities may overshoot by up to that amount."
+        )
+    if committed_unattributed:
+        parts.append(
+            f"⚠️ {committed_unattributed:,} committed shipment unit(s) could not be mapped to a current FBA row."
+        )
     if excess_rows:
         parts.extend(["", "*Excess Inventory / Plan Sales*"])
         for row in excess_rows[:6]:
             parts.append(
-                f"`{row['ASIN']}` {short(row['Product Name'])} - {row['Estimated Excess Units']:,} excess units | Available: {row['Available']:,} | 30d demand: {row['Demand 30d']:,}"
+                f"*{row['Estimated Excess Units']:,} excess* - {display_name(row)} (`{row['ASIN']}`) · avail {row['Available']:,} · 30d demand {row['Demand 30d']:,}"
             )
         if len(excess_rows) > 6:
             parts.append(f"Plus {len(excess_rows) - 6} more excess rows in the workbook.")
@@ -359,6 +475,8 @@ def calculate(client, cfg):
     manifest = {
         "account": client["key"],
         "date": run_date,
+        "actionable": not bool(planning_blocker),
+        "planningBlocker": planning_blocker or None,
         "profileKey": client["profile_key"],
         "profileSource": client["profile_source"],
         "planningComponents": client["profile_components"],
@@ -371,6 +489,13 @@ def calculate(client, cfg):
         "slack": str(slack_path),
         "sendRows": len(send_rows),
         "sendUnits": sum(r["Reshipment Units"] for r in send_rows),
+        "rawSendUnits": sum(r["Raw Reshipment Units"] for r in send_rows),
+        "sendBoxes": sum(r["Reshipment Boxes"] for r in send_rows if r["Reshipment Boxes"]),
+        "missingCartonAsins": missing_carton_asins,
+        "awdUnitsAttributed": awd_attributed,
+        "awdUnitsUnattributed": awd_unattributed,
+        "committedShipmentUnitsAttributed": committed_attributed,
+        "committedShipmentUnitsUnattributed": committed_unattributed,
         "excessRows": len(excess_rows),
         "excessUnits": sum(r["Estimated Excess Units"] for r in excess_rows),
         "notes": client["notes"],

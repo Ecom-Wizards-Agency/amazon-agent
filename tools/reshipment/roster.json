@@ -75,14 +75,6 @@
       "region": "us"
     },
     {
-      "key": "sondur",
-      "profile_key": "sondur-us",
-      "brand": "Sondur",
-      "market": "US",
-      "country": "United States",
-      "region": "us"
-    },
-    {
       "key": "svens-island",
       "profile_key": "svens-island-us",
       "brand": "Svens Island",
@@ -94,6 +86,14 @@
       "key": "swissker",
       "profile_key": "swissklip-us",
       "brand": "Swissker",
+      "market": "US",
+      "country": "United States",
+      "region": "us"
+    },
+    {
+      "key": "tmrw",
+      "profile_key": "tmrw-us",
+      "brand": "tmrw",
       "market": "US",
       "country": "United States",
       "region": "us"

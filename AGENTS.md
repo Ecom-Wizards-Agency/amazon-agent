@@ -14,7 +14,9 @@ The agent should be able to:
 - Decide which Amazon workflow applies.
 - Navigate the browser step by step using the logged-in Amazon session.
 - Preserve screenshots, tables, visible warnings, dates, account names, marketplace selectors, IDs, and exact UI labels when learning or troubleshooting.
-- Stop before any externally visible or risky action.
+- Stop before any externally visible or risky action until the operator explicitly
+  approves that exact action in the current chat or a matching local standing
+  permission applies.
 
 ## Writing Style (all agents, all written output)
 
@@ -44,9 +46,30 @@ Every programmatically created tab has a machine-local lease. Active background
 tasks heartbeat every 30 seconds. A successful release receives a 10-minute
 grace period. Interactive tabs and inspection tabs receive a 2-hour inactivity
 window. Errors, challenges, blocked work, and lost heartbeats become inspection
-leases. Unknown or user-created tabs are never auto-closed. Cleanup must preserve
-a tab when its activity cannot be measured, and raw CDP closure is reserved for
-an expired registered lease or an explicit operator request.
+leases. Standard machine presets never auto-close unknown or user-created tabs.
+Evo X1 instead adopts every newly observed unregistered tab into an inspection
+lease, starts activity measurement, and gives it a full 2-hour inactivity window
+before it can close. The first observation never closes the tab. Cleanup must
+preserve a tab when its activity cannot be measured, and raw CDP closure is
+reserved for an expired registered lease or an explicit operator request.
+
+Seller Central home anchors are navigation reserves, not working tabs.
+Automation must never repurpose one. Every workflow supplies one stable task ID
+and uses `tools/browserctl/task-tabs.mjs` for its primary page. Steps,
+verification passes, and retries with that task ID reacquire the same target. A
+second target is allowed only through a named additional slot for genuinely
+simultaneous or isolated work, an unavoidable site-created popup, or an explicit
+operator request. Direct `createPage()` calls are restricted to anchor
+maintenance and the task-tab controller; unknown options and unkeyed managed
+page creation fail closed.
+
+Seller Central account and marketplace selection is browser-global, so
+workflows that can select it acquire the port's exclusive context claim. The
+same task keeps that context through selection and its dependent read, and every
+workflow still reverifies the requested account and marketplace before using
+data. On success the one task target receives the normal 10-minute grace.
+Errors and blocked work keep that same target as inspection evidence for two
+hours instead of opening another target on each retry.
 
 Managed Chrome CDP on port 9222 is the default browser for Amazon Agent work.
 Port 9223 is the separate Wizards AI browser for its read workflows.
@@ -645,6 +668,18 @@ For creator, buyer, or support communication:
 - Draft the message first.
 - Confirm the exact thread/person/case.
 - Stop before clicking `Send` unless the operator explicitly confirms the exact send action.
+
+For flat-file and template work:
+
+- Download the blank template from the target seller account itself. Never reuse
+  a template downloaded under a different account, marketplace, or product type,
+  including one already sitting in `downloads/`. Verify before building: the
+  `settings=` string in cell A1 of the `Template` sheet carries
+  `contributorId=amzn1.cr.o.<merchantId>`, and that merchant id must equal the
+  one the target account resolves to. State the check in the operator note.
+- Amazon ships templates with an example row and, for some accounts, prefilled
+  preference-profile rows. Clear every row at or below `dataRow` before writing,
+  and read `dataRow` from that same settings string rather than assuming it.
 
 For downloads:
 

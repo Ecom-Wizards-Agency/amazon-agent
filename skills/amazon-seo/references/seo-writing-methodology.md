@@ -10,6 +10,61 @@ Two phases run in order: **classify keywords → write copy → audit coverage.*
 
 ---
 
+## 0. Verify the product before you write it
+
+Every rule below optimises *how* a claim is worded. None of them catches a claim that is
+simply **not true of the product**, and that is the failure that survives longest: it passes
+the separator gate, the caps gate, the character caps and the compliance ladder, because all
+of those inspect wording. Ranking Juice even rewards it, since the false attribute is usually
+a high-SV head term. It surfaces months later in the reviews, which is the most expensive
+place to find it.
+
+**Before writing a single field, obtain the product's actual attributes from a primary
+source and record which one you used.** Source hierarchy, best first:
+
+| Rank | Source | Note |
+|---|---|---|
+| 1 | Pack artwork PDF, finished-label file, or the manufacturer's formulation spec | The only label-verified sources. Ask for them by name; "the spec" often means a carton-dimensions sheet. |
+| 2 | The brand's own published ingredient list (DTC product page, Shopify `/products/<handle>.json`) | Usually accurate and immediately available. Brand-published, not label-verified: say so in the workbook. |
+| 3 | A physical unit, photographed back-of-pack | Definitive for what shipped, but tells you nothing about the next batch. |
+| 4 | Reviewer reports of the ingredient list | Corroboration only, never the basis for a change. Reviewers misread lists. |
+
+**The listing's own attribute fields are NOT a source.** They are the thing under audit. A
+live `Ingredients` field can carry a sibling SKU's list from a bulk upload, and it will look
+entirely plausible. Worked case (NZ botanical body wash, 2026-08-31): the live `Ingredients`
+value was the brand's *balm* INCI, anhydrous and surfactant-free, so it could not describe a
+wash at all. Nobody had compared it to the product because it read like a real ingredient
+list. It had also silently poisoned the workbook's compliance reasoning, which recorded
+"contains beeswax, so not vegan" from that wrong list and therefore suppressed a rankable
+token the product could legitimately have carried.
+
+Three checks that follow from having the real list:
+
+- **Free-from claims are decided by the ingredient list, not by the brand's marketing.** A
+  brand page saying "fragrance-free" does not survive an INCI that declares Geraniol,
+  Limonene, Linalool, Citral and Farnesol. The accurate claim is **"no added fragrance"**;
+  the product is naturally scented by its botanical oils. Same test for sulfate-free,
+  paraben-free, vegan and cruelty-free: confirm each against the list, and drop the ones the
+  list cannot support. Getting this wrong is not only a compliance issue, it is a review
+  magnet, because the shopper meets the truth in the shower.
+- **An operator-approved inaccurate attribute is still a defect, just a scheduled one.** When
+  an ingredient claim is directed into copy against the evidence, logging it is necessary but
+  not sufficient. Record it in the Claim Guardrail row **with a review date**, because the
+  cost arrives on someone else's desk. Worked case (same listing): the workbook recorded
+  "operator-directed; product is leaf oil, false-ingredient risk accepted" and shipped. Seven
+  weeks later four of the first ten Vine reviews described the product as containing the
+  absent ingredient, and the lowest-scoring review of the set was titled "good formulation
+  undermined by key ingredient discrepancies".
+- **Read the existing reviews before rewriting an established listing.** Where several
+  reviews open by *correcting* the listing, the copy has an expectation gap, and that gap is
+  a conversion defect the keyword data cannot see. Fix it by stating the trait as a feature
+  in the highest-visibility slot available, not by hiding it. Worked case (same listing):
+  six of ten reviews opened by explaining that the wash does not lather, against imagery and
+  a bullet promising "soft, creamy lather". The fix was an Item Highlights chip 1 reading
+  `Soap-Free, Low-Foam Cleanser`, which is the one chip mobile search reliably renders.
+
+---
+
 ## 1. Keyword classification (before writing)
 
 Clean the keyword list first. One wrong call cascades through the whole list.
@@ -88,6 +143,13 @@ word is.
 
 ## 3. Writing rules
 
+- **Identity is a ranking and conversion requirement, not expendable copy.** Start the
+  title with the consumer brand and recognizable product-line name, then place the tracked
+  head term. Record both phrases in `seo_identity`; the builder requires them in the title
+  and description. The tracked-lead gate ignores declared own-brand/product-line tokens, so
+  there is no reason to delete identity to satisfy it. For a blend, describe the formula
+  accurately, but do not replace the actual product name with a generic phrase such as
+  `Supplement Blend` or `Liquid Formula`.
 - **No ALL-CAPS in any visible field** (title, Item Highlights, bullets, description).
   Amazon "Product detail page rules" (Seller Help G200390640): *"Use capital letters
   only for the first letter of each word. Do not use all capital letters throughout the
@@ -182,6 +244,9 @@ word is.
     `health-claims-compliance.md`.
   - **Build-enforced**: the build FAILS on a lowercase word after `Label:` or on any
     asterisk in a bullet.
+  - **Length cap, build-enforced (operator rule, 04.09.2026): each bullet stays within
+    250 characters including spaces.** Long bullets truncate on mobile and Amazon's
+    per-category caps vary, so the workbook build FAILS on any bullet over 250.
 - **Title**: keyword-rich, benefit-led, front-load the highest-SV exact terms.
   **Limit: ≤75 characters including spaces** (all marketplaces, all categories
   except media, per Amazon policy effective **2026-07-27**; the old ~200-char limit
@@ -366,6 +431,16 @@ word is.
   - **No punctuation** (commas, semicolons, hyphens): wastes bytes with no benefit.
   - **No other products' ASINs or product numbers.**
   - **No irrelevant keywords**: Amazon penalises keyword-stuffing with off-topic terms.
+    This includes **category-typical ingredients the product does not contain**. Carrying a
+    competitor's format (`goat milk`, `oatmeal`, `colloidal`) buys traffic the listing cannot
+    convert and is the same accuracy problem as a false visible claim.
+  - **No attribute the visible copy is not allowed to state.** Backend is for terms the
+    visible fields *could* carry but should not spend characters on (misspellings, synonyms,
+    long tail). It is **not** a place to park a claim that failed the accuracy or compliance
+    check: an untrue term is untrue in a hidden field too, and disease terms for a cosmetic
+    read as drug claims wherever they sit. Route by posture, per
+    `health-claims-compliance.md` (regulated + conservative skips backend for outright
+    disease terms), and record the decision rather than inheriting it from the last version.
   - **No offensive, discriminatory, or misleading terms**: leads to suppression.
   - **No prices or temporary claims** (`günstig`, `Angebot`, `neu`): they change and
     aren't indexable.
@@ -394,6 +469,27 @@ Amazon's AI search ranks by **meaning**, not exact match. Complementary to keywo
 After the first draft: compute Ranking-Juice coverage, list missed keywords by
 SV, and optimize placement to close the gaps, without stuffing and without
 breaking compliance.
+
+**Then run the gates before anything is delivered or published.** The mechanical gates
+enforced by `build_keyword_workbook.py` include the 75-char title cap, the 125-char Item
+Highlights cap, the Item Highlights separator, and the Item Highlights **incremental**-SV
+check. That last one has a trap worth naming: it is measured against the other searchable
+fields, so **editing the bullets can silently take a previously-optimal IH to zero
+increment**. Any bullet or description edit obliges a rebuild, not just a reread.
+
+The builder also fails delivery when identity, POE traceability, or regulated-claims
+evidence is missing:
+
+- **The §0 attribute verification.** Name the source you used in the workbook.
+- **POE traceability.** The Semantic / Alexa row must record at least one POE Search Terms
+  signal and at least one POE Reviews or Returns signal, with the copy decision each caused.
+  Populating POE raw tabs without applying them to the SEO is not semantic optimization.
+- **The health-claims self-check** (`health-claims-compliance.md`), which is **mandatory
+  before delivery for every `regulated`-tier deliverable**: supplements, foods with health
+  angles, health and beauty, topicals, medical-adjacent devices. A topical sold against a
+  named skin condition is regulated tier even when the copy itself is careful, so the check
+  is owed on the rewrite, not only on the original. Record it in the Claim Guardrail row
+  with its date and evidence file; `checked=true` without those records fails.
 
 ## Final Action (workbook handoff)
 

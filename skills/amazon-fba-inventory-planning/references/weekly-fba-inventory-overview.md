@@ -75,6 +75,14 @@ Fresh-data requirement:
 - Use Seller Central reports only for required fields that are missing or stale in MCP. Match any fallback report's requested/generated date to the run date and verify the browser account/marketplace before downloading and calculating.
 - When using `tools/report-fetcher/run.mjs`, always pass the requested `--marketplace` and the exact Ops Manager `Seller Central Name` through `--expect-account`. The command must abort before fetching if either the regional host or seller account is wrong.
 - If neither MCP nor Seller Central can provide a required same-day field, pause and summarize the blocker for that account instead of substituting older data.
+
+Completeness gate (added 01.09.2026 after the Svens Island silent-omission incident):
+
+- The Manage Inventory page GraphQL sweep can silently omit ACTIVE FBA listings (first seen SwissKlip 13.08.2026; on 01.09.2026 it hid the four top sellers of Svens Island in BOTH marketplaces and, on live verification, missed FBA offers on all five other configured accounts). A sweep that returns rows is not proof it returned all rows.
+- Mandatory check per account before the plan is trusted: every ASIN selling in the Business Report window must appear in the FBA inventory data or be explicitly verified as FBM-only. Unexplained missing sellers block the account with a named finding; "business_kept/business_rows" style counts must be compared against the account's real catalog.
+- Preferred inventory source is the downloaded FBA inventory report file (Report Central, e.g. `MANAGE_INVENTORY_HEALTH`/reportId 19600), which enumerates every FBA SKU in one file, over any page-level API. Where the provider still uses the page API, its `shipment_groups` recovery list must cover the account's full FBA catalog so omitted listings are re-fetched search-scoped.
+- When the shared profile carries `carton_units`, the Slack and workbook outputs speak in whole boxes; keep the registry current by writing newly confirmed carton data back to the profile.
+- Open-shipment reconciliation: freshly created shipments can be missing from the per-SKU `inbound` field for hours (on 01.09.2026 two Evora Body shipments created the same morning, ~7,000 units, showed inbound 0 in the afternoon pull, which double-counted the need). Before a send recommendation is acted on, check the account's shipping queue for shipments created the same day or since the pull and subtract their contents manually; a plan and a same-day shipment created by another workflow must be reconciled by a human-visible note, never silently summed.
 - For US/EU timezone differences, use the Seller Central visible requested/generated date plus the local download timestamp as evidence. If the marketplace date appears one day behind because of Amazon timezone behavior, note that explicitly in the operator summary and keep the newly requested/downloaded file isolated from older files.
 
 Gather:

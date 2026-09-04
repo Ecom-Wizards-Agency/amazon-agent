@@ -32,9 +32,45 @@ Take or save screenshots when:
 - The user needs a visual record of the route or final state.
 - The UI is new or ambiguous and should become part of the future knowledge base.
 
+## Driving Seller Central Controls
+
+Seller Central is built on `kat-*` web components. The element you can see is a host; the
+control that actually responds lives inside its shadow root. This breaks the usual
+automation reflexes, so prefer the techniques that are known to work:
+
+- **Text and number fields**: JS `.focus()` on the inner `input`, then CDP `Input.insertText`.
+- **Plain buttons** (Save, Confirm, a row action): `.click()` on the element works.
+- **Checkboxes, radios, dropdown options**: dispatch real mouse events at coordinates
+  measured in the *same* call that clicks. Open a dropdown first, then click the option
+  once it has non-zero size.
+
+These fail silently, so do not trust them:
+
+- Setting `.value` and dispatching `input`/`change`. The field displays the value and the
+  page may even compute a derived total from it, while the app's own state never updates.
+- `.click()` on a custom checkbox or a dropdown option.
+- Coordinates measured in an earlier call. Layout shifts between calls and the click lands
+  somewhere else while still reporting success.
+- `document.elementFromPoint` as a hit test. It returns the shadow host, so the test passes
+  while the click misses the real control. A checkbox cell can measure 52x168 while the
+  clickable box inside it is 16x16.
+
+**Screenshot before forming a hypothesis about why a control "is not working".** Inferring
+state from DOM queries is the single most expensive mistake available here: a field can
+hold the right value in the DOM and still not be registered, and the missing step is
+usually a button that is plainly visible on screen. Two screenshots beat fifteen DOM
+queries.
+
+**Hand the click to the operator after about three failed attempts.** A control that
+resists automation takes a human seconds. Continuing to grind costs far more of the
+operator's time than asking, and each failed attempt risks leaving the page in a worse
+state than it started.
+
 ## Stop Points
 
-Stop and ask the operator before:
+Stop and ask the operator before the actions below unless the operator explicitly
+approved that exact action in the current chat or a matching scoped permission exists in
+`_local/local-permissions.md`:
 
 - Sending creator/customer/support messages.
 - Submitting Seller Support cases or replies.
@@ -43,6 +79,11 @@ Stop and ask the operator before:
 - Saving campaign/bid/budget/targeting changes.
 - Changing account settings, users, permissions, payment, tax, or legal entity details.
 - Acknowledging account health or policy actions.
+
+Approval authorizes only the reviewed action and payload. Immediately before acting,
+re-verify the account, marketplace, object identifiers, quantities, prices, fees, and
+selected options. If the final screen introduces or changes a material term, stop for a
+new approval. After acting, capture the resulting status or identifier and report it.
 
 ## Cybersecurity-Safe Handling
 

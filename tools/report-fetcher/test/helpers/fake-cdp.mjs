@@ -139,6 +139,9 @@ export async function startFakeCdp({ targets = [], onCreateTarget = null } = {})
     socket.on("data", makeFrameParser((text) => {
       const msg = JSON.parse(text);
       sent.push({ targetId: target ? target.id : null, method: msg.method, params: msg.params });
+      if (target && msg.method === "Page.navigate" && msg.params?.url) {
+        target.url = msg.params.url;
+      }
       if ((b.neverReply || []).includes(msg.method)) return;
       if (b.detachOn === msg.method) {
         socket.write(encodeFrame(JSON.stringify({ method: "Inspector.detached", params: { reason: "target_closed" } })));

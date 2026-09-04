@@ -41,12 +41,45 @@ def render(**cfg_extra):
     cfg = {"client": "Fixture", "marketplaces": ["US"], "date": "2026-08-12", **cfg_extra}
     (root / "metrics.json").write_text(json.dumps(METRICS))
     md = root / "Fixture_US_Sales_Audit_SCAFFOLD.md"
-    md.write_text("# Fixture\n\n## Ads Summary\n\nA line of body copy.\n")
+    md.write_text("# Fixture\n\n**Prepared by Ecom Wizards · Marketplace: US**\n\n"
+                  "## Ads Summary\n\nA line of body copy.\n")
     out = render_branded.render(cfg, root, md, cover=False)
     from docx import Document
     doc = Document(str(out["docx"] if isinstance(out, dict) else out))
     tmp_ref = tmp  # keep the directory alive for the caller
     return doc, tmp_ref
+
+
+
+def _render_with_cover():
+    """Render the fixture with a real cover image, via _render_docx so the result does
+    not depend on optional brand assets being installed on the machine."""
+    import struct, zlib
+    from docx import Document
+    tmp = tempfile.TemporaryDirectory()
+    root = Path(tmp.name)
+
+    def _png(path):
+        def chunk(tag, data):
+            c = tag + data
+            return struct.pack(">I", len(data)) + c + struct.pack(">I", zlib.crc32(c) & 0xFFFFFFFF)
+        raw = b"\x00\xff\xff\xff"
+        png = (b"\x89PNG\r\n\x1a\n"
+               + chunk(b"IHDR", struct.pack(">IIBBBBB", 1, 1, 8, 2, 0, 0, 0))
+               + chunk(b"IDAT", zlib.compress(raw))
+               + chunk(b"IEND", b""))
+        path.write_bytes(png)
+        return path
+
+    cover = _png(root / "_cover.png")
+    out = root / "withcover.docx"
+    render_branded._render_docx(
+        [("h2", "Ads Summary"), ("p", "A line of body copy.")],
+        METRICS, {"client": "Fixture", "marketplaces": ["US"], "date": "2026-08-12"},
+        root, cover, out)
+    doc = Document(str(out))
+    doc._keep_alive = tmp
+    return doc
 
 
 class RunningFurnitureTest(unittest.TestCase):
@@ -107,11 +140,31 @@ class RunningFurnitureTest(unittest.TestCase):
         self.assertIn("ACCOUNT AUDIT", right.text.upper())
 
     def test_the_cover_page_carries_no_furniture(self):
-        """A skipped normalization must not be able to stamp a header over the cover."""
-        self.assertTrue(self.section.different_first_page_header_footer)
-        self.assertEqual(0, len(self.section.first_page_header.tables))
-        self.assertEqual(0, len(self.section.first_page_footer.tables))
-        self.assertEqual("", self.section.first_page_header.paragraphs[0].text.strip())
+        """A skipped normalization must not be able to stamp a header over the cover.
+
+        Rendered WITH a cover, because that is the only case the rule applies to. This
+        used to assert the same thing on a cover=False render, which is why the blank
+        first-page furniture was applied unconditionally and stripped the header, the
+        footer and the page number from page one of every no-cover document.
+        """
+        section = _render_with_cover().sections[0]
+        self.assertTrue(section.different_first_page_header_footer)
+        self.assertEqual(0, len(section.first_page_header.tables))
+        self.assertEqual(0, len(section.first_page_footer.tables))
+        self.assertEqual("", section.first_page_header.paragraphs[0].text.strip())
+
+    def test_without_a_cover_page_one_keeps_its_furniture(self):
+        """cover=False means page one is ordinary content, so it keeps the running
+        header, the footer and the page number."""
+        self.assertFalse(self.section.different_first_page_header_footer)
+        self.assertIn("ACCOUNT AUDIT", self.section.header.tables[0].rows[0].cells[1].text.upper())
+
+    def test_without_a_cover_the_title_and_byline_are_in_the_body(self):
+        """With no cover nothing else carries them; the document used to open on
+        whatever followed the byline, with no title anywhere."""
+        texts = [p.text.strip() for p in self.doc.paragraphs if p.text.strip()]
+        self.assertEqual("Fixture", texts[0])
+        self.assertTrue(texts[1].startswith("Prepared by"), texts[1])
 
     def test_doc_label_default_and_override(self):
         self.assertEqual("Account Audit", render_branded._doc_label({}))

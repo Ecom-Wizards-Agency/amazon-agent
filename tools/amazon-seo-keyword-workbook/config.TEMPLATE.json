@@ -12,6 +12,11 @@
     "listing_status": "<optional: e.g. live | currently unavailable>",
     "pack_size": "<optional>"
   },
+  "seo_identity": {
+    "_comment": "REQUIRED. Consumer-facing identity that must appear in BOTH the <=75-character title and the description. Do not infer the consumer brand from the client/account name. product_name is the shortest exact product-line name a shopper recognizes, not the full legacy catalog title.",
+    "brand": "<consumer brand, e.g. Blissta>",
+    "product_name": "<recognizable product name, e.g. Corvael Nattokinase>"
+  },
   "product_facts": {
     "_comment": "Physical product facts from the LABEL/PDP. Fill BEFORE writing seo_content — they gate the title framing (blend vs single) and compliance. ingredient NAMES are factual (allowed); ingredient EFFECTS need an EU register entry at dose (see eu-compliance-matrix.md). The builder warns if this block is missing and checks it when present.",
     "form": "<powder | capsule | tablet | liquid | gummy | ...>",
@@ -108,11 +113,13 @@
     }
   },
   "compliance": {
-    "_comment": "OPTIONAL health-claims compliance layer — see skills/amazon-seo/references/health-claims-compliance.md. category_tier: regulated (supplements/foods-with-claims/health&beauty/medical-adjacent) or standard (household/general). regime: EU or US. risk_posture: standard (kill HIGH only in regulated; keep MEDIUM when it ranks) | conservative | aggressive. Set checked=true after the health-claims self-check ran for this listing. claims_audit: per-term verdicts from a self-check or an Amazon SAS audit; verdict=prohibited terms are merged into triage.claim_tokens at build time.",
+    "_comment": "Health-claims compliance layer — see skills/amazon-seo/references/health-claims-compliance.md. For regulated products, checked=true is not enough: review_date, evidence_file, non-empty claims_audit, and a visible Claim Guardrail SEO row are mandatory. claims_audit verdict=prohibited terms are merged into triage.claim_tokens at build time.",
     "category_tier": "regulated",
     "regime": "EU",
     "risk_posture": "standard",
     "checked": false,
+    "review_date": "<YYYY-MM-DD>",
+    "evidence_file": "<path to dated claims-check markdown or JSON>",
     "claims_audit": [
       {
         "term": "<claim word/phrase>",
@@ -224,7 +231,9 @@
     "listing_reference_json": "evidence/<client>/opportunity-data/<date>_listing.json",
     "out": "output/<client>/seo/<Client> <Product> Keyword Research <date> v1.xlsx",
     "manifest": "output/<client>/seo/<date>_<client>_keyword_research_v1_summary.json",
-    "handoff_note": ""
+    "handoff_note": "",
+    "drive_folder": "<Drive folder id, Drive URL, or mounted path of <Client> - Shared/<Keyword Research>/<Country>; when set, a QA-passed build is delivered as a native Google Sheet automatically. Leave empty to build only.>",
+    "drive_sheet_id": "<leave empty for the first delivery; then paste the delivered Sheet id so rebuilds update it in place>"
   },
   "required_current_tabs": [
     "POE Raw - Reviews",

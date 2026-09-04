@@ -106,11 +106,13 @@ Run the builder and require all validations to pass:
 
 ## 6. Deliver
 
-Copy ONLY the QA-passed final `.xlsx` to the client's Google Drive folder (shared drive `Ecom Wizards`, account `<your-google-account>`):
+Delivery runs inside the build: with `inputs.drive_folder` set in the config, a QA-passed build is delivered as a native Google Sheet through `tools/gdrive-deliver/deliver.py` (receipt saved next to the manifest, `--no-deliver 1` to skip). The destination is the client's Google Drive folder (shared drive `Ecom Wizards`, account `<your-google-account>`):
 
 `<your-gdrive-mount>/Geteilte Ablagen/Ecom Wizards/01_Client Sheets/<Client>/<Client> - Shared/<Keyword Research>/<Country>/`
 
 The workbook is a client deliverable, so it goes inside `<Client> - Shared/`, the only folder the client can see. Everything else under `<Client>/` is internal; never deliver into it (see Google Drive Delivery in `AGENTS.md`).
+
+Once the Sheet exists, set `inputs.drive_sheet_id` to its id (the build prints the id as a hint after a successful delivery; it is the receipt's `remote_id`). Every later QA-passed build then updates that Sheet in place through `tools/gdrive-deliver/update_sheet.py` instead of creating a new one: same file id, comments and links preserved, formatting kept, every workbook tab cleared and rewritten with live formulas, Sheet-only tabs left untouched and listed as `tabs_orphaned` in the receipt. A build with any FAIL never updates the Sheet, exactly as it never delivers. Preview the plan with `python3 tools/gdrive-deliver/update_sheet.py <workbook.xlsx> <sheet id> --dry-run`, which makes no write call.
 
 Folder convention: **one Keyword Research folder per client, with a sub-folder per country**, NOT a folder per run (e.g. `Acme/Acme - Shared/Keyword Research/ES/Acme ES Collagen Keyword Research 2026-06-15 v2.xlsx`). The folder's exact name varies per client (`Keyword Research`, `02 Keyword Research`): list it and reuse the existing one rather than creating a variant. **If the client has only one country, drop the country sub-folder** and put the workbook directly in that folder. New versions of the same run replace the old `.xlsx` in place. **Google Drive is the only delivery target. Do NOT also copy to pCloud** (decided 2026-06-12; the file is converted to a Google Sheet on Drive anyway). This applies to every client. Verify a byte-identical MD5 after copying. Do NOT copy the POE/DataDive raw files or the manifest there. They are embedded in the workbook tabs / kept local working files. Keep the `.xlsx` as the canonical workbook; the native Google Sheet copy is the shareable view.
 

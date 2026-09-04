@@ -84,6 +84,9 @@ DEFAULTS = {
     "seo_content": "",
     "curated_tabs": "",  # optional: JSON of curated tab content to write deterministically.
     "drive_dir": "",  # optional: folder to copy the finished .xlsx into (e.g. the synced Drive folder). Off by default.
+    "drive_folder": "",  # Drive destination for NATIVE delivery: a folder id, a Drive URL, or a mounted folder path. When set (config inputs.drive_folder or --drive-folder) the build delivers the QA-passed workbook as a Google Sheet through tools/gdrive-deliver/deliver.py.
+    "drive_sheet_id": "",  # the ALREADY-DELIVERED native Google Sheet (id or URL). When set (config inputs.drive_sheet_id or --drive-sheet-id) a QA-passed build updates that Sheet IN PLACE through tools/gdrive-deliver/update_sheet.py (same file id, comments and links preserved) instead of creating a new Sheet in drive_folder. Leave empty for the first delivery, then paste the receipt's remote_id.
+    "no_deliver": "",  # set to any non-empty value (or pass --no-deliver 1) to build without delivering or updating even when drive_folder / drive_sheet_id is set.
     "handoff_note": "",
     "artifact_run": "",  # active artifactctl run; workbook waits for a Drive receipt, manifest is reproducible.
 }
@@ -392,6 +395,7 @@ def build_asins(
             link = it.get("link") or it.get("canonical") or it.get("url") or ""
             copy_idx[str(it["asin"]).strip()] = {
                 "title": it.get("title", "") or "", "bullets": bl or "", "link": link or "",
+                "marketplace": it.get("marketplace", "") or "",
             }
 
     def title_for(a: str, fallback: str = "") -> str:
@@ -404,16 +408,27 @@ def build_asins(
         # Clean canonical 'amazon.<tld>/dp/<ASIN>' — this column doubles as the
         # input link list for the listing-capture scrape (matches the ZeroWork
         # 'Format Link' normalization). Falls back to any captured link.
+        # A captured canonical link wins: a reference ASIN can live on another
+        # marketplace (a UK anchor for a DE new-listing run), and rewriting its
+        # host to the config marketplace would point at a page that does not exist.
+        captured = copy_idx.get(a, {}).get("link", "")
+        if captured and re.match(r"https?://(www\.)?amazon\.[a-z.]+/dp/", captured):
+            return captured
         if a and mkt:
             tld = {"italy": "it", "germany": "de", "uk": "co.uk", "spain": "es", "france": "fr"}.get(mkt.lower(), "com")
             return f"https://www.amazon.{tld}/dp/{a}"
-        return copy_idx.get(a, {}).get("link", "")
+        return captured
 
     # Header matches the Google template (+ 'link' column): the captured listing
     # scrape (link | title | bullet_points | ASIN) lands here by default.
     rows = [["ASIN", "role", "marketplace", "brand", "title", "bullet_points", "link", "source"]]
+    # Brand column carries the consumer-facing brand (seo_identity), not the
+    # client/account name; the marketplace column follows the captured listing
+    # when the reference ASIN was captured elsewhere.
+    anchor_brand = (cfg.get("seo_identity") or {}).get("brand") or client
+    anchor_mkt = copy_idx.get(anchor, {}).get("marketplace") or mkt
     rows.append([
-        anchor, "Anchor", mkt, client,
+        anchor, "Anchor", anchor_mkt, anchor_brand,
         title_for(anchor, cfg["product_anchor"].get("product", "")),
         bullets_for(anchor), link_for(anchor),
         "listing_reference_json" if anchor in copy_idx else "config.product_anchor",
@@ -1011,6 +1026,18 @@ def build_seo_text(ws: Worksheet, seo_path: str, result: dict, warnings: list[st
             notes.append(f"Compliance: {item['compliance']}")
         if item.get("rj"):
             notes.append(f"Ranking Juice: {item['rj']}")
+        poe_evidence = item.get("poe_evidence") or []
+        if poe_evidence:
+            rendered = []
+            for evidence in poe_evidence:
+                if isinstance(evidence, dict):
+                    source = str(evidence.get("source") or "POE").strip()
+                    signal = str(evidence.get("signal") or "").strip()
+                    decision = str(evidence.get("copy_decision") or "").strip()
+                    rendered.append(f"{source}: {signal}" + (f" -> {decision}" if decision else ""))
+                else:
+                    rendered.append(str(evidence).strip())
+            notes.append("POE evidence: " + " | ".join(x for x in rendered if x))
         rows.append([section, cur, new_cell, "\n".join(notes)])
 
     clear_rows(ws)
@@ -1489,6 +1516,69 @@ def _seo_copy_by_section(wb) -> tuple[dict, str | None]:
     return out, seo_tab
 
 
+def _phrase_key(value: Any) -> str:
+    """Normalize an identity phrase for ordered, punctuation-insensitive matching."""
+    return " ".join(_RJ_TOKEN_RE.findall(_fold(norm(value))))
+
+
+def _contains_identity_phrase(text: str, phrase: str) -> bool:
+    needle = _phrase_key(phrase)
+    haystack = _phrase_key(text)
+    return bool(needle) and f" {needle} " in f" {haystack} "
+
+
+def _seo_identity_status(cfg: dict, seo_by_section: dict) -> dict:
+    """Return the explicit brand/product identity contract and visible-copy hits.
+
+    Client/account names are not assumed to be consumer-facing brands. Every new
+    config therefore declares the exact identity phrases that must survive the
+    75-character title and description rewrite.
+    """
+    identity = cfg.get("seo_identity") or {}
+    brand = str(identity.get("brand") or "").strip()
+    product = str(identity.get("product_name") or "").strip()
+    title = next(
+        (v for k, v in seo_by_section.items() if k.startswith(("title (≤75", "title (<=75"))),
+        next((v for k, v in seo_by_section.items() if k.startswith("title")), ""),
+    )
+    description = next((v for k, v in seo_by_section.items() if k.startswith("description")), "")
+    return {
+        "present": bool(brand and product),
+        "brand": brand,
+        "product": product,
+        "title": title,
+        "description": description,
+        "title_brand": _contains_identity_phrase(title, brand),
+        "title_product": _contains_identity_phrase(title, product),
+        "description_brand": _contains_identity_phrase(description, brand),
+        "description_product": _contains_identity_phrase(description, product),
+    }
+
+
+def _seo_semantic_evidence_status(seo_path: str) -> dict:
+    """Check that semantic direction records both demand and shopper evidence."""
+    try:
+        with open(seo_path, encoding="utf-8") as source:
+            seo = json.load(source)
+    except (OSError, ValueError, TypeError):
+        return {"count": 0, "sources": [], "has_search": False, "has_shopper": False}
+    semantic = next(
+        (row for row in (seo.get("rows") or []) if norm(row.get("section")).startswith("semantic")),
+        {},
+    )
+    evidence = semantic.get("poe_evidence") or []
+    sources = []
+    for item in evidence:
+        source = item.get("source", "") if isinstance(item, dict) else str(item)
+        sources.append(norm(source))
+    return {
+        "count": len(evidence),
+        "sources": sources,
+        "has_search": any("search" in source for source in sources),
+        "has_shopper": any(("review" in source or "return" in source) for source in sources),
+    }
+
+
 def _resolve_master_sheet(wb, preferred: str) -> str | None:
     """The Core 30% MKL tab — config-named (preferred) or, across template schemes,
     a tab matching MKL+30% or 'Master List' (e.g. '3.1 MKL DataDive 30%' vs
@@ -1830,12 +1920,36 @@ def run_validations(wb, cfg, counts, related_result, paths, warnings) -> list[di
     seo_by_section, seo_tab2 = _seo_copy_by_section(wb)
     master_sv = _master_sv_map(wb, master_sheet)
 
+    identity = _seo_identity_status(cfg, seo_by_section)
+    add(
+        "SEO identity contract present (consumer brand + product name)",
+        identity["present"],
+        f"brand={identity['brand']!r} product_name={identity['product']!r}",
+    )
+    if identity["present"]:
+        add(
+            "Title contains the consumer brand and product name",
+            identity["title_brand"] and identity["title_product"],
+            f"brand={identity['title_brand']} product={identity['title_product']} "
+            f"title={identity['title'][:100]!r}",
+        )
+        add(
+            "Description contains the consumer brand and product name",
+            identity["description_brand"] and identity["description_product"],
+            f"brand={identity['description_brand']} product={identity['description_product']} "
+            f"description={identity['description'][:100]!r}",
+        )
+
     if seo_tab2 and master_sv:
         title_text = next(
             (v for k, v in seo_by_section.items() if k.startswith(("title (≤75", "title (<=75"))),
             next((v for k, v in seo_by_section.items() if k.startswith("title")), ""),
         )
         client_tokens = _rj_tokens(cfg["product_anchor"].get("client", ""))
+        own_identity_tokens = set()
+        for phrase in (cfg.get("campaign_structure", {}).get("own_brand_tokens") or []):
+            own_identity_tokens |= _rj_tokens(phrase)
+        own_identity_tokens |= _rj_tokens(identity.get("brand", ""))
         title_tokens = _rj_tokens(title_text)
         covered_kws = sorted(
             (kw for kw in master_sv if _kw_is_covered(kw, title_tokens)),
@@ -1844,14 +1958,17 @@ def run_validations(wb, cfg, counts, related_result, paths, warnings) -> list[di
         mkl_vocab: set = set()
         for kw in master_sv:
             mkl_vocab |= _rj_tokens(kw)
-        lead_tokens = [t for t in _RJ_TOKEN_RE.findall(_fold(norm(title_text))) if t not in client_tokens]
+        lead_tokens = [
+            t for t in _RJ_TOKEN_RE.findall(_fold(norm(title_text)))
+            if t not in client_tokens and t not in own_identity_tokens
+        ]
         lead = lead_tokens[0] if lead_tokens else ""
         lead_tracked = bool(lead) and (
             lead in mkl_vocab
             or any(len(lead) >= 4 and (v.startswith(lead) or lead.startswith(v)) for v in mkl_vocab if len(v) >= 4)
         )
         add(
-            "Title leads with a tracked MKL keyword (not a root)",
+            "Title's first non-identity term is a tracked MKL keyword (not a root)",
             bool(covered_kws) and lead_tracked,
             f"lead={lead!r} lead_in_MKL={lead_tracked} title_covers_kws={len(covered_kws)} top={covered_kws[:3]}",
         )
@@ -1901,10 +2018,10 @@ def run_validations(wb, cfg, counts, related_result, paths, warnings) -> list[di
                  if norm(i.get("name")) and lead in _RJ_TOKEN_RE.findall(_fold(norm(i.get("name"))))),
                 None,
             )
-            if led_by_ing:
+            if led_by_ing and not identity.get("title_product"):
                 warnings.append(
                     f"Blend title appears to lead with a single ingredient ({led_by_ing!r}) — use a generic "
-                    f"blend signal (-Komplex/-Mix) and move ingredient names to Item Highlights."
+                    f"blend signal (-Komplex/-Mix) unless the phrase is the configured product identity."
                 )
 
     if seo_tab2:
@@ -1914,6 +2031,38 @@ def run_validations(wb, cfg, counts, related_result, paths, warnings) -> list[di
             bool(sem and sem.strip()),
             f"present={sem is not None} non_empty={bool(sem and sem.strip())}",
         )
+        semantic_evidence = _seo_semantic_evidence_status(paths.get("seo_content", ""))
+        add(
+            "Semantic direction cites POE search demand and shopper evidence",
+            semantic_evidence["count"] >= 2
+            and semantic_evidence["has_search"]
+            and semantic_evidence["has_shopper"],
+            f"evidence={semantic_evidence['count']} sources={semantic_evidence['sources']}",
+        )
+
+        # Bullet length cap (operator rule, 04.09.2026): each bullet's publishable
+        # first line stays within 250 characters including spaces. Amazon's own
+        # category caps vary and long bullets truncate on mobile, so this is a
+        # hard FAIL rather than a style note.
+        long_bullets = []
+        for k, v in seo_by_section.items():
+            if k.startswith("bullet"):
+                first = (v or "").strip().splitlines()[0] if (v or "").strip() else ""
+                if len(first) > 250:
+                    long_bullets.append(f"{k}={len(first)}")
+        add(
+            "Bullets are within 250 characters each",
+            not long_bullets,
+            f"over_cap={long_bullets}" if long_bullets else "all bullets <= 250 chars",
+        )
+
+        guardrail = next((v for k, v in seo_by_section.items() if k.startswith("claim guardrail")), None)
+        if norm(cfg.get("compliance", {}).get("category_tier")) == "regulated":
+            add(
+                "Regulated SEO has a visible Claim Guardrail row",
+                bool(guardrail and guardrail.strip()),
+                f"present={guardrail is not None} non_empty={bool(guardrail and guardrail.strip())}",
+            )
 
         # Separator contract (seo-writing-methodology.md §3), revised 2026-07-26:
         # the spaced EN-dash ' – ' is the TITLE separator; Item Highlights take
@@ -2068,13 +2217,30 @@ def run_validations(wb, cfg, counts, related_result, paths, warnings) -> list[di
              "(disclaimer belongs in the description as a full sentence)"),
         )
 
-    # Regulated-category nudge: the health-claims self-check must have run
-    # before delivery (skills/amazon-seo/references/health-claims-compliance.md).
+    # Regulated-category evidence gate: a boolean alone cannot prove that the
+    # mandatory health-claims self-check ran. Require a date, a readable audit
+    # artifact, and per-claim decisions, then surface the decision in the SEO tab.
     comp = cfg.get("compliance") or {}
-    if norm(comp.get("category_tier")) == "regulated" and not comp.get("checked"):
-        warnings.append(
-            "Regulated category: health-claims self-check not recorded — run "
-            "/health-claims-check for this listing and set compliance.checked=true."
+    if norm(comp.get("category_tier")) == "regulated":
+        evidence_file = os.path.expanduser(str(comp.get("evidence_file") or ""))
+        if evidence_file and not os.path.isabs(evidence_file):
+            evidence_file = os.path.join(REPO, evidence_file)
+        reviewed_at = str(comp.get("review_date") or comp.get("checked_at") or "").strip()
+        audit = comp.get("claims_audit") or []
+        add(
+            "Regulated health-claims check has dated evidence and per-claim decisions",
+            bool(comp.get("checked"))
+            and bool(re.fullmatch(r"\d{4}-\d{2}-\d{2}(?:[T ].*)?", reviewed_at))
+            and bool(evidence_file and os.path.isfile(evidence_file))
+            and bool(audit)
+            and all(
+                norm(item.get("term")) and norm(item.get("verdict"))
+                and norm(item.get("basis")) and norm(item.get("routing"))
+                for item in audit if isinstance(item, dict)
+            ),
+            f"checked={bool(comp.get('checked'))} review_date={reviewed_at!r} "
+            f"evidence_file={evidence_file!r} exists={bool(evidence_file and os.path.isfile(evidence_file))} "
+            f"claims={len(audit)}",
         )
 
     return checks
@@ -2205,8 +2371,11 @@ def resolve_handoff_path(configured: str, cfg: dict, args: dict, warnings: list[
     Shared team vault first so teammates and their agents see the run, repo
     output/ as the fallback. An explicit inputs.handoff_note always wins.
     """
-    if str(configured or "").strip():
-        return str(configured).strip()
+    configured = str(configured or "").strip()
+    # An empty inputs.handoff_note is resolved to the repo root by the path
+    # loader; a directory can never be the note, so treat it as unset.
+    if configured and not os.path.isdir(configured):
+        return configured
     out = args.get("out") or ""
     if not out:
         return ""
@@ -2481,7 +2650,17 @@ def main() -> int:
 
     for k, v in (cfg.get("inputs") or {}).items():
         if k in DEFAULTS and k not in explicit:
-            args[k] = _resolve(v)
+            # drive_folder may be a Drive folder id or URL rather than a path;
+            # only resolve it when it names something on this machine.
+            if k == "drive_folder":
+                raw = os.path.expanduser(str(v or "")).strip()
+                args[k] = _resolve(raw) if raw and (os.sep in raw or os.path.exists(raw)) and not raw.startswith("http") else raw
+            elif k == "drive_sheet_id":
+                # A Sheet id or URL, never a path. The template's "<...>" placeholder means unset.
+                raw = str(v or "").strip()
+                args[k] = "" if raw.startswith("<") else raw
+            else:
+                args[k] = _resolve(v)
 
     if args.get("preflight"):
         return run_preflight(cfg, args)
@@ -2855,6 +3034,68 @@ def main() -> int:
         print("\n=== WARNINGS ===")
         for w in warnings:
             print("  -", w)
+
+    # --- Native Google Sheet delivery (opt-in per config) ------------------- #
+    # Deliverables are native Google files, never .xlsx in Drive (AGENTS.md,
+    # Google Drive Delivery). Two routes, chosen by the config:
+    #   inputs.drive_sheet_id set -> the Sheet already exists: update it IN PLACE
+    #       through tools/gdrive-deliver/update_sheet.py (same file id, comments
+    #       and links preserved, formatting kept, tabs cleared and rewritten).
+    #   inputs.drive_folder set   -> first delivery: create a new native Sheet
+    #       through tools/gdrive-deliver/deliver.py.
+    # Either way a build with any FAIL is never delivered or updated; the
+    # workbook stays local for the fix.
+    drive_sheet_id = str(args.get("drive_sheet_id") or "").strip()
+    if drive_sheet_id.startswith("<"):  # untouched template placeholder
+        drive_sheet_id = ""
+    drive_folder = str(args.get("drive_folder") or "").strip()
+    if (drive_sheet_id or drive_folder) and not args.get("no_deliver"):
+        if manifest["validations_all_pass"]:
+            stem = os.path.splitext(os.path.basename(args["out"]))[0]
+            receipt_path = os.path.join(os.path.dirname(args["manifest"]), f"{stem}.drive-receipt.json")
+            if drive_sheet_id:
+                mode = "in-place update"
+                cmd = [sys.executable, os.path.join(REPO, "tools", "gdrive-deliver", "update_sheet.py"),
+                       args["out"], drive_sheet_id, "--receipt-file", receipt_path]
+                print(f"\nUpdating the delivered native Google Sheet in place: {drive_sheet_id}")
+            else:
+                mode = "delivery"
+                cmd = [sys.executable, os.path.join(REPO, "tools", "gdrive-deliver", "deliver.py"),
+                       args["out"], drive_folder, "--name", stem, "--receipt-file", receipt_path]
+                print(f"\nDelivering to Drive as a native Google Sheet: {drive_folder}")
+            if args.get("artifact_run"):
+                cmd += ["--artifact-run", args["artifact_run"]]
+            proc = subprocess.run(cmd, cwd=REPO, text=True, capture_output=True)
+            sys.stdout.write(proc.stdout)
+            receipt = json.load(open(receipt_path, encoding="utf-8")) if os.path.exists(receipt_path) else None
+            if proc.returncode == 0 and receipt:
+                manifest["outputs"]["drive_native"] = receipt
+                manifest["outputs"]["drive_receipt"] = receipt_path
+                link = (receipt.get("web_view_link") or receipt.get("webViewLink")
+                        or receipt.get("url") or receipt.get("remote_id") or receipt)
+                if drive_sheet_id:
+                    print(f"Updated native Google Sheet in place: {link}")
+                else:
+                    print(f"Delivered native Google Sheet: {link}")
+                    if receipt.get("remote_id"):
+                        print(f"Hint: set inputs.drive_sheet_id to {receipt['remote_id']} in the config so "
+                              "future builds update this Sheet in place (same file id, comments and "
+                              "links preserved) instead of creating a new one.")
+            else:
+                sys.stderr.write(proc.stderr)
+                if receipt:
+                    # update_sheet.py leaves a receipt with verified=false when the
+                    # read-back mismatched: the Sheet was written, so keep the evidence.
+                    manifest["outputs"]["drive_native"] = receipt
+                    manifest["outputs"]["drive_receipt"] = receipt_path
+                warnings.append(f"Drive {mode} FAILED (exit {proc.returncode}); the local .xlsx is intact: {args['out']}")
+                manifest["warnings"] = warnings
+                print(f"WARNING: Drive {mode} failed (exit {proc.returncode}); see stderr above.")
+            json.dump(manifest, open(args["manifest"], "w", encoding="utf-8"), ensure_ascii=False, indent=2)
+        else:
+            failed = [c["check"] for c in checks if not c["pass"]]
+            warnings.append(f"Drive delivery/update skipped: {len(failed)} validation FAIL(s): {failed[:4]}")
+            print(f"Drive delivery/update skipped because the build has FAIL checks: {failed[:4]}")
 
     return 0 if manifest["validations_all_pass"] else 1
 

@@ -12,7 +12,9 @@ Use this workflow for variation and parentage changes. Routine listing-content u
 4. Read the CLR as evidence only. Never use it as the upload base.
 5. Prepare a manifest from `tools/amazon-catalog-change-pack/config.TEMPLATE.json`.
 6. Build the change pack and review `02-change-manifest.md` with the assigned senior.
-7. Hand off the validated upload files. The assigned senior performs the final submission.
+7. Show the assigned senior the exact validated file, account, marketplace, operation, and
+   SKU scope. Submit only after explicit approval for that exact upload in the current
+   chat or under a matching local standing permission; otherwise hand off the files.
 
 ### Validate catalog upload file
 

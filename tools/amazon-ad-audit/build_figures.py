@@ -179,6 +179,20 @@ def _frame(ax, P, xgrid=False, ygrid=False):
         ax.yaxis.grid(True, color=P["hair"], lw=0.8); ax.set_axisbelow(True)
 
 
+def _ordinal(n):
+    """1 -> '1st', 2 -> '2nd', 3 -> '3rd', 4 -> '4th', 11/12/13 -> 'th'.
+
+    The brand-leak headline used to hardcode 'th', so a client-facing chart
+    shipped "You are 2th."
+    """
+    n = int(n)
+    if 10 <= n % 100 <= 20:
+        suffix = "th"
+    else:
+        suffix = {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
+    return f"{n}{suffix}"
+
+
 def _title(ax, P, t, sub=None):
     ax.set_title(t, fontsize=12.5, fontweight="bold", color=P["ink"], loc="left",
                  pad=28 if sub else 10)
@@ -372,6 +386,12 @@ def _client_price(cfg, asins):
     return None, None
 
 
+# What counts as a real gap on the price/rating chart, rather than noise worth a
+# headline. Below these the chart says the client is typical, because they are.
+PRICE_MATERIAL = 0.10      # fraction above the category median price
+RATING_MATERIAL = 0.3      # stars below the category median rating
+
+
 def _price_vs_rating(plt, P, cfg, comps, asins, out):
     """Price against RATING, with review count as bubble size.
 
@@ -479,13 +499,34 @@ def _price_vs_rating(plt, P, cfg, comps, asins, out):
     sub = "Bubble size is the number of ratings."
     if clipped:
         names = ", ".join(sorted({c.get("brand", "?") for c in clipped}))
-        sub += f" {names} sits below {lo_view:.1f}\u2605 and is off the scale here."
+        one = len(clipped) == 1
+        sub += (f" {names} {'sits' if one else 'sit'} below {lo_view:.1f}\u2605 and "
+                f"{'is' if one else 'are'} off the scale here.")
     if own:
+        # Headline by MAGNITUDE against the category median, not by rank against rivals.
+        # A rank count ("rated below 16 of 25") is loud and says nothing about size: a
+        # client sitting 0.02 stars off the category mean scores identically to one
+        # sitting a full star below it, and the chart then shouts a finding that the
+        # body copy has to walk back. Blyss 2026-08 shipped exactly that contradiction.
         m = own[0]
-        cheaper = sum(1 for c in others if c["price"] < m["price"])
-        better = sum(1 for c in others if c["rating"] > m["rating"])
-        head = (f"You charge more than {cheaper} of {len(others)} rivals "
-                f"and are rated below {better} of them.")
+        med_r = sorted(ratings)[len(ratings) // 2]
+        dp = (m["price"] / med_p - 1) if med_p else 0.0
+        dr = m["rating"] - med_r
+        hi_p, lo_r = dp >= PRICE_MATERIAL, dr <= -RATING_MATERIAL
+        pw = f"{abs(dp) * 100:.0f}% {'above' if dp >= 0 else 'below'} the median price"
+        rw = f"{abs(dr):.1f}\u2605 {'below' if dr < 0 else 'above'} the median rating"
+        if hi_p and lo_r:
+            head = f"You are {pw} and {rw}."
+        elif hi_p:
+            head = f"You are {pw}, at about the category's median rating."
+        elif lo_r:
+            head = f"You are {rw}, at about the category's median price."
+        else:
+            head = "You sit close to the category on both price and rating."
+        # Keep this short. The median PRICE is already annotated on its own gridline,
+        # and a long subtitle widens the saved canvas under bbox_inches="tight" until
+        # the axes occupy about half the image.
+        sub += f" Category rating: median {med_r:.1f}\u2605, mean {sum(ratings) / len(ratings):.2f}\u2605."
     else:
         head = "Price against rating across the niche"
     _title(ax, P, head, sub)
@@ -556,7 +597,7 @@ def _brand_name_leak(plt, P, cfg, kws, comps, asins, out):
 
     win = rows[0]
     me = next((r for r in rows if r["is_me"]), None)
-    head = (f'{win["brand"]} ranks #{win["rank"]} on "{top["keyword"]}". You are {me["rank"]}th.'
+    head = (f'{win["brand"]} ranks #{win["rank"]} on "{top["keyword"]}". You are {_ordinal(me["rank"])}.'
             if me and not win["is_me"] else f'Organic rank on "{top["keyword"]}"')
     # Do NOT claim rank 10 is the page break: page 1 runs to about rank 48 (see
     # _rank_distribution). Say what is true and what matters, which is how many rivals

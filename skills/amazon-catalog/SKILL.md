@@ -5,7 +5,7 @@ description: "Plan and validate Amazon catalog changes, including variations, pa
 
 # Amazon Catalog
 
-Browser: Mixed (file builds are local; template downloads/uploads run over CDP; stop before upload).
+Browser: Mixed (file builds are local; template downloads/uploads run over CDP; exact approval is required before upload).
 
 ## Workflow
 
@@ -15,7 +15,14 @@ Browser: Mixed (file builds are local; template downloads/uploads run over CDP; 
 4. Use MAG catalog SOPs for step-by-step UI or flat-file execution.
 5. Decide manual UI vs flat-file vs support case.
 6. Preserve current state before edits.
-7. Stop before saving listing changes, deleting/relisting, uploading feeds, or submitting support cases.
+7. Before saving listing changes, deleting/relisting, uploading feeds, or submitting
+   support cases, obtain the operator's explicit approval for that exact action and
+   reviewed payload in the current chat, or verify a matching scoped permission in
+   `_local/local-permissions.md`.
+8. Immediately before the approved action, re-verify the account, marketplace, ASINs,
+   SKUs, operation, and file or field values. If the final screen changes a material term,
+   stop for new approval. After submission, capture the batch or submission identifier
+   and verify the processing result per SKU.
 
 ## Team Entry Points
 
@@ -27,7 +34,10 @@ For variation and parentage work, load `references/team-catalog-change-workflow.
 
 Tool location: `tools/amazon-catalog-change-pack/`.
 
-Every build must produce a scoped change pack under `output/{client}/catalog/{date}-{operation}/`. Review `02-change-manifest.md` before upload. The assigned senior performs the final submission manually.
+Every build must produce a scoped change pack under `output/{client}/catalog/{date}-{operation}/`.
+Review `02-change-manifest.md` before upload. The current agent may perform the final
+submission only after the exact file and operation receive approval under the gate above;
+otherwise hand the validated pack to the assigned senior.
 
 Routine titles, bullets, descriptions, images, backend attributes, and normal listing-content edits remain in FlatFilePro. Do not route those through the variation builder.
 
@@ -35,7 +45,7 @@ Routine titles, bullets, descriptions, images, backend attributes, and normal li
 
 For creating or editing variation families (parentage) or any targeted flat-file edit, load `references/parentage-flatfile-playbook.md` BEFORE building or reviewing the file. Non-negotiables from live-verified runs:
 
-- Upload base = a fresh **blank template** (single-country, correct browse node). The Category Listings Report is a **data source only**; re-uploading its echoed values fails current-schema validation.
+- Upload base = a fresh **blank template** (single-country, correct browse node), downloaded from the **target seller account itself**. Never reuse another client's template, and never reuse one whose marketplace or product type differs. Verify it before building: the `settings=` string in cell A1 of the `Template` sheet carries `contributorId=amzn1.cr.o.<merchantId>`, and that merchant id must equal the one the account resolves to. A template from another account carries that account's contributor id, preference profile and browse-classification selection, and may ship prefilled data rows belonging to that client. The Category Listings Report is a **data source only**; re-uploading its echoed values fails current-schema validation.
 - Parent rows: Full Update, generic title, ALL required attributes filled (Data Definitions sheet), no variation/offer/condition data.
 - Child rows: minimal Partial Update (parentage fields + the variation attribute value, nothing else echoed).
 - Map template columns by attribute name, never by index; read `dataRow` from the settings cell (it varies by template flavor).
@@ -55,3 +65,9 @@ For every Brand Store build or update, first load the team vault's
   draft build that the published Store is unchanged.
 - Treat preview, submission for moderation, scheduling, and publishing as separate
   actions. Do not submit, schedule, or publish without approval for that exact action.
+- Upload a separate mobile asset only when the mobile design genuinely differs
+  from the desktop frame. Page Banners and same-ratio tiles use the desktop asset
+  alone.
+- A Product Grid is driven by one catalog search term. The prefilled breadcrumb
+  term matches nothing and renders an empty grid silently, so set a real term and
+  confirm the editor reads `Showing N ASINs` after reopening it.

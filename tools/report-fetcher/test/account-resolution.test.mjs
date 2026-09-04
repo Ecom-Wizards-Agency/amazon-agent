@@ -6,7 +6,7 @@
  */
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { mkdtempSync } from "node:fs";
+import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -16,6 +16,12 @@ import { startFakeCdp } from "./helpers/fake-cdp.mjs";
 
 const RUN = fileURLToPath(new URL("../run.mjs", import.meta.url));
 const OUT_DIR = mkdtempSync(join(tmpdir(), "report-fetcher-test-"));
+const BROWSER_RUNTIME = mkdtempSync(join(tmpdir(), "report-fetcher-browser-test-"));
+
+test.after(() => {
+  rmSync(OUT_DIR, { recursive: true, force: true });
+  rmSync(BROWSER_RUNTIME, { recursive: true, force: true });
+});
 
 function runCli(port, cliArgs) {
   return new Promise((resolve) => {
@@ -23,6 +29,7 @@ function runCli(port, cliArgs) {
       env: {
         ...process.env,
         CDP_HOST: "127.0.0.1", CDP_PORT: String(port), CDP_AUTOSTART: "0",
+        CDP_ENABLE_TEST_LEASES: "1", AMAZON_BROWSER_RUNTIME_DIR: BROWSER_RUNTIME,
         REPORT_FETCHER_SETTLE_MS: "100",
       },
     });
@@ -137,6 +144,58 @@ test("--account verified via matching --expect-account name proceeds with the hi
     const { out } = await runCli(fake.port, [...BUSINESS_ARGS, "--marketplace", "us", "--account", "amzn1.merchant.o.SOMEID", "--expect-account", "Example Brand"]);
     assert.match(out, /verified via --expect-account "Example Brand"/, out);
     assert.match(out, /Account check: OK/, out);
+  } finally {
+    await fake.close();
+  }
+});
+
+test("a stale pinned tab from the previous seller does not override the newest requested-account tab", { concurrency: false }, async () => {
+  const requestedFacts = { url: "https://sellercentral.amazon.com/myinventory/inventory", title: "Manage Inventory", csrfMeta: true, chooserButtonCount: 0 };
+  const requestedIdentity = { displayName: "Evora Body", partnerAccountId: null, merchantId: "EVORA", marketplace: null, err: null };
+  const staleFacts = { url: "https://sellercentral.amazon.com/business-reports?mons_sel_dir_mcid=ALPHA", title: "Business Reports", csrfMeta: true, chooserButtonCount: 0 };
+  const staleIdentity = { displayName: "AlphaInfuse", partnerAccountId: null, merchantId: "ALPHA", marketplace: null, err: null };
+  const fake = await startFakeCdp({
+    targets: [
+      { id: "NEWEST", url: requestedFacts.url, behavior: pageBehavior({ facts: requestedFacts, identity: requestedIdentity }) },
+      { id: "STALE", url: staleFacts.url, behavior: pageBehavior({ facts: staleFacts, identity: staleIdentity }) },
+    ],
+  });
+  try {
+    const { out } = await runCli(fake.port, [
+      ...BUSINESS_ARGS, "--marketplace", "us", "--account", "EVORA", "--expect-account", "Evora Body",
+    ]);
+    assert.match(out, /Account: Evora Body/, out);
+    assert.match(out, /Account check: OK/, out);
+    assert.doesNotMatch(out, /AlphaInfuse/, out);
+  } finally {
+    await fake.close();
+  }
+});
+
+test("name-based switching does not inherit another seller's stale pinned tab", { concurrency: false }, async () => {
+  const auFacts = { url: "https://sellercentral.amazon.com.au/myinventory/inventory", title: "Manage Inventory AU", csrfMeta: true, chooserButtonCount: 0 };
+  const auIdentity = { displayName: "Svens Island Australia", partnerAccountId: null, merchantId: "AU", marketplace: null, err: null };
+  const unknownFacts = { url: "https://sellercentral.amazon.com/business-reports", title: "Business Reports", csrfMeta: false, chooserButtonCount: 0 };
+  const requestedFacts = { url: "https://sellercentral.amazon.com/myinventory/inventory", title: "Manage Inventory", csrfMeta: true, chooserButtonCount: 0 };
+  const requestedIdentity = { displayName: "Simply Nootropics", partnerAccountId: "DELEGATED", merchantId: null, marketplace: null, err: null };
+  const staleFacts = { url: "https://sellercentral.amazon.com/business-reports?mons_sel_dir_mcid=ALPHA", title: "Business Reports", csrfMeta: true, chooserButtonCount: 0 };
+  const staleIdentity = { displayName: "AlphaInfuse", partnerAccountId: null, merchantId: "ALPHA", marketplace: null, err: null };
+  const fake = await startFakeCdp({
+    targets: [
+      { id: "CROSSORIGIN", url: auFacts.url, behavior: pageBehavior({ facts: auFacts, identity: auIdentity }) },
+      { id: "UNKNOWN", url: unknownFacts.url, behavior: pageBehavior({ facts: unknownFacts, identity: null }) },
+      { id: "NEWEST", url: requestedFacts.url, behavior: pageBehavior({ facts: requestedFacts, identity: requestedIdentity }) },
+      { id: "STALE", url: staleFacts.url, behavior: pageBehavior({ facts: staleFacts, identity: staleIdentity }) },
+    ],
+  });
+  try {
+    const { out } = await runCli(fake.port, [
+      ...BUSINESS_ARGS, "--marketplace", "us", "--expect-account", "Simply Nootropics",
+      "--account-name", "Simply Nootropics", "--marketplace-label", "United States",
+    ]);
+    assert.match(out, /Account check: OK/, out);
+    assert.match(out, /Simply Nootropics/, out);
+    assert.doesNotMatch(out, /does NOT match/, out);
   } finally {
     await fake.close();
   }

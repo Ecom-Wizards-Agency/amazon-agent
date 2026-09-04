@@ -46,9 +46,9 @@ On machines with separate profiles, the two hold independent sessions and do not
 | Account health check | `amazon-account-health-check` | CDP | SC Account Health | Needs `Review details` clicks + screenshot evidence. |
 | Weekly/monthly operational checks | `amazon-operational-checks` (`/operational-checks`) | Mixed | Seller Central; Google Drive, Slack, and task connectors. Fee, dimension and weight findings come from the precomputed Keepa market-signals state file, with no browser | Dormant until explicit setup and activation; shipment checks are exception-only and never submit reconciliation. |
 | Support cases, buyer messages, refunds | `amazon-communications` | CDP | SC case log / messaging | Stop before send. |
-| Shipments, removals, AWD | `amazon-logistics` | CDP | Send to Amazon flows | Stop before creating/confirming shipments. |
+| Shipments, removals, AWD | `amazon-logistics` | CDP | Send to Amazon flows | Exact approval is required before creating/confirming shipments. |
 | Inventory planning inputs | `amazon-fba-inventory-planning` | Mixed | fresh SC reports via CDP fetcher where covered; other UI exports over CDP | Same-day reports rule applies. |
-| Catalog / parentage flat files | `amazon-catalog` | Mixed | template downloads + uploads over CDP; file builds local | Stop before upload. |
+| Catalog / parentage flat files | `amazon-catalog` | Mixed | template downloads + uploads over CDP; file builds local | Exact approval is required before upload. |
 | Ads console operations (bids, budgets, targeting) | `amazon-ads-console` | CDP | Ads Campaign Manager | Stop before changes. |
 | Troubleshooting / suppressed listings | `amazon-troubleshooting` | CDP | wherever the symptom is | Capture exact error text. |
 | Serious regulated-product suppression appeal packs | `amazon-regulated-product-appeals` | Mixed | first-party policy research in Chrome; pack generation and validation local | Victor signoff required; submission remains separate. |
@@ -58,7 +58,10 @@ On machines with separate profiles, the two hold independent sessions and do not
 - Account/marketplace verification before task work applies to every path, including the CDP profile.
 - Browser mode comes from the machine policy. Evo X1 keeps ports 9222 and 9223 headed; `ensureChrome()` never changes a running mode.
 - Browser priority is port 9222 by default, port 9223 for Wizards AI, and T3 Code in-app only by explicit choice.
-- US, DE, and AUS anchors are maintained additively on both Evo X1 ports. Other tabs are preserved unless an expired registered lease authorizes cleanup.
+- US, DE, and AUS anchors are maintained additively on both Evo X1 ports. A newly discovered unregistered tab receives a two-hour inspection lease before inactivity can authorize cleanup; standard presets continue to preserve unknown tabs.
+- Anchors are home-page reserves, never workflow tabs. One stable task ID owns
+  one primary target across steps and retries. Extra targets require a named
+  slot, a site-created popup, or an explicit operator request.
 - Seller Central and FlatFilePro logins may use the exact-origin 1Password broker on ports 9222 and 9223. Human challenges remain operator-only, and no credential enters agent output.
 - One login per Seller Central region; switch marketplaces via the in-app switcher, never by changing the domain.
 - Stop-before-risk gates are path-independent: a send/upload/publish needs explicit approval no matter which browser executed the steps.

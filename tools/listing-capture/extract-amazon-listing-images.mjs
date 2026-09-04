@@ -11,7 +11,8 @@
 // Runs against the dedicated debug Chrome over CDP (port 9222), same profile as the
 // report fetcher, so it uses the operator's existing session. It opens its own tab and
 // closes it again.
-import { ensureChrome, createPage, releasePage, evaluate } from '../report-fetcher/cdp.mjs';
+import { evaluate } from '../report-fetcher/cdp.mjs';
+import { acquireTaskPage, releaseTaskPage, taskIdFor } from '../browserctl/task-tabs.mjs';
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 
@@ -82,11 +83,14 @@ const EXPR = `(() => {
   return res;
 })()`;
 
-await ensureChrome();
-// createPage returns an already-open Session, not a ws URL.
-const { targetId, session: s } = await createPage(url);
+const taskPage = await acquireTaskPage({
+  taskId: taskIdFor('listing-image-capture', `${market}|${asin}|${out || ''}`),
+  workflow: 'amazon-listing-capture', initialUrl: url,
+});
+const s = taskPage.session;
 let leaseOutcome = 'success';
 try {
+  await s.send('Page.navigate', { url });
   await s.send('Runtime.enable', {});
   // let the image block hydrate
   await new Promise(r => setTimeout(r, 6000));
@@ -104,6 +108,5 @@ try {
   leaseOutcome = 'error';
   throw error;
 } finally {
-  try { s.close(); } catch (_) {}
-  await releasePage(targetId, { outcome: leaseOutcome });
+  await releaseTaskPage(taskPage, { outcome: leaseOutcome }).catch(() => {});
 }

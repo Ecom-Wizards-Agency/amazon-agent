@@ -275,47 +275,45 @@ def validate_manifest(manifest: dict[str, Any], *, require_files: bool = True) -
 
 
 def read_report_skus(path: Path) -> set[str]:
-    """Read SKU values from modern CLRs or conventional SKU-column reports."""
+    """Read SKU values from modern CLRs or conventional SKU-column reports.
+
+    Each sheet is streamed once. Read-only worksheets resolve ``sheet.cell()``
+    by rescanning from the top, so per-cell access over a wide report costs
+    minutes per sheet; row streaming keeps the same scan semantics.
+    """
     workbook = openpyxl.load_workbook(path, read_only=True, data_only=True, keep_vba=False)
     found: set[str] = set()
+
+    def collect(rows: list[tuple[Any, ...]], sku_index: int, first_data_row: int) -> None:
+        for row in rows[first_data_row - 1:]:
+            if sku_index < len(row) and nonempty(row[sku_index]):
+                found.add(str(row[sku_index]).strip())
+
+    def header_index(row: tuple[Any, ...], names: set[str]) -> int | None:
+        return next((i for i, value in enumerate(row) if normalized(value) in names), None)
+
     try:
         for sheet in workbook.worksheets:
-            settings = str(sheet["A1"].value or "")
+            rows = list(sheet.iter_rows(values_only=True))
+            if not rows:
+                continue
+            settings = str(rows[0][0] or "") if rows[0] else ""
             if "settings" in settings.lower():
                 try:
                     attribute_row = parse_setting(settings, "attributeRow")
                     data_row = parse_setting(settings, "dataRow")
-                    sku_col = next(
-                        (
-                            col
-                            for col in range(1, sheet.max_column + 1)
-                            if normalized(sheet.cell(attribute_row, col).value) in {"itemsku", "sku"}
-                        ),
-                        None,
-                    )
-                    if sku_col:
-                        for row in range(data_row, sheet.max_row + 1):
-                            value = sheet.cell(row, sku_col).value
-                            if nonempty(value):
-                                found.add(str(value).strip())
-                        continue
+                    if attribute_row <= len(rows):
+                        sku_index = header_index(rows[attribute_row - 1], {"itemsku", "sku"})
+                        if sku_index is not None:
+                            collect(rows, sku_index, data_row)
+                            continue
                 except CatalogError:
                     pass
-            for header_row in range(1, min(sheet.max_row, 25) + 1):
-                sku_col = next(
-                    (
-                        col
-                        for col in range(1, sheet.max_column + 1)
-                        if normalized(sheet.cell(header_row, col).value) in {"itemsku", "sku", "sellersku"}
-                    ),
-                    None,
-                )
-                if not sku_col:
+            for header_row, row in enumerate(rows[:25], start=1):
+                sku_index = header_index(row, {"itemsku", "sku", "sellersku"})
+                if sku_index is None:
                     continue
-                for row in range(header_row + 1, sheet.max_row + 1):
-                    value = sheet.cell(row, sku_col).value
-                    if nonempty(value):
-                        found.add(str(value).strip())
+                collect(rows, sku_index, header_row + 1)
                 break
     finally:
         close_workbook(workbook)
@@ -706,6 +704,11 @@ def expected_for_file(manifest: dict[str, Any], file_path: Path) -> tuple[str, l
     )
 
 
+def normalized_metadata(value: Any) -> Any:
+    """Blank cells compare equal whether openpyxl reads them as "" or None."""
+    return None if value is None or str(value).strip() == "" else value
+
+
 def validate_workbook(manifest: dict[str, Any], path: Path) -> list[str]:
     if not path.exists():
         raise CatalogError(f"Workbook does not exist: {path}")
@@ -798,7 +801,11 @@ def validate_workbook(manifest: dict[str, Any], path: Path) -> list[str]:
     template_info = load_template(template)
     for row in range(1, min(info.data_row, template_info.data_row)):
         for col in range(1, min(info.sheet.max_column, template_info.sheet.max_column) + 1):
-            if info.sheet.cell(row, col).value != template_info.sheet.cell(row, col).value:
+            # A blank template cell can round-trip as "" or None through
+            # openpyxl. Both mean "empty" to Amazon, so compare them as equal.
+            if normalized_metadata(info.sheet.cell(row, col).value) != normalized_metadata(
+                template_info.sheet.cell(row, col).value
+            ):
                 issues.append(f"template metadata changed at {info.sheet.cell(row, col).coordinate}")
                 break
         if issues and issues[-1].startswith("template metadata changed"):

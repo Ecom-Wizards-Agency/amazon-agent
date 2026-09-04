@@ -92,7 +92,13 @@ const CONFIRM = `(() => {
 function shipToMatches(shipTo, postcode) {
   if (!shipTo) return false;
   const norm = (s) => String(s).toLowerCase().replace(/[^a-z0-9]/g, "");
-  return norm(shipTo).includes(norm(postcode));
+  if (norm(shipTo).includes(norm(postcode))) return true;
+  // amazon.co.uk masks the inward code: "SW1A 1AA" renders as "London SW1A 1" plus a
+  // zero-width joiner, so the full postcode never reads back. Accept the outward code
+  // plus the first inward digit when the postcode has a two-part UK shape.
+  const uk = String(postcode).trim().match(/^([a-z]{1,2}\d[a-z\d]?)\s*(\d)[a-z]{2}$/i);
+  if (uk) return norm(shipTo).includes(norm(uk[1] + uk[2]));
+  return false;
 }
 
 /**

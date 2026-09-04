@@ -13,6 +13,8 @@ from build_keyword_workbook import (  # noqa: E402
     BROWSER_INPUT_KEYS,
     MCP_INPUT_KEYS,
     SETUP_INPUT_KEYS,
+    _seo_identity_status,
+    _seo_semantic_evidence_status,
     run_preflight,
 )
 
@@ -79,6 +81,38 @@ class AgentNeutralKeywordPreflightTest(unittest.TestCase):
     def test_ready_continues_current_run(self):
         rendered = self._run(mcp_present=True, browser_present=True)
         self.assertIn("continue the current run", rendered)
+
+
+class SeoEvidenceGateTest(unittest.TestCase):
+    def test_identity_requires_brand_and_product_in_title_and_description(self):
+        cfg = {"seo_identity": {"brand": "Blissta", "product_name": "PainBloc PEA"}}
+        good = _seo_identity_status(cfg, {
+            "title (≤75 char)": "Blissta PainBloc PEA Supplement – 60 Capsules",
+            "description": "Blissta PainBloc PEA combines two labeled ingredients.",
+        })
+        self.assertTrue(good["title_brand"] and good["title_product"])
+        self.assertTrue(good["description_brand"] and good["description_product"])
+
+        generic = _seo_identity_status(cfg, {
+            "title (≤75 char)": "Supplement Blend with PEA – 60 Capsules",
+            "description": "A two-ingredient capsule supplement.",
+        })
+        self.assertFalse(generic["title_brand"] or generic["title_product"])
+        self.assertFalse(generic["description_brand"] or generic["description_product"])
+
+    def test_semantic_evidence_requires_search_and_shopper_signal(self):
+        with tempfile.TemporaryDirectory() as root:
+            path = Path(root) / "seo.json"
+            path.write_text(
+                '{"rows":[{"section":"Semantic / Alexa AI Direction","poe_evidence":['
+                '{"source":"POE Search Terms","signal":"pea supplement"},'
+                '{"source":"POE Reviews","signal":"dosage questions"}]}]}',
+                encoding="utf-8",
+            )
+            status = _seo_semantic_evidence_status(str(path))
+            self.assertEqual(status["count"], 2)
+            self.assertTrue(status["has_search"])
+            self.assertTrue(status["has_shopper"])
 
 
 if __name__ == "__main__":

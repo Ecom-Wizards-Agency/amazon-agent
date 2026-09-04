@@ -16,6 +16,7 @@ const policy = {
   schema_version: 1,
   cleanup: {
     mode: "audit",
+    adopt_unregistered_tabs: false,
     background_grace_ms: 600_000,
     interactive_idle_ms: 7_200_000,
     heartbeat_interval_ms: 30_000,
@@ -183,6 +184,61 @@ test("cleanup closes only an expired registered lease and ignores an unknown pag
   assert.deepEqual(closed, ["expired"]);
 });
 
+test("Evo cleanup adopts an unknown page and waits a full inspection window", { concurrency: false }, async () => {
+  const adoptionPolicy = structuredClone(policy);
+  adoptionPolicy.cleanup.adopt_unregistered_tabs = true;
+  let trackerInstalled = false;
+  const closed = [];
+  const page = {
+    id: "adopted", type: "page", url: "https://app.flatfile.pro/imports",
+    webSocketDebuggerUrl: "ws://test/adopted",
+  };
+  const cdp = {
+    assertChrome: async () => ({}), listPages: async () => [page],
+    Session: { open: async () => ({ close() {} }) },
+    readLeaseActivity: async () => trackerInstalled
+      ? ({ ok: true, value: 1_000 })
+      : ({ ok: false, value: null }),
+    installLeaseActivityTracker: async () => { trackerInstalled = true; },
+    closePageImmediately: async (targetId) => { closed.push(targetId); },
+  };
+  const options = {
+    policy: adoptionPolicy, auditOnly: false, cdp,
+    managedStatus: { managed: true, running: true, mode: "headed" }, maintainAnchors: false,
+  };
+
+  const adopted = await controller.cleanupPort(9222, { ...options, now: 1_000 });
+  assert.equal(adopted.actions[0].action, "adopted-for-inspection");
+  assert.equal(adopted.actions[0].activityTracked, true);
+  assert.equal(adopted.actions[0].expiresAt, 7_201_000);
+  assert.deepEqual(closed, []);
+
+  const beforeExpiry = await controller.cleanupPort(9222, { ...options, now: 7_200_999 });
+  assert.deepEqual(beforeExpiry.actions, []);
+  assert.deepEqual(closed, []);
+
+  const expired = await controller.cleanupPort(9222, { ...options, now: 7_201_000 });
+  assert.equal(expired.actions[0].action, "close");
+  assert.deepEqual(closed, ["adopted"]);
+});
+
+test("unregistered adoption cannot overwrite a concurrent active runner lease", { concurrency: false }, async () => {
+  const targetId = "adoption-race";
+  await Promise.all([
+    registry.adoptUnregisteredLease({
+      port: 9222, targetId, owner: "cleanup", now: 1_000, policy,
+    }),
+    registry.acquireLease({
+      port: 9222, targetId, leaseClass: "background-active", owner: "runner",
+      now: 1_001, policy,
+    }),
+  ]);
+  const lease = (await registry.listLeases()).find((entry) => entry.targetId === targetId);
+  assert.equal(lease.class, "background-active");
+  assert.equal(lease.owner, "runner");
+  await registry.removeLease({ port: 9222, targetId });
+});
+
 test("cleanup preserves a tab when activity cannot be measured", { concurrency: false }, async () => {
   await registry.acquireLease({ port: 9222, targetId: "unmeasurable", owner: "test", now: 1, policy });
   await registry.releaseLease({ port: 9222, targetId: "unmeasurable", outcome: "success", now: 1000, policy });
@@ -203,7 +259,7 @@ test("cleanup preserves a tab when activity cannot be measured", { concurrency: 
   await registry.removeLease({ port: 9222, targetId: "unmeasurable" });
 });
 
-test("cleanup restores a missing tracker and closes only after a fresh inspection window", { concurrency: false }, async () => {
+test("reinstalling a missing tracker does not keep extending an idle lease", { concurrency: false }, async () => {
   await registry.acquireLease({ port: 9222, targetId: "tracker-lost", owner: "test", now: 1, policy });
   await registry.releaseLease({ port: 9222, targetId: "tracker-lost", outcome: "success", now: 1000, policy });
   let trackerInstalled = false;
@@ -232,6 +288,14 @@ test("cleanup restores a missing tracker and closes only after a fresh inspectio
   assert.equal(restored.actions[0].expiresAt, 7_900_000);
   assert.equal(installCount, 1);
   assert.deepEqual(closed, []);
+
+  trackerInstalled = false;
+  const restoredAgain = await controller.cleanupPort(9222, {
+    policy, auditOnly: false, now: 705_000, cdp, managedStatus, maintainAnchors: false,
+  });
+  assert.equal(restoredAgain.actions[0].action, "activity-tracker-restored");
+  assert.equal(restoredAgain.actions[0].expiresAt, 7_900_000);
+  assert.equal(installCount, 2);
 
   const expired = await controller.cleanupPort(9222, {
     policy, auditOnly: false, now: 7_900_001, cdp, managedStatus, maintainAnchors: false,

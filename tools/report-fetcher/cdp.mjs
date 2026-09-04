@@ -268,6 +268,7 @@ export class Session {
 
   close() {
     if (this._leaseHeartbeat) clearInterval(this._leaseHeartbeat);
+    if (this._taskHeartbeat) clearInterval(this._taskHeartbeat);
     this._rejectPending("CDP session closed");
     try { this.ws.close(); } catch (_) {}
   }
@@ -320,10 +321,24 @@ export async function readLeaseActivity(session) {
   }
 }
 
-export async function createPage(url, {
-  leaseClass = "background-active", owner = defaultLeaseOwner(), anchorKey = null,
-  register = leaseTrackingEnabled(),
-} = {}) {
+const CREATE_PAGE_OPTIONS = new Set([
+  "leaseClass", "owner", "anchorKey", "register", "freshPageReason",
+]);
+
+export async function createPage(url, options = {}) {
+  const unknown = Object.keys(options).filter((key) => !CREATE_PAGE_OPTIONS.has(key));
+  if (unknown.length) {
+    throw new Error(`CREATE_PAGE_UNKNOWN_OPTION: ${unknown.join(", ")}`);
+  }
+  const {
+    leaseClass = "background-active", owner = defaultLeaseOwner(), anchorKey = null,
+    register = leaseTrackingEnabled(), freshPageReason = null,
+  } = options;
+  if (register && !anchorKey && !String(freshPageReason || "").trim()) {
+    throw new Error(
+      "FRESH_PAGE_REASON_REQUIRED: normal workflows must use task-tabs.mjs so steps and retries reuse one target",
+    );
+  }
   const ver = await httpJson("/json/version");
   const browser = await Session.open(ver.webSocketDebuggerUrl);
   // background: true keeps the temp tab from stealing focus / flashing to the

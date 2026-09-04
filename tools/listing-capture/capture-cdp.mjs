@@ -2,7 +2,8 @@
 // Read-only: navigates to each PDP, extracts title/bullets/description/images/price/brand.
 // Usage: node tools/listing-capture/capture-cdp.mjs <ASIN[,ASIN...]> <out.json> [tld=com] [lang=en_US]
 import fs from "node:fs";
-import { ensureChrome, createPage, releasePage, evaluate } from "../report-fetcher/cdp.mjs";
+import { evaluate } from "../report-fetcher/cdp.mjs";
+import { acquireTaskPage, releaseTaskPage, taskIdFor } from "../browserctl/task-tabs.mjs";
 import { ensureDeliveryPostcode } from "../report-fetcher/marketplace-postcode.mjs";
 
 const asins = (process.argv[2] || "").split(",").map((s) => s.trim()).filter(Boolean);
@@ -35,42 +36,47 @@ const EXTRACTOR = (asin) => `(async () => {
     price, brand, rating, reviews, url: location.href, status: (title||bullets.length)?'ok':'empty' };
 })()`;
 
-await ensureChrome();
 const listings = [];
-for (const asin of asins) {
-  const url = `https://www.amazon.${tld}/dp/${asin}?language=${lang}&th=1&psc=1`;
-  let page;
-  let leaseOutcome = "success";
-  try {
-    page = await createPage(url);
-    const delivery = await ensureDeliveryPostcode(page.session, tld);
-    if (!delivery.ok) throw new Error(`delivery postcode verification failed: ${JSON.stringify(delivery)}`);
-    // The tab keeps navigating/redirecting for a moment after it appears, which
-    // destroys the eval context. Retry until a fresh context returns the title.
-    let r = null;
-    for (let attempt = 0; attempt < 8; attempt++) {
-      await new Promise((res) => setTimeout(res, 1500));
-      try {
-        r = await evaluate(page.session, EXTRACTOR(asin), 30000);
-        if (r && r.status === "ok") break;
-      } catch (e) {
-        if (!/destroyed|context|timed out/i.test(e.message)) throw e;
+let hadError = false;
+const taskPage = await acquireTaskPage({
+  taskId: taskIdFor("listing-capture", `${out}|${tld}|${lang}|${asins.join(",")}`),
+  workflow: "amazon-listing-capture", initialUrl: "about:blank",
+});
+try {
+  for (const asin of asins) {
+    const url = `https://www.amazon.${tld}/dp/${asin}?language=${lang}&th=1&psc=1`;
+    try {
+      await taskPage.session.send("Page.navigate", { url });
+      const page = taskPage;
+      const delivery = await ensureDeliveryPostcode(page.session, tld);
+      if (!delivery.ok) {
+        throw new Error(`delivery postcode verification failed: ${JSON.stringify(delivery)}`);
       }
-    }
-    if (!r) r = { asin, status: "error", error: "no context after retries" };
-    console.error(`  ${asin}: ${r.status} | "${(r.title||'').slice(0,60)}" | ${(r.bullets||[]).length} bullets | ${(r.galleryImages||[]).length} imgs${r.resolvedAsin&&r.resolvedAsin!==asin?` (-> ${r.resolvedAsin})`:''}`);
-    listings.push(r);
-  } catch (e) {
-    leaseOutcome = "error";
-    console.error(`  ${asin}: ERROR ${e.message}`);
-    listings.push({ asin, status: "error", error: e.message });
-  } finally {
-    if (page) {
-      page.session.close();
-      await releasePage(page.targetId, { outcome: leaseOutcome });
+      // The tab keeps navigating/redirecting for a moment after it appears,
+      // which destroys the eval context. Retry until a fresh context returns
+      // the title.
+      let r = null;
+      for (let attempt = 0; attempt < 8; attempt++) {
+        await new Promise((res) => setTimeout(res, 1500));
+        try {
+          r = await evaluate(page.session, EXTRACTOR(asin), 30000);
+          if (r && r.status === "ok") break;
+        } catch (e) {
+          if (!/destroyed|context|timed out/i.test(e.message)) throw e;
+        }
+      }
+      if (!r) r = { asin, status: "error", error: "no context after retries" };
+      console.error(`  ${asin}: ${r.status} | "${(r.title||'').slice(0,60)}" | ${(r.bullets||[]).length} bullets | ${(r.galleryImages||[]).length} imgs${r.resolvedAsin&&r.resolvedAsin!==asin?` (-> ${r.resolvedAsin})`:''}`);
+      listings.push(r);
+    } catch (e) {
+      hadError = true;
+      console.error(`  ${asin}: ERROR ${e.message}`);
+      listings.push({ asin, status: "error", error: e.message });
     }
   }
+  fs.mkdirSync(out.replace(/\/[^/]+$/, ""), { recursive: true });
+  fs.writeFileSync(out, JSON.stringify({ schemaVersion: "amazon-agent.listing-reference.v1", capturedAt: new Date().toISOString().slice(0,10), marketplace: tld, listings }, null, 2));
+  console.error(`\nwrote ${out} (${listings.length} listings)`);
+} finally {
+  await releaseTaskPage(taskPage, { outcome: hadError ? "error" : "success" }).catch(() => {});
 }
-fs.mkdirSync(out.replace(/\/[^/]+$/, ""), { recursive: true });
-fs.writeFileSync(out, JSON.stringify({ schemaVersion: "amazon-agent.listing-reference.v1", capturedAt: new Date().toISOString().slice(0,10), marketplace: tld, listings }, null, 2));
-console.error(`\nwrote ${out} (${listings.length} listings)`);

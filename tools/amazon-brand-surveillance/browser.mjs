@@ -1,8 +1,25 @@
 import fs from "node:fs";
-import { ensureChrome, createPage, releasePage, evaluate } from "../report-fetcher/cdp.mjs";
+import { ensureChrome, evaluate } from "../report-fetcher/cdp.mjs";
+import { acquireTaskPage, releaseTaskPage, taskIdFor } from "../browserctl/task-tabs.mjs";
 import { classifyPdp } from "./lib.mjs";
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const BROWSER_TASK_ID = process.env.BROWSER_TASK_ID
+  || taskIdFor("brand-surveillance", process.argv.slice(1).join("\u0000"));
+
+async function acquireBrowserPage(url) {
+  const page = await acquireTaskPage({
+    taskId: BROWSER_TASK_ID, workflow: "amazon-brand-surveillance",
+    initialUrl: "about:blank",
+  });
+  try {
+    await page.session.send("Page.navigate", { url });
+    return page;
+  } catch (error) {
+    await releaseTaskPage(page, { outcome: "error" }).catch(() => {});
+    throw error;
+  }
+}
 
 const LOCATION_TEXT = `(() => {
   const el = document.querySelector('#glow-ingress-line2, #nav-global-location-data-modal-action, #glow-ingress-block');
@@ -117,7 +134,7 @@ const SEARCH_EXTRACTOR = (query) => `(async () => {
 })()`;
 
 async function freshPageEvaluation(url, expression, timeoutMs = 30000) {
-  const page = await createPage(url);
+  const page = await acquireBrowserPage(url);
   let outcome = "success";
   try {
     let lastError;
@@ -134,8 +151,7 @@ async function freshPageEvaluation(url, expression, timeoutMs = 30000) {
     outcome = "error";
     throw error;
   } finally {
-    page.session.close();
-    await releasePage(page.targetId, { outcome });
+    await releaseTaskPage(page, { outcome }).catch(() => {});
   }
 }
 
@@ -148,7 +164,7 @@ export async function verifyDeliveryLocation(marketplace, settings, probeAsin = 
   await ensureChrome();
   const route = probeAsin ? `/dp/${probeAsin}` : "/";
   const url = `https://www.amazon.${marketplace}${route}?language=${encodeURIComponent(settings.language || "en_US")}`;
-  const page = await createPage(url);
+  const page = await acquireBrowserPage(url);
   let outcome = "success";
   try {
     await sleep(3500);
@@ -192,8 +208,7 @@ export async function verifyDeliveryLocation(marketplace, settings, probeAsin = 
     outcome = "error";
     return { ok: false, label: "", reason: error.message };
   } finally {
-    page.session.close();
-    await releasePage(page.targetId, { outcome });
+    await releaseTaskPage(page, { outcome }).catch(() => {});
   }
 }
 
@@ -231,7 +246,7 @@ export async function exactAsinSearch(marketplace, asin, language = "en_US") {
 
 export async function captureScreenshot(url, outputPath) {
   await ensureChrome();
-  const page = await createPage(url);
+  const page = await acquireBrowserPage(url);
   let outcome = "success";
   try {
     await sleep(3000);
@@ -243,7 +258,6 @@ export async function captureScreenshot(url, outputPath) {
     outcome = "error";
     throw error;
   } finally {
-    page.session.close();
-    await releasePage(page.targetId, { outcome });
+    await releaseTaskPage(page, { outcome }).catch(() => {});
   }
 }

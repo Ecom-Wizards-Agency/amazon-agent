@@ -65,6 +65,15 @@ def _doc_label(cfg):
     return _bcfg(cfg, "doc_label", "Account Audit")
 
 
+def _footer_page_words(cfg):
+    """Footer page counter wording. Defaults to English so existing renders are unchanged;
+    set branding.footer_page_words to ["Seite ", " von "] for a German deliverable."""
+    w = _bcfg(cfg, "footer_page_words", None)
+    if isinstance(w, (list, tuple)) and len(w) == 2:
+        return str(w[0]), str(w[1])
+    return "page ", " of "
+
+
 def _report_month(cfg, M):
     """Return the deliverable month/year for the running header."""
     candidates = [str(cfg.get("date", ""))]
@@ -180,7 +189,12 @@ def parse_markdown(md, base_dir):
         flush()
         if not s.strip(): continue
         if s.strip().lower() == "\\pagebreak": blocks.append(("pagebreak", None)); continue
-        if s.startswith("# "): title = s[2:].strip(); continue
+        # Emit the H1 and the byline as blocks as well as capturing the title. The
+        # cover carries both when there is one, and _render_docx drops these blocks in
+        # that case. With cover=False nothing else carries them, and the document used
+        # to open straight on "Sources:" with no title and no byline anywhere.
+        if s.startswith("# "):
+            title = s[2:].strip(); blocks.append(("doctitle", title)); continue
         if s.strip() in ("---", "—"): continue
         mLi = _LEVER_INLINE.match(s.strip())
         if mLi:
@@ -201,8 +215,10 @@ def parse_markdown(md, base_dir):
             blocks.append(("img", (str(p), mI.group(1)))); continue
         if re.match(r'^\s*[-*] ', s): blocks.append(("bul", re.sub(r'^\s*[-*] ', '', s))); continue
         if re.match(r'^\s*\d+\. ', s): blocks.append(("num", re.sub(r'^\s*\d+\. ', '', s))); continue
-        # a leading "**Prepared by ...**" byline line is cover material -> drop from body
-        if re.match(r'^\*\*Prepared by', s.strip()): continue
+        # a leading "**Prepared by ...**" byline line is cover material when a cover is
+        # drawn; _render_docx drops the block in that case and renders it otherwise.
+        if re.match(r'^\*\*Prepared by', s.strip()):
+            blocks.append(("byline", s.strip().strip("*"))); continue
         blocks.append(("p", s.strip()))
     flush()
     return title, blocks
@@ -459,6 +475,16 @@ def _render_docx(blocks, M, cfg, brand_dir, cover_png, out):
         c = doc.add_paragraph(); c.alignment = WD_ALIGN_PARAGRAPH.CENTER; c.paragraph_format.space_after = Pt(10)
         runs(c, caption, size=8.5, color=STEEL, italic=True)
 
+    def doc_title(text):
+        """Page-one document title. Only drawn when there is no cover to carry it."""
+        p = doc.add_paragraph(); p.paragraph_format.space_before = Pt(0); p.paragraph_format.space_after = Pt(2)
+        p.paragraph_format.keep_with_next = True; runs(p, text, size=24, color=INK, bold=True)
+
+    def doc_byline(text):
+        p = doc.add_paragraph(); p.paragraph_format.space_before = Pt(0); p.paragraph_format.space_after = Pt(12)
+        p.paragraph_format.keep_with_next = True; runs(p, text, size=9.5, color=STEEL, bold=False)
+        orange_rule()
+
     def h2(text):
         orange_rule()
         p = doc.add_paragraph(style='Heading 1'); p.paragraph_format.space_after = Pt(8); p.paragraph_format.space_before = Pt(2)
@@ -515,10 +541,12 @@ def _render_docx(blocks, M, cfg, brand_dir, cover_png, out):
     run = _running_text(cfg, M)
     logo = Path(brand_dir) / _B["assets"].get("logo_black", "logo_black.png")
     doc.settings.odd_and_even_pages_header_footer = True
-    # An empty first-page header and footer, so the cover carries no furniture in the DOCX
+    # An empty first-page header and footer, so the COVER carries no furniture in the DOCX
     # itself. Relying on the post-conversion useFirstPageHeaderFooter request meant a skipped
     # or failed normalization shipped a cover with a header stamped across it.
-    body.different_first_page_header_footer = True
+    # Only when a cover exists: with cover=False page one is ordinary content, and blanking
+    # its furniture stripped the running header, the footer and the page number from it.
+    body.different_first_page_header_footer = bool(cover_png)
 
     # FIXED-WIDTH TABLES, never tab stops.
     #
@@ -551,6 +579,8 @@ def _render_docx(blocks, M, cfg, brand_dir, cover_png, out):
         rp.alignment = WD_ALIGN_PARAGRAPH.RIGHT
         runs(rp, run["header_right"], size=7.5, color=MIST, bold=True, tracking=12)
 
+    page_word, of_word = _footer_page_words(cfg)
+
     def populate_footer(footer, blank=False):
         footer.is_linked_to_previous = False
         footer.paragraphs[0].text = ''
@@ -567,18 +597,18 @@ def _render_docx(blocks, M, cfg, brand_dir, cover_png, out):
         runs(lp, run["footer_left"], size=8, color=MIST)
         mp = mid.paragraphs[0]; compact(mp)
         mp.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        runs(mp, "page ", size=8, color=MIST); field(mp, "PAGE", "1")
-        runs(mp, " of ", size=8, color=MIST); field(mp, "NUMPAGES", "1")
+        runs(mp, page_word, size=8, color=MIST); field(mp, "PAGE", "1")
+        runs(mp, of_word, size=8, color=MIST); field(mp, "NUMPAGES", "1")
         rp = right.paragraphs[0]; compact(rp)
         rp.alignment = WD_ALIGN_PARAGRAPH.RIGHT
         runs(rp, run["footer_right"], size=8, color=MIST)
 
     populate_header(body.header)
     populate_header(body.even_page_header)
-    populate_header(body.first_page_header, blank=True)
+    if cover_png: populate_header(body.first_page_header, blank=True)
     populate_footer(body.footer)
     populate_footer(body.even_page_footer)
-    populate_footer(body.first_page_footer, blank=True)
+    if cover_png: populate_footer(body.first_page_footer, blank=True)
 
     # render blocks (+ KPI after the verdict/summary h2); -1 disables cards for non-audit docs
     kpi_idx = _kpi_after(blocks) if (M.get("custom_kpis") or M.get("totals")) else -1
@@ -586,6 +616,10 @@ def _render_docx(blocks, M, cfg, brand_dir, cover_png, out):
         if kind == "h2":
             h2(payload)
             if i == kpi_idx: kpi_cards(_kpis(M))
+        elif kind == "doctitle":
+            if not cover_png: doc_title(payload)
+        elif kind == "byline":
+            if not cover_png: doc_byline(payload)
         elif kind == "h3": h3(payload)
         elif kind == "h4": h4(payload)
         elif kind == "lever": lever(*payload)

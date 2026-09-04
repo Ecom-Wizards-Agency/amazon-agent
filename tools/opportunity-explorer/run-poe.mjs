@@ -37,7 +37,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { ensureChrome, listPages, createPage, releasePage, evaluate } from "../report-fetcher/cdp.mjs";
+import { ensureChrome, listPages, evaluate } from "../report-fetcher/cdp.mjs";
+import { acquireTaskPage, releaseTaskPage, taskIdFor } from "../browserctl/task-tabs.mjs";
 import { normalizeOrigin, accountPickerUrl, accountMatches, switchAccount, readIdentity, inspectPage, waitFor } from "../report-fetcher/sc-account.mjs";
 import { formatEnvelope } from "./format-poe.mjs";
 import { archiveClient } from "./pcloud-archive.mjs";
@@ -106,6 +107,9 @@ const argv = process.argv.slice(2);
 const cmd = argv[0];
 const opt = (name, dflt) => { const i = argv.indexOf(`--${name}`); return i > -1 && argv[i + 1] ? argv[i + 1] : dflt; };
 const flag = (name) => argv.includes(`--${name}`);
+const requestedTaskId = opt("task-id", null);
+const defaultTaskKey = JSON.stringify(argv.filter((value, index) =>
+  value !== "--verbose" && argv[index - 1] !== "--task-id" && value !== "--task-id"));
 
 function usage(code = 1) {
   console.error("usage: run-poe.mjs doctor [--origin URL]");
@@ -152,20 +156,24 @@ function resolveDoctorOrigins(pages, explicitOrigin = null) {
 }
 
 async function findOrCreatePoePage(origin) {
-  // Reuse only a POE tab on the requested Seller Central origin. Reusing a
-  // different region silently reads the wrong session and defeats the account
-  // preflight.
   const wantedOrigin = normalizeOrigin(origin);
-  const pages = await listPages();
-  const existing = pages.find((p) =>
-    sellerCentralOrigin(p.url) === wantedOrigin &&
-    /\/opportunity-explorer(?:\/|$)/.test(new URL(p.url).pathname));
-  if (existing) {
-    const { Session } = await import("../report-fetcher/cdp.mjs");
-    return { targetId: null, session: await Session.open(existing.webSocketDebuggerUrl), temp: false };
+  const taskId = requestedTaskId || taskIdFor(
+    "amazon-opportunity-explorer",
+    cmd === "doctor" ? defaultTaskKey : `${defaultTaskKey}|${wantedOrigin}`,
+  );
+  const taskPage = await acquireTaskPage({
+    taskId, workflow: "amazon-opportunity-explorer", initialUrl: "about:blank",
+    exclusiveContext: true,
+  });
+  try {
+    await taskPage.session.send("Page.navigate", {
+      url: wantedOrigin + "/opportunity-explorer",
+    });
+    return taskPage;
+  } catch (error) {
+    await releaseTaskPage(taskPage, { outcome: "error" }).catch(() => {});
+    throw error;
   }
-  const { targetId, session } = await createPage(wantedOrigin + "/opportunity-explorer");
-  return { targetId, session, temp: true };
 }
 
 function poeReadinessError({ pageKind = "unknown", authState = "ambiguous", facts = {} } = {}) {
@@ -246,20 +254,20 @@ async function switchSellerCentralAccount(session, origin, profile) {
 
 async function withPoePage(origin, work, { requireReady = true } = {}) {
   await ensureChrome();
-  const { targetId, session, temp } = await findOrCreatePoePage(origin);
+  const taskPage = await findOrCreatePoePage(origin);
+  const { session } = taskPage;
   let outcome = "success";
   try {
     if (requireReady) await waitPoeReady(session);
     return await work(session);
   } catch (error) {
     outcome = error?.preservePoeTab ? "inspection" : "error";
-    if (temp && targetId && error?.preservePoeTab) {
+    if (error?.preservePoeTab) {
       console.error(`Preserving the blocked POE tab for inspection/recovery (${error.code || "POE_BLOCKED"}).`);
     }
     throw error;
   } finally {
-    session.close();
-    if (temp && targetId) await releasePage(targetId, { outcome });
+    await releaseTaskPage(taskPage, { outcome }).catch(() => {});
   }
 }
 
@@ -411,14 +419,15 @@ if (cmd === "self-test") {
   console.log(`Seller Central tabs: ${sc.length}${sc.length ? " → " + sc.map((p) => p.url.replace(/^https:\/\//, "").slice(0, 60)).join(", ") : ""}`);
   if (!sc.length) { console.log("Run browserctl ensure for port 9222. If authentication is needed, use browserctl auth; reserve an explicit recovery restart for a human challenge."); process.exit(1); }
   const origins = resolveDoctorOrigins(sc, opt("origin", null));
-  const results = await Promise.all(origins.map(async (origin) => {
+  const results = [];
+  for (const origin of origins) {
     try {
       const acct = await withPoePage(origin, (session) => readAccount(session));
-      return { origin, acct };
+      results.push({ origin, acct });
     } catch (error) {
-      return { origin, error };
+      results.push({ origin, error });
     }
-  }));
+  }
   results.sort((a, b) => Number(Boolean(b.acct)) - Number(Boolean(a.acct)));
   for (const result of results) {
     const prefix = origins.length > 1 ? `Active account (${result.origin})` : "Active account";

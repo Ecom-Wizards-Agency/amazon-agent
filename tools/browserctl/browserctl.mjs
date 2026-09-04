@@ -4,7 +4,7 @@ import { realpathSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import {
-  acquireLease, claimExpiredLease, listLeases, recordActivityProbeFailure,
+  acquireLease, adoptUnregisteredLease, claimExpiredLease, listLeases, recordActivityProbeFailure,
   releaseLease, removeLease, restartActivityMeasurement, touchLease,
   transitionMissedHeartbeat,
 } from "./lease-registry.mjs";
@@ -98,6 +98,7 @@ export async function ensureAnchors(port, { policy = loadBrowserPolicy(), cdp = 
   const pages = await cdp.listPages();
   const pageById = new Map(pages.map((page) => [page.id, page]));
   const leases = (await listLeases()).filter((lease) => lease.port === Number(port));
+  const leasedTargetIds = new Set(leases.map((lease) => lease.targetId));
   const used = new Set();
   const kept = [];
   const created = [];
@@ -121,7 +122,8 @@ export async function ensureAnchors(port, { policy = loadBrowserPolicy(), cdp = 
 
   for (const anchor of config.anchors) {
     if (kept.some((entry) => entry.key === anchor.key)) continue;
-    const existing = pages.find((page) => !used.has(page.id) && anchorMatchesUrl(anchor, page.url));
+    const existing = pages.find((page) =>
+      !used.has(page.id) && !leasedTargetIds.has(page.id) && anchorMatchesUrl(anchor, page.url));
     if (existing) {
       await acquireLease({
         port, targetId: existing.id, leaseClass: "anchor", owner: "browserctl:anchor",
@@ -219,11 +221,38 @@ export async function cleanupPort(port, {
   const pageById = new Map(pages.map((page) => [page.id, page]));
   const actions = [];
   let leases = (await listLeases()).filter((lease) => lease.port === Number(port));
+  const adoptedTargetIds = new Set();
+
+  if (policy.cleanup.adopt_unregistered_tabs) {
+    const registeredTargetIds = new Set(leases.map((lease) => lease.targetId));
+    for (const page of pages) {
+      if (registeredTargetIds.has(page.id)) continue;
+      const adoption = await adoptUnregisteredLease({
+        port, targetId: page.id, origin: safeOrigin(page.url), now, policy,
+      });
+      if (!adoption.adopted) continue;
+      adoptedTargetIds.add(page.id);
+      leases.push(adoption.lease);
+      const activity = await probeActivity(cdp, page);
+      if (!activity.ok) {
+        await recordActivityProbeFailure({ port, targetId: page.id, now });
+      }
+      actions.push({
+        port: Number(port), action: "adopted-for-inspection", targetId: page.id,
+        class: adoption.lease.class, origin: safeOrigin(page.url),
+        reason: "unregistered-target-observed", expiresAt: adoption.lease.expiresAt,
+        activityTracked: activity.ok,
+      });
+    }
+  }
 
   for (let lease of leases) {
+    if (adoptedTargetIds.has(lease.targetId)) continue;
     const page = pageById.get(lease.targetId);
     if (!page) {
-      await removeLease({ port, targetId: lease.targetId });
+      await removeLease({
+        port, targetId: lease.targetId, expectedCloseToken: lease.closeToken || null,
+      });
       actions.push({
         port: Number(port), action: "removed-stale-lease", targetId: lease.targetId,
         class: lease.class, origin: lease.origin || null, reason: "target-missing",
@@ -264,7 +293,9 @@ export async function cleanupPort(port, {
       });
       continue;
     }
-    if (activity.value > Number(lease.lastActivityAt || 0)) {
+    if (activity.value > Math.max(
+      Number(lease.lastActivityAt || 0), Number(lease.activityTrackerBaselineAt || 0),
+    )) {
       lease = await touchLease({ port, targetId: lease.targetId, kind: "activity", now: activity.value, policy });
     }
     if (!lease?.expiresAt || Number(lease.expiresAt) > now) continue;
@@ -279,7 +310,8 @@ export async function cleanupPort(port, {
       continue;
     }
     const claim = await claimExpiredLease({
-      port, targetId: lease.targetId, expectedUpdatedAt: lease.updatedAt, now,
+      port, targetId: lease.targetId, expectedUpdatedAt: lease.updatedAt,
+      expectedGeneration: lease.generation, now,
     });
     if (!claim) {
       actions.push({ ...candidate, action: "preserved", reason: "lease-changed-before-close" });
@@ -289,12 +321,12 @@ export async function cleanupPort(port, {
       await cdp.closePageImmediately(lease.targetId, {
         explicit: true, reason: `expired ${lease.class} lease`,
       });
-      await removeLease({ port, targetId: lease.targetId });
+      await removeLease({ port, targetId: lease.targetId, expectedCloseToken: claim.closeToken });
       actions.push(candidate);
     } catch (error) {
       await acquireLease({
         port, targetId: lease.targetId, leaseClass: "inspection", owner: "browserctl:close-failed",
-        origin: safeOrigin(page.url), policy,
+        origin: safeOrigin(page.url), policy, recoverClosing: true,
       });
       actions.push({ ...candidate, action: "preserved", reason: "close-failed" });
     }
