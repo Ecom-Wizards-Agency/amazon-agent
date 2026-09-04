@@ -129,7 +129,7 @@ Use this shape:
   "marketplace": "United States",
   "brand_account_id": "<private brand account ID>",
   "entity_id": "<private entity ID>",
-  "creator_record_prefix": "<unique non-PII prefix>",
+  "brand_code": "<unique non-PII prefix>",
   "profiles": ["<message profile names>"],
   "tracker_sheet_url": "<private tracker URL>",
   "slack_channel_id": "<internal Slack channel ID>",

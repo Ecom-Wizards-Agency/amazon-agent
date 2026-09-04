@@ -6,7 +6,7 @@ This is the single source of truth for creator identity, lifecycle transitions, 
 
 The shared Creator Connections tracker is the only durable source of truth. Its campaign rows, `Creator Registry`, `Creator Action Log`, and `Daily Action Queue` are one connected record system.
 
-- The daily Creator Connections bot is the sole routine executor. It opens inquiries, runs background checks, writes qualification evidence, sends safe routine replies, schedules follow-ups, verifies content, and keeps the queue current.
+- The daily Creator Connections bot is the sole routine executor. It opens inquiries, runs background checks, writes qualification evidence, sends routine replies only under a matching `_local/local-permissions.md` standing permission, schedules follow-ups, verifies content, and keeps the queue current.
 - `creator_control.py` is a validation gate, not a second database. At the start of a run, the bot exports the private Registry to a local run file, validates the proposed changes, writes the successful result back to the Registry and Action Log, then treats the local file as a disposable cache.
 - Slack is notification and escalation only. It never becomes evidence, a status source, or a place to recover creator details.
 - The live Amazon thread is the source for a new factual message. Once read and verified, the tracker becomes the source for the creator's current state and next action.
@@ -62,6 +62,8 @@ Persist only opaque fingerprints in the local registry. The private tracker keep
 ## Status lifecycle
 
 Use the sheet's live dropdown values. The standard semantic stages below map to the approved labels in the tracker.
+
+Every action in the table that sends, publishes, orders, or posts runs only under a current operator instruction or a matching standing permission; otherwise it stays in the queue as `PENDING_APPROVAL`.
 
 | Stage | Typical status | Automatic action | Transition evidence |
 | --- | --- | --- | --- |

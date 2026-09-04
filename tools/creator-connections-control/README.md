@@ -8,53 +8,53 @@ The shared tracker is the durable system of record. The JSON registry passed to 
 
 ## Setup
 
-Set a local HMAC secret once. Do not commit it or put it in a tracker.
+`CREATOR_CONTROL_HMAC_KEY` is one shared team secret, held in 1Password and set to the same value on every machine that runs this tool, because the shared `Creator Registry` tab stores the fingerprints it produces. Two machines with different keys would treat every creator as new and issue duplicate record IDs. Rotating the key invalidates every fingerprint in the registry. Do not commit it or put it in a tracker.
 
-```powershell
-$env:CREATOR_CONTROL_HMAC_KEY = "use-a-long-random-local-secret"
+```bash
+export CREATOR_CONTROL_HMAC_KEY="<value from 1Password>"
 ```
 
 The registry contains opaque HMAC fingerprints for storefront, thread, email, phone, address, and full name. It does not keep raw contact details or raw identity links. Raw contact data and visible links remain only in the approved private tracker.
 
 ## Commands
 
-```powershell
+```bash
 # Resolve or issue an immutable Creator Record ID.
-python tools/creator-connections-control/creator_control.py register `
-  --registry _local/creator-connections/registry.json `
+python3 tools/creator-connections-control/creator_control.py register \
+  --registry _local/creator-connections/registry.json \
   --record _local/creator-connections/inbox-record.json
 
 # Recompute the 10-point qualification gate from visible evidence.
-python tools/creator-connections-control/creator_control.py score `
+python3 tools/creator-connections-control/creator_control.py score \
   --record _local/creator-connections/inbox-record.json
 
 # Produce today's machine-readable action queue. This does not send anything.
-python tools/creator-connections-control/creator_control.py queue `
-  --input _local/creator-connections/daily-sweep.json `
+python3 tools/creator-connections-control/creator_control.py queue \
+  --input _local/creator-connections/daily-sweep.json \
   --output _local-output/creator-connections/daily-queue.json
 
 # Migrate historic tracker rows only after the sweep has captured their stable
 # Creator Connections thread key and campaign ID. Held rows are not changed.
-python tools/creator-connections-control/creator_control.py migrate-legacy `
-  --registry _local/creator-connections/registry.json `
-  --input _local/creator-connections/legacy-candidates.json `
+python3 tools/creator-connections-control/creator_control.py migrate-legacy \
+  --registry _local/creator-connections/registry.json \
+  --input _local/creator-connections/legacy-candidates.json \
   --output _local-output/creator-connections/legacy-migration.json
 
 # Validate a proposed one-unit MCF order before it is placed.
-python tools/creator-connections-control/creator_control.py preflight `
-  --registry _local/creator-connections/registry.json `
+python3 tools/creator-connections-control/creator_control.py preflight \
+  --registry _local/creator-connections/registry.json \
   --input _local/creator-connections/mcf-proposal.json
 
 # Validate an MCF-blocked product switch before offering it, then validate the
 # creator's explicit alternate-ASIN confirmation before changing the tracker.
-python tools/creator-connections-control/creator_control.py preflight-switch `
-  --registry _local/creator-connections/registry.json `
+python3 tools/creator-connections-control/creator_control.py preflight-switch \
+  --registry _local/creator-connections/registry.json \
   --input _local/creator-connections/product-switch.json
 
 # Lock the exact record/ASIN after a passing pre-flight, then confirm it only
 # after the authorized worker has a real Amazon order ID and evidence reference.
-python tools/creator-connections-control/creator_control.py reserve-mcf --registry <registry> --input <proposal>
-python tools/creator-connections-control/creator_control.py confirm-mcf --registry <registry> --creator-record-id <id> --asin <asin> --order-id <order-id> --evidence-reference <private-evidence-path>
+python3 tools/creator-connections-control/creator_control.py reserve-mcf --registry <registry> --input <proposal>
+python3 tools/creator-connections-control/creator_control.py confirm-mcf --registry <registry> --creator-record-id <id> --asin <asin> --order-id <order-id> --evidence-reference <private-evidence-path>
 ```
 
 Exit code `0` means the control result passed. Exit code `2` means it is safely held. The JSON output is the audit artifact to reference from the tracker and action log.
