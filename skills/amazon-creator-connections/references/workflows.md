@@ -1,41 +1,139 @@
-# Creator Connections Workflow Modes
+# Creator Connections Workflows
 
-Ported from the retired Creator Connections Builder prompt generator, genericized. Every mode inherits the SKILL.md core rules: connected-browser checkpoint first, status filter applied to any message reading, and the two stop-gates (no sends, no publishes) unless explicitly approved.
+Every workflow inherits the main skill rules: verify account/brand/product first, protect private data, preserve the tracker, resolve the Creator Record ID, and stop before risky actions unless approved.
 
-## `campaign`: Prepare a new campaign
+## `audit`: daily or ad hoc message sweep
 
-Inputs: product name, ASIN, start/end dates, commission, maximum budget, reference campaign (name or URL). Commission and budget are client decisions. Take them from the brief or the client config; do not assume defaults.
+Use for: “run a sweep,” “check new messages,” “who replied,” “who posted,” “who confirmed,” “who is ready for samples.”
 
-1. Verify the exact product details from its live Amazon listing (title, current price, availability).
-2. Follow the reference campaign's naming convention and structure, but make the description product-specific and listing-backed.
-3. Create the campaign-level tracker tab (see `tracker-schema.md`) with the approved columns and metadata header.
-4. Prepare every campaign field, then **stop before the final publish action** and show the complete campaign for operator/manager approval. Do not send creator messages or approve samples in this mode.
+1. Open the correct brand’s Creator Connections messages.
+2. Use the requested scope. Default to new/updated threads since the last tracker or Slack sweep.
+3. For each thread, verify and resolve:
+   - creator display name
+   - Creator Record ID or a safe new-record decision
+   - campaign context
+   - exact ASIN/product, if present
+   - latest creator message
+   - whether we already replied
+   - whether the creator provided full details, proof, or content links
+4. Run the creator background check before requesting proof or fulfillment details:
+   - Amazon storefront or creator profile link
+   - visible recent shoppable videos/posts
+   - Earns Revenue badge, if visible
+   - attached product cards and relevance to the campaign product
+   - media kit, portfolio, or public social links when available
+   - basic spam/ghosting risk signals
+5. Populate the tracker qualification columns from the background check. If the creator passes the visible fit check, request only the basic fulfillment details still missing: full name, complete shipping address, email, phone, and final ASIN/product confirmation.
+6. Classify the update:
+   - new inquiry
+   - verification sent
+   - verification confirmed
+   - proof requested
+   - manager review
+   - product switch
+   - sample ready
+   - sample sent/delivered
+   - awaiting content
+   - content posted
+   - paused product
+   - unqualified/ghosted/declined
+7. Update the tracker row or create one in the correct tab. Append an audit-log entry and add any due work to the daily action queue.
+8. Draft any needed creator replies, but do not send unless approved in the current chat or covered by standing permission.
+9. If Slack reporting is requested or automated, use only the configured posting helper and post only new updates/material status changes.
 
-## `tracker`: Create a campaign tracker tab
+## `campaign`: prepare or launch a campaign
 
-Inputs: campaign (name or URL), preferred tab name.
+Use for: “launch Creator Connections for this ASIN,” “copy the reference campaign,” “create a July–December campaign.”
 
-1. Read the live campaign for its exact name, product title, ASIN, schedule, commission, status, campaign ID, campaign type, accepted creators, submitted content, budget, remaining budget, spend, orders, sales, clicks, campaign link, and product link.
-2. Duplicate the client's approved tracker styling and preserve the columns exactly (`tracker-schema.md`).
-3. Preserve the approved status dropdown and Yes/No content validation.
-4. Do not add creator rows unless campaign or message evidence supports them. Do not alter the source campaign.
+Inputs: brand/account, product ASIN, reference campaign, campaign dates, budget, commission, and desired folder/profile.
 
-## `gaps`: Find missing campaign trackers
+1. Verify the live Amazon listing:
+   - title
+   - ASIN
+   - availability
+   - current product claims
+   - main selling points
+2. Use the reference campaign’s naming convention and structure.
+3. Create a product-specific campaign description based only on the listing and approved product info.
+4. Use the client-provided commission and budget. Do not assume a default range or number.
+5. Create or confirm the campaign-level tracker tab.
+6. Prepare campaign fields in Creator Connections.
+7. Stop before publish and show the operator the campaign setup for final approval.
 
-Inputs: campaign scope (active / all), message scope (messages containing ASINs or product links / all messages in scope after the status filter).
+## `tracker`: create or repair a tracker tab
 
-1. Compare live campaigns and message-linked products against every existing tab in the tracker sheet.
-2. Return a prioritized list: campaign name, ASIN/product, campaign link, current status, relevant message count, submitted-content count, recommended tab name.
-3. Create missing tabs only when campaign/product matching is verified. Flag campaign-token-only, multi-product, or otherwise ambiguous cases for manager review.
-4. Do not change campaigns or send messages in this mode.
+Use for: “create a tracker for this campaign,” “make this tab match the approved tracker,” “add a tab for active campaign.”
 
-## `reconcile`: Full-system reconciliation
+1. Read the live campaign:
+   - campaign name
+   - product title + ASIN
+   - start/end date
+   - commission
+   - campaign status
+   - campaign ID/type
+   - accepted creators
+   - submitted content
+   - budget/remaining budget/spend
+   - orders/sales/clicks
+   - campaign link/product page
+2. Duplicate the approved tracker format.
+3. Preserve:
+   - first 10 header/info rows
+   - merged category headers
+   - dropdowns and chip colors
+   - formulas and validation
+   - column order
+4. Create rows only from verified campaign/message evidence.
+5. If product is unclear, use the `Undecided` tab.
 
-The complete controlled audit across campaigns, trackers, messages, samples, and content:
+## `gaps`: find missing trackers
 
-1. Inventory active campaigns and campaign metadata.
-2. Inventory campaign tabs in the tracker sheet.
-3. Retrace messages in scope (status filter applies) and map each by ASIN/product link, campaign reference, or explicit product name.
-4. Update existing tabs, create verified missing tabs, and flag ambiguous multi-product threads.
-5. Record samples, follow-ups, ghosted creators, unqualified creators, verified content, and content links using the approved dropdown statuses.
-6. Report launch-ready products, missing trackers, unanswered inquiries, stale follow-ups, and manager decisions needed. Unanswered inquiries feed the reply-drafting step of `audit` mode; reconcile itself sends nothing.
+Use for: “which active campaigns don’t have trackers,” “which products are not running/tracked yet.”
+
+1. Inventory active Creator Connections campaigns.
+2. Inventory tracker tabs.
+3. Compare by campaign name, ASIN, and product title.
+4. Report missing or ambiguous trackers with:
+   - campaign name
+   - product/ASIN
+   - campaign link
+   - status
+   - message count/content count, when visible
+   - recommended tab name
+5. Create tabs only after product/campaign matching is verified.
+
+## `reconcile`: full-system audit
+
+Use for: “audit everything,” “make sure all campaigns and trackers are clean,” “retrace messages.”
+
+1. Inventory campaigns.
+2. Inventory tracker tabs.
+3. Read message threads in scope.
+4. Reconcile:
+   - duplicate creator rows
+   - product switches
+   - missing details
+   - sample status
+   - posted content links
+   - stale follow-ups
+   - unanswered inquiries
+   - creators in the wrong product tab
+5. Move unresolved product matches to `Undecided`.
+6. For an MCF-blocked exact ASIN, verify the original blocker and a same-campaign FBA/MCF-fulfillable alternative before sending a switch request. Keep the original ASIN active and Sample Decision `Hold` until the creator explicitly replies with the alternate ASIN.
+7. Move confirmed product switches to the final product tab only after `preflight-switch --phase confirm` passes.
+8. Preserve historical notes without keeping duplicate active sample rows.
+9. Report manager decisions needed and exact next steps.
+
+## `explain`: explain the system
+
+Use for: “what can this repo/skill do,” “explain this to my manager/client.”
+
+Summarize in plain language:
+
+- The system launches Creator Connections campaigns from the front end.
+- It tracks every creator in campaign-level Google Sheet tabs.
+- It uses a background-check and qualification gate before sample approval.
+- It asks for basic fulfillment details only after visible creator fit is strong enough, and asks for proof only when the background check cannot verify enough.
+- It prepares MCF sample details only after approval.
+- It tracks sample sent, delivery, posted content, links, and follow-ups.
+- It posts clean Slack sweep updates for internal visibility.
