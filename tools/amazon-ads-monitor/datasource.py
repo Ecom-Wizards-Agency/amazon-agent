@@ -64,7 +64,7 @@ def classify_campaign_category(campaign_name: str) -> str:
     """Best-effort category classification from campaign name tokens.
 
     Matches the EW naming convention trigger words used by
-    tools/amazon-campaign-builder (Rank/SKW, Discovery Auto-BMM-Phrase,
+    tools/amazon-campaign-builder (Rank/SKW, Discovery Auto/Phrase,
     Halo=Profit, Shield). Falls back to "Unknown" so downstream flags never
     silently assume a category they have no evidence for. Real accounts
     that don't follow this convention should carry an explicit override in
@@ -284,7 +284,7 @@ _MOCK_ACCOUNTS = {
         ),
         _MockCampaignSpec(
             campaign_id="10004",
-            campaign_name="Discovery BMM | SP | Broad | cutting board | ACME | EW",
+            campaign_name="Discovery Phrase | SP | Phrase | cutting board | ACME | EW",
             category=CATEGORY_DISCOVERY,
             base_impressions=1800,
             base_ctr=0.018,

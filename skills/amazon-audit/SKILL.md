@@ -18,9 +18,10 @@ It also owns diagnostic requests such as "why are sales falling?", "why did ACOS
 ## Route The Run
 
 1. Establish the requested posture before pulling data.
-2. Read `references/audit-workflow.md` for the shared analysis gates, posture-specific source path, performance lens, grading, traps, and hard rules.
-3. Load only the posture source reference named there: `references/source-bulk.md` for `deep`, or `references/source-adlabs.md` for `monthly` and `actions`.
-4. Load `references/lens-b-shopper-creative.md` only when the workflow says Lens B is due.
-5. Read `references/writing-and-delivery.md` before drafting or delivering the narrative.
+2. Run `python3 tools/ads_recall.py audit` and read the returned decision, Playbook, and Research files in order. Continue quietly when it returns no paths.
+3. Read `references/audit-workflow.md` for the shared analysis gates, posture-specific source path, performance lens, grading, traps, and hard rules.
+4. Load only the posture source reference named there: `references/source-bulk.md` for `deep`, or `references/source-adlabs.md` for `monthly` and `actions`.
+5. Load `references/lens-b-shopper-creative.md` only when the workflow says Lens B is due.
+6. Read `references/writing-and-delivery.md` before drafting or delivering the narrative.
 
 The run is read-only. Recommendations may route to `amazon-ppc-weekly-management`, but this skill never applies campaign or account changes.

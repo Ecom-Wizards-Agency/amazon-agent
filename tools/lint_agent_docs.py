@@ -13,15 +13,19 @@ Checks:
    somebody runs the command. This is the mechanical half of that.
 6. Browser priority, the DataDive CDP route, and local-artifact handoff
    invariants remain explicit.
+7. Registered Amazon Ads doctrine mirrors agree with their canonical strategy key
+   whenever that key exists.
 
 Exit code 0 when clean, 1 when any check fails.
 """
 
 from __future__ import annotations
 
+import json
 import re
 import subprocess
 import sys
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -173,6 +177,102 @@ def validate_skill_directory(skill_dir: Path) -> list[str]:
     return validate_shared_skill_directory(skill_dir, require_browser=True)
 
 
+def nested_value(data: object, dotted_key: str) -> tuple[bool, object]:
+    """Return (found, value) for a dotted JSON-object path."""
+    current = data
+    for part in dotted_key.split("."):
+        if not isinstance(current, dict) or part not in current:
+            return False, None
+        current = current[part]
+    return True, current
+
+
+def ads_doctrine_drift_errors(
+    root: Path = ROOT,
+    map_path: Path | None = None,
+    strategy_path: Path | None = None,
+) -> list[str]:
+    """Validate the doctrine registry and compare active numeric mirrors.
+
+    The canonical strategy is intentionally operator-local. Optional mappings let
+    phase one register a consumer before the numeric phase adds its strategy key.
+    The consumer locator is still validated immediately. Once the key exists, a
+    mismatch fails the repository lint without any further code change.
+    """
+    source_map_path = map_path or root / "docs" / "ads-doctrine-source-map.json"
+    if not source_map_path.is_file():
+        return [f"{source_map_path}: missing Amazon Ads doctrine source map"]
+    try:
+        source_map = json.loads(source_map_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        return [f"{source_map_path}: unreadable Amazon Ads doctrine source map ({exc})"]
+    if source_map.get("schema") != "amazon-agent.ads-doctrine-source-map.v1":
+        return [f"{source_map_path}: unexpected or missing doctrine-map schema"]
+
+    canonical = strategy_path or root / source_map.get(
+        "canonical_strategy", "_local/ads-strategy/strategy.json"
+    )
+    strategy = None
+    if canonical.is_file():
+        try:
+            strategy = json.loads(canonical.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            return [f"{canonical}: unreadable canonical ads strategy ({exc})"]
+
+    errors: list[str] = []
+    seen_ids: set[str] = set()
+    for index, mirror in enumerate(source_map.get("mirrors", []), 1):
+        ident = mirror.get("id")
+        key = mirror.get("canonical_key")
+        consumer = mirror.get("consumer") or {}
+        rel = consumer.get("path")
+        pattern = consumer.get("pattern")
+        label = ident or f"entry {index}"
+        if not ident or ident in seen_ids:
+            errors.append(f"{source_map_path}: doctrine mirror id missing or duplicated at {label}")
+            continue
+        seen_ids.add(ident)
+        if not key or not rel or not pattern:
+            errors.append(f"{source_map_path}: {ident} needs canonical_key and consumer path/pattern")
+            continue
+        consumer_path = root / rel
+        if not consumer_path.is_file():
+            errors.append(f"{source_map_path}: {ident} consumer does not exist: {rel}")
+            continue
+        try:
+            regex = re.compile(pattern, re.MULTILINE)
+        except re.error as exc:
+            errors.append(f"{source_map_path}: {ident} has invalid consumer regex ({exc})")
+            continue
+        if "value" not in regex.groupindex:
+            errors.append(f"{source_map_path}: {ident} consumer regex needs a named `value` group")
+            continue
+        matches = list(regex.finditer(consumer_path.read_text(encoding="utf-8")))
+        if len(matches) != 1:
+            errors.append(
+                f"{source_map_path}: {ident} locator matched {len(matches)} times in {rel}; expected 1"
+            )
+            continue
+        if strategy is None:
+            continue
+        found, canonical_value = nested_value(strategy, key)
+        if not found:
+            if mirror.get("required", True):
+                errors.append(f"{canonical}: required doctrine key missing: {key}")
+            continue
+        try:
+            expected = Decimal(str(canonical_value))
+            actual = Decimal(matches[0].group("value"))
+        except (InvalidOperation, ValueError):
+            errors.append(f"{source_map_path}: {ident} compares non-numeric values")
+            continue
+        if actual != expected:
+            errors.append(
+                f"{rel}: Amazon Ads doctrine drift for {ident}: {actual} != {key} ({expected})"
+            )
+    return errors
+
+
 def main() -> int:
     errors: list[str] = []
     missing_paths: list[tuple[str, int, str]] = []
@@ -212,6 +312,10 @@ def main() -> int:
     for rel, lineno, ref in missing_paths:
         if ref not in ignored:
             errors.append(f"{rel}:{lineno}: names `{ref}`, which does not exist")
+
+    # Amazon Ads threshold mirrors. Optional keys are registered now and begin
+    # comparing automatically when the numeric doctrine phase adds them.
+    errors.extend(ads_doctrine_drift_errors())
 
     # 6. No personal machine identity in tracked files. A committed
     # /Users/<name>/ path publishes who ran the tool and breaks on every other

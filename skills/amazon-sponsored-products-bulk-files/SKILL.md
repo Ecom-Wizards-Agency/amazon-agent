@@ -11,22 +11,25 @@ Use this when the operator asks to create/build/set up Sponsored Products campai
 
 ## Source of truth
 
+Before create-mode strategy work, run `python3 tools/ads_recall.py campaign-builder` and read the returned decision, Playbook, and Research files in order. Continue quietly when it returns no paths. Numeric thresholds remain in `_local/ads-strategy/strategy.json`; the ownership map is `docs/ads-doctrine-sources.md`.
+
 1. **Toolkit:** `tools/amazon-campaign-builder/`: `campaign_model.py` + `build_campaigns.py` (create), `keyword_workbook.py` (keyword-file input), `update_model.py` + `update_campaigns.py` (update). See its `README.md`, `NEW-CLIENT.md`, `WORKFLOW.md`.
 2. **Bulksheet format:** the toolkit emits Amazon's documented bulksheets-2.0 vocabulary (sheet `Sponsored Products Campaigns`, `Dynamic bids - down only`, `negativeExact`, `asin-expanded=`, …). The README's "Format fixes" table records where it deliberately deviates from the web app. `references/bulksheets-2.0-reference.md` is the authority for Update-row semantics (blank-means-unchanged exceptions, immutable fields, archive cascades).
 3. **Naming:** `_local/ads-strategy/naming-convention.md` (LOCAL ONLY): the EW 8-slot naming convention and per-purpose bidding table, ported into `campaign_model.py`'s EW preset and `CAMPAIGN_PURPOSE_BIDDING`.
 
 ## Create mode: the config contract
 
-Copy `tools/amazon-campaign-builder/config.TEMPLATE.json` → `config.<client>-<market>.json` (gitignored). Required per campaign spec: `campaign_type` (SKW/Halo/BMM/Phrase/Auto/PAT), `product_name`, `sku[]` (sellers) or `asin[]` (vendors), and `keywords[]` (or `target_asins[]` for PAT). Set `campaign_purpose` (`SHIELD`/`SELF_TARGETING`/`CATEGORY`) only when intent cuts across the type (e.g. an own-brand SKW campaign). Naming defaults to the **EW preset** (`Goal | Ad Type | Match Type | Trigger Words | Product Identifier | Keyword | Camp Counter | Suffix`); set `naming.preset: "LEGACY"` for the pre-v2 order. Alternative to hand-filling `campaigns[]`: `--keyword-file <workbook.xlsx>` sources it from a keyword-research workbook's "5. Campaign Structure" tab (or a generic flat sheet). Unvalidated against a real client workbook: double-check via `--preview`.
+Copy `tools/amazon-campaign-builder/config.TEMPLATE.json` → `config.<client>-<market>.json` (gitignored). Required per campaign spec: `campaign_type` (SKW/Halo/Phrase/Auto/PAT), `product_name`, `sku[]` (sellers) or `asin[]` (vendors), and `keywords[]` (or `target_asins[]` for PAT). Sponsored Products BMM is unsupported and must fail closed; use Phrase or an explicitly approved plain-Broad validation test through `amazon-ads-console`. Set `campaign_purpose` (`SHIELD`/`SELF_TARGETING`/`CATEGORY`) only when intent cuts across the type (e.g. an own-brand SKW campaign). Naming defaults to the **EW preset** (`Goal | Ad Type | Match Type | Trigger Words | Product Identifier | Keyword | Camp Counter | Suffix`); set `naming.preset: "LEGACY"` for the pre-v2 order. Alternative to hand-filling `campaigns[]`: `--keyword-file <workbook.xlsx>` sources it from a keyword-research workbook's "5. Campaign Structure" tab (or a generic flat sheet). Unvalidated against a real client workbook: double-check via `--preview`.
 
 ### Create flow
 
-1. **Parse the brief (or note the keyword workbook path).** Extract client, marketplace, SKUs/ASINs, campaign types, keywords/target ASINs, budgets, bids, negatives, portfolio, start date, state.
-2. **Ask once for what's missing**, in a single scoping message: marketplace/account, SKUs, budget + bid, paused vs enabled, portfolio, negatives. Never carry another client's values.
-3. **Scaffold the config** and run `build_campaigns.py --config <cfg> [--keyword-file <wb>] --preflight` until READY.
-4. **Preview** (`--preview`) and show the operator the planned campaigns + combined daily budget. Adjust until it matches intent.
-5. **Build** (`--config <cfg>`) → `output/<client-slug>/ads/<date>_<Brand>_<Market>_SP_bulk_campaigns.xlsx` + `_REVIEW.md`; the QA gates must PASS.
-6. **Hand off the file + review and stop.** Upload is the operator's move.
+1. **Parse the brief (or note the keyword workbook path).** Extract client, marketplace, SKUs/ASINs, campaign types, keywords/target ASINs, economics, budgets, bids, negatives, portfolio, start date, state.
+2. **Ask once for what's missing**, in a single scoping message: marketplace/account, SKUs, role target ACOS, actual or conservative comparable-product RPC/CVR, available monthly budget, intended daily clicks, paused vs enabled, portfolio, negatives. Never carry another client's values.
+3. **Calculate the opener and budget for each role.** Opening bids come from RPC times role target ACOS and are back-calculated around any active placement modifiers. Amazon's suggested range is a visibility reference, not the bid formula. Starting budgets come from expected CPC, intended daily clicks, campaign role, account scale, and the available monthly budget. Do not use one flat budget for every bucket.
+4. **Scaffold the config** and run `build_campaigns.py --config <cfg> [--keyword-file <wb>] --preflight` until READY.
+5. **Preview** (`--preview`) and show the operator the planned campaigns + combined daily budget. Adjust until it matches intent.
+6. **Build** (`--config <cfg>`) → `output/<client-slug>/ads/<date>_<Brand>_<Market>_SP_bulk_campaigns.xlsx` + `_REVIEW.md`; the QA gates must PASS.
+7. **Hand off the file + review and stop.** Upload is the operator's move.
 
 ## Update mode: the change-set contract
 

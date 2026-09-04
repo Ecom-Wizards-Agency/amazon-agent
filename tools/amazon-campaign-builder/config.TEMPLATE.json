@@ -41,8 +41,8 @@
   },
   "campaigns": [
     {
-      "_note": "One entry per campaign spec; SKW fans out to one campaign per keyword, transpose_keywords chunks keywords into keywords_per_campaign-sized campaigns. campaign_type: SKW (exact, Rank) | Halo (exact, Profit) | BMM (broad, optional +modifier) | Phrase | Auto (4 auto groups) | PAT (ASIN targeting via target_asins; match_type ASIN_EXACT or ASIN_EXPANDED). goal/match_type/bidding_strategy empty = campaign-type default. campaign_purpose (optional) overrides the naming-convention.md bidding default and EW trigger word for campaigns whose intent cuts across campaign_type: SHIELD (own-brand SKW/BMM/Phrase, down only), SELF_TARGETING (self-PAT, up and down), CATEGORY (up and down); leave empty for the plain per-type default (Rank SKW=Fixed, Auto=up/down, Halo/BMM/Phrase/PAT=down only).",
-      "campaign_type": "<SKW|Halo|BMM|Phrase|Auto|PAT>",
+      "_note": "One entry per campaign spec; SKW fans out to one campaign per keyword, transpose_keywords chunks keywords into keywords_per_campaign-sized campaigns. campaign_type: SKW (exact, Rank) | Halo (exact, Profit) | Phrase | Auto (4 auto groups) | PAT (ASIN targeting via target_asins; match_type ASIN_EXACT or ASIN_EXPANDED). Sponsored Products BMM is disabled. goal/match_type/bidding_strategy empty = campaign-type default. campaign_purpose (optional) overrides the naming-convention.md bidding default and EW trigger word for campaigns whose intent cuts across campaign_type: SHIELD (own-brand SKW/Phrase, down only), SELF_TARGETING (self-PAT, up and down), CATEGORY (up and down); leave empty for the plain per-type default (Rank SKW=Fixed, Auto=up/down, Halo/Phrase/PAT=down only).",
+      "campaign_type": "<SKW|Halo|Phrase|Auto|PAT>",
       "campaign_purpose": "",
       "goal": "",
       "product_name": "<short product label for the campaign name>",
@@ -64,7 +64,6 @@
       "transpose_keywords": false,
       "swap_name_order": false,
       "skw_include_keyword_in_name": true,
-      "bmm_modifier": false,
       "negative_keywords": [],
       "negative_match_type": "NEGATIVE_EXACT",
       "negative_level": "ad_group",

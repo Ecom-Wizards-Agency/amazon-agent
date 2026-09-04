@@ -9,6 +9,10 @@ This file is the spine: it decides the numbers and the stops. The mechanics for 
 from `skills/amazon-audit/references/` at the step that needs them. Every one of those loads sits on a gate the run
 cannot bypass, so read the named file when the step says to.
 
+Before the audit, run `python3 tools/ads_recall.py audit` and read the returned decision, Playbook,
+and Research files in order. Continue quietly when it returns no paths. Numeric thresholds belong
+only in `_local/ads-strategy/strategy.json`; see `docs/ads-doctrine-sources.md` for ownership.
+
 ## The thesis
 
 **We run ads to rank organically high.** Everything below is ordered by that. Five rules fall
@@ -22,7 +26,9 @@ straight out of it, and the second one is the part most audits get wrong.
    conversion performance on that term is already competitive. **Below-market CVR means the push
    will not land**, and a failed ranking experiment actively teaches Amazon the product deserves
    to rank lower. Check CVR against market before recommending a rank push; if it is below,
-   the recommendation is to fix the offer (price, main image, A+) and retest, not to bid.
+   the recommendation is to fix the offer (price, main image, A+) and retest, not to bid. Treat
+   this as a hard gate only with a sufficient representative multi-week SQP sample. With weak or
+   missing ASIN-level data, recommend only a capped validation test with explicit stop criteria.
 3. **Spend above target is not automatically waste.** It is waste only if it fails to buy
    something. For rank campaigns, verify with DataDive Rank Radar and quote cost-per-rank in
    the profile currency. Holding or gaining a high-SV core term is the spend working. Flat or
@@ -42,6 +48,10 @@ straight out of it, and the second one is the part most audits get wrong.
 on price, category demand is declining, it already ranks first, the rating is too low to convert
 regardless, or the auction has no ceiling left (competitors stop playing along once one brand
 dominates, so bids climb while realized CPC stays capped).
+
+Before recommending major SEO work or a full Rank push, verify Product Type, browse-node assignment,
+and required category attributes for every relevant child ASIN from backend catalog evidence. Page
+source alone is not enough. Fix structural classification drift before spending to force rank.
 
 **Audit versus operate.** This skill DIAGNOSES. The weekly loop that actually moves bids,
 budgets and opt-groups is `amazon-ppc-weekly-management` (`/ppc-manage`). When the ask is "run the
@@ -269,11 +279,11 @@ CTR with above-average CVR means fix the thumbnail and title; above-average CTR 
 CVR means fix the secondary images and A+**. A verdict that stops at "fix the listing" can trigger
 an expensive rework of the wrong asset.
 
-**Data-sufficiency gates before any of this becomes a finding.** Filter to a minimum of 100
-impressions and 5 clicks per term (raise to about 1,000 impressions and 10 to 20 clicks on large
-brands). Per-query rates on tiny denominators are noise. Never let a single week trigger an action
-on its own. Sort by the brand's own purchase count to find the terms worth diagnosing, and mine
-mid-tail terms: head terms are high-volume and low-relevance, long tails are too thin.
+**Data-sufficiency gates before any of this becomes a finding.** Require a representative
+multi-week sample with meaningful impression share, click share, absolute impressions, and clicks.
+Per-query rates on tiny denominators are noise. Never let a single week trigger an action on its
+own. Sort by the brand's own purchase count to find the terms worth diagnosing, and mine mid-tail
+terms: head terms are high-volume and low-relevance, long tails are too thin.
 
 Declare **Lens B due** when any of these fire, and quote the number that fired it:
 
@@ -343,17 +353,21 @@ computed across all campaigns is inflated by the paused tail and will be wrong. 
 worth naming: duplicate keyword and match pairs, campaigns with no negatives (judge by targeting
 type, since an exact-match campaign cannot match what negatives would exclude), oversized ad
 groups, branded and generic mixed in one campaign, **mixed match types in one campaign** (placement
-multipliers are campaign-level, so placement control becomes impossible), the brand not excluded
-as a negative phrase from generic campaigns, and ad groups advertising several parent families.
+multipliers are campaign-level, so placement control becomes impossible), branded traffic not split
+from nonbrand in reporting, and ad groups advertising several parent families. Also flag enabled
+zero-spend targets above their calculated bid ceiling before bid changes, negations, or duplicate
+cleanup redirect traffic into them. Keep zero-spend rows out of performance comparisons.
 
-**A10, the out-of-budget check.** The cheapest read in the whole audit and the one budget failure
-that is always wrong. The rule has two sides and they point in opposite directions:
+**A10, the out-of-budget check.** The cheapest read in the whole audit. The rule has two sides and
+an intentional Rank exception:
 
 - **Profitable campaign hitting its cap: extend the budget.** Do not cut winners.
 - **Unprofitable campaign burning its budget early: reduce the bids, not the budget.** The same
   spend then buys more, cheaper clicks spread across the whole day. A $100 budget gone by morning
   at $1 CPC is 100 clicks; halve the bids and the same $100 buys roughly 200 clicks with full-day
   delivery, at a lower ACOS.
+- **Deliberately capped Rank: record the cap as intentional.** Extending it requires an operator
+  decision rather than an automatic budget recommendation.
 
 Where a time-in-budget figure is available, read it directly: about 97% in budget means little
 opportunity, 63% means missing roughly 37% of the day. On the MCP path the proxy is the last-7-day
@@ -382,17 +396,17 @@ SQP impression share.
 
 Two more reads before recommending anything on branded. **Verify branded search volume exists at
 all**: no volume means the brand needs awareness, not defence, and defence spend has nothing to
-defend. And **if branded purchase share is already above about 90%, additional defence spend is
-unlikely to add anything**. The one real holdout in the evidence we hold: a mid-size brand
+defend. And **if branded purchase share is already near its practical ceiling, additional defence
+spend may add little**. The one real holdout in the evidence we hold: a mid-size brand
 phase-paused all brand defence for months and its branded purchase share did not move, with the
 only measurable effect being a better total ACOS. That is a single account with no seasonality
 control, so treat it as a reason to test rather than a reason to cut.
 
-**Open question, decide per client rather than by rule.** External practice caps brand defence at
-roughly 10% of total ad spend and treats 20 to 30% as a standing finding. Our position is that the
-branded verdict is about execution rather than allocation: a high branded share at solid ACOS is
-acceptable in itself, and what deserves criticism is the bids, placements and measurability. These
-give different verdicts on the same account. State which one you applied and why.
+**Branded spend needs an incrementality verdict.** Treat a high branded allocation as a review flag,
+not an automatic cap. Evaluate branded SQP purchase share, real brand demand, conquest pressure,
+product priorities, and controlled reductions. When branded purchase share is already near its
+ceiling and spend is material, recommend a staged reduction test before increasing Shield. Attributed
+ACOS is not proof that branded spend caused the sale.
 
 ### When the question is "why did sales fall"
 
@@ -566,9 +580,9 @@ These decide whether a number is real or just early.
 - **Top of search is not always best.** Product pages genuinely win sometimes, and during major
   events revenue per click and CVR flatten across placements, so event bid increases should not be
   concentrated on top of search.
-- **Data sufficiency**: never read placements on a 7-day window. Use 30 to 60 days, require at
-  least one order per placement, and require clicks of at least 1 over CVR. One click and one order
-  produce an astronomical revenue-per-click that must not be acted on.
+- **Data sufficiency**: never read a placement from one short or one-sale sample. Require sufficient
+  clicks and orders across a representative period. If the campaign is young, leave the modifier
+  alone, use the documented campaign-group/account fallback, or label the action as a capped test.
 
 **Brand tokens.** Include real misspellings; exclude dictionary words that merely resemble the brand.
 The match is a plain substring, so bare `elf` catches "shelf" and bare `mac` catches "macadamia". Use
@@ -635,9 +649,11 @@ disagrees.
 
 - **Buy Box and stock are check zero.** Outside diagnostic trees barely mention the featured offer.
   Ours opens on it because Sponsored Products only serves while you hold it.
-- **Negatives go on the ad group, never the campaign.** Outside practice prefers campaign level for
-  the auto-coverage. Our standard is ad group, and a campaign-level negative found in an audit is a
-  finding to fix, not a style choice.
+- **Negatives default to the ad group for the normal single-ad-group SP structure** (decided
+  11.08.2026, team vault challenges record). Campaign-level negatives are valid only in a
+  multi-ad-group campaign, such as Sponsored Brands Video, where the exclusion is correct for every
+  ad group. A campaign-level negative on a single-ad-group SP campaign is a finding; a valid one
+  elsewhere is not migrated solely because of its level.
 - **Bids and percentages are never rounded.** Bid the odd cent, not the round number everyone picks.
 - **A bid corridor is not a duplicate.** The same keyword across match types at deliberately
   different bids is a corridor; only unintended same-match repeats are duplicates. Nothing outside
