@@ -69,11 +69,11 @@ The live header order is authoritative. Resolve columns by header name at runtim
 
 ### Creator Registry
 
-The authoritative identity index. It stores Creator Record ID, display name for operator navigation, opaque storefront, thread, name, and contact fingerprints, active product/campaign, record state, lock state, and merge notes. Do not copy raw address, email, phone, or storefront URL values into this tab.
+The authoritative identity index. It stores Creator Record ID, display name for operator navigation, opaque storefront, thread, name, and contact fingerprints, active product/campaign, record state, lock state, active MCF reservation manifest, cancellation history, and merge notes. An active reservation includes the reservation ID, campaign ID, tracker source reference, ASIN, SKU, one-unit quantity, recipient binding, state, timestamps, and evidence references. Do not copy raw address, email, phone, or storefront URL values into this tab.
 
 ### Creator Action Log
 
-Append-only, non-PII event log. Record every sent message, status move, queue decision, fulfillment pre-flight, MCF result, content verification, or escalation with an evidence reference.
+Append-only, non-PII event log. Record every sent message, status move, queue decision, fulfillment pre-flight, MCF reservation, populated-screen verification, confirmation, cancellation, reconciliation hold, content verification, or escalation with the reservation ID when applicable and an evidence reference.
 
 ### Daily Action Queue
 

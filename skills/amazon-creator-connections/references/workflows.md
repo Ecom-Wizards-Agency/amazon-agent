@@ -49,6 +49,8 @@ Use for: “launch Creator Connections for this ASIN,” “copy the reference c
 
 Inputs: brand/account, product ASIN, reference campaign, campaign dates, budget, commission, and desired folder/profile.
 
+Read `campaign-experiment-playbook.md` before preparing a new acquisition test. Use one product and one documented hypothesis per campaign, deduplicate applicants by Creator Record ID, and hold all non-tested variables constant.
+
 1. Verify the live Amazon listing:
    - title
    - ASIN

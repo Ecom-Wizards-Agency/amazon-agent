@@ -91,16 +91,18 @@ Every action in the table that sends, publishes, orders, or posts runs only unde
 
 All checks must pass in the same run immediately before order creation:
 
-1. Creator Record ID resolves without conflict and exactly one active record is selected.
+1. The explicit Creator Record ID resolves without conflict and exactly one active record is selected.
 2. Status is `Approved for Sample`, Sample Decision is `Send`, and score is `10/10`.
-3. The final requested ASIN, tracker product, MCF SKU, and selected MCF product match exactly.
-4. Full name, street address, city, state/province, ZIP/postal code, phone, and email are present in the selected creator row.
+3. Creator record, campaign ID, tracker source row, final requested ASIN, catalog campaign, MCF SKU, and selected MCF product match exactly.
+4. Full name, street address, city, state/province, ZIP/postal code, phone, and email are present and their current HMAC fingerprints match the registry record.
 5. No prior sample exists for the same Creator Record ID and final product/ASIN. The synchronized registry's `sample_history` is authoritative for the deterministic gate; reconcile it against the tracker and MCF order history before pre-flight. Caller-supplied proposal history may add evidence but can never hide registry history.
 6. Quantity equals exactly `1`. Standard shipping is selected. The visible fee is within the client-approved cap.
 7. The selected SKU is explicitly FBA/AFN fulfilled, is MCF-fulfillable, and has at least one currently fulfillable unit. Record the inventory-check timestamp and a private evidence reference from live MCF or an approved SP-API worker. An active FBM listing or seller-fulfilled quantity does not pass this gate.
-8. There are no page validation errors, recipient mismatches, or field truncations.
+8. There are no page validation errors, recipient mismatches, or field truncations. Thread, pre-flight, and inventory evidence references are present.
 
-Capture the pre-flight evidence reference before creating the order. If any check fails, lock the record and escalate. Never make a corrective second order to compensate for an uncertain first order.
+After `preflight` passes, run `reserve-mcf`. The returned reservation ID binds the creator, campaign, tracker row, ASIN, SKU, one-unit quantity, recipient fingerprint, fee cap, and evidence. Populate MCF, capture the screen, and run `verify-mcf` with that reservation ID before submitting. `confirm-mcf` must match the same reservation ID, ASIN, SKU, and one-unit quantity. If any check fails, keep the record locked and escalate. Never make a corrective second order to compensate for an uncertain first order.
+
+If Amazon definitively rejects the order or evidence proves it was not submitted, run `cancel-mcf` with an allowed definitive reason and evidence reference. This appends a cancellation event and safely releases the reservation. A timeout, missing confirmation, or unknown outcome is not cancellable: the record moves to `Reconciliation Required` and remains locked until order history proves whether an order exists.
 
 ## MCF-blocked product switches
 
