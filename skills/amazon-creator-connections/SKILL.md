@@ -39,7 +39,7 @@ Creator Connections lives behind Amazon Ads login and currently has no direct MC
 3. Use the four stop-gates.
    - Creator-message sends, campaign publishing, MCF order creation, and Slack posting are externally visible actions.
    - Each requires the operator's current approval or a matching local standing permission.
-   - Slack posts must use the configured posting helper. The Slack connector is for reading or operator-requested personal drafts only.
+   - Slack authorship follows the actor per `_local/slack-posting.md`: scheduled or background sweeps use the guarded bot helper, an attended session posts through the supervising operator's verified identity, and neither may fall back to the other.
 
 4. Draft before sending unless explicitly approved.
    - Present drafts first unless the operator explicitly says to send that exact message/action in the current chat or a standing permission in `_local/local-permissions.md` covers it.

@@ -212,6 +212,16 @@ class CreatorControlTests(unittest.TestCase):
         self.assertIn("catalog_asin_mismatch", result["errors"])
         self.assertIn("sku_not_mapped_to_selected_asin", result["errors"])
 
+    def test_preflight_holds_when_fee_is_missing_or_invalid(self):
+        missing = proposal()
+        missing.pop("visible_fee_cents")
+        result = cc.mcf_preflight(self.registry, missing, self.secret)
+        self.assertEqual(result["result"], "HOLD")
+        self.assertIn("fee_missing_or_invalid", result["errors"])
+        result = cc.mcf_preflight(self.registry, proposal(visible_fee_cents="abc"), self.secret)
+        self.assertEqual(result["result"], "HOLD")
+        self.assertIn("fee_missing_or_invalid", result["errors"])
+
     def test_preflight_holds_instead_of_crashing_on_invalid_quantity(self):
         cc.issue_record_id(self.registry, creator(), self.secret, date(2026, 8, 5))
         result = cc.mcf_preflight(self.registry, proposal(quantity="one"), self.secret)

@@ -8,6 +8,8 @@ Use for: “run a sweep,” “check new messages,” “who replied,” “who 
 
 1. Open the correct brand’s Creator Connections messages.
 2. Use the requested scope. Default to new/updated threads since the last tracker or Slack sweep.
+
+   Inbox facts, verified 31.07.2026. **Amazon has no status filter in this inbox**: no native `<select>`, no search or filter input, no status buttons, no query parameter. The only list-level signal is the unread indicator, so every "status" below is our own classification applied after reading. **Draining the thread list is mandatory.** The list is incremental infinite-scroll and is not virtualised: the initial load mounts 100 threads in `data-testid="CHANNEL-SCROLL-CONTAINER"`, and scrolling to the boundary appends another 100 while the earlier ones stay mounted. A single DOM read silently returns only the newest 100 or so threads and looks complete. Loop instead: read mounted threads, scroll near the bottom, wait for the child count to grow, repeat until a scroll to the bottom yields no new rows, and report the final mounted count next to the enumerated count. Profile and thread selection are JavaScript-only state; the URL stays at `/bi?entityId=…`, so threads cannot be addressed or resumed by URL. There is no relevant iframe or shadow DOM. Opening an unread thread may mark it read (untested), so a strictly read-only audit stays on already-read threads or declares that side effect up front.
 3. For each thread, verify and resolve:
    - creator display name
    - Creator Record ID or a safe new-record decision

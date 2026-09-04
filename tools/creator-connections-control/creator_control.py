@@ -538,9 +538,17 @@ def mcf_preflight(registry: dict[str, Any], proposal: dict[str, Any], secret: by
     if quantity != 1: errors.append("quantity_must_equal_1")
     errors.extend(mcf_inventory_errors(catalog_item, max(quantity, 1)))
     if normalized(proposal.get("shipping_speed")) != "standard": errors.append("shipping_must_be_standard")
-    fee = int(proposal.get("visible_fee_cents") or 0)
-    cap = int(proposal.get("approved_fee_cap_cents") or -1)
-    if cap < 0 or fee > cap: errors.append("fee_exceeds_approved_cap")
+    fee = None
+    cap = None
+    try:
+        if proposal.get("visible_fee_cents") is None or proposal.get("approved_fee_cap_cents") is None:
+            raise ValueError("fee or cap missing")
+        fee = int(proposal["visible_fee_cents"])
+        cap = int(proposal["approved_fee_cap_cents"])
+    except (TypeError, ValueError):
+        errors.append("fee_missing_or_invalid")
+    if fee is not None and cap is not None and (cap < 0 or fee > cap):
+        errors.append("fee_exceeds_approved_cap")
     registry_history = resolved.get("sample_history") or []
     proposal_history = proposal.get("sample_history") or []
     duplicate_registry_history = any(

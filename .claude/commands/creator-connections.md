@@ -14,5 +14,5 @@ The user's target is: **$ARGUMENTS**
 3. Apply the confirmed status-filter mapping. If it is not configured, perform the first-run status discovery and ask for mapping confirmation.
 4. Resolve a Creator Record ID before any message, tracker edit, product move, or sample action. A blank, duplicate, or conflicting ID is an escalation, not an assumption.
 5. Run the requested mode. Match product in the order ASIN/product URL, campaign context, explicit product name. Update the tracker, append the non-PII action log, and refresh the daily action queue.
-6. Apply four stop-gates: creator-message sends, campaign publishing, MCF order creation, and Slack posts need a current operator instruction or matching local standing permission. Slack posts use the configured posting helper, never the Slack connector as the operator.
+6. Apply four stop-gates: creator-message sends, campaign publishing, MCF order creation, and Slack posts need a current operator instruction or matching local standing permission. Slack authorship follows the actor per `_local/slack-posting.md` (bot helper for background sweeps, the supervising operator's own identity in attended sessions).
 7. Finish with a concise handoff: processed/skipped/flagged counts, tracker and queue changes, draft versus sent actions, evidence location, and remaining blocker.
