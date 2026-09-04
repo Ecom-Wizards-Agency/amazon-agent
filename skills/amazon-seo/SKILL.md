@@ -21,5 +21,7 @@ Use this skill for Amazon keyword research, keyword workbooks, listing optimizat
 - Treat Rufus, Alexa AI, Amazon AI search, and semantic Amazon search as related trigger language unless current first-party documentation distinguishes them.
 - Use `amazon-listing-capture` for live listing copy and `amazon-opportunity-explorer` for POE evidence.
 - Keep title, Item Highlights, and bullet fields distinct.
+- For an SEO audit, major SEO change, or Rank-readiness check, run `python3 tools/ads_recall.py seo-rank-gate` and read the returned decision and Research files in order. Continue quietly when it returns no paths.
+- Before approving a major SEO change or a full Rank push, verify Product Type, browse-node assignment, and required category attributes for every relevant child ASIN using backend catalog evidence. Page source alone is insufficient. Fix child-level classification drift first; any intentional browse-node change needs a documented expected outcome, monitoring plan, and rollback criteria.
 - Run the mandatory claims self-check before delivering regulated-category SEO work.
 - Stop before publishing listing changes, uploading flat files, or applying campaign changes.
