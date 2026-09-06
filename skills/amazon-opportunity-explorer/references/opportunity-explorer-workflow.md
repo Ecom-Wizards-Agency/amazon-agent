@@ -62,7 +62,7 @@ When extracting OEI/POE data, preserve:
 
 Use the exported data with:
 
-- `amazon-image-strategy` for Amazon image set planning and creative direction.
+- `amazon-listing-images` for Amazon gallery planning, exact copy, and visual direction from supplied product and POE evidence. `amazon-image-strategy` remains a trigger phrase, not a second skill.
 - `oei-product-strategy` for product concepts and differentiation.
 - `rufus-optimization` for Rufus/Alexa AI semantic search strategy.
 - `amazon-seo-writer` when the OEI insights should become listing copy.

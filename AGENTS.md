@@ -190,7 +190,15 @@ This project uses one current Amazon operator with specialist skills. Specialist
 
 **Skills are agent-neutral.** The current working agent owns the workflow end to end when it has the required capabilities: data collection, local build, writing, QA, and authorized internal delivery. Describe steps by capability or surface (`connected browser`, `CDP`, `DataDive MCP`, `local build`, `Google Drive`), never by a named assistant. If a required capability is unavailable, leave the standard handoff for any capable agent. A handoff is a capability fallback, not a permanent role split. Platform names remain only when they identify a real interface or discovery mechanism.
 
-**One copy of every skill, in this repo.** `skills/` is the single source of truth for every runtime. Claude reads it directly from the working tree. Codex reads it through symlinks: every `~/.codex/skills/amazon-*` entry points at the matching `skills/<name>` directory here (wired 2026-07-26). Never edit a skill inside `~/.codex/skills/`, and never replace one of those symlinks with a real directory: that is exactly how two runtimes silently drifted for three weeks. Edit the file in this repo so every supported agent sees the same instructions.
+**One canonical copy of every skill.** Amazon operating skills live in this repo's
+`skills/`. The shared creative skills `amazon-listing-images` and
+`amazon-product-photography` live in `company-ai-skills/skills/`; their entries here
+are relative symlinks to that source. This lets designers install Company AI Skills
+without Amazon Agent while both groups use the same instructions. Keep the standard
+sibling checkouts under the workspace root so these links resolve. Runtime skill
+entries remain symlinks; never edit or replace them with independent copies. Edit
+the resolved canonical source. Company setup accepts duplicate discovery paths only
+when they resolve to the same skill directory.
 
 **There are no exceptions any more.** Every `~/.codex/skills/amazon-*` entry is a symlink and none is a real directory, so the drift failure mode is structurally impossible rather than merely forbidden. The former standalone SQP competitor skill is now the competitor-benchmark mode inside `amazon-reporting`; its browser runner remains under `tools/sc-sqp-competitor/`.
 
@@ -223,7 +231,10 @@ Default routing:
 - `amazon-client-offboarding`: complete, branded, read-only Amazon account handovers when an engagement ends or ownership transfers. Produces the client operating narrative plus the exact five-tab evidence workbook; it is not an audit posture and never mutates the account.
 - `amazon-client-onboarding`: Amazon new-client access preflight, Day 0 account baseline, FBA disposal protection, 15% all-eligible-audience Brand Tailored Promotion plans, approval-gated setup changes, independent inventory verification, and seven-day onboarding monitoring. Permissions are a preflight gate and create a task only when missing.
 - `amazon-fba-inventory-planning`: weekly FBA inventory overview, reshipment planning, pCloud outputs, Slack staging.
-- `amazon-opportunity-explorer`: Product Opportunity Explorer/OEI/POE exports, image strategy, product strategy, Alexa/Rufus semantic insights.
+- `amazon-opportunity-explorer`: Product Opportunity Explorer/OEI/POE discovery and exports, product strategy, and Alexa/Rufus semantic insights. Listing image strategy and copy from supplied evidence route to `amazon-listing-images`.
+- `amazon-listing-images`: Amazon gallery concepts, buying-motive prioritization, image order, exact English/German copy, and visual directions from supplied product and POE data. No mandatory new research, fixed image count, rendering, or publishing.
+- `amazon-product-photography`: product photos, packshots, lifestyle/usage/detail shots, photo editing, enhancement and reference-based photo prompts. FLORA preferred; no Figma, listing graphics, copy or mandatory POE intake.
+- `amazon-image-production`: listing graphics and editable Figma layouts from accepted briefs and photos; requested missing photo work routes to `amazon-product-photography`.
 - `amazon-listing-capture`: capture live listing copy (title/bullets/link) for anchor + competitors via the connected-browser extractor; feeds the keyword-workbook ASINs tab; replaces the legacy ZeroWork scrape.
 - `amazon-sop-maintenance`: `/create-sop`, `/fix-sop`, verified SOP corrections, new SOP drafts, and SOP-vs-skill routing.
 - `amazon-logistics`: Send to Amazon, FBA shipments, removals, AWD, inventory operations.
@@ -294,6 +305,27 @@ When the operator asks for an inventory check or reshipment check, route to `ama
 
 Inventory and reshipment plans must be based on fresh same-day Seller Central reports requested/downloaded for the current run. Do not use older local reports or cached outputs as "latest reports" unless the operator explicitly approves that exception in the current chat.
 
+Listing image trigger phrases:
+
+- `Amazon listing images`
+- `amazon-image-strategy`
+- `Bildkonzepte`
+- `Bildtexte`
+- `image copy`
+- `gallery image order`
+
+Route these to `amazon-listing-images` when the task is image strategy or copy.
+Product and POE data are the two required inputs; reuse supplied evidence without
+requiring a new export, DataDive, or an existing ASIN. Preserve accepted image order
+and scope for copy-only revisions and translations. Explicit live POE discovery or
+downloads remain with `amazon-opportunity-explorer`; rendering and publishing use
+their own workflows and authorization.
+
+Product photos, photo prompts, packshots, lifestyle photography and retouching
+route to `amazon-product-photography`. Listing graphic composition and Figma layouts
+from accepted briefs route to `amazon-image-production`. Photo work does not require
+POE, listing copy or a Figma file.
+
 Opportunity Explorer trigger phrases:
 
 - `Product Opportunity Explorer`
@@ -301,7 +333,6 @@ Opportunity Explorer trigger phrases:
 - `OEI`
 - `POE`
 - `Niche Scout`
-- `amazon-image-strategy`
 - `oei-product-strategy`
 
 DataDive trigger phrases:

@@ -26,6 +26,9 @@ On machines with separate profiles, the two hold independent sessions and do not
 |---|---|---|---|---|
 | Seller Central reports (Business, SQP, SCP, TST) | `amazon-reporting` (`/fetch-reports`) | CDP | `tools/report-fetcher/run.mjs` | Fallback: evaluate `fetch-seller-reports.js` in a logged-in tab. |
 | POE / Opportunity Explorer exports | `amazon-opportunity-explorer` | CDP | `tools/opportunity-explorer/run-poe.mjs` | Fallback: evaluate `fetch-poe.js` in a logged-in SC page. |
+| Listing image strategy and exact copy | `amazon-listing-images` | Local | Supplied product and POE evidence | No account login or new research required for a supplied-data brief; requested live inputs follow their owning workflow. |
+| Product photography and photo prompts | `amazon-product-photography` | Mixed | Supplied product references; verified FLORA or chosen provider MCP; CDP when a visual editor is needed | Photo-only scope. Verify reference inputs, product fidelity and existing generation authorization. Prompts work without connectors. |
+| Listing graphics and Figma layouts | `amazon-image-production` | Mixed | Supplied briefs/photos and Figma tools | Native editable text and graphic layers; needed photo assets route to the photography skill. |
 | Listing copy capture (anchor + competitors) | `amazon-listing-capture` | CDP | `extract-amazon-listing-copy.js` evaluated over `cdp.mjs` | PDPs need no login. |
 | Brand surveillance and suspected-product takedown tracking | `tools/amazon-brand-surveillance/monitor.mjs` | CDP | Shared policy-configured port-9222 browser; leased background PDP and search tabs | Public pages need no login. Read-only; never files Brand Registry reports. |
 | DataDive roots / Core MKL / competitors / Rank Radar | `amazon-seo` | MCP | `datadive` MCP | No browser. |

@@ -7,6 +7,11 @@ description: "Discover and score Amazon Product Opportunity Explorer niches, dow
 
 Browser: CDP (`run-poe.mjs` over the shared debug Chrome). Fallback: evaluate `fetch-poe.js` in a logged-in Seller Central page.
 
+For Amazon listing image concepts, gallery order, or exact image copy from supplied
+product and POE data, use `amazon-listing-images`. This skill owns requested niche
+discovery and exports; its fresh-research requirements do not gate analysis of an
+already-supplied snapshot.
+
 ## Account Safety
 
 POE records viewed niches in the active Seller Central account. Verify account identity before every search, niche, batch, or merchant-niches request.
@@ -59,4 +64,4 @@ The run manifest must record sources, seed categories, related niches, exclusion
 
 ## Outputs
 
-For creative or image strategy, provide concrete visual recommendations and data citations. For product strategy, provide positioning, feature, price, and entry implications. For SEO or Alexa AI strategy, provide semantic phrase and intent clusters tied to Amazon-native evidence. The reported output must distinguish the analysis from its evidence archive and include the checksum-verified pCloud `_Data/opportunity-data/` destination for every complete pack.
+For downstream listing image strategy, pass the evidence to `amazon-listing-images`. For product strategy, provide positioning, feature, price, and entry implications. For SEO or Alexa AI strategy, provide semantic phrase and intent clusters tied to Amazon-native evidence. The reported output must distinguish the analysis from its evidence archive and include the checksum-verified pCloud `_Data/opportunity-data/` destination for every complete pack.
