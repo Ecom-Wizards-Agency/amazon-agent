@@ -190,15 +190,12 @@ This project uses one current Amazon operator with specialist skills. Specialist
 
 **Skills are agent-neutral.** The current working agent owns the workflow end to end when it has the required capabilities: data collection, local build, writing, QA, and authorized internal delivery. Describe steps by capability or surface (`connected browser`, `CDP`, `DataDive MCP`, `local build`, `Google Drive`), never by a named assistant. If a required capability is unavailable, leave the standard handoff for any capable agent. A handoff is a capability fallback, not a permanent role split. Platform names remain only when they identify a real interface or discovery mechanism.
 
-**One canonical copy of every skill.** Amazon operating skills live in this repo's
-`skills/`. The shared creative skills `amazon-listing-images` and
-`amazon-product-photography` live in `company-ai-skills/skills/`; their entries here
-are relative symlinks to that source. This lets designers install Company AI Skills
-without Amazon Agent while both groups use the same instructions. Keep the standard
-sibling checkouts under the workspace root so these links resolve. Runtime skill
-entries remain symlinks; never edit or replace them with independent copies. Edit
-the resolved canonical source. Company setup accepts duplicate discovery paths only
-when they resolve to the same skill directory.
+**One canonical copy of every Amazon skill, in this repo.** `skills/` owns the
+operating and creative skill sources. Runtime entries link to these directories;
+never edit or replace runtime links with independent copies. Designers may install
+only `amazon-listing-images` and `amazon-product-photography`, following
+`docs/design-skills-installation.md`, without activating the `amazon-operator` role.
+Company AI Skills keeps its separate shared copywriting and setup skills.
 
 **There are no exceptions any more.** Every `~/.codex/skills/amazon-*` entry is a symlink and none is a real directory, so the drift failure mode is structurally impossible rather than merely forbidden. The former standalone SQP competitor skill is now the competitor-benchmark mode inside `amazon-reporting`; its browser runner remains under `tools/sc-sqp-competitor/`.
 
