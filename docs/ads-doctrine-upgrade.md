@@ -28,7 +28,7 @@ Resolve the vault path from `_local/team-vault-path.txt` or
 | `_local/ads-strategy/strategy.md` | Core philosophy, Budget & bids, Launch phases, Rank keyword lifecycle, Optimizer cadence |
 | `skills/amazon-ppc-weekly-management/SKILL.md` | New out-of-budget step; bid run, harvest run, graduation, standing conventions |
 | `skills/amazon-audit/SKILL.md` + `references/writing-and-delivery.md` | CTR/CVR diagnostic split; mandatory branded split; recorded walkthrough |
-| `skills/amazon-seo/references/listing-optimization-and-compliance.md` | Product Type / browse-node pre-spend gate |
+| `skills/amazon-seo/SKILL.md` | Product Type / browse-node pre-spend gate |
 | `skills/amazon-sponsored-products-bulk-files/SKILL.md` | SP BMM removed from the bucket list; opener and budget sizing |
 | `skills/amazon-ads-performance-briefs/references/brief-workflows.md` | Capped campaigns and branded share in the brief |
 | `AGENTS.md` | Sponsored-Products-only scope stated explicitly |
