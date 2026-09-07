@@ -4,6 +4,10 @@ Amazon Agent is the operator's local runtime workspace for operating Amazon work
 
 ## How To Use
 
+Designers who only need image concepts/copy and product-photo prompts can use the
+[selective design installation prompt](docs/design-skills-installation.md).
+It installs only those two skills; full Amazon operator setup is unnecessary.
+
 Start with `AGENTS.md`. It is the single source of truth for assistant behavior: skill routing and trigger phrases, library search order, the Browser Standard, evidence capture, output-folder rules, and stop-before-risk rules. This README intentionally does not repeat that content; when the two disagree, `AGENTS.md` wins.
 
 For most work:

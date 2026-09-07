@@ -167,7 +167,8 @@ Before a state-changing action, use `tools/creator-connections-control/creator_c
 - Run `score` after every background check or creator reply. Do not overwrite the score with a manually typed value when its visible evidence no longer supports it.
 - Build the dated machine-readable queue with `queue` before the daily sweep. Sync its results to `Daily Action Queue` and `Creator Action Log` only after the record ID is resolved.
 - Run `preflight-switch --phase offer` before proposing an alternate ASIN for an MCF-blocked product. Offer only a same-campaign alternative with verified FBA/MCF-fulfillable inventory. Run `preflight-switch --phase confirm` after the creator explicitly replies with that ASIN and before changing the active product record.
-- Run `preflight` immediately before any MCF order. It requires live FBA/MCF-fulfillable inventory evidence in addition to the exact ASIN/SKU match. A `HOLD` result means no order and an escalation. Until SP-API access is authorized, MCF creation remains a controlled browser/operator action after a passing pre-flight.
+- Run `preflight` immediately before any MCF order. It requires the explicit creator, campaign, tracker row, recipient fingerprint, live FBA/MCF inventory evidence, and exact ASIN/SKU match. Then run `reserve-mcf`, populate the form, and run `verify-mcf` with the returned reservation ID before submission. Run `confirm-mcf` only for that verified reservation and exact one-unit product. A `HOLD` result means no order and an escalation.
+- If an order definitively fails or is abandoned before submission, use `cancel-mcf` with an allowed reason and evidence. Never hand-edit a lock. Timeout or unknown outcome remains locked as `Reconciliation Required` until Amazon order history resolves it. Until SP-API access is authorized, MCF creation remains a controlled browser/operator action after all passing controls.
 
 See `tools/creator-connections-control/README.md` for the input format and local HMAC-secret setup. Never commit run files, the registry, screenshots, raw addresses, or the HMAC secret.
 
@@ -234,3 +235,4 @@ When work changes agent or session, create the standard cross-agent handoff usin
 - `references/lifecycle-execution-guardrails.md`: record identity, lifecycle transitions, MCF gates, cadence, audit records, and escalation rules.
 - `references/reply-playbook.md`: approved message patterns and draft/send rules.
 - `references/sample-and-slack-ops.md`: sample/MCF workflow, priority lane, and Slack sweep format.
+- `references/campaign-experiment-playbook.md`: product-specific campaign title, description, cohort, and comparison controls.

@@ -157,6 +157,14 @@ export function policyForPort(port, policy = loadBrowserPolicy()) {
   return policy.ports[key];
 }
 
+// A signed-in Seller Central session that has not selected an account does not
+// rest on /home. Amazon redirects it to /account-switcher/..., which is a normal
+// signed-in state, not a navigated-away anchor. Counting it as a miss made every
+// maintenance pass demote the anchor and open a replacement that redirected
+// straight back to the switcher, so each pass added one tab per unresolved
+// anchor. Observed 07.09.2026: ~4 tabs every 5 minutes across both ports.
+const SIGNED_IN_ANCHOR_PATH = /^\/account-switcher(?:\/|$)/;
+
 export function anchorMatchesUrl(anchor, rawUrl) {
   let actual;
   let wanted;
@@ -167,7 +175,9 @@ export function anchorMatchesUrl(anchor, rawUrl) {
     return false;
   }
   if (actual.origin === wanted.origin) {
-    return anchor.accepted_paths.some((path) => actual.pathname.replace(/\/$/, "") === path.replace(/\/$/, ""));
+    const path = actual.pathname.replace(/\/$/, "");
+    return anchor.accepted_paths.some((accepted) => path === accepted.replace(/\/$/, ""))
+      || SIGNED_IN_ANCHOR_PATH.test(actual.pathname);
   }
   if (!anchor.auth_origins.includes(actual.origin)) return false;
   return /signin|auth|mfa|captcha|\/ap\/cvf|account-recovery/i.test(actual.pathname + actual.search);

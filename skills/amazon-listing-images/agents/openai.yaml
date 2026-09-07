@@ -1,0 +1,4 @@
+interface:
+  display_name: "Amazon Listing Images"
+  short_description: "Create Amazon image concepts and exact copy"
+  default_prompt: "Use $amazon-listing-images to turn the supplied product and POE data into prioritized Amazon image concepts, exact copy, and visual directions."

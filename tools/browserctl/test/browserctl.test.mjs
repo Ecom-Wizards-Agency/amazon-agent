@@ -373,6 +373,43 @@ test("scheduled cleanup additively recreates a missing anchor", { concurrency: f
   await registry.removeLease({ port: 9222, targetId: "replacement-anchor" });
 });
 
+test("the account switcher counts as a signed-in anchor, not a navigated one", { concurrency: false }, () => {
+  const [us] = policy.ports["9222"].anchors;
+  const switcher = "https://sellercentral.amazon.com/account-switcher/default/merchantMarketplace?returnTo=%2Fhome";
+  assert.equal(policyModule.anchorMatchesUrl(us, switcher), true);
+  assert.equal(policyModule.anchorMatchesUrl(us, "https://sellercentral.amazon.com/account-switcher"), true);
+  assert.equal(policyModule.anchorMatchesUrl(us, "https://sellercentral.amazon.com/home"), true);
+  assert.equal(policyModule.anchorMatchesUrl(us, "https://sellercentral.amazon.com/inventory"), false);
+  assert.equal(policyModule.anchorMatchesUrl(us, "https://sellercentral.amazon.com/account-switcheroo"), false);
+  assert.equal(policyModule.anchorMatchesUrl(us, "https://sellercentral.amazon.de/account-switcher/default"), false);
+});
+
+test("an anchor resting on the account switcher is never replaced", { concurrency: false }, async () => {
+  const oneAnchorPolicy = structuredClone(policy);
+  oneAnchorPolicy.ports["9222"].anchors = [policy.ports["9222"].anchors[0]];
+  const pages = [{
+    id: "us-anchor", type: "page",
+    url: "https://sellercentral.amazon.com/account-switcher/default/merchantMarketplace?returnTo=%2Fhome",
+    webSocketDebuggerUrl: "ws://test/us-anchor",
+  }];
+  await registry.acquireLease({
+    port: 9222, targetId: "us-anchor", leaseClass: "anchor", owner: "browserctl:anchor",
+    anchorKey: "US", origin: "https://sellercentral.amazon.com", now: 1, policy: oneAnchorPolicy,
+  });
+  const cdp = {
+    assertChrome: async () => ({}),
+    listPages: async () => pages,
+    createPage: async () => { throw new Error("must not open a replacement anchor"); },
+  };
+  const result = await controller.ensureAnchors(9222, { policy: oneAnchorPolicy, cdp });
+  assert.deepEqual(result.created, []);
+  assert.deepEqual(result.reclassified, []);
+  assert.equal(result.kept.length, 1);
+  assert.equal(result.kept[0].source, "registry");
+  assert.equal(pages.length, 1);
+  await registry.removeLease({ port: 9222, targetId: "us-anchor" });
+});
+
 test("CLI-acquired targets are instrumented for interaction activity", { concurrency: false }, async () => {
   let closed = false;
   let instrumented = false;

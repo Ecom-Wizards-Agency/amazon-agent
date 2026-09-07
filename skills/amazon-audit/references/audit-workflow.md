@@ -9,9 +9,8 @@ This file is the spine: it decides the numbers and the stops. The mechanics for 
 from `skills/amazon-audit/references/` at the step that needs them. Every one of those loads sits on a gate the run
 cannot bypass, so read the named file when the step says to.
 
-Before the audit, run `python3 tools/ads_recall.py audit` and read the returned decision, Playbook,
-and Research files in order. Continue quietly when it returns no paths. Numeric thresholds belong
-only in `_local/ads-strategy/strategy.json`; see `docs/ads-doctrine-sources.md` for ownership.
+Numeric thresholds belong only in `_local/ads-strategy/strategy.json`; see
+`docs/ads-doctrine-sources.md` for ownership.
 
 ## The thesis
 
