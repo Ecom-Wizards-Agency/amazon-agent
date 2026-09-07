@@ -31,7 +31,12 @@ def creator(**overrides):
 
 def proposal(**overrides):
     value = {
+        "creator_record_id": "CCR-EX-26-0001",
         "creator": creator(),
+        "tracker_campaign_id": "campaign-1",
+        "tracker_source_ref": "tracker/campaign-1/row-2",
+        "thread_evidence_reference": "private-evidence/thread-1.json",
+        "preflight_evidence_reference": "private-evidence/preflight-1.json",
         "tracker_asin": "B0EXAMPLE1",
         "selected_asin": "B0EXAMPLE1",
         "selected_sku": "SKU-1",
@@ -39,6 +44,8 @@ def proposal(**overrides):
             "B0EXAMPLE1": {
                 "asin": "B0EXAMPLE1",
                 "sku": "SKU-1",
+                "product_title": "Example Product",
+                "campaign_id": "campaign-1",
                 "fulfillment_channel": "FBA",
                 "mcf_fulfillable": True,
                 "fulfillable_quantity": 10,
@@ -50,6 +57,25 @@ def proposal(**overrides):
         "shipping_speed": "Standard",
         "visible_fee_cents": 799,
         "approved_fee_cap_cents": 800,
+    }
+    value.update(overrides)
+    return value
+
+
+def verification(reservation_id, **overrides):
+    value = {
+        "creator_record_id": "CCR-EX-26-0001",
+        "reservation_id": reservation_id,
+        "campaign_id": "campaign-1",
+        "tracker_source_ref": "tracker/campaign-1/row-2",
+        "screen_asin": "B0EXAMPLE1",
+        "screen_sku": "SKU-1",
+        "product_title": "Example Product",
+        "quantity": 1,
+        "recipient": creator(),
+        "shipping_speed": "Standard",
+        "visible_fee_cents": 799,
+        "evidence_reference": "private-evidence/mcf-screen.png",
     }
     value.update(overrides)
     return value
@@ -302,6 +328,101 @@ class CreatorControlTests(unittest.TestCase):
         proposed = proposal()
         self.assertEqual(cc.reserve_mcf(self.registry, proposed, self.secret)["reservation"], "LOCKED_FOR_MCF")
         self.assertEqual(cc.mcf_preflight(self.registry, proposed, self.secret)["result"], "HOLD")
+
+    def test_preflight_binds_creator_campaign_tracker_product_and_recipient(self):
+        cc.issue_record_id(self.registry, creator(), self.secret, date(2026, 8, 5))
+        wrong = proposal(
+            creator_record_id="CCR-EX-26-9999",
+            tracker_campaign_id="campaign-2",
+            creator=creator(email="other@example.test"),
+        )
+        result = cc.mcf_preflight(self.registry, wrong, self.secret)
+        self.assertEqual(result["result"], "HOLD")
+        self.assertIn("creator_record_id_mismatch", result["errors"])
+        self.assertIn("campaign_id_mismatch", result["errors"])
+        self.assertIn("recipient_email_fp_missing", result["errors"])
+
+    def test_populated_mcf_screen_must_match_locked_manifest(self):
+        cc.issue_record_id(self.registry, creator(), self.secret, date(2026, 8, 5))
+        reserved = cc.reserve_mcf(self.registry, proposal(), self.secret)
+        held = cc.verify_mcf(
+            self.registry,
+            verification(
+                reserved["reservation_id"],
+                screen_sku="SKU-WRONG",
+                product_title="Wrong Product",
+                recipient=creator(phone="555-999-9999"),
+            ),
+            self.secret,
+        )
+        self.assertEqual(held["result"], "HOLD")
+        self.assertIn("screen_sku_mismatch", held["errors"])
+        self.assertIn("screen_product_title_mismatch", held["errors"])
+        self.assertIn("screen_recipient_mismatch", held["errors"])
+        self.assertEqual(self.registry["records"][0]["lock_state"], "Locked for MCF")
+
+    def test_confirmation_requires_verified_screen_and_exact_reservation(self):
+        identifier = cc.issue_record_id(self.registry, creator(), self.secret, date(2026, 8, 5))
+        reserved = cc.reserve_mcf(self.registry, proposal(), self.secret)
+        reservation_id = reserved["reservation_id"]
+        with self.assertRaises(cc.Hold):
+            cc.confirm_mcf(
+                self.registry, identifier, reservation_id, "B0EXAMPLE1", "SKU-1", 1,
+                "ORDER-1", "private-evidence/order.png",
+            )
+        verified = cc.verify_mcf(self.registry, verification(reservation_id), self.secret)
+        self.assertEqual(verified["reservation_state"], "Verified for Submit")
+        with self.assertRaises(cc.Hold):
+            cc.confirm_mcf(
+                self.registry, identifier, reservation_id, "B0EXAMPLE1", "SKU-WRONG", 1,
+                "ORDER-1", "private-evidence/order.png",
+            )
+        confirmed = cc.confirm_mcf(
+            self.registry, identifier, reservation_id, "B0EXAMPLE1", "SKU-1", 1,
+            "ORDER-1", "private-evidence/order.png",
+        )
+        self.assertEqual(confirmed["state"], "sample_confirmed")
+        self.assertEqual(self.registry["records"][0]["lock_state"], "Unlocked")
+        self.assertEqual(self.registry["records"][0]["sample_history"][0]["quantity"], 1)
+
+    def test_definitive_cancellation_releases_reservation_and_is_idempotent(self):
+        identifier = cc.issue_record_id(self.registry, creator(), self.secret, date(2026, 8, 5))
+        reserved = cc.reserve_mcf(self.registry, proposal(), self.secret)
+        reservation_id = reserved["reservation_id"]
+        cancelled = cc.cancel_mcf(
+            self.registry, identifier, reservation_id, "amazon_rejected", "private-evidence/rejected.png",
+        )
+        self.assertEqual(cancelled["state"], "reservation_cancelled_and_released")
+        self.assertEqual(self.registry["records"][0]["lock_state"], "Unlocked")
+        repeated = cc.cancel_mcf(
+            self.registry, identifier, reservation_id, "amazon_rejected", "private-evidence/rejected.png",
+        )
+        self.assertEqual(repeated["state"], "already_released")
+
+    def test_uncertain_cancellation_keeps_lock_for_reconciliation(self):
+        identifier = cc.issue_record_id(self.registry, creator(), self.secret, date(2026, 8, 5))
+        reserved = cc.reserve_mcf(self.registry, proposal(), self.secret)
+        with self.assertRaises(cc.Hold):
+            cc.cancel_mcf(
+                self.registry, identifier, reserved["reservation_id"], "request_timeout", "private-evidence/timeout.json",
+            )
+        entry = self.registry["records"][0]
+        self.assertEqual(entry["lock_state"], "Locked for MCF")
+        self.assertEqual(entry["mcf_reservation"]["state"], "Reconciliation Required")
+
+    def test_legacy_reservation_can_be_listed_and_definitively_cancelled(self):
+        identifier = cc.issue_record_id(self.registry, creator(), self.secret, date(2026, 8, 5))
+        entry = self.registry["records"][0]
+        entry["lock_state"] = "Locked for MCF"
+        entry["mcf_reservation"] = {"asin": "B0EXAMPLE1", "reserved_at": "2026-08-05T10:00:00Z"}
+        listed = cc.list_mcf_reservations(self.registry)
+        legacy_id = listed["active_reservations"][0]["reservation_id"]
+        self.assertTrue(legacy_id.startswith("MCFR-LEGACY-"))
+        result = cc.cancel_mcf(
+            self.registry, identifier, legacy_id, "definitive_not_created", "private-evidence/order-history.png",
+        )
+        self.assertEqual(result["state"], "reservation_cancelled_and_released")
+        self.assertEqual(entry["lock_state"], "Unlocked")
 
     def test_registry_sample_history_blocks_duplicate_proposal(self):
         identifier = cc.issue_record_id(self.registry, creator(), self.secret, date(2026, 8, 5))
