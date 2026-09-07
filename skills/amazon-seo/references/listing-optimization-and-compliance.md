@@ -12,7 +12,7 @@ Naming note: the operator noted that Amazon's Rufus AI naming is moving/has move
    - `<your-knowledge-base>/Skills/keyword-classifier-and-filter.md`
    - `<your-knowledge-base>/Skills/amazon-seo-writer.md`
    - `<your-knowledge-base>/Skills/rufus-optimization.md`
-   - `<your-knowledge-base>/Skills/amazon-image-strategy.md` when OEI/POE image strategy or visual search context matters
+   - `skills/amazon-listing-images/SKILL.md` for image strategy, gallery order, and exact image copy from product and POE evidence
    - `conversion-offers-and-copy` when persuasion or voice matters
    - the client's hub note in the shared team vault (`Clients/<Name>/<Name>.md`) and prior handoff notes, which sit in that client's `Handoffs/` folder when the vault is reachable and in the repo's `output/<client>/seo/` otherwise
 

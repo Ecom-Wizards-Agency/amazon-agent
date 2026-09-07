@@ -1,0 +1,4 @@
+interface:
+  display_name: "Amazon Listing Layouts"
+  short_description: "Design listing graphics and editable Figma layouts"
+  default_prompt: "Use $amazon-image-production to compose the supplied photos and approved copy into editable Figma listing layouts."
