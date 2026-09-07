@@ -61,6 +61,9 @@ python3 tools/creator-connections-control/creator_control.py confirm-mcf --regis
 # missing confirmation, and unknown outcomes stay locked for reconciliation.
 python3 tools/creator-connections-control/creator_control.py list-mcf --registry <registry>
 python3 tools/creator-connections-control/creator_control.py cancel-mcf --registry <registry> --creator-record-id <id> --reservation-id <reservation-id> --reason-code <definitive-code> --evidence-reference <private-evidence-path>
+
+# When order history proves the uncertain order exists, record that order locally.
+python3 tools/creator-connections-control/creator_control.py reconcile-mcf --registry <registry> --input <existing-order-evidence>
 ```
 
 Exit code `0` means the control result passed. Exit code `2` means it is safely held. The JSON output is the audit artifact to reference from the tracker and action log.
@@ -105,7 +108,11 @@ The selected catalog item uses these fulfillment fields:
 
 After a passing pre-flight, `reserve-mcf` creates a unique reservation ID and immutable manifest binding the Creator Record ID, campaign, tracker row, ASIN, SKU, one-unit quantity, recipient fingerprint, fee cap, and evidence. The executor cannot use another creator, campaign, row, product, or recipient while the lock exists. `verify-mcf` compares the populated Amazon form to that manifest. `confirm-mcf` accepts an order only after that screen verification and only when the reservation ID, ASIN, SKU, and quantity match exactly.
 
+A failed recheck of the current reservation revokes its previous screen approval while retaining its lock. Correct the form and obtain a fresh `verify-mcf` PASS before submitting. A stale verification request naming a different reservation cannot alter the current reservation.
+
 `list-mcf` shows active reservation IDs without contact data. It also gives old reservations a stable `MCFR-LEGACY-*` identifier so they can be reconciled without editing the registry. `cancel-mcf` releases a failed reservation only for a definitive, evidenced outcome: `amazon_rejected`, `definitive_not_created`, `expired_before_submit`, `inventory_unavailable_before_submit`, `operator_aborted_before_submit`, or `validation_failed_before_submit`. `request_timeout`, `confirmation_missing`, and `outcome_unknown` change the reservation to `Reconciliation Required` and keep it locked because an order may exist. Cancellation is idempotent, and every released reservation remains in the non-PII reservation history.
+
+When Amazon order history proves the order exists, use `reconcile-mcf` to record it without creating or submitting another order. Its trusted local JSON input must contain `creator_record_id`, `reservation_id`, `campaign_id`, `tracker_source_ref`, `asin`, `sku`, `product_title`, integer `quantity: 1`, `recipient` (the full name, email, phone and address fields used by `verify-mcf`), `order_id`, and `evidence_reference` pointing to the captured Amazon order history. The complete product, tracker, creator and recipient must match the uncertain reservation. The command records a confirmed sample and releases the lock. Repeating identical evidence is idempotent; changed order or evidence details are held. Only recipient fingerprints are persisted, never raw recipient fields. Legacy reservations without a complete bound manifest cannot use this success path and remain held for operator review; definitive evidence that no order exists still permits legacy cancellation.
 
 Registry mutations are serialized through a per-registry lock file. Each command rereads the registry after it owns the lock and replaces the JSON atomically only after the mutation succeeds. Concurrent reservations for the same creator/ASIN therefore produce one lock and one held result. A leftover `.lock` file indicates an interrupted process and must be reviewed rather than bypassed automatically.
 

@@ -1,3 +1,4 @@
+import copy
 import importlib.util
 import json
 import os
@@ -76,6 +77,24 @@ def verification(reservation_id, **overrides):
         "shipping_speed": "Standard",
         "visible_fee_cents": 799,
         "evidence_reference": "private-evidence/mcf-screen.png",
+    }
+    value.update(overrides)
+    return value
+
+
+def reconciliation(reserved_id, **overrides):
+    value = {
+        "creator_record_id": "CCR-EX-26-0001",
+        "reservation_id": reserved_id,
+        "campaign_id": "campaign-1",
+        "tracker_source_ref": "tracker/campaign-1/row-2",
+        "asin": "B0EXAMPLE1",
+        "sku": "SKU-1",
+        "product_title": "Example Product",
+        "quantity": 1,
+        "recipient": creator(),
+        "order_id": "ORDER-EXISTING-1",
+        "evidence_reference": "private-evidence/order-history.png",
     }
     value.update(overrides)
     return value
@@ -398,6 +417,134 @@ class CreatorControlTests(unittest.TestCase):
             self.registry, identifier, reservation_id, "amazon_rejected", "private-evidence/rejected.png",
         )
         self.assertEqual(repeated["state"], "already_released")
+
+    def reserved_creator(self, uncertain=False):
+        identifier = cc.issue_record_id(self.registry, creator(), self.secret, date(2026, 8, 5))
+        reservation_id = cc.reserve_mcf(self.registry, proposal(), self.secret)["reservation_id"]
+        cc.verify_mcf(self.registry, verification(reservation_id), self.secret)
+        if uncertain:
+            with self.assertRaises(cc.Hold):
+                cc.cancel_mcf(self.registry, identifier, reservation_id, "request_timeout", "private-evidence/timeout.json")
+        return identifier, reservation_id
+
+    def test_failed_current_screen_recheck_revokes_approval_and_can_be_repaired(self):
+        identifier, reservation_id = self.reserved_creator()
+        held = cc.verify_mcf(self.registry, verification(reservation_id, recipient=creator(email="wrong@example.test")), self.secret)
+        self.assertEqual(held["result"], "HOLD")
+        entry = self.registry["records"][0]
+        self.assertEqual(entry["lock_state"], "Locked for MCF")
+        self.assertEqual(entry["mcf_reservation"]["state"], "Reserved")
+        self.assertNotIn("verified_at", entry["mcf_reservation"])
+        self.assertNotIn("verification_evidence_reference", entry["mcf_reservation"])
+        with self.assertRaises(cc.Hold):
+            cc.confirm_mcf(self.registry, identifier, reservation_id, "B0EXAMPLE1", "SKU-1", 1, "ORDER-1", "evidence")
+        self.assertEqual(cc.verify_mcf(self.registry, verification(reservation_id), self.secret)["result"], "PASS")
+
+    def test_stale_reservation_recheck_cannot_revoke_current_approval(self):
+        self.reserved_creator()
+        before = copy.deepcopy(self.registry)
+        result = cc.verify_mcf(self.registry, verification("MCFR-OLD"), self.secret)
+        self.assertIn("reservation_id_mismatch", result["errors"])
+        self.assertEqual(self.registry, before)
+
+    def test_reconciliation_records_existing_order_and_replay_is_idempotent(self):
+        _, reservation_id = self.reserved_creator(uncertain=True)
+        payload = reconciliation(reservation_id)
+        self.assertEqual(cc.reconcile_mcf(self.registry, payload, self.secret)["state"], "existing_order_reconciled")
+        entry = self.registry["records"][0]
+        self.assertEqual(entry["lock_state"], "Unlocked")
+        self.assertNotIn("mcf_reservation", entry)
+        self.assertEqual(entry["sample_history"][0]["status"], "Confirmed")
+        self.assertIn("duplicate_sample_risk", cc.mcf_preflight(self.registry, proposal(), self.secret)["errors"])
+        before = copy.deepcopy(self.registry)
+        self.assertEqual(cc.reconcile_mcf(self.registry, payload, self.secret)["state"], "already_reconciled")
+        self.assertEqual(self.registry, before)
+        persisted = json.dumps(self.registry)
+        for private in ("creator@example.test", "100 Example Road", "555-010-2000", "Example Creator"):
+            self.assertNotIn(private, persisted)
+
+    def test_reconciliation_mismatch_and_conflicting_replay_preserve_registry(self):
+        _, reservation_id = self.reserved_creator(uncertain=True)
+        mismatches = {
+            "creator_record_id": "CCR-EX-26-9999", "reservation_id": "MCFR-OTHER",
+            "campaign_id": "other", "tracker_source_ref": "tracker/other/row-2",
+            "asin": "B0OTHER", "sku": "WRONG", "product_title": "Wrong Product",
+            "quantity": 2, "recipient": creator(email="wrong@example.test"),
+            "order_id": "", "evidence_reference": "",
+        }
+        before = copy.deepcopy(self.registry)
+        for key, value in mismatches.items():
+            with self.subTest(field=key):
+                with self.assertRaises(cc.Hold):
+                    cc.reconcile_mcf(self.registry, reconciliation(reservation_id, **{key: value}), self.secret)
+                self.assertEqual(self.registry, before)
+        cc.reconcile_mcf(self.registry, reconciliation(reservation_id), self.secret)
+        before = copy.deepcopy(self.registry)
+        for changes in ({"order_id": "OTHER-ORDER"}, {"evidence_reference": "different-evidence"}, {"recipient": creator(phone="555-999-9999")}):
+            with self.subTest(changes=changes):
+                with self.assertRaises(cc.Hold):
+                    cc.reconcile_mcf(self.registry, reconciliation(reservation_id, **changes), self.secret)
+                self.assertEqual(self.registry, before)
+
+    def test_reconciliation_requires_uncertain_state_and_strict_one_unit(self):
+        identifier, reservation_id = self.reserved_creator()
+        before = copy.deepcopy(self.registry)
+        with self.assertRaises(cc.Hold):
+            cc.reconcile_mcf(self.registry, reconciliation(reservation_id), self.secret)
+        self.assertEqual(self.registry, before)
+        with self.assertRaises(cc.Hold):
+            cc.cancel_mcf(self.registry, identifier, reservation_id, "outcome_unknown", "evidence")
+        before = copy.deepcopy(self.registry)
+        for quantity in (True, 1.0, 1.5, "1", None):
+            with self.subTest(quantity=quantity):
+                with self.assertRaises(cc.Hold):
+                    cc.reconcile_mcf(self.registry, reconciliation(reservation_id, quantity=quantity), self.secret)
+                self.assertEqual(self.registry, before)
+
+    def test_reconciliation_rejects_order_already_recorded_elsewhere(self):
+        _, reservation_id = self.reserved_creator(uncertain=True)
+        self.registry["records"].append({"creator_record_id": "CCR-EX-26-9999", "sample_history": [{"order_id": "ORDER-EXISTING-1"}]})
+        before = copy.deepcopy(self.registry)
+        with self.assertRaises(cc.Hold):
+            cc.reconcile_mcf(self.registry, reconciliation(reservation_id), self.secret)
+        self.assertEqual(self.registry, before)
+
+    def test_cli_failed_verification_and_reconciliation_persist_safely(self):
+        identifier, reservation_id = self.reserved_creator()
+        with tempfile.TemporaryDirectory() as directory:
+            registry_path = Path(directory) / "registry.json"
+            input_path = Path(directory) / "input.json"
+            cc.write_json(str(registry_path), self.registry)
+            environment = os.environ.copy()
+            environment["CREATOR_CONTROL_HMAC_KEY"] = self.secret.decode("utf-8")
+
+            def run(command, payload=None, extra=(), expected=0):
+                args = [sys.executable, str(MODULE), command, "--registry", str(registry_path)]
+                if payload is not None:
+                    cc.write_json(str(input_path), payload)
+                    args += ["--input", str(input_path)]
+                result = subprocess.run(args + list(extra), capture_output=True, text=True, env=environment, timeout=10)
+                self.assertEqual(result.returncode, expected, result.stdout + result.stderr)
+                return json.loads(result.stdout)
+
+            before = registry_path.read_bytes()
+            run("verify-mcf", verification("MCFR-OLD"), expected=2)
+            self.assertEqual(registry_path.read_bytes(), before)
+            run("verify-mcf", verification(reservation_id, screen_sku="WRONG"), expected=2)
+            self.assertEqual(cc.read_json(str(registry_path))["records"][0]["mcf_reservation"]["state"], "Reserved")
+            run("confirm-mcf", extra=("--creator-record-id", identifier, "--reservation-id", reservation_id, "--asin", "B0EXAMPLE1", "--sku", "SKU-1", "--quantity", "1", "--order-id", "ORDER-1", "--evidence-reference", "evidence"), expected=2)
+            run("verify-mcf", verification(reservation_id))
+            run("cancel-mcf", extra=("--creator-record-id", identifier, "--reservation-id", reservation_id, "--reason-code", "request_timeout", "--evidence-reference", "evidence"), expected=2)
+            before = registry_path.read_bytes()
+            self.assertEqual(cc.read_json(str(registry_path))["records"][0]["mcf_reservation"]["state"], "Reconciliation Required")
+            run("reconcile-mcf", reconciliation(reservation_id, sku="WRONG"), expected=2)
+            self.assertEqual(registry_path.read_bytes(), before)
+            self.assertEqual(run("reconcile-mcf", reconciliation(reservation_id))["state"], "existing_order_reconciled")
+            before = registry_path.read_bytes()
+            self.assertEqual(run("reconcile-mcf", reconciliation(reservation_id))["state"], "already_reconciled")
+            run("reconcile-mcf", reconciliation(reservation_id, order_id="OTHER"), expected=2)
+            self.assertEqual(registry_path.read_bytes(), before)
+            self.assertEqual(len(cc.read_json(str(registry_path))["records"][0]["sample_history"]), 1)
 
     def test_uncertain_cancellation_keeps_lock_for_reconciliation(self):
         identifier = cc.issue_record_id(self.registry, creator(), self.secret, date(2026, 8, 5))

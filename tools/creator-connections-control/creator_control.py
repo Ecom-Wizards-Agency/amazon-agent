@@ -805,6 +805,18 @@ def verify_mcf(registry: dict[str, Any], payload: dict[str, Any], secret: bytes)
     if not evidence_reference:
         errors.append("mcf_screen_evidence_missing")
     if errors:
+        # A recheck of this reservation supersedes its earlier screen approval.
+        # A stale request for another reservation must not revoke this one's state.
+        if (
+            normalized(reservation.get("reservation_id"))
+            and normalized(payload.get("reservation_id")) == normalized(reservation.get("reservation_id"))
+            and normalized(reservation.get("state")) == "verified for submit"
+        ):
+            reservation["state"] = "Reserved"
+            for key in ("verified_at", "verification_evidence_reference", "verified_product_title"):
+                reservation.pop(key, None)
+            reservation["verification_failure_codes"] = errors
+            entry["version"] = int(entry.get("version") or 0) + 1
         return {
             "result": "HOLD",
             "creator_record_id": identifier,
@@ -816,6 +828,7 @@ def verify_mcf(registry: dict[str, Any], payload: dict[str, Any], secret: bytes)
     reservation["verified_at"] = datetime.now(timezone.utc).isoformat()
     reservation["verification_evidence_reference"] = evidence_reference
     reservation["verified_product_title"] = str(payload.get("product_title")).strip()
+    reservation.pop("verification_failure_codes", None)
     entry["version"] = int(entry.get("version") or 0) + 1
     return {
         "result": "PASS",
@@ -878,6 +891,69 @@ def confirm_mcf(
         "reservation_id": reservation_id.upper(),
         "order_id": order_id,
         "state": "sample_confirmed",
+    }
+
+
+def reconcile_mcf(registry: dict[str, Any], payload: dict[str, Any], secret: bytes) -> dict[str, Any]:
+    """Record an existing Amazon order after an uncertain outcome; never submit one."""
+    identifier = normalized(payload.get("creator_record_id")).upper()
+    entry = find_registry_record(registry, identifier)
+    if not entry:
+        raise Hold("Creator Record ID does not exist in the registry.")
+    evidence = {
+        "creator_record_id": identifier,
+        "reservation_id": normalized(payload.get("reservation_id")).upper(),
+        "campaign_id": normalized(payload.get("campaign_id")),
+        "tracker_source_ref": str(payload.get("tracker_source_ref") or "").strip(),
+        "asin": normalized(payload.get("asin")).upper(),
+        "sku": normalized(payload.get("sku")).upper(),
+        "product_title": normalized(payload.get("product_title")),
+        "recipient_binding": recipient_binding_fingerprint(payload.get("recipient") or {}, secret),
+        "order_id": str(payload.get("order_id") or "").strip(),
+        "evidence_reference": str(payload.get("evidence_reference") or "").strip(),
+    }
+    if not all(evidence.values()) or type(payload.get("quantity")) is not int or payload["quantity"] != 1:
+        raise Hold("Reconciliation requires the complete reservation, recipient, one-unit product, existing order ID, and order-history evidence.")
+    evidence["quantity"] = 1
+    # Bind replay checks to all supplied evidence without persisting contact data.
+    evidence_fp = fingerprint(secret, "mcf_reconciliation", json.dumps(evidence, sort_keys=True, separators=(",", ":")))
+    for historical in entry.get("sample_history") or []:
+        if normalized(historical.get("reservation_id")).upper() == evidence["reservation_id"]:
+            if historical.get("reconciliation_evidence_fp") != evidence_fp:
+                raise Hold("Reconciliation conflicts with previously recorded order evidence.")
+            return {
+                "result": "PASS", "creator_record_id": identifier,
+                "reservation_id": evidence["reservation_id"], "order_id": evidence["order_id"],
+                "state": "already_reconciled",
+            }
+    reservation = entry.get("mcf_reservation") or {}
+    if (
+        normalized(entry.get("lock_state")) != "locked for mcf"
+        or normalized(reservation.get("state")) != "reconciliation required"
+    ):
+        raise Hold("Reconciliation requires an active reservation with an uncertain order outcome.")
+    for key in ("creator_record_id", "reservation_id", "campaign_id", "tracker_source_ref", "asin", "sku", "product_title", "recipient_binding", "quantity"):
+        expected = reservation.get(key)
+        if key in {"creator_record_id", "reservation_id", "asin", "sku"}:
+            expected = normalized(expected).upper()
+        elif key in {"campaign_id", "product_title"}:
+            expected = normalized(expected)
+        if evidence[key] != expected:
+            raise Hold(f"Reconciliation {key} does not match the active reservation manifest.")
+    for record in registry.get("records", []):
+        if any(str(item.get("order_id") or "").strip() == evidence["order_id"] for item in record.get("sample_history") or []):
+            raise Hold("Existing order ID is already recorded against another reservation.")
+    entry["sample_history"] = entry.get("sample_history", []) + [evidence | {
+        "status": "Confirmed", "reconciliation_evidence_fp": evidence_fp,
+        "confirmed_at": datetime.now(timezone.utc).isoformat(),
+    }]
+    entry["lock_state"] = "Unlocked"
+    entry.pop("mcf_reservation", None)
+    entry["version"] = int(entry.get("version") or 0) + 1
+    return {
+        "result": "PASS", "creator_record_id": identifier,
+        "reservation_id": evidence["reservation_id"], "order_id": evidence["order_id"],
+        "state": "existing_order_reconciled",
     }
 
 
@@ -992,6 +1068,9 @@ def main() -> None:
     verify = sub.add_parser("verify-mcf")
     verify.add_argument("--registry", required=True)
     verify.add_argument("--input", required=True)
+    reconcile = sub.add_parser("reconcile-mcf")
+    reconcile.add_argument("--registry", required=True)
+    reconcile.add_argument("--input", required=True)
     confirm = sub.add_parser("confirm-mcf")
     confirm.add_argument("--registry", required=True)
     confirm.add_argument("--creator-record-id", required=True)
@@ -1061,6 +1140,13 @@ def main() -> None:
                 lambda registry: verify_mcf(registry, payload, secret),
             )
             emit(result, 0 if result["result"] == "PASS" else 2)
+        if args.command == "reconcile-mcf":
+            payload = read_json(args.input)
+            result = mutate_registry(
+                args.registry,
+                lambda registry: reconcile_mcf(registry, payload, secret),
+            )
+            emit(result)
         if args.command == "confirm-mcf":
             result = mutate_registry(
                 args.registry,

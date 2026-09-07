@@ -26,6 +26,8 @@ An MCF order is an external paid action. It requires the current operator instru
 
 If submission definitively failed, run `cancel-mcf` with the supported reason code and evidence so the reservation can be released safely. Never hand-edit the registry. If the request timed out or the outcome is unknown, do not cancel or retry: retain the lock, mark `Reconciliation Required`, and check Amazon order history first.
 
+If order history proves the order exists, run `reconcile-mcf` with the exact reservation, creator, campaign, tracker row, product, recipient, one-unit quantity, existing order ID, and captured order-history evidence. This records the existing order and releases its lock without submitting another order. Identical replay is safe; conflicting evidence stays held. A failed `verify-mcf` recheck revokes any earlier approval for that reservation, so a corrected form requires a fresh PASS before submission.
+
 The order ID is `CC-{BRAND}-{PRODUCTCODE}-{CREATOR}-{ASIN}-{YYMMDD}`. Standard shipping is the default only when permitted by the client policy. Never use expedited shipping without an explicit rule.
 
 If the exact ASIN cannot be added to MCF, stop. Do not substitute. Run the product-switch preflight, offer only a same-campaign alternate that is already verified as MCF-fulfillable, and wait for the creator to reply with the exact alternate ASIN before changing the row or rerunning MCF.
