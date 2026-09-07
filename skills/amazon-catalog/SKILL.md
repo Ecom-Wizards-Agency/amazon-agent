@@ -71,3 +71,6 @@ For every Brand Store build or update, first load the team vault's
 - A Product Grid is driven by one catalog search term. The prefilled breadcrumb
   term matches nothing and renders an empty grid silently, so set a real term and
   confirm the editor reads `Showing N ASINs` after reopening it.
+  When no term matches, switch the grid's `Automated grid` toggle off and add
+  products by ASIN search; the manual keyword search misses what the ASIN search
+  finds.
