@@ -77,7 +77,7 @@ def provider_script() -> Path:
     raise SystemExit("wizards-inventory provider.mjs not found; it lives in the wizards-ai repo.")
 
 
-def provider_config(roster: dict, run_date: str) -> Path:
+def provider_config(roster: dict, run_date: str, work_dir: Path | None = None) -> Path:
     """A run-scoped copy of the wizards-ai config with AWD set from the roster.
 
     AWD is US-only. Rather than trust every profile in the shared config to carry
@@ -91,7 +91,7 @@ def provider_config(roster: dict, run_date: str) -> Path:
         profile = profiles.get(account["profile_key"])
         if profile is not None:
             profile["include_awd"] = bool(roster["regions"][account["region"]]["awd"])
-    out = HERE / f".provider-config-{run_date}.json"
+    out = (work_dir or HERE) / f".provider-config-{run_date}.json"
     out.write_text(json.dumps(config), encoding="utf-8")
     return out
 
@@ -122,7 +122,7 @@ def quantity(value) -> int:
 
 
 def pull_account(account: dict, region: dict, run_date: str, cdp_env: dict,
-                 config_path: Path) -> dict:
+                 config_path: Path, work_dir: Path | None = None, reconcile_shipments: bool = True) -> dict:
     """Same-day inventory + demand for one account. Never raises: returns a blocker."""
     entry = {**{k: account[k] for k in ("key", "profile_key", "brand", "market", "country")},
              "fba": None, "business": None, "blocker": None, "account": None,
@@ -130,9 +130,10 @@ def pull_account(account: dict, region: dict, run_date: str, cdp_env: dict,
              "sold_asins": 0, "recovered_fba_asins": [], "fbm_only_asins": [],
              "unresolved_selling_asins": [], "stock": {}, "awd": None,
              "checked_at": None, "shipments": None, "shipment_warning": None}
-    outdir = REPO / "downloads" / account["key"] / "inventory" / run_date
+    outdir = (work_dir or REPO) / "downloads" / account["key"] / "inventory" / run_date
     outdir.mkdir(parents=True, exist_ok=True)
     run_stamp = datetime.datetime.now().astimezone().strftime("%H%M%S%f")
+    task_id = f"reshipment:{account['profile_key']}:{run_date}:{run_stamp}"
     provider_cfg = json.loads(config_path.read_text(encoding="utf-8"))
     provider_profile = ((provider_cfg.get("inventory_questions") or {}).get("profiles") or {}).get(
         account["profile_key"], {})
@@ -143,7 +144,7 @@ def pull_account(account: dict, region: dict, run_date: str, cdp_env: dict,
         try:
             proc = run(["node", str(provider_script()),
                         "--config", str(config_path),
-                        "--profile", account["profile_key"], "--all-skus"], timeout=900)
+                        "--profile", account["profile_key"], "--task-id", task_id + ":inventory", "--all-skus"], timeout=900)
         except subprocess.TimeoutExpired:
             continue
         payload = last_json(proc.stdout) or last_json(proc.stderr)
@@ -165,6 +166,16 @@ def pull_account(account: dict, region: dict, run_date: str, cdp_env: dict,
                                f"{(payload or {}).get('status')} rc={proc.returncode}")
         return entry
 
+    if payload.get("account") != provider_profile.get("account_name") or payload.get("marketplace") != provider_profile.get("marketplace"):
+        entry["blocker"] = "Inventory account or marketplace differs from the configured profile"
+        return entry
+    try:
+        checked = datetime.datetime.fromisoformat(payload["checked_at"].replace("Z", "+00:00"))
+        if checked.astimezone().date().isoformat() != run_date:
+            raise ValueError("stale inventory")
+    except (KeyError, ValueError, TypeError):
+        entry["blocker"] = "Inventory timestamp is missing or stale"
+        return entry
     fba = payload.get("fba") or {}
     entry["account"] = f"{payload.get('account')} / {payload.get('marketplace')}"
     entry["checked_at"] = payload.get("checked_at")
@@ -195,7 +206,7 @@ def pull_account(account: dict, region: dict, run_date: str, cdp_env: dict,
     # switching remains fail-closed and is the correct fallback.
     seller_id = provider_profile.get("seller_id")
     expected_account = seller_id or payload.get("account") or provider_profile.get("account_name")
-    report_cmd = ["node", "tools/report-fetcher/run.mjs", "business",
+    report_cmd = ["node", "tools/report-fetcher/run.mjs", "business", "--task-id", task_id + ":demand",
                   "--start", start.isoformat(), "--end", end.isoformat(),
                   "--marketplace", region["marketplace"], "--out", str(raw),
                   "--expect-account", expected_account]
@@ -255,7 +266,7 @@ def pull_account(account: dict, region: dict, run_date: str, cdp_env: dict,
                     search_proc = run(["node", str(provider_script()),
                                        "--config", str(config_path),
                                        "--profile", account["profile_key"],
-                                       "--search-terms", ",".join(batch)], timeout=900)
+                                       "--task-id", task_id + f":search-{offset}", "--search-terms", ",".join(batch)], timeout=900)
                 except subprocess.TimeoutExpired:
                     continue
                 search_payload = last_json(search_proc.stdout) or last_json(search_proc.stderr)
@@ -339,12 +350,29 @@ def pull_account(account: dict, region: dict, run_date: str, cdp_env: dict,
         writer.writeheader()
         writer.writerows(kept)
     entry["business"] = str(business)
+    recent = outdir / f"business-7d-{run_stamp}.csv"
+    recent_cmd = list(report_cmd)
+    recent_cmd[recent_cmd.index("--task-id") + 1] = task_id + ":recent-demand"
+    recent_cmd[recent_cmd.index("--start") + 1] = (end - datetime.timedelta(days=6)).isoformat()
+    recent_cmd[recent_cmd.index("--out") + 1] = str(recent)
+    try:
+        recent_proc = run(recent_cmd, timeout=900, env_extra=cdp_env)
+        if recent_proc.returncode or not recent.exists():
+            raise RuntimeError("7-day report unavailable")
+        recent_rows = list(csv.DictReader(recent.open(encoding="utf-8")))
+        if not recent_rows or asin_col not in recent_rows[0] or units_col not in recent_rows[0]:
+            raise RuntimeError("7-day report coverage unavailable")
+        entry["business_7d"] = str(recent)
+        entry["recent_units_by_asin"] = {asin: sum(quantity(r.get(units_col)) for r in recent_rows if r.get(asin_col) == asin) for asin in offer_asins}
+    except (RuntimeError, subprocess.TimeoutExpired) as exc:
+        entry["recent_demand_warning"] = str(exc)
+
 
     shipment_skus = sorted({
         str(sku.get("seller_sku") or "").strip()
         for sku in skus if sku.get("fba_offer") and sku.get("seller_sku")
     } - {""})
-    if shipment_skus:
+    if shipment_skus and reconcile_shipments:
         # Reconcile the queue against the full FBA catalog recovered in this
         # run, not a stale hand-maintained shipment group. This run-scoped
         # config is private and disposable; the stable profile is untouched.
@@ -373,7 +401,7 @@ def pull_account(account: dict, region: dict, run_date: str, cdp_env: dict,
             entry["shipment_warning"] = ("open-shipment reconciliation is unverified; "
                                          f"see {shipment_evidence.name}")
     else:
-        entry["shipment_warning"] = "no FBA SKU was available for shipment reconciliation"
+        entry["shipment_warning"] = "Shipment reconciliation is performed by the request-scoped CDP reader." if not reconcile_shipments else "no FBA SKU was available for shipment reconciliation"
 
     (outdir / f"pull-entry-rerun-{run_stamp}.json").write_text(
         json.dumps(entry, indent=2) + "\n", encoding="utf-8")
@@ -382,7 +410,9 @@ def pull_account(account: dict, region: dict, run_date: str, cdp_env: dict,
 
 def source_note(entry: dict, start: str, end: str) -> str:
     awd = entry.get("awd")
-    if awd is None:
+    if (entry.get("stock") or {}).get("awd_buyable_in_transit_signal") and not ((awd or {}).get("stored") or (awd or {}).get("available")):
+        awd_note = "AWD in-transit signal is unresolved against the empty dated ledger; do not count it as available stock or add it to shipment commitments."
+    elif awd is None:
         awd_note = "AWD is not offered in this marketplace."
     elif (awd.get("stored") or 0) or (awd.get("available") or 0):
         awd_note = f"AWD holds {awd.get('stored') or awd.get('available')} unit(s)."
@@ -398,16 +428,16 @@ def source_note(entry: dict, start: str, end: str) -> str:
             + (f" {entry['shipment_warning']}" if entry.get("shipment_warning") else ""))
 
 
-def plan(entries: list[dict], run_date: str, start: str, end: str) -> list[dict]:
+def plan(entries: list[dict], run_date: str, start: str, end: str, work_dir: Path | None = None) -> list[dict]:
     """Run the planner over the accounts that pulled cleanly. Returns manifests."""
-    planned = [e for e in entries if e["fba"] and e["business"]]
+    planned = [e for e in entries if e["fba"] and e["business"] and not e.get("blocker")]
     if not planned:
         return []
     config = {
         "run_date": run_date,
         "report_days": DEMAND_DAYS,
         "downloads_dir": str(REPO / "downloads"),
-        "output_root": str(REPO),
+        "output_root": str(work_dir or REPO),
         "clients": [{
             "key": e["key"], "profile_key": e["profile_key"], "brand": e["brand"],
             "market": e["market"], "country": e["country"],
@@ -421,9 +451,9 @@ def plan(entries: list[dict], run_date: str, start: str, end: str) -> list[dict]
             "notes": source_note(e, start, end),
         } for e in planned],
     }
-    config_path = HERE / f"config.run-{run_date}.json"
+    config_path = (work_dir or HERE) / f"config.run-{run_date}.json"
     config_path.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
-    proc = run(["python3", str(HERE / "generate_reshipment.py"),
+    proc = run([sys.executable, str(HERE / "generate_reshipment.py"),
                 "--config", str(config_path)], timeout=900)
     if proc.returncode != 0:
         tail = (proc.stdout + proc.stderr).strip().splitlines()
@@ -432,15 +462,24 @@ def plan(entries: list[dict], run_date: str, start: str, end: str) -> list[dict]
     manifests = []
     for e in planned:
         stem = f"{run_date}_Inventory Overview_{e['brand']}_{e['market']}"
-        path = REPO / "output" / e["key"] / "inventory" / f"{stem}_manifest.json"
+        path = (work_dir or REPO) / "output" / e["key"] / "inventory" / f"{stem}_manifest.json"
         if not path.exists():
             e["blocker"] = "planner wrote no manifest"
             continue
         manifest = json.loads(path.read_text(encoding="utf-8"))
         if isinstance(manifest, list):
             manifest = manifest[0]
+        limitations = []
+        if manifest.get("missingCartonAsins"):
+            limitations.append("Missing carton specifications: " + ", ".join(manifest["missingCartonAsins"]))
+        if (e.get("stock") or {}).get("awd_buyable_in_transit_signal") and not ((e.get("awd") or {}).get("stored") or (e.get("awd") or {}).get("available")):
+            limitations.append("AWD in-transit signal is unresolved")
+        if limitations:
+            manifest["actionable"] = False
+            manifest["planningBlocker"] = "; ".join(limitations)
+            path.write_text(json.dumps(manifest, indent=2) + "\n")
         manifest["_entry"] = e
-        manifest["_slack"] = (REPO / "output" / e["key"] / "inventory" / f"{stem}_slack.txt")
+        manifest["_slack"] = ((work_dir or REPO) / "output" / e["key"] / "inventory" / f"{stem}_slack.txt")
         manifests.append(manifest)
     return manifests
 
@@ -489,7 +528,18 @@ def main() -> int:
                         help="Limit the run to one or more roster account keys")
     parser.add_argument("--dry-run", action="store_true",
                         help="pull and plan, print the result, post nothing")
+    parser.add_argument("--work-dir", type=Path, help="Isolated job workspace for inputs, evidence and outputs")
+    parser.add_argument("--result-json", type=Path, help="Structured result including explicit blockers")
+    parser.add_argument("--request", type=Path, help="Read-only job request; stable settings still come from Amazon Ops")
     args = parser.parse_args()
+    request = json.loads(args.request.read_text()) if args.request else {}
+    if set(request) - {"profile_key", "shipment_ids", "daily_sellable_packs", "external_shipment_reconciliation"}:
+        parser.error("Unknown request fields; stable settings cannot be overridden")
+    if args.work_dir is None:
+        import uuid
+        args.work_dir = REPO / "output/reshipment-runs" / (args.date + "-" + uuid.uuid4().hex)
+    args.work_dir = args.work_dir.resolve()
+    args.work_dir.mkdir(parents=True, exist_ok=True)
 
     roster = json.loads(ROSTER.read_text(encoding="utf-8"))
     if args.region not in roster["regions"]:
@@ -514,18 +564,23 @@ def main() -> int:
                "CDP_PROFILE": os.environ.get(
                    "CDP_PROFILE", str(Path.home() / ".amazon-agent/wizards-ai-chrome"))}
 
-    config_path = provider_config(roster, args.date)
+    if request.get("profile_key") and [a["profile_key"] for a in accounts] != [request["profile_key"]]:
+        raise SystemExit("Request profile must match exactly one selected account")
+    config_path = provider_config(roster, args.date, args.work_dir)
     entries = []
     for account in accounts:
-        entry = pull_account(account, region, args.date, cdp_env, config_path)
+        entry = pull_account(account, region, args.date, cdp_env, config_path, args.work_dir, not request.get("external_shipment_reconciliation"))
         state = entry["blocker"] or (f"{entry['fba_offer_asins']} FBA-offer ASIN(s), "
                                      f"{entry['business_kept']}/{entry['business_rows']} rows")
         print(f"{entry['key']:18} {state}", flush=True)
         entries.append(entry)
 
-    manifests = plan(entries, args.date, start, args.date)
+    manifests = plan(entries, args.date, start, args.date, args.work_dir)
     blocked = [e for e in entries if e["blocker"]]
 
+    if args.result_json:
+        args.result_json.parent.mkdir(parents=True, exist_ok=True)
+        args.result_json.write_text(json.dumps({"date": args.date, "manifests": manifests, "entries": entries, "blocked": blocked}, default=str, indent=2))
     if not manifests:
         print(f"region {args.region}: nothing planned; {len(blocked)} blocked")
         return 1
