@@ -199,11 +199,14 @@ def pull_account(account: dict, region: dict, run_date: str, cdp_env: dict,
     end = datetime.date.fromisoformat(run_date)
     start = end - datetime.timedelta(days=DEMAND_DAYS - 1)
     raw = outdir / f"business-raw-rerun-{run_stamp}.csv"
-    # Only a profile-pinned seller id is suitable for mons_sel_dir_mcid. The
-    # live GraphQL context can expose the delegated partner id when a profile
-    # has no seller id (tmrw did this on 01.09.2026); using that as the merchant
-    # id makes Report Fetcher select the wrong session context. Name-based
-    # switching remains fail-closed and is the correct fallback.
+    # The profile-pinned seller id is the IDENTITY GATE for Report Fetcher
+    # (--account), never a URL parameter: Seller Central rejects a bare Seller
+    # ID in mons_sel_dir_mcid with "Invalid request URL" (14.09.2026), so the
+    # fetcher only carries the live tab's own account hints. The live GraphQL
+    # context can expose the delegated partner id when a profile has no seller
+    # id (tmrw did this on 01.09.2026); using that as the merchant id makes the
+    # fetcher select the wrong session context. Name-based switching remains
+    # fail-closed and is the correct fallback.
     seller_id = provider_profile.get("seller_id")
     expected_account = seller_id or payload.get("account") or provider_profile.get("account_name")
     report_cmd = ["node", "tools/report-fetcher/run.mjs", "business", "--task-id", task_id + ":demand",
