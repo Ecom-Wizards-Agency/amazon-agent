@@ -27,6 +27,21 @@ test("classifyPage recognizes every page kind the 13.08 incident produced", () =
     [{ url: "https://sellercentral.amazon.com/home", hasChallengeInput: true }, { pageKind: "challenge", authState: "human_challenge" }],
     // a normal authenticated app page
     [{ url: "https://sellercentral.amazon.com/business-reports", csrfMeta: true }, { pageKind: "app", authState: "authenticated" }],
+    // Report SPAs have a Seller Central shell but no CSRF meta tag.
+    [{ url: "https://sellercentral.amazon.com/business-reports", csrfMeta: false, scShell: true },
+      { pageKind: "app", authState: "authenticated" }],
+    [{ url: "https://sellercentral.amazon.com/listing/reports", csrfMeta: false, scShell: true },
+      { pageKind: "app", authState: "authenticated" }],
+    [{ title: "Amazon", csrfMeta: false, monsErrorPage: true },
+      { pageKind: "error", authState: "ambiguous" }],
+    // Error markers override both authenticated app signals.
+    [{ monsErrorPage: true, csrfMeta: true, scShell: true },
+      { pageKind: "error", authState: "ambiguous" }],
+    [{ title: "Amazon", csrfMeta: false, scShell: false, monsErrorPage: false,
+      bodySnippet: "Invalid request URL from client. The requested URL is not well formed." },
+      { pageKind: "unknown", authState: "ambiguous" }],
+    [{ url: "https://sellercentral.amazon.com/home", hasPasswordInput: true, scShell: true },
+      { pageKind: "sign-in", authState: "logged_out" }],
     // nothing recognizable: ambiguous, never a confident verdict
     [{ url: "https://sellercentral.amazon.com/somewhere", csrfMeta: false }, { pageKind: "unknown", authState: "ambiguous" }],
     [null, { pageKind: "unknown", authState: "ambiguous" }],
@@ -116,6 +131,26 @@ test("probeTab: app page resolves identity from the live page", { concurrency: f
     assert.equal(r.pageKind, "app");
     assert.equal(r.url, facts.url, "url must come from the live page, not the snapshot");
     assert.equal(r.identity.displayName, "Example Brand / United States");
+  } finally {
+    await fake.close();
+  }
+});
+
+test("probeTab: meta-less shell is signed-in/app despite unavailable identity", { concurrency: false }, async () => {
+  const facts = { url: "https://sellercentral.amazon.com/business-reports", title: "Business Reports", csrfMeta: false, scShell: true };
+  const identity = { displayName: null, partnerAccountId: null, merchantId: null, marketplace: null, err: "no anti-csrftoken-a2z meta tag" };
+  const fake = await startFakeCdp({
+    targets: [{ id: "T1", url: facts.url,
+      behavior: { results: { "Runtime.evaluate": (params) => factsResult(params.expression.includes("GetUserContext") ? identity : facts) } },
+    }],
+  });
+  try {
+    const [page] = await (await fetch(`http://127.0.0.1:${fake.port}/json/list`)).json();
+    const result = await probeTab(page);
+    assert.equal(result.state, "signed-in");
+    assert.equal(result.pageKind, "app");
+    assert.deepEqual(result.identity, identity);
+    assert.equal(doctorVerdict([result]).exitCode, 0);
   } finally {
     await fake.close();
   }

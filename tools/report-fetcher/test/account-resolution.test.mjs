@@ -271,6 +271,37 @@ test("a full report batch holds one task target and releases its claim", { concu
   } finally { await fake.close(); }
 });
 
+for (const [report, reportPath] of [["business", "/business-reports"], ["inventory", "/listing/reports"]]) {
+  test(`${report}: meta-less shell with null identity passes both fetch guards`, { concurrency: false }, async () => {
+    const facts = { url: "https://sellercentral.amazon.com/home", csrfMeta: true, chooserButtonCount: 0 };
+    const identity = { displayName: "Example Brand", merchantId: "MERCHANT", partnerAccountId: "PARTNER", marketplace: "US", err: null };
+    const out = join(OUT_DIR, `meta-less-${report}.txt`);
+    let fetches = 0;
+    const fake = await startFakeCdp({ targets: [{ id: "ANCHOR", url: facts.url,
+      behavior: pageBehavior({ facts, identity, fetchResult: { report: "file", text: "sku\nVERIFIED\n" },
+        onNavigate(url) {
+          facts.url = url;
+          if (new URL(url).pathname.startsWith(reportPath)) {
+            Object.assign(facts, { csrfMeta: false, scShell: true });
+            Object.assign(identity, { displayName: null, merchantId: null, partnerAccountId: null,
+              marketplace: null, err: "no anti-csrftoken-a2z meta tag" });
+          }
+        },
+        onFetch() { fetches++; },
+      }),
+    }] });
+    try {
+      const args = report === "business" ? BUSINESS_ARGS : ["inventory"];
+      const result = await runCli(fake.port, [...args, "--out", out, "--account", "MERCHANT", "--expect-account", "Example Brand"]);
+      assert.equal(result.code, 0, result.out);
+      assert.equal(fetches, 1);
+      assert.equal(readFileSync(out, "utf8"), "sku\nVERIFIED\n");
+      assert.equal(identity.marketplace, null, "report navigation must reach the meta-less fixture");
+      assert.equal(fake.sent.filter(command => command.method === "Target.createTarget").length, 1);
+    } finally { await fake.close(); }
+  });
+}
+
 for (const changedField of ["merchantId", "marketplace"]) {
   test(`post-fetch ${changedField} drift discards the report before emit`, { concurrency: false }, async () => {
     const facts = { url: "https://sellercentral.amazon.com/home", csrfMeta: true, chooserButtonCount: 0 };

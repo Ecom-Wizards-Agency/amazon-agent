@@ -60,6 +60,8 @@ export const PAGE_FACTS_JS = `(function(){return {
   hasPasswordInput: !!document.querySelector('input[type="password"],input[type="email"],#ap_email'),
   hasChallengeInput: !!document.querySelector('input[name="guess"],img[src*="captcha"],input[autocomplete="one-time-code"],input[name="otpCode"]'),
   csrfMeta: !!document.querySelector('meta[name="anti-csrftoken-a2z"]'),
+  scShell: !!document.querySelector('#sc-navbar-container,#sc-navbar,.sc-navbar,#sc-content-container,#ngstrim-top-navigation'),
+  monsErrorPage: !!document.querySelector('#mons-error-page-template,.mons-error-page-template'),
   chooserButtonCount: document.querySelectorAll('button.full-page-account-switcher-account-details').length,
   bodySnippet: ((document.body && document.body.innerText) || "").slice(0, 2000)
 };})()`;
@@ -86,7 +88,11 @@ export function classifyPage(facts) {
   if (/signin|authportal|\/ax\//i.test(url) || /sign[- ]?in/i.test(String(f.title || "")) || f.hasPasswordInput) {
     return { pageKind: "sign-in", authState: "logged_out" };
   }
+  if (f.monsErrorPage) return { pageKind: "error", authState: "ambiguous" };
   if (f.csrfMeta) return { pageKind: "app", authState: "authenticated" };
+  // SPA pages like Business Reports and Inventory Reports render the Seller
+  // Central shell without the CSRF meta tag (verified 14.09.2026).
+  if (f.scShell) return { pageKind: "app", authState: "authenticated" };
   return { pageKind: "unknown", authState: "ambiguous" };
 }
 

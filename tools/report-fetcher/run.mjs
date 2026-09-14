@@ -176,14 +176,16 @@ async function verifyFetchIdentity(session, baseline) {
     die(`Report marketplace contradicts requested marketplace. Nothing accepted. Observed ${describeLive(live)}`);
   }
   const normalize = (value) => String(value || "").toLowerCase().replace(/\s+/g, " ").trim();
-  // Compare every available baseline field, not an OR across account aliases.
-  // A missing field that was previously available is also indeterminate.
+  // Reject contradictions in every observable baseline field. Meta-less report
+  // SPAs may omit identity fields; the verified baseline and exclusive task
+  // context remain in force before and after the fetch.
   for (const field of ["merchantId", "partnerAccountId", "displayName"]) {
-    if (baseline[field] && normalize(actual[field]) !== normalize(baseline[field])) {
+    if (baseline[field] && actual[field] && normalize(actual[field]) !== normalize(baseline[field])) {
       die(`Report account changed or became unverifiable (${field}). Nothing accepted. Observed ${describeLive(live)}`);
     }
   }
   if (baseline.marketplace != null
+      && live.identity?.marketplace != null
       && JSON.stringify(live.identity?.marketplace) !== JSON.stringify(baseline.marketplace)) {
     die(`Report marketplace changed or became unverifiable. Nothing accepted. Observed ${describeLive(live)}`);
   }
@@ -302,6 +304,7 @@ const PAGE_KIND_LABEL = {
   "sign-in": "a sign-in page",
   "auth-failed": "an authorization-failed page",
   challenge: "a human challenge (captcha/OTP)",
+  error: "a Seller Central error page",
   app: "an authenticated Seller Central page",
   unknown: "an unrecognized page",
 };
