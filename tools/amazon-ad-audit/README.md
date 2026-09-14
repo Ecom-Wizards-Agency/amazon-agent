@@ -6,6 +6,17 @@ Client-agnostic builder for the Ecom Wizards Amazon ad/sales audit — the same 
 
 The narrative voice, section structure, and workbook layout follow `skills/amazon-audit/references/audit-workflow.md` and `writing-and-delivery.md`. This toolkit produces the workbooks and a numbers-filled narrative **scaffold**; the operator writes the prose, findings, and levers per those references.
 
+Screenshot capture uses a retained, released task target in Grimoire (9223).
+`capture_audit_evidence.mjs` requires `task: {taskId, workflow, targetId, slot}`
+and `expected` identity in its JSON specification, plus `output_dir` and
+`captures` (each with an `id`, `finding`, `caption`, and `source_kind`). For
+Seller Central, supply `kind: "seller-central"`, `accountName`, `marketplace`,
+`marketplaceLabel` and any configured identity IDs. Retail evidence uses
+`kind: "amazon-retail"`, marketplace and exact ASIN or search query. DataDive
+uses `kind: "datadive"`, niche ID and hero keyword. Optional `selector` must
+match exactly one visible element. Missing, busy or replaced targets fail;
+the helper never chooses a tab by URL/title or relabels an unverified account.
+
 ## What it produces
 
 | Deliverable | File | Built by |

@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import { ensureChrome, evaluate } from "../report-fetcher/cdp.mjs";
+import { captureTaskEvidence } from "../browserctl/task-evidence.mjs";
 import { acquireTaskPage, releaseTaskPage, taskIdFor } from "../browserctl/task-tabs.mjs";
 import { classifyPdp } from "./lib.mjs";
 
@@ -251,8 +252,14 @@ export async function captureScreenshot(url, outputPath) {
   try {
     await sleep(3000);
     await page.session.send("Page.enable");
-    const shot = await page.session.send("Page.captureScreenshot", { format: "png", captureBeyondViewport: false });
-    fs.writeFileSync(outputPath, Buffer.from(shot.data, "base64"));
+    const requested = new URL(url);
+    const marketplace = {"www.amazon.com":"US","www.amazon.de":"DE","www.amazon.co.uk":"UK",
+      "www.amazon.ca":"CA","www.amazon.com.au":"AU","www.amazon.fr":"FR","www.amazon.it":"IT","www.amazon.es":"ES"}[requested.hostname];
+    const asin = requested.pathname.match(/\/(?:dp|gp\/product)\/([A-Z0-9]{10})(?:\/|$)/)?.[1];
+    const shot = await captureTaskEvidence(page, {expected:{kind:"amazon-retail",marketplace,
+      ...(asin?{asin}:{query:requested.searchParams.get("k")})}});
+    fs.writeFileSync(outputPath, shot.data);
+    fs.writeFileSync(outputPath+".json", JSON.stringify(shot.evidence,null,2)+"\n");
     return outputPath;
   } catch (error) {
     outcome = "error";

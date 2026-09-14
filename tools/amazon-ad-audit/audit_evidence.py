@@ -52,7 +52,14 @@ def select(candidates, *, expected_account=None, marketplace=None,
         reason = None
         path = Path(row.get("path", ""))
         kind = str(row.get("source_kind", "")).lower()
-        if kind in PROHIBITED:
+        proof = row.get("verified_identity") or {}
+        proof_account = proof.get("accountName") or proof.get("displayName")
+        proof_market = proof.get("requestedMarketplace") or proof.get("marketplace")
+        if proof.get("kind") == "seller-central" and expected_account and proof_account != expected_account:
+            reason = "wrong or missing verified account"
+        elif proof_market and marketplace and proof_market != marketplace:
+            reason = "wrong verified marketplace"
+        elif kind in PROHIBITED:
             reason = f"prohibited source kind: {kind}"
         elif not row.get("finding") or not row.get("caption"):
             reason = "missing named finding or caption"

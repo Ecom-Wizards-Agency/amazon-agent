@@ -29,7 +29,7 @@ https://sellercentral.amazon.de/brand-analytics/dashboard/query-detail
   &country-id=de
 ```
 
-Append `&mons_sel_dir_mcid=<merchant id>` to preselect the account and skip the picker (IDs in `_local/sellercentral-links.md`). Modules: `cdp.py` (minimal CDP client, port 9222, `suppress_origin=True` is REQUIRED or Chrome 403s), `sc_navigator.py` (new-UI navigation), `sqp_extract.py` (geometry-based extractor; `capture_keyword()` returns row arrays). Full notes: `tools/sc-sqp-competitor/README.md`.
+Append `&mons_sel_dir_mcid=<merchant id>` to preselect the account and skip the picker (IDs in `_local/sellercentral-links.md`). Modules: `cdp.py` (minimal CDP client, port 9223, `suppress_origin=True` is REQUIRED or Chrome 403s), `sc_navigator.py` (new-UI navigation), `sqp_extract.py` (geometry-based extractor; `capture_keyword()` returns row arrays). Full notes: `tools/sc-sqp-competitor/README.md`.
 
 **Hard-won gotchas, do not rediscover these:**
 

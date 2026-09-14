@@ -20,7 +20,7 @@ Account preselect (skips picker): append &mons_sel_dir_mcid=<merchant id>
 (IDs in _local/sellercentral-links.md). ~10-15s per keyword-week.
 
 ## Modules
-- cdp.py: minimal CDP client (port 9222; suppress_origin=True is REQUIRED,
+- cdp.py: minimal CDP client (port 9223; suppress_origin=True is REQUIRED,
   Chrome 403s the default Origin header).
 - sc_navigator.py: new-UI navigation. Account label = top-left header leaf.
   Account picker marketplace rows + "Konto auswählen" confirm live in SHADOW
@@ -39,3 +39,10 @@ Account preselect (skips picker): append &mons_sel_dir_mcid=<merchant id>
 - Isolated logins: create an incognito browser context via
   Target.createBrowserContext so the main window's client session survives;
   dispose it afterwards.
+
+Screenshot requests require `evidence_spec` with the exact released managed `task`
+(taskId, workflow, targetId, slot) and expected Seller Central identity. The Python
+bridge invokes the canonical task evidence helper, which reacquires that target
+and verifies identity before and after capture. An unowned URL-matched tab cannot
+produce evidence. Launch Python through `browserctl run --session grimoire -- …`
+so nested capture workers inherit the same session lock.

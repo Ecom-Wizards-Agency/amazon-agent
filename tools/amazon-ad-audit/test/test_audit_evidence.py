@@ -22,6 +22,18 @@ def png(path, width=800, height=600, color=(255, 255, 255)):
 
 
 class EvidenceSelectionTest(unittest.TestCase):
+    def test_verified_identity_cannot_be_overridden_by_capture_labels(self):
+        with tempfile.TemporaryDirectory() as td:
+            image = Path(td) / "proof.png"
+            png(image, color=(0, 0, 0))
+            row = {"id": "proof", "path": str(image), "source_kind": "seller_central",
+                   "finding": "Listing status", "caption": "Status", "account": "Allfemme", "marketplace": "US"}
+            for proof in [{"kind": "seller-central", "accountName": "Other Seller", "requestedMarketplace": "US"},
+                          {"kind": "seller-central", "accountName": "Allfemme", "requestedMarketplace": "DE"}]:
+                result = select([{**row, "verified_identity": proof}], expected_account="Allfemme", marketplace="US")
+                self.assertEqual(result["selected"], [])
+                self.assertIn("verified", result["rejected"][0]["reason"])
+
     def test_filters_prohibited_wrong_and_duplicate_images(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)

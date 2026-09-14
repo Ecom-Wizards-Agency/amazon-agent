@@ -37,12 +37,12 @@ def extract_page(tab):
     if cur: rows.append(cur)
     return [[c['t'] for c in sorted(r, key=lambda c: c['x'])] for r in rows]
 
-def capture_keyword(tab, asin, query, week='2026-07-18', shot=None):
+def capture_keyword(tab, asin, query, week='2026-07-18', shot=None, evidence_spec=None):
     url = ('https://sellercentral.amazon.de/brand-analytics/dashboard/query-detail?view-id=query-detail-asin-view'
            f'&asin={asin}&search-term-freeform={urllib.parse.quote(query)}&reporting-range=weekly&weekly-week={week}&country-id=de')
     tab.navigate(url, wait=6); tab.wait_ready(40); time.sleep(5)
     rows = extract_page(tab)
     if shot:
         tab.js("window.scrollTo(0,400)"); time.sleep(1)
-        tab.screenshot(shot)
+        tab.screenshot(shot, evidence_spec=evidence_spec)
     return rows
