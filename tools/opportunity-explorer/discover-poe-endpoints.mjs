@@ -2,7 +2,7 @@
  * POE endpoint discovery logger — Phase 0 of the Opportunity Explorer downloader
  * rebuild (see references/poe-endpoints.md for the resulting contract).
  *
- * Attaches (read-only) to the operator's ALREADY logged-in Seller Central tab via
+ * Attaches (read-only) to an explicitly named, released managed task tab via
  * the Chrome debug port and streams the page's own network traffic while the
  * operator/agent clicks through one niche's tabs. Same-origin JSON/CSV exchanges
  * are appended as NDJSON records, one file per UI-tab label, so the internal API
@@ -20,7 +20,9 @@
  *   tools/report-fetcher/launch-chrome-debug.sh     # then log into Seller Central
  *   node tools/opportunity-explorer/discover-poe-endpoints.mjs \
  *     --out "downloads/<client>/opportunity-data/poe-endpoint-capture-<date>" \
- *     [--evidence "evidence/<client>/opportunity-data"] [--all-hosts] [--tab <n>]
+ *     --task-id <task> --target <target-id> --account-name <seller> \
+ *     --marketplace <US|DE|AU> --marketplace-label <label> \
+ *     [--evidence "evidence/<client>/opportunity-data"] [--all-hosts]
  *
  *   Interactive commands (stdin) while clicking through the UI:
  *     label <name>   tag subsequent records with this UI tab (e.g. label cri-positive)
@@ -33,9 +35,13 @@
 import fs from "node:fs";
 import path from "node:path";
 import readline from "node:readline";
-import { ensureChrome, listPages, Session } from "../report-fetcher/cdp.mjs";
+import { ensureChrome, listPages } from "../report-fetcher/cdp.mjs";
+import { acquireTaskPage, releaseTaskPage } from "../browserctl/task-tabs.mjs";
+import { listTaskTabs } from "../browserctl/lease-registry.mjs";
+import { captureTaskEvidence, verifyEvidenceIdentity } from "../browserctl/task-evidence.mjs";
 
 const BODY_CAP = 4096; // bytes of response body kept per record
+let discoveryPage;
 
 function arg(name, dflt) {
   const i = process.argv.indexOf(`--${name}`);
@@ -71,18 +77,16 @@ function interesting(url, mimeType, resourceType) {
 
 async function pickTab() {
   const pages = await listPages();
-  const sc = pages.filter((p) => /sellercentral\.amazon\./.test(p.url));
+  const target = arg("target", null);
+  if (!target) throw new Error("EVIDENCE_TASK_REQUIRED: --target must name the exact released task target; index selection is unsupported");
+  const sc = pages.filter((p) => p.id === target && /sellercentral\.amazon\./.test(p.url));
   if (!sc.length) {
     console.error("No Seller Central tab found. Open Seller Central (ideally the Opportunity Explorer) and retry.");
     console.error("Open tabs:"); pages.forEach((p, i) => console.error(`  [${i}] ${p.url.slice(0, 110)}`));
     process.exit(1);
   }
-  sc.sort((a, b) => Number(/opportunity-explorer/.test(b.url)) - Number(/opportunity-explorer/.test(a.url)));
-  const idx = arg("tab", null);
-  const chosen = idx !== null ? sc[Number(idx)] : sc[0];
-  console.log("Candidate Seller Central tabs:");
-  sc.forEach((p, i) => console.log(`  [${i}]${p === chosen ? " <== attached" : ""} ${p.url.slice(0, 110)}`));
-  return chosen;
+  if (sc.length !== 1) throw new Error("EVIDENCE_TARGET_MISMATCH");
+  return sc[0];
 }
 
 async function main() {
@@ -91,7 +95,19 @@ async function main() {
   fs.mkdirSync(EVIDENCE_DIR, { recursive: true });
 
   const tab = await pickTab();
-  const session = await Session.open(tab.webSocketDebuggerUrl);
+  const taskId = arg("task-id", null), port = Number(process.env.CDP_PORT || 9223);
+  const retained = (await listTaskTabs()).filter(t => t.port === port && t.taskId === taskId && t.targetId === tab.id);
+  if (retained.length !== 1) throw new Error("EVIDENCE_TASK_REQUIRED: --task-id must own --target");
+  const expected = {kind:"seller-central",accountName:arg("account-name",null),marketplace:arg("marketplace",null),marketplaceLabel:arg("marketplace-label",null),
+    expectedPartnerAccountId:arg("expected-partner-account-id",null),marketplaceId:arg("marketplace-id",null)};
+  if (!expected.accountName || !expected.marketplace || !expected.marketplaceLabel) throw new Error("EVIDENCE_IDENTITY_REQUIRED: --account-name, --marketplace, --marketplace-label");
+  const stored = retained[0];
+  const page = await acquireTaskPage({taskId,workflow:stored.workflow,slot:stored.slot,expectedTargetId:tab.id,
+    initialUrl:null,exclusiveContext:stored.exclusiveContext,
+    ...(String(stored.contextScope).startsWith("sc:")?{sellerCentral:{marketplace:expected.marketplace,origin:new URL(tab.url).origin}}:{})});
+  const session = page.session;
+  discoveryPage = page;
+  await verifyEvidenceIdentity(page, expected);
   await session.send("Network.enable", { maxTotalBufferSize: 100 * 1024 * 1024, maxResourceBufferSize: 20 * 1024 * 1024 });
   await session.send("Page.enable");
 
@@ -166,9 +182,11 @@ async function main() {
       if (cmd === "quit" || cmd === "q") { rl.close(); return; }
       else if (cmd === "label" && restStr) { label = restStr.toLowerCase().replace(/[^a-z0-9_-]+/g, "-"); console.log(`label = ${label}`); }
       else if (cmd === "shot" && restStr) {
-        const shot = await session.send("Page.captureScreenshot", { format: "png" });
+        if (!/^[a-zA-Z0-9_-]+$/.test(restStr)) throw new Error("EVIDENCE_ID_INVALID");
+        const shot = await captureTaskEvidence(page, {expected});
         const file = path.join(EVIDENCE_DIR, `${new Date().toISOString().slice(0, 10)}_poe_${restStr}.png`);
-        fs.writeFileSync(file, Buffer.from(shot.data, "base64"));
+        fs.writeFileSync(file, shot.data);
+        fs.writeFileSync(file+".json", JSON.stringify(shot.evidence,null,2)+"\n");
         console.log(`saved ${file}`);
       }
       else if (cmd === "note" && restStr) { out({ ts: new Date().toISOString(), label, event: "note", text: restStr }); console.log("noted"); }
@@ -177,12 +195,15 @@ async function main() {
     } catch (e) { console.error("command failed:", e.message); }
     rl.prompt();
   });
-  rl.on("close", () => {
+  rl.on("close", async () => {
     for (const s of streams.values()) s.end();
-    session.close();
+    await releaseTaskPage(page,{outcome:"handoff"});
     console.log(`\nDone. Captures in ${OUT_DIR}`);
     process.exit(0);
   });
 }
 
-main().catch((e) => { console.error(e.message); process.exit(1); });
+main().catch(async (e) => {
+  if (discoveryPage) await releaseTaskPage(discoveryPage,{outcome:"error"}).catch(()=>{});
+  console.error(e.message); process.exit(1);
+});

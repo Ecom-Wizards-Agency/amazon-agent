@@ -47,7 +47,7 @@ When the task asks where demand or ideas exist, do not rely on three convenient 
 3. Search all seeds. Union and deduplicate related niches by `nicheId` while retaining seed provenance.
 4. Exclude wrong-brand, wrong-product, wrong-form, wrong-audience, and wrong-use results with explicit reasons.
 5. Download 5 to 10 relevant full niche packs. If fewer than five qualify, download all and record the limitation.
-6. Reuse cached POE only when it is at most 14 days old and meets the same coverage contract.
+6. Reuse POE from pCloud only when it is at most 14 days old and meets the same coverage contract. Process downloads in a temporary directory and remove them when the consuming task ends.
 7. Mark insufficient prior captures as superseded in the run manifest without deleting raw history.
 
 The run manifest must record sources, seed categories, related niches, exclusions, selected full packs, capture dates, cache decisions, and limitations.
@@ -57,8 +57,8 @@ The run manifest must record sources, seed categories, related niches, exclusion
 1. Confirm intended client, account, marketplace, product or niche, and output type.
 2. Apply account recovery and post-switch identity verification before any POE request.
 3. Run wide discovery when the question is exploratory. Run a direct niche pull only when a specific authoritative niche ID is already in scope.
-4. Format outputs into `output/<client>/opportunity-data/` with market in filenames. This is a staging location, not delivery.
-5. Archive the complete evidence set and its manifest through the installed pCloud API route into the client's existing `_Data/opportunity-data/` tree. Verify every remote checksum and report the durable pCloud path. If archival is unavailable, say the local research exists but pCloud archival is blocked; never call the pack delivered.
+4. Use `run-poe.mjs` with `--client`. It checks pCloud access before fetching, formats in memory, streams uploads through the pCloud API and verifies remote checksums without creating local payload files. Data commands reject `--out-dir`; stdout is a JSON receipt with remote paths, hashes and capture metadata.
+5. pCloud `_Data/opportunity-data/` is the sole permanent POE store for Amazon Agent and Wizards AI. Retain only metadata receipts locally, never raw envelopes, CSVs, ZIP packs or downloaded analysis copies. No local payload fallback, weekly retention or quarantine applies to new POE captures. On transfer failure report an incomplete/blocked capture and the already verified remote files; retry capture without claiming complete delivery. For explicitly authorized legacy migrations, `run-poe.mjs archive --client <slug> --out-dir <existing-folder>` removes source files only after remote checksums and unchanged local bytes are verified. Other data in mixed directories must be excluded from migration.
 6. Trace each recommendation to POE search terms, products, reviews, returns, trends, or price structure.
 7. Stop before changing listings, uploading assets, publishing copy, or making an Amazon-visible change.
 

@@ -5,7 +5,7 @@
  * dedicated debug Chrome profile, started/reused automatically and logged into
  * Seller Central once through visible recovery mode.
  *
- *   node tools/browserctl/browserctl.mjs ensure --port 9222
+ *   node tools/browserctl/browserctl.mjs ensure --port 9223
  *   node tools/opportunity-explorer/run-poe.mjs doctor
  *   node tools/opportunity-explorer/run-poe.mjs niche  --niche-id <id> --marketplace de --client <slug> [--verbose]
  *   node tools/opportunity-explorer/run-poe.mjs search --query "kollagen pulver" --marketplace de --client <slug>
@@ -25,9 +25,9 @@
  * triggers a trusted-CDP account-picker recovery. Data fetches remain blocked
  * until the post-switch identity matches.
  *
- * Output: formatted section files via format-poe.mjs into
- *   --out-dir  (default: output/<client>/opportunity-data/)
- * --verbose additionally saves the raw envelope JSON.
+ * Output: checksum-verified pCloud files and a JSON receipt on stdout.
+ * --client is required; data commands reject --out-dir. --verbose archives raw JSON.
+ * Uploads stream from memory, including raw envelopes; no payload files are created.
  *
  * Safety: dedicated CDP Chrome in its machine-policy mode, read-only GraphQL
  * reads in the operator's session, ~5 s pacing inside fetch-poe.js, one niche
@@ -41,45 +41,26 @@ import { ensureChrome, listPages, evaluate } from "../report-fetcher/cdp.mjs";
 import { acquireTaskPage, releaseTaskPage, taskIdFor } from "../browserctl/task-tabs.mjs";
 import { normalizeOrigin, accountPickerUrl, accountMatches, switchAccount, readIdentity, inspectPage, waitFor } from "../report-fetcher/sc-account.mjs";
 import { formatEnvelope } from "./format-poe.mjs";
-import { archiveClient } from "./pcloud-archive.mjs";
-import { ArtifactRun } from "../artifactctl/client.mjs";
+import { accountProfileMatches } from "../report-fetcher/account-selection.mjs";
+import { archiveClient, prepareArchive, publishFilesAsync } from "./pcloud-archive.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const FETCH_SRC = fs.readFileSync(path.join(HERE, "fetch-poe.js"), "utf8");
-let artifactContext = null;
-let artifactRun = null;
+let archiveTarget = null;
+const archiveArtifacts = [];
+const captures = [];
 
-function configureArtifacts(client, marketplace) {
-  artifactContext = { client, marketplace: String(marketplace || "").toUpperCase() };
+function configureStorage(client) {
+  if (!client) throw new Error("--client is required for pCloud POE delivery");
+  if (opt("out-dir", null)) throw new Error("POE local output is disabled. Remove --out-dir; the runner returns a verified pCloud receipt.");
+  archiveTarget = prepareArchive(client);
 }
 
-function registerPoeArtifact(file, env) {
-  if (!artifactContext) return;
-  artifactRun ||= new ArtifactRun({
-    owner: "poe-downloader",
-    workflow: "amazon-opportunity-explorer",
-    client: artifactContext.client,
-  });
-  const disposition = artifactContext.client ? "archive-pcloud" : "preserve";
-  artifactRun.register(file, disposition, disposition === "archive-pcloud" ? {
-    archive: {
-      client: artifactContext.client,
-      dataset: "opportunity-data",
-      market: artifactContext.marketplace,
-      month: String(env.capturedAt || new Date().toISOString()).slice(0, 7),
-      report_type: "POE",
-      scope: "CAPTURE-RUN",
-    },
-  } : {});
+function completeStorage() {
+  console.log(JSON.stringify({ schema_version: 1, status: "archived_verified", complete: true,
+    remote_folder: archiveTarget.remote, artifacts: archiveArtifacts, captures,
+    local_data_retained: false }));
 }
-
-function completeArtifacts() {
-  if (artifactRun) artifactRun.complete("success");
-}
-
-process.on("exit", () => {
-  if (artifactRun?.state === "active") artifactRun.complete("failed");
-});
 
 const CC_MP = {
   us: "ATVPDKIKX0DER", de: "A1PA6795UKMFR9", it: "APJ6JRA9NG5V4",
@@ -113,16 +94,16 @@ const defaultTaskKey = JSON.stringify(argv.filter((value, index) =>
 
 function usage(code = 1) {
   console.error("usage: run-poe.mjs doctor [--origin URL]");
-  console.error("       run-poe.mjs niche --niche-id <id> --marketplace <cc> [--client <slug>] [account options] [--out-dir DIR] [--origin URL] [--verbose]");
-  console.error("       run-poe.mjs search --query <kw> --marketplace <cc> [--client <slug>] [account options] [--out-dir DIR] [--origin URL]");
+  console.error("       run-poe.mjs niche --niche-id <id> --marketplace <cc> --client <slug> [account options] [--origin URL] [--verbose]");
+  console.error("       run-poe.mjs search --query <kw> --marketplace <cc> --client <slug> [account options] [--origin URL]");
   console.error("       run-poe.mjs batch --queries \"kw1,kw2\" --marketplace <cc> --client <slug> [account options] [--top N=10 | --all] [--niche-ids id1,id2] [--origin URL]");
-  console.error("       run-poe.mjs merchant-niches --marketplace <cc> [--client <slug>] [account options] [--origin URL]");
+  console.error("       run-poe.mjs merchant-niches --marketplace <cc> --client <slug> [account options] [--origin URL]");
   console.error("       run-poe.mjs archive --client <slug> [--out-dir DIR] [--dry-run]");
   console.error("       run-poe.mjs self-test");
   console.error("  account options: --account-name NAME --expected-partner-account-id ID [--parent-account-name NAME] --marketplace-label LABEL");
   console.error("  --expect-account remains a legacy alias. A mismatch switches through the account picker only when the structured account options are complete.");
   console.error("  data commands infer the Seller Central origin from --marketplace; --origin remains an explicit override.");
-  console.error("  archive mirrors output/<slug>/opportunity-data/ into the pCloud client archive (POE captures cannot be re-fetched later).");
+  console.error("  archive migrates legacy POE files to pCloud and removes checksum-verified unchanged local sources.");
   process.exit(code);
 }
 
@@ -164,8 +145,10 @@ async function findOrCreatePoePage(origin) {
   const taskPage = await acquireTaskPage({
     taskId, workflow: "amazon-opportunity-explorer", initialUrl: "about:blank",
     exclusiveContext: true,
+    ...(cmd === "doctor" ? {} : { sellerCentral: { marketplace: opt("marketplace", null), origin: wantedOrigin } }),
   });
   try {
+    taskPage.session._poeSellerCentral = { marketplace: opt("marketplace", null), origin: wantedOrigin };
     await taskPage.session.send("Page.navigate", {
       url: wantedOrigin + "/opportunity-explorer",
     });
@@ -203,15 +186,20 @@ function poeReadinessError({ pageKind = "unknown", authState = "ambiguous", fact
   return error;
 }
 
+function preserveOwnershipError(error, fallback) {
+  if (/^TASK_TAB_(?:CONTROL_LOST|CONTEXT)/.test(error?.code || "")) throw error;
+  return fallback;
+}
+
 async function waitPoeReady(session, timeoutMs = 30000) {
   const t0 = Date.now();
   while (Date.now() - t0 < timeoutMs) {
     const ok = await evaluate(session,
-      `document.readyState === "complete" && !!document.querySelector('meta[name="anti-csrftoken-a2z"]')`).catch(() => false);
+      `document.readyState === "complete" && !!document.querySelector('meta[name="anti-csrftoken-a2z"]')`).catch(error => preserveOwnershipError(error, false));
     if (ok) return;
     await new Promise((r) => setTimeout(r, 500));
   }
-  const page = await inspectPage(session, { timeoutMs: 10000 }).catch(() => ({
+  const page = await inspectPage(session, { timeoutMs: 10000 }).catch(error => preserveOwnershipError(error, {
     pageKind: "unknown",
     authState: "ambiguous",
     facts: {},
@@ -230,8 +218,9 @@ async function waitPoeEntryState(session, timeoutMs = 30000) {
       || /signin|auth|login|mfa|captcha|\\/ap\\/cvf/.test(location.href)
       || !!document.querySelector('input[type="password"],input[autocomplete="one-time-code"],input[name="guess"]')
     )`, "Opportunity Explorer app, account chooser, or authentication state", timeoutMs);
-  } catch {
-    const page = await inspectPage(session, { timeoutMs: 10000 }).catch(() => ({
+  } catch (error) {
+    preserveOwnershipError(error);
+    const page = await inspectPage(session, { timeoutMs: 10000 }).catch(error => preserveOwnershipError(error, {
       pageKind: "unknown",
       authState: "ambiguous",
       facts: {},
@@ -272,8 +261,29 @@ async function withPoePage(origin, work, { requireReady = true } = {}) {
 }
 
 async function runFetch(session, callExpr) {
+  await assertPoeContext(session);
   const expr = `(async function(){ ${FETCH_SRC}\n return await ${callExpr}; })()`;
-  return evaluate(session, expr, 180000);
+  const result = await evaluate(session, expr, 180000);
+  await assertPoeContext(session);
+  return result;
+}
+
+async function assertPoeContext(session) {
+  await session.assertTaskControl({ exclusiveContext: true, sellerCentral: session._poeSellerCentral });
+  const expected = session._poeExpectedIdentity;
+  if (!expected) throw new Error("POE_CONTEXT_UNVERIFIED: account preflight is required");
+  const actual = await readAccount(session);
+  // Read the committed URL as well as frame events: a redirect event can be
+  // delayed while a result and its identity response are already available.
+  const actualUrl = await evaluate(session, "location.href", 10000);
+  await session.assertTaskControl({ exclusiveContext: true,
+    sellerCentral: { ...session._poeSellerCentral, origin: actualUrl || "" } });
+  for (const key of ["merchantId", "partnerAccountId", "displayName", "marketplace"]) {
+    if (expected[key] != null && JSON.stringify(actual[key]) !== JSON.stringify(expected[key])) {
+      throw new Error(`POE_CONTEXT_CHANGED: ${key} changed or became unavailable; response rejected`);
+    }
+  }
+  await session.assertTaskControl({ exclusiveContext: true, sellerCentral: session._poeSellerCentral });
 }
 
 // Resolve --marketplace <cc> to the obfuscated id we REQUEST in the GraphQL
@@ -322,13 +332,28 @@ function assertAccount(acct, expected) {
   return true;
 }
 
+function structuredAccountMatches(acct, accountName, expectedId) {
+  // Legacy API-only regional reads can request another marketplace in the
+  // same region. Their response marketplace gate remains authoritative.
+  if (!accountName) return !expectedId || acct.partnerAccountId === expectedId;
+  return accountProfileMatches(acct, {
+    accountName, expectedPartnerAccountId: expectedId,
+    marketplace: opt("marketplace", null),
+    marketplaceId: CC_MP[String(opt("marketplace", "")).toLowerCase()],
+    marketplaceLabel: opt("marketplace-label", null),
+  });
+}
+
 // One account preflight per command, before any data fetch.
 async function accountPreflight(session) {
   const expectedId = opt("expected-partner-account-id", null);
-  const expected = expectedId || opt("expect-account", null) || opt("account-name", null);
-  let acct = await readAccount(session);
-  if (assertAccount(acct, expected)) return true;
   const accountName = opt("account-name", null);
+  const expected = expectedId || opt("expect-account", null) || accountName;
+  let acct = await readAccount(session);
+  if (assertAccount(acct, expected) && structuredAccountMatches(acct, accountName, expectedId)) {
+    session._poeExpectedIdentity = acct;
+    return true;
+  }
   const marketplaceLabel = opt("marketplace-label", null);
   if (!accountName || !marketplaceLabel || !expected) {
     console.error("ACCOUNT SWITCH NOT ATTEMPTED: structured account options are incomplete. No POE data was fetched.");
@@ -340,18 +365,21 @@ async function accountPreflight(session) {
       accountName,
       parentAccountName: opt("parent-account-name", null),
       marketplaceLabel,
+      marketplace: opt("marketplace", null),
     });
   } catch (error) {
+    preserveOwnershipError(error);
     console.error(String(error.message || error));
     console.error("ACCOUNT RECOVERY FAILED. No POE data was fetched.");
     return false;
   }
   acct = await readAccount(session);
-  if (!assertAccount(acct, expectedId || expected)) {
+  if (!assertAccount(acct, expectedId || expected) || !structuredAccountMatches(acct, accountName, expectedId)) {
     console.error("POST-SWITCH ACCOUNT CHECK FAILED. No POE data was fetched.");
     return false;
   }
   console.error("Account recovery succeeded and the partner account identity was revalidated.");
+  session._poeExpectedIdentity = acct;
   return true;
 }
 
@@ -363,30 +391,25 @@ async function withAccountCheckedPoePage(origin, work) {
     // Requiring the POE meta tag before this point made recovery unreachable
     // and mislabeled a valid login as a login failure.
     await waitPoeReady(session);
+    if (!["merchantId", "partnerAccountId", "displayName"].some((key) => session._poeExpectedIdentity[key])) {
+      throw new Error("POE_CONTEXT_UNVERIFIED: no account identity is observable");
+    }
+    await assertPoeContext(session);
     return { value: await work(session) };
   }, { requireReady: false });
   if (result.accountCheckFailed) process.exit(1);
   return result.value;
 }
 
-function finish(env, { outDir, verbose }) {
-  if (env.error) {
-    console.error("fetch returned an error:", env.error);
-    console.error("→ open/refresh the Opportunity Explorer tab in the debug Chrome (logged in, right account/marketplace) and re-run. Add --verbose to inspect.");
-    process.exit(1);
-  }
-  const files = formatEnvelope(env, { outDir });
-  for (const f of files) {
-    const written = path.join(outDir, f.name);
-    registerPoeArtifact(written, env);
-    console.log(written);
-  }
-  if (verbose) {
-    const raw = path.join(outDir, `raw_${env.kind}_${(env.capturedAt || "").replace(/[:]/g, "-")}.json`);
-    fs.writeFileSync(raw, JSON.stringify(env, null, 1));
-    registerPoeArtifact(raw, env);
-    console.log(raw);
-  }
+async function finish(env, { verbose }) {
+  if (env.error) throw new Error(`POE fetch failed: ${env.error}`);
+  const files = formatEnvelope(env, {});
+  if (verbose) files.push({ name: `${(env.capturedAt || new Date().toISOString()).replace(/[:]/g, "-")}_poe_${env.kind}_raw.json`, content: JSON.stringify(env, null, 1) });
+  const receipt = await publishFilesAsync(files, archiveTarget);
+  archiveArtifacts.push(...receipt.artifacts);
+  captures.push({ kind: env.kind, captured_at: env.capturedAt,
+    last_updated: env.niche?.lastUpdatedTimeISO8601 || null });
+  console.error(`Verified ${receipt.artifacts.length} POE files in ${receipt.remote_folder}; no local data retained.`);
 }
 
 if (cmd === "self-test") {
@@ -417,7 +440,7 @@ if (cmd === "self-test") {
   const pages = await listPages();
   const sc = pages.filter((p) => /sellercentral\.amazon\./.test(p.url));
   console.log(`Seller Central tabs: ${sc.length}${sc.length ? " → " + sc.map((p) => p.url.replace(/^https:\/\//, "").slice(0, 60)).join(", ") : ""}`);
-  if (!sc.length) { console.log("Run browserctl ensure for port 9222. If authentication is needed, use browserctl auth; reserve an explicit recovery restart for a human challenge."); process.exit(1); }
+  if (!sc.length) { console.log(`Run browserctl ensure for the selected session on port ${process.env.CDP_PORT || 9223}. If authentication is needed, use browserctl auth; reserve an explicit recovery restart for a human challenge.`); process.exit(1); }
   const origins = resolveDoctorOrigins(sc, opt("origin", null));
   const results = [];
   for (const origin of origins) {
@@ -425,6 +448,7 @@ if (cmd === "self-test") {
       const acct = await withPoePage(origin, (session) => readAccount(session));
       results.push({ origin, acct });
     } catch (error) {
+      preserveOwnershipError(error);
       results.push({ origin, error });
     }
   }
@@ -444,43 +468,37 @@ if (cmd === "self-test") {
   const nicheId = opt("niche-id", null);
   if (!nicheId) usage();
   const client = opt("client", null);
-  const outDir = opt("out-dir", client ? `output/${client}/opportunity-data` : null);
-  if (!outDir) { console.error("--client <slug> or --out-dir required"); process.exit(1); }
   const marketplace = opt("marketplace", null);
-  configureArtifacts(client, marketplace);
+  configureStorage(client);
   const mp = requestedMarketplace(marketplace);
   const origin = resolveDataOrigin(marketplace, opt("origin", null));
   const env = await withAccountCheckedPoePage(origin, (session) =>
     runFetch(session, `fetchPoeNiche(${JSON.stringify({ nicheId, obfuscatedMarketplaceId: mp })})`));
   assertMarketplace(env, mp);
-  finish(env, { outDir, verbose: flag("verbose") });
-  completeArtifacts();
+  await finish(env, { verbose: flag("verbose") });
+  completeStorage();
 } else if (cmd === "search") {
   const query = opt("query", null);
   if (!query) usage();
   const client = opt("client", null);
-  const outDir = opt("out-dir", client ? `output/${client}/opportunity-data` : null);
-  if (!outDir) { console.error("--client <slug> or --out-dir required"); process.exit(1); }
   const marketplace = opt("marketplace", null);
-  configureArtifacts(client, marketplace);
+  configureStorage(client);
   const mp = requestedMarketplace(marketplace);
   const origin = resolveDataOrigin(marketplace, opt("origin", null));
   const env = await withAccountCheckedPoePage(origin, (session) =>
     runFetch(session, `fetchPoeSearch(${JSON.stringify({ query, obfuscatedMarketplaceId: mp })})`));
   assertMarketplace(env, mp);
-  finish(env, { outDir, verbose: flag("verbose") });
-  completeArtifacts();
+  await finish(env, { verbose: flag("verbose") });
+  completeStorage();
 } else if (cmd === "batch") {
   // search → union/dedupe → download every kept niche in full.
   const queries = (opt("queries", opt("query", "")) || "").split(",").map((q) => q.trim()).filter(Boolean);
   const idArg = (opt("niche-ids", "") || "").split(",").map((x) => x.trim()).filter(Boolean);
   if (!queries.length && !idArg.length) usage();
   const client = opt("client", null);
-  const outDir = opt("out-dir", client ? `output/${client}/opportunity-data` : null);
-  if (!outDir) { console.error("--client <slug> or --out-dir required"); process.exit(1); }
   const top = flag("all") ? Infinity : Number(opt("top", "15"));
   const marketplace = opt("marketplace", null);
-  configureArtifacts(client, marketplace);
+  configureStorage(client);
   const mp = requestedMarketplace(marketplace);
   const origin = resolveDataOrigin(marketplace, opt("origin", null));
   await withAccountCheckedPoePage(origin, async (session) => {
@@ -490,7 +508,7 @@ if (cmd === "self-test") {
       const env = await runFetch(session, `fetchPoeSearch(${JSON.stringify({ query: q, obfuscatedMarketplaceId: mp })})`);
       assertMarketplace(env, mp);
       if (env.error) { console.error(`search "${q}" failed:`, env.error); process.exit(1); }
-      finish(env, { outDir, verbose: flag("verbose") }); // per-query related-niches files
+      await finish(env, { verbose: flag("verbose") }); // per-query related-niches files
       for (const n of env.niches) if (!byId.has(n.nicheId)) byId.set(n.nicheId, n.nicheTitle);
       console.error(`search "${q}": ${env.niches.length} niches (union now ${byId.size})`);
     }
@@ -505,37 +523,31 @@ if (cmd === "self-test") {
       const env = await runFetch(session, `fetchPoeNiche(${JSON.stringify({ nicheId: id, obfuscatedMarketplaceId: mp })})`);
       if (env.error) { failed.push({ id, title: byId.get(id), error: env.error }); console.error(`[${i + 1}/${ids.length}] ${byId.get(id) || id} FAILED: ${env.error}`); continue; }
       assertMarketplace(env, mp);
-      finish(env, { outDir, verbose: flag("verbose") });
+      await finish(env, { verbose: flag("verbose") });
       ok += 1;
       console.error(`[${i + 1}/${ids.length}] ${env.niche.nicheTitle} ✓`);
     }
     console.error(`batch done: ${ok}/${ids.length} niches downloaded${failed.length ? `, ${failed.length} FAILED` : ""}`);
     if (failed.length) { console.error(JSON.stringify(failed, null, 1)); process.exit(1); }
   });
-  completeArtifacts();
+  completeStorage();
 } else if (cmd === "merchant-niches") {
   const client = opt("client", null);
-  const outDir = opt("out-dir", client ? `output/${client}/opportunity-data` : ".");
   const marketplace = opt("marketplace", null);
-  configureArtifacts(client, marketplace);
+  configureStorage(client);
   const mp = requestedMarketplace(marketplace);
   const origin = resolveDataOrigin(marketplace, opt("origin", null));
   const env = await withAccountCheckedPoePage(origin, (session) =>
     runFetch(session, `fetchPoeMerchantNiches(${JSON.stringify({ obfuscatedMarketplaceId: mp })})`));
   assertMarketplace(env, mp);
-  finish(env, { outDir, verbose: flag("verbose") });
-  completeArtifacts();
+  await finish(env, { verbose: flag("verbose") });
+  completeStorage();
 } else if (cmd === "archive") {
   const client = opt("client", null);
   if (!client) { console.error("--client <slug> required"); process.exit(1); }
   const dryRun = flag("dry-run");
-  const res = archiveClient(client, { srcDir: opt("out-dir", null), dryRun, log: (m) => console.error(m) });
-  if (res.errors.length) {
-    for (const e of res.errors) console.error(`archive: ${e}`);
-    process.exit(1);
-  }
-  console.error(`archive ${dryRun ? "(dry run) " : ""}${client}: ${res.copied} copied, ${res.skipped} already archived${res.unsorted ? `, ${res.unsorted} unparseable -> _unsorted/` : ""}`);
-  console.error(`  -> ${res.target}`);
+  const res = archiveClient(client, { srcDir: opt("out-dir", null), dryRun });
+  console.log(JSON.stringify(res));
 } else {
   usage(cmd ? 1 : 0);
 }

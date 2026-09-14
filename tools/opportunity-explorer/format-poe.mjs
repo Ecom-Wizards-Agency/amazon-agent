@@ -3,7 +3,7 @@
  * Local formatter for fetch-poe.js captures (amazon-agent.poe.v1). Deterministic,
  * no network — mirrors tools/report-fetcher/format-seller-reports.mjs.
  *
- *   node format-poe.mjs <capture.json> [--out-dir DIR] [--date YYYY-MM-DD]
+ *   node format-poe.mjs --stdin --client <slug> [--date YYYY-MM-DD]
  *   node format-poe.mjs --self-test
  *
  * kind=niche  →  <date>_<cc>-<slug>_NicheDetailsProductsTab.csv      (EN canonical native layout)
@@ -297,7 +297,8 @@ export function relatedNichesOutputs(env) {
 
 // ------------------------------------------------------------------ driver
 
-export function formatEnvelope(env, { outDir, date }) {
+export function formatEnvelope(env, { outDir, date } = {}) {
+  if (outDir) throw new Error("Persistent POE output is disabled; use in-memory output and pCloud delivery");
   if (!env || env.schemaVersion !== "amazon-agent.poe.v1") {
     fail(`input is not an amazon-agent.poe.v1 envelope (schemaVersion=${env && env.schemaVersion})`, env && Object.keys(env));
   }
@@ -339,10 +340,6 @@ export function formatEnvelope(env, { outDir, date }) {
     fail(`unknown envelope kind '${env.kind}'`);
   }
 
-  if (outDir) {
-    fs.mkdirSync(outDir, { recursive: true });
-    for (const f of files) fs.writeFileSync(path.join(outDir, f.name), f.content);
-  }
   return files;
 }
 
@@ -456,11 +453,12 @@ function selfTest() {
 const argv = process.argv.slice(2);
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   if (argv.includes("--self-test")) { selfTest(); process.exit(0); }
-  const input = argv.find((a) => !a.startsWith("--"));
-  if (!input) { console.error("usage: format-poe.mjs <capture.json> [--out-dir DIR] [--date YYYY-MM-DD] | --self-test"); process.exit(1); }
+  if (!argv.includes("--stdin")) { console.error("usage: format-poe.mjs --stdin --client <slug> [--date YYYY-MM-DD] | --self-test; pipe capture JSON from memory, do not save raw input files"); process.exit(1); }
   const opt = (name, dflt) => { const i = argv.indexOf(`--${name}`); return i > -1 ? argv[i + 1] : dflt; };
-  const env = JSON.parse(fs.readFileSync(input, "utf8"));
-  const outDir = opt("out-dir", path.dirname(input));
-  const files = formatEnvelope(env, { outDir, date: opt("date", null) });
-  for (const f of files) console.log(path.join(outDir, f.name));
+  const env = JSON.parse(fs.readFileSync(0, "utf8"));
+  if (opt("out-dir", null)) throw new Error("POE local output is disabled; use --client");
+  const { prepareArchive, publishFiles } = await import("./pcloud-archive.mjs");
+  const target = prepareArchive(opt("client", null));
+  const files = formatEnvelope(env, { date: opt("date", null) });
+  console.log(JSON.stringify(publishFiles(files, target)));
 }

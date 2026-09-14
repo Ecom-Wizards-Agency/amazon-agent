@@ -1,38 +1,16 @@
-/**
- * Archive POE runs from the repo's working tree to the pCloud client archive.
- *
- * POE snapshots are NOT reproducible: Amazon serves trailing windows only, so a
- * capture cannot be re-fetched later. `output/<slug>/opportunity-data/` is the hot
- * working copy on one machine; this mirrors it to the shared pCloud archive so the
- * history survives that machine.
- *
- * Target:
- *   <pcloud>/1_Delivery/1.1_Clients/<Client>/_Data/opportunity-data/<mp>/<YYYY-MM-DD>_<niche>/
- *
- * <Client> is resolved from the slug through the team vault's client hub notes,
- * the same two-step rule as build_keyword_workbook.py's vault_client_dir(): the
- * canonical `slug:` frontmatter first, then a case-insensitive folder-name match
- * with spaces treated as hyphens. Vault and pCloud folder names were aligned on
- * 29.07.2026, so the vault folder name IS the pCloud folder name.
- *
- * Never creates a client folder. One invented here syncs to every teammate, and a
- * near-miss spelling next to the real folder is worse than no archive at all, so an
- * unmatched client reports and skips.
- */
-
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
+import os from "node:os";
+import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { Worker } from "node:worker_threads";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const REPO = path.resolve(HERE, "..", "..");
 
 const TEAM_VAULT_ENV = "AMAZON_AGENT_TEAM_VAULT";
 const TEAM_VAULT_POINTER = path.join(REPO, "_local", "team-vault-path.txt");
-const PCLOUD_ENV = "EW_PCLOUD_ROOT";
-const PCLOUD_POINTER = path.join(REPO, "_local", "pcloud-path.txt");
-
 function firstLine(file) {
   try {
     for (const line of fs.readFileSync(file, "utf8").split("\n")) {
@@ -49,20 +27,10 @@ function expand(p) {
 
 /** Root of the shared team vault, or "" when there is none on this machine. */
 export function teamVaultRoot() {
-  for (const c of [process.env[TEAM_VAULT_ENV] || "", firstLine(TEAM_VAULT_POINTER)]) {
+  for (const c of [process.env[TEAM_VAULT_ENV] || "", firstLine(TEAM_VAULT_POINTER), path.join(os.homedir(), "os", "agency")]) {
     if (!c) continue;
     const root = expand(c);
     if (fs.existsSync(path.join(root, "Clients"))) return root;
-  }
-  return "";
-}
-
-/** Root of the pCloud Amazon Wizards share, or "" when not configured/mounted. */
-export function pcloudRoot() {
-  for (const c of [process.env[PCLOUD_ENV] || "", firstLine(PCLOUD_POINTER)]) {
-    if (!c) continue;
-    const root = expand(c);
-    if (fs.existsSync(path.join(root, "1_Delivery", "1.1_Clients"))) return root;
   }
   return "";
 }
@@ -101,107 +69,117 @@ export function vaultClientName(vaultRoot, slug) {
   return "";
 }
 
-/**
- * Split a POE export filename into {date, marketplace, niche}.
- * Handles all three emitted shapes:
- *   2026-07-21_poe_us-greens-powder_returns.csv
- *   2026-07-21_poe_us_super-greens-powder_related-niches.csv
- *   2026-07-21_us-greens-powder_NicheDetailsProductsTab.csv
- * Returns null when the name does not parse, so the caller can quarantine it
- * rather than guess a destination.
- */
-export function parseExportName(name) {
-  const m = name.match(/^(\d{4}-\d{2}-\d{2})_(?:poe_)?([a-z]{2})[-_](.+)_([^_]+)\.([a-z]+)$/i);
-  if (!m) return null;
-  return { date: m[1], marketplace: m[2].toLowerCase(), niche: m[3] };
-}
-
-function md5(file) {
-  return crypto.createHash("md5").update(fs.readFileSync(file)).digest("hex");
-}
-
-/**
- * Mirror one client's opportunity-data into the pCloud archive.
- * Returns a summary; never throws for a missing client, reports instead.
- */
-export function archiveClient(slug, { srcDir, dryRun = false, log = console.log } = {}) {
-  const out = { slug, copied: 0, skipped: 0, unsorted: 0, errors: [], target: "" };
-
-  const vault = teamVaultRoot();
-  if (!vault) { out.errors.push(`no team vault (set ${TEAM_VAULT_ENV} or _local/team-vault-path.txt)`); return out; }
-
-  const pcloud = pcloudRoot();
-  if (!pcloud) { out.errors.push(`pCloud not configured or not mounted (set ${PCLOUD_ENV} or _local/pcloud-path.txt)`); return out; }
-
-  const client = vaultClientName(vault, slug);
-  if (!client) { out.errors.push(`slug "${slug}" matches no client folder in the vault - not archiving`); return out; }
-
-  const clientDir = path.join(pcloud, "1_Delivery", "1.1_Clients", client);
-  if (!fs.existsSync(clientDir)) { out.errors.push(`no pCloud folder "${client}" - not creating one`); return out; }
-
-  const src = srcDir || path.join(REPO, "output", slug, "opportunity-data");
-  if (!fs.existsSync(src)) { out.errors.push(`nothing to archive: ${src} does not exist`); return out; }
-
-  const base = path.join(clientDir, "_Data", "opportunity-data");
-  out.target = base;
-
-  // Provenance for files whose name carries no marketplace/niche. Some clients
-  // capture per product (output/<slug>/<product>/opportunity-data/) and emit
-  // identical filenames in every product folder, so a flat _unsorted/ would have
-  // them overwrite each other. Keying by the source folder keeps them distinct.
-  const context = path.basename(path.dirname(src));
-
-  // Copy one file, MD5-verified. Same discipline as the Drive delivery path, so a
-  // half-finished copy is never mistaken for done.
-  const copyFile = (from, to, label) => {
-    if (fs.existsSync(to)) {
-      if (md5(from) === md5(to)) { out.skipped++; return; }
-      // Different content at the same path means two distinct captures are
-      // colliding. Overwriting would silently destroy one, so refuse and report.
-      out.errors.push(`collision, not overwritten: ${label} -> ${path.relative(base, to)}`);
-      return;
-    }
-    log(`  ${dryRun ? "WOULD COPY" : "COPY"}  ${label}`);
-    if (dryRun) { out.copied++; return; }
-    try {
-      fs.mkdirSync(path.dirname(to), { recursive: true });
-      fs.copyFileSync(from, to);
-      if (md5(from) !== md5(to)) { out.errors.push(`MD5 mismatch after copy: ${label}`); return; }
-      out.copied++;
-    } catch (e) {
-      out.errors.push(`${label}: ${e.message}`);
-    }
-  };
-
-  // Run-scoped subfolders (e.g. 2026-07-23_de-collagen-pulver_all-51/ with its own
-  // niches/ and raw/) are copied verbatim. The archive mirrors the capture, it does
-  // not reorganise it, so nothing depends on guessing what a nested file is.
-  const copyTree = (fromDir, toDir, rel) => {
-    for (const name of fs.readdirSync(fromDir).sort()) {
-      if (name === ".DS_Store") continue;
-      const from = path.join(fromDir, name);
-      const to = path.join(toDir, name);
-      if (fs.statSync(from).isDirectory()) copyTree(from, to, path.join(rel, name));
-      else copyFile(from, to, path.join(rel, name));
-    }
-  };
-
-  for (const name of fs.readdirSync(src).sort()) {
-    if (name === ".DS_Store") continue;
-    const from = path.join(src, name);
-    const isDir = fs.statSync(from).isDirectory();
-
-    // Directory names follow the same convention as files, so a run folder lands
-    // beside the loose exports of the same niche instead of in a parallel tree.
-    const parsed = parseExportName(isDir ? `${name}.json` : name);
-    const dest = parsed
-      ? path.join(base, parsed.marketplace, `${parsed.date}_${parsed.niche}`)
-      : path.join(base, "_unsorted", context);
-    if (!parsed) out.unsorted++;
-
-    if (isDir) copyTree(from, path.join(dest, name), name);
-    else copyFile(from, path.join(dest, name), name);
+/** API-backed POE storage. Upload bytes flow through stdin, never payload files. */
+export function pcloudCommand(args, { input } = {}) {
+  const helper = process.env.POE_PCLOUD_SCRIPT || path.join(os.homedir(), "os", "company-ai-skills", "skills", "pcloud-api", "scripts", "pcloud.sh");
+  const result = spawnSync(helper, args, { encoding: "utf8", timeout: 300000, maxBuffer: 4 * 1024 * 1024, input });
+  if (result.error) throw result.error;
+  if (result.status !== 0) {
+    const error = new Error((result.stderr || "pCloud command failed").trim());
+    error.missing = /API error (2009|2055)/.test(result.stderr || "");
+    throw error;
   }
+  return result.stdout.trim();
+}
 
-  return out;
+const sha1 = (bytes) => crypto.createHash("sha1").update(bytes).digest("hex");
+
+export function prepareArchive(slug, { call = pcloudCommand, vault = teamVaultRoot() } = {}) {
+  const client = vaultClientName(vault, slug);
+  if (!client) throw new Error(`No canonical client for ${slug}; pCloud delivery is required before fetching POE`);
+  const clientRoot = `1_Delivery/1.1_Clients/${client}`;
+  call(["foldermeta", clientRoot]); // Never invent a client folder.
+  call(["foldermeta", `${clientRoot}/_Data`]);
+  const remote = `${clientRoot}/_Data/opportunity-data`;
+  call(["mkdir", remote]);
+  return { remote, call };
+}
+
+function checksum(call, remote) {
+  try { return call(["checksum", remote]); }
+  catch (error) { if (error.missing) return null; throw error; }
+}
+
+/** Publish in-memory formatter output; return only remote metadata. */
+export function publishFiles(files, target) {
+  if (!files.length) throw new Error("No POE files to publish");
+  const { remote, call } = target;
+  const artifacts = [];
+  for (const file of files) {
+    if (!file.name || path.basename(file.name) !== file.name || /[\\/]/.test(file.name) || [".", ".."].includes(file.name)) throw new Error("Invalid POE basename");
+    const content = Buffer.isBuffer(file.content) ? file.content : Buffer.from(file.content);
+    const hash = sha1(content);
+    const existing = `${remote}/${file.name}`;
+    // Reuse legacy names only when verified. New names are content-addressed,
+    // so concurrent captures cannot overwrite different bytes at one path.
+    const name = checksum(call, existing) === hash ? file.name : `${hash}_${file.name}`;
+    const destination = `${remote}/${name}`;
+    let status = "existing";
+    const priorHash = checksum(call, destination);
+    if (priorHash && priorHash !== hash) throw new Error(`Conflicting content-addressed path; not overwritten: ${destination}`);
+    if (priorHash !== hash) {
+      try { call(["put-stream", name, remote, hash], { input: content }); }
+      catch (error) {
+        if (checksum(call, destination) !== hash) throw error;
+      }
+      status = "uploaded";
+    }
+    if (checksum(call, destination) !== hash) throw new Error(`pCloud checksum mismatch: ${destination}`);
+    artifacts.push({ name: file.name, remote_name: name, path: destination, sha1: hash, bytes: content.length, status });
+  }
+  return { remote_folder: remote, artifacts, status: "archived_verified", local_data_retained: false };
+}
+
+/** Keep the browser's heartbeat running during blocking pCloud helper calls. */
+export function publishFilesAsync(files, { remote }) {
+  return new Promise((resolve, reject) => {
+    const worker = new Worker(new URL("./pcloud-upload-worker.mjs", import.meta.url), {
+      workerData: { files, remote },
+    });
+    let received = false;
+    worker.once("message", receipt => { received = true; resolve(receipt); });
+    worker.once("error", reject);
+    worker.once("exit", code => {
+      if (!received) reject(new Error(`POE upload worker exited ${code} without a verified receipt`));
+    });
+  });
+}
+
+/** Migrate an explicitly selected legacy directory. Remove only verified unchanged files. */
+export function archiveClient(slug, { srcDir, dryRun = false, call = pcloudCommand, vault = teamVaultRoot() } = {}) {
+  const source = path.resolve(srcDir || path.join(REPO, "output", slug, "opportunity-data"));
+  if (fs.lstatSync(source).isSymbolicLink()) throw new Error("Refusing a symlink archive source");
+  const files = [];
+  function walk(dir) {
+    for (const name of fs.readdirSync(dir).sort()) {
+      const local = path.join(dir, name);
+      const info = fs.lstatSync(local);
+      if (info.isSymbolicLink()) throw new Error(`Refusing symlink: ${local}`);
+      if (info.isDirectory()) walk(local);
+      else if (info.isFile() && name !== ".DS_Store") files.push({ local, name, content: fs.readFileSync(local), ino: info.ino, dev: info.dev });
+      else if (!info.isFile()) throw new Error(`Not a regular file: ${local}`);
+    }
+  }
+  walk(source);
+  if (!files.length) throw new Error("No POE files to archive");
+  if (dryRun) return { status: "dry_run", source, files: files.map(f => f.local), local_data_retained: true };
+  const target = prepareArchive(slug, { call, vault });
+  const receipt = publishFiles(files, target);
+  receipt.artifacts.forEach((artifact, i) => { artifact.source_relative_path = path.relative(source, files[i].local); });
+  const manifestContent = JSON.stringify({ schema_version: 1, client: slug, files: receipt.artifacts }, null, 2);
+  receipt.manifest = publishFiles([{ name: `${new Date().toISOString().slice(0, 7)}_POE_migration-manifest.json`, content: manifestContent }], target).artifacts[0];
+  // Finish all network operations before checking source identity for deletion.
+  for (const artifact of [...receipt.artifacts, receipt.manifest]) {
+    if (checksum(call, artifact.path) !== artifact.sha1) throw new Error("Remote verification failed; kept sources");
+  }
+  function unchanged(file, artifact) {
+    const info = fs.lstatSync(file.local);
+    if (!info.isFile() || info.isSymbolicLink() || info.ino !== file.ino || info.dev !== file.dev || sha1(fs.readFileSync(file.local)) !== artifact.sha1) throw new Error(`Local POE changed; kept source: ${file.local}`);
+  }
+  for (const [i, file] of files.entries()) unchanged(file, receipt.artifacts[i]);
+  for (const [i, file] of files.entries()) {
+    unchanged(file, receipt.artifacts[i]);
+    fs.unlinkSync(file.local);
+  }
+  return { ...receipt, removed_local_files: files.length, source };
 }
