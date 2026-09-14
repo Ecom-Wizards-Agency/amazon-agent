@@ -10,18 +10,7 @@ command working unchanged from this repo:
 The lib copy's README remains the source of truth for what is preserved and
 what is not.
 """
-import os
-import sys
-from pathlib import Path
+from forward import main
 
-for _candidate in (os.environ.get("EW_COMPANY_LIB", ""),
-                   str(Path.home() / "os" / "company-ai-skills" / "lib")):
-    if _candidate:
-        _target = Path(os.path.expanduser(_candidate)) / "gdrive-deliver" / "update_sheet.py"
-        if _target.is_file():
-            os.execv(sys.executable, [sys.executable, str(_target)] + sys.argv[1:])
-
-sys.exit("gdrive-deliver lives in company-ai-skills/lib/gdrive-deliver/ and no "
-         "checkout was found (checked $EW_COMPANY_LIB, then "
-         "~/os/company-ai-skills/lib). Clone Ecom-Wizards-Agency/"
-         "company-ai-skills to ~/os/company-ai-skills or set the env var.")
+if __name__ == "__main__":
+    raise SystemExit(main("update_sheet.py"))
