@@ -428,7 +428,7 @@ def build_asins(
     anchor_brand = (cfg.get("seo_identity") or {}).get("brand") or client
     anchor_mkt = copy_idx.get(anchor, {}).get("marketplace") or mkt
     rows.append([
-        anchor, "Anchor", anchor_mkt, anchor_brand,
+        anchor, ("Prelaunch product" if not anchor else "Untracked product") if (cfg.get("ranking_context") or {}).get("mode") == "unavailable" else "Anchor", anchor_mkt, anchor_brand,
         title_for(anchor, cfg["product_anchor"].get("product", "")),
         bullets_for(anchor), link_for(anchor),
         "listing_reference_json" if anchor in copy_idx else "config.product_anchor",
@@ -859,7 +859,10 @@ def build_outlier(
     result: dict,
     warnings: list[str],
 ) -> dict:
-    tcfg = cfg["triage"]
+    tcfg = copy.deepcopy(cfg["triage"])
+    ranks_unavailable = (cfg.get("ranking_context") or {}).get("mode") == "unavailable"
+    if ranks_unavailable:
+        tcfg["semantic_opportunity"]["include_if_anchor_not_ranking"] = False
     action_map = cfg["final_action"]["by_classification"]
     allowed_actions = set(cfg["final_action"]["allowed"])
     anchor_asin = cfg["product_anchor"]["asin"]
@@ -890,7 +893,9 @@ def build_outlier(
         for i in range(len(header))
         if re.match(r"^B0[A-Z0-9]{8}$", str(header[i]).strip())
     }
-    if anchor_asin not in asin_cols:
+    if ranks_unavailable:
+        anchor_idx = None
+    elif anchor_asin not in asin_cols:
         warnings.append(f"Outlier triage: anchor ASIN {anchor_asin} not a master column.")
         anchor_idx = None
     else:
@@ -944,7 +949,7 @@ def build_outlier(
 
         rows_out.append(
             [
-                kw, sv, relev, anchor_rank if anchor_rank is not None else "",
+                kw, sv, relev, "Not available" if ranks_unavailable else (anchor_rank if anchor_rank is not None else ""),
                 best_comp if best_comp is not None else "", comps_top50, poe_signal,
                 cls, REASONS.get(cls, ""), RECOMMENDED_USE.get(cls, ""),
                 "DataDive Master List", action,
@@ -969,7 +974,7 @@ def build_outlier(
         poe_signal = "In POE top 20" if norm(kw) in poe_terms else "Expanded 1% only"
         rows_out.append(
             [
-                kw, sv, relev, "", "", "", poe_signal,
+                kw, sv, relev, "Not available" if ranks_unavailable else "", "", "", poe_signal,
                 cls, REASONS.get(cls, ""), RECOMMENDED_USE.get(cls, ""),
                 "DataDive Expanded MKL 1%", action,
             ]
@@ -1666,6 +1671,36 @@ def compute_rj_coverage(master_sv: dict, copy_text: str, exclude_tokens: list) -
     }
 
 
+def ranking_context_status(cfg: dict, header: list) -> dict:
+    """Keep unobserved own ranks separate from tracked-but-not-ranking data."""
+    anchor = cfg["product_anchor"].get("asin", "")
+    context = cfg.get("ranking_context") or {}
+    mode = context.get("mode", "tracked")
+    if mode == "tracked":
+        return {"valid": bool(anchor) and anchor in header, "mode": mode,
+                "detail": f"ASIN={anchor}, tracked column={anchor in header}"}
+    if mode != "unavailable":
+        return {"valid": False, "mode": mode, "detail": "Unknown ranking context mode"}
+    evidence_path = context.get("evidence_file", "")
+    try:
+        evidence = load_json(evidence_path)
+    except (OSError, ValueError, TypeError):
+        evidence = {}
+    sources = evidence.get("evidence_files") or []
+    valid = (
+        bool(str(context.get("reason", "")).strip())
+        and evidence.get("asin") == anchor
+        and evidence.get("marketplace") == cfg["product_anchor"].get("marketplace")
+        and evidence.get("status") in {"prelaunch", "inactive-untracked"}
+        and bool(evidence.get("verified_at"))
+        and bool(sources) and all(os.path.isfile(x) for x in sources)
+        and not (anchor and anchor in header)
+        and cfg["triage"]["semantic_opportunity"].get("include_if_anchor_not_ranking") is False
+    )
+    return {"valid": bool(valid), "mode": mode,
+            "detail": f"Own rankings unavailable; evidence={evidence_path}; reason={context.get('reason', '')}"}
+
+
 def run_validations(wb, cfg, counts, related_result, paths, warnings) -> list[dict]:
     checks: list[dict] = []
 
@@ -1695,11 +1730,17 @@ def run_validations(wb, cfg, counts, related_result, paths, warnings) -> list[di
             if any(norm(v) == norm(anchor) for v in row):
                 asins_tab_hit = True
                 break
+    ranking = ranking_context_status(cfg, master_header)
     add(
-        f"Product anchor is configured ASIN {anchor}",
-        bool(anchor) and in_master,
-        f"config={anchor}, in_master={in_master}, in_ASINs_tab={asins_tab_hit}",
+        "Own-ASIN ranking context is evidenced",
+        ranking["valid"], ranking["detail"],
     )
+    if ranking["mode"] == "unavailable":
+        outlier_name = next((n for n in ("3.2 Outlier KWs", "Outlier - Opportunity KWs") if n in wb.sheetnames), None)
+        cells = list(wb[outlier_name].iter_rows(min_row=2, values_only=True)) if outlier_name else []
+        add("Unavailable own ranks are not represented as rank observations",
+            all(len(r) > 7 and r[3] in (None, "Not available") and r[7] != "Semantic opportunity" for r in cells),
+            "Own rank cells are explicitly unavailable; no rank-gap opportunity claims")
     if not asins_tab_hit:
         warnings.append(
             f"Anchor {anchor} not in the carried-forward ASINs tab — curate the "
