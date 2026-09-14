@@ -7,6 +7,7 @@ import {
   authAttemptStatus, recordAuthAttempt, releaseLease, touchLease,
 } from "./lease-registry.mjs";
 import { loadBrowserPolicy, policyForPort } from "./policy.mjs";
+import { acquireSessionLock, assertSessionLock } from "./session-lock.mjs";
 
 const AMAZON_AGENT = resolve(import.meta.dirname, "../..");
 const CDP_MODULE = resolve(AMAZON_AGENT, "tools/report-fetcher/cdp.mjs");
@@ -32,7 +33,9 @@ async function authenticateThroughTransport(port, targetId) {
   const request = `${JSON.stringify({
     version: 1,
     operation: "browser.authenticate",
-    params: { port: Number(port), targetId: String(targetId) },
+    params: { port: Number(port), targetId: String(targetId),
+      ...(Number(port) === 9223 ? { lockToken: process.env.AMAZON_BROWSER_LOCK_TOKEN,
+        lockChain: JSON.parse(process.env.AMAZON_BROWSER_LOCK_CHAIN || "[]") } : {}) },
   })}\n`;
   const raw = await new Promise((resolveResponse, rejectResponse) => {
     const socket = createConnection(TRANSPORT_SOCKET);
@@ -75,6 +78,7 @@ async function authenticateThroughTransport(port, targetId) {
 async function cdpForPort(port, policy) {
   const config = policyForPort(port, policy);
   process.env.CDP_PORT = String(port);
+  process.env.AMAZON_BROWSER_SESSION = Number(port) === 9223 ? "grimoire" : "operator";
   process.env.CDP_PROFILE = config.profile;
   process.env.CDP_START_URL = config.start_url;
   process.env.CDP_BROWSER_MODE = config.mode;
@@ -240,7 +244,13 @@ export async function authenticateTarget({
     if (!existsSync(TRANSPORT_SOCKET)) {
       throw new Error(`BROWSER_TRANSPORT_UNAVAILABLE: ${TRANSPORT_SOCKET} is missing`);
     }
-    return authenticateThroughTransport(port, targetId);
+    const unlock = acquireSessionLock(Number(port), `authentication:${targetId}`);
+    try {
+      assertSessionLock(Number(port));
+      const result = await authenticateThroughTransport(port, targetId);
+      assertSessionLock(Number(port));
+      return result;
+    } finally { unlock(); }
   }
   const cdp = await cdpForPort(port, policy);
   await cdp.assertChrome();

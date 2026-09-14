@@ -119,14 +119,14 @@ export function loadBrowserPolicy(path = POLICY_PATH) {
   if (typeof adoptUnregisteredTabs !== "boolean") {
     throw new Error("BROWSER_POLICY_INVALID: cleanup.adopt_unregistered_tabs must be boolean");
   }
-  const defaultPort = Number(raw.routing?.default_cdp_port ?? 9222);
+  const defaultPort = 9223;
   const wizardsPort = Number(raw.routing?.wizards_ai_cdp_port ?? 9223);
   const inAppPriority = raw.routing?.in_app_browser_priority || "explicit-only";
   const allowSilentFallback = raw.routing?.allow_silent_in_app_fallback ?? false;
-  if (defaultPort !== 9222 || wizardsPort !== 9223
+  if (wizardsPort !== 9223
       || inAppPriority !== "explicit-only" || allowSilentFallback !== false) {
     throw new Error(
-      "BROWSER_POLICY_INVALID: browser routing must default to CDP 9222, reserve 9223 for Wizards AI, and disable silent in-app fallback",
+      "BROWSER_POLICY_INVALID: use Grimoire on 9223 and disable silent in-app fallback",
     );
   }
   return {

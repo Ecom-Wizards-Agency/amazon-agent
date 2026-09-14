@@ -1,6 +1,8 @@
 # Keyword Research Workbook
 
-Mode browser: Mixed (build is local; DataDive uses MCP first; DataDive web work and the full keyword pool use managed Chrome CDP on port 9222 on Evo X1).
+Run browser-dependent tools through `node tools/browserctl/browserctl.mjs run --session grimoire -- <command>` from either direct chat or Slack. Screenshots inherit the owning task and verified niche.
+
+Mode browser: Mixed (build is local; DataDive uses MCP first; DataDive web work and the full keyword pool use managed Chrome CDP in the shared Grimoire session on port 9223).
 
 Use this when the operator asks for a full Amazon SEO keyword workbook, not only listing copy.
 
@@ -36,9 +38,23 @@ Generate **roots**, **Core 30% MKL**, and **competitors** from the DataDive MCP.
 **The old "Expanded 1% MKL" was a misnomer and its UI route is retired.** It was never a larger MKL export. The MKL is a capped, curated subset (500 on a capped niche; the frontend warns about a 600 ceiling in one inclusion flow), so lowering Min. Relevancy to 1% does not add rows once the niche is at the cap, and on a capped niche the UI simply cannot reach the tail. Changing that setting is also a `POST /niche_settings/{nicheId}/mkl_okl` that **mutates shared niche state for every teammate**. Do not do it.
 
 Instead pull the **complete keyword pool** with three read-only GETs in the
-logged-in DataDive session through managed Chrome CDP on port 9222, then filter
-locally. On a machine where that managed profile lacks the DataDive session, the
-Chrome extension is an explicit fallback rather than the default:
+logged-in DataDive session through managed Chrome CDP on port 9223, then filter
+locally. If the selected profile lacks a DataDive session, pause for login in
+9223. Do not fall back to the operator profile:
+
+Use the owned-tab extractor to wait for the loaded grid, validate niche and
+marketplace, and capture evidence from that exact task target:
+
+```bash
+node tools/browserctl/browserctl.mjs run --session grimoire -- \
+  node tools/datadive-support/read-niche.mjs <NICHE_ID> <com|de|co.uk> \
+  '<hero keyword>' <output-directory> <stable-datadive-child-task-id>
+```
+
+It writes the three JSON payloads, screenshot, verified target metadata and
+checksums. Compare its core keywords, competitor ASINs and total keyword count
+with the MCP inputs before using the pool. Keep the same child task ID on retry;
+the POE child keeps a different stable task ID in the same browser session.
 
 ```
 GET https://app.datadive.tools/mkl/{nicheId}?includeAsinCatalog=true   -> data.keywords
@@ -70,6 +86,7 @@ DataDive UI export locations:
 - **Competitors CSV**: **Niche Tracker > Export Competitors**. Prefer the real UI export over MCP fallback. NOTE: the genuine UI export is TRANSPOSED (attribute rows, one column per ASIN); the builder handles both shapes.
 - Core/Expanded MKL: always record Min Rel, visible keyword count, visible search volume, and export timestamp at export time.
 - Before fallback or rank injection, confirm the Core MKL has the exact anchor ASIN as a real DataDive column.
+- Prelaunch or inactive-untracked products may use `ranking_context.mode: "unavailable"` for a research workbook. Supply a dated JSON evidence file matching the actual product ASIN (empty only before ASIN creation), marketplace and status, with existing catalog-capture paths. Set `include_if_anchor_not_ranking: false`. The builder labels own rankings unavailable and forbids rank-gap opportunity claims; competitor ASINs remain competitors. Never inject a synthetic own-ASIN column. Formula, source, copy, claims and delivery gates still apply. Return to tracked mode when the own ASIN is actually present in DataDive.
 - **Anchor not tracked in an existing niche: ADD the ASIN, do NOT re-dive.** When a niche already exists for the product's market but our anchor ASIN is not one of its tracked columns (the usual case for a niche someone dived around competitors), do not spend a full `create_niche_dive`. Instead add just our ASIN to that existing niche so it gains a rank column and the existing roots/MKL/competitor research is reused (≈1 dive token vs ~10, and one niche instead of a duplicate). The DataDive **MCP has no add-ASIN action**, so this is a connected-browser UI step: DataDive → Niche Tracker → add competitor ASIN → let it re-research; the ASIN then appears in `get_niche_keywords.asinRanks`. Only `create_niche_dive` (spending a full dive, ideally seeded on OUR ASIN) when **no** niche exists for the product yet. Verify with `get_niche_competitors`/`get_niche_keywords` that the anchor is a tracked column after the add, before rank injection. See [[keyword-research-config-scaffolding]].
 - **If you do fall back to a UI export, do not trust the download event.** In
   CDP, set `Browser.setDownloadBehavior` to the run's registered download
@@ -81,7 +98,7 @@ DataDive UI export locations:
   endpoints above, which avoid the UI download entirely. Register any downloaded
   ZIP by exact path with `artifactctl`.
 - POE inputs come from the API-first downloader: `tools/opportunity-explorer/run-poe.mjs` (`search` → related-niches JSON; `niche` → Products/SearchTerms CSVs + sentiment-labeled CRI + Returns + overview JSON, all builder-ready and locale-independent). One `.de` login covers every EU marketplace (`--origin https://sellercentral.amazon.de --marketplace de|it|es|fr|…`); US uses the `.com` origin. An agent with the debug Chrome can use the CDP runner; an agent with a supported internal browser can evaluate `fetch-poe.js`. No manual tab clicking is required. Capture context (account, marketplace, niche, last-updated) comes from the overview JSON.
-- **⚠️ ALWAYS pass `--origin https://sellercentral.amazon.de` for any EU client, on `doctor` too.** `origin` DEFAULTS to `https://sellercentral.amazon.com`, so a bare `run-poe.mjs doctor` reads the account context from the `.com` page and reports whatever account is active there (typically an unrelated US account) even when a `.de` tab is open and the EU client is the selected merchant. It looks like the "wrong account", and the account-safety abort will misfire. On machines with separate profiles, switching accounts in normal Chrome does not change the port-9222 debug profile. On Evo X1 the profiles are merged, but the task must still verify and, when needed, switch the merchant in the port-9222 tab it will actually use. Then `doctor --origin https://sellercentral.amazon.de` should report the expected EU merchant, e.g. `<Merchant Name> [partnerAccountId=<partner-account-id>] marketplace=A1PA6795UKMFR9`. (Note: EU cross-market still uses the `.de` login origin with a different `--marketplace`; do NOT derive origin from the marketplace domain.) POE also requires the account to actually have Opportunity Explorer / Brand Analytics access. If `search`/`niche` hang with an "unsettled top-level await" while `readAccount` succeeds, the account likely lacks OEI access for that marketplace.
+- **⚠️ ALWAYS pass `--origin https://sellercentral.amazon.de` for any EU client, on `doctor` too.** `origin` DEFAULTS to `https://sellercentral.amazon.com`, so a bare `run-poe.mjs doctor` reads the account context from the `.com` page and reports whatever account is active there (typically an unrelated US account) even when a `.de` tab is open and the EU client is the selected merchant. It looks like the "wrong account", and the account-safety abort will misfire. On machines with separate profiles, switching accounts in normal Chrome does not change the port-9223 debug profile. Grimoire has a separate persistent profile; verify and, when needed, switch the merchant in the port-9223 task tab it will actually use. Then `doctor --origin https://sellercentral.amazon.de` should report the expected EU merchant, e.g. `<Merchant Name> [partnerAccountId=<partner-account-id>] marketplace=A1PA6795UKMFR9`. (Note: EU cross-market still uses the `.de` login origin with a different `--marketplace`; do NOT derive origin from the marketplace domain.) POE also requires the account to actually have Opportunity Explorer / Brand Analytics access. If `search`/`niche` hang with an "unsettled top-level await" while `readAccount` succeeds, the account likely lacks OEI access for that marketplace.
 - **POE niche selection stays in the active run.** Once the correct Seller Central account is selected, the current agent runs the POE keyword search, takes the closest matching niche, and downloads the full set in the same session. Do not pause for a second agent to choose the niche ID. The account check is the only gate that still blocks; niche choice is not. Report the chosen niche (id + label + T90 SV) and any close runners-up so it can be re-pulled cheaply if the pick was wrong. If the search returns no plausible niche at all, say so and stop.
 - **Saving POE so it actually reaches the workbook.** The POE files only become tabs if they land on the exact `inputs{}` contract paths that `--preflight` prints. Nothing else is read. Six files, six destinations: `poe_products_csv` and `poe_search_terms_csv` are EXACT-PASTE into `POE Raw - Products` / `POE Raw - Search Terms`, so their raw column layout must survive untouched (no reordering, no de-duping, no header edits). `poe_reviews_json`, `poe_returns_json`, `related_niches_json` and `poe_structured_json` are REBUILT into `POE Raw - Reviews`, `POE Raw - Returns`, `POE Raw - Related Niches` and `POE Semantic Insights`. Rename downloads to the contract paths rather than pointing the config at `~/Downloads`. After the files land, re-run `--preflight` and require every POE line to flip to PRESENT before building; a path typo shows up as a silently skipped or placeholder tab, not as an error. Then let the QA gates confirm it: `required_current_tabs`, the POE-tabs-match-current-files gate, and the `stale_data_guard` forbidden-terms sweep together prove the tabs hold this product's data and not the template lineage's.
 - POE fallback quirks (manual export only): direct tab URLs render header-only, so click the in-page tab; the Download click works even when the download event times out; check `~/Downloads` and rename to the contract path.

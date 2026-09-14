@@ -87,10 +87,10 @@ DATADIVE_ROUTE_REQUIREMENTS = {
     "AGENTS.md": "DataDive web app navigation, read-only endpoint fetches, downloads, and",
     "docs/browser-routing-map.md": (
         '| DataDive full keyword pool (the old "Expanded 1% MKL") | '
-        "`amazon-seo` | CDP (9222) |"
+        "`amazon-seo` | CDP (9223) |"
     ),
     "skills/amazon-seo/references/keyword-research-workbook.md": (
-        "logged-in DataDive session through managed Chrome CDP on port 9222"
+        "logged-in DataDive session through managed Chrome CDP on port 9223"
     ),
 }
 
@@ -107,7 +107,7 @@ DATADIVE_STALE_ROUTES = {
 
 
 def validate_datadive_routing(root: Path = ROOT) -> list[str]:
-    """Keep DataDive web work on Evo X1's managed port-9222 browser."""
+    """Keep DataDive web work on Grimoire's managed port-9223 browser."""
     errors: list[str] = []
     for rel, required in DATADIVE_ROUTE_REQUIREMENTS.items():
         path = root / rel
@@ -366,8 +366,8 @@ def main() -> int:
     # 4. AGENTS.md routing table names resolve to skill dirs.
     agents_md = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
     required_operating_rules = (
-        "Managed Chrome CDP on port 9222 is the default browser",
-        "Port 9223 is the separate Wizards AI browser",
+        "Managed Chrome CDP on port 9223 is the default browser",
+        "Port 9222 is the separate operator browser",
         "The T3 Code in-app browser is not a first-choice browser",
         "Verified weekly cleanup is the sole permitted",
     )

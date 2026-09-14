@@ -24,7 +24,9 @@ The company writing standard lives in `company-ai-skills/docs/writing-style.md`;
 
 ## Browser Standard
 
-CDP-first for scripted workflows: the repo keeps a dedicated debug Chrome profile (`~/.amazon-agent/chrome-debug`, DevTools port 9222, localhost-only), launched or reused idempotently via `tools/report-fetcher/launch-chrome-debug.sh`. It runs alongside the normal browser, its Amazon logins persist across runs, and scripts drive it directly over CDP with no extension round-trips, which makes it faster and more reliable than operating a normal browser UI. Current Chrome (136+) silently ignores the debug port on the default profile, so this dedicated profile is the only working CDP path. Every workflow that has a script/CDP runner (report fetcher `run.mjs`, POE downloader `run-poe.mjs`, listing capture, future fetchers) uses the debug Chrome by default, for both agents. All account/marketplace verification and login rules below apply to the debug profile exactly like any other browser session.
+Amazon workflows from direct chat and Slack share the named `grimoire` session on CDP 9223, using the persistent `~/.amazon-agent/wizards-ai-chrome` profile. The `operator` session on 9222 remains separate, backed by `~/.amazon-agent/chrome-debug`. Browser identity does not authorize a write.
+
+Launch browser-dependent commands through `node tools/browserctl/browserctl.mjs run --session grimoire -- <command>`. This resolves the session before imports, propagates it to child tools, and holds the same 9223 lock as scheduled workers. Use `--session operator` only for explicitly requested separate operator work. Conflicting endpoint/profile overrides fail. Direct-chat results return in that chat; using the shared browser does not send anything to Slack.
 
 CDP runners start or reuse this dedicated profile lazily through the shared
 `ensureChrome()` helper. `assertChrome()` is the read-only probe for setup and
@@ -63,16 +65,18 @@ operator request. Direct `createPage()` calls are restricted to anchor
 maintenance and the task-tab controller; unknown options and unkeyed managed
 page creation fail closed.
 
-Seller Central account and marketplace selection is browser-global, so
-workflows that can select it acquire the port's exclusive context claim. The
-same task keeps that context through selection and its dependent read, and every
-workflow still reverifies the requested account and marketplace before using
-data. On success the one task target receives the normal 10-minute grace.
+Seller Central workflows declare `sellerCentral: { marketplace, origin }` with
+`exclusiveContext: true` when acquiring a task page. Claims are exclusive per
+port and region group: US/CA/MX, EU/UK, and AU. Different groups can run together;
+workflows within one group serialize regardless of client. Unspecified, mixed
+or unmapped contexts retain global exclusion. The same task keeps its claim
+through selection and dependent work, and every workflow reverifies the requested
+account, marketplace and region before using data. On success the one task target receives the normal 10-minute grace.
 Errors and blocked work keep that same target as inspection evidence for two
 hours instead of opening another target on each retry.
 
-Managed Chrome CDP on port 9222 is the default browser for Amazon Agent work.
-Port 9223 is the separate Wizards AI browser for its read workflows.
+Managed Chrome CDP on port 9223 is the default browser for Amazon workflows.
+Port 9222 is the separate operator browser, selected explicitly.
 The T3 Code in-app browser is not a first-choice browser and is never a silent fallback from
 either CDP port: it does not share the managed Chrome profile, cannot use the
 exact-port authentication broker, and is not the supported local file upload
@@ -94,24 +98,21 @@ and eligibility date; only unclassified or blocked artifacts need approval.
 
 Interactive UI work (FlatFilePro mapping, Creator Connections inbox, visual checks, anything without a script path) runs over the same CDP debug Chrome. CDP is not limited to scripted fetches: it dispatches real mouse and key events, captures screenshots as evidence, polls for late-loading elements, attaches local files to file inputs (`DOM.setFileInputFiles`), and captures downloads to a chosen folder (`Browser.setDownloadBehavior`). Verified 31.07.2026, including a live Seller Central account switch driven entirely from the terminal.
 
-Use the **Chrome extension** only when the task specifically depends on extension
-transport or on an operator session that is unavailable in the managed debug
-profile. A Data Dive extension action injected into an Amazon retail page, such
-as an extension-only ASIN-tray or dive-creation step, is the standing example.
 DataDive web app navigation, read-only endpoint fetches, downloads, and
-screenshots do not require that transport. On Evo X1 they use managed Chrome CDP
-on port 9222, where DataDive is already signed in. On machines where the two are
-separate profiles, use the extension only if the required DataDive session is
-absent from the debug profile. On the Linux primary (since 25.08.2026) they are
-deliberately **one merged profile**: `~/.amazon-agent/chrome-debug` is a symlink
-to the operator profile (`~/.config/google-chrome-amazon-operator`), which holds
-the Seller Central and DataDive logins and the Data Dive extension. CDP work on
-that machine therefore acts inside the operator's live session.
+screenshots use the shared Grimoire session on port 9223. DataDive MCP remains
+first for supported data. Verify the browser niche against the MCP inputs.
+A missing or expired login pauses that workflow for login in 9223; never copy
+cookies or fall back to the operator profile. Extension-dependent actions must
+be verified in the selected profile separately; an unavailable extension is a
+capability blocker, not permission to use 9222.
 
-Choose by required capability, not by agent: **CDP on port 9222 is the default;
-the extension is limited to an explicit extension-only dependency or operator
-request.** Everywhere this document says "the browser," it means whichever of
-these applies to the current task.
+The Linux operator profile remains merged with `~/.config/google-chrome-amazon-operator`
+through the `chrome-debug` symlink. It is independent of Grimoire's profile.
+
+Screenshots use `tools/browserctl/task-evidence.mjs` with the owning task handle
+and expected seller/marketplace or DataDive niche. The capture records the
+verified identity, session and exact target. Never choose the first URL/title
+match or label a screenshot with an unverified account supplied by its caller.
 
 Every skill declares its path in one standardized line right under its title (`Browser: CDP|Extension|None|Mixed`, enforced by `tools/lint_agent_docs.py`). Trust that line when a skill is loaded; the full per-workflow table is `docs/browser-routing-map.md`.
 
@@ -123,12 +124,17 @@ only. CAPTCHA, device approval, account recovery, identity verification, and
 invalid-credential states remain human-only. The agent must not inspect passwords,
 one-time codes, cookies, local storage, session stores, or browser profile data.
 
-The delegated least-privilege Amazon service account remains the Wizards AI read
+The delegated least-privilege Amazon service account is the Grimoire Amazon
 identity even though its login can now be brokered on either CDP port.
 SPP grants View wherever available plus four explicit Edit exceptions: Reports,
 `Manage Inventory/Add a Product`, `Manage FBA Inventory/Shipments`, and
 `Inventory Planning`. The three Inventory exceptions expose required read data
 and never authorize runtime writes.
+Accounts enabled for the team-owned case workflow additionally need verified
+`Manage Your Cases` create/reply access. This is a scoped case capability, not
+general write permission. The case service checks its local rollout record and
+the live case controls before every submission. Monitoring remains read-only
+even when the session can edit a case.
 `~/os/wizards-ai/config.json` owns the exact authentication route allowlist.
 Initially it permits Seller Central `.com`, `.de`, and `.com.au`, their Amazon
 authentication origins, and `app.flatfile.pro`, on ports 9222 and 9223. Routes
@@ -368,7 +374,7 @@ Keyword and opportunity research draws on two complementary sources with differe
 - Product Opportunity Explorer (POE/OEI): Products, Search Terms, Customer Review Insights, Returns, and Related Niches. This lives behind the Seller Central login and has NO MCP. It is always internal/connected browser work. Use the API-first downloader (`tools/opportunity-explorer/fetch-poe.js` via `run-poe.mjs` or internal-browser evaluate; niche data can be fetched without manual CSV download) and the per-niche export checklist (`skills/amazon-opportunity-explorer/references/poe-niche-export-checklist.md`).
 - Listing copy (title/bullets/link) for the anchor + competitors: not in DataDive or POE. Capture it from the live product pages via the `amazon-listing-capture` skill / `tools/listing-capture/extract-amazon-listing-copy.js` (connected browser; deterministic ASIN; bullets primary `#feature-bullets ul` then fallback `#productFactsDesktopExpander > div:first-child ul`). Output one `listing-reference` JSON per `tools/listing-capture/listing-reference.schema.v1.json`; the builder fills the workbook ASINs tab from it. Replaces the legacy ZeroWork scrape, whose client-specific capture artifacts are intentionally not shipped.
 
-The two are complementary: DataDive gives ranking/keyword intelligence; POE gives Amazon-native demand, review/return voice-of-customer, and related-niche structure. Save exports under the controlled folders (`downloads/{client}/opportunity-data/`, `output/{client}/opportunity-data/`, `evidence/{client}/opportunity-data/`).
+The two are complementary: DataDive gives ranking/keyword intelligence; POE gives Amazon-native demand, review/return voice-of-customer, and related-niche structure. POE data has one permanent store: the client's pCloud `_Data/opportunity-data/` tree. This applies to Amazon Agent and Wizards AI. The canonical downloader streams bytes directly from memory and verifies pCloud delivery without creating local payload files; data commands cannot write into local output folders. Keep only path/checksum receipts locally. Analysis copies fetched from pCloud must use temporary storage and be removed when that task ends. The seven-day artifact retention and quarantine policy does not apply to new POE transfer/analysis copies. Never discard an existing unarchived historical capture: migrate it with remote checksum verification before removing its unchanged local source. DataDive and listing-reference evidence retain their own storage rules.
 
 Listing field terminology for SEO and FlatFilePro work:
 
@@ -610,7 +616,7 @@ Precedence, strictly: current first-party Amazon rules for platform behavior; li
 
 Standing permission changes such as "do not ask me again for this action" are user-specific consent records. The shared GitHub instructions define the mechanism, but actual standing permissions must stay local to each operator.
 
-Store actual standing permissions only in `_local/local-permissions.md`. This file is ignored by Git and must not be committed, copied into tracked docs, or generalized into team-wide behavior. Do not store secrets, passwords, tokens, payment details, tax details, or private keys in this file.
+Store actual standing permissions in `_local/local-permissions.md`. The configured team-owned case workflow additionally stores structured, request-bound mandates and approved signatures in its machine-local case registry and policy. These are local consent records, not shared defaults. None may be committed, copied into tracked docs, or generalized into team-wide behavior. Do not store secrets, passwords, tokens, payment details, tax details, or private keys in these files.
 
 Before any risky or externally visible action, check `_local/local-permissions.md` when it exists. A matching local permission must specify the allowed action, the applicable account/client/scope, and any limits. Generic examples of scope include a named client account, a specific support workflow, a specific marketplace, a specific message type, or a defined date range.
 
@@ -707,7 +713,17 @@ For creator, buyer, or support communication:
 
 - Draft the message first.
 - Confirm the exact thread/person/case.
-- Stop before clicking `Send` unless the operator explicitly confirms the exact send action.
+- Stop before clicking `Send` unless the operator explicitly confirms the exact send action or the configured team-owned case service verifies a matching request-bound mandate. That case-only mandate authorizes the initial submission and routine continuation of the same issue; it does not authorize buyer/creator messages, appeals, admissions, financial commitments, or account changes.
+
+For managed Seller Support cases, use `tools/amazon-operations/case_service.py`
+and the `case.create` / `case.reply` operations. Both direct chat and Grimoire
+share the case owner, authorization, and delivery journal. Preserve the original
+owner's approved signature even when another teammate asks for the next reply;
+reassignment must be explicit. Missing ownership needs one clarification, never
+a fallback to the host operator's name. Review correspondence once daily under
+the configured schedule. The operator browser remains an explicit selection;
+missing Reply in Grimoire requires an access/closure/UI diagnosis.
+The full workflow and rollout requirements are in `docs/team-owned-cases.md`.
 
 For flat-file and template work:
 

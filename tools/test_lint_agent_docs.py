@@ -71,7 +71,7 @@ class SkillManifestLintTests(unittest.TestCase):
 
 
 class DataDiveRoutingLintTests(unittest.TestCase):
-    def write_contracts(self, root: Path, *, route: str = "CDP (9222)") -> None:
+    def write_contracts(self, root: Path, *, route: str = "CDP (9223)") -> None:
         (root / "docs").mkdir(parents=True)
         reference = root / "skills" / "amazon-seo" / "references"
         reference.mkdir(parents=True)
@@ -85,7 +85,7 @@ class DataDiveRoutingLintTests(unittest.TestCase):
             encoding="utf-8",
         )
         (reference / "keyword-research-workbook.md").write_text(
-            "logged-in DataDive session through managed Chrome CDP on port 9222\n",
+            "logged-in DataDive session through managed Chrome CDP on port 9223\n",
             encoding="utf-8",
         )
 

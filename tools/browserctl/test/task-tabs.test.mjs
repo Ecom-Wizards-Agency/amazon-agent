@@ -31,7 +31,12 @@ function fakeCdp({ createDelayMs = 0 } = {}) {
   let created = 0;
   const sessionFor = (targetId) => ({
     targetId,
+    setTaskControlGuard(guard) { this.guard = guard; },
+    async assertTaskControl(options) { return this.guard(options); },
+    invalidateTaskControl(error) { this.controlError = error; this.close(); },
     async send(method, params = {}) {
+      if (this.controlError) throw this.controlError;
+      if (this.guard) await this.assertTaskControl();
       if (method === "Page.navigate") {
         const page = pages.find((entry) => entry.id === targetId);
         if (page) page.url = params.url;
@@ -52,6 +57,7 @@ function fakeCdp({ createDelayMs = 0 } = {}) {
     },
     setDesktopViewport: async () => {},
     installLeaseActivityTracker: async () => {},
+    readLeaseInteraction: async () => ({ ok: true, version: 1, startedAt: 1, lastInteractionAt: 0 }),
     createPage: async (url) => {
       if (createDelayMs) await new Promise((resolve) => setTimeout(resolve, createDelayMs));
       created += 1;
@@ -94,6 +100,15 @@ test("an error retry reuses one target", { concurrency: false }, async () => {
   await taskTabs.releaseTaskPage(second, { outcome: "success" });
 });
 
+test("evidence acquisition never replaces a missing owned target", async () => {
+  const cdp = fakeCdp();
+  const first = await acquire(cdp, "evidence-missing");
+  await taskTabs.releaseTaskPage(first, { outcome: "handoff" });
+  cdp.pages.length = 0;
+  await assert.rejects(acquire(cdp, "evidence-missing", { expectedTargetId: first.targetId }), /EVIDENCE_TARGET_MISMATCH/);
+  assert.equal(cdp.created, 1);
+});
+
 test("concurrent acquisition creates one target and one controller", { concurrency: false }, async () => {
   const cdp = fakeCdp({ createDelayMs: 30 });
   const attempts = await Promise.allSettled([
@@ -108,7 +123,7 @@ test("concurrent acquisition creates one target and one controller", { concurren
   await taskTabs.releaseTaskPage(page, { outcome: "success" });
 });
 
-test("browser-global Seller Central context is exclusive per port", { concurrency: false }, async () => {
+test("unspecified exclusive context keeps browser-global compatibility", { concurrency: false }, async () => {
   const cdp = fakeCdp();
   const first = await acquire(cdp, "context-first");
   await assert.rejects(
@@ -118,6 +133,40 @@ test("browser-global Seller Central context is exclusive per port", { concurrenc
   await taskTabs.releaseTaskPage(first, { outcome: "success" });
   const second = await acquire(cdp, "context-second");
   await taskTabs.releaseTaskPage(second, { outcome: "success" });
+});
+
+test("managed pages keep independent regional ownership on the same port", { concurrency: false }, async () => {
+  const cdp = fakeCdp();
+  const [na, eu, au] = await Promise.all([
+    acquire(cdp, "regional-na", { sellerCentral: { marketplace: "us" } }),
+    acquire(cdp, "regional-eu", {
+      sellerCentral: { marketplace: "de" }, initialUrl: "https://sellercentral.amazon.de/home",
+    }),
+    acquire(cdp, "regional-au", {
+      sellerCentral: { marketplace: "au" }, initialUrl: "https://sellercentral.amazon.com.au/home",
+    }),
+  ]);
+  try {
+    assert.deepEqual([na.contextScope, eu.contextScope, au.contextScope], ["sc:na", "sc:eu", "sc:au"]);
+    await assert.rejects(acquire(cdp, "regional-ca-competitor", {
+      sellerCentral: { marketplace: "ca" }, initialUrl: "https://sellercentral.amazon.ca/home",
+    }), (error) => error.code === "TASK_TAB_BUSY" && error.blockingScope === "sc:na");
+    await assert.rejects(acquire(cdp, "regional-uk-competitor", {
+      sellerCentral: { marketplace: "uk" }, initialUrl: "https://sellercentral.amazon.co.uk/home",
+    }), (error) => error.code === "TASK_TAB_BUSY" && error.blockingScope === "sc:eu");
+    for (const page of [na, eu, au]) await page.session.assertTaskControl({ exclusiveContext: true });
+    assert.equal(cdp.created, 3);
+  } finally {
+    for (const page of [na, eu, au]) await taskTabs.releaseTaskPage(page, { outcome: "success" });
+  }
+});
+
+test("conflicting declared region and initial URL reject before page creation", async () => {
+  const cdp = fakeCdp();
+  await assert.rejects(acquire(cdp, "regional-origin-conflict", {
+    sellerCentral: { marketplace: "de" },
+  }), /TASK_TAB_CONTEXT_MISMATCH/);
+  assert.equal(cdp.created, 0);
 });
 
 test("a stale control token cannot release a reclaimed target", { concurrency: false }, async () => {

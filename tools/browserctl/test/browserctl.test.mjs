@@ -304,6 +304,34 @@ test("reinstalling a missing tracker does not keep extending an idle lease", { c
   assert.deepEqual(closed, ["tracker-lost"]);
 });
 
+test("cleanup retains the original probe error and reports incomplete work", { concurrency: false }, async () => {
+  await registry.acquireLease({ port: 9222, targetId: "probe-timeout", owner: "test", now: 1, policy });
+  await registry.releaseLease({ port: 9222, targetId: "probe-timeout", outcome: "success", now: 1000, policy });
+  const cdp = {
+    assertChrome: async () => ({}),
+    listPages: async () => [{ id: "probe-timeout", type: "page", url: "https://example.test/work", webSocketDebuggerUrl: "ws://test/tab" }],
+    Session: { open: async () => ({ close() {} }) },
+    readLeaseActivity: async () => ({ ok: false, error: "CDP Runtime.evaluate timed out after 10000 ms" }),
+    installLeaseActivityTracker: async () => { throw new Error("must not overwrite the timeout with a tracker install failure"); },
+    closePageImmediately: async () => { throw new Error("must preserve"); },
+  };
+  const result = await controller.cleanupPort(9222, {
+    policy, auditOnly: false, now: 700_000, cdp,
+    managedStatus: { managed: true, running: true, mode: "headed" }, maintainAnchors: false,
+  });
+  assert.equal(result.complete, false);
+  assert.equal(result.actions[0].probe.stage, "read-activity");
+  assert.equal(result.actions[0].probe.error, "CDP Runtime.evaluate timed out after 10000 ms");
+  assert.equal(controller.cleanupSummary([result], "active").ok, false);
+  assert.equal(controller.cleanupSummary([{ reachable: false }], "active").complete, false);
+  const deferred = controller.cleanupSummary([{
+    reachable: true, complete: false, actions: [{ reason: "session-busy", probe: { stage: "connect" } }],
+  }], "active");
+  assert.equal(deferred.complete, false);
+  assert.equal(deferred.status, "deferred");
+  await registry.removeLease({ port: 9222, targetId: "probe-timeout" });
+});
+
 test("overlapping cleanup passes atomically close an expired target once", { concurrency: false }, async () => {
   await registry.acquireLease({ port: 9222, targetId: "overlap", owner: "test", now: 1, policy });
   await registry.releaseLease({ port: 9222, targetId: "overlap", outcome: "success", now: 1000, policy });

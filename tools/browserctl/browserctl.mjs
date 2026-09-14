@@ -1,14 +1,16 @@
 #!/usr/bin/env node
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { realpathSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import {
   acquireLease, adoptUnregisteredLease, claimExpiredLease, listLeases, recordActivityProbeFailure,
   releaseLease, removeLease, restartActivityMeasurement, touchLease,
-  transitionMissedHeartbeat,
+  transitionMissedHeartbeat, listTaskTabs,
 } from "./lease-registry.mjs";
 import { anchorMatchesUrl, loadBrowserPolicy, policyForPort } from "./policy.mjs";
+import { sessionEnvironment } from "./session.mjs";
+import { acquireSessionLock } from "./session-lock.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const CDP_MODULE = resolve(HERE, "../report-fetcher/cdp.mjs");
@@ -47,6 +49,7 @@ function launcherEnv(port, policy) {
   const config = policyForPort(port, policy);
   return {
     ...process.env,
+    AMAZON_BROWSER_SESSION: port === 9223 ? "grimoire" : "operator",
     CDP_PORT: String(port),
     CDP_PROFILE: config.profile,
     CDP_START_URL: config.start_url,
@@ -82,6 +85,7 @@ function launcherStatus(port, policy) {
 async function cdpForPort(port, policy) {
   const config = policyForPort(port, policy);
   process.env.CDP_PORT = String(port);
+  process.env.AMAZON_BROWSER_SESSION = port === 9223 ? "grimoire" : "operator";
   process.env.CDP_PROFILE = config.profile;
   process.env.CDP_START_URL = config.start_url;
   process.env.CDP_BROWSER_MODE = config.mode;
@@ -162,22 +166,31 @@ export async function ensureBrowser(port, { policy = loadBrowserPolicy() } = {})
 
 async function probeActivity(cdp, page) {
   let session;
+  let interaction = null;
+  let stage = "connect";
   try {
     session = await cdp.Session.open(page.webSocketDebuggerUrl);
+    stage = "read-activity";
     const initial = await cdp.readLeaseActivity(session);
-    if (initial.ok) return { ...initial, measurementRestored: false };
+    if (initial.error) return { ...initial, interaction, stage };
+    interaction = cdp.readLeaseInteraction ? await cdp.readLeaseInteraction(session) : null;
+    if (initial.ok) return { ...initial, interaction, measurementRestored: false };
 
     // A tracker installed through a short-lived CDP session survives in the
     // current document, but Chrome removes the new-document registration when
     // that session disconnects. Navigation can therefore leave a healthy tab
     // temporarily unmeasurable. Reinstall in the current document and treat
     // this moment as the start of a fresh, conservative inspection window.
+    // A missing tracker can be restored. An inaccessible renderer is not
+    // evidence of a missing tracker; preserve its original failure instead.
+    stage = "install-tracker";
     await cdp.installLeaseActivityTracker(session);
+    stage = "read-restored-activity";
     const restored = await cdp.readLeaseActivity(session);
-    if (!restored.ok) return restored;
-    return { ...restored, measurementRestored: true };
+    if (!restored.ok) return { ...restored, interaction, stage };
+    return { ...restored, interaction, measurementRestored: true };
   } catch (error) {
-    return { ok: false, value: null, error: error.message };
+    return { ok: false, value: null, interaction, stage, error: error.message };
   } finally {
     session?.close();
   }
@@ -242,6 +255,7 @@ export async function cleanupPort(port, {
         class: adoption.lease.class, origin: safeOrigin(page.url),
         reason: "unregistered-target-observed", expiresAt: adoption.lease.expiresAt,
         activityTracked: activity.ok,
+        ...(activity.ok ? {} : { probe: publicProbeFailure(activity) }),
       });
     }
   }
@@ -274,11 +288,18 @@ export async function cleanupPort(port, {
     }
 
     const activity = await probeActivity(cdp, page);
+    if (activity.interaction?.ok && activity.interaction.lastInteractionAt > Number(lease.lastObservedInteractionAt || 0)) {
+      lease = await touchLease({ port, targetId: lease.targetId, kind: "interaction",
+        now: activity.interaction.lastInteractionAt, policy });
+      if (!lease) continue;
+    }
     if (!activity.ok) {
-      await recordActivityProbeFailure({ port, targetId: lease.targetId, now });
+      const busy = String(activity.error || "").startsWith("BROWSER_SESSION_BUSY:");
+      if (!busy) await recordActivityProbeFailure({ port, targetId: lease.targetId, now });
       actions.push({
         port: Number(port), action: "preserved", targetId: lease.targetId, class: lease.class,
-        origin: safeOrigin(page.url), reason: "activity-unavailable", expiresAt: lease.expiresAt,
+        origin: safeOrigin(page.url), reason: busy ? "session-busy" : "activity-unavailable", expiresAt: lease.expiresAt,
+        probe: publicProbeFailure(activity),
       });
       continue;
     }
@@ -286,6 +307,9 @@ export async function cleanupPort(port, {
       lease = await restartActivityMeasurement({
         port, targetId: lease.targetId, now: Math.max(now, Number(activity.value)), policy,
       });
+      // Another controller may have reacquired or removed the target while
+      // this cleanup pass was probing it.
+      if (!lease) continue;
       actions.push({
         port: Number(port), action: "activity-tracker-restored", targetId: lease.targetId,
         class: lease.class, origin: safeOrigin(page.url), reason: "measurement-restarted",
@@ -331,7 +355,25 @@ export async function cleanupPort(port, {
       actions.push({ ...candidate, action: "preserved", reason: "close-failed" });
     }
   }
-  return { port: Number(port), reachable: true, auditOnly, anchorMaintenance, actions };
+  const incomplete = actions.some(action => action.reason === "activity-unavailable"
+    || action.reason === "session-busy" || action.reason === "close-failed" || action.activityTracked === false);
+  return { port: Number(port), reachable: true, auditOnly, complete: !incomplete, anchorMaintenance, actions };
+}
+
+function publicProbeFailure(activity) {
+  const message = String(activity.error || "Activity tracker returned no valid measurement");
+  // CDP timeout/connection errors are useful; exclude URLs and multiline page
+  // exception contents from persistent cleanup diagnostics.
+  return { stage: activity.stage || "read-activity",
+    error: message.split("\n")[0].replace(/(?:https?|wss?):\/\/\S+/g, "[endpoint]").slice(0, 240) };
+}
+
+export function cleanupSummary(results, mode) {
+  const complete = results.every(result => result.reachable && !result.error && result.complete !== false);
+  const deferred = !complete && results.every(result => result.reachable && !result.error
+    && (result.complete !== false || result.actions.every(action =>
+      action.reason === "session-busy" || (!action.probe && action.reason !== "close-failed"))));
+  return { ok: complete, complete, status: complete ? "complete" : deferred ? "deferred" : "incomplete", mode, results };
 }
 
 async function statusCommand(port, policy) {
@@ -376,6 +418,34 @@ export async function acquireTargetLease({
 }
 
 async function main() {
+  const raw = process.argv.slice(2);
+  const separator = raw.indexOf("--");
+  if (["run", "session"].includes(raw[0])) {
+    const { options } = parseArgs(separator < 0 ? raw : raw.slice(0, separator));
+    const env = { ...process.env, ...sessionEnvironment(options.session) };
+    if (raw[0] === "session") {
+      console.log(JSON.stringify(sessionEnvironment(options.session)));
+      return;
+    }
+    const command = separator < 0 ? [] : raw.slice(separator + 1);
+    if (!command.length) throw new Error("USAGE: browserctl run --session grimoire -- command [args]");
+    const unlock = acquireSessionLock(Number(env.CDP_PORT), "browserctl:run");
+    env.AMAZON_BROWSER_LOCK_TOKEN = process.env.AMAZON_BROWSER_LOCK_TOKEN || "";
+    env.AMAZON_BROWSER_LOCK_CHAIN = process.env.AMAZON_BROWSER_LOCK_CHAIN || "[]";
+    try {
+      const child = spawn(command[0], command.slice(1), { env, stdio: "inherit" });
+      const forwardTerm = () => child.kill("SIGTERM");
+      const forwardInt = () => child.kill("SIGINT");
+      process.on("SIGTERM", forwardTerm); process.on("SIGINT", forwardInt);
+      try {
+        process.exitCode = await new Promise((resolve, reject) => {
+          child.once("error", reject);
+          child.once("exit", (code, signal) => resolve(code ?? (signal === "SIGINT" ? 130 : 143)));
+        });
+      } finally { process.off("SIGTERM", forwardTerm); process.off("SIGINT", forwardInt); }
+    } finally { unlock(); }
+    return;
+  }
   const { positional, options } = parseArgs(process.argv.slice(2));
   const [command, subcommand] = positional;
   const policy = loadBrowserPolicy();
@@ -397,8 +467,13 @@ async function main() {
       CDP_BROWSERCTL_RESTART: "1",
       CDP_EXPLICIT_RESTART_REASON: reason,
     };
-    runLauncher(port, ["--mode", "stop"], policy, restartEnv);
-    runLauncher(port, ["--mode", mode], policy, restartEnv);
+    const unlock = acquireSessionLock(port, "browserctl:restart");
+    try {
+      const active = (await listTaskTabs()).filter(task => task.port === port && task.controller?.expiresAt > Date.now());
+      if (active.length) throw new Error("BROWSER_RESTART_BUSY: wait for active workflow controllers to release");
+      runLauncher(port, ["--mode", "stop"], policy, restartEnv);
+      runLauncher(port, ["--mode", mode], policy, restartEnv);
+    } finally { unlock(); }
     console.log(JSON.stringify({ ok: true, port, mode, restarted: true, reason }));
     return;
   }
@@ -426,7 +501,9 @@ async function main() {
     const ports = options.port ? [portNumber(options.port)] : [9222, 9223];
     const results = [];
     for (const port of ports) results.push(await cleanupPort(port, { policy, auditOnly: options["audit-only"] === true || policy.cleanup.mode !== "active" }));
-    console.log(JSON.stringify({ ok: true, mode: options["audit-only"] === true || policy.cleanup.mode !== "active" ? "audit" : "active", results }));
+    const summary = cleanupSummary(results, options["audit-only"] === true || policy.cleanup.mode !== "active" ? "audit" : "active");
+    console.log(JSON.stringify(summary));
+    if (summary.status === "incomplete") process.exitCode = 1;
     return;
   }
   if (command === "auth") {

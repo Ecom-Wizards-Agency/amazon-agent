@@ -8,19 +8,26 @@
  */
 
 import { spawn } from "node:child_process";
+import { AsyncLocalStorage } from "node:async_hooks";
 import { fileURLToPath } from "node:url";
 import {
   acquireLease, defaultLeaseOwner, releaseLease, touchLease,
 } from "../browserctl/lease-registry.mjs";
 import { loadBrowserPolicy } from "../browserctl/policy.mjs";
+import { assertContextCovers, isRegionalScope, scopeForOrigin } from "../browserctl/context-scopes.mjs";
+import { bindProcessSession } from "../browserctl/session.mjs";
+import { acquireSessionLock, assertSessionLock } from "../browserctl/session-lock.mjs";
+
+bindProcessSession();
 
 const HOST = process.env.CDP_HOST || "127.0.0.1";
-const PORT = process.env.CDP_PORT || "9222";
+const PORT = process.env.CDP_PORT || "9223";
 const URL_HOST = HOST.includes(":") && !HOST.startsWith("[") ? `[${HOST}]` : HOST;
 const BASE = `http://${URL_HOST}:${PORT}`;
 const LAUNCHER = process.env.CDP_LAUNCHER
   || fileURLToPath(new URL("./launch-chrome-debug.py", import.meta.url));
 let startupPromise = null;
+const taskControlCheck = new AsyncLocalStorage();
 
 function leaseTrackingEnabled() {
   return [9222, 9223].includes(Number(PORT))
@@ -166,6 +173,14 @@ export class Session {
   }
 
   static async open(webSocketDebuggerUrl, { timeoutMs = 10000 } = {}) {
+    const endpoint = new URL(webSocketDebuggerUrl);
+    const testEndpoint = process.env.CDP_ENABLE_TEST_LEASES === "1" &&
+      ![9222, 9223].includes(Number(endpoint.port)) && ["127.0.0.1", "localhost"].includes(endpoint.hostname);
+    if (!testEndpoint && (Number(endpoint.port) !== Number(PORT) || ![HOST, "localhost", "127.0.0.1"].includes(endpoint.hostname))) {
+      throw new Error("BROWSER_SESSION_CONFLICT: target belongs to a different browser");
+    }
+    const unlock = testEndpoint ? () => {} : acquireSessionLock(Number(PORT));
+    try {
     const ws = new WebSocket(webSocketDebuggerUrl);
     // A destroyed target's ws endpoint can accept the TCP connection and then
     // never complete the upgrade, firing neither onopen nor onerror.
@@ -180,14 +195,18 @@ export class Session {
     });
     const targetId = /\/devtools\/page\/([^/?#]+)/.exec(webSocketDebuggerUrl)?.[1] || null;
     const s = new Session(ws, { targetId });
+    s._unlockSession = testEndpoint ? null : unlock;
     ws.onmessage = (m) => {
+      if (s._taskControlError) return;
       const msg = JSON.parse(m.data);
       if (msg.id && s.pending.has(msg.id)) {
         const { resolve, reject } = s.pending.get(msg.id); s.pending.delete(msg.id);
         msg.error ? reject(new Error(msg.error.message)) : resolve(msg.result);
       } else if (msg.method) {
+        s._observeTaskNavigation(msg);
+        if (s._taskControlError) return;
         s.events.push(msg);
-        for (const w of s._waiters || []) if (w.method === msg.method) w.resolve(msg);
+        for (const w of [...(s._waiters || [])]) if (w.method === msg.method) w.resolve(msg);
         const subs = s._subs || {};
         for (const fn of [...(subs[msg.method] || []), ...(subs["*"] || [])]) {
           try { fn(msg.params, msg.method); } catch (_) { /* subscriber errors must not kill the socket */ }
@@ -196,19 +215,115 @@ export class Session {
         // another command (an account switch navigating the tab does exactly
         // this). Fail every in-flight call now, with a name, instead of hanging.
         if (msg.method === "Inspector.detached" || msg.method === "Inspector.targetCrashed") {
-          s._rejectPending(`CDP target detached${msg.params?.reason ? `: ${msg.params.reason}` : ""}`);
+          const message = `CDP target detached${msg.params?.reason ? `: ${msg.params.reason}` : ""}`;
+          if (s._taskControlGuard) s.invalidateTaskControl(new Error(message));
+          else s._rejectPending(message);
         }
       }
     };
-    ws.onclose = () => s._rejectPending("CDP WebSocket closed");
-    ws.onerror = () => s._rejectPending("CDP WebSocket error");
+    const transportFailed = (message) => {
+      if (s._taskControlGuard) s.invalidateTaskControl(new Error(message));
+      else s._rejectPending(message);
+      s._unlockSession?.();
+      s._unlockSession = null;
+    };
+    ws.onclose = () => transportFailed("CDP WebSocket closed");
+    ws.onerror = () => transportFailed("CDP WebSocket error");
     return s;
+    } catch (error) { unlock(); throw error; }
   }
 
   _rejectPending(message) {
     const pending = [...this.pending.values()];
     this.pending.clear();
-    for (const { reject } of pending) reject(new Error(message));
+    const error = message instanceof Error ? message : new Error(message);
+    for (const { reject } of pending) reject(error);
+    for (const waiter of [...(this._waiters || [])]) waiter.reject(error);
+  }
+
+  setTaskControlGuard(guard, { exclusiveContext = false, contextScope, initialUrl = null } = {}) {
+    if (typeof guard !== "function" || this._taskControlGuard || this._taskControlError) {
+      throw new Error("TASK_TAB_GUARD_INVALID: a task guard must be installed exactly once");
+    }
+    this._taskControlGuard = guard;
+    this._taskExclusiveContext = Boolean(exclusiveContext);
+    if (contextScope !== undefined && contextScope !== null && contextScope !== "global" && !isRegionalScope(contextScope)) {
+      throw this.invalidateTaskControl(new Error("invalid browser context scope"));
+    }
+    if (contextScope && !exclusiveContext) {
+      throw this.invalidateTaskControl(new Error("a context scope requires exclusive ownership"));
+    }
+    Object.defineProperty(this, "_taskContextScope", { value: contextScope, writable: false });
+    this._taskCurrentUrl = initialUrl;
+    if (initialUrl) this._assertTaskNavigation(initialUrl);
+  }
+
+  _assertTaskNavigation(url) {
+    if (!isRegionalScope(this._taskContextScope)) return;
+    try {
+      const destination = scopeForOrigin(url);
+      if (!destination && new URL(url).hostname.startsWith("sellercentral.amazon.")) {
+        throw Object.assign(new Error("TASK_TAB_CONTEXT_INVALID: unrecognized Seller Central navigation origin"),
+          { code: "TASK_TAB_CONTEXT_INVALID" });
+      }
+      if (destination) assertContextCovers(this._taskContextScope, { origin: url });
+    } catch (error) {
+      throw this.invalidateTaskControl(error);
+    }
+  }
+
+  _observeTaskNavigation(message) {
+    if (!this._taskControlGuard) return;
+    let url = null;
+    if (message.method === "Page.frameNavigated" && !message.params?.frame?.parentId) {
+      this._taskMainFrameId = message.params?.frame?.id;
+      url = message.params?.frame?.url;
+    } else if (message.method === "Page.navigatedWithinDocument"
+        && this._taskMainFrameId && message.params?.frameId === this._taskMainFrameId) {
+      url = message.params?.url;
+    }
+    if (!url) return;
+    this._taskCurrentUrl = url;
+    try { this._assertTaskNavigation(url); } catch { /* invalidation already rejected pending calls */ }
+  }
+
+  invalidateTaskControl(cause) {
+    if (!this._taskControlError) {
+      this._taskControlError = new Error(
+        `TASK_TAB_CONTROL_LOST: ${cause?.message || cause || "task ownership is unavailable"}`,
+        cause instanceof Error ? { cause } : undefined,
+      );
+      this._taskControlError.code = "TASK_TAB_CONTROL_LOST";
+      this.close();
+    }
+    return this._taskControlError;
+  }
+
+  async assertTaskControl({ exclusiveContext = false, sellerCentral } = {}) {
+    if (this._taskControlError) throw this._taskControlError;
+    try {
+      if (this._unlockSession) assertSessionLock(Number(PORT));
+      if (!this._taskControlGuard) throw new Error("session has no task control guard");
+      if (exclusiveContext && !this._taskExclusiveContext) {
+        throw new Error("session does not hold exclusive browser context");
+      }
+      if (sellerCentral !== undefined) {
+        assertContextCovers(this._taskContextScope ?? (this._taskExclusiveContext ? "global" : null), sellerCentral);
+      }
+      if (this._taskCurrentUrl) this._assertTaskNavigation(this._taskCurrentUrl);
+      if (taskControlCheck.getStore() === this) {
+        throw new Error("task control guard must not issue CDP commands");
+      }
+      const result = await taskControlCheck.run(this, () => this._taskControlGuard({
+        exclusiveContext: Boolean(exclusiveContext || this._taskExclusiveContext),
+        ...(this._taskContextScope !== undefined ? { contextScope: this._taskContextScope } : {}),
+      }));
+      if (!result) throw new Error("task control guard did not confirm ownership");
+      if (this._taskControlError) throw this._taskControlError;
+      return result;
+    } catch (error) {
+      throw this.invalidateTaskControl(error);
+    }
   }
 
   // Streaming event hook (used by long-running listeners, e.g. the POE endpoint
@@ -221,13 +336,19 @@ export class Session {
   // `timeoutMs` is opt-in: the default remains wait-forever because long-lived
   // callers (POE evaluates, endpoint-discovery listeners) legitimately wait
   // minutes. Control-plane calls (Runtime.enable, Page.enable) should pass one.
-  send(method, params = {}, { timeoutMs } = {}) {
-    if (this.targetId && leaseTrackingEnabled()
+  async send(method, params = {}, { timeoutMs } = {}) {
+    if (this._unlockSession) assertSessionLock(Number(PORT));
+    if (this._taskControlError) throw this._taskControlError;
+    if (this._taskControlGuard) await this.assertTaskControl();
+    if (this._taskControlGuard && method === "Page.navigate" && params.url) {
+      this._assertTaskNavigation(params.url);
+    }
+    if (!this._taskControlGuard && this.targetId && leaseTrackingEnabled()
         && (method.startsWith("Input.") || method === "Page.navigate" || method === "Page.bringToFront")) {
-      touchLease({ port: Number(PORT), targetId: this.targetId, kind: "activity" }).catch(() => {});
+      touchLease({ port: Number(PORT), targetId: this.targetId, kind: "automation" }).catch(() => {});
     }
     const id = ++this.id;
-    return new Promise((resolve, reject) => {
+    const result = await new Promise((resolve, reject) => {
       // Node's built-in global WebSocket does not keep the event loop alive while
       // idly awaiting an inbound frame, so a slow Runtime.evaluate (awaitPromise
       // for a multi-second page fetch, e.g. POE data) lets the process exit early
@@ -251,26 +372,50 @@ export class Session {
           entry.reject(new Error(`CDP ${method} timed out after ${timeoutMs} ms`));
         }, timeoutMs);
       }
-      this.ws.send(JSON.stringify({ id, method, params }));
+      try { this.ws.send(JSON.stringify({ id, method, params })); }
+      catch (error) {
+        const entry = this.pending.get(id);
+        this.pending.delete(id);
+        entry.reject(error);
+      }
     });
+    if (this._taskControlGuard) await this.assertTaskControl();
+    if (this._taskControlError) throw this._taskControlError;
+    try { if (this._unlockSession) assertSessionLock(Number(PORT)); }
+    catch (error) { throw this.invalidateTaskControl(error); }
+    return result;
   }
 
-  waitEvent(method, timeoutMs = 20000) {
+  async waitEvent(method, timeoutMs = 20000) {
+    if (this._taskControlError) throw this._taskControlError;
+    if (this._taskControlGuard) await this.assertTaskControl();
     const hit = this.events.find((e) => e.method === method);
-    if (hit) return Promise.resolve(hit);
-    return new Promise((resolve, reject) => {
+    const event = hit || await new Promise((resolve, reject) => {
       this._waiters = this._waiters || [];
-      const w = { method, resolve };
+      const done = (fn) => (value) => {
+        clearTimeout(timer);
+        const index = this._waiters.indexOf(w);
+        if (index >= 0) this._waiters.splice(index, 1);
+        fn(value);
+      };
+      const w = { method, resolve: done(resolve), reject: done(reject) };
+      const timer = setTimeout(() => w.reject(new Error(`timeout waiting for ${method}`)), timeoutMs);
       this._waiters.push(w);
-      setTimeout(() => reject(new Error(`timeout waiting for ${method}`)), timeoutMs);
     });
+    if (this._taskControlGuard) await this.assertTaskControl();
+    if (this._taskControlError) throw this._taskControlError;
+    try { if (this._unlockSession) assertSessionLock(Number(PORT)); }
+    catch (error) { throw this.invalidateTaskControl(error); }
+    return event;
   }
 
   close() {
     if (this._leaseHeartbeat) clearInterval(this._leaseHeartbeat);
     if (this._taskHeartbeat) clearInterval(this._taskHeartbeat);
-    this._rejectPending("CDP session closed");
+    this._rejectPending(this._taskControlError || "CDP session closed");
     try { this.ws.close(); } catch (_) {}
+    this._unlockSession?.();
+    this._unlockSession = null;
   }
 }
 
@@ -304,10 +449,40 @@ const ACTIVITY_TRACKER = `(()=>{
   return globalThis.__ewBrowserLeaseActivityAt;
 })()`;
 
+// This is input evidence, not proof of a human: CDP input can emit these events
+// too. Initialization and page lifecycle only belong to the cleanup tracker.
+const INTERACTION_TRACKER = `(()=>{
+  if(globalThis.__ewBrowserLeaseInteractionV1)return;
+  const state={version:1,startedAt:Date.now(),lastInteractionAt:0};
+  Object.defineProperty(globalThis,"__ewBrowserLeaseInteractionV1",{value:state,writable:false});
+  const touch=()=>{state.lastInteractionAt=Date.now()};
+  for(const name of ["pointerdown","keydown","wheel"]){
+    addEventListener(name,touch,{capture:true,passive:true});
+  }
+})()`;
+
 export async function installLeaseActivityTracker(session) {
   await session.send("Page.enable", {}, { timeoutMs: 10000 });
   await session.send("Page.addScriptToEvaluateOnNewDocument", { source: ACTIVITY_TRACKER }, { timeoutMs: 10000 });
   await evaluate(session, ACTIVITY_TRACKER, 10000);
+  await session.send("Page.addScriptToEvaluateOnNewDocument", { source: INTERACTION_TRACKER }, { timeoutMs: 10000 });
+  await evaluate(session, INTERACTION_TRACKER, 10000);
+}
+
+export async function readLeaseInteraction(session) {
+  try {
+    const value = await evaluate(session,
+      "({...globalThis.__ewBrowserLeaseInteractionV1, targetUrl: location.href})", 10000);
+    const targetUrl = typeof value?.targetUrl === "string" ? value.targetUrl : null;
+    if (value?.version !== 1 || !Number.isFinite(value.startedAt) || value.startedAt <= 0
+        || !Number.isFinite(value.lastInteractionAt)
+        || (value.lastInteractionAt !== 0 && value.lastInteractionAt < value.startedAt)) {
+      return { ok: false, version: 1, startedAt: null, lastInteractionAt: null, targetUrl };
+    }
+    return { ok: true, version: 1, startedAt: value.startedAt, lastInteractionAt: value.lastInteractionAt, targetUrl };
+  } catch (error) {
+    return { ok: false, version: 1, startedAt: null, lastInteractionAt: null, targetUrl: null, error: error.message };
+  }
 }
 
 export async function readLeaseActivity(session) {

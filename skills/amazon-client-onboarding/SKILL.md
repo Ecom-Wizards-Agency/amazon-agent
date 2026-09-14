@@ -22,7 +22,7 @@ Run one evidence-backed onboarding per Seller Central account and marketplace. T
 
 1. Resolve the client hub and `Amazon Ops.md` profile from the shared team vault. Confirm account label, marketplace, scope, task owner, and a different inventory reviewer.
 2. Store run artifacts under `output/{client}/onboarding/{run_id}/` and screenshots under `evidence/{client}/onboarding/{run_id}/`. Register every created path under the run with `tools/artifactctl/artifactctl`; evidence is `preserve`. Never commit client manifests or evidence.
-3. Open Seller Central and Amazon Ads through the managed Chrome on port 9222 using `tools/browserctl/task-tabs.mjs` with one task ID per run, and acquire the port's exclusive context claim before any account or marketplace selection. Never repurpose a Seller Central anchor tab. Re-verify the selected account and marketplace on every surface before reading from it.
+3. Open Seller Central and Amazon Ads through the managed Chrome on port 9223 using `tools/browserctl/task-tabs.mjs` with one task ID per run, and acquire the port's exclusive context claim before any account or marketplace selection. Never repurpose a Seller Central anchor tab. Re-verify the selected account and marketplace on every surface before reading from it.
 4. Use live Seller Central as the authority for permissions, settings, promotion eligibility, audience names, limits, and fees. Search first-party Amazon Help when a current rule is needed.
 5. Set `run.mode` to `LIVE`, validate the manifest, and stamp its computed fingerprint before showing the change batch:
 

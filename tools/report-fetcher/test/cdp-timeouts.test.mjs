@@ -1,3 +1,4 @@
+process.env.CDP_ENABLE_TEST_LEASES = "1";
 /*
  * Regression tests for the 13.08.2026 account-chooser stall: a live socket
  * whose target stops answering must reject within its budget, never hang the

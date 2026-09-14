@@ -18,7 +18,7 @@ the logic there.
 
     python3 tools/report-fetcher/launch-chrome-debug.py
 
-Env: CDP_PORT (9222) · CDP_PROFILE · CHROME_BIN · CDP_START_URL ·
+Env: CDP_PORT (9223) · CDP_PROFILE · CHROME_BIN · CDP_START_URL ·
 CDP_BROWSER_MODE (machine policy, otherwise headless) · CDP_WINDOW_SIZE (1920,1080)
 """
 import argparse
@@ -50,7 +50,12 @@ def read_port_policy(port: str) -> dict:
     return value
 
 
-PORT = os.environ.get("CDP_PORT", "9222")
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "browserctl"))
+from browser_session import session_environment
+if os.environ.get("CDP_PORT", "9223") in {"9222", "9223"}:
+    os.environ.update(session_environment(os.environ.get("AMAZON_BROWSER_SESSION") or
+        ("operator" if os.environ.get("CDP_PORT") == "9222" else "grimoire"), inherit=True))
+PORT = os.environ.get("CDP_PORT", "9223")
 PORT_POLICY = read_port_policy(PORT)
 DEFAULT_PROFILE = (Path.home() / ".amazon-agent" /
                    ("wizards-ai-chrome" if PORT == "9223" else "chrome-debug"))

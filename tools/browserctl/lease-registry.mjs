@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
 import { basename, join } from "node:path";
 import { RUNTIME_ROOT, loadBrowserPolicy } from "./policy.mjs";
+import { resolveContextScope, isRegionalScope, scopeForOrigin } from "./context-scopes.mjs";
 
 export const LEASE_CLASSES = new Set([
   "anchor", "background-active", "background-success", "interactive", "inspection",
@@ -22,7 +23,7 @@ function normalizedOrigin(value) {
 function emptyState() {
   return {
     schema_version: 1, revision: 0, leases: {}, auth_attempts: {},
-    task_tabs: {}, context_claims: {},
+    task_tabs: {}, context_claims: {}, regional_context_claims: {}, download_claims: {},
   };
 }
 
@@ -38,6 +39,8 @@ async function readState() {
     // processes start using keyed task tabs.
     value.task_tabs ||= {};
     value.context_claims ||= {};
+    value.regional_context_claims ||= {};
+    value.download_claims ||= {};
     return value;
   } catch (error) {
     if (error?.code === "ENOENT") return emptyState();
@@ -122,13 +125,116 @@ function taskControlIsHealthy(control, now) {
   return Boolean(control && Number(control.expiresAt || 0) > now);
 }
 
-function clearContextClaimFor(state, record, controlToken = null) {
+const regionClaimKey = (port, scope) => `${Number(port)}:${scope}`;
+const recordScope = (record) => record.exclusiveContext ? (record.contextScope ?? "global") : null;
+const guardIdentity = (port) => `@regional-guard:${Number(port)}`;
+function isCompatibilityGuard(claim, port) {
+  return claim?.kind === "regional-context-guard" && claim.version === 1
+    && claim.port === Number(port) && claim.taskSlotKey === guardIdentity(port)
+    && claim.controlToken === guardIdentity(port);
+}
+function liveRegionalClaims(state, port, now) {
+  return Object.entries(state.regional_context_claims || {})
+    .filter(([key, claim]) => key.startsWith(`${Number(port)}:`) && taskControlIsHealthy(claim, now));
+}
+function ownedContextClaim(state, record) {
+  const scope = recordScope(record);
+  return isRegionalScope(scope)
+    ? state.regional_context_claims[regionClaimKey(record.port, scope)]
+    : state.context_claims[String(record.port)];
+}
+
+// Old processes only inspect context_claims[port]. This derived record keeps
+// their global acquisitions excluded while newer regional owners coexist.
+function refreshCompatibilityGuard(state, port, now) {
+  const key = String(Number(port));
+  const current = state.context_claims[key];
+  if (current && !isCompatibilityGuard(current, port)) return;
+  const claims = liveRegionalClaims(state, port, now).map(([, claim]) => claim);
+  if (!claims.length) {
+    if (isCompatibilityGuard(current, port)) delete state.context_claims[key];
+    return;
+  }
+  state.context_claims[key] = {
+    kind: "regional-context-guard", version: 1, port: Number(port),
+    taskSlotKey: guardIdentity(port), controlToken: guardIdentity(port),
+    owner: "regional-context-controller",
+    heartbeatAt: Math.max(...claims.map((claim) => Number(claim.heartbeatAt))),
+    expiresAt: Math.max(...claims.map((claim) => Number(claim.expiresAt))),
+  };
+}
+
+function conflictingContext(state, port, scope, now) {
+  if (!scope) return null;
+  const global = state.context_claims[String(Number(port))];
+  const regions = liveRegionalClaims(state, port, now);
+  if (global && !isCompatibilityGuard(global, port)) {
+    // Unknown projection versions and malformed records are not recoverable
+    // merely because their deadline looks old.
+    if (global.kind || !Number.isFinite(global.expiresAt) || global.expiresAt > now) {
+      return { scope: "global", claim: global };
+    }
+    delete state.context_claims[String(Number(port))];
+  }
+  if (regions.length && (!isCompatibilityGuard(global, port)
+      || !taskControlIsHealthy(global, now))) {
+    return { scope: "global", claim: { expiresAt: Math.max(...regions.map(([, claim]) => claim.expiresAt)) } };
+  }
+  const hit = regions.find(([key]) => scope === "global" || key === regionClaimKey(port, scope));
+  return hit ? { scope: hit[1].scope, claim: hit[1] } : null;
+}
+
+function requireTaskControl(state, { port, taskId, slot = "primary", controlToken,
+  targetId, exclusiveContext = false, contextScope, now = Date.now() }) {
+  const key = taskSlotKey(port, assertTaskText("taskId", taskId), assertTaskText("slot", slot, 100));
+  const record = state.task_tabs[key];
+  const scope = record ? recordScope(record) : null;
+  const claim = record ? ownedContextClaim(state, record) : null;
+  const guard = state.context_claims[String(Number(port))];
+  const lease = record?.targetId ? state.leases[leaseKey(port, record.targetId)] : null;
+  const download = state.download_claims[String(Number(port))];
+  if (!record || record.controller?.token !== controlToken
+      || !taskControlIsHealthy(record.controller, now)
+      || (targetId !== undefined && record.targetId !== targetId)
+      || (contextScope !== undefined && scope !== contextScope)
+      || (exclusiveContext && !record.exclusiveContext)
+      || (record.targetId && (!lease || lease.state === "closing"
+        || lease.taskBindingGeneration !== record.bindingGeneration))
+      || (record.exclusiveContext && (!claim || claim.taskSlotKey !== key
+        || claim.controlToken !== controlToken || !taskControlIsHealthy(claim, now)))
+      || (record.controller.downloadsOwned && (!download || download.taskSlotKey !== key
+        || download.controlToken !== controlToken || !taskControlIsHealthy(download, now)))
+      || (isRegionalScope(scope) && (claim?.scope !== scope || claim?.port !== Number(port)
+        || !isCompatibilityGuard(guard, port) || !taskControlIsHealthy(guard, now)
+        || guard.expiresAt < claim.expiresAt))) {
+    const error = new Error(`TASK_TAB_CONTROL_LOST: ${taskId}/${slot}`);
+    error.code = "TASK_TAB_CONTROL_LOST";
+    throw error;
+  }
+  return record;
+}
+
+// Read-only fencing for managed commands. Renewal remains one atomic write.
+export async function assertTaskTabControl(spec) {
+  return structuredClone(requireTaskControl(await readState(), spec));
+}
+
+function clearContextClaimFor(state, record, controlToken = null, now = Date.now()) {
+  if (record) {
+    const downloads = state.download_claims[String(record.port)];
+    if (downloads?.taskSlotKey === record.key && (!controlToken || downloads.controlToken === controlToken)) {
+      delete state.download_claims[String(record.port)];
+    }
+  }
   if (!record?.exclusiveContext) return;
-  const key = String(record.port);
-  const claim = state.context_claims[key];
+  const regional = isRegionalScope(recordScope(record));
+  const claims = regional ? state.regional_context_claims : state.context_claims;
+  const key = regional ? regionClaimKey(record.port, recordScope(record)) : String(record.port);
+  const claim = claims[key];
   if (!claim || claim.taskSlotKey !== record.key) return;
   if (controlToken && claim.controlToken !== controlToken) return;
-  delete state.context_claims[key];
+  delete claims[key];
+  if (regional) refreshCompatibilityGuard(state, record.port, now);
 }
 
 function activateLease(lease, { owner, now }) {
@@ -204,6 +310,8 @@ export async function acquireLease({
       taskId: previous?.taskId || null,
       taskSlot: previous?.taskSlot || null,
       taskBindingGeneration: previous?.taskBindingGeneration || null,
+      interactionVersion: previous?.interactionVersion ?? null,
+      lastObservedInteractionAt: previous?.lastObservedInteractionAt ?? null,
     };
     state.leases[key] = lease;
     return structuredClone(lease);
@@ -243,6 +351,9 @@ export async function touchLease({ port, targetId, kind = "activity", now = Date
     if (kind === "heartbeat") {
       if (lease.class === "background-active") lease.heartbeatAt = now;
     } else {
+      if (kind === "interaction") {
+        lease.lastObservedInteractionAt = Math.max(Number(lease.lastObservedInteractionAt || 0), now);
+      }
       lease.lastActivityAt = Math.max(Number(lease.lastActivityAt || 0), now);
       lease.activityMeasurementEpochAt = lease.lastActivityAt;
       lease.activityTrackerBaselineAt = lease.lastActivityAt;
@@ -343,12 +454,13 @@ export async function restartActivityMeasurement({
 
 export async function reserveTaskTab({
   port, taskId, slot = "primary", workflow, owner = "unknown",
-  exclusiveContext = false, allowOperatorActivity = false, origin = null,
-  now = Date.now(), policy = loadBrowserPolicy(),
+  exclusiveContext = false, sellerCentral, allowOperatorActivity = false, origin = null,
+  interactionProbe = null, now = null, policy = loadBrowserPolicy(),
 }) {
   const normalizedTaskId = assertTaskText("taskId", taskId);
   const normalizedSlot = assertTaskText("slot", slot, 100);
   const normalizedWorkflow = assertTaskText("workflow", workflow, 100);
+  const requestedScope = resolveContextScope({ exclusiveContext, sellerCentral });
   const testPortAllowed = /^(1|true|yes|on)$/i.test(
     String(process.env.CDP_ENABLE_TEST_LEASES || ""),
   );
@@ -357,11 +469,15 @@ export async function reserveTaskTab({
   }
   const key = taskSlotKey(port, normalizedTaskId, normalizedSlot);
   return transaction((state) => {
+    now ??= Date.now();
     let record = state.task_tabs[key];
     if (record && (record.taskId !== normalizedTaskId || record.slot !== normalizedSlot
         || record.workflow !== normalizedWorkflow || record.port !== Number(port)
         || Boolean(record.exclusiveContext) !== Boolean(exclusiveContext))) {
       throw new Error(`TASK_TAB_CONFLICT: ${normalizedTaskId}/${normalizedSlot} metadata changed`);
+    }
+    if (record?.contextScope !== undefined && recordScope(record) !== requestedScope) {
+      throw new Error(`TASK_TAB_CONFLICT: ${normalizedTaskId}/${normalizedSlot} context scope changed`);
     }
     if (record?.completedAt) {
       throw new Error(`TASK_TAB_COMPLETED: ${normalizedTaskId} has already completed`);
@@ -372,29 +488,73 @@ export async function reserveTaskTab({
         taskTab: structuredClone(record),
       };
     }
-    if (record?.controller) {
-      clearContextClaimFor(state, record, record.controller.token);
-      record.controller = null;
-    }
     const boundLease = record?.targetId ? state.leases[leaseKey(port, record.targetId)] : null;
-    if (!allowOperatorActivity && record?.releasedAt
-        && Number(boundLease?.lastActivityAt || 0) > Number(record.releasedAt)
-        && ["interactive", "inspection"].includes(boundLease?.class)) {
-      return {
-        kind: "busy", retryAt: null, reason: "operator-activity-observed",
-        taskTab: structuredClone(record),
-      };
-    }
 
-    const contextKey = String(Number(port));
-    const contextClaim = state.context_claims[contextKey];
-    if (contextClaim && Number(contextClaim.expiresAt || 0) <= now) {
-      delete state.context_claims[contextKey];
-    } else if (exclusiveContext && contextClaim && contextClaim.taskSlotKey !== key) {
-      return {
-        kind: "busy", retryAt: contextClaim.expiresAt, reason: "browser-context-busy",
+    let effectiveScope = requestedScope;
+    const busyFor = (scope) => {
+      const conflict = conflictingContext(state, port, scope, now);
+      return conflict ? {
+        kind: "busy", retryAt: conflict.claim.expiresAt || null, reason: "browser-context-busy",
+        blockingScope: conflict.scope, blockingTask: conflict.claim.taskSlotKey || null,
         taskTab: record ? structuredClone(record) : null,
+      } : null;
+    };
+    const conflict = busyFor(effectiveScope);
+    if (conflict) return conflict;
+
+    if (record?.targetId) {
+      if (boundLease?.class === "anchor") throw new Error(`TASK_TAB_ANCHOR_REFUSED: ${record.targetId}`);
+      if (boundLease?.state === "closing") {
+        return { kind: "busy", retryAt: now + 1000, reason: "lease-closing", taskTab: structuredClone(record) };
+      }
+      // The probe carries the exact state it observed. Heartbeats, cleanup or a
+      // competing acquisition invalidate it without granting partial ownership.
+      const probeToken = {
+        targetId: record.targetId, bindingGeneration: record.bindingGeneration,
+        leaseGeneration: boundLease?.generation ?? null, recordUpdatedAt: record.updatedAt,
+        controllerToken: record.controller?.token ?? null,
       };
+      if (!interactionProbe || Object.entries(probeToken).some(([field, value]) => interactionProbe[field] !== value)) {
+        return { kind: "probe", targetId: record.targetId, probeToken, taskTab: structuredClone(record) };
+      }
+      const unattendedSince = record.releasedAt ?? record.controller?.expiresAt ?? record.unattendedSince;
+      if (!interactionProbe.missing && !allowOperatorActivity) {
+        const known = record.interactionVersion === 1 && boundLease?.interactionVersion === 1
+          && interactionProbe.ok && interactionProbe.version === 1
+          && Number.isFinite(interactionProbe.startedAt) && Number.isFinite(interactionProbe.lastInteractionAt)
+          && Number.isFinite(unattendedSince) && interactionProbe.startedAt <= unattendedSince;
+        if (!known) {
+          return { kind: "busy", retryAt: null, reason: "interaction-evidence-unavailable", taskTab: structuredClone(record) };
+        }
+        const observedAt = Math.max(Number(boundLease.lastObservedInteractionAt || 0), interactionProbe.lastInteractionAt);
+        if (observedAt > unattendedSince) {
+          // Retain the observation even if navigation later loses the tracker.
+          boundLease.lastObservedInteractionAt = observedAt;
+          boundLease.lastActivityAt = Math.max(Number(boundLease.lastActivityAt || 0), observedAt);
+          boundLease.expiresAt = Math.max(Number(boundLease.expiresAt || 0), observedAt + policy.cleanup.interactive_idle_ms);
+          boundLease.generation = Number(boundLease.generation || 0) + 1;
+          return { kind: "busy", retryAt: null, reason: "observed-interaction", taskTab: structuredClone(record) };
+        }
+      }
+    }
+    if (record?.targetId && isRegionalScope(requestedScope) && !interactionProbe?.missing) {
+      const observedScope = interactionProbe?.targetUrl ? scopeForOrigin(interactionProbe.targetUrl) : null;
+      if (observedScope && observedScope !== requestedScope) {
+        const error = new Error(`TASK_TAB_SCOPE_CONFLICT: retained target is ${observedScope}, requested ${requestedScope}`);
+        error.code = "TASK_TAB_SCOPE_CONFLICT";
+        throw error;
+      }
+      // Historical blank/auth pages cannot prove the region of an unscoped
+      // task. Preserve global exclusion until a later compatible acquisition.
+      if (record.contextScope === undefined && observedScope !== requestedScope) {
+        effectiveScope = "global";
+        const legacyConflict = busyFor(effectiveScope);
+        if (legacyConflict) return legacyConflict;
+      }
+    }
+    if (record?.controller) {
+      clearContextClaimFor(state, record, record.controller.token, now);
+      record.controller = null;
     }
 
     if (!record) {
@@ -405,6 +565,7 @@ export async function reserveTaskTab({
         reservationToken: null, reservationExpiresAt: null, controller: null,
         bindingGeneration: 0, createdAt: now, updatedAt: now,
         releasedAt: null, completedAt: null, completionOutcome: null,
+        interactionVersion: 1,
       };
       state.task_tabs[key] = record;
     }
@@ -417,28 +578,39 @@ export async function reserveTaskTab({
       };
     }
 
+    // Leave ambiguous legacy records unscoped so a later evidenced retry can
+    // migrate them. New records and explicit scopes remain immutable.
+    if (effectiveScope === requestedScope) record.contextScope = effectiveScope;
     const controlToken = randomUUID();
     record.controller = {
       token: controlToken, owner: String(owner), heartbeatAt: now,
       expiresAt: now + policy.cleanup.heartbeat_stale_ms,
     };
     record.updatedAt = now;
+    record.releasedAt = null;
+    record.unattendedSince = null;
+    record.interactionVersion = 1;
     if (exclusiveContext) {
-      state.context_claims[contextKey] = {
+      const regional = isRegionalScope(effectiveScope);
+      const claims = regional ? state.regional_context_claims : state.context_claims;
+      const contextKey = regional ? regionClaimKey(port, effectiveScope) : String(Number(port));
+      claims[contextKey] = {
         taskSlotKey: key, controlToken, owner: String(owner),
         heartbeatAt: now, expiresAt: record.controller.expiresAt,
+        scope: effectiveScope, port: Number(port),
       };
+      if (regional) refreshCompatibilityGuard(state, port, now);
     }
 
     if (record.targetId) {
       const lease = state.leases[leaseKey(port, record.targetId)];
       if (lease?.class === "anchor") {
-        clearContextClaimFor(state, record, controlToken);
+        clearContextClaimFor(state, record, controlToken, now);
         record.controller = null;
         throw new Error(`TASK_TAB_ANCHOR_REFUSED: ${record.targetId}`);
       }
       if (lease?.state === "closing") {
-        clearContextClaimFor(state, record, controlToken);
+        clearContextClaimFor(state, record, controlToken, now);
         record.controller = null;
         return {
           kind: "busy", retryAt: now + 1000, reason: "lease-closing",
@@ -454,6 +626,8 @@ export async function reserveTaskTab({
         expiresAt: null, outcome: null, generation: 0,
       };
       activateLease(activeLease, { owner, now });
+      activeLease.interactionVersion = 1;
+      activeLease.lastObservedInteractionAt = interactionProbe?.lastInteractionAt ?? 0;
       activeLease.taskId = normalizedTaskId;
       activeLease.taskSlot = normalizedSlot;
       activeLease.taskBindingGeneration = record.bindingGeneration;
@@ -478,17 +652,19 @@ export async function reserveTaskTab({
 
 export async function bindReservedTaskTab({
   port, taskId, slot = "primary", targetId, reservationToken, controlToken,
-  owner = "unknown", origin = null, now = Date.now(), policy = loadBrowserPolicy(),
+  owner = "unknown", origin = null, now = null, policy = loadBrowserPolicy(),
 }) {
   assertLeaseInput({ port, targetId, leaseClass: "background-active" });
   const key = taskSlotKey(port, assertTaskText("taskId", taskId), assertTaskText("slot", slot, 100));
   return transaction((state) => {
+    now ??= Date.now();
     const record = state.task_tabs[key];
     if (!record || record.state !== "reserving"
         || record.reservationToken !== reservationToken
         || record.controller?.token !== controlToken) {
       throw new Error(`TASK_TAB_STALE_RESERVATION: ${taskId}/${slot}`);
     }
+    requireTaskControl(state, { port, taskId, slot, controlToken, now });
     const conflicting = Object.values(state.task_tabs).find((entry) =>
       entry.key !== key && entry.targetId === targetId);
     if (conflicting) throw new Error(`TASK_TAB_TARGET_CONFLICT: ${targetId}`);
@@ -515,6 +691,8 @@ export async function bindReservedTaskTab({
       expiresAt: null, outcome: null, generation: 0,
     };
     activateLease(lease, { owner, now });
+    lease.interactionVersion = 1;
+    lease.lastObservedInteractionAt = 0;
     lease.origin = record.origin || lease.origin || null;
     lease.taskId = record.taskId;
     lease.taskSlot = record.slot;
@@ -526,14 +704,16 @@ export async function bindReservedTaskTab({
 
 export async function prepareMissingTaskTabReplacement({
   port, taskId, slot = "primary", targetId, controlToken,
-  now = Date.now(), policy = loadBrowserPolicy(),
+  now = null, policy = loadBrowserPolicy(),
 }) {
   const key = taskSlotKey(port, assertTaskText("taskId", taskId), assertTaskText("slot", slot, 100));
   return transaction((state) => {
+    now ??= Date.now();
     const record = state.task_tabs[key];
     if (!record || record.targetId !== targetId || record.controller?.token !== controlToken) {
       throw new Error(`TASK_TAB_STALE_CONTROL: ${taskId}/${slot}`);
     }
+    requireTaskControl(state, { port, taskId, slot, controlToken, targetId, now });
     delete state.leases[leaseKey(port, targetId)];
     record.targetId = null;
     record.state = "reserving";
@@ -549,38 +729,87 @@ export async function prepareMissingTaskTabReplacement({
 }
 
 export async function touchTaskTabControl({
-  port, taskId, slot = "primary", controlToken, now = Date.now(), policy = loadBrowserPolicy(),
+  port, taskId, slot = "primary", controlToken, targetId, contextScope, now = null, policy = loadBrowserPolicy(),
 }) {
   const key = taskSlotKey(port, assertTaskText("taskId", taskId), assertTaskText("slot", slot, 100));
   return transaction((state) => {
-    const record = state.task_tabs[key];
-    if (!record || record.controller?.token !== controlToken) return null;
+    now ??= Date.now();
+    const record = requireTaskControl(state, { port, taskId, slot, controlToken, targetId, contextScope, now });
     record.controller.heartbeatAt = now;
     record.controller.expiresAt = now + policy.cleanup.heartbeat_stale_ms;
     record.updatedAt = now;
     if (record.exclusiveContext) {
-      const claim = state.context_claims[String(Number(port))];
-      if (!claim || claim.taskSlotKey !== key || claim.controlToken !== controlToken) return null;
+      const claim = ownedContextClaim(state, record);
       claim.heartbeatAt = now;
       claim.expiresAt = record.controller.expiresAt;
+      if (isRegionalScope(recordScope(record))) refreshCompatibilityGuard(state, port, now);
+    }
+    if (record.controller.downloadsOwned) {
+      const download = state.download_claims[String(Number(port))];
+      download.heartbeatAt = now;
+      download.expiresAt = record.controller.expiresAt;
+    }
+    const lease = record.targetId ? state.leases[leaseKey(port, record.targetId)] : null;
+    if (lease) {
+      lease.heartbeatAt = now;
+      lease.updatedAt = now;
+      lease.generation = Number(lease.generation || 0) + 1;
     }
     return structuredClone(record);
   });
 }
 
+/** Protect the browser-wide download directory only while a task downloads. */
+export async function acquireTaskDownloads({ port, taskId, slot = "primary", controlToken,
+  targetId, contextScope, now = null }) {
+  return transaction((state) => {
+    now ??= Date.now();
+    const record = requireTaskControl(state, { port, taskId, slot, controlToken,
+      targetId, contextScope, exclusiveContext: true, now });
+    const current = state.download_claims[String(Number(port))];
+    if (current && (!Number.isFinite(current.expiresAt) || current.expiresAt > now)) {
+      const error = new Error(`TASK_TAB_DOWNLOAD_BUSY: browser downloads on port ${port} are in use`);
+      error.code = "TASK_TAB_DOWNLOAD_BUSY";
+      throw error;
+    }
+    const claim = {
+      taskSlotKey: record.key, controlToken, heartbeatAt: now,
+      expiresAt: record.controller.expiresAt,
+    };
+    record.controller.downloadsOwned = true;
+    state.download_claims[String(Number(port))] = claim;
+    return structuredClone(claim);
+  });
+}
+
+export async function releaseTaskDownloads({ port, taskId, slot = "primary", controlToken,
+  targetId, contextScope, now = null }) {
+  return transaction((state) => {
+    now ??= Date.now();
+    const record = requireTaskControl(state, { port, taskId, slot, controlToken,
+      targetId, contextScope, exclusiveContext: true, now });
+    if (!record.controller.downloadsOwned) throw new Error("TASK_TAB_CONTROL_LOST: no download ownership");
+    delete state.download_claims[String(Number(port))];
+    delete record.controller.downloadsOwned;
+    return structuredClone(record);
+  });
+}
+
 export async function releaseTaskTabControl({
-  port, taskId, slot = "primary", controlToken, outcome = "handoff",
-  now = Date.now(), policy = loadBrowserPolicy(),
+  port, taskId, slot = "primary", controlToken, contextScope, outcome = "handoff",
+  now = null, policy = loadBrowserPolicy(),
 }) {
   const key = taskSlotKey(port, assertTaskText("taskId", taskId), assertTaskText("slot", slot, 100));
   return transaction((state) => {
+    now ??= Date.now();
     const record = state.task_tabs[key];
     if (!record || record.controller?.token !== controlToken) {
       throw new Error(`TASK_TAB_STALE_CONTROL: ${taskId}/${slot}`);
     }
+    requireTaskControl(state, { port, taskId, slot, controlToken, contextScope, now });
     const lease = record.targetId ? state.leases[leaseKey(port, record.targetId)] : null;
     if (lease && lease.state !== "closing") applyLeaseOutcome(lease, outcome, now, policy);
-    clearContextClaimFor(state, record, controlToken);
+    clearContextClaimFor(state, record, controlToken, now);
     record.controller = null;
     record.state = record.targetId ? "bound" : "unbound";
     record.releasedAt = now;
@@ -592,32 +821,35 @@ export async function releaseTaskTabControl({
 }
 
 export async function abandonTaskTabReservation({
-  port, taskId, slot = "primary", controlToken, now = Date.now(),
+  port, taskId, slot = "primary", controlToken, now = null,
 }) {
   const key = taskSlotKey(port, assertTaskText("taskId", taskId), assertTaskText("slot", slot, 100));
   return transaction((state) => {
+    now ??= Date.now();
     const record = state.task_tabs[key];
     if (!record || record.controller?.token !== controlToken) return null;
-    clearContextClaimFor(state, record, controlToken);
+    clearContextClaimFor(state, record, controlToken, now);
     record.controller = null;
     record.reservationExpiresAt = Math.min(Number(record.reservationExpiresAt || now), now);
+    record.unattendedSince = now;
     record.updatedAt = now;
     return structuredClone(record);
   });
 }
 
 export async function completeTaskTabs({
-  port, taskId, outcome = "success", now = Date.now(), policy = loadBrowserPolicy(),
+  port, taskId, outcome = "success", now = null, policy = loadBrowserPolicy(),
 }) {
   const normalizedTaskId = assertTaskText("taskId", taskId);
   return transaction((state) => {
+    now ??= Date.now();
     const records = Object.values(state.task_tabs).filter((entry) =>
       entry.port === Number(port) && entry.taskId === normalizedTaskId && !entry.completedAt);
     const busy = records.find((entry) => taskControlIsHealthy(entry.controller, now));
     if (busy) throw new Error(`TASK_TAB_BUSY: ${normalizedTaskId}/${busy.slot}`);
     const released = [];
     for (const record of records) {
-      if (record.controller) clearContextClaimFor(state, record, record.controller.token);
+      if (record.controller) clearContextClaimFor(state, record, record.controller.token, now);
       record.controller = null;
       record.completedAt = now;
       record.completionOutcome = outcome;

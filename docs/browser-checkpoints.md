@@ -5,6 +5,21 @@ Which browser to use per agent, the login rule, and the session-verification rul
 ## Before Navigating
 
 - Confirm the target account, brand/client, and marketplace if the task could affect more than one account.
+- Managed Seller Central workflows acquire an exclusive task-page context with
+  `sellerCentral: { marketplace, origin }` before selecting or verifying the
+  account and retain it through the dependent read,
+  export or action. Use the acquired session rather than attaching to an anchor
+  or unrelated tab. Check identity again after navigation/authentication recovery
+  and before accepting fetched data. Claims serialize per port and region group:
+  US/CA/MX, EU/UK, and AU. Different groups may run together. Unspecified, mixed or
+  unmapped contexts keep global exclusion; an active legacy global claim must
+  finish naturally. A managed handle cannot switch groups. Check region as well
+  as account and marketplace after navigation and authentication recovery.
+- On `TASK_TAB_CONTROL_LOST`, stop using that handle and preserve the tab. An
+  interrupted write may already have reached Amazon; reconcile its outcome
+  before attempting it again. Inspection retention timestamps alone never prove
+  operator interaction. A retry with unknown interaction evidence needs reviewed
+  recovery or safe cleanup, not a guessed expiry time.
 - Search local docs and keep the relevant article/SOP paths ready.
 - Identify risky actions in advance.
 - If the user has not named a download folder, pause before downloading reports or exports.

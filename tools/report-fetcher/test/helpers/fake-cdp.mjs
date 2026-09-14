@@ -37,7 +37,7 @@ function encodeFrame(text) {
 }
 
 // Streaming client->server frame parser (client frames are masked).
-function makeFrameParser(onText) {
+function makeFrameParser(onText, onClose = () => {}) {
   let buf = Buffer.alloc(0);
   return (chunk) => {
     buf = Buffer.concat([buf, chunk]);
@@ -61,7 +61,7 @@ function makeFrameParser(onText) {
       if (mask) for (let i = 0; i < payload.length; i++) payload[i] ^= mask[i % 4];
       buf = buf.subarray(off + maskLen + len);
       if (opcode === 0x1) onText(payload.toString("utf8"));
-      // close (0x8) / ping (0x9): irrelevant for these tests
+      if (opcode === 0x8) onClose();
     }
   };
 }
@@ -122,7 +122,7 @@ export async function startFakeCdp({ targets = [], onCreateTarget = null } = {})
           return;
         }
         socket.write(encodeFrame(JSON.stringify({ id: msg.id, result: {} })));
-      }));
+      }, () => socket.end(Buffer.from([0x88, 0x00]))));
       return;
     }
     const target = targets.find((t) => req.url.endsWith(`/devtools/page/${t.id}`));
@@ -154,7 +154,7 @@ export async function startFakeCdp({ targets = [], onCreateTarget = null } = {})
         socket.write(encodeFrame(JSON.stringify({ id: msg.id, result })));
       };
       b.delayMs ? setTimeout(reply, b.delayMs) : reply();
-    }));
+    }, () => socket.end(Buffer.from([0x88, 0x00]))));
   });
 
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
