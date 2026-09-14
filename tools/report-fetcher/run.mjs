@@ -348,6 +348,7 @@ function describeLive(live) {
   const obs = observedOf(live);
   if (obs.displayName) parts.push(`account: ${obs.displayName}`);
   if (obs.merchantId || obs.partnerAccountId) parts.push(`id: ${obs.merchantId || obs.partnerAccountId}`);
+  if (live.identity?.source === "home") parts.push("(identity via /home)");
   if (live.err) parts.push(live.err);
   else if (live.identity && live.identity.err && !obs.displayName) parts.push(live.identity.err);
   return parts.join(" · ") || "(nothing observable)";

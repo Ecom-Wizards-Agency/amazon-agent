@@ -86,8 +86,11 @@ Account: <SELLER NAME> / United States · amzn1.merchant.d.<MERCHANT-ID>
   unless every tab conclusively was; an unprobeable tab says nothing about the session.
 - `--expect-account "<name or merchant-id>"` aborts **before fetching** on a mismatch. Use it in
   anything scripted or delegated; a wrong-account pull is otherwise indistinguishable from a right one.
-  It judges the LIVE identity of the tab (page-read display name + ids), so `--account` cannot satisfy
+  It judges the LIVE identity of the tab (display name + ids), so `--account` cannot satisfy
   it, and it fails closed when no identity is observable, naming the tab URL, page kind and reason.
+  As of 14.09.2026, shell pages without the `anti-csrftoken-a2z` meta tag use same-origin
+  `/home` HTML for the token and any missing display name, then call `GetUserContext` for the
+  session-selected account IDs and marketplace. Cross-origin redirects are rejected.
 - `--account <merchant-id>` is **enforced** (changed 2026-08-13; it used to be a hint that fell back
   to the session default with a warning). The run proceeds only when the live identity matches the id,
   or the runner can verify by name via `--expect-account`, or the structured fields below let it

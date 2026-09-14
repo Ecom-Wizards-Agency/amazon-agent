@@ -10,9 +10,9 @@
  * DOM and ignores synthetic JS clicks; both facts are load-bearing and came
  * out of tools/sc-sqp-competitor/sc_navigator.py and run-poe.mjs.
  *
- * Identity reads use the page's own anti-csrftoken-a2z meta tag to call the
- * same page's /ox-api/graphql GetUserContext, within the sanctioned same-origin
- * read-only carve-out. No cookies, storage or tokens are read beyond that tag.
+ * Identity reads use the page's anti-csrftoken-a2z meta tag, falling back to
+ * same-origin /home HTML for shell pages, to call /ox-api/graphql GetUserContext.
+ * No cookies, storage or tokens are read beyond that meta tag.
  */
 import { Session, evaluate } from "./cdp.mjs";
 import { isRegionalScope } from "../browserctl/context-scopes.mjs";
@@ -106,20 +106,53 @@ export async function inspectAuthenticationState(session) {
   return (await inspectPage(session)).authState;
 }
 
-// Resolve the ACTIVE account from the live page: ids from the page's own
-// GetUserContext plus the account-switcher display name from the DOM.
-// Returns { displayName, partnerAccountId, merchantId, marketplace, err }.
+// Shared with the page expression so selector order and name normalization cannot drift.
+// Accepts a live or detached Document; it never changes either document.
+export function identityFromDocument(doc) {
+  const meta = doc.querySelector('meta[name="anti-csrftoken-a2z"]');
+  const sels = ['[data-test="current-account"]', '.dropdown-account-switcher-header',
+    '[class*="AccountSwitcher" i]', '[data-testid*="account-switcher" i]', '[id*="account-switcher" i]',
+    '[class*="partner-switcher" i]', '#sc-mkt-picker-switcher-select', '[aria-label*="account" i][role="button"]'];
+  let displayName = null;
+  for (const sel of sels) {
+    const el = doc.querySelector(sel);
+    const text = el && (el.innerText || el.textContent || "").trim();
+    if (text) { displayName = text.replace(/\s+/g, " ").trim().slice(0, 80); break; }
+  }
+  return { token: meta?.getAttribute("content") || null, displayName };
+}
+
+// Resolve the ACTIVE session account, including report shells without the meta tag.
+// Returns { displayName, partnerAccountId, merchantId, marketplace, err, source }.
 // Never throws for identity problems; `err` names them instead.
 const IDENTITY_JS = `(async function(){
-  var out = { displayName: null, partnerAccountId: null, merchantId: null, marketplace: null, err: null };
-  var meta = document.querySelector('meta[name="anti-csrftoken-a2z"]');
-  if (!meta) {
-    out.err = "no anti-csrftoken-a2z meta tag on this page (sign-in and account-chooser pages have none)";
-  } else {
+  const identityFromDocument = ${identityFromDocument.toString()};
+  var out = { displayName: null, partnerAccountId: null, merchantId: null, marketplace: null, err: null, source: "page" };
+  var page = identityFromDocument(document);
+  var token = page.token;
+  out.displayName = page.displayName;
+  if (!token) {
+    out.source = "home";
+    try {
+      // same-origin mode rejects cross-origin redirects before following them,
+      // while allowing /home to redirect to the session's current home path.
+      var home = await fetch(location.origin + "/home", { credentials: "include", mode: "same-origin" });
+      if (home.url && new URL(home.url).origin !== location.origin) throw new Error("/home redirected outside the Seller Central origin");
+      if (!home.ok) throw new Error("/home failed with HTTP " + home.status);
+      if (/signin|authportal|\\/ap\\//i.test(home.url || "")) throw new Error("/home redirected to a sign-in page");
+      var homeDoc = new DOMParser().parseFromString(await home.text(), "text/html");
+      if (homeDoc.querySelector('input[type="password"],input[type="email"],#ap_email')) throw new Error("/home returned a sign-in page");
+      var homeIdentity = identityFromDocument(homeDoc);
+      token = homeIdentity.token;
+      if (!out.displayName) out.displayName = homeIdentity.displayName;
+      if (!token) throw new Error("no anti-csrftoken-a2z meta tag on this page or /home");
+    } catch (e) { out.err = "Identity /home fallback failed: " + String(e); }
+  }
+  if (token && !out.err) {
     try {
       var res = await fetch(location.origin + "/ox-api/graphql", {
-        method: "POST", credentials: "include",
-        headers: { "Content-Type": "application/json", "Accept": "application/json", "anti-csrftoken-a2z": meta.getAttribute("content") },
+        method: "POST", credentials: "include", mode: "same-origin",
+        headers: { "Content-Type": "application/json", "Accept": "application/json", "anti-csrftoken-a2z": token },
         body: JSON.stringify({ operationName: "GetUserContext", variables: {},
           query: "query GetUserContext { userContext { partnerAccountId obfuscatedCustomerId monsSessionId monsSite antiCsrfToken marketplaceSelection merchantId requestId __typename } }" })
       });
@@ -134,14 +167,6 @@ const IDENTITY_JS = `(async function(){
         out.marketplace = u.marketplaceSelection || null;
       }
     } catch (e) { out.err = "GetUserContext transport failed: " + String(e); }
-  }
-  var sels = ['[data-test="current-account"]', '.dropdown-account-switcher-header',
-    '[class*="AccountSwitcher" i]', '[data-testid*="account-switcher" i]', '[id*="account-switcher" i]',
-    '[class*="partner-switcher" i]', '#sc-mkt-picker-switcher-select', '[aria-label*="account" i][role="button"]'];
-  for (var i = 0; i < sels.length; i++) {
-    var el = document.querySelector(sels[i]);
-    var t = el && (el.innerText || el.textContent || "").trim();
-    if (t) { out.displayName = t.replace(/\\s+/g, " ").trim().slice(0, 80); break; }
   }
   return out;
 })()`;
