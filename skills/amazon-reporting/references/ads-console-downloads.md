@@ -39,7 +39,7 @@ difference.
 
 ## Browser routing
 
-Use the dedicated debug Chrome on port `9222` for feasibility checks and future scripted
+Use the dedicated debug Chrome on port `9223` for feasibility checks and future scripted
 polling and downloads. Launch or reuse it with:
 
 ```bash

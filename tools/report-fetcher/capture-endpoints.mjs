@@ -21,6 +21,8 @@ import { dirname } from "node:path";
 import { ensureChrome, listPages, Session } from "./cdp.mjs";
 import { acquireTaskPage, releaseTaskPage, taskIdFor } from "../browserctl/task-tabs.mjs";
 
+import { scopeForOrigin } from "../browserctl/context-scopes.mjs";
+
 function arg(name, def) { const i = process.argv.indexOf("--" + name); return i > 0 ? process.argv[i + 1] : def; }
 const SECONDS = Number(arg("seconds", "180"));
 const OUT = arg("out", "output/_capture/endpoints.json");
@@ -44,7 +46,6 @@ async function attach(page) {
   try { s = await Session.open(page.webSocketDebuggerUrl); } catch { attached.delete(page.id); return; }
   await s.send("Network.enable", { maxPostDataSize: 65536 });
   await s.send("Page.enable").catch(() => {});
-  await s.send("Page.setDownloadBehavior", { behavior: "default" }).catch(() => {});
   // A file download fires downloadWillBegin with the real URL — the reliable way to
   // catch report downloads (they aren't plain XHRs).
   s.subscribe("Page.downloadWillBegin", (p) => {
@@ -77,10 +78,13 @@ async function main() {
   }, 1500);
 
   if (NAV.length) {
+    const scopes = NAV.map(scopeForOrigin);
+    const sellerCentral = scopes[0] && scopes[0] !== "global" && scopes.every(scope => scope === scopes[0])
+      ? { origin: NAV[0] } : undefined;
     const taskPage = await acquireTaskPage({
       taskId: taskIdFor("endpoint-capture", `${OUT}|${NAV.join(",")}`),
       workflow: "amazon-reporting-endpoint-capture", initialUrl: "about:blank",
-      exclusiveContext: true,
+      exclusiveContext: true, sellerCentral,
     });
     const { session } = taskPage;
     let outcome = "success";
@@ -88,7 +92,10 @@ async function main() {
       await session.send("Page.enable");
       for (const u of NAV) {
         console.log("navigate →", u);
-        try { await session.send("Page.navigate", { url: u }); } catch (e) { console.log("  (navigate failed:", e.message + ")"); }
+        try { await session.send("Page.navigate", { url: u }); } catch (e) {
+          if (/^TASK_TAB_(?:CONTROL_LOST|CONTEXT)/.test(e?.code || "")) throw e;
+          console.log("  (navigate failed:", e.message + ")");
+        }
         await sleep(14000);   // let the page fire its data XHRs
       }
     } catch (error) {

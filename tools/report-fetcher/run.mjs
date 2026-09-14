@@ -35,8 +35,9 @@
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { ensureChrome, listPages, evaluate, Session } from "./cdp.mjs";
+import { ensureChrome, listPages, evaluate } from "./cdp.mjs";
 import { acquireTaskPage, releaseTaskPage, taskIdFor } from "../browserctl/task-tabs.mjs";
+import { sellerCentralScope, scopeForOrigin } from "../browserctl/context-scopes.mjs";
 import { probeTab, doctorVerdict, readIdentity, inspectPage, switchAccount, accountMatches } from "./sc-account.mjs";
 import { format } from "./format-seller-reports.mjs";
 import { ArtifactRun } from "../artifactctl/client.mjs";
@@ -102,6 +103,28 @@ const MARKET_HOSTS = {
   eg: ["sellercentral.amazon.eg"], za: ["sellercentral.amazon.co.za"],
 };
 
+// IDs already used by the Opportunity Explorer runner. Unknown shapes remain
+// unverified; do not guess a marketplace from a regional hostname.
+const MARKETPLACE_IDS = {
+  us: "ATVPDKIKX0DER", de: "A1PA6795UKMFR9", it: "APJ6JRA9NG5V4",
+  es: "A1RKKUPIHCS9HS", fr: "A13V1IB3VIYZZH", uk: "A1F83G8C2ARO7P",
+  gb: "A1F83G8C2ARO7P", nl: "A1805IZSGTT6HS", se: "A2NODRKZP88ZB9",
+  pl: "A1C3SOZRARQ6R3", ca: "A2EUQ1WTGCTBG2", in: "A21TJRUUN4KGV",
+  jp: "A1VC38T7YXB528",
+};
+function requestedMarketplaceMatches(observed, requested) {
+  if (typeof observed !== "string" || !observed.trim()) return null;
+  const value = observed.trim();
+  if (MARKET_HOSTS[value.toLowerCase()]) {
+    const normalize = (code) => code === "gb" ? "uk" : code;
+    return normalize(value.toLowerCase()) === normalize(requested);
+  }
+  if (MARKETPLACE_IDS[requested] && /^A[A-Z0-9]{5,}$/.test(value)) {
+    return value === MARKETPLACE_IDS[requested];
+  }
+  return null;
+}
+
 function parseArgs(argv) {
   const o = { _: argv[0] };
   for (let i = 1; i < argv.length; i++) {
@@ -110,7 +133,7 @@ function parseArgs(argv) {
   }
   return o;
 }
-function die(msg) { console.error("ERROR: " + msg); process.exit(1); }
+function die(msg) { throw new Error(msg); }
 function slug(s) { return String(s).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""); }
 function ensureDir(f) { mkdirSync(dirname(f), { recursive: true }); }
 function list(v) { return Array.isArray(v) ? v : (v ? String(v).split(",").map((x) => x.trim()).filter(Boolean) : []); }
@@ -124,21 +147,48 @@ async function waitReady(session, needMetaTag) {
   }
   throw new Error("page did not become ready" + (needMetaTag ? " (anti-csrftoken meta tag never appeared — not a Brand Analytics page / not logged in)" : ""));
 }
-async function runFetch(pageUrl, needMetaTag, call) {
-  const taskPage = await acquireTaskPage({
-    taskId: browserTaskId, workflow: "amazon-reporting",
-    initialUrl: "about:blank", exclusiveContext: true,
-  });
+async function runFetch(taskPage, baseline, pageUrl, needMetaTag, call) {
   const { session } = taskPage;
-  let outcome = "success";
-  try {
-    await session.send("Page.navigate", { url: pageUrl });
-    await waitReady(session, needMetaTag);
-    return await evaluate(session, `(async()=>{ ${FETCH_SRC}\n; return await ${call}; })()`);
-  } catch (error) {
-    outcome = "error";
-    throw error;
-  } finally { await releaseTaskPage(taskPage, { outcome }).catch(() => {}); }
+  await session.assertTaskControl({ exclusiveContext: true,
+    sellerCentral: { marketplace: baseline.requestedMarketplace, origin: baseline.origin } });
+  await session.send("Page.navigate", { url: pageUrl });
+  await waitReady(session, needMetaTag);
+  await verifyFetchIdentity(session, baseline);
+  const doc = await evaluate(session, `(async()=>{ ${FETCH_SRC}\n; return await ${call}; })()`);
+  await verifyFetchIdentity(session, baseline);
+  await session.assertTaskControl({ exclusiveContext: true,
+    sellerCentral: { marketplace: baseline.requestedMarketplace, origin: baseline.origin } });
+  return doc;
+}
+
+async function verifyFetchIdentity(session, baseline) {
+  const live = await readLiveAccount(session);
+  if (live.err || live.authState !== "authenticated" || live.pageKind === "chooser") {
+    die(`Report identity is not conclusive. Nothing accepted. Observed ${describeLive(live)}`);
+  }
+  await session.assertTaskControl({ exclusiveContext: true,
+    sellerCentral: { marketplace: baseline.requestedMarketplace, origin: live.url || "" } });
+  const actual = observedOf(live);
+  if (baseline.expectedMerchantId && actual.merchantId && actual.merchantId !== baseline.expectedMerchantId) {
+    die(`Report account contradicts requested merchant ID. Nothing accepted. Observed ${describeLive(live)}`);
+  }
+  if (requestedMarketplaceMatches(live.identity?.marketplace, baseline.requestedMarketplace) === false) {
+    die(`Report marketplace contradicts requested marketplace. Nothing accepted. Observed ${describeLive(live)}`);
+  }
+  const normalize = (value) => String(value || "").toLowerCase().replace(/\s+/g, " ").trim();
+  // Compare every available baseline field, not an OR across account aliases.
+  // A missing field that was previously available is also indeterminate.
+  for (const field of ["merchantId", "partnerAccountId", "displayName"]) {
+    if (baseline[field] && normalize(actual[field]) !== normalize(baseline[field])) {
+      die(`Report account changed or became unverifiable (${field}). Nothing accepted. Observed ${describeLive(live)}`);
+    }
+  }
+  if (baseline.marketplace != null
+      && JSON.stringify(live.identity?.marketplace) !== JSON.stringify(baseline.marketplace)) {
+    die(`Report marketplace changed or became unverifiable. Nothing accepted. Observed ${describeLive(live)}`);
+  }
+  await session.assertTaskControl({ exclusiveContext: true,
+    sellerCentral: { marketplace: baseline.requestedMarketplace, origin: baseline.origin } });
 }
 
 // Write one report doc to a CSV (+ optional raw json), with error/verbose handling.
@@ -279,38 +329,29 @@ const PAGE_KIND_LABEL = {
  * non-chooser page. Never throws; failures land in `err`. This replaces the
  * old URL-param + DOM-name guesswork that judged a stale /json/list snapshot.
  */
-async function readLiveAccount(tab) {
-  const out = { err: null, pageKind: null, authState: null, url: tab.url, identity: null };
-  let s;
-  try { s = await Session.open(tab.webSocketDebuggerUrl); }
-  catch (e) { out.err = `could not attach to the tab (${e.message})`; return out; }
+async function readLiveAccount(session) {
+  const out = { err: null, pageKind: null, authState: null, url: null, identity: null };
   try {
-    let page;
-    try { page = await inspectPage(s, { timeoutMs: 8000 }); }
-    catch (e) { out.err = `could not inspect the tab (${e.message})`; return out; }
+    const page = await inspectPage(session, { timeoutMs: 8000 });
     out.pageKind = page.pageKind;
     out.authState = page.authState;
     out.url = page.facts.url;
     if (page.authState === "authenticated" && page.pageKind !== "chooser") {
-      try { out.identity = await readIdentity(s, { timeoutMs: 30000 }); }
-      catch (e) { out.identity = { displayName: null, partnerAccountId: null, merchantId: null, marketplace: null, err: e.message }; }
+      out.identity = await readIdentity(session, { timeoutMs: 30000 });
     }
-    return out;
-  } finally { s.close(); }
+  } catch (error) { out.err = error.message; }
+  return out;
 }
 
 // Everything observed about the live account, for gate decisions and messages.
-// The URL's own mons_sel_dir_mcid is OBSERVED state (it reflects the tab's real
-// selection); the value the caller forces via --account never lands here.
+// URL account parameters are navigation hints only. They cannot prove identity
+// because this runner may have supplied them on the owned page.
 function observedOf(live) {
   const id = (live && live.identity) || {};
-  let urlMcid = null;
-  try { urlMcid = new URL(live.url).searchParams.get("mons_sel_dir_mcid"); } catch {}
   return {
     displayName: id.displayName || null,
     partnerAccountId: id.partnerAccountId || null,
-    merchantId: id.merchantId || urlMcid || null,
-    urlMcid,
+    merchantId: id.merchantId || null,
   };
 }
 
@@ -333,9 +374,9 @@ function withAccount(url, params) {
   return u.toString();
 }
 
-async function runSqpJob(origin, job, args, acct) {
+async function runSqpJob(taskPage, baseline, origin, job, args, acct) {
   const p = { asins: job.asins, marketplace: (args.marketplace || "us").toLowerCase(), reportingRange: job.range, periodEndDates: job.weeks };
-  const doc = await runFetch(withAccount(origin + job.pageUrl, acct), true, `fetchSqp(${JSON.stringify(p)})`);
+  const doc = await runFetch(taskPage, baseline, withAccount(origin + job.pageUrl, acct), true, `fetchSqp(${JSON.stringify(p)})`);
   if (doc && doc.error) return emit(doc, `${job.stem}.csv`, args.verbose, `SQP ${job.group}`);
   if (job.split) {
     for (const asin of job.asins) {
@@ -362,7 +403,8 @@ async function doctor() {
   const sc = (await listPages()).filter((p) => /sellercentral\.amazon\./.test(p.url || ""));
   if (!sc.length) {
     console.log("Seller Central: no tab open. Run browserctl ensure for this port; use an explicit recovery restart only for a human authentication challenge.");
-    process.exit(1);
+    process.exitCode = 1;
+    return;
   }
   console.log(`Seller Central: ${sc.length} tab(s), probed live at ${new Date().toISOString()}`);
   const results = await Promise.all(sc.map((p) => probeTab(p)));
@@ -384,7 +426,7 @@ async function doctor() {
   if (sc.length > 1) console.log("  Note: more than one region/account is open. The runner picks the tab matching --marketplace; pass --account <merchant-id> to pin the seller.");
   const verdict = doctorVerdict(results);
   console.log(verdict.text);
-  process.exit(verdict.exitCode);
+  process.exitCode = verdict.exitCode;
 }
 
 async function main() {
@@ -411,206 +453,176 @@ async function main() {
       if (j.report === "sqp") console.log(`  SQP  ${j.group}: ${j.asins.length} ASIN(s) × ${j.weeks.length} ${j.range} period(s) → ${j.split ? j.stem + "_<asin>.csv (split)" : j.stem + ".csv (combined)"}`);
       else console.log(`  ${j.report.toUpperCase()}  → ${j.out}   (${j.desc})`);
     }
-    process.exit(0);
+    return;
   }
 
-  await ensureChrome();
-  // Region: pass --origin (e.g. https://sellercentral.amazon.de) to force it — needed
-  // when the debug Chrome has tabs from more than one region (US .com vs EU .de). One
-  // EU login (.de) covers DE/IT/ES/FR/NL/... via --marketplace; US uses .com.
+  // Routing reads URL metadata only; acquire before any account interaction.
   const forced = args.origin || (cfg && cfg.origin);
+  const requestedScope = sellerCentralScope({ marketplace: mp });
+  const wanted = MARKET_HOSTS[mp]?.filter((host, index) => index === 0
+    || (requestedScope !== "global" && scopeForOrigin(`https://${host}`) === requestedScope));
+  if (!forced && !wanted) die(`Unknown --marketplace "${mp}". Known: ${Object.keys(MARKET_HOSTS).join(", ")}`);
+  await ensureChrome();
   const pages = await listPages();
-  const hostOf = (p) => { try { return new URL(p.url).host; } catch { return ""; } };
-  let origin;
-  if (forced) {
-    origin = new URL(forced).origin;
-    if (!pages.some((p) => (p.url || "").startsWith(origin))) die(`No debug-Chrome tab on ${origin}. Open Seller Central there (signed in) and retry.`);
-  } else {
-    const scTabs = pages.filter((p) => /sellercentral\.amazon\./.test(p.url || ""));
-    if (!scTabs.length) die("No Seller Central tab found. Run browserctl ensure for this port; use an explicit recovery restart only for a human authentication challenge.");
-    // Pick the tab whose HOST actually serves the requested marketplace, in preference order.
-    // Never just take the first Seller Central tab: with .com and .com.au both open that is a
-    // coin flip, and the wrong one returns another country's (or another seller's) numbers.
-    const wanted = MARKET_HOSTS[mp];
-    if (!wanted) die(`Unknown --marketplace "${mp}". Known: ${Object.keys(MARKET_HOSTS).join(", ")}. Or force the region with --origin https://sellercentral.amazon.<tld>`);
-    let match = wanted.map((h) => scTabs.find((p) => hostOf(p) === h)).find(Boolean);
-    // No tab on this region yet: open the preferred host ourselves rather than
-    // failing. One Seller Central login covers every region the seller is
-    // registered in, so a signed-in .com session reaches .de and .com.au too --
-    // the tab just has to exist, because host routing above picks by tab.
-    // Without this an unattended run dies on any non-US marketplace, which is
-    // exactly what happened to JBS DE and Svens Island AU on 11.08.2026.
-    if (!match) {
-      const host = wanted[0];
-      console.log(`Region: no tab serves --marketplace ${mp}; opening https://${host}/home`);
-      const opened = await acquireTaskPage({
-        taskId: browserTaskId, workflow: "amazon-reporting",
-        initialUrl: "about:blank", exclusiveContext: true,
-      });
-      await opened.session.send("Page.navigate", { url: `https://${host}/home` });
-      // Give the fresh tab time to land + settle. Env override exists for tests.
-      await new Promise((r) => setTimeout(r, Number(process.env.REPORT_FETCHER_SETTLE_MS || 14000)));
-      match = (await listPages()).find((p) => p.id === opened.targetId);
-      // A fresh regional tab can land on sign-in if the session does not extend
-      // there. Say so plainly instead of fetching an empty report. On failure,
-      // close the tab we just created: a leaked sign-in tab becomes another
-      // doctor run's first probe target and poisons its verdict.
-      const releaseOwned = async (outcome) => {
-        try { await releaseTaskPage(opened, { outcome }); } catch {}
-      };
-      const probe = await (async () => {
-        let s = null;
-        try {
-          s = match?.webSocketDebuggerUrl
-            ? await Session.open(match.webSocketDebuggerUrl) : opened.session;
-          return JSON.parse(await evaluate(s, `JSON.stringify({p: !!document.querySelector("input[type=password]"), h: location.host})`, 25000));
-        } catch { return null; } finally {
-          if (s && s !== opened.session) try { s.close(); } catch {}
-        }
-      })();
-      if (probe && probe.p) { await releaseOwned("inspection"); die(`Opened https://${host}/home but it shows a sign-in page. Authenticate the preserved tab or use browserctl restart --mode recovery for attended recovery.`); }
-      if (!match || hostOf(match) !== host) { await releaseOwned("inspection"); die(`Could not open a Seller Central tab on ${host} for --marketplace ${mp}.`); }
-      await releaseOwned("interactive");
-    }
-    origin = new URL(match.url).origin;
-    const others = [...new Set(scTabs.map(hostOf))].filter((h) => h !== hostOf(match));
-    console.log(`Region: ${new URL(origin).host} for --marketplace ${mp}${others.length ? ` (ignoring other open host(s): ${others.join(", ")})` : ""}`);
-  }
-
-  // ----- Account resolution: judge the LIVE page, enforce the gates. -----
-  // Re-list pages first. The regional branch above may have just opened the
-  // tab, and the pre-resolution snapshot cannot contain it; filtering the old
-  // snapshot made --expect-account fail with "(unknown)" on every fresh
-  // regional tab, and let the chooser page hide behind silent nulls.
-  const livePages = await listPages();
-  const onOrigin = livePages.filter((p) => {
-    try { return new URL(p.url).origin === origin; }
-    catch { return false; }
+  const hostOf = (page) => { try { return new URL(page.url).host; } catch { return ""; } };
+  const scTabs = pages.filter((page) => /sellercentral\.amazon\./.test(hostOf(page)));
+  const regionalTab = wanted?.map((host) => scTabs.find((page) => hostOf(page) === host)).find(Boolean);
+  const origin = forced ? new URL(forced).origin
+    : regionalTab ? new URL(regionalTab.url).origin : `https://${wanted[0]}`;
+  if (!/^https:\/\/sellercentral\.amazon\.[a-z.]+$/.test(origin)) die(`Unsupported Seller Central origin: ${origin}`);
+  const sellerCentral = { marketplace: mp, origin };
+  sellerCentralScope(sellerCentral); // Reject contradictory caller routing before acquisition.
+  console.log(`Region: ${new URL(origin).host} for --marketplace ${mp}`);
+  const taskPage = await acquireTaskPage({
+    taskId: browserTaskId, workflow: "amazon-reporting",
+    initialUrl: "about:blank", exclusiveContext: true, sellerCentral,
   });
-  if (!onOrigin.length) die(`No tab on ${origin} after region resolution. Retry; if it persists, use an explicit browserctl restart with a reason.`);
-  const forcedAcct = args.account || (cfg && cfg.account) || null;
-  const accountName = args["account-name"] || (cfg && cfg.account_name) || null;
-  const marketplaceLabel = args["marketplace-label"] || (cfg && cfg.marketplace_label) || null;
-  const parentAccountName = args["parent-account-name"] || (cfg && cfg.parent_account_name) || null;
-  const expect = args["expect-account"] || (cfg && cfg.expect_account) || null;
-  const canSwitch = Boolean(accountName && marketplaceLabel);
-  const guarded = Boolean(forcedAcct || expect);
+  let outcome = "error";
+  try {
+    // Existing tabs provide routing and optional inherited account hints only.
+    // Every account probe, switch and report runs on this task's owned target.
+    const onOrigin = scTabs.filter((page) => new URL(page.url).origin === origin);
+    const forcedAcct = args.account || (cfg && cfg.account) || null;
+    const accountName = args["account-name"] || (cfg && cfg.account_name) || null;
+    const marketplaceLabel = args["marketplace-label"] || (cfg && cfg.marketplace_label) || null;
+    const parentAccountName = args["parent-account-name"] || (cfg && cfg.parent_account_name) || null;
+    const expect = args["expect-account"] || (cfg && cfg.expect_account) || accountName || null;
+    const canSwitch = Boolean(accountName && marketplaceLabel);
 
-  // Prefer a query-pinned tab only when it is pinned to the requested seller.
-  // Reusing any old mons_sel_dir_mcid tab made the first account's Business
-  // Report tab win every subsequent account in a region run. If the requested
-  // seller has no pinned tab, the newest regional page is the provider tab that
-  // just completed its verified inventory pull and is the best switch anchor.
-  const pinnedForRequest = forcedAcct ? onOrigin.find((p) => {
-    try { return new URL(p.url).searchParams.get("mons_sel_dir_mcid") === forcedAcct; }
-    catch { return false; }
-  }) : null;
-  const inheritedPinned = !forcedAcct && !canSwitch
-    ? onOrigin.find((p) => /[?&]mons_sel_dir_mcid=/.test(p.url || ""))
-    : null;
-  const appTab = onOrigin.find((p) => /\/(?:myinventory\/inventory|amazonsell\/manage-products|home)(?:[/?#]|$)/.test(p.url || ""));
-  const acctTab = pinnedForRequest || inheritedPinned || appTab || onOrigin[0];
+    // Inherited URL hints are considered only when the caller did not name an
+    // account. The owned page's observed identity remains authoritative.
+    const inheritedPinned = !forcedAcct && !canSwitch
+      ? onOrigin.find((p) => /[?&]mons_sel_dir_mcid=/.test(p.url || ""))
+      : null;
+    const appTab = onOrigin.find((p) => /\/(?:myinventory\/inventory|amazonsell\/manage-products|home)(?:[/?#]|$)/.test(p.url || ""));
+    const sourceTab = inheritedPinned || appTab || onOrigin[0];
+    const inheritedAccount = !forcedAcct && !canSwitch ? accountParamsFrom(sourceTab?.url) : null;
+    await taskPage.session.send("Page.navigate", { url: withAccount(`${origin}/home`, inheritedAccount) });
+    await waitReady(taskPage.session, false);
+    let live = await readLiveAccount(taskPage.session);
+    let switchAttempted = false;
+    const attemptSwitch = async () => {
+      switchAttempted = true;
+      console.log(`Account switch: driving the Seller Central account picker to "${accountName}" / "${marketplaceLabel}"`);
+      await switchAccount(taskPage.session, origin, { accountName, marketplaceLabel, parentAccountName, marketplace: mp });
+      live = await readLiveAccount(taskPage.session);
+      console.log(`Account switch: done, the tab now shows ${describeLive(live)}`);
+    };
 
-  let live = await readLiveAccount(acctTab);
-  let switchAttempted = false;
-  const attemptSwitch = async () => {
-    switchAttempted = true;
-    console.log(`Account switch: driving the Seller Central account picker to "${accountName}" / "${marketplaceLabel}"`);
-    const s = await Session.open(acctTab.webSocketDebuggerUrl);
-    try { await switchAccount(s, origin, { accountName, marketplaceLabel, parentAccountName }); }
-    finally { s.close(); }
-    live = await readLiveAccount(acctTab);
-    console.log(`Account switch: done, the tab now shows ${describeLive(live)}`);
-  };
-
-  // Pages that cannot carry a seller context are explicit branches, never silent nulls.
-  if (live.pageKind === "sign-in") die(`The ${origin} tab shows a sign-in page. Run browserctl auth for the preserved target; use an explicit recovery restart only if it returns a human challenge. Nothing fetched.`);
-  if (live.pageKind === "challenge") die(`The ${origin} tab is blocked by a human challenge (captcha/OTP). Run browserctl restart --mode recovery with a reason and complete it. Nothing fetched.`);
-  if (live.pageKind === "chooser") {
-    if (canSwitch) await attemptSwitch();
-    else die(`The ${origin} session sits on the account chooser: NO account is selected, so any fetch would silently use the session default. Pick the account in the debug window, or pass --account-name and --marketplace-label (config: account_name/marketplace_label) so the runner selects it. Nothing fetched. Observed ${describeLive(live)}`);
-  }
-  // Business Reports and a few newer Seller Central surfaces can be fully
-  // authenticated without the legacy anti-CSRF marker used by page
-  // classification. When structured switch fields are available, recover from
-  // that indeterminate surface by driving the picker to a normal /home app page
-  // and then re-reading the live identity. The account switch itself remains
-  // exact-name, exact-marketplace and fail-closed.
-  if ((live.err || live.authState !== "authenticated" || live.pageKind === "chooser")
-      && canSwitch && !switchAttempted
-      && !["sign-in", "challenge"].includes(live.pageKind)) {
-    await attemptSwitch();
-  }
-  if (live.err || live.authState !== "authenticated" || live.pageKind === "chooser") {
-    const msg = `Account resolution on ${origin} is not conclusive. Observed ${describeLive(live)}`;
-    if (guarded) die(`${msg}. Nothing fetched (fail-closed because --account/--expect-account was requested). Fix the session, or pass account_name/marketplace_label to let the runner switch, then re-run.`);
-    console.log(`WARNING: ${msg}. Proceeding because no account guard was requested; the fetch will use whatever seller this session resolves to.`);
-  }
-
-  let observed = observedOf(live);
-
-  // --account is ENFORCED. The old behavior treated it as a URL hint, warned on
-  // a visible mismatch (and said nothing at all when the tab carried no account
-  // param), then proceeded on the session default seller. That silent fallback
-  // is how a wrong-account pull happens; it is gone.
-  if (forcedAcct) {
-    let verifiedBy = null;
-    if (accountMatches(observed, forcedAcct)) verifiedBy = `--account ${forcedAcct}`;
-    if (!verifiedBy && canSwitch && !switchAttempted) {
+    // Pages that cannot carry a seller context are explicit branches, never silent nulls.
+    if (live.pageKind === "sign-in") die(`The ${origin} tab shows a sign-in page. Run browserctl auth for the preserved target; use an explicit recovery restart only if it returns a human challenge. Nothing fetched.`);
+    if (live.pageKind === "challenge") die(`The ${origin} tab is blocked by a human challenge (captcha/OTP). Run browserctl restart --mode recovery with a reason and complete it. Nothing fetched.`);
+    if (live.pageKind === "chooser") {
+      if (canSwitch) await attemptSwitch();
+      else die(`The ${origin} session sits on the account chooser: NO account is selected, so any fetch would silently use the session default. Pick the account in the debug window, or pass --account-name and --marketplace-label (config: account_name/marketplace_label) so the runner selects it. Nothing fetched. Observed ${describeLive(live)}`);
+    }
+    // Business Reports and a few newer Seller Central surfaces can be fully
+    // authenticated without the legacy anti-CSRF marker used by page
+    // classification. When structured switch fields are available, recover from
+    // that indeterminate surface by driving the picker to a normal /home app page
+    // and then re-reading the live identity. The account switch itself remains
+    // exact-name, exact-marketplace and fail-closed.
+    if ((live.err || live.authState !== "authenticated" || live.pageKind === "chooser")
+        && canSwitch && !switchAttempted
+        && !["sign-in", "challenge"].includes(live.pageKind)) {
       await attemptSwitch();
-      observed = observedOf(live);
+    }
+    if (live.err || live.authState !== "authenticated" || live.pageKind === "chooser") {
+      const msg = `Account resolution on ${origin} is not conclusive. Observed ${describeLive(live)}`;
+      die(`${msg}. Nothing fetched. Fix the session, or pass account_name/marketplace_label to let the runner switch, then re-run.`);
+    }
+
+    let observed = observedOf(live);
+
+    // --account is ENFORCED. The old behavior treated it as a URL hint, warned on
+    // a visible mismatch (and said nothing at all when the tab carried no account
+    // param), then proceeded on the session default seller. That silent fallback
+    // is how a wrong-account pull happens; it is gone.
+    if (forcedAcct) {
+      let verifiedBy = null;
       if (accountMatches(observed, forcedAcct)) verifiedBy = `--account ${forcedAcct}`;
+      if (!verifiedBy && canSwitch && !switchAttempted) {
+        await attemptSwitch();
+        observed = observedOf(live);
+        if (accountMatches(observed, forcedAcct)) verifiedBy = `--account ${forcedAcct}`;
+      }
+      // A completed switch is itself verification: switchAccount clicked exactly
+      // one account button whose text equals account_name and confirmed leaving
+      // the picker, and the re-read display name agrees.
+      if (!verifiedBy && switchAttempted && accountName && accountMatches(observed, accountName)) {
+        verifiedBy = `the post-switch account name "${accountName}"`;
+      }
+      // Generic Seller Central pages often cannot serve the merchant id (see
+      // readIdentity); a name match against --expect-account still proves the
+      // right account is active, and the id keeps riding on the URL as a hint.
+      if (!verifiedBy && expect && accountMatches(observed, expect)) {
+        verifiedBy = `--expect-account "${expect}" (name match; the --account id itself is not readable on this page)`;
+      }
+      if (!verifiedBy) {
+        die(`--account ${forcedAcct} could not be verified against the live session. Observed ${describeLive(live)}. Nothing fetched. Remedies: pass --account-name and --marketplace-label (config: account_name/marketplace_label) so the runner drives the account switcher; or switch the account in the debug window and re-run; or verify by name with --expect-account.`);
+      }
+      console.log(`Account: ${observed.displayName || "(name unresolved)"} · ${observed.merchantId || observed.partnerAccountId || forcedAcct} (verified via ${verifiedBy})`);
+    } else {
+      const label = [observed.displayName, observed.merchantId || observed.partnerAccountId].filter(Boolean).join(" · ");
+      if (label) console.log(`Account: ${label} (inherited from the live tab)`);
+      else die(`Account: UNRESOLVED on an authenticated page. Nothing fetched. Pass --expect-account "<name or merchant-id>" and verify the account in the owned task tab.`);
     }
-    // A completed switch is itself verification: switchAccount clicked exactly
-    // one account button whose text equals account_name and confirmed leaving
-    // the picker, and the re-read display name agrees.
-    if (!verifiedBy && switchAttempted && accountName && accountMatches(observed, accountName)) {
-      verifiedBy = `the post-switch account name "${accountName}"`;
+
+    // --expect-account stays fail-closed and judges ONLY observed identity (live
+    // page reads), never a caller-supplied URL parameter.
+    if (expect) {
+      if (!accountMatches(observed, expect) && canSwitch && !switchAttempted) {
+        await attemptSwitch();
+        observed = observedOf(live);
+      }
+      const cands = [observed.displayName, observed.partnerAccountId, observed.merchantId].filter(Boolean);
+      if (!cands.length) die(`--expect-account "${expect}" cannot be verified: no account identity was observable. Observed ${describeLive(live)}. Nothing fetched (fail-closed by design). Fix the session and re-run, or run doctor for a live view.`);
+      if (!accountMatches(observed, expect)) die(`--expect-account "${expect}" does NOT match the signed-in account. Observed ${describeLive(live)}. Nothing fetched. Switch the account (in the debug window, or via --account-name/--marketplace-label) and re-run. Note --account alone cannot satisfy this check, by design.`);
+      console.log(`Account check: OK, the signed-in account matches --expect-account "${expect}"`);
     }
-    // Generic Seller Central pages often cannot serve the merchant id (see
-    // readIdentity); a name match against --expect-account still proves the
-    // right account is active, and the id keeps riding on the URL as a hint.
-    if (!verifiedBy && expect && accountMatches(observed, expect)) {
-      verifiedBy = `--expect-account "${expect}" (name match; the --account id itself is not readable on this page)`;
+
+    if (requestedMarketplaceMatches(live.identity?.marketplace, mp) === false) {
+      if (canSwitch && !switchAttempted) await attemptSwitch();
+      if (requestedMarketplaceMatches(live.identity?.marketplace, mp) !== true) {
+        die(`Requested marketplace ${mp} could not be verified after observing a mismatch. Nothing fetched.`);
+      }
+      if (expect && !accountMatches(observedOf(live), expect)) {
+        die(`Expected account "${expect}" changed during marketplace selection. Nothing fetched.`);
+      }
     }
-    if (!verifiedBy) {
-      die(`--account ${forcedAcct} could not be verified against the live session. Observed ${describeLive(live)}. Nothing fetched. Remedies: pass --account-name and --marketplace-label (config: account_name/marketplace_label) so the runner drives the account switcher; or switch the account in the debug window and re-run; or verify by name with --expect-account.`);
+
+    const baseline = {
+      ...observedOf(live), marketplace: live.identity?.marketplace ?? null,
+      expectedMerchantId: forcedAcct, requestedMarketplace: mp, origin,
+    };
+    if (!baseline.displayName && !baseline.merchantId && !baseline.partnerAccountId) {
+      die("Account identity is unresolved. Nothing fetched.");
     }
-    console.log(`Account: ${observed.displayName || "(name unresolved)"} · ${observed.merchantId || observed.partnerAccountId || forcedAcct} (verified via ${verifiedBy})`);
-  } else {
-    const label = [observed.displayName, observed.merchantId || observed.partnerAccountId].filter(Boolean).join(" · ");
-    if (label) console.log(`Account: ${label} (inherited from the live tab)`);
-    else console.log(`Account: UNRESOLVED on an authenticated page. The fetch will use the session DEFAULT seller; if this login holds several sellers the numbers may be another client's. Pass --expect-account "<name or merchant-id>" to make this fail closed (see: run.mjs doctor).`);
+    // An observed merchant ID contradiction cannot be rescued by a display-name match.
+    if (forcedAcct && baseline.merchantId && baseline.merchantId !== forcedAcct) {
+      die(`--account ${forcedAcct} contradicts observed merchant ID ${baseline.merchantId}. Nothing fetched.`);
+    }
+    await taskPage.session.assertTaskControl({ exclusiveContext: true, sellerCentral });
+
+    artifactContext = {
+      client: args.client || (cfg && cfg.client) || null,
+      marketplace: mp,
+    };
+
+    // URL account params: forced id first, else whatever the live tab carries.
+    // This stays a HINT on the report URLs; every judgement above used live reads.
+    const acct = accountParamsFrom(live.url || "");
+    if (forcedAcct) acct.set("mons_sel_dir_mcid", forcedAcct);
+
+    for (const job of jobs) {
+      if (job.report === "sqp") await runSqpJob(taskPage, baseline, origin, job, args, acct);
+      else { const doc = await runFetch(taskPage, baseline, withAccount(origin + job.pageUrl, acct), job.needMetaTag, job.call); emit(doc, job.out, args.verbose, job.desc); }
+    }
+    if (artifactRun) artifactRun.complete("success");
+    outcome = "success";
+  } finally {
+    await releaseTaskPage(taskPage, { outcome });
   }
-
-  // --expect-account stays fail-closed and judges ONLY observed identity (live
-  // page reads + the tab URL's own account param), never a caller-supplied value.
-  if (expect) {
-    if (!accountMatches(observed, expect) && canSwitch && !switchAttempted) {
-      await attemptSwitch();
-      observed = observedOf(live);
-    }
-    const cands = [observed.displayName, observed.partnerAccountId, observed.merchantId].filter(Boolean);
-    if (!cands.length) die(`--expect-account "${expect}" cannot be verified: no account identity was observable. Observed ${describeLive(live)}. Nothing fetched (fail-closed by design). Fix the session and re-run, or run doctor for a live view.`);
-    if (!accountMatches(observed, expect)) die(`--expect-account "${expect}" does NOT match the signed-in account. Observed ${describeLive(live)}. Nothing fetched. Switch the account (in the debug window, or via --account-name/--marketplace-label) and re-run. Note --account alone cannot satisfy this check, by design.`);
-    console.log(`Account check: OK, the signed-in account matches --expect-account "${expect}"`);
-  }
-
-  artifactContext = {
-    client: args.client || (cfg && cfg.client) || null,
-    marketplace: mp,
-  };
-
-  // URL account params: forced id first, else whatever the live tab carries.
-  // This stays a HINT on the report URLs; every judgement above used live reads.
-  const acct = accountParamsFrom(live.url || acctTab.url || "");
-  if (forcedAcct) acct.set("mons_sel_dir_mcid", forcedAcct);
-
-  for (const job of jobs) {
-    if (job.report === "sqp") await runSqpJob(origin, job, args, acct);
-    else { const doc = await runFetch(withAccount(origin + job.pageUrl, acct), job.needMetaTag, job.call); emit(doc, job.out, args.verbose, job.desc); }
-  }
-  if (artifactRun) artifactRun.complete("success");
 }
 
-main().catch((e) => die(e.message));
+main().catch((error) => { console.error("ERROR: " + error.message); process.exitCode = 1; });

@@ -6,17 +6,32 @@
  */
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, rmSync, readFileSync, existsSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 
-import { startFakeCdp } from "./helpers/fake-cdp.mjs";
+import { startFakeCdp as startCdp } from "./helpers/fake-cdp.mjs";
+
+// Each task owns a new page in the same simulated browser session. Its
+// identity reflects session state; source/anchor targets must never be driven.
+async function startFakeCdp(options) {
+  const current = options.targets.find((target) => target.id === "NEWEST") || options.targets[0];
+  return startCdp({
+    ...options,
+    onCreateTarget: options.onCreateTarget || ((params) => ({
+      id: `OWNED${Math.random().toString(36).slice(2)}`, url: params.url, behavior: current.behavior,
+    })),
+  });
+}
 
 const RUN = fileURLToPath(new URL("../run.mjs", import.meta.url));
 const OUT_DIR = mkdtempSync(join(tmpdir(), "report-fetcher-test-"));
 const BROWSER_RUNTIME = mkdtempSync(join(tmpdir(), "report-fetcher-browser-test-"));
+const runtimes = new Map();
+const ARTIFACT_STUB = join(OUT_DIR, "artifactctl-test.mjs");
+writeFileSync(ARTIFACT_STUB, '#!/usr/bin/env node\nprocess.stdout.write(JSON.stringify({id:"test-artifact-run"}));\n', { mode: 0o700 });
 
 test.after(() => {
   rmSync(OUT_DIR, { recursive: true, force: true });
@@ -24,13 +39,16 @@ test.after(() => {
 });
 
 function runCli(port, cliArgs) {
+  const runtime = mkdtempSync(join(BROWSER_RUNTIME, "run-"));
+  runtimes.set(port, runtime);
   return new Promise((resolve) => {
     const child = spawn(process.execPath, [RUN, ...cliArgs], {
+      timeout: 25000,
       env: {
         ...process.env,
         CDP_HOST: "127.0.0.1", CDP_PORT: String(port), CDP_AUTOSTART: "0",
-        CDP_ENABLE_TEST_LEASES: "1", AMAZON_BROWSER_RUNTIME_DIR: BROWSER_RUNTIME,
-        REPORT_FETCHER_SETTLE_MS: "100",
+        CDP_ENABLE_TEST_LEASES: "1", AMAZON_BROWSER_RUNTIME_DIR: runtime,
+        REPORT_FETCHER_SETTLE_MS: "100", AMAZON_ARTIFACTCTL: ARTIFACT_STUB,
       },
     });
     let out = "";
@@ -42,11 +60,16 @@ function runCli(port, cliArgs) {
 
 // Script a page target: identity for GetUserContext, live facts for the
 // classify probe, plus canned replies for the runner's readiness/sign-in probes.
-function pageBehavior({ facts, identity }) {
+function pageBehavior({ facts, identity, fetchResult = null, onFetch = null, onNavigate = null }) {
   return {
     results: {
+      "Page.navigate": (params) => { onNavigate?.(params.url); return {}; },
       "Runtime.evaluate": (params) => {
         const expr = String(params.expression || "");
+        if (expr.includes("return await fetch")) {
+          onFetch?.();
+          return { result: { value: fetchResult } };
+        }
         if (expr.includes("GetUserContext")) return { result: { value: identity } };
         if (expr.includes("chooserButtonCount")) return { result: { value: facts } };
         if (expr.includes("input[type=password]")) {
@@ -96,6 +119,11 @@ test("--expect-account mismatch dies fail-closed naming the observed account", {
     assert.match(out, /does NOT match/);
     assert.match(out, /SomeOther Brand/);
     assert.match(out, /Nothing fetched/);
+    assert.ok(fake.sent.every((command) => !["T1", "NEWEST", "STALE"].includes(command.targetId)), "existing targets are never attached or driven");
+    const registry = JSON.parse(readFileSync(join(runtimes.get(fake.port), "leases.json"), "utf8"));
+    assert.equal(registry.context_claims[String(fake.port)], undefined, "failure releases context claim");
+    const task = Object.values(registry.task_tabs).find((entry) => entry.port === fake.port);
+    assert.equal(task.controller, null);
   } finally {
     await fake.close();
   }
@@ -112,6 +140,11 @@ test("account chooser without structured fields dies actionably, never session-d
     assert.match(out, /account chooser/);
     assert.match(out, /NO account is selected/);
     assert.match(out, /Nothing fetched/);
+    assert.ok(fake.sent.every((command) => !["T1", "NEWEST", "STALE"].includes(command.targetId)), "existing targets are never attached or driven");
+    const registry = JSON.parse(readFileSync(join(runtimes.get(fake.port), "leases.json"), "utf8"));
+    assert.equal(registry.context_claims[String(fake.port)], undefined, "failure releases context claim");
+    const task = Object.values(registry.task_tabs).find((entry) => entry.port === fake.port);
+    assert.equal(task.controller, null);
   } finally {
     await fake.close();
   }
@@ -129,6 +162,11 @@ test("--account is enforced: unverifiable id without structured fields dies with
     assert.match(out, /--account amzn1\.merchant\.o\.NOTONPAGE could not be verified/);
     assert.match(out, /account-name/);
     assert.match(out, /Nothing fetched/);
+    assert.ok(fake.sent.every((command) => !["T1", "NEWEST", "STALE"].includes(command.targetId)), "existing targets are never attached or driven");
+    const registry = JSON.parse(readFileSync(join(runtimes.get(fake.port), "leases.json"), "utf8"));
+    assert.equal(registry.context_claims[String(fake.port)], undefined, "failure releases context claim");
+    const task = Object.values(registry.task_tabs).find((entry) => entry.port === fake.port);
+    assert.equal(task.controller, null);
   } finally {
     await fake.close();
   }
@@ -199,4 +237,212 @@ test("name-based switching does not inherit another seller's stale pinned tab", 
   } finally {
     await fake.close();
   }
+});
+
+
+test("a full report batch holds one task target and releases its claim", { concurrency: false }, async () => {
+  const facts = { url: "https://sellercentral.amazon.com/home", csrfMeta: true, chooserButtonCount: 0 };
+  const identity = { displayName: "Example Brand", merchantId: "MERCHANT", partnerAccountId: "PARTNER", marketplace: "US" };
+  const configPath = join(OUT_DIR, "batch.json");
+  const firstOut = join(OUT_DIR, "scp.csv");
+  const secondOut = join(OUT_DIR, "tst.csv");
+  writeFileSync(configPath, JSON.stringify({
+    scp: { period_end_dates: ["2026-06-27"], out: firstOut },
+    tst: { period_end_dates: ["2026-06-27"], out: secondOut },
+  }));
+  let fetches = 0;
+  const fake = await startFakeCdp({ targets: [{ id: "ANCHOR", url: facts.url,
+    behavior: pageBehavior({ facts, identity, fetchResult: { report: "file", text: "sku\nEXAMPLE\n" }, onFetch() {
+      fetches++;
+      const registry = JSON.parse(readFileSync(join(runtimes.get(fake.port), "leases.json"), "utf8"));
+      assert.ok(registry.regional_context_claims[`${fake.port}:sc:na`], "regional context held during every fetch");
+      assert.equal(Object.values(registry.task_tabs)[0].contextScope, "sc:na");
+    } }),
+  }] });
+  try {
+    const result = await runCli(fake.port, ["all", "--config", configPath, "--expect-account", "Example Brand"]);
+    assert.equal(result.code, 0, result.out);
+    assert.equal(fetches, 2);
+    assert.ok(existsSync(firstOut) && existsSync(secondOut));
+    assert.equal(fake.sent.filter((command) => command.method === "Target.createTarget").length, 1);
+    assert.ok(fake.sent.every((command) => command.targetId !== "ANCHOR"));
+    const registry = JSON.parse(readFileSync(join(runtimes.get(fake.port), "leases.json"), "utf8"));
+    assert.equal(registry.context_claims[String(fake.port)], undefined);
+  } finally { await fake.close(); }
+});
+
+for (const changedField of ["merchantId", "marketplace"]) {
+  test(`post-fetch ${changedField} drift discards the report before emit`, { concurrency: false }, async () => {
+    const facts = { url: "https://sellercentral.amazon.com/home", csrfMeta: true, chooserButtonCount: 0 };
+    const identity = { displayName: "Example Brand", merchantId: "MERCHANT", partnerAccountId: "PARTNER", marketplace: "US" };
+    const out = join(OUT_DIR, `drift-${changedField}.txt`);
+    const fake = await startFakeCdp({ targets: [{ id: "ANCHOR", url: facts.url,
+      behavior: pageBehavior({ facts, identity, fetchResult: { report: "file", text: "sku\nWRONG\n" },
+        onFetch() { identity[changedField] = "CHANGED"; } }),
+    }] });
+    try {
+      const result = await runCli(fake.port, ["inventory", "--out", out, "--expect-account", "Example Brand", "--verbose"]);
+      assert.equal(result.code, 1, result.out);
+      assert.match(result.out, /changed or became unverifiable/);
+      assert.equal(existsSync(out), false);
+      assert.equal(existsSync(`${out}.raw.json`), false);
+    } finally { await fake.close(); }
+  });
+}
+
+test("unresolved identity without explicit account flags fails closed", { concurrency: false }, async () => {
+  const facts = { url: "https://sellercentral.amazon.com/home", csrfMeta: true, chooserButtonCount: 0 };
+  const fake = await startFakeCdp({ targets: [{ id: "ANCHOR", url: facts.url,
+    behavior: pageBehavior({ facts, identity: {} }),
+  }] });
+  try {
+    const result = await runCli(fake.port, BUSINESS_ARGS);
+    assert.equal(result.code, 1, result.out);
+    assert.match(result.out, /UNRESOLVED/);
+    assert.ok(!fake.sent.some((command) => command.params?.expression?.includes("return await fetch")));
+  } finally { await fake.close(); }
+});
+
+
+test("account drift after report navigation blocks the fetch itself", { concurrency: false }, async () => {
+  const facts = { url: "https://sellercentral.amazon.com/home", csrfMeta: true, chooserButtonCount: 0 };
+  const identity = { displayName: "Example Brand", merchantId: "ORIGINAL" };
+  let fetched = false;
+  const fake = await startFakeCdp({ targets: [{ id: "ANCHOR", url: facts.url,
+    behavior: pageBehavior({ facts, identity,
+      onNavigate(url) { if (url.includes("business-reports")) identity.merchantId = "DIFFERENT"; },
+      onFetch() { fetched = true; },
+    }),
+  }] });
+  try {
+    const result = await runCli(fake.port, BUSINESS_ARGS);
+    assert.equal(result.code, 1, result.out);
+    assert.match(result.out, /account changed or became unverifiable/);
+    assert.equal(fetched, false);
+  } finally { await fake.close(); }
+});
+
+test("a claim lost during a fetch prevents accepting its result", { concurrency: false }, async () => {
+  const facts = { url: "https://sellercentral.amazon.com/home", csrfMeta: true, chooserButtonCount: 0 };
+  const identity = { displayName: "Example Brand", merchantId: "ORIGINAL" };
+  const out = join(OUT_DIR, "claim-lost.txt");
+  const fake = await startFakeCdp({ targets: [{ id: "ANCHOR", url: facts.url,
+    behavior: pageBehavior({ facts, identity, fetchResult: { report: "file", text: "sku\nUNVERIFIED\n" },
+      onFetch() {
+        const path = join(runtimes.get(fake.port), "leases.json");
+        const registry = JSON.parse(readFileSync(path, "utf8"));
+        delete registry.regional_context_claims[`${fake.port}:sc:na`];
+        writeFileSync(path, JSON.stringify(registry));
+      },
+    }),
+  }] });
+  try {
+    const result = await runCli(fake.port, ["inventory", "--out", out]);
+    assert.equal(result.code, 1, result.out);
+    assert.match(result.out, /TASK_TAB_CONTROL_LOST/);
+    assert.equal(existsSync(out), false);
+  } finally { await fake.close(); }
+});
+
+test("structured account fields switch a wrong resolved account on the owned page", { concurrency: false }, async () => {
+  const facts = { url: "https://sellercentral.amazon.com/home", csrfMeta: true, chooserButtonCount: 0 };
+  const identity = { displayName: "Wrong Brand", merchantId: "WRONG", marketplace: "ATVPDKIKX0DER" };
+  const behavior = pageBehavior({ facts, identity,
+    fetchResult: { report: "file", text: "sku\nVERIFIED\n" },
+    onNavigate(url) { facts.url = url; },
+  });
+  const evaluate = behavior.results["Runtime.evaluate"];
+  behavior.results["Runtime.evaluate"] = (params) => {
+    const expr = params.expression || "";
+    if (expr.includes("getBoundingClientRect")) return { result: { value: { x: 20, y: 20, count: 1, current: false } } };
+    if (!expr.includes("chooserButtonCount") && (expr.includes("full-page-account-switcher-account-details") || expr.includes("!location.pathname"))) {
+      return { result: { value: true } };
+    }
+    return evaluate(params);
+  };
+  let clicks = 0;
+  behavior.results["Input.dispatchMouseEvent"] = (params) => {
+    if (params.type === "mouseReleased") {
+      clicks++;
+      const registry = JSON.parse(readFileSync(join(runtimes.get(fake.port), "leases.json"), "utf8"));
+      assert.ok(registry.regional_context_claims[`${fake.port}:sc:na`], "regional claim held through account selection");
+      identity.displayName = "Requested Brand";
+      identity.merchantId = "REQUESTED";
+    }
+    return {};
+  };
+  const fake = await startFakeCdp({ targets: [{ id: "ANCHOR", url: facts.url, behavior }] });
+  try {
+    const result = await runCli(fake.port, ["inventory", "--out", join(OUT_DIR, "switched.txt"),
+      "--account-name", "Requested Brand", "--marketplace-label", "United States"]);
+    assert.equal(result.code, 0, result.out);
+    assert.match(result.out, /Account switch: done/);
+    assert.ok(clicks >= 2);
+    assert.ok(fake.sent.every((command) => command.targetId !== "ANCHOR"));
+  } finally { await fake.close(); }
+});
+
+test("observable marketplace ID mismatch stops before fetching", { concurrency: false }, async () => {
+  const facts = { url: "https://sellercentral.amazon.com/home", csrfMeta: true, chooserButtonCount: 0 };
+  const identity = { displayName: "Example Brand", merchantId: "MERCHANT", marketplace: "A1PA6795UKMFR9" };
+  let fetched = false;
+  const fake = await startFakeCdp({ targets: [{ id: "ANCHOR", url: facts.url,
+    behavior: pageBehavior({ facts, identity, onFetch() { fetched = true; } }),
+  }] });
+  try {
+    const result = await runCli(fake.port, BUSINESS_ARGS);
+    assert.equal(result.code, 1, result.out);
+    assert.match(result.out, /Requested marketplace us could not be verified/);
+    assert.equal(fetched, false);
+  } finally { await fake.close(); }
+});
+
+
+for (const [marketplace, sourceOrigin, wantedOrigin, scope] of [
+  ["us", "https://sellercentral.amazon.com.br", "https://sellercentral.amazon.com", "sc:na"],
+  ["de", "https://sellercentral.amazon.com.tr", "https://sellercentral.amazon.de", "sc:eu"],
+  ["br", "https://sellercentral.amazon.com", "https://sellercentral.amazon.com.br", "global"],
+  ["tr", "https://sellercentral.amazon.de", "https://sellercentral.amazon.com.tr", "global"],
+  ["ca", "https://sellercentral.amazon.com", "https://sellercentral.amazon.com", "sc:na"],
+]) {
+  test(`report ${marketplace} routes within its declared group and acquires ${scope}`, async () => {
+    const facts = { url: wantedOrigin + "/home", csrfMeta: true, chooserButtonCount: 0 };
+    const identity = { displayName: "Routing Seller", merchantId: "MERCHANT", marketplace: marketplace.toUpperCase() };
+    let heldScope;
+    const behavior = pageBehavior({ facts, identity, fetchResult: { report: "file", text: "sku\nVERIFIED\n" },
+      onNavigate(url) { facts.url = url; },
+      onFetch() {
+        const registry = JSON.parse(readFileSync(join(runtimes.get(fake.port), "leases.json"), "utf8"));
+        const task = Object.values(registry.task_tabs)[0];
+        heldScope = task.contextScope;
+        const claim = scope === "global" ? registry.context_claims[String(fake.port)]
+          : registry.regional_context_claims[`${fake.port}:${scope}`];
+        assert.equal(claim.controlToken, task.controller.token);
+      },
+    });
+    const fake = await startFakeCdp({ targets: [{ id: "ROUTING_ANCHOR", url: sourceOrigin + "/home", behavior }] });
+    try {
+      const result = await runCli(fake.port, ["inventory", "--marketplace", marketplace,
+        "--expect-account", "Routing Seller", "--out", join(OUT_DIR, `route-${marketplace}.txt`)]);
+      assert.equal(result.code, 0, result.out);
+      assert.equal(heldScope, scope);
+      const navigations = fake.sent.filter(command => command.method === "Page.navigate" && command.params.url !== "about:blank");
+      assert.ok(navigations.length);
+      assert.ok(navigations.every(command => new URL(command.params.url).origin === wantedOrigin));
+      assert.ok(fake.sent.every(command => command.targetId !== "ROUTING_ANCHOR"));
+    } finally { await fake.close(); }
+  });
+}
+
+test("report rejects contradictory requested marketplace and origin before acquiring or selecting", async () => {
+  const facts = { url: "https://sellercentral.amazon.de/home", csrfMeta: true, chooserButtonCount: 0 };
+  const fake = await startFakeCdp({ targets: [{ id: "ANCHOR", url: facts.url,
+    behavior: pageBehavior({ facts, identity: { displayName: "Seller", marketplace: "DE" } }) }] });
+  try {
+    const result = await runCli(fake.port, [...BUSINESS_ARGS, "--marketplace", "us", "--origin", "https://sellercentral.amazon.de"]);
+    assert.equal(result.code, 1, result.out);
+    assert.match(result.out, /TASK_TAB_CONTEXT_MISMATCH/);
+    assert.equal(fake.sent.filter(command => command.method === "Target.createTarget").length, 0);
+    assert.equal(fake.sent.filter(command => command.method === "Input.dispatchMouseEvent").length, 0);
+  } finally { await fake.close(); }
 });

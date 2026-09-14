@@ -85,8 +85,8 @@ Reports: `sqp` (Search Query Performance), `business` (Detail Sales & Traffic), 
 Hands-off (preferred; needs Chrome on the debug port; an agent with shell/`@computer` runs and troubleshoots it). Copy-paste path: fill a per-client config once (`config.TEMPLATE.json` → `config.<client>.json`, gitignored), then a fixed command:
 
 ```bash
-node tools/browserctl/browserctl.mjs ensure --port 9222
-node tools/browserctl/browserctl.mjs auth --port 9222 --target <target-id>
+node tools/browserctl/browserctl.mjs ensure --port 9223
+node tools/browserctl/browserctl.mjs auth --port 9223 --target <target-id>
 node tools/report-fetcher/run.mjs doctor           # connection + login + WHICH SELLER each tab is on
 node tools/report-fetcher/run.mjs all --config tools/report-fetcher/config.<client>.json --plan
 node tools/report-fetcher/run.mjs all --config tools/report-fetcher/config.<client>.json \

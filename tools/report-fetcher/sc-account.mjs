@@ -15,6 +15,8 @@
  * read-only carve-out. No cookies, storage or tokens are read beyond that tag.
  */
 import { Session, evaluate } from "./cdp.mjs";
+import { isRegionalScope } from "../browserctl/context-scopes.mjs";
+import { pickerSelectionExpression, pickerSelectionError, waitForMarketplaceSelection } from "./account-selection.mjs";
 
 export const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -128,6 +130,7 @@ export async function waitFor(session, expression, description, timeoutMs = 3000
     try {
       if (await evaluate(session, expression, 10000)) return;
     } catch (error) {
+      if (error.code === "TASK_TAB_CONTROL_LOST") throw error;
       if (!/context|navigation|target|session/i.test(error.message)) throw error;
     }
     await sleep(250);
@@ -136,11 +139,14 @@ export async function waitFor(session, expression, description, timeoutMs = 3000
 }
 
 export async function trustedClick(session, expression, description) {
+  // Headed Chrome may leave a restored task in a background tab. Focus the
+  // exact controlled target before dispatching trusted pointer events.
+  await session.send("Page.bringToFront", {}, { timeoutMs: 10000 });
   const box = await evaluate(session, expression, 10000);
   if (!box || !Number.isFinite(box.x) || !Number.isFinite(box.y)) {
     throw new Error(`Could not find ${description}`);
   }
-  for (const type of ["mousePressed", "mouseReleased"]) {
+  for (const type of ["mouseMoved", "mousePressed", "mouseReleased"]) {
     await session.send("Input.dispatchMouseEvent", {
       type, x: box.x, y: box.y, button: "left", clickCount: 1,
     }, { timeoutMs: 10000 });
@@ -152,7 +158,10 @@ export async function waitForAppPage(session, timeoutMs = 30000) {
   while (Date.now() - t0 < timeoutMs) {
     const ok = await evaluate(session,
       `document.readyState === "complete" && !!document.querySelector('meta[name="anti-csrftoken-a2z"]')`,
-      10000).catch(() => false);
+      10000).catch((error) => {
+        if (error.code === "TASK_TAB_CONTROL_LOST") throw error;
+        return false;
+      });
     if (ok) return;
     await sleep(500);
   }
@@ -166,7 +175,24 @@ export async function waitForAppPage(session, timeoutMs = 30000) {
  * Fail-closed: any ambiguity (0 or >1 matches, challenge, logged out) throws
  * ACCOUNT_SWITCH_BLOCKED and changes nothing further.
  */
-export async function switchAccount(session, origin, profile, { returnTo = "/home" } = {}) {
+export async function switchAccount(session, origin, profile, { returnTo = "/home", marketplaceTimeoutMs = 30000 } = {}) {
+  const managedPort = [9222, 9223].includes(Number(process.env.CDP_PORT || 9223))
+    || /^(1|true|yes|on)$/i.test(String(process.env.CDP_ENABLE_TEST_LEASES || ""));
+  if (managedPort) {
+    if (typeof session.assertTaskControl !== "function") {
+      const error = new Error("TASK_TAB_CONTROL_LOST: account switching requires exclusive task control");
+      error.code = "TASK_TAB_CONTROL_LOST";
+      throw error;
+    }
+    await session.assertTaskControl({ exclusiveContext: true,
+      sellerCentral: { origin, ...(profile.marketplace != null ? { marketplace: profile.marketplace } : {}) },
+    });
+    if (isRegionalScope(session._taskContextScope) && profile.marketplace == null) {
+      const error = Object.assign(new Error("TASK_TAB_CONTEXT_INVALID: regional account switching requires a canonical marketplace code"),
+        { code: "TASK_TAB_CONTEXT_INVALID" });
+      throw session.invalidateTaskControl(error);
+    }
+  }
   await session.send("Page.enable", {}, { timeoutMs: 10000 });
   await session.send("Page.navigate", { url: accountPickerUrl(origin, returnTo) }, { timeoutMs: 15000 });
   await waitFor(session, `document.readyState === "complete"`, "Seller Central account picker");
@@ -178,7 +204,6 @@ export async function switchAccount(session, origin, profile, { returnTo = "/hom
   if (auth !== "authenticated") throw new Error(`ACCOUNT_SWITCH_BLOCKED: Seller Central is ${auth}`);
 
   const account = JSON.stringify(profile.accountName);
-  const marketplace = JSON.stringify(profile.marketplaceLabel);
   const parent = JSON.stringify(profile.parentAccountName || "");
   // The picker renders its agency parent before the asynchronously loaded
   // seller accounts. Waiting for merely "any button" made a valid account look
@@ -187,37 +212,27 @@ export async function switchAccount(session, origin, profile, { returnTo = "/hom
     const labels=[...document.querySelectorAll("button.full-page-account-switcher-account-details")].map(e=>norm(e.innerText));
     return labels.includes(${account}) || (${parent} && labels.includes(${parent}));})()`,
   `requested Seller Central account ${profile.accountName}`);
-  const accountBox = `(()=>{const norm=s=>(s||"").replace(/\\s*\\((aktuell|current)\\)\\s*$/i,"").trim();
-    const matches=[...document.querySelectorAll("button.full-page-account-switcher-account-details")].filter(e=>norm(e.innerText)===${account});
-    if(matches.length!==1)return {count:matches.length};const e=matches[0];e.scrollIntoView({block:"center"});const r=e.getBoundingClientRect();
-    return{x:r.x+r.width/2,y:r.y+r.height/2,count:1,expanded:!!e.querySelector("[class*=expanded]")}})()`;
+  const accountBox = pickerSelectionExpression(profile, "account");
   let accountHit = await evaluate(session, accountBox, 10000);
+  if (accountHit?.accountCount > 1) throw pickerSelectionError("account", "ambiguous", profile.accountName);
   if (accountHit?.count === 0 && profile.parentAccountName) {
-    const parentBox = `(()=>{const matches=[...document.querySelectorAll("button.full-page-account-switcher-account-details")]
-      .filter(e=>(e.innerText||"").trim()===${parent});if(matches.length!==1)return {count:matches.length};const e=matches[0];
-      e.scrollIntoView({block:"center"});const r=e.getBoundingClientRect();return{x:r.x+r.width/2,y:r.y+r.height/2,count:1,expanded:!!e.querySelector("[class*=expanded]")}})()`;
+    const parentBox = pickerSelectionExpression(profile, "parent");
     const parentHit = await evaluate(session, parentBox, 10000);
-    if (parentHit?.count !== 1) throw new Error(`ACCOUNT_SWITCH_BLOCKED: parent account is unavailable or ambiguous (${profile.parentAccountName})`);
-    await trustedClick(session, parentBox, `parent account ${profile.parentAccountName}`);
+    if (parentHit?.count !== 1) throw pickerSelectionError("parent", parentHit?.accountCount > 1 ? "ambiguous" : "missing", profile.parentAccountName);
+    if (!parentHit.expanded) await trustedClick(session, parentBox, `parent account ${profile.parentAccountName}`);
     await waitFor(session, `(${accountBox}).count === 1`, `seller account ${profile.accountName} under ${profile.parentAccountName}`);
     accountHit = await evaluate(session, accountBox, 10000);
   }
-  if (accountHit?.count !== 1) throw new Error(`ACCOUNT_SWITCH_BLOCKED: account is unavailable or ambiguous (${profile.accountName})`);
+  if (accountHit?.count !== 1) throw pickerSelectionError("account", accountHit?.accountCount > 1 ? "ambiguous" : "missing", profile.accountName);
 
-  const marketplaceBox = `(()=>{const norm=s=>(s||"").replace(/\\s*\\((aktuell|current)\\)\\s*$/i,"").trim();
-    const groups=[...document.querySelectorAll("div.full-page-account-switcher-account")];
-    const groupsForAccount=groups.filter(g=>[...g.children].some(c=>c.matches?.("button.full-page-account-switcher-account-details")&&norm(c.innerText)===${account}));
-    if(groupsForAccount.length!==1)return {count:groupsForAccount.length};
-    const matches=[...groupsForAccount[0].querySelectorAll("button.full-page-account-switcher-account-details")].filter(e=>norm(e.innerText)===${marketplace});
-    if(matches.length!==1)return {count:matches.length};const e=matches[0];e.scrollIntoView({block:"center"});const r=e.getBoundingClientRect();
-    return{x:r.x+r.width/2,y:r.y+r.height/2,count:1,current:/\\((aktuell|current)\\)/i.test(e.innerText||"")}})()`;
-  let marketplaceHit = await evaluate(session, marketplaceBox, 10000);
-  if (marketplaceHit?.count === 0) {
+  const marketplaceBox = pickerSelectionExpression(profile, "marketplace");
+  const readMarketplace = () => evaluate(session, marketplaceBox, 10000);
+  let marketplaceHit = await readMarketplace();
+  if (marketplaceHit?.count === 0 && !accountHit.expanded) {
     await trustedClick(session, accountBox, `account ${profile.accountName}`);
-    await sleep(500);
-    marketplaceHit = await evaluate(session, marketplaceBox, 10000);
   }
-  if (marketplaceHit?.count !== 1) throw new Error(`ACCOUNT_SWITCH_BLOCKED: marketplace is unavailable or ambiguous (${profile.marketplaceLabel})`);
+  marketplaceHit = await waitForMarketplaceSelection(readMarketplace,
+    `${profile.accountName} / ${profile.marketplaceLabel}`, { timeoutMs: marketplaceTimeoutMs });
   if (!marketplaceHit.current) {
     await trustedClick(session, marketplaceBox, `marketplace ${profile.marketplaceLabel}`);
     await sleep(500);

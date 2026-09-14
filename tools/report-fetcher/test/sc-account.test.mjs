@@ -1,3 +1,5 @@
+// Explicit isolated ephemeral WebSocket fixtures; managed port mismatches still reject.
+process.env.CDP_ENABLE_TEST_LEASES = "1";
 import assert from "node:assert/strict";
 import test from "node:test";
 
