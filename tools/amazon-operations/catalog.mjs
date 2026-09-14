@@ -17,7 +17,7 @@ export async function run(input) {
   const {plan}=input,stage=plan.body.stages[input.stage-1];
   ui.check(stage&&input.stage>=1,'Invalid catalog stage');
   const origin=ui.origins[plan.account.marketplace];ui.check(origin,'Unsupported marketplace');
-  const page=await acquireTaskPage({taskId:taskIdFor('amazon-operations',plan.operation_id),workflow:'amazon-catalog',initialUrl:origin+'/home',exclusiveContext:true});
+  const page=await acquireTaskPage({taskId:taskIdFor('amazon-operations',plan.operation_id),workflow:'amazon-catalog',initialUrl:origin+'/home',exclusiveContext:true,sellerCentral:{marketplace:plan.account.marketplace,origin}});
   let attempted=false,outcome='error';
   const result=data=>({schema_version:1,plan_hash:input.plan_hash,stage:input.stage,...data});
   try {
@@ -34,7 +34,7 @@ export async function run(input) {
     verifyCatalogPreview(state,stage);
     state=await ui.context(page.session,plan.account,'catalog');verifyCatalogPreview(state,stage);
     const evidence=join(dirname(input.receipt_path),`catalog-stage-${input.stage}-before-submit.png`);
-    await ui.screenshot(page.session,evidence);
+    await ui.screenshot(page,evidence,plan.account,'catalog');
     await ui.receipt(input.receipt_path,result({status:'uncertain',reason:'before_submit',evidence}));
     attempted=true;
     await ui.click(page.session,null,{id:'submit-button'});

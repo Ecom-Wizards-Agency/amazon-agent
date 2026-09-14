@@ -26,8 +26,10 @@ import tempfile
 from urllib.parse import urlsplit
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "tools/browserctl"))
+from browser_session import session_environment
 ALIASES = {'seo.apply': 'seo.update', 'flatfile.apply': 'flatfilepro.update', 'listing.images.replace': 'listing.images', 'catalog.products.create': 'catalog.change', 'catalog.family.update': 'catalog.change', 'account_health.fields.restore': 'flatfilepro.update', 'account_health.images.restore': 'listing.images'}
-OPERATIONS = {'seo.update', 'flatfilepro.update', 'listing.images', 'catalog.change', 'shipment.create'} | set(ALIASES)
+OPERATIONS = {'seo.update', 'flatfilepro.update', 'listing.images', 'catalog.change', 'shipment.create', 'case.create', 'case.reply'} | set(ALIASES)
 
 def operation_kind(value):
     return ALIASES.get(value, value)
@@ -98,6 +100,10 @@ def load_module(name, relative):
 
 def evidence_tools():
     return load_module('merlin_operation_evidence', 'tools/amazon-operations/evidence.py')
+
+
+def case_tools():
+    return load_module('amazon_case_operations', 'tools/amazon-operations/case_operations.py')
 
 
 def verify_hosted_asset(path, url):
@@ -247,13 +253,30 @@ def prepare_copy(request, directory):
     with contextlib.redirect_stdout(io.StringIO()):
         result = prep.main(['--source', str(source), '--changes', str(changes_path), '--output', str(output), '--fill-unchanged'])
     require(result == 0, 'preparation_failed', 'FlatFilePro preparation failed')
+    preserve_headers = inputs.get('image_policy') == 'secondary_slots_only'
+    if preserve_headers:
+        # The current FFP image selector exposes the export's __1__ spelling.
+        # Preserve this narrow batch's exact template headers; legacy copy
+        # workbooks retain their established canonical-header behavior.
+        from openpyxl import load_workbook
+        raw_headers = {prep.canonical_attribute(field): field for field in transmitted}
+        workbook = load_workbook(output)
+        try:
+            for cell in workbook.active[1]:
+                if cell.value != 'sku':
+                    require(cell.value in raw_headers, 'artifact_mismatch', 'Unexpected image workbook header')
+                    cell.value = raw_headers[cell.value]
+            workbook.save(output)
+        finally:
+            workbook.close()
     upload_headers = prep.read_source_headers(output)
     upload_rows = prep.read_source_rows(output, upload_headers)
     expected_skus = {c['sku'] for c in changes}
     require(set(upload_rows) == expected_skus, 'artifact_mismatch', 'Upload row coverage differs from changed SKUs')
-    expected = {sku: {prep.canonical_attribute(field): as_text(source_rows[sku].get(field)) for field in transmitted} for sku in expected_skus}
+    output_field = (lambda field: field) if preserve_headers else prep.canonical_attribute
+    expected = {sku: {output_field(field): as_text(source_rows[sku].get(field)) for field in transmitted} for sku in expected_skus}
     for c in changes:
-        expected[c['sku']][prep.canonical_attribute(c['field'])] = c['after']
+        expected[c['sku']][output_field(c['field'])] = c['after']
     for sku, row in expected.items():
         require({k: v for k, v in upload_rows[sku].items() if k != 'sku'} == row, 'artifact_mismatch', 'Reopened upload does not match full-grid expected values')
     return {'status': 'prepared', 'changes': changes, 'expected_rows': expected, 'upload': str(output), 'mapping': [h for h in upload_headers if h != 'sku'], 'adapter': 'flatfilepro.cdp', 'requires_live_canary': True, 'sku_asins': inputs.get('sku_asins', {}), 'restore_missing_only': request['operation'].startswith('account_health.'), 'finding_id': inputs.get('finding_id')}
@@ -283,9 +306,24 @@ def prepare_images(request, directory):
     require({c['sku'] for c in changes} == set(request['targets']), 'missing_images', 'Every target requires an image')
     fields = inputs.get('image_fields', {})
     require(all(image['slot'] in fields for image in changes), 'missing_image_mapping', 'image_fields must map each slot to an exact source-export header')
-    require(all(re.fullmatch(r'(main_product_image_locator|other_product_image_locator(_[0-9]+)?|swatch_product_image_locator)([._].*)?', field) for field in fields.values()), 'scope_violation', 'Image mapping must use image attributes')
+    canonical_fields = [evidence_tools().canonical_header(field) for field in fields.values()]
+    require(len(set(canonical_fields)) == len(fields), 'duplicate_image_mapping', 'Each image slot must map to its own template attribute')
+    for slot, field in fields.items():
+        require(isinstance(field, str) and re.fullmatch(r'MAIN|PT0[1-9]|SWCH', slot), 'scope_violation', 'Unsupported image slot or attribute')
+        prefix = {'MAIN': 'main_product_image_locator', 'SWCH': 'swatch_product_image_locator'}.get(slot, f'other_product_image_locator_{int(slot[2:])}' if slot.startswith('PT') else '')
+        require(evidence_tools().canonical_header(field) == prefix + '.0.media_location', 'scope_violation', 'Image slot must map to its exact supported template media_location attribute')
+    policy = inputs.get('image_policy')
+    require(policy in {None, 'secondary_slots_only'}, 'scope_violation', 'Unknown image policy')
+    if policy:
+        require(all(image['slot'].startswith('PT') for image in changes) and all(slot.startswith('PT') for slot in fields), 'scope_violation', 'Secondary image updates cannot change MAIN or swatches')
     copy_request = json.loads(json.dumps(request))
     copy_request['operation'] = 'flatfilepro.update'
+    # FFP can export mangled headers while the current catalog uses canonical ones.
+    for row in copy_request['inputs'].get('live', {}).get('rows', {}).values():
+        for field in fields.values():
+            canonical_field = evidence_tools().canonical_header(field)
+            if field not in row and canonical_field in row:
+                row[field] = row[canonical_field]
     desired = {}
     for image in changes:
         desired.setdefault(image['sku'], {})[fields[image['slot']]] = image['url']
@@ -297,7 +335,32 @@ def prepare_images(request, directory):
     prepared['images'] = changes
     prepared['restore_missing_only'] = request['operation'].startswith('account_health.')
     prepared['sku_asins'] = inputs.get('sku_asins', {})
+    if policy:
+        prepared['image_policy'] = policy
+        prepared['image_before_rows'] = image_before_rows(request, directory)
     return prepared
+
+
+def image_before_rows(request, directory):
+    """Freeze all exported image attributes, including untouched slots and MAIN."""
+    inputs = request['inputs']
+    source = input_artifact(inputs.get('source_export'), directory, 'image-baseline-export')
+    evidence = evidence_tools()
+    rows = evidence.report_rows(source)
+    baseline = {}
+    for sku in request['targets']:
+        row = rows.get(sku, {})
+        live = inputs['live']['rows'].get(sku, {})
+        image_fields = {field: as_text(value) for field, value in row.items()
+                        if re.fullmatch(r'(?:main_product_image_locator|swatch_product_image_locator|other_product_image_locator_[1-9])\.0\.media_location', field)}
+        require(image_fields.get('main_product_image_locator.0.media_location'), 'missing_main_image', 'Secondary updates require an observed existing MAIN image')
+        require(all(field in live and as_text(live[field]) == value for field, value in image_fields.items()), 'stale_source', 'Complete live image evidence must match the source export, including protected slots')
+        asin = inputs.get('sku_asins', {}).get(sku)
+        require(isinstance(asin, str) and re.fullmatch(r'[A-Z0-9]{10}', asin) and (live.get('asin') or live.get('ASIN')) == asin, 'image_identity_mismatch', 'Live catalog evidence must bind every seller SKU to its exact ASIN')
+        require(evidence.field_value(live, 'parentage') == 'child', 'image_identity_mismatch', 'Secondary updates require verified child listings')
+        baseline[sku] = {**image_fields, 'asin': asin, 'parentage_level.0.value': 'child',
+                         'child_parent_sku_relationship.0.parent_sku': evidence.field_value(live, 'parent_sku')}
+    return baseline
 
 
 def prepare_catalog(request, directory):
@@ -444,9 +507,16 @@ def prepare_shipment(request, directory):
 
 
 class Operations:
-    def __init__(self, state_dir):
+    def __init__(self, state_dir, *, case_state_dir=None, case_policy_path=None):
         self.root = Path(state_dir).expanduser().resolve()
         self.root.mkdir(parents=True, exist_ok=True)
+        # Constructor injection is for trusted tests/embedders; request payloads
+        # and the CLI cannot redirect case delivery into another claim journal.
+        self.case_root = Path(case_state_dir or Path.home() / '.amazon-agent/cases').expanduser().resolve()
+        self.case_policy_path = case_policy_path
+
+    def case_journal_boundary(self):
+        require(self.root == self.case_root / 'operations', 'case_journal_mismatch', 'Case operations must use the canonical shared case journal directory')
 
     def directory(self, operation_id):
         require(isinstance(operation_id, str) and re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]{0,99}', operation_id), 'invalid_id', 'operation_id must be a simple 1..100 character identifier')
@@ -476,12 +546,16 @@ class Operations:
         request = json.loads(json.dumps(request))
         raw_targets = request.get('targets')
         require(isinstance(raw_targets, list), 'invalid_targets', 'targets must be a list')
-        targets = [x.get('sku') if isinstance(x, dict) else x for x in raw_targets]
+        is_case = request['operation'].startswith('case.')
+        if is_case:
+            self.case_journal_boundary()
+        targets = case_tools().validate_targets(request['operation'], raw_targets) if is_case else [x.get('sku') if isinstance(x, dict) else x for x in raw_targets]
         request['targets'] = targets
         target_asins = {x['sku']: x['asin'] for x in raw_targets if isinstance(x, dict) and x.get('sku') and x.get('asin')}
         if target_asins:
             request.setdefault('inputs', {}).setdefault('sku_asins', target_asins)
-        require(isinstance(targets, list) and targets and all(isinstance(x, str) and x for x in targets) and len(targets) == len(set(targets)), 'invalid_targets', 'targets must be unique nonempty SKU strings')
+        if not is_case:
+            require(isinstance(targets, list) and targets and all(isinstance(x, str) and x for x in targets) and len(targets) == len(set(targets)), 'invalid_targets', 'targets must be unique nonempty SKU strings')
         require(isinstance(request.get('inputs'), dict), 'missing_inputs', 'inputs object required')
         request = health_request(request)
         directory = self.directory(request.get('operation_id'))
@@ -491,7 +565,7 @@ class Operations:
                 old = json.loads((directory / 'plan.json').read_text())
                 require(old['request_hash'] == fingerprint, 'immutable_request', 'An operation ID cannot be reused with different inputs; create a new revision ID')
                 return self.view(directory)
-            handlers = {'seo.update': prepare_copy, 'flatfilepro.update': prepare_copy, 'listing.images': prepare_images, 'catalog.change': prepare_catalog, 'shipment.create': prepare_shipment}
+            handlers = {'seo.update': prepare_copy, 'flatfilepro.update': prepare_copy, 'listing.images': prepare_images, 'catalog.change': prepare_catalog, 'shipment.create': prepare_shipment, 'case.create': case_tools().prepare, 'case.reply': case_tools().prepare}
             body = handlers[operation_kind(request['operation'])](request, directory)
             artifacts = [{'path': str(p), 'sha256': file_hash(p)} for p in sorted(directory.rglob('*')) if p.is_file() and p.name != '.lock']
             plan = {'schema_version': 1, 'operation_id': request['operation_id'], 'operation': request['operation'], 'account': request['account'], 'targets': targets, 'request_hash': fingerprint, 'prepared_at': now(), 'body': body, 'artifacts': artifacts}
@@ -518,17 +592,32 @@ class Operations:
         with self.lock(directory):
             state, plan = self.bound(directory, request)
             grant = request.get('grant', {})
-            require(grant.get('execute') is True and grant.get('account') == plan['account'] and grant.get('operation') == plan['operation'] and grant.get('plan_hash') == state['plan_hash'] and set(x.get('sku') if isinstance(x, dict) else x for x in grant.get('targets', [])) == set(plan['targets']), 'grant_mismatch', 'Execution grant must bind exact account, operation, targets and plan hash')
+            case_operation = plan['operation'].startswith('case.')
+            if case_operation:
+                self.case_journal_boundary()
+            target_match = grant.get('targets') == plan['targets'] if case_operation else set(x.get('sku') if isinstance(x, dict) else x for x in grant.get('targets', [])) == set(plan['targets'])
+            require(grant.get('execute') is True and grant.get('account') == plan['account'] and grant.get('operation') == plan['operation'] and grant.get('plan_hash') == state['plan_hash'] and target_match, 'grant_mismatch', 'Execution grant must bind exact account, operation, targets and plan hash')
             if plan['body'].get('no_changes') and state['status'] == 'prepared':
                 return self.persist(directory, state, 'processing', phase='verification', effects_started=False, next_action='reconcile', reason='live_image_verification_required')
-            if state['status'] in TERMINAL or state['status'] in {'processing', 'uncertain'} or (state['status'] == 'partial' and not state.get('next_stage') and state.get('next_action') != 'execute'):
+            image_preflight_pending = state.get('phase') == 'image_preflight' and state.get('effects_started') is False
+            if state['status'] in TERMINAL or state['status'] == 'uncertain' or (state['status'] == 'processing' and not image_preflight_pending) or (state['status'] == 'partial' and not state.get('next_stage') and state.get('next_action') != 'execute'):
                 return state
-            require(state['status'] in {'prepared', 'blocked', 'partial'}, 'not_ready', 'Operation requires inputs before execution')
-            adapters = {'flatfilepro.cdp': 'flatfilepro.mjs', 'catalog.cdp': 'catalog.mjs', 'shipment.cdp': 'shipments.mjs'}
+            if case_operation:
+                case_tools().validate_execution(plan, grant, case_state_dir=self.case_root, case_policy_path=self.case_policy_path)
+            require(state['status'] in {'prepared', 'blocked', 'partial'} or image_preflight_pending, 'not_ready', 'Operation requires inputs before execution')
+            adapters = {'flatfilepro.cdp': 'flatfilepro.mjs', 'catalog.cdp': 'catalog.mjs', 'shipment.cdp': 'shipments.mjs', 'cases.cdp': 'cases.mjs'}
             adapter_script = adapters.get(plan['body'].get('adapter'))
             if not adapter_script or not (ROOT / 'tools/amazon-operations' / adapter_script).is_file():
                 return self.persist(directory, state, 'blocked', reason='adapter_unavailable', message='Preparation is complete. No verified submission adapter is installed for this operation.')
             require(grant.get('allow_live_canary') is True or grant.get('allow_validated_adapter') is True, 'canary_required', 'This adapter needs an explicitly scoped live canary before production enablement')
+            image_preflight = None
+            if plan['body'].get('image_policy') == 'secondary_slots_only':
+                fresh = self.collect_export(directory, state, plan, purpose='preflight')
+                if fresh is None:
+                    return self.persist(directory, state, 'processing', phase='image_preflight', effects_started=False, reason='fresh_report_pending', next_action='execute', retry_after_seconds=60)
+                self.validate_image_baseline(plan, fresh['rows'])
+                require(dt.timedelta(0) <= timestamp(now()) - timestamp(fresh['report_generated_at']) <= dt.timedelta(minutes=5), 'stale_report', 'Image pre-submit report must be no more than five minutes old and cannot be future dated')
+                image_preflight = {key: fresh[key] for key in ('path', 'sha256', 'report_generated_at')}
             if plan['body'].get('restore_missing_only'):
                 receipt = state.get('preflight_receipt')
                 if receipt and timestamp(now()) - timestamp(receipt['report_generated_at']) <= dt.timedelta(minutes=5):
@@ -546,17 +635,35 @@ class Operations:
                 verify_hosted_asset(image['path'], image['url'])
             # Journal intent before spawning; loss of response can never cause blind replay.
             self.persist(directory, state, 'uncertain', execution_started_at=now(), reason='submission_attempt_started', execution_stage=state.pop('next_stage', state.get('execution_stage', 1)), submission_id=None, effects_started=True, phase='executing', next_action=None)
-            envelope = {'schema_version': 1, 'plan': plan, 'plan_path': str(directory / 'plan.json'), 'plan_hash': state['plan_hash'], 'receipt_path': str(directory / 'adapter-receipt.json'), 'stage': state['execution_stage']}
+            envelope = {'schema_version': 1, 'plan': plan, 'plan_path': str(directory / 'plan.json'), 'plan_hash': state['plan_hash'], 'receipt_path': str(directory / 'adapter-receipt.json'), 'stage': state['execution_stage'], 'mode': 'execute'}
+            if image_preflight:
+                envelope['image_preflight'] = image_preflight
+                envelope['allow_attended_canary'] = grant.get('allow_live_canary') is True
+                envelope['allow_validated_image_adapter'] = grant.get('allow_validated_adapter') is True
             atomic_json(directory / 'adapter-input.json', envelope)
             try:
-                result = subprocess.run(['node', str(ROOT / 'tools/amazon-operations' / adapter_script), '--request', str(directory / 'adapter-input.json')], capture_output=True, text=True, timeout=1800, check=False, env={**os.environ, 'CDP_PORT': '9222'})
+                result = subprocess.run(['node', str(ROOT / 'tools/amazon-operations' / adapter_script), '--request', str(directory / 'adapter-input.json')], capture_output=True, text=True, timeout=1800, check=False, env={**os.environ, **session_environment(os.environ.get('AMAZON_BROWSER_SESSION', 'grimoire'), inherit=True)})
                 response = json.loads(result.stdout)
                 require(response.get('plan_hash') == state['plan_hash'], 'adapter_identity', 'Adapter result is not bound to this plan')
                 status = response.get('status')
                 require(status in {'processing', 'blocked', 'failed', 'uncertain'}, 'adapter_status', 'Adapter cannot claim verified completion')
-                return self.persist(directory, state, status, adapter_result=response, submission_id=response.get('submission_id'), reason=response.get('reason'))
+                guarded_submission = case_operation or bool(plan['body'].get('image_policy'))
+                if guarded_submission and response.get('attempted') is not False and status in {'blocked', 'failed'}:
+                    status = 'uncertain'
+                return self.persist(directory, state, status, adapter_result=response, submission_id=response.get('submission_id'), reason=response.get('reason'), effects_started=response.get('attempted', True) if guarded_submission else True)
             except (subprocess.TimeoutExpired, json.JSONDecodeError, OSError, OperationError) as exc:
                 return self.persist(directory, state, 'uncertain', reason='adapter_result_uncertain', message=str(exc))
+
+    def validate_image_baseline(self, plan, rows, *, protected_only=False):
+        evidence = evidence_tools()
+        touched = {(image['sku'], f"other_product_image_locator_{int(image['slot'][2:])}.0.media_location")
+                   for image in plan['body']['images'] if image['slot'].startswith('PT')}
+        for sku, baseline in plan['body']['image_before_rows'].items():
+            for field, value in baseline.items():
+                if protected_only and (sku, field) in touched:
+                    continue
+                observed = evidence.field_value(rows.get(sku, {}), field)
+                require(observed is not None and observed == value, 'image_state_conflict', f'Current child identity or protected image changed: {sku}/{field}')
 
     def verified_health_noop(self, directory, state, plan, fresh):
         evidence = {'schema_version': 1, 'account': plan['account'], 'plan_hash': state['plan_hash'], 'source_id': fresh.get('source_id', fresh['path']), 'observed_at': now(), 'processing_status': 'live_observed', 'no_changes': True, 'report_artifact': {key: fresh[key] for key in ('path', 'sha256', 'report_generated_at') if key in fresh}, 'rows': {sku: {field: evidence_tools().field_value(fresh['rows'].get(sku, {}), field) for field in fields} for sku, fields in plan['body'].get('expected_rows', {}).items()}}
@@ -580,17 +687,25 @@ class Operations:
                 require(current is not None and current == as_text(expected), 'health_conflict', f'Carried field {sku}/{field} is missing or changed; automatic restoration stopped')
 
     def run_collector(self, directory, script, request, timeout=180):
-        require(script in {'catalog-export.mjs', 'image-evidence.mjs'}, 'invalid_collector', 'Unknown fixed collector')
+        require(script in {'catalog-export.mjs', 'image-evidence.mjs', 'cases.mjs', 'flatfilepro.mjs', 'flatfilepro-export.mjs', 'flatfilepro-activity.mjs'}, 'invalid_collector', 'Unknown fixed collector')
         input_path = directory / (script.replace('.mjs', '') + '-input.json')
         atomic_json(input_path, request)
         try:
-            result = subprocess.run(['node', str(ROOT / 'tools/amazon-operations' / script), '--request', str(input_path)], capture_output=True, text=True, timeout=timeout, check=False, env={**os.environ, 'CDP_PORT': '9222'})
+            result = subprocess.run(['node', str(ROOT / 'tools/amazon-operations' / script), '--request', str(input_path)], capture_output=True, text=True, timeout=timeout, check=False, env={**os.environ, **session_environment(os.environ.get('AMAZON_BROWSER_SESSION', 'grimoire'), inherit=True)})
             data = json.loads(result.stdout)
             if data.get('status') == 'collected':
                 require(data.get('account') == request['account'] and data.get('plan_hash') == request['plan_hash'], 'collector_identity', 'Collector account or plan mismatch')
             return data
         except (OSError, ValueError, subprocess.TimeoutExpired):
             return {'status': 'blocked', 'reason': 'collector_result_unavailable'}
+
+    def observe(self, request):
+        """Collect case capability and correspondence without preparing a send."""
+        require(request.get('schema_version') == 1 and request.get('operation') in {'case.create', 'case.reply'}, 'invalid_request', 'Case observation requires a case operation')
+        account(request.get('account'))
+        case_tools().validate_targets(request['operation'], request.get('targets'))
+        directory = self.directory(request.get('operation_id'))
+        return self.run_collector(directory, 'cases.mjs', {**request, 'mode': 'observe', 'plan_hash': digest(request)})
 
     def collect_export(self, directory, state, plan, purpose='verification'):
         minimum = plan['prepared_at'] if purpose == 'preflight' else state.get('execution_started_at', plan['prepared_at'])
@@ -607,6 +722,15 @@ class Operations:
 
     def collect_images(self, directory, state, plan):
         body = plan['body']
+        activity = None
+        if body.get('image_policy') and state.get('submission_id'):
+            activity = self.run_collector(directory, 'flatfilepro-activity.mjs', {
+                'schema_version': 1, 'operation_id': plan['operation_id'], 'account': plan['account'],
+                'plan_hash': state['plan_hash'], 'submission_id': state['submission_id'],
+                'expected_rows': body['expected_rows']}, timeout=300)
+            state['last_processing_collection'] = activity
+            if activity.get('status') != 'collected' or activity.get('complete') is not True:
+                return None
         mapping = body.get('sku_asins', {})
         if not all(image['sku'] in mapping for image in body['images']):
             return None
@@ -628,7 +752,15 @@ class Operations:
             except (OSError, ValueError):
                 match = None
             observed.append({**image, 'source_sha256': source['sha256'], 'visually_verified': bool(match), 'content_match': match})
-        return {'account': plan['account'], 'plan_hash': state['plan_hash'], 'source_id': 'amazon-live-imageblock', 'observed_at': now(), 'submission_id': state.get('submission_id'), 'processing_status': 'live_observed', 'images': observed}
+        protected = {}
+        if body.get('image_policy'):
+            fresh = self.collect_export(directory, state, plan)
+            if fresh is None:
+                return None
+            self.validate_image_baseline(plan, fresh['rows'], protected_only=True)
+            protected = {'protected_rows': {sku: fresh['rows'][sku] for sku in body['image_before_rows']}}
+        return {'account': plan['account'], 'plan_hash': state['plan_hash'], 'source_id': 'amazon-live-imageblock', 'observed_at': now(), 'submission_id': state.get('submission_id'), 'processing_status': 'live_observed', 'images': observed, **protected,
+                **({'ffp_processing': activity} if activity else {})}
 
     def collect(self, directory, state, plan):
         """Read-only live PDP collector using the established listing-capture runner.
@@ -640,10 +772,19 @@ class Operations:
         if state['status'] in {'verified', 'failed'}:
             return None
         body = plan['body']
+        if plan['operation'].startswith('case.'):
+            return case_tools().collect(self, directory, state, plan)
         driver_evidence = state.get('adapter_result', {}).get('evidence')
         if isinstance(driver_evidence, dict):
             return driver_evidence
         kind = operation_kind(plan['operation'])
+        if kind == 'listing.images' and state.get('effects_started') and not state.get('submission_id'):
+            recovery = self.run_collector(directory, 'flatfilepro.mjs', {'schema_version': 1, 'plan': plan, 'plan_path': str(directory / 'plan.json'), 'plan_hash': state['plan_hash'], 'receipt_path': str(directory / 'adapter-receipt.json'), 'account': plan['account'], 'mode': 'reconcile'})
+            state['last_import_recovery'] = recovery
+            if recovery.get('status') == 'collected' and recovery.get('submission_id'):
+                state['submission_id'] = recovery['submission_id']
+                if recovery.get('processing_status') == 'failed':
+                    return recovery
         if kind == 'listing.images' and (state.get('submission_id') or body.get('no_changes')):
             return self.collect_images(directory, state, plan)
         if not state.get('submission_id'):
@@ -673,7 +814,7 @@ class Operations:
             return None
         output = directory / ('live-listings-' + str(len(state.get('events', []))) + '.json')
         try:
-            result = subprocess.run(['node', str(ROOT / 'tools/listing-capture/capture-cdp.mjs'), ','.join(sorted(set(mapping[sku] for sku in expected))), str(output), *market], capture_output=True, text=True, timeout=300, check=False, env={**os.environ, 'CDP_PORT': '9222'})
+            result = subprocess.run(['node', str(ROOT / 'tools/listing-capture/capture-cdp.mjs'), ','.join(sorted(set(mapping[sku] for sku in expected))), str(output), *market], capture_output=True, text=True, timeout=300, check=False, env={**os.environ, **session_environment(os.environ.get('AMAZON_BROWSER_SESSION', 'grimoire'), inherit=True)})
             if result.returncode or not output.is_file():
                 return None
             captured = json.loads(output.read_text())
@@ -701,6 +842,11 @@ class Operations:
         directory = self.directory(request.get('operation_id'))
         with self.lock(directory):
             state, plan = self.bound(directory, request)
+            if plan['operation'].startswith('case.'):
+                self.case_journal_boundary()
+                return case_tools().reconcile(self, directory, state, plan, request)
+            if state.get('phase') == 'image_preflight' and state.get('effects_started') is False:
+                return self.persist(directory, state, 'processing', next_action='execute', reason='fresh_report_pending', retry_after_seconds=60)
             if state.get('phase') == 'preflight' and state.get('effects_started') is False:
                 require(plan['body'].get('restore_missing_only'), 'invalid_preflight', 'Unexpected preflight state')
                 fresh = self.collect_export(directory, state, plan, purpose='preflight')
@@ -743,11 +889,30 @@ class Operations:
                     for field, value in row.items():
                         (matched if sku in observed and field in observed[sku] and as_text(observed[sku][field]) == value else pending).append(f'{sku}/{field}')
             elif op == 'listing.images':
+                if body.get('image_policy'):
+                    self.validate_image_baseline(plan, evidence.get('protected_rows', {}), protected_only=True)
+                processing_attributes = {}
+                if body.get('image_policy') and not body.get('no_changes'):
+                    activity = evidence.get('ffp_processing') or {}
+                    require(activity.get('status') == 'collected' and activity.get('complete') is True and
+                            activity.get('submission_id') == evidence.get('submission_id') and
+                            activity.get('account') == plan['account'] and activity.get('plan_hash') == state['plan_hash'],
+                            'missing_processing_evidence', 'Secondary image verification requires complete exact-run FlatFilePro processing evidence')
+                    processing_attributes = {(item['sku'], evidence_tools().canonical_header(item['field'])): item['status'] for item in activity['attributes']}
+                    expected_attributes = {(sku, evidence_tools().canonical_header(field)) for sku, fields in body['expected_rows'].items() for field in fields}
+                    require(set(processing_attributes) == expected_attributes and len(processing_attributes) == len(activity['attributes']),
+                            'processing_coverage', 'Processing status must cover every transmitted SKU and image field exactly once')
                 observed = {(x.get('sku'), x.get('slot')): x for x in evidence.get('images', [])}
+                processing_failures = []
                 for image in body['images']:
                     item = observed.get((image['sku'], image['slot']), {})
+                    field = ('other_product_image_locator_' + str(int(image['slot'][2:])) + '.0.media_location') if image['slot'].startswith('PT') else None
+                    attribute_status = processing_attributes.get((image['sku'], field))
+                    if attribute_status in {'failed', 'rejected'}:
+                        processing_failures.append(f"{image['sku']}/{image['slot']}: {attribute_status}")
+                        continue
                     # Amazon may transform files: collector must explicitly establish visual identity.
-                    ok = item.get('source_sha256') == image['sha256'] and item.get('visually_verified') is True and item.get('live_url', '').startswith('https://')
+                    ok = item.get('source_sha256') == image['sha256'] and item.get('visually_verified') is True and item.get('live_url', '').startswith('https://') and attribute_status in {None, 'reflected'}
                     (matched if ok else pending).append(f"{image['sku']}/{image['slot']}")
             elif op == 'catalog.change':
                 stage = evidence.get('stage')
@@ -816,18 +981,22 @@ class Operations:
                         require(stream.read(5) == b'%PDF-', 'invalid_label', 'Shipment labels must be PDF files')
                     require(label.get('shipment_id') in shipment_ids, 'invalid_label', 'Label shipment identity mismatch')
                     matched.append(label['carton_id'])
-            errors = evidence.get('errors', [])
+            errors = evidence.get('errors', []) + (processing_failures if op == 'listing.images' else [])
             status = 'verified' if matched and not pending and not errors else ('partial' if matched else ('processing' if processing == 'live_observed' else 'failed'))
+            if op == 'listing.images' and errors and not pending:
+                # Retain the verified subset while stopping a fully resolved
+                # rejected batch; polling cannot repair terminal feed failures.
+                status = 'failed'
             return self.persist(directory, state, status, submission_id=evidence.get('submission_id'), matched=matched, pending=pending, failures=errors, evidence_path=str(evidence_path))
 
 
 def capabilities():
-    return {'schema_version': 1, 'operations': {name: {'prepare': True, 'reconcile': True, 'execute_adapter': {'seo.update':'flatfilepro.cdp','flatfilepro.update':'flatfilepro.cdp','catalog.change':'catalog.cdp','shipment.create':'shipment.cdp','listing.images':'flatfilepro.cdp'}.get(operation_kind(name)), 'production_ready': False, 'requires_live_canary': True, 'limitation': 'Live selector contracts require scoped canary' if operation_kind(name) in {'seo.update', 'flatfilepro.update', 'catalog.change', 'shipment.create', 'listing.images'} else 'No observed submission adapter installed'} for name in sorted(OPERATIONS)}}
+    return {'schema_version': 1, 'operations': {name: {'prepare': True, 'reconcile': True, 'execute_adapter': {'seo.update':'flatfilepro.cdp','flatfilepro.update':'flatfilepro.cdp','catalog.change':'catalog.cdp','shipment.create':'shipment.cdp','listing.images':'flatfilepro.cdp','case.create':'cases.cdp','case.reply':'cases.cdp'}.get(operation_kind(name)), 'production_ready': False, 'requires_live_canary': True, 'limitation': 'Live selector contracts require scoped canary' if operation_kind(name) in {'seo.update', 'flatfilepro.update', 'catalog.change', 'shipment.create', 'listing.images', 'case.create', 'case.reply'} else 'No observed submission adapter installed'} for name in sorted(OPERATIONS)}}
 
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('command', choices=['capabilities', 'prepare', 'execute', 'advance', 'reconcile', 'status'])
+    parser.add_argument('command', choices=['capabilities', 'prepare', 'execute', 'advance', 'reconcile', 'status', 'observe'])
     parser.add_argument('--request', type=Path)
     parser.add_argument('--state-dir', type=Path)
     args = parser.parse_args(argv)

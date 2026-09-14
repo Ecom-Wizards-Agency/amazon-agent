@@ -2,7 +2,7 @@
 
 ## Chrome Setup
 
-- Use managed Chrome CDP, normally port 9222, because FlatFilePro depends on its logged-in session and native file-upload support.
+- Use managed Chrome CDP, the shared `grimoire` session on port 9223, because FlatFilePro depends on its logged-in session and native file-upload support.
 - If managed Chrome is unavailable, recover it rather than switching to the T3 Code in-app browser. If FlatFilePro is logged out, run the exact-origin authentication broker and stop for the operator on any human challenge.
 - Do not inspect passwords, cookies, local storage, tokens, or session data.
 

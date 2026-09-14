@@ -4,6 +4,7 @@ import { readIdentity } from '../report-fetcher/sc-account.mjs';
 import { writeFile, rename, readFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { dirname, resolve } from 'node:path';
+import { captureTaskEvidence } from '../browserctl/task-evidence.mjs';
 
 export const origins = {US:'https://sellercentral.amazon.com',DE:'https://sellercentral.amazon.de',AU:'https://sellercentral.amazon.com.au',UK:'https://sellercentral.amazon.co.uk',IT:'https://sellercentral.amazon.it',FR:'https://sellercentral.amazon.fr',ES:'https://sellercentral.amazon.es',CA:'https://sellercentral.amazon.ca'};
 export function check(ok, message) { if (!ok) throw new Error(message); }
@@ -29,6 +30,10 @@ export async function snapshot(session) {
     const rows=els.filter(el=>visible(el)&&el.matches('tr,[role="row"]')).map(el=>[...el.querySelectorAll('th,td,[role="cell"],[role="columnheader"],[role="gridcell"]')].map(c=>clean(c.innerText||c.textContent))).filter(r=>r.length);
     const contexts=els.filter(el=>visible(el)&&(el.matches('header,nav,[role="banner"],#sc-mkt-picker-switcher-select,#sc-mkt-picker-switcher')||clean(el.innerText||el.textContent).startsWith('Seller & Marketplace'))).map(el=>clean(el.innerText||el.textContent)).filter(t=>t.length<1600);
     const contextTokens=els.filter(el=>visible(el)&&el.matches('[data-test="current-account"],.dropdown-account-switcher-header,[class*="AccountSwitcher" i],[data-testid*="account-switcher" i],#sc-mkt-picker-switcher-select,header,nav')).map(el=>[...el.querySelectorAll('*')].filter(child=>visible(child)&&child.children.length===0).map(child=>clean(child.innerText||child.textContent)).filter(Boolean));
+    // FFP renders its selected seller as a combobox value, outside innerText.
+    if(location.origin==='https://app.flatfile.pro') for(const el of els.filter(el=>visible(el)&&el.matches('input[role="combobox"]')&&clean(el.parentElement.querySelector('legend')?.textContent)==='Seller & Marketplace')) {
+      contexts.push('Seller & Marketplace '+clean(el.value));
+    }
     const files=els.filter(el=>el.tagName==='INPUT'&&el.type==='file').flatMap(el=>[...el.files||[]].map(f=>f.name));
     const aiEnabled=els.some(el=>el.matches('input,kat-toggle,kat-checkbox')&&(el.checked||el.hasAttribute('checked'))&&/AI-generated content/i.test(el.parentElement?.innerText||''));
     return {url:location.href,title:document.title,text:clean(document.body?.innerText),controls,rows,contexts,contextTokens,files,aiEnabled};
@@ -57,10 +62,36 @@ export function contextMatches(state, acct, site) {
   return structured||exact;
 }
 export async function context(session,acct,site) {
+  const ownership={exclusiveContext:true,...(site==='ffp'?{}:{sellerCentral:{marketplace:acct.marketplace,origin:origins[acct.marketplace]}})};
+  await session.assertTaskControl(ownership);
   const state=await snapshot(session);
   if(site!=='ffp') state.identity=await readIdentity(session);
+  else {
+    const url=new URL(state.url),seller=url.searchParams.get('sellerId'),market=url.searchParams.get('marketplaceId');
+    if(seller||market) state.identity={merchantId:seller,marketplace:market};
+  }
   check(contextMatches(state,acct,site),'Exact selected account/marketplace cannot be verified against live IDs or a uniquely bound registry label');
+  await session.assertTaskControl(ownership);
   return state;
+}
+
+export async function selectFlatFileProAccount(session, acct) {
+  await session.assertTaskControl({exclusiveContext:true});
+  const selected=await waitFor(()=>evaluate(session,`(()=>{const entries=[...document.querySelectorAll('input[role="combobox"]')].filter(e=>e.getBoundingClientRect().width>0&&(e.parentElement.querySelector('legend')?.textContent||'').trim()==='Seller & Marketplace');if(entries.length>1)throw Error('Ambiguous FFP account selector');return entries.length===1?entries[0].value:null})()`),value=>Boolean(value));
+  if(selected!==acct.flatfilepro_display_name) {
+    check(acct.flatfilepro_option_name,'Verified FlatFilePro account option label is missing');
+    await evaluate(session,`(()=>{const e=[...document.querySelectorAll('input[role="combobox"]')].filter(e=>e.getBoundingClientRect().width>0&&(e.parentElement.querySelector('legend')?.textContent||'').trim()==='Seller & Marketplace');if(e.length!==1)throw Error('Ambiguous account selector');e[0].parentElement.querySelector('button[aria-label="Open"]').click()})()`);
+    await waitFor(()=>snapshot(session),s=>s.controls.some(c=>c.label===acct.flatfilepro_option_name));
+    await evaluate(session,`(()=>{const entries=[...document.querySelectorAll('[role="option"]')].filter(e=>e.getBoundingClientRect().width>0&&(e.innerText||'').trim()===${JSON.stringify(acct.flatfilepro_option_name)});if(entries.length!==1)throw Error('Ambiguous FFP account option');entries[0].click()})()`);
+    await waitFor(()=>snapshot(session),s=>contextMatches(s,acct,'ffp'));
+  }
+  return context(session,acct,'ffp');
+}
+
+export async function clickFlatFilePro(session,label) {
+  await session.assertTaskControl({exclusiveContext:true});
+  await evaluate(session,`(()=>{if(location.origin!=='https://app.flatfile.pro')throw Error('Wrong FlatFilePro origin');const clean=x=>String(x||'').replace(/\\s+/g,' ').trim();const matches=[...document.querySelectorAll('button,a,[role="button"],[role="option"]')].filter(e=>e.getBoundingClientRect().width>0&&e.getBoundingClientRect().height>0&&!e.disabled&&e.getAttribute('aria-disabled')!=='true'&&clean(e.getAttribute('aria-label')||e.innerText||e.textContent)===${JSON.stringify(label)});if(matches.length!==1)throw Error('Expected one enabled FlatFilePro control');matches[0].click()})()`);
+  await session.assertTaskControl({exclusiveContext:true});
 }
 export async function click(session,label,{id=null}={}) {
   const point=await evaluate(session,`(() => {
@@ -84,4 +115,16 @@ export async function attach(session,path,{id=null}={}) {
   await session.send('DOM.setFileInputFiles',{files:[path],nodeId:matches[0].nodeId});
 }
 export async function waitFor(fn,predicate,timeout=30000) {const end=Date.now()+timeout;let value;do{value=await fn();if(predicate(value))return value;await new Promise(r=>setTimeout(r,350));}while(Date.now()<end);throw new Error('Expected page state did not appear');}
-export async function screenshot(session,path) { const data=await session.send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});await writeFile(path,Buffer.from(data.data,'base64')); }
+export async function screenshot(page,path,account,site) {
+  const verify = async () => {
+    const state = await context(page.session,account,site);
+    return {kind:site==='ffp'?'flatfilepro':'seller-central',
+      accountName:site==='ffp'?account.flatfilepro_display_name:(account.seller_central_name||account.seller_account),
+      marketplace:account.marketplace,sellerId:account.seller_id,marketplaceId:account.marketplace_id,
+      observedIdentity:state.identity||null,contextTokens:state.contextTokens||[],url:state.url};
+  };
+  const shot=await captureTaskEvidence(page,{}, {verify});
+  await writeFile(path,shot.data);
+  await receipt(path+'.json',shot.evidence);
+  return shot.evidence;
+}

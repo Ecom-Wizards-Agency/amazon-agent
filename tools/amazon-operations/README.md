@@ -7,16 +7,62 @@ recovery evidence and domain verification. It never imports Wizards code.
 All browser adapters are **implemented but require a scoped live canary**. No
 Amazon account was modified during development. Capabilities report
 `production_ready: false` as the library baseline; preparing an artifact does not
-enable production. Wizards owns the verified-canary release ledger and may grant
-`allow_validated_adapter: true` after that adapter is explicitly released.
+enable production. Wizards owns the release ledger for existing SKU adapters. Case adapters use the
+shared account-specific `case-policy.json` readiness record and canonical verified
+canary journal; a caller-supplied release flag alone cannot enable them.
 The CLI trusts the authenticated local caller to supply grants and fresh evidence.
 Do not expose it directly to untrusted HTTP, Slack text, or model-generated shell.
 
 Use the Amazon Agent Python environment with `openpyxl` and Pillow installed.
 Node must support the repository's existing CDP modules. Browser execution uses
-managed task tabs and an exclusive account context on port 9222; there is no
-fallback to the read-only port, another browser, raw credentials or arbitrary
-commands supplied in a request.
+managed task tabs and an exclusive account context in the shared `grimoire`
+session on port 9223. Resolve it before imports with `browserctl run --session
+grimoire -- …`. There is no fallback to another profile or arbitrary commands
+supplied in a request. Registered executors also require verified access on 9223.
+
+The FlatFilePro import screen observed on 2026-09-13 uses `/import`, the `SKU`
+identifier radio, `UPLOAD EXCEL FILE`, and `IMPORT` to parse the uploaded workbook.
+The mapping inputs are labeled `Search attribute headings` and `Search attributes`.
+The adapter stages a workbook named by its plan hash and journals the exact
+seller/marketplace-prefixed server upload key before mapping. A restart selects
+that same uploaded file; an unknown upload response never triggers another
+attachment automatically.
+
+The current v2 metadata response uses `other_product_image_locator_1__1__media_location`
+through slot 8. Its autocomplete hides those identifiers in option rows, but
+searches them and includes them in the selected input label. Live read-only
+inspection confirmed an exact raw search returns one option; canonical dotted
+search returns none. The adapter searches the raw identifier, requires a unique
+candidate, and checks the selected technical label before mapping. Ambiguous or
+changed labels return `ffp_image_slot_unverifiable`.
+
+The `/import` URL exposes no submission ID. Public app code shows submission
+returns a separate `runId` linked at `/activity/import/<runId>`. The observed
+read-only `/listing-update-runs` response was empty for the selected account, so
+upload-to-run correlation could not be established from a real run. The recorded
+server upload key proves which workbook was staged, but does not prove that it was
+submitted. Secondary image execution can use an attended canary grant or a
+validated image adapter grant supplied by the operation service. That route
+durably reserves the uploaded config identity before `Update Listings`, observes
+only the exact config's update response body, and persists its returned `runId`.
+Missing, malformed or ambiguous responses remain uncertain and cannot replay.
+Without those scoped grants, `ffp_submission_recovery_unverified` prevents the
+final click on `/import`.
+
+`flatfilepro-activity.mjs` reads a known run's summary and all item pages through
+the observed Activity routes. It checks the exact seller, marketplace, SKUs,
+attributes and submitted values before returning processing evidence. Secondary
+image verification requires that evidence alongside current Amazon images and
+preserved MAIN/swatches. Rejected slots are reported separately from verified
+slots. The image-only workbook preserves the current export's exact headers;
+other workbook routes keep their existing normalization.
+
+A durably captured runId is recoverable after loss of the adapter response.
+If the submission response itself was lost before its runId could be recorded,
+upload-to-run history correlation remains unavailable and the attempt stays
+blocked without another update. Activity item shapes, pagination, mapping
+readback and the full preview still require the attended live canary. No Amazon
+image update was submitted during development.
 
 ```sh
 python3 tools/amazon-operations/operations.py capabilities
@@ -32,8 +78,9 @@ specific `reason` with exit code 2. An exit code of zero is not completion.
 ## Requests and immutable plans
 
 Preparation accepts `schema_version: 1`, a unique `operation_id`, `operation`,
-`account`, `targets` and `inputs`. Targets are unique SKU strings or objects with
-`sku` and optional `asin`; objects normalize to SKU strings. ASINs populate
+`account`, `targets` and `inputs`. SKU-operation targets are unique SKU strings or objects with
+`sku` and optional `asin`; objects normalize to SKU strings. Case operations use
+`{issue_key}` for creation and `{case_id}` for replies. ASINs populate
 `inputs.sku_asins` for later live verification.
 
 Account identity includes `client_slug`, `profile_key` and `marketplace` and is
@@ -58,8 +105,9 @@ The plan contains copied source artifacts and checksums, the intended changes,
 exact upload files, and execution stages. Each later call checks plan and
 artifact hashes. Reusing an operation ID with different inputs is rejected;
 corrections create a new operation revision ID. A worker lease protects each
-journal. The state directory is a caller-selected local artifact root, not a
-remote delivery destination; callers register generated artifacts for retention.
+journal. For SKU operations the state directory is a caller-selected local artifact root,
+not a remote delivery destination. Case operations require the shared canonical
+`~/.amazon-agent/cases/operations` root to prevent alternate-journal replay; callers register generated artifacts for retention.
 
 Execution request:
 
@@ -202,3 +250,41 @@ comparable source and fresh report fields. Images with transformed pixels need
 additional visual evidence rather than an approximate similarity claim. Shipment
 execution is limited to the driver's documented saved-template, case-pack,
 non-partnered SPD route; other modes stay blocked.
+
+## Team-owned cases
+
+See [the case workflow](../../docs/team-owned-cases.md) for ownership, scope,
+daily review and rollout. The shared case service prepares a signed request and
+returns its canonical operations state directory. Use that exact request with
+`prepare`, then `execute` and `reconcile`; do not construct a separate case plan.
+
+```sh
+python3 tools/amazon-operations/case_service.py start --request team-request.json
+python3 tools/amazon-operations/case_service.py prepare-send --request reviewed-message.json
+python3 tools/amazon-operations/case_service.py list
+python3 tools/amazon-operations/case_service.py daily-due
+```
+
+`adopt` imports an observed existing case without inventing an owner or mandate.
+`reassign`, `revoke` and `resolve` require explicit verified team instructions.
+`record-receipt` consumes the canonical independently verified delivery journal.
+
+Every outgoing message includes an evidence-backed routine scope assessment,
+with category `factual_evidence`, `clarification` or `status_check`, rationale,
+source references and the SHA-256 of the unsigned body. Preparation adds the
+saved owner's signature. Changed owner, mandate, content, attachments or account
+invalidates the pending action. This structured review does not replace checking
+that the underlying facts are supported.
+
+The read-only `observe` command returns complete case correspondence or a scoped
+case search. Creation searches by shipment ID, ASIN or exact subject and freezes
+the query for the pre-submit duplicate check. Incomplete or truncated history
+blocks a send. The current transcript reader supports up to 50 contacts and
+reports incompleteness when Amazon exposes more; such cases need an expanded
+reader before automatic sending.
+
+Case readiness is recorded per exact seller/marketplace and separately for
+`case.create` and `case.reply`. A canary must refer to a real verified canonical
+journal and independent saved-correspondence evidence. A visible button alone
+is insufficient. The create/reply form selectors still need live validation in
+an account with confirmed access before production release.

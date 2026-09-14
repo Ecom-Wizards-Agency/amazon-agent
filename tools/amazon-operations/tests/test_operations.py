@@ -13,6 +13,11 @@ spec.loader.exec_module(op)
 
 class OperationsTests(unittest.TestCase):
     def setUp(self):
+        # Keep adapter mocks independent from the browser-session resolver's
+        # subprocess and avoid routing a real session from unit tests.
+        session_patch = patch.object(op, 'session_environment', return_value={'CDP_PORT':'9223','AMAZON_BROWSER_SESSION':'grimoire'})
+        session_patch.start()
+        self.addCleanup(session_patch.stop)
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)

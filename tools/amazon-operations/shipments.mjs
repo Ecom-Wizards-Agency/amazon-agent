@@ -6,6 +6,7 @@ import path from "node:path";
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
+import { withTaskDownloads } from "../browserctl/task-downloads.mjs";
 
 const MARKETS = { US: ["https://sellercentral.amazon.com", "United States"],
   AU: ["https://sellercentral.amazon.com.au", "Australia"],
@@ -149,12 +150,13 @@ export class StaBrowser {
     const tasks = await import("../browserctl/task-tabs.mjs");
     this.evaluate = cdp.evaluate; this.readIdentity = account.readIdentity;
     this.clickAt = account.trustedClick; this.release = tasks.releaseTaskPage;
-    this.page = await tasks.acquireTaskPage({ port: Number(process.env.CDP_PORT || 9222),
+    this.page = await tasks.acquireTaskPage({ port: Number(process.env.CDP_PORT || 9223),
       taskId: `amazon-operation:${context.plan.operation_id}`, slot: "primary", workflow: "amazon-logistics",
-      initialUrl: this.origin + "/home", exclusiveContext: true, allowOperatorActivity: true });
+      initialUrl: this.origin + "/home", exclusiveContext: true,
+      sellerCentral: { marketplace: context.plan.account.marketplace, origin: this.origin } });
     this.session = this.page.session;
     await account.switchAccount(this.session, this.origin, { accountName: context.plan.account.seller_central_name,
-      marketplaceLabel: this.marketplaceLabel }, { returnTo: "/fba/sendtoamazon" });
+      marketplaceLabel: this.marketplaceLabel, marketplace: context.plan.account.marketplace }, { returnTo: "/fba/sendtoamazon" });
     // Verify PDF tooling before creating anything externally.
     for (const command of ["pdfinfo", "pdftotext"]) execFileSync(command, ["-v"], { stdio: "pipe" });
   }
@@ -164,12 +166,16 @@ export class StaBrowser {
     throw new Error(`timed out waiting for ${label}; reconcile before retrying`);
   }
   async assertIdentity() {
+    await this.session.assertTaskControl({ exclusiveContext: true,
+      sellerCentral: { marketplace: this.context.plan.account.marketplace, origin: this.origin } });
     const identity = await this.readIdentity(this.session);
     const account = this.context.plan.account;
     assert(identity?.merchantId === account.seller_id && identity?.marketplace === account.marketplace_id,
       "live stable seller/marketplace identity is unavailable or mismatched");
     const url = await this.ev("location.href");
     assert(new URL(url).origin === this.origin, "Seller Central origin changed");
+    await this.session.assertTaskControl({ exclusiveContext: true,
+      sellerCentral: { marketplace: account.marketplace, origin: url } });
   }
   async click(selector, label) {
     await this.clickAt(this.session, `(() => { const nodes = [...document.querySelectorAll(${JSON.stringify(selector)})]
@@ -316,36 +322,38 @@ export class StaBrowser {
     }, "created shipments and labels", 180);
   }
   async downloadLabels(context, confirmed) {
-    const downloads = path.join(this.directory, "shipment-labels"); fs.mkdirSync(downloads, { recursive: true });
-    await this.session.send("Browser.setDownloadBehavior", { behavior: "allow", downloadPath: downloads, eventsEnabled: true }, { timeoutMs: 10000 });
-    const outputs = [];
-    for (const id of confirmed.shipment_ids) {
-      await this.assertIdentity();
-      // Anchor both controls to the exact shipment ID, never dropdown proximity.
-      const container = `(() => { const buttons=[...document.querySelectorAll('[data-testid="print-box-labels-button"]')];
-        const matches=[];for(const button of buttons){let e=button.parentElement;while(e&&e!==document.body){
-          const ids=[...new Set([...(e.innerText||'').matchAll(/\\bFBA[A-Z0-9]{8,}/g)].map(m=>m[0]))];
-          if(ids.length===1&&ids[0]===${JSON.stringify(id)}&&e.querySelectorAll('[data-testid="print-box-labels-button"]').length===1){matches.push(e);break;}e=e.parentElement;}}
-        return matches.length===1?matches[0]:null;})()`;
-      let format = await this.ev(`(() => {const root=${container};const select=root?.querySelector('[data-testid="print-label-dropdown"]');
-        if(!select)return null;return select.value||select.getAttribute('value');})()`);
-      if (format !== "PackageLabel_Thermal_NonPCP") {
-        await this.selectLabelFormat(container);
-        format = await this.ev(`(() => {const root=${container};const select=root?.querySelector('[data-testid="print-label-dropdown"]');return select?.value||select?.getAttribute('value');})()`);
+    return withTaskDownloads(this.page, async () => {
+      const downloads = path.join(this.directory, "shipment-labels"); fs.mkdirSync(downloads, { recursive: true });
+      await this.session.send("Browser.setDownloadBehavior", { behavior: "allow", downloadPath: downloads, eventsEnabled: true }, { timeoutMs: 10000 });
+      const outputs = [];
+      for (const id of confirmed.shipment_ids) {
+        await this.assertIdentity();
+        // Anchor both controls to the exact shipment ID, never dropdown proximity.
+        const container = `(() => { const buttons=[...document.querySelectorAll('[data-testid="print-box-labels-button"]')];
+          const matches=[];for(const button of buttons){let e=button.parentElement;while(e&&e!==document.body){
+            const ids=[...new Set([...(e.innerText||'').matchAll(/\\bFBA[A-Z0-9]{8,}/g)].map(m=>m[0]))];
+            if(ids.length===1&&ids[0]===${JSON.stringify(id)}&&e.querySelectorAll('[data-testid="print-box-labels-button"]').length===1){matches.push(e);break;}e=e.parentElement;}}
+          return matches.length===1?matches[0]:null;})()`;
+        let format = await this.ev(`(() => {const root=${container};const select=root?.querySelector('[data-testid="print-label-dropdown"]');
+          if(!select)return null;return select.value||select.getAttribute('value');})()`);
+        if (format !== "PackageLabel_Thermal_NonPCP") {
+          await this.selectLabelFormat(container);
+          format = await this.ev(`(() => {const root=${container};const select=root?.querySelector('[data-testid="print-label-dropdown"]');return select?.value||select?.getAttribute('value');})()`);
+        }
+        assert(format === "PackageLabel_Thermal_NonPCP", "requested thermal label format is not selected; do not print another format");
+        const before = new Set(fs.readdirSync(downloads));
+        await this.clickAt(this.session, `(() => {const root=${container};const e=root?.querySelector('[data-testid="print-box-labels-button"]');
+          if(!e||e.hasAttribute('disabled'))return null;e.scrollIntoView({block:'center'});const r=e.getBoundingClientRect();return{x:r.x+r.width/2,y:r.y+r.height/2};})()`, `labels for ${id}`);
+        const file = await this.wait(() => {
+          const fresh=fs.readdirSync(downloads).filter(name=>!before.has(name));
+          if(fresh.some(name=>name.endsWith('.crdownload')))return null;
+          const pdfs=fresh.filter(name=>name.toLowerCase().endsWith('.pdf'));
+          assert(pdfs.length<=1,"ambiguous label downloads");return pdfs.length===1?path.join(downloads,pdfs[0]):null;
+        }, `completed label PDF for ${id}`);
+        outputs.push({ shipment_id:id,path:file,sha256:sha256(fs.readFileSync(file)) });
       }
-      assert(format === "PackageLabel_Thermal_NonPCP", "requested thermal label format is not selected; do not print another format");
-      const before = new Set(fs.readdirSync(downloads));
-      await this.clickAt(this.session, `(() => {const root=${container};const e=root?.querySelector('[data-testid="print-box-labels-button"]');
-        if(!e||e.hasAttribute('disabled'))return null;e.scrollIntoView({block:'center'});const r=e.getBoundingClientRect();return{x:r.x+r.width/2,y:r.y+r.height/2};})()`, `labels for ${id}`);
-      const file = await this.wait(() => {
-        const fresh=fs.readdirSync(downloads).filter(name=>!before.has(name));
-        if(fresh.some(name=>name.endsWith('.crdownload')))return null;
-        const pdfs=fresh.filter(name=>name.toLowerCase().endsWith('.pdf'));
-        assert(pdfs.length<=1,"ambiguous label downloads");return pdfs.length===1?path.join(downloads,pdfs[0]):null;
-      }, `completed label PDF for ${id}`);
-      outputs.push({ shipment_id:id,path:file,sha256:sha256(fs.readFileSync(file)) });
-    }
-    return verifyLabelPdfs(outputs, context.shipment.cartons);
+      return verifyLabelPdfs(outputs, context.shipment.cartons);
+    });
   }
   async close() { if(this.page)await this.release(this.page,{outcome:"inspection"}); }
 }

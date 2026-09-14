@@ -1,0 +1,108 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { mkdtemp, readFile, writeFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { collect, exportDate, selectCompletedExport, validateExportLink } from '../flatfilepro-export.mjs';
+
+const account={seller_id:'SELLER1',marketplace_id:'MARKET1',marketplace:'DE'};
+const OLD='all-2026-09-12-01-02-03-000.xlsx',FRESH='all-2026-09-13-12-55-22-631.xlsx';
+const link=name=>({name,href:`https://ffp-export.s3.us-east-2.amazonaws.com/${account.seller_id}-${account.marketplace_id}/${name}`});
+const notice=`Export of listings complete for ${account.seller_id} on marketplace ${account.marketplace_id}, download it now.`;
+const complete={text:notice,links:[link(OLD),link(FRESH)],controls:[{label:'EXPORT ALL LISTINGS',disabled:false}]};
+const marker={requested_at:'2026-09-13T12:55:00.000Z',before_names:[OLD]};
+
+test('observed UTC filename is parsed exactly and overflow dates are rejected',()=>{
+  assert.equal(exportDate(FRESH),'2026-09-13T12:55:22.631Z');
+  for(const name of ['all-2026-02-30-12-55-22-631.xlsx','all-2026-09-13-25-55-22-631.xlsx','../'+FRESH,'latest.xlsx'])
+    assert.throws(()=>exportDate(name));
+});
+
+test('download link binds the exact public bucket, seller, marketplace and filename',()=>{
+  validateExportLink(link(FRESH),account);
+  for(const href of [link(FRESH).href+'?token=unused',link(FRESH).href.replace(account.seller_id,'OTHER'),link(FRESH).href.replace('ffp-export.s3.us-east-2.amazonaws.com','evil.example'),link(FRESH).href.replace(FRESH,OLD)])
+    assert.throws(()=>validateExportLink({name:FRESH,href},account),/exact seller\/marketplace path/);
+});
+
+test('old files cannot substitute for this completed export',()=>{
+  const at=Date.parse('2026-09-13T12:56:00Z');
+  assert.equal(selectCompletedExport(complete,marker,account,marker.requested_at,at).name,FRESH);
+  assert.equal(selectCompletedExport({...complete,links:[link(OLD)]},marker,account,marker.requested_at,at),null);
+  assert.equal(selectCompletedExport(complete,{...marker,before_names:[OLD,FRESH]},account,marker.requested_at,at),null);
+  assert.throws(()=>selectCompletedExport({...complete,text:notice.replace(account.marketplace_id,'OTHER')},marker,account,marker.requested_at,at),/completion/);
+  assert.throws(()=>selectCompletedExport({...complete,links:[...complete.links,link('all-2026-09-13-12-55-23-000.xlsx')]},marker,account,marker.requested_at,at),/More than one/);
+});
+
+async function fixture(t) {
+  const directory=await mkdtemp(join(tmpdir(),'ffp-export-'));t.after(()=>rm(directory,{recursive:true,force:true}));
+  const input={schema_version:1,operation_id:'export-test',account,plan_hash:'a'.repeat(64),minimum_after:'2026-09-13T12:54:00Z',output_dir:directory};
+  const facts={time:Date.parse(marker.requested_at),clicks:0,downloads:0,acquires:0,releases:0,pending:false,lostClick:false,changeAccount:false,reads:0};
+  const dependencies={
+    now:()=>facts.time,
+    acquire:async()=>{facts.acquires++;return {session:{}};},release:async()=>{facts.releases++;},
+    read:async()=>{
+      facts.reads++;
+      if(facts.changeAccount&&facts.downloads)throw new Error('Exact selected account changed');
+      return facts.clicks&&!facts.pending?complete:{text:'Export',links:[link(OLD)],controls:[{label:'EXPORT ALL LISTINGS',disabled:false}]};
+    },
+    click:async(_session,label)=>{
+      assert.equal(label,'EXPORT ALL LISTINGS');
+      assert.equal(JSON.parse(await readFile(join(directory,'ffp-export-request.json'),'utf8')).state,'request_outcome_unknown');
+      facts.clicks++;facts.time=Date.parse('2026-09-13T12:55:23Z');
+      if(facts.lostClick)throw new Error('Lost export click response');
+    },
+    download:async url=>{assert.equal(url,link(FRESH).href);facts.downloads++;return {bytes:Buffer.from('PK\x03\x04fixture-workbook'),content_type:'application/octet-stream'};},
+  };
+  return {directory,input,facts,dependencies};
+}
+
+test('collector records request before click, downloads the new file and reuses immutable result',async t=>{
+  const {input,facts,dependencies}=await fixture(t);
+  const result=await collect(input,dependencies);
+  assert.equal(result.status,'collected');assert.equal(result.complete_report,true);
+  assert.equal(result.report_generated_at,'2026-09-13T12:55:22.631Z');
+  assert.equal(facts.clicks,1);assert.equal(facts.downloads,1);
+  const again=await collect(input,dependencies);
+  assert.equal(again.sha256,result.sha256);
+  assert.equal(facts.clicks,1);assert.equal(facts.downloads,1);assert.equal(facts.acquires,1);
+});
+
+test('pending export is resumed without generating a second export',async t=>{
+  const {input,facts,dependencies}=await fixture(t);facts.pending=true;
+  assert.equal((await collect(input,dependencies)).status,'processing');
+  assert.equal((await collect(input,dependencies)).status,'processing');
+  assert.equal(facts.clicks,1);
+  facts.pending=false;
+  assert.equal((await collect(input,dependencies)).status,'collected');
+  assert.equal(facts.clicks,1);
+});
+
+test('lost export click response recovers the finished file without another click',async t=>{
+  const {input,facts,dependencies}=await fixture(t);facts.lostClick=true;
+  const unknown=await collect(input,dependencies);
+  assert.equal(unknown.status,'processing');assert.equal(unknown.reason,'ffp_export_request_outcome_unknown');
+  facts.lostClick=false;
+  assert.equal((await collect(input,dependencies)).status,'collected');
+  assert.equal(facts.clicks,1);
+});
+
+test('account changes during download cannot produce a collected export',async t=>{
+  const {input,facts,dependencies}=await fixture(t);facts.changeAccount=true;
+  const result=await collect(input,dependencies);
+  assert.equal(result.status,'blocked');assert.match(result.message,/account changed/);
+  assert.equal(facts.releases,1);
+});
+
+test('changed cached bytes and a reused marker with another plan fail closed',async t=>{
+  const {input,dependencies}=await fixture(t);
+  const first=await collect(input,dependencies);
+  await writeFile(first.path,'changed');
+  assert.match((await collect(input,dependencies)).message,/export changed/);
+  assert.match((await collect({...input,plan_hash:'b'.repeat(64)},dependencies)).message,/another account or operation/);
+});
+
+test('a downloaded file left before the final receipt is verified without overwriting',async t=>{
+  const {input,directory,dependencies}=await fixture(t);
+  await writeFile(join(directory,FRESH),Buffer.from('PK\x03\x04fixture-workbook'));
+  assert.equal((await collect(input,dependencies)).status,'collected');
+});

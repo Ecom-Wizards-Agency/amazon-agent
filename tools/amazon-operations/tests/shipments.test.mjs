@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
-import { validateShipment, validateQuote, executeShipment, labelPages, verifyLabelPdfs, writeReceipt, main } from "../shipments.mjs";
+import { validateShipment, validateQuote, executeShipment, labelPages, verifyLabelPdfs, writeReceipt, main, StaBrowser } from "../shipments.mjs";
 
 function request() {
   const account = { client_slug:"example",profile_key:"example_us",marketplace:"US",seller_id:"SELLER",marketplace_id:"MARKET",seller_central_name:"Example" };
@@ -79,6 +79,27 @@ test("missing carton labels cannot produce evidence-ready",async()=>{
   const result=await executeShipment(request(),fakeUi([],{downloadLabels:async()=>[]}),()=>{});
   assert.equal(result.status,"uncertain");assert.match(result.reason,/coverage/);
   assert.equal(result.evidence,undefined);
+});
+
+test("label download behavior stays inside the task download claim through PDF validation",async()=>{
+  const directory=fs.mkdtempSync(path.join(os.tmpdir(),"shipment-routing-test-"));
+  try {
+    const events=[];
+    const browser=Object.create(StaBrowser.prototype);
+    browser.directory=directory;
+    browser.session={assertTaskControl:async()=>events.push("assert"),send:async(method)=>events.push(method)};
+    browser.page={port:9222,taskId:"shipment",slot:"primary",targetId:"target",controlToken:"token",contextScope:"sc:na",
+      session:browser.session,_registry:{acquireTaskDownloads:async()=>{events.push("acquire");return {};},
+        releaseTaskDownloads:async()=>events.push("release")}};
+    // A missing output fails the real PDF coverage check while the claim is held.
+    await assert.rejects(browser.downloadLabels({shipment:{cartons:[{id:"missing",contents:{WIDGET:10}}]}},
+      {shipment_ids:[]}),/label PDFs do not cover all requested cartons/);
+    assert.deepEqual(events,["assert","acquire","assert","Browser.setDownloadBehavior","release"]);
+    browser.page._registry.acquireTaskDownloads=async()=>{throw Object.assign(new Error("busy"),{code:"TASK_TAB_DOWNLOAD_BUSY"});};
+    events.length=0;
+    await assert.rejects(browser.downloadLabels({shipment:{cartons:[]}}, {shipment_ids:[]}),{code:"TASK_TAB_DOWNLOAD_BUSY"});
+    assert.deepEqual(events,["assert"]);
+  } finally {fs.rmSync(directory,{recursive:true});}
 });
 
 test("PDF text rejects wrong shipment identity and requires SKU and quantity",()=>{

@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { verifyPreview } from '../flatfilepro.mjs';
 import { verifyCatalogPreview } from '../catalog.mjs';
-import { contextMatches } from '../browser-ui.mjs';
+import { contextMatches, context } from '../browser-ui.mjs';
+import { assertContextCovers } from '../../browserctl/context-scopes.mjs';
 
 test('FFP verifies each SKU-field full-grid cell, not a filename',()=>{
  const body={expected_rows:{a:{'item_name.0.value':'New A'},b:{'item_name.0.value':'Keep B'}}};
@@ -72,4 +73,26 @@ test('image collector uses variant identity and rejects redirected products',asy
  const record={resolved_asin:'B000000001',title:'Example',images:[{variant:'MAIN',url:'https://example.com/a.jpg'},{variant:'PT02',url:'https://example.com/b.jpg'}]};
  assert.deepEqual(selectExactSlots(record,'B000000001',['PT01','PT02']),[{slot:'PT02',live_url:'https://example.com/b.jpg'}]);
  assert.throws(()=>selectExactSlots(record,'B000000002',['MAIN']),/another product/);
+});
+
+
+test('catalog context rejects a different held region before reading account state',async()=>{
+ let reads=0;
+ const session={
+  assertTaskControl:async({exclusiveContext,sellerCentral})=>{
+   assert.equal(exclusiveContext,true);
+   assertContextCovers('sc:na',sellerCentral);
+  },
+  send:async()=>{reads++;throw new Error('Unexpected browser read');},
+ };
+ await assert.rejects(context(session,{marketplace:'DE'},'catalog'),{code:'TASK_TAB_CONTEXT_MISMATCH'});
+ assert.equal(reads,0);
+});
+
+test('catalog context stops on lost ownership before reading account state',async()=>{
+ let reads=0;
+ const session={assertTaskControl:async()=>{throw Object.assign(new Error('lost'),{code:'TASK_TAB_CONTROL_LOST'});},
+  send:async()=>{reads++;}};
+ await assert.rejects(context(session,{marketplace:'US'},'catalog'),{code:'TASK_TAB_CONTROL_LOST'});
+ assert.equal(reads,0);
 });

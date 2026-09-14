@@ -44,12 +44,20 @@ export async function collect(input) {
   const origin=ui.origins[input.account.marketplace];ui.check(origin,'Unsupported marketplace');
   const directory=input.output_dir;await mkdir(directory,{recursive:true});
   const markerPath=join(directory,'report-request.json');
-  const page=await acquireTaskPage({taskId:taskIdFor('amazon-operations',input.operation_id),slot:'verification',workflow:'amazon-reporting',initialUrl:origin+'/listing/reports/ref=xx_invreport_favb_xx',exclusiveContext:true});
+  const page=await acquireTaskPage({taskId:taskIdFor('amazon-operations',input.operation_id),slot:'verification',workflow:'amazon-reporting',initialUrl:origin+'/listing/reports/ref=xx_invreport_favb_xx',exclusiveContext:true,sellerCentral:{marketplace:input.account.marketplace,origin}});
   let outcome='error';
   const common={schema_version:1,account:input.account,plan_hash:input.plan_hash,observed_at:new Date().toISOString()};
   try {
-    await ui.waitFor(()=>ui.snapshot(page.session),s=>s.text.length>100);
-    await ui.context(page.session,input.account,'catalog');
+    // Navigation text renders before the account selector. Wait for the same
+    // exact identity check used before every report action; never infer identity
+    // from page length or accept a partially rendered header.
+    await ui.waitFor(async()=>{
+      try{return await ui.context(page.session,input.account,'catalog');}
+      catch(error){
+        if(error.message==='Exact selected account/marketplace cannot be verified against live IDs or a uniquely bound registry label')return null;
+        throw error;
+      }
+    },Boolean);
     if(new URL((await ui.snapshot(page.session)).url).pathname.indexOf('/listing/reports')!==0){
       await page.session.send('Page.navigate',{url:origin+'/listing/reports/ref=xx_invreport_favb_xx'});
       await ui.waitFor(()=>ui.snapshot(page.session),s=>s.text.includes('Report'));
@@ -78,6 +86,8 @@ export async function collect(input) {
     const url=new URL(links[0],origin);ui.check(url.origin===origin&&url.pathname.startsWith('/listing/'),'Report download link is outside observed listing-report route');
     await ui.context(page.session,input.account,'catalog');
     const content=await evaluate(page.session,`(async()=>{const response=await fetch(${JSON.stringify(url.href)},{credentials:'same-origin'});if(!response.ok)throw new Error('Report download HTTP '+response.status);const bytes=new Uint8Array(await response.arrayBuffer());if(bytes.length>30000000)throw new Error('Report exceeds 30 MB');let raw='';for(let i=0;i<bytes.length;i+=32768)raw+=String.fromCharCode(...bytes.subarray(i,i+32768));return{base64:btoa(raw),content_type:response.headers.get('content-type')};})()`,60000);
+    await ui.context(page.session,input.account,'catalog');
+    await page.session.assertTaskControl({exclusiveContext:true,sellerCentral:{marketplace:input.account.marketplace,origin}});
     const bytes=Buffer.from(content.base64,'base64');
     const extension=bytes.subarray(0,2).toString()==='PK'?'.xlsx':'.tsv';
     const path=join(directory,'category-listings'+extension);await writeFile(path,bytes);

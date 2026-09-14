@@ -4,9 +4,9 @@ Mode browser: CDP (logged-in FlatFilePro session; hidden native file input, MUI 
 
 ## Core Rule
 
-Use the operator's browser with the logged-in FlatFilePro session, per the Browser Standard in `AGENTS.md` (Chrome is the operator default). This mode operates the FlatFilePro upload/mapping UI after the upload file already exists. **FlatFilePro expects `.xlsx`** (operator, 2026-07-26); if you are handed a `.csv`, convert it to `.xlsx` before uploading rather than uploading the CSV. If the file still needs to be created from labels or backend exports, use the `prepare` mode first.
+Use the shared Grimoire browser with its logged-in FlatFilePro session, per the Browser Standard in `AGENTS.md`. This mode operates the FlatFilePro upload/mapping UI after the upload file already exists. **FlatFilePro expects `.xlsx`** (operator, 2026-07-26); if you are handed a `.csv`, convert it to `.xlsx` before uploading rather than uploading the CSV. If the file still needs to be created from labels or backend exports, use the `prepare` mode first.
 
-Use managed Chrome CDP, normally port 9222. Do not switch this workflow to the
+Use managed Chrome CDP, the shared `grimoire` session on port 9223. Do not switch this workflow to the
 T3 Code in-app browser: that surface does not carry the managed login broker or
 the supported `DOM.setFileInputFiles` upload path.
 
@@ -32,7 +32,7 @@ Before asking for repeated account or mapping details, check `_local/flatfilepro
 
 ## Workflow
 
-1. Load and follow the Chrome control skill before operating Chrome.
+1. Resolve `grimoire` with `browserctl run --session grimoire -- …` before imports. Use a task-owned tab and the shared session lock; verify the FlatFilePro seller and marketplace before acting.
 2. Start an `artifactctl` run for this attended workflow before creating,
    copying, or downloading a local file.
 3. Check the visible FlatFilePro `Seller & Marketplace` whenever possible.
