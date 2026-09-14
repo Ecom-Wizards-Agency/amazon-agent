@@ -38,7 +38,7 @@ import { fileURLToPath } from "node:url";
 import { ensureChrome, listPages, evaluate } from "./cdp.mjs";
 import { acquireTaskPage, releaseTaskPage, taskIdFor } from "../browserctl/task-tabs.mjs";
 import { sellerCentralScope, scopeForOrigin } from "../browserctl/context-scopes.mjs";
-import { probeTab, doctorVerdict, readIdentity, inspectPage, switchAccount, accountMatches, accountParamsFrom, reportAccountParams } from "./sc-account.mjs";
+import { probeTab, doctorVerdict, readIdentity, inspectPage, switchAccount, accountMatches, accountParamsFrom, reportAccountParams, identityFieldsConsistent } from "./sc-account.mjs";
 import { format } from "./format-seller-reports.mjs";
 import { ArtifactRun } from "../artifactctl/client.mjs";
 
@@ -175,14 +175,9 @@ async function verifyFetchIdentity(session, baseline) {
   if (requestedMarketplaceMatches(live.identity?.marketplace, baseline.requestedMarketplace) === false) {
     die(`Report marketplace contradicts requested marketplace. Nothing accepted. Observed ${describeLive(live)}`);
   }
-  const normalize = (value) => String(value || "").toLowerCase().replace(/\s+/g, " ").trim();
-  // Reject contradictions in every observable baseline field. Meta-less report
-  // SPAs may omit identity fields; the verified baseline and exclusive task
-  // context remain in force before and after the fetch.
-  for (const field of ["merchantId", "partnerAccountId", "displayName"]) {
-    if (baseline[field] && actual[field] && normalize(actual[field]) !== normalize(baseline[field])) {
-      die(`Report account changed or became unverifiable (${field}). Nothing accepted. Observed ${describeLive(live)}`);
-    }
+  const comparison = identityFieldsConsistent(baseline, actual);
+  if (!comparison.ok) {
+    die(`Report account changed or became unverifiable (${comparison.field}). Nothing accepted. Observed ${describeLive(live)}`);
   }
   if (baseline.marketplace != null
       && live.identity?.marketplace != null

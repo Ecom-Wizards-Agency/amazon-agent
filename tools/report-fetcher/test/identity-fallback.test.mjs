@@ -134,3 +134,18 @@ for (const [options, error] of [
     assert.equal(identity.marketplace, null);
   });
 }
+
+test("strict mode ignores loose selectors that match unrelated widgets", () => {
+  const widget = { '[aria-label*="account" i][role="button"]': { textContent: "Account Health Healthy" } };
+  assert.equal(identityFromDocument(doc({ selectors: widget }), { strict: true }).displayName, null);
+  assert.equal(identityFromDocument(doc({ selectors: widget })).displayName, "Account Health Healthy");
+  assert.equal(identityFromDocument(doc({ name: "Brand / US", selectors: widget }), { strict: true }).displayName, "Brand / US");
+});
+
+test("/home fallback never takes a display name from a loose selector", async () => {
+  const widget = { '[aria-label*="account" i][role="button"]': { textContent: "Account Health Healthy" } };
+  const { identity } = await read({ homeDoc: doc({ token: "fixture-token", selectors: widget }) });
+  assert.equal(identity.source, "home");
+  assert.equal(identity.displayName, null);
+  assert.equal(identity.err, null);
+});

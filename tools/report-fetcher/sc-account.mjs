@@ -20,6 +20,21 @@ import { pickerSelectionExpression, pickerSelectionError, waitForMarketplaceSele
 
 export const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+export function identityFieldsConsistent(baseline, actual) {
+  const normalize = (value) => String(value || "").toLowerCase().replace(/\s+/g, " ").trim();
+  const strongIdMatches = ["merchantId", "partnerAccountId"].some((field) =>
+    normalize(actual[field]) && normalize(actual[field]) === normalize(baseline[field]));
+  // Display name is DOM-derived and page-dependent; IDs come from GetUserContext.
+  // Baseline fields missing live require a matching strong ID; contradictions always fail.
+  for (const field of ["merchantId", "partnerAccountId", "displayName"]) {
+    if (baseline[field] && normalize(actual[field]) !== normalize(baseline[field])
+        && (normalize(actual[field]) || !strongIdMatches)) {
+      return { ok: false, field };
+    }
+  }
+  return { ok: true, field: null };
+}
+
 // Inherit the selected seller's navigation hints from the live tab so a new
 // report tab does not fall back to the session default. Carry only mons_sel_dir_*:
 // mons_sel_mkid would override the marketplace chosen by the report payload.
@@ -108,11 +123,17 @@ export async function inspectAuthenticationState(session) {
 
 // Shared with the page expression so selector order and name normalization cannot drift.
 // Accepts a live or detached Document; it never changes either document.
-export function identityFromDocument(doc) {
+export function identityFromDocument(doc, opts) {
   const meta = doc.querySelector('meta[name="anti-csrftoken-a2z"]');
-  const sels = ['[data-test="current-account"]', '.dropdown-account-switcher-header',
-    '[class*="AccountSwitcher" i]', '[data-testid*="account-switcher" i]', '[id*="account-switcher" i]',
-    '[class*="partner-switcher" i]', '#sc-mkt-picker-switcher-select', '[aria-label*="account" i][role="button"]'];
+  // Strict mode trusts only the exact account picker. On the NGS home and on
+  // shell pages without the CSRF tag the loose selectors match unrelated
+  // widgets ("Account Health Healthy" on 14.09.2026), and a wrong name is worse
+  // than none: a missing name is tolerated when the ids match, a wrong one is not.
+  const exact = ['[data-test="current-account"]', '#sc-mkt-picker-switcher-select'];
+  const loose = ['.dropdown-account-switcher-header', '[class*="AccountSwitcher" i]',
+    '[data-testid*="account-switcher" i]', '[id*="account-switcher" i]',
+    '[class*="partner-switcher" i]', '[aria-label*="account" i][role="button"]'];
+  const sels = (opts && opts.strict) ? exact : exact.concat(loose);
   let displayName = null;
   for (const sel of sels) {
     const el = doc.querySelector(sel);
@@ -128,7 +149,7 @@ export function identityFromDocument(doc) {
 const IDENTITY_JS = `(async function(){
   const identityFromDocument = ${identityFromDocument.toString()};
   var out = { displayName: null, partnerAccountId: null, merchantId: null, marketplace: null, err: null, source: "page" };
-  var page = identityFromDocument(document);
+  var page = identityFromDocument(document, { strict: !document.querySelector('meta[name="anti-csrftoken-a2z"]') });
   var token = page.token;
   out.displayName = page.displayName;
   if (!token) {
@@ -142,7 +163,7 @@ const IDENTITY_JS = `(async function(){
       if (/signin|authportal|\\/ap\\//i.test(home.url || "")) throw new Error("/home redirected to a sign-in page");
       var homeDoc = new DOMParser().parseFromString(await home.text(), "text/html");
       if (homeDoc.querySelector('input[type="password"],input[type="email"],#ap_email')) throw new Error("/home returned a sign-in page");
-      var homeIdentity = identityFromDocument(homeDoc);
+      var homeIdentity = identityFromDocument(homeDoc, { strict: true });
       token = homeIdentity.token;
       if (!out.displayName) out.displayName = homeIdentity.displayName;
       if (!token) throw new Error("no anti-csrftoken-a2z meta tag on this page or /home");

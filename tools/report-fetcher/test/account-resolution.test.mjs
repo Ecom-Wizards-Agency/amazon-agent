@@ -272,7 +272,7 @@ test("a full report batch holds one task target and releases its claim", { concu
 });
 
 for (const [report, reportPath] of [["business", "/business-reports"], ["inventory", "/listing/reports"]]) {
-  test(`${report}: meta-less shell with null identity passes both fetch guards`, { concurrency: false }, async () => {
+  test(`${report}: meta-less shell whose ids come via /home passes both fetch guards`, { concurrency: false }, async () => {
     const facts = { url: "https://sellercentral.amazon.com/home", csrfMeta: true, chooserButtonCount: 0 };
     const identity = { displayName: "Example Brand", merchantId: "MERCHANT", partnerAccountId: "PARTNER", marketplace: "US", err: null };
     const out = join(OUT_DIR, `meta-less-${report}.txt`);
@@ -283,8 +283,9 @@ for (const [report, reportPath] of [["business", "/business-reports"], ["invento
           facts.url = url;
           if (new URL(url).pathname.startsWith(reportPath)) {
             Object.assign(facts, { csrfMeta: false, scShell: true });
-            Object.assign(identity, { displayName: null, merchantId: null, partnerAccountId: null,
-              marketplace: null, err: "no anti-csrftoken-a2z meta tag" });
+            // The report shell has no CSRF tag; the identity script reads the ids
+            // through /home (14.09.2026) and the display name is not available there.
+            Object.assign(identity, { displayName: null, marketplace: "US", err: null, source: "home" });
           }
         },
         onFetch() { fetches++; },
@@ -296,7 +297,7 @@ for (const [report, reportPath] of [["business", "/business-reports"], ["invento
       assert.equal(result.code, 0, result.out);
       assert.equal(fetches, 1);
       assert.equal(readFileSync(out, "utf8"), "sku\nVERIFIED\n");
-      assert.equal(identity.marketplace, null, "report navigation must reach the meta-less fixture");
+      assert.equal(identity.displayName, null, "report navigation must reach the meta-less fixture");
       assert.equal(fake.sent.filter(command => command.method === "Target.createTarget").length, 1);
     } finally { await fake.close(); }
   });
