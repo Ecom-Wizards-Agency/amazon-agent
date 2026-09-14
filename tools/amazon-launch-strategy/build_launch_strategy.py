@@ -20,14 +20,15 @@ def load_config(path: Path) -> dict:
 
 
 def resolve_node(explicit: str | None) -> str:
-    candidates = [
-        explicit,
-        os.environ.get("AMAZON_LAUNCH_NODE"),
-        shutil.which("node"),
-    ]
-    for candidate in candidates:
-        if candidate and Path(candidate).exists():
-            return str(candidate)
+    selected = explicit if explicit is not None else os.environ.get("AMAZON_LAUNCH_NODE")
+    if selected is not None:
+        found = shutil.which(selected) if selected else None
+        if found:
+            return found
+        raise RuntimeError("The selected Node executable is unavailable; fix --node or AMAZON_LAUNCH_NODE.")
+    found = shutil.which("node")
+    if found:
+        return found
     raise RuntimeError("Node.js was not found. Pass --node, set AMAZON_LAUNCH_NODE, "
                        "or put node on PATH.")
 
@@ -63,7 +64,8 @@ def main() -> int:
     mode.add_argument("--preflight", action="store_true")
     mode.add_argument("--preview", action="store_true")
     mode.add_argument("--build", action="store_true")
-    parser.add_argument("--node", help="Path to the Codex workspace dependency Node binary")
+    parser.add_argument("--node", help="Path to Node.js (otherwise AMAZON_LAUNCH_NODE or PATH)")
+    parser.add_argument("--node-modules", help="Explicit installed artifact-runtime node_modules directory")
     args = parser.parse_args()
 
     config = load_config(args.config.resolve())
@@ -80,6 +82,13 @@ def main() -> int:
         print(json.dumps(preview_payload(model), indent=2))
         return 0
 
+    # Resolve the real package before creating either half of the deliverable.
+    node = resolve_node(args.node)
+    workbook_builder = Path(__file__).with_name("build_workbook.mjs")
+    runtime_args = ["--node-modules", args.node_modules] if args.node_modules is not None else []
+    subprocess.run([node, str(workbook_builder), "--preflight", *runtime_args], check=True,
+                   stdout=subprocess.PIPE, text=True)
+
     output_dir = Path(config["client"]["output_dir"]).expanduser().resolve()
     work_dir = output_dir / "_work"
     preview_dir = work_dir / "workbook-previews"
@@ -94,9 +103,8 @@ def main() -> int:
 
     build_document(model, docx_path)
 
-    node = resolve_node(args.node)
-    workbook_builder = Path(__file__).with_name("build_workbook.mjs")
-    subprocess.run([node, str(workbook_builder), str(model_path), str(xlsx_path), str(preview_dir)], check=True)
+    subprocess.run([node, str(workbook_builder), str(model_path), str(xlsx_path), str(preview_dir),
+                    *runtime_args], check=True)
     print(json.dumps({
         "status": model["validation"]["status"],
         "docx": str(docx_path),

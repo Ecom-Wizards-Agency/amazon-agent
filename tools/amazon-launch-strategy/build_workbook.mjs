@@ -1,10 +1,23 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { SpreadsheetFile, Workbook } from "@oai/artifact-tool";
+import { resolveArtifactRuntime, preflightArtifactRuntime } from "./artifact_runtime.mjs";
 
-const [modelPath, outputPath, previewDir] = process.argv.slice(2);
+const argv = process.argv.slice(2);
+const optionIndex = argv.indexOf("--node-modules");
+let nodeModules;
+if (optionIndex >= 0) {
+  nodeModules = argv[optionIndex + 1];
+  if (!nodeModules || nodeModules.startsWith("--")) throw new Error("Missing --node-modules directory");
+  argv.splice(optionIndex, 2);
+}
+if (argv.length === 1 && argv[0] === "--preflight") {
+  console.log(JSON.stringify(await preflightArtifactRuntime({ nodeModules })));
+  process.exit(0);
+}
+const { artifactTool: { SpreadsheetFile, Workbook } } = await resolveArtifactRuntime({ nodeModules });
+const [modelPath, outputPath, previewDir] = argv;
 if (!modelPath || !outputPath || !previewDir) {
-  throw new Error("Usage: node build_workbook.mjs <model.json> <output.xlsx> <preview-dir>");
+  throw new Error("Usage: node build_workbook.mjs <model.json> <output.xlsx> <preview-dir> [--node-modules <directory>]");
 }
 
 const model = JSON.parse(await fs.readFile(modelPath, "utf8"));
