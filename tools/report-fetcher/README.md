@@ -93,6 +93,9 @@ Account: <SELLER NAME> / United States · amzn1.merchant.d.<MERCHANT-ID>
   or the runner can verify by name via `--expect-account`, or the structured fields below let it
   **drive Seller Central's own account picker** (trusted CDP clicks, fail-closed on any ambiguity).
   Otherwise it dies naming everything it observed and the remedies.
+  A bare Seller ID is used only to verify the live identity. Only an `amzn1.merchant.d.` id
+  is carried in the URL, because Seller Central rejects other values with "Invalid request URL"
+  (observed 14.09.2026).
 - `--account-name "<display name>"` + `--marketplace-label "<label>"` (+ optional
   `--parent-account-name`) enable the deterministic switch: the picker matches display names, so an
   id alone cannot drive it. Config keys: `account`, `expect_account`, `account_name`,

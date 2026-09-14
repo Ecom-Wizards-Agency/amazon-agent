@@ -38,7 +38,7 @@ import { fileURLToPath } from "node:url";
 import { ensureChrome, listPages, evaluate } from "./cdp.mjs";
 import { acquireTaskPage, releaseTaskPage, taskIdFor } from "../browserctl/task-tabs.mjs";
 import { sellerCentralScope, scopeForOrigin } from "../browserctl/context-scopes.mjs";
-import { probeTab, doctorVerdict, readIdentity, inspectPage, switchAccount, accountMatches } from "./sc-account.mjs";
+import { probeTab, doctorVerdict, readIdentity, inspectPage, switchAccount, accountMatches, accountParamsFrom, reportAccountParams } from "./sc-account.mjs";
 import { format } from "./format-seller-reports.mjs";
 import { ArtifactRun } from "../artifactctl/client.mjs";
 
@@ -294,23 +294,6 @@ function buildJobs(report, cfg, args, mp) {
       call: `fetchBusinessReport(${JSON.stringify(p)})`, desc: `Business ${legacy} ${start}..${end}` + (asins.length ? ` asins=${asins.join(",")}` : " (all)") });
   } else die(`unknown report: ${report}`);
   return jobs;
-}
-
-// Seller Central carries the SELECTED SELLER ACCOUNT in `mons_sel_*` query params, not in
-// the origin. The runner opens its own tab, so without these it lands on whatever account is
-// the session default — silently returning another client's numbers. Inherit them from the
-// operator's logged-in tab (or force one with --account <merchant-id>).
-// Carry the SELLER identity only (`mons_sel_dir_*`). Deliberately NOT `mons_sel_mkid`: which
-// marketplace's data comes back is already set by the `marketplace` field in the report payload,
-// and inheriting a tab's mkid would silently override it (a .de tab left on DE would return DE
-// numbers for a `--marketplace it` run). Host routing picks the region; the payload picks the
-// marketplace; these params only pick the account.
-function accountParamsFrom(url) {
-  const out = new URLSearchParams();
-  try {
-    for (const [k, v] of new URL(url).searchParams) if (k.startsWith("mons_sel_dir_")) out.set(k, v);
-  } catch {}
-  return out;
 }
 
 // Human-readable labels for classifyPage kinds, used in operator-facing messages.
@@ -609,10 +592,9 @@ async function main() {
       marketplace: mp,
     };
 
-    // URL account params: forced id first, else whatever the live tab carries.
+    // URL account params: forced directed merchant id first, else what the live tab carries.
     // This stays a HINT on the report URLs; every judgement above used live reads.
-    const acct = accountParamsFrom(live.url || "");
-    if (forcedAcct) acct.set("mons_sel_dir_mcid", forcedAcct);
+    const acct = reportAccountParams(live.url || "", forcedAcct);
 
     for (const job of jobs) {
       if (job.report === "sqp") await runSqpJob(taskPage, baseline, origin, job, args, acct);

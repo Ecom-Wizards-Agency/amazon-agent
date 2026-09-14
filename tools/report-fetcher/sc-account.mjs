@@ -20,6 +20,26 @@ import { pickerSelectionExpression, pickerSelectionError, waitForMarketplaceSele
 
 export const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+// Inherit the selected seller's navigation hints from the live tab so a new
+// report tab does not fall back to the session default. Carry only mons_sel_dir_*:
+// mons_sel_mkid would override the marketplace chosen by the report payload.
+// Host routing picks the region; the payload picks the marketplace.
+export function accountParamsFrom(url) {
+  const out = new URLSearchParams();
+  try {
+    for (const [k, v] of new URL(url).searchParams) if (k.startsWith("mons_sel_dir_")) out.set(k, v);
+  } catch {}
+  return out;
+}
+
+// URL params are navigation hints; identity judgements require live reads.
+// Bare Seller IDs remain identity gates because Seller Central rejects them in mons_sel_dir_mcid.
+export function reportAccountParams(liveUrl, forcedAcct) {
+  const out = accountParamsFrom(liveUrl);
+  if (/^amzn1\.merchant\.d\./i.test(forcedAcct)) out.set("mons_sel_dir_mcid", forcedAcct);
+  return out;
+}
+
 // The picker's confirm button, by visible label. Add new locales here.
 export const CONFIRM_BUTTON_LABELS = ["Select account", "Konto auswählen", "Choose account"];
 
