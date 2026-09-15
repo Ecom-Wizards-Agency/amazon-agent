@@ -6,7 +6,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import {
   acquireLease, adoptUnregisteredLease, claimExpiredLease, listLeases, recordActivityProbeFailure,
   releaseLease, removeLease, restartActivityMeasurement, touchLease,
-  transitionMissedHeartbeat, listTaskTabs,
+  transitionMissedHeartbeat, listTaskTabs, completeTaskTabs, detachTaskTab, regionTabState, surplusAnchorLeases,
 } from "./lease-registry.mjs";
 import { anchorMatchesUrl, loadBrowserPolicy, policyForPort } from "./policy.mjs";
 import { sessionEnvironment } from "./session.mjs";
@@ -96,30 +96,88 @@ async function cdpForPort(port, policy) {
   return import(`${pathToFileURL(CDP_MODULE).href}?browserctl=${port}-${Date.now()}-${Math.random()}`);
 }
 
-export async function ensureAnchors(port, { policy = loadBrowserPolicy(), cdp = null } = {}) {
+export async function ensureAnchors(port, { policy = loadBrowserPolicy(), cdp = null, now = Date.now(), auditOnly = false } = {}) {
   const config = policyForPort(port, policy);
   cdp ||= await cdpForPort(port, policy);
   const pages = await cdp.listPages();
   const pageById = new Map(pages.map((page) => [page.id, page]));
-  const leases = (await listLeases()).filter((lease) => lease.port === Number(port));
+  const regions = await regionTabState(port, { now });
+  const actions = [];
+  const detached = new Set();
+  for (const region of regions) {
+    if (region.boundTaskId && !region.controllerFresh) {
+      if (auditOnly) {
+        detached.add(region.targetId);
+        actions.push({ action: "would-reclassify", targetId: region.targetId, key: region.anchorKey,
+          class: "inspection", reason: "heartbeat-lost" });
+      } else await transitionMissedHeartbeat({ port, targetId: region.targetId, now, policy });
+    }
+  }
+  let leases = (await listLeases()).filter((lease) => lease.port === Number(port));
   const leasedTargetIds = new Set(leases.map((lease) => lease.targetId));
   const used = new Set();
   const kept = [];
   const created = [];
   const reclassified = [];
 
+  const fresh = new Set(regions.filter((region) => region.controllerFresh && pageById.has(region.targetId))
+    .map((region) => region.targetId));
+  const surplus = new Map((await surplusAnchorLeases(port, new Set([...pageById.keys()].filter((id) => !detached.has(id)))))
+    .filter((lease) => !detached.has(lease.targetId))
+    .map((lease) => [lease.targetId, lease]));
+  // A controlled region wins over registry order until its controller releases.
+  for (const region of regions.filter((entry) => fresh.has(entry.targetId))) {
+    surplus.delete(region.targetId);
+    for (const lease of leases) {
+      if (lease.class === "anchor" && lease.anchorKey === region.anchorKey
+          && !fresh.has(lease.targetId) && !detached.has(lease.targetId)) {
+        surplus.set(lease.targetId, lease);
+      }
+    }
+  }
+  for (const lease of surplus.values()) {
+    const page = pageById.get(lease.targetId);
+    if (!page) {
+      if (auditOnly) actions.push({ action: "would-remove", targetId: lease.targetId, reason: "target-missing" });
+      else await removeLease({ port, targetId: lease.targetId });
+      continue;
+    }
+    if (auditOnly) actions.push({ action: "would-reclassify", targetId: page.id, key: lease.anchorKey,
+      class: "inspection", reason: "duplicate-anchor" });
+    else await acquireLease({
+      port, targetId: page.id, leaseClass: "inspection", owner: "browserctl:anchor-duplicate",
+      origin: safeOrigin(page.url), anchorKey: null, now, policy,
+    });
+    reclassified.push({ key: lease.anchorKey, targetId: page.id, origin: safeOrigin(page.url) });
+  }
+  leases = (await listLeases()).filter((lease) => lease.port === Number(port)
+    && !(auditOnly && (surplus.has(lease.targetId) || detached.has(lease.targetId))));
+
   for (const anchor of config.anchors) {
     const registered = leases.find((lease) => lease.class === "anchor" && lease.anchorKey === anchor.key);
     const page = registered && pageById.get(registered.targetId);
-    if (!page) continue;
+    if (page && fresh.has(registered.targetId)) {
+      used.add(registered.targetId);
+      kept.push({ key: anchor.key, targetId: registered.targetId, url: page.url, source: "registry" });
+      continue;
+    }
+    if (!page) {
+      if (registered) {
+        if (auditOnly) actions.push({ action: "would-remove", targetId: registered.targetId, reason: "target-missing" });
+        else await removeLease({ port, targetId: registered.targetId });
+      }
+      continue;
+    }
     if (anchorMatchesUrl(anchor, page.url)) {
       used.add(page.id);
       kept.push({ key: anchor.key, targetId: page.id, url: page.url, source: "registry" });
       continue;
     }
-    await acquireLease({
+    if (auditOnly) actions.push({ action: "would-reclassify", targetId: page.id, key: anchor.key,
+      class: "interactive", reason: "anchor-navigation" });
+    else await acquireLease({
       port, targetId: page.id, leaseClass: "interactive", owner: "browserctl:anchor-navigation",
-      origin: safeOrigin(page.url), policy,
+      origin: safeOrigin(page.url), now, policy,
     });
     reclassified.push({ key: anchor.key, targetId: page.id, origin: safeOrigin(page.url) });
   }
@@ -129,12 +187,18 @@ export async function ensureAnchors(port, { policy = loadBrowserPolicy(), cdp = 
     const existing = pages.find((page) =>
       !used.has(page.id) && !leasedTargetIds.has(page.id) && anchorMatchesUrl(anchor, page.url));
     if (existing) {
-      await acquireLease({
+      if (auditOnly) actions.push({ action: "would-reclassify", targetId: existing.id, key: anchor.key,
+        class: "anchor", reason: "anchor-adoption" });
+      else await acquireLease({
         port, targetId: existing.id, leaseClass: "anchor", owner: "browserctl:anchor",
         origin: safeOrigin(existing.url), anchorKey: anchor.key, policy,
       });
       used.add(existing.id);
       kept.push({ key: anchor.key, targetId: existing.id, url: existing.url, source: "adopted" });
+      continue;
+    }
+    if (auditOnly) {
+      actions.push({ action: "would-create", key: anchor.key, url: anchor.url });
       continue;
     }
     const opened = await cdp.createPage(anchor.url, {
@@ -146,7 +210,7 @@ export async function ensureAnchors(port, { policy = loadBrowserPolicy(), cdp = 
     kept.push({ key: anchor.key, targetId: opened.targetId, url: anchor.url, source: "created" });
   }
 
-  return { port: Number(port), kept, created, reclassified, closed: [] };
+  return { port: Number(port), kept, created, reclassified, closed: [], ...(auditOnly ? { actions } : {}) };
 }
 
 export async function ensureBrowser(port, { policy = loadBrowserPolicy() } = {}) {
@@ -220,12 +284,15 @@ export async function cleanupPort(port, {
   try {
     await cdp.assertChrome();
     if (maintainAnchors) {
-      const maintained = await ensureAnchors(port, { policy, cdp });
-      anchorMaintenance = {
-        kept: maintained.kept.length,
-        created: maintained.created.length,
-        reclassified: maintained.reclassified.length,
-      };
+      try {
+        const maintained = await ensureAnchors(port, { policy, cdp, now, auditOnly });
+        anchorMaintenance = {
+          kept: maintained.kept.length,
+          created: maintained.created.length,
+          reclassified: maintained.reclassified.length,
+          ...(auditOnly ? { actions: maintained.actions } : {}),
+        };
+      } catch (error) { anchorMaintenance = { error: error.message }; }
     }
     pages = await cdp.listPages();
   } catch (error) {
@@ -240,6 +307,15 @@ export async function cleanupPort(port, {
     const registeredTargetIds = new Set(leases.map((lease) => lease.targetId));
     for (const page of pages) {
       if (registeredTargetIds.has(page.id)) continue;
+      if (auditOnly) {
+        const activity = await probeActivity(cdp, page);
+        actions.push({ port: Number(port), action: "would-adopt", targetId: page.id,
+          class: "inspection", origin: safeOrigin(page.url), reason: "unregistered-target-observed",
+          activityTracked: activity.ok,
+          ...(activity.ok ? {} : { probe: publicProbeFailure(activity) }),
+        });
+        continue;
+      }
       const adoption = await adoptUnregisteredLease({
         port, targetId: page.id, origin: safeOrigin(page.url), now, policy,
       });
@@ -264,11 +340,11 @@ export async function cleanupPort(port, {
     if (adoptedTargetIds.has(lease.targetId)) continue;
     const page = pageById.get(lease.targetId);
     if (!page) {
-      await removeLease({
+      if (!auditOnly) await removeLease({
         port, targetId: lease.targetId, expectedCloseToken: lease.closeToken || null,
       });
       actions.push({
-        port: Number(port), action: "removed-stale-lease", targetId: lease.targetId,
+        port: Number(port), action: auditOnly ? "would-remove" : "removed-stale-lease", targetId: lease.targetId,
         class: lease.class, origin: lease.origin || null, reason: "target-missing",
         expiresAt: lease.expiresAt || null,
       });
@@ -317,11 +393,7 @@ export async function cleanupPort(port, {
       });
       continue;
     }
-    if (activity.value > Math.max(
-      Number(lease.lastActivityAt || 0), Number(lease.activityTrackerBaselineAt || 0),
-    )) {
-      lease = await touchLease({ port, targetId: lease.targetId, kind: "activity", now: activity.value, policy });
-    }
+    // Focus and visibility events verify measurement, but do not extend retention.
     if (!lease?.expiresAt || Number(lease.expiresAt) > now) continue;
 
     const candidate = {
@@ -368,11 +440,43 @@ function publicProbeFailure(activity) {
     error: message.split("\n")[0].replace(/(?:https?|wss?):\/\/\S+/g, "[endpoint]").slice(0, 240) };
 }
 
+export async function cleanupPortWithLock(port, {
+  lockWaitMs = 120_000, ...options
+} = {}, {
+  acquire = acquireSessionLock, cleanup = cleanupPort, clock = Date.now,
+  sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+} = {}) {
+  if (!Number.isSafeInteger(lockWaitMs) || lockWaitMs < 0) throw new Error("INVALID_LOCK_WAIT_MS");
+  const startedAt = clock();
+  const deadline = startedAt + lockWaitMs;
+  let unlock;
+  while (!unlock) {
+    try {
+      unlock = acquire(port, "browserctl:cleanup");
+    } catch (error) {
+      if (!String(error.message).startsWith("BROWSER_SESSION_BUSY")) {
+        return { port: Number(port), complete: false, actions: [], error: error.message };
+      }
+      const remaining = deadline - clock();
+      if (remaining <= 0) {
+        return { port: Number(port), status: "deferred", reason: "session-busy",
+          waitMs: clock() - startedAt, auditOnly: options.auditOnly, complete: false, actions: [] };
+      }
+      await sleep(Math.min(5000, remaining));
+    }
+  }
+  try {
+    return await cleanup(port, options);
+  } finally { unlock(); }
+}
+
 export function cleanupSummary(results, mode) {
   const complete = results.every(result => result.reachable && !result.error && result.complete !== false);
-  const deferred = !complete && results.every(result => result.reachable && !result.error
+  const deferred = !complete && results.every(result =>
+    (result.status === "deferred" && result.reason === "session-busy" && !result.error)
+    || (result.reachable && !result.error
     && (result.complete !== false || result.actions.every(action =>
-      action.reason === "session-busy" || (!action.probe && action.reason !== "close-failed"))));
+      action.reason === "session-busy" || (!action.probe && action.reason !== "close-failed")))));
   return { ok: complete, complete, status: complete ? "complete" : deferred ? "deferred" : "incomplete", mode, results };
 }
 
@@ -417,8 +521,7 @@ export async function acquireTargetLease({
   }
 }
 
-async function main() {
-  const raw = process.argv.slice(2);
+export async function main(raw = process.argv.slice(2), { cleanup = cleanupPortWithLock } = {}) {
   const separator = raw.indexOf("--");
   if (["run", "session"].includes(raw[0])) {
     const { options } = parseArgs(separator < 0 ? raw : raw.slice(0, separator));
@@ -446,7 +549,7 @@ async function main() {
     } finally { unlock(); }
     return;
   }
-  const { positional, options } = parseArgs(process.argv.slice(2));
+  const { positional, options } = parseArgs(raw);
   const [command, subcommand] = positional;
   const policy = loadBrowserPolicy();
   if (command === "ensure") {
@@ -497,10 +600,33 @@ async function main() {
     console.log(JSON.stringify({ ok: true, lease: result, ...metadata }));
     return;
   }
+  if (command === "task") {
+    const port = portNumber(required(options, "port"));
+    const taskId = required(options, "task-id");
+    const outcome = options.outcome || (subcommand === "detach" ? "inspection" : "success");
+    if (!["success", "error", "inspection"].includes(outcome)) throw new Error(`UNSUPPORTED_TASK_OUTCOME: ${outcome}`);
+    let result;
+    if (subcommand === "complete") {
+      policyForPort(port, policy);
+      result = await completeTaskTabs({ port, taskId, outcome, policy });
+    } else if (subcommand === "detach") {
+      result = await detachTaskTab({ port, taskId, slot: required(options, "slot"),
+        controlToken: required(options, "control-token"), outcome, policy });
+    } else throw new Error("USAGE: browserctl task complete|detach");
+    console.log(JSON.stringify({ ok: true, result }));
+    return;
+  }
+  if (command === "region" && subcommand === "state") {
+    const port = portNumber(required(options, "port"));
+    console.log(JSON.stringify({ ok: true, port, regions: await regionTabState(port) }));
+    return;
+  }
   if (command === "cleanup") {
     const ports = options.port ? [portNumber(options.port)] : [9222, 9223];
     const results = [];
-    for (const port of ports) results.push(await cleanupPort(port, { policy, auditOnly: options["audit-only"] === true || policy.cleanup.mode !== "active" }));
+    const lockWaitMs = options["lock-wait-ms"] === undefined ? 120_000 : Number(options["lock-wait-ms"]);
+    if (options["lock-wait-ms"] === true || !Number.isSafeInteger(lockWaitMs) || lockWaitMs < 0) throw new Error("INVALID_LOCK_WAIT_MS");
+    for (const port of ports) results.push(await cleanup(port, { policy, lockWaitMs, auditOnly: options["audit-only"] === true || policy.cleanup.mode !== "active" }));
     const summary = cleanupSummary(results, options["audit-only"] === true || policy.cleanup.mode !== "active" ? "audit" : "active");
     console.log(JSON.stringify(summary));
     if (summary.status === "incomplete") process.exitCode = 1;
@@ -512,7 +638,7 @@ async function main() {
     console.log(JSON.stringify({ ok: true, ...(await authCommand(port, targetId, policy)) }));
     return;
   }
-  throw new Error("USAGE: browserctl ensure|status|restart|lease|cleanup|auth");
+  throw new Error("USAGE: browserctl ensure|status|restart|lease|task|region|cleanup|auth");
 }
 
 if (process.argv[1] && realpathSync(resolve(process.argv[1])) === fileURLToPath(import.meta.url)) {

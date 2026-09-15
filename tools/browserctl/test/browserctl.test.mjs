@@ -49,12 +49,15 @@ test("successful background leases cannot close before ten minutes", { concurren
   await registry.removeLease({ port: 9222, targetId: "success" });
 });
 
-test("activity promotes a released background page to a two-hour interactive lease", { concurrency: false }, async () => {
+test("only interaction promotes a released background page to a two-hour interactive lease", { concurrency: false }, async () => {
   await registry.acquireLease({ port: 9222, targetId: "active", owner: "test", now: 1, policy });
   await registry.releaseLease({ port: 9222, targetId: "active", outcome: "success", now: 1000, policy });
   const touched = await registry.touchLease({ port: 9222, targetId: "active", kind: "activity", now: 2000, policy });
-  assert.equal(touched.class, "interactive");
-  assert.equal(touched.expiresAt, 7_202_000);
+  assert.equal(touched.class, "background-success");
+  assert.equal(touched.expiresAt, 601_000);
+  const interaction = await registry.touchLease({ port: 9222, targetId: "active", kind: "interaction", now: 2000, policy });
+  assert.equal(interaction.class, "interactive");
+  assert.equal(interaction.expiresAt, 7_202_000);
   await registry.removeLease({ port: 9222, targetId: "active" });
 });
 
@@ -458,6 +461,432 @@ test("CLI-acquired targets are instrumented for interaction activity", { concurr
   assert.equal(instrumented, true);
   assert.equal(closed, true);
   await registry.removeLease({ port: 9222, targetId: "python-runner" });
+});
+
+test("duplicate anchors become inspection leases and missing duplicates are dropped", async () => {
+  const oneAnchorPolicy = structuredClone(policy);
+  oneAnchorPolicy.ports["9222"].anchors = [policy.ports["9222"].anchors[0]];
+  for (const targetId of ["gone-anchor", "healthy-anchor", "duplicate-anchor"]) {
+    await registry.acquireLease({ port: 9222, targetId, leaseClass: "anchor", anchorKey: "US", now: 1, policy });
+  }
+  const pages = ["healthy-anchor", "duplicate-anchor"].map((id) => ({
+    id, url: "https://sellercentral.amazon.com/home", webSocketDebuggerUrl: "ws://test/" + id,
+  }));
+  const closed = [];
+  const cdp = {
+    assertChrome: async () => ({}), listPages: async () => pages,
+    createPage: async () => { throw new Error("must keep the first live anchor"); },
+    Session: { open: async () => ({ close() {} }) },
+    readLeaseActivity: async () => ({ ok: true, value: 1000 }),
+    closePageImmediately: async (id) => { closed.push(id); },
+  };
+  const options = { policy: oneAnchorPolicy, cdp, auditOnly: false,
+    managedStatus: { managed: true, running: true, mode: "headed" } };
+  const result = await controller.cleanupPort(9222, { ...options, now: 1000 });
+  assert.deepEqual(result.anchorMaintenance, { kept: 1, created: 0, reclassified: 1 });
+  const leases = await registry.listLeases();
+  assert.equal(leases.some((lease) => lease.targetId === "gone-anchor"), false);
+  const duplicate = leases.find((lease) => lease.targetId === "duplicate-anchor");
+  assert.equal(duplicate.class, "inspection");
+  assert.equal(duplicate.owner, "browserctl:anchor-duplicate");
+  assert.equal(duplicate.anchorKey, null);
+  assert.equal(duplicate.expiresAt, 7_201_000);
+  assert.deepEqual(closed, []);
+  await controller.cleanupPort(9222, { ...options, now: 7_201_001 });
+  assert.deepEqual(closed, ["duplicate-anchor"]);
+  await registry.removeLease({ port: 9222, targetId: "healthy-anchor" });
+});
+
+test("task completion leaves the browser environment untouched without importing CDP", async () => {
+  const taskId = "registry-only:0123456789abcdef0123";
+  const spec = { port: 9222, taskId, workflow: "registry-only", policy };
+  const reserved = await registry.reserveTaskTab(spec);
+  await registry.bindReservedTaskTab({ ...spec, ...reserved, targetId: "registry-only" });
+  await registry.releaseTaskTabControl({ ...spec, controlToken: reserved.controlToken, outcome: "handoff" });
+  const previous = { ...process.env };
+  try {
+    // A CDP import would reject this invalid session before completion.
+    process.env.AMAZON_BROWSER_SESSION = "invalid-registry-only-session";
+    process.env.CDP_PORT = "12345";
+    const expected = { ...process.env };
+    const result = await runCli(["task", "complete", "--port", "9222", "--task-id", taskId]);
+    assert.equal(result.lines[0].result[0].taskTab.completionOutcome, "success");
+    assert.deepEqual({ ...process.env }, expected);
+  } finally {
+    for (const key of Object.keys(process.env)) if (!(key in previous)) delete process.env[key];
+    Object.assign(process.env, previous);
+    await registry.removeLease({ port: 9222, targetId: "registry-only" });
+  }
+});
+
+test("anchor creation failure still expires leases and reports only expiry failures as incomplete", async () => {
+  const closed = [];
+  const cdp = {
+    assertChrome: async () => ({}),
+    listPages: async () => [{ id: "expiry-after-anchor-failure", url: "https://example.test/work" }],
+    createPage: async () => { throw new Error("anchor creation failed"); },
+    Session: { open: async () => ({ close() {} }) },
+    readLeaseActivity: async () => ({ ok: true, value: 1000 }),
+    closePageImmediately: async (id) => { closed.push(id); },
+  };
+  const options = { policy, auditOnly: false, cdp, now: 601_001,
+    managedStatus: { managed: true, running: true, mode: "headed" } };
+  for (const closeFails of [false, true]) {
+    await registry.acquireLease({ port: 9222, targetId: "expiry-after-anchor-failure", now: 1, policy });
+    await registry.releaseLease({ port: 9222, targetId: "expiry-after-anchor-failure", outcome: "success", now: 1000, policy });
+    if (closeFails) cdp.closePageImmediately = async () => { throw new Error("close failed"); };
+    const result = await controller.cleanupPort(9222, options);
+    assert.equal(result.anchorMaintenance.error, "anchor creation failed");
+    assert.equal(result.reachable, true);
+    assert.equal(result.complete, !closeFails);
+    assert.equal(result.actions[0].reason, closeFails ? "close-failed" : "lease-expired");
+    const cli = await runCli(["cleanup", "--port", "9222"], { cleanup: async () => result });
+    assert.equal(cli.exitCode, closeFails ? 1 : 0);
+    await registry.removeLease({ port: 9222, targetId: "expiry-after-anchor-failure" });
+  }
+  assert.deepEqual(closed, ["expiry-after-anchor-failure"]);
+});
+
+test("fresh regional controllers protect foreign URLs and win over older duplicate anchors", async () => {
+  const { sellerCentralRegionTask, REGION_ANCHOR_KEYS } = await import("../task-tabs.mjs");
+  const spec = { ...sellerCentralRegionTask({ marketplace: "us" }), port: 9222, policy };
+  assert.equal(spec.anchorKey, REGION_ANCHOR_KEYS["sc:na"]);
+  const oneAnchorPolicy = structuredClone(policy);
+  oneAnchorPolicy.ports["9222"].anchors = [policy.ports["9222"].anchors[0]];
+  for (const targetId of ["older-anchor", "controlled-anchor"]) {
+    await registry.acquireLease({ port: 9222, targetId, leaseClass: "anchor", anchorKey: spec.anchorKey, now: 1, policy });
+  }
+  await registry.reserveTaskTab({ ...spec, livePageIds: ["controlled-anchor"], now: 1000 });
+  const pages = [
+    { id: "older-anchor", url: "https://sellercentral.amazon.com/home" },
+    { id: "controlled-anchor", url: "https://app.flatfile.pro/imports" },
+  ];
+  const result = await controller.ensureAnchors(9222, {
+    policy: oneAnchorPolicy, now: 2000, cdp: {
+      listPages: async () => pages,
+      createPage: async () => { throw new Error("must not replace a controlled region"); },
+    },
+  });
+  assert.deepEqual(result.created, []);
+  assert.deepEqual(result.closed, []);
+  assert.deepEqual(result.kept.map((entry) => entry.targetId), ["controlled-anchor"]);
+  assert.deepEqual(result.reclassified.map((entry) => entry.targetId), ["older-anchor"]);
+  assert.equal((await registry.regionTabState(9222, { now: 2000 }))[0].controllerFresh, true);
+  for (const targetId of ["older-anchor", "controlled-anchor"]) await registry.removeLease({ port: 9222, targetId });
+});
+
+test("a missing target with a fresh regional controller gets one live replacement", async () => {
+  const { sellerCentralRegionTask } = await import("../task-tabs.mjs");
+  const spec = { ...sellerCentralRegionTask({ marketplace: "us" }), port: 9222, policy };
+  await registry.acquireLease({ port: 9222, targetId: "missing-controlled", leaseClass: "anchor", anchorKey: "US", now: 1, policy });
+  await registry.reserveTaskTab({ ...spec, livePageIds: ["missing-controlled"], now: 1000 });
+  const oneAnchorPolicy = structuredClone(policy);
+  oneAnchorPolicy.ports["9222"].anchors = [policy.ports["9222"].anchors[0]];
+  const pages = [];
+  const cdp = {
+    listPages: async () => pages,
+    createPage: async (url, options) => {
+      pages.push({ id: "live-replacement", url });
+      await registry.acquireLease({ port: 9222, targetId: "live-replacement",
+        leaseClass: options.leaseClass, anchorKey: options.anchorKey, now: 2000, policy });
+      return { targetId: "live-replacement", session: { close() {} } };
+    },
+  };
+  const before = await registry.listTaskTabs();
+  const audit = await controller.ensureAnchors(9222, { policy: oneAnchorPolicy, cdp, now: 2000, auditOnly: true });
+  assert.deepEqual(audit.kept, []);
+  assert.deepEqual(audit.actions.map((action) => action.action), ["would-remove", "would-create"]);
+  assert.deepEqual(await registry.listTaskTabs(), before);
+  assert.deepEqual(pages, []);
+  const first = await controller.ensureAnchors(9222, { policy: oneAnchorPolicy, cdp, now: 2000 });
+  assert.deepEqual(first.kept.map((entry) => entry.targetId), ["live-replacement"]);
+  assert.equal(first.created.length, 1);
+  assert.equal((await registry.listLeases()).some((lease) => lease.targetId === "missing-controlled"), false);
+  assert.equal((await registry.listTaskTabs()).some((task) => task.targetId === "missing-controlled"), false);
+  const second = await controller.ensureAnchors(9222, { policy: oneAnchorPolicy, cdp, now: 2001 });
+  assert.equal(second.created.length, 0);
+  await registry.removeLease({ port: 9222, targetId: "live-replacement" });
+});
+
+test("audit-only previews mutations while recording observed activity and heartbeat transitions", async () => {
+  const { sellerCentralRegionTask } = await import("../task-tabs.mjs");
+  const auditPolicy = structuredClone(policy);
+  auditPolicy.cleanup.adopt_unregistered_tabs = true;
+  const spec = { ...sellerCentralRegionTask({ marketplace: "us" }), port: 9222, policy: auditPolicy };
+  for (const [targetId, anchorKey] of [["audit-stale", "US"], ["audit-gone", "DE"], ["audit-live", "DE"], ["audit-duplicate", "DE"], ["audit-moved", "AUS"]]) {
+    await registry.acquireLease({ port: 9222, targetId, leaseClass: "anchor", anchorKey, now: 1, policy: auditPolicy });
+  }
+  await registry.reserveTaskTab({ ...spec, livePageIds: ["audit-stale"], now: 1000 });
+  for (const targetId of ["audit-expired", "audit-input", "audit-untracked", "audit-probe-error", "audit-missing-lease", "audit-heartbeat"]) {
+    await registry.acquireLease({ port: 9222, targetId, now: 1, policy: auditPolicy });
+    if (targetId !== "audit-heartbeat") await registry.releaseLease({ port: 9222, targetId, outcome: "success", now: 1000, policy: auditPolicy });
+  }
+  await registry.acquireLease({ port: 9222, targetId: "audit-fresh-heartbeat", now: 601_000, policy: auditPolicy });
+  const beforeLeases = await registry.listLeases();
+  const beforeTasks = await registry.listTaskTabs();
+  const pages = beforeLeases.filter((lease) => lease.targetId.startsWith("audit-")
+    && !["audit-gone", "audit-missing-lease"].includes(lease.targetId)).map((lease) => ({
+    id: lease.targetId, url: ["audit-live", "audit-duplicate"].includes(lease.targetId)
+      ? "https://sellercentral.amazon.de/home" : "https://example.test/work",
+    webSocketDebuggerUrl: lease.targetId,
+  }));
+  for (const targetId of ["audit-unknown", "audit-unknown-error"]) {
+    pages.push({ id: targetId, url: "https://example.test/unknown", webSocketDebuggerUrl: targetId });
+  }
+  const installed = new Set();
+  const cdp = {
+    assertChrome: async () => ({}), listPages: async () => pages,
+    createPage: async () => { assert.fail("audit must not create targets"); },
+    closePageImmediately: async () => { assert.fail("audit must not close targets"); },
+    installLeaseActivityTracker: async (session) => { installed.add(session.id); },
+    Session: { open: async (id) => ({ id, close() {} }) },
+    readLeaseActivity: async (session) => ["audit-probe-error", "audit-unknown-error"].includes(session.id)
+      ? { ok: false, error: "probe failed" }
+      : { ok: !["audit-untracked", "audit-unknown"].includes(session.id) || installed.has(session.id), value: 1000 },
+    readLeaseInteraction: async (session) => ({ ok: true, lastInteractionAt: session.id === "audit-input" ? 601_000 : 0 }),
+  };
+  const result = await controller.cleanupPort(9222, { policy: auditPolicy, auditOnly: true, cdp, now: 601_001,
+    managedStatus: { managed: true, running: true, mode: "headed" } });
+  const anchorActions = result.anchorMaintenance.actions;
+  for (const targetId of ["audit-stale", "audit-duplicate", "audit-moved"]) {
+    assert.ok(anchorActions.some((action) => action.action === "would-reclassify" && action.targetId === targetId));
+  }
+  assert.ok(anchorActions.some((action) => action.action === "would-remove" && action.targetId === "audit-gone"));
+  assert.deepEqual(anchorActions.filter((action) => action.action === "would-create").map((action) => action.key), ["US", "AUS"]);
+  for (const [targetId, expected] of [["audit-expired", "would-close"], ["audit-untracked", "activity-tracker-restored"],
+    ["audit-missing-lease", "would-remove"], ["audit-heartbeat", "promoted-to-inspection"], ["audit-unknown", "would-adopt"]]) {
+    assert.ok(result.actions.some((action) => action.targetId === targetId && action.action === expected));
+  }
+  const afterLeases = await registry.listLeases();
+  assert.equal(afterLeases.length, beforeLeases.length);
+  const observedIds = new Set(["audit-input", "audit-untracked", "audit-probe-error", "audit-heartbeat"]);
+  assert.deepEqual(afterLeases.filter((lease) => !observedIds.has(lease.targetId)),
+    beforeLeases.filter((lease) => !observedIds.has(lease.targetId)));
+  const input = afterLeases.find((lease) => lease.targetId === "audit-input");
+  assert.equal(input.lastObservedInteractionAt, 601_000);
+  assert.equal(input.class, "interactive");
+  assert.equal(input.expiresAt, 7_801_000);
+  const restored = afterLeases.find((lease) => lease.targetId === "audit-untracked");
+  assert.equal(restored.activityTrackerRestoredAt, 601_001);
+  assert.equal(restored.class, "inspection");
+  assert.equal(restored.expiresAt, 7_801_001);
+  assert.equal(afterLeases.find((lease) => lease.targetId === "audit-probe-error").activityProbeFailedAt, 601_001);
+  const heartbeat = afterLeases.find((lease) => lease.targetId === "audit-heartbeat");
+  assert.equal(heartbeat.class, "inspection");
+  assert.equal(heartbeat.outcome, "heartbeat-lost");
+  assert.equal(heartbeat.expiresAt, 7_801_001);
+  assert.deepEqual([...installed].sort(), ["audit-unknown", "audit-untracked"]);
+  assert.equal(result.actions.find((action) => action.targetId === "audit-unknown").activityTracked, true);
+  const unknownError = result.actions.find((action) => action.targetId === "audit-unknown-error");
+  assert.equal(unknownError.action, "would-adopt");
+  assert.equal(unknownError.activityTracked, false);
+  assert.deepEqual(unknownError.probe, { stage: "read-activity", error: "probe failed" });
+  assert.equal(result.complete, false);
+  assert.deepEqual(await registry.listTaskTabs(), beforeTasks);
+  for (const lease of beforeLeases.filter((entry) => entry.targetId.startsWith("audit-"))) {
+    await registry.removeLease({ port: 9222, targetId: lease.targetId });
+  }
+});
+
+test("anchor maintenance detaches expired regional controllers before creating one replacement", async () => {
+  const { sellerCentralRegionTask } = await import("../task-tabs.mjs");
+  const spec = { ...sellerCentralRegionTask({ marketplace: "us" }), port: 9222, policy };
+  await registry.acquireLease({ port: 9222, targetId: "stale-region", leaseClass: "anchor", anchorKey: "US", now: 1, policy });
+  await registry.reserveTaskTab({ ...spec, livePageIds: ["stale-region"], now: 1000 });
+  const oneAnchorPolicy = structuredClone(policy);
+  oneAnchorPolicy.ports["9222"].anchors = [policy.ports["9222"].anchors[0]];
+  const pages = [{ id: "stale-region", url: "https://sellercentral.amazon.com/inventory" }];
+  const cdp = {
+    listPages: async () => pages,
+    createPage: async (url, options) => {
+      pages.push({ id: "fresh-region", url });
+      await registry.acquireLease({ port: 9222, targetId: "fresh-region",
+        leaseClass: options.leaseClass, anchorKey: options.anchorKey, now: 92_000, policy });
+      return { targetId: "fresh-region", session: { close() {} } };
+    },
+  };
+  const first = await controller.ensureAnchors(9222, { policy: oneAnchorPolicy, cdp, now: 92_000 });
+  assert.equal(first.created.length, 1);
+  const stale = (await registry.listLeases()).find((lease) => lease.targetId === "stale-region");
+  assert.equal(stale.class, "inspection");
+  assert.equal(stale.outcome, "heartbeat-lost");
+  assert.equal(stale.taskId, undefined);
+  assert.equal(stale.expiresAt, 7_292_000);
+  const second = await controller.ensureAnchors(9222, { policy: oneAnchorPolicy, cdp, now: 93_000 });
+  assert.equal(second.created.length, 0);
+  for (const targetId of ["stale-region", "fresh-region"]) await registry.removeLease({ port: 9222, targetId });
+});
+
+test("cleanup ignores focus activity but extends inspection for interaction", async () => {
+  for (const interacted of [false, true]) {
+    await registry.acquireLease({ port: 9222, targetId: "inspection-input", leaseClass: "inspection", now: 1000, policy });
+    const closed = [];
+    const cdp = {
+      assertChrome: async () => ({}),
+      listPages: async () => [{ id: "inspection-input", url: "https://example.test", webSocketDebuggerUrl: "ws://test/input" }],
+      Session: { open: async () => ({ close() {} }) },
+      readLeaseActivity: async () => ({ ok: true, value: 7_201_001 }),
+      readLeaseInteraction: async () => ({ ok: true, lastInteractionAt: interacted ? 7_201_000 : 0 }),
+      closePageImmediately: async (id) => { closed.push(id); },
+    };
+    await controller.cleanupPort(9222, { policy, cdp, auditOnly: false, now: 7_201_001,
+      managedStatus: { managed: true, running: true, mode: "headed" }, maintainAnchors: false });
+    assert.deepEqual(closed, interacted ? [] : ["inspection-input"]);
+    if (interacted) {
+      assert.equal((await registry.listLeases()).find((lease) => lease.targetId === "inspection-input").expiresAt, 14_401_000);
+      await registry.removeLease({ port: 9222, targetId: "inspection-input" });
+    }
+  }
+});
+
+async function runCli(args, dependencies) {
+  const lines = [];
+  const log = console.log;
+  const exitCode = process.exitCode;
+  process.exitCode = 0;
+  console.log = (line) => lines.push(JSON.parse(line));
+  try {
+    await controller.main(args, dependencies);
+    return { lines, exitCode: process.exitCode };
+  } finally {
+    console.log = log;
+    process.exitCode = exitCode;
+  }
+}
+
+test("cleanup CLI defers a busy lock at the deadline with exit zero and preserves audit mode", async () => {
+  let now = 1000;
+  const sleeps = [];
+  let attempts = 0;
+  const result = await runCli(["cleanup", "--port", "9223", "--lock-wait-ms", "12000", "--audit-only"], {
+    cleanup: (port, options) => controller.cleanupPortWithLock(port, options, {
+      acquire: (requestedPort, owner) => {
+        assert.equal(requestedPort, 9223);
+        assert.equal(owner, "browserctl:cleanup");
+        attempts++;
+        throw new Error("BROWSER_SESSION_BUSY: fixture");
+      },
+      clock: () => now,
+      sleep: async (ms) => { sleeps.push(ms); now += ms; },
+      cleanup: async () => { throw new Error("must not run a busy port pass"); },
+    }),
+  });
+  assert.deepEqual(sleeps, [5000, 5000, 2000]);
+  assert.equal(attempts, 4);
+  assert.equal(result.exitCode, 0);
+  const summary = result.lines[0];
+  assert.equal(summary.status, "deferred");
+  assert.equal(summary.mode, "audit");
+  assert.equal(summary.results[0].reason, "session-busy");
+  assert.equal(summary.results[0].waitMs, 12000);
+  assert.equal(summary.results[0].auditOnly, true);
+  assert.equal(controller.cleanupSummary([...summary.results, { reachable: true, complete: true }], "active").status, "deferred");
+  assert.equal(controller.cleanupSummary([...summary.results, { reachable: false, error: "probe failed" }], "active").status, "incomplete");
+  const failed = await runCli(["cleanup", "--port", "9223"], {
+    cleanup: async () => ({ reachable: true, complete: false, actions: [{ reason: "close-failed" }] }),
+  });
+  assert.equal(failed.exitCode, 1);
+});
+
+test("cleanup retries then holds one lock across the port pass and always releases it", async () => {
+  let now = 0;
+  let attempts = 0;
+  let held = false;
+  let releases = 0;
+  const dependencies = {
+    acquire: () => {
+      if (++attempts === 1) throw new Error("BROWSER_SESSION_BUSY: fixture");
+      held = true;
+      return () => { held = false; releases++; };
+    },
+    clock: () => now, sleep: async (ms) => { now += ms; },
+    cleanup: async (port, options) => {
+      assert.equal(held, true);
+      assert.equal(options.auditOnly, true);
+      return { port, reachable: true, complete: true, actions: [] };
+    },
+  };
+  const result = await controller.cleanupPortWithLock(9223, { auditOnly: true }, dependencies);
+  assert.equal(result.complete, true);
+  assert.equal(now, 5000);
+  assert.equal(releases, 1);
+  assert.equal(held, false);
+  await assert.rejects(controller.cleanupPortWithLock(9223, {}, {
+    ...dependencies, cleanup: async () => { throw new Error("port failed"); },
+  }), /port failed/);
+  assert.equal(releases, 2);
+  const failure = await controller.cleanupPortWithLock(9223, {}, {
+    ...dependencies, acquire: () => { throw new Error("permission denied"); },
+  });
+  assert.equal(failure.error, "permission denied");
+  assert.equal(controller.cleanupSummary([failure], "active").status, "incomplete");
+  for (const value of ["-1", "bad", "1.5"]) {
+    await assert.rejects(runCli(["cleanup", "--lock-wait-ms", value]), /INVALID_LOCK_WAIT_MS/);
+  }
+});
+
+test("cleanup port probes can borrow its real in-process session lock", async () => {
+  const { acquireSessionLock, assertSessionLock } = await import("../session-lock.mjs");
+  const previous = process.env.AMAZON_BROWSER_LOCK_DIR;
+  process.env.AMAZON_BROWSER_LOCK_DIR = join(runtime, "locks");
+  try {
+    await controller.cleanupPortWithLock(9223, {}, {
+      cleanup: async () => {
+        const releaseProbe = acquireSessionLock(9223, "probe");
+        assertSessionLock(9223);
+        releaseProbe();
+        assertSessionLock(9223);
+        return { reachable: true, complete: true, actions: [] };
+      },
+    });
+    assert.throws(() => assertSessionLock(9223), /LOCK_LOST/);
+  } finally {
+    if (previous === undefined) delete process.env.AMAZON_BROWSER_LOCK_DIR;
+    else process.env.AMAZON_BROWSER_LOCK_DIR = previous;
+  }
+});
+
+test("task complete CLI completes all slots with the selected outcome on either port", async () => {
+  for (const [port, outcome] of [[9222, "success"], [9223, "error"], [9223, "inspection"]]) {
+    const taskId = "cli-complete-" + port + "-" + outcome;
+    for (const slot of ["primary", "evidence"]) {
+      const spec = { port, taskId, slot, workflow: "test", policy };
+      const reserved = await registry.reserveTaskTab(spec);
+      await registry.bindReservedTaskTab({ ...spec, ...reserved, targetId: taskId + "-" + slot });
+      await registry.releaseTaskTabControl({ ...spec, controlToken: reserved.controlToken, outcome: "handoff" });
+    }
+    const args = ["task", "complete", "--port", String(port), "--task-id", taskId];
+    if (outcome !== "success") args.push("--outcome", outcome);
+    const { lines } = await runCli(args);
+    assert.equal(lines[0].ok, true);
+    assert.equal(lines[0].result.length, 2);
+    for (const { taskTab, lease } of lines[0].result) {
+      assert.equal(taskTab.completionOutcome, outcome);
+      assert.ok(taskTab.completedAt);
+      assert.equal(lease.class, outcome === "success" ? "background-success" : "inspection");
+      await registry.removeLease({ port, targetId: lease.targetId });
+    }
+  }
+  await assert.rejects(runCli(["task", "complete", "--port", "9223", "--task-id", "bad", "--outcome", "handoff"]), /UNSUPPORTED_TASK_OUTCOME/);
+});
+
+test("task detach CLI fences control and region state reports the binding", async () => {
+  const { sellerCentralRegionTask } = await import("../task-tabs.mjs");
+  const spec = { ...sellerCentralRegionTask({ marketplace: "us" }), port: 9222, policy };
+  await registry.acquireLease({ port: 9222, targetId: "cli-region", leaseClass: "anchor", anchorKey: "US", policy });
+  const reserved = await registry.reserveTaskTab({ ...spec, livePageIds: ["cli-region"] });
+  const state = await runCli(["region", "state", "--port", "9222"]);
+  assert.equal(state.lines[0].regions[0].boundTaskId, spec.taskId);
+  assert.equal(state.lines[0].regions[0].controllerFresh, true);
+  const args = ["task", "detach", "--port", "9222", "--task-id", spec.taskId, "--slot", "primary"];
+  await assert.rejects(runCli([...args, "--control-token", "wrong"]), /TASK_TAB_STALE_CONTROL/);
+  const { lines } = await runCli([...args, "--control-token", reserved.controlToken]);
+  assert.equal(lines[0].result.taskTab.targetId, null);
+  assert.equal(lines[0].result.lease.class, "inspection");
+  assert.equal(lines[0].result.lease.anchorKey, undefined);
+  assert.equal(lines[0].result.lease.outcome, "inspection");
+  assert.deepEqual((await runCli(["region", "state", "--port", "9222"])).lines[0].regions, []);
+  await registry.removeLease({ port: 9222, targetId: "cli-region" });
 });
 
 test("machine policy rejects silent in-app browser fallback", { concurrency: false }, () => {

@@ -16,10 +16,20 @@ node tools/browserctl/browserctl.mjs auth --port 9223 --target TARGET
 node tools/browserctl/browserctl.mjs restart --port 9223 --mode headed --reason "operator maintenance"
 ```
 
+`task complete --port <port> --task-id <id>` and
+`task detach --port <port> --task-id <id> --slot <slot> --control-token <token>`
+expect the hashed ID returned by `taskIdFor(workflow, stableKey)`, in
+`label:20hexdigest` form. Both commands operate on the registry. Detach requires
+the slot and current control token; it does not stop the worker heartbeat or
+close a CDP session or browser target. Completion is permanent for that task ID.
+Shared `seller-central-region` tasks are released after each operation, never
+completed.
+
 Normal JavaScript workflows acquire pages through
 `tools/browserctl/task-tabs.mjs`. Each workflow provides a stable task ID and
 usually uses its `primary` slot. Repeated steps and retries reacquire that exact
-target. The target is registered as `background-active`, receives one atomic
+target. Ordinary task targets use `background-active`; regional primaries keep
+their permanent `anchor` class. Each receives one atomic
 lease/controller/claim renewal while its CDP session is open, and is released with an
 explicit outcome. Callers never coordinate registry files, timeouts, activity
 probes, or raw target closure themselves.
@@ -29,7 +39,10 @@ evidence; heartbeat recovery or tracker installation does not establish observed
 interaction. Retrying a retained page first reads its versioned input tracker
 without navigating it, then atomically validates the binding and lease generation.
 Pointer, keyboard and wheel events count as observed interaction, not proof of a
-human actor. Lifecycle events remain part of cleanup retention only.
+human actor. Focus and page lifecycle events do not extend inspection retention.
+The low-level `touchLease(kind: "activity")` still extends existing inspection
+and interactive leases; callers must use `interaction` for retention updates.
+Cleanup already follows that rule; the remaining low-level guard is pending.
 
 `TASK_TAB_BUSY: observed-interaction` means input occurred after the latest release
 or expired controller deadline. `TASK_TAB_INTERACTION_UNKNOWN` means the retained
@@ -38,13 +51,11 @@ error promises that waiting until the retention deadline will permit reuse;
 safe cleanup or an explicit reviewed `allowOperatorActivity` recovery is required.
 Connection failure preserves the target and never authorizes a replacement.
 
-Seller Central readers and account switchers declare their intended context:
+Seller Central readers acquire the regional primary; account-switcher workflows
+add `claimScope: "global"` to retain the regional anchor while holding a global claim:
 
 ```js
-const page = await acquireTaskPage({
-  taskId, workflow: "amazon-reporting", exclusiveContext: true,
-  sellerCentral: { marketplace: "us", origin: "https://sellercentral.amazon.com" },
-});
+const page = await acquireTaskPage(sellerCentralRegionTask({ marketplace: "us", origin: "https://sellercentral.amazon.com" }));
 ```
 
 The controller derives one region claim per port: `sc:na` (US/CA/MX), `sc:eu`
@@ -60,7 +71,9 @@ independent. Omitting the descriptor keeps global exclusion, as do unmapped or
 mixed-region workflows. FlatFilePro and mixed-region diagnostics retain this
 conservative default. A descriptor requires `exclusiveContext: true`.
 
-A session cannot change its region. The shared account switcher checks the target
+A regional claim cannot cross region groups. An explicit global claim permits
+the account-switcher host transition without changing the region tab's identity.
+The shared account switcher checks the target
 origin and canonical `marketplace` code before selection; regional callers must
 supply that code alongside the exact picker label. Explicit navigation to another
 Seller Central group is rejected, and observed top-level redirects to another
@@ -99,13 +112,14 @@ already running in Chrome may still finish after the local connection closes.
 This is cooperative coordination; raw CDP clients and human account changes can
 bypass it, so workflows still verify identity before using data or taking action.
 
-The three Seller Central home pages on each port are permanent anchors. They are
-not a pool of working tabs and automation never navigates them. A new target is
-created only when a task slot has no target, a named additional slot is required
-for genuinely separate work, a site opens its own popup, or the operator asks
-for one. `cdp.mjs` rejects unkeyed target creation and unknown option names. This
-prevents old `createPage({purpose: ...})` callers from silently opening a new tab
-on every retry.
+Each port keeps three permanent Seller Central region anchors: US for NA, DE
+for EU, and AUS for AU. These are the working tabs for the
+`seller-central-region` workflow. Fresh controllers protect them at any URL;
+success parks them at home, explicit handoff keeps them without parking, and
+every other release outcome detaches them as inspection tabs.
+Surplus anchors become inspection leases with two hours of retention before
+cleanup can reclaim them. Named additional slots and other surfaces keep their
+own task tabs. `cdp.mjs` rejects unkeyed creation and unknown option names.
 
 ## Shape
 
@@ -129,14 +143,26 @@ window before it can become a close candidate. Standard presets continue to
 leave unknown tabs outside cleanup.
 
 Cleanup returns `complete` and a `status` of `complete`, `deferred`, or
-`incomplete`. Session contention defers cleanup until a later timer pass without
-changing the tab's activity history. Failed activity measurements preserve the
-tab and report the failing probe stage and sanitized error; incomplete passes
-exit nonzero. A renderer timeout is not treated as a missing tracker.
+`incomplete`. It holds the session lock for the whole port pass, retrying every
+five seconds for up to `--lock-wait-ms` (default 120000). If the lock stays busy,
+that port is deferred with reason `session-busy`; deferred passes exit 0.
+Failed activity measurements preserve the tab and report the failing probe
+stage and sanitized error; incomplete passes exit nonzero. A renderer timeout
+is not treated as a missing tracker. Only pointer, key, or wheel interaction
+extends retention; focus and visibility events do not.
 
-The same five-minute pass maintains anchors additively on each reachable
-managed browser. It creates a missing US, DE, or AUS anchor and replaces a
-navigated anchor only after reclassifying the original page as interactive.
+The same five-minute pass maintains the three region anchors on each reachable
+managed browser and reclassifies surplus anchors for later cleanup. It creates
+a missing region anchor after detachment and preserves every anchor with a
+fresh controller, including one navigated away from home.
+Missing targets are replaced even when their controller heartbeat is fresh.
+Anchor-maintenance errors appear under `anchorMaintenance.error`; lease expiry
+continues and determines whether that port's cleanup is complete.
+Audit-only passes preview anchor creation, reclassification, removal and
+detachment, plus lease adoption, removal and tab closure, using `would-*`
+actions. Unregistered tabs are still probed and report `would-adopt` with probe
+health. Tracker restoration, observed interaction, probe-failure records and
+background heartbeat transitions still run and persist their evidence.
 
 Machine routing uses the shared `grimoire` session on port 9223 for Amazon work
 from direct chat and Slack. Port 9222 is explicit operator work. T3 Code's in-app browser is explicit-only and is not

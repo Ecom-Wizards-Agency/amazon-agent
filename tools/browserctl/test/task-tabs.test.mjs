@@ -22,33 +22,44 @@ const policy = {
     heartbeat_interval_ms: 30_000, heartbeat_stale_ms: 90_000,
     auth_retry_cooldown_ms: 300_000,
   },
-  ports: { "9222": { mode: "headed", profile: "/tmp/test", anchors: [] } },
+  ports: { "9222": { mode: "headed", profile: "/tmp/test", anchors: [
+    { key: "US", url: "https://sellercentral.amazon.com/home" },
+    { key: "DE", url: "https://sellercentral.amazon.de/home" },
+    { key: "AUS", url: "https://sellercentral.amazon.com.au/home" },
+  ] } },
 };
 
 function fakeCdp({ createDelayMs = 0 } = {}) {
   const sequence = ++fakeSequence;
   const pages = [];
+  const sessions = [];
   let created = 0;
-  const sessionFor = (targetId) => ({
-    targetId,
-    setTaskControlGuard(guard) { this.guard = guard; },
-    async assertTaskControl(options) { return this.guard(options); },
-    invalidateTaskControl(error) { this.controlError = error; this.close(); },
-    async send(method, params = {}) {
-      if (this.controlError) throw this.controlError;
-      if (this.guard) await this.assertTaskControl();
-      if (method === "Page.navigate") {
-        const page = pages.find((entry) => entry.id === targetId);
-        if (page) page.url = params.url;
-      }
-      return {};
-    },
-    close() {
-      if (this._taskHeartbeat) clearInterval(this._taskHeartbeat);
-    },
-  });
+  const sessionFor = (targetId) => {
+    const session = {
+      targetId,
+      setTaskControlGuard(guard, options) { this.guard = guard; this.guardOptions = options; },
+      async assertTaskControl(options) { return this.guard(options); },
+      invalidateTaskControl(error) { this.controlError = error; this.close(); },
+      async send(method, params = {}) {
+        if (this.controlError) throw this.controlError;
+        if (this.guard) await this.assertTaskControl();
+        if (method === "Page.navigate") {
+          const page = pages.find((entry) => entry.id === targetId);
+          if (page) page.url = params.url;
+        }
+        return {};
+      },
+      close() {
+        this.closed = true;
+        if (this._taskHeartbeat) clearInterval(this._taskHeartbeat);
+      },
+    };
+    sessions.push(session);
+    return session;
+  };
   return {
     pages,
+    sessions,
     get created() { return created; },
     ensureChrome: async () => ({}),
     listPages: async () => pages.map((entry) => ({ ...entry })),
@@ -224,10 +235,204 @@ test("success keeps the task target for the configured grace period", { concurre
   const cdp = fakeCdp();
   const page = await acquire(cdp, "success-grace");
   const before = Date.now();
-  await taskTabs.releaseTaskPage(page, { outcome: "success" });
+  await taskTabs.releaseTaskPage(page);
   const lease = (await registry.listLeases()).find((entry) => entry.targetId === page.targetId);
   assert.equal(lease.class, "background-success");
   assert.ok(lease.expiresAt >= before + policy.cleanup.background_grace_ms);
+});
+
+test("regional task descriptors share stable ids within each mapped region", () => {
+  assert.equal(taskTabs.REGION_WORKFLOW, "seller-central-region");
+  assert.deepEqual(taskTabs.REGION_ANCHOR_KEYS, { "sc:na": "US", "sc:eu": "DE", "sc:au": "AUS" });
+  for (const [marketplace, scope, anchorKey] of [
+    ["us", "sc:na", "US"], ["ca", "sc:na", "US"], ["mx", "sc:na", "US"],
+    ["de", "sc:eu", "DE"], ["uk", "sc:eu", "DE"], ["au", "sc:au", "AUS"],
+  ]) {
+    assert.deepEqual(taskTabs.sellerCentralRegionTask({ marketplace }), {
+      taskId: taskTabs.taskIdFor(taskTabs.REGION_WORKFLOW, scope),
+      workflow: taskTabs.REGION_WORKFLOW, slot: "primary", exclusiveContext: true,
+      sellerCentral: { marketplace, origin: undefined }, scope, anchorKey,
+    });
+  }
+  assert.equal(taskTabs.sellerCentralRegionTask({ origin: "https://sellercentral.amazon.de/home" }).scope, "sc:eu");
+  for (const descriptor of [{}, { marketplace: "jp" }, { origin: "https://sellercentral.amazon.co.jp" }]) {
+    assert.throws(() => taskTabs.sellerCentralRegionTask(descriptor), { code: "REGION_SCOPE_REQUIRED" });
+  }
+  assert.throws(() => taskTabs.sellerCentralRegionTask({ marketplace: "us", origin: "https://sellercentral.amazon.de" }),
+    { code: "TASK_TAB_CONTEXT_MISMATCH" });
+});
+
+test("region primary binds a live anchor, parks it, and reuses it without creating a tab", async () => {
+  const cdp = fakeCdp();
+  const spec = taskTabs.sellerCentralRegionTask({ marketplace: "us" });
+  await registry.acquireLease({ port: 9222, targetId: "missing-us-anchor", leaseClass: "anchor", anchorKey: "US", policy });
+  const targetId = "live-us-anchor";
+  cdp.pages.push({ id: targetId, url: policy.ports["9222"].anchors[0].url,
+    webSocketDebuggerUrl: `ws://test/devtools/page/${targetId}` });
+  await registry.acquireLease({ port: 9222, targetId, leaseClass: "anchor", anchorKey: "US", policy });
+  const first = await taskTabs.acquireTaskPage(spec, { registry, cdp, policy });
+  assert.equal(first.targetId, targetId);
+  await assert.rejects(taskTabs.acquireTaskPage(spec, { registry, cdp, policy }), { code: "TASK_TAB_BUSY" });
+  await registry.touchTaskTabControl({ ...spec, port: 9222, targetId,
+    controlToken: first.controlToken, contextScope: first.contextScope, policy });
+  await assert.rejects(registry.acquireLease({ port: 9222, targetId,
+    leaseClass: "interactive", owner: "anchor-maintenance", policy }), /TASK_TAB_CONTROL_REQUIRED/);
+  let lease = (await registry.listLeases()).find((entry) => entry.targetId === targetId);
+  assert.equal(lease.class, "anchor");
+  assert.equal(lease.expiresAt, null);
+  await first.session.send("Page.navigate", { url: "https://sellercentral.amazon.com/inventory" });
+  const state = (await registry.regionTabState(9222)).find((entry) => entry.targetId === targetId);
+  assert.equal(state.controllerFresh, true);
+  assert.equal(state.boundTaskId, spec.taskId);
+  const result = await taskTabs.releaseTaskPage(first);
+  assert.equal(result.taskTab.controller, null);
+  assert.equal(result.lease.class, "anchor");
+  assert.equal(result.lease.expiresAt, null);
+  assert.ok(result.lease.lastReleasedAt);
+  assert.equal(cdp.pages[0].url, policy.ports["9222"].anchors[0].url);
+  const second = await taskTabs.acquireTaskPage(spec, { registry, cdp, policy });
+  assert.equal(second.targetId, targetId);
+  assert.equal(cdp.created, 0);
+  const before = Date.now();
+  const detached = await taskTabs.detachTaskPage(second, { outcome: "blocked" });
+  assert.equal(detached.lease.class, "inspection");
+  assert.equal(detached.lease.outcome, "blocked");
+  assert.equal("anchorKey" in detached.lease, false);
+  assert.equal("taskId" in detached.lease, false);
+  assert.equal(detached.taskTab.targetId, null);
+  assert.equal(detached.taskTab.controller, null);
+  assert.ok(detached.lease.expiresAt >= before + policy.cleanup.interactive_idle_ms);
+  await assert.rejects(registry.detachTaskTab({ ...spec, port: 9222, controlToken: second.controlToken, policy }),
+    /TASK_TAB_STALE_CONTROL/);
+  await registry.removeLease({ port: 9222, targetId: "missing-us-anchor" });
+  const third = await taskTabs.acquireTaskPage(spec, { registry, cdp, policy });
+  assert.notEqual(third.targetId, targetId);
+  assert.equal(cdp.created, 1);
+  lease = (await registry.listLeases()).find((entry) => entry.targetId === third.targetId);
+  assert.equal(lease.class, "anchor");
+  assert.equal(lease.owner, "browserctl:anchor");
+  assert.equal(lease.anchorKey, "US");
+  assert.equal(lease.url, policy.ports["9222"].anchors[0].url);
+  await taskTabs.releaseTaskPage(third);
+});
+
+test("region failures detach automatically and additional slots remain ordinary task tabs", async () => {
+  const cdp = fakeCdp();
+  const spec = taskTabs.sellerCentralRegionTask({ marketplace: "de" });
+  for (const outcome of ["error", "inspection", "blocked", "auth-required", "operation-failed"]) {
+    const page = await taskTabs.acquireTaskPage(spec, { registry, cdp, policy });
+    let unlocked = false;
+    page._unlockSession = () => { unlocked = true; };
+    const released = await taskTabs.releaseTaskPage(page, { outcome });
+    assert.equal(released.lease.class, "inspection");
+    assert.equal(released.lease.outcome, outcome);
+    assert.equal(released.taskTab.targetId, null);
+    assert.equal(unlocked, true);
+    assert.equal(page._released, true);
+  }
+  assert.equal(cdp.created, 5);
+  const extra = await taskTabs.acquireTaskPage({ ...spec, slot: "evidence" }, { registry, cdp, policy });
+  const released = await taskTabs.releaseTaskPage(extra);
+  assert.equal(released.lease.class, "background-success");
+});
+
+test("a failed home navigation detaches the region tab", async () => {
+  const cdp = fakeCdp();
+  const spec = taskTabs.sellerCentralRegionTask({ marketplace: "au" });
+  const page = await taskTabs.acquireTaskPage(spec, { registry, cdp, policy });
+  page.session.send = async () => ({ errorText: "net::ERR_FAILED" });
+  await assert.rejects(taskTabs.releaseTaskPage(page), /REGION_PARK_FAILED/);
+  const lease = (await registry.listLeases()).find((entry) => entry.targetId === page.targetId);
+  assert.equal(lease.class, "inspection");
+  assert.equal(lease.outcome, "error");
+});
+
+test("transient region setup failures preserve the live anchor across retries", async () => {
+  const cdp = fakeCdp();
+  const spec = taskTabs.sellerCentralRegionTask({ marketplace: "au" });
+  const first = await taskTabs.acquireTaskPage(spec, { registry, cdp, policy });
+  await taskTabs.releaseTaskPage(first);
+  for (const step of ["viewport", "tracker", "control"]) {
+    cdp.setDesktopViewport = async () => {
+      if (step === "viewport") throw new Error("transient setup");
+    };
+    cdp.installLeaseActivityTracker = async (session) => {
+      if (step === "tracker") throw new Error("transient setup");
+      session.assertTaskControl = async () => { throw new Error("transient setup"); };
+    };
+    await assert.rejects(taskTabs.acquireTaskPage(spec, { registry, cdp, policy }), /transient setup/);
+    const record = (await registry.listTaskTabs()).find((entry) => entry.taskId === spec.taskId);
+    const lease = (await registry.listLeases()).find((entry) => entry.targetId === first.targetId);
+    assert.equal(record.targetId, first.targetId);
+    assert.equal(record.controller, null);
+    assert.equal(lease.class, "anchor");
+    assert.equal(lease.expiresAt, null);
+    assert.equal(cdp.sessions.at(-1).closed, true);
+    assert.equal(cdp.sessions.at(-1)._taskHeartbeat._destroyed, true);
+  }
+  cdp.setDesktopViewport = async () => {};
+  cdp.installLeaseActivityTracker = async () => {};
+  const retried = await taskTabs.acquireTaskPage(spec, { registry, cdp, policy });
+  assert.equal(retried.targetId, first.targetId);
+  assert.equal(cdp.created, 1);
+  await taskTabs.releaseTaskPage(retried);
+});
+
+test("a timed-out initial region navigation preserves a target that reached its region", async () => {
+  const cdp = fakeCdp();
+  const spec = taskTabs.sellerCentralRegionTask({ marketplace: "de" });
+  cdp.installLeaseActivityTracker = async (session) => {
+    const send = session.send.bind(session);
+    session.send = async (...args) => {
+      await send(...args);
+      throw new Error("navigation timeout");
+    };
+  };
+  await assert.rejects(taskTabs.acquireTaskPage(spec, { registry, cdp, policy }), /navigation timeout/);
+  const targetId = cdp.pages[0].id;
+  const lease = (await registry.listLeases()).find((entry) => entry.targetId === targetId);
+  assert.equal(lease.class, "anchor");
+  cdp.installLeaseActivityTracker = async () => {};
+  const retried = await taskTabs.acquireTaskPage(spec, { registry, cdp, policy });
+  assert.equal(retried.targetId, targetId);
+  assert.equal(cdp.created, 1);
+  await taskTabs.releaseTaskPage(retried);
+});
+
+test("missing region parking configuration still releases every handle resource", async () => {
+  for (const ports of [{}, { "9222": {} }]) {
+    const cdp = fakeCdp();
+    const spec = taskTabs.sellerCentralRegionTask({ marketplace: "au" });
+    const page = await taskTabs.acquireTaskPage(spec, { registry, cdp, policy });
+    let unlocked = 0;
+    page._unlockSession = () => { unlocked++; };
+    page._policy = { ...policy, ports };
+    await assert.rejects(taskTabs.releaseTaskPage(page), { code: "REGION_ANCHOR_REQUIRED" });
+    assert.equal(page._released, true);
+    assert.equal(page.session.closed, true);
+    assert.equal(page.session._taskHeartbeat._destroyed, true);
+    assert.equal(unlocked, 1);
+    assert.equal(await taskTabs.releaseTaskPage(page), null);
+    const record = (await registry.listTaskTabs()).find((entry) => entry.taskId === spec.taskId);
+    assert.equal(record.controller, null);
+    assert.equal(record.targetId, null);
+    const lease = (await registry.listLeases()).find((entry) => entry.targetId === page.targetId);
+    assert.equal(lease.class, "inspection");
+  }
+});
+
+test("ordinary workflows and additional region slots cannot bind anchors", async () => {
+  for (const [taskId, workflow, slot] of [
+    ["anchor-refusal", "test", "primary"],
+    ["anchor-refusal-slot", taskTabs.REGION_WORKFLOW, "evidence"],
+  ]) {
+    const spec = { port: 9222, taskId, workflow, slot, policy };
+    const reservation = await registry.reserveTaskTab(spec);
+    await registry.acquireLease({ port: 9222, targetId: taskId, leaseClass: "anchor", anchorKey: "DE", policy });
+    await assert.rejects(registry.bindReservedTaskTab({ ...spec, targetId: taskId,
+      reservationToken: reservation.reservationToken, controlToken: reservation.controlToken }), /TASK_TAB_ANCHOR_REFUSED/);
+    await registry.abandonTaskTabReservation({ ...spec, controlToken: reservation.controlToken });
+  }
 });
 
 test("removing a closed target also removes its task binding", { concurrency: false }, async () => {
@@ -237,4 +442,55 @@ test("removing a closed target also removes its task binding", { concurrency: fa
   await registry.removeLease({ port: 9222, targetId: page.targetId });
   assert.equal((await registry.listTaskTabs()).some((entry) =>
     entry.taskId === "binding-cleanup"), false);
+});
+
+
+test("global region claims keep the anchor through switcher navigation and regional reacquisition", async () => {
+  const { Session } = await import("../../report-fetcher/cdp.mjs");
+  for (const lease of await registry.listLeases()) {
+    await registry.removeLease({ port: lease.port, targetId: lease.targetId });
+  }
+  for (const [marketplace, anchorKey, home] of [
+    ["de", "DE", "https://sellercentral.amazon.de/home"],
+    ["au", "AUS", "https://sellercentral.amazon.com.au/home"],
+  ]) {
+    const cdp = fakeCdp();
+    const regional = taskTabs.sellerCentralRegionTask({ marketplace });
+    const global = taskTabs.sellerCentralRegionTask({ marketplace, claimScope: "global" });
+    assert.equal(global.taskId, regional.taskId);
+    assert.equal(global.anchorKey, anchorKey);
+    const targetId = `global-${marketplace}-anchor`;
+    cdp.pages.push({ id: targetId, url: home, webSocketDebuggerUrl: `ws://test/devtools/page/${targetId}` });
+    await registry.acquireLease({ port: 9222, targetId, leaseClass: "anchor", anchorKey, policy });
+    cdp.readLeaseInteraction = async () => ({ ok: false });
+    for (const spec of [regional, global, regional, global]) {
+      const handle = await taskTabs.acquireTaskPage({ ...spec, allowOperatorActivity: true,
+        ...(spec.claimScope ? { initialUrl: "https://sellercentral.amazon.com/account-switcher" } : {}),
+      }, { registry, cdp, policy });
+      try {
+        assert.equal(handle.targetId, targetId);
+        assert.equal(handle.contextScope, spec.claimScope || regional.scope);
+        assert.equal(handle.session.guardOptions.contextScope, handle.contextScope);
+        assert.equal(handle.session.guardOptions.exclusiveContext, true);
+        if (spec.claimScope) {
+          const switcher = "https://sellercentral.amazon.com/account-switcher";
+          const guard = Object.create(Session.prototype);
+          guard.invalidateTaskControl = error => { throw error; };
+          guard.setTaskControlGuard(async () => {}, handle.session.guardOptions);
+          assert.doesNotThrow(() => guard._assertTaskNavigation(switcher));
+          await handle.session.send("Page.navigate", { url: switcher });
+          await handle.session.assertTaskControl();
+          await assert.rejects(acquire(cdp, `global-blocked-${marketplace}`, {
+            sellerCentral: { marketplace: "us" },
+          }), { code: "TASK_TAB_BUSY" });
+        }
+      } finally {
+        const result = await taskTabs.releaseTaskPage(handle);
+        assert.equal(result.lease.class, "anchor");
+        assert.equal(result.lease.anchorKey, anchorKey);
+      }
+      assert.equal(cdp.pages[0].url, home);
+    }
+    assert.equal(cdp.created, 0);
+  }
 });

@@ -3,11 +3,31 @@ import { basename } from "node:path";
 import * as cdpDefault from "../report-fetcher/cdp.mjs";
 import * as registryDefault from "./lease-registry.mjs";
 import { loadBrowserPolicy } from "./policy.mjs";
-import { resolveContextScope, scopeForOrigin, assertContextCovers } from "./context-scopes.mjs";
+import { resolveContextScope, scopeForOrigin, assertContextCovers, isRegionalScope,
+  REGION_WORKFLOW, REGION_ANCHOR_KEYS } from "./context-scopes.mjs";
 import { acquireSessionLock } from "./session-lock.mjs";
 
 const configuredPort = () => Number(process.env.CDP_PORT || 9223);
 const markerUrl = (token) => `about:blank#ew-task-tab=${encodeURIComponent(token)}`;
+
+export { REGION_WORKFLOW, REGION_ANCHOR_KEYS };
+
+export function sellerCentralRegionTask({ marketplace, origin, claimScope } = {}) {
+  if (claimScope !== undefined && claimScope !== "global") {
+    throw taskError("TASK_TAB_CONTEXT_INVALID", "claimScope must be global when supplied");
+  }
+  const sellerCentral = { marketplace, origin };
+  const scope = resolveContextScope({ exclusiveContext: true,
+    sellerCentral: marketplace == null && origin == null ? undefined : sellerCentral });
+  if (!isRegionalScope(scope)) {
+    throw taskError("REGION_SCOPE_REQUIRED", "a mapped Seller Central region is required");
+  }
+  return {
+    taskId: taskIdFor(REGION_WORKFLOW, scope), workflow: REGION_WORKFLOW,
+    slot: "primary", exclusiveContext: true, sellerCentral, scope,
+    anchorKey: REGION_ANCHOR_KEYS[scope], ...(claimScope === undefined ? {} : { claimScope }),
+  };
+}
 
 export function taskIdFor(workflow, stableKey) {
   const label = String(workflow || "task").toLowerCase()
@@ -122,20 +142,34 @@ async function createOrRecoverReservedPage({
 
 async function acquireTaskPageInner({
   port = configuredPort(), taskId, slot = "primary", workflow,
-  initialUrl = "about:blank", exclusiveContext = false, sellerCentral,
+  initialUrl = "about:blank", exclusiveContext = false, sellerCentral, claimScope,
   allowOperatorActivity = false, owner = ownerName(), expectedTargetId = null,
 } = {}, {
   registry = registryDefault, cdp = cdpDefault, policy = loadBrowserPolicy(),
 } = {}) {
   assertPort(port);
-  const requestedScope = resolveContextScope({ exclusiveContext, sellerCentral });
+  const regionScope = resolveContextScope({ exclusiveContext, sellerCentral });
+  if (claimScope !== undefined && (claimScope !== "global" || !exclusiveContext)) {
+    throw taskError("TASK_TAB_CONTEXT_INVALID", "claimScope requires global exclusive context");
+  }
+  const requestedScope = claimScope || regionScope;
+  if (workflow === REGION_WORKFLOW && slot === "primary" && initialUrl === "about:blank") {
+    initialUrl = policy.ports?.[String(port)]?.anchors
+      ?.find((anchor) => anchor.key === REGION_ANCHOR_KEYS[regionScope])?.url || initialUrl;
+  }
   if (requestedScope && initialUrl && scopeForOrigin(initialUrl)) {
     assertContextCovers(requestedScope, { origin: initialUrl });
   }
   await cdp.ensureChrome();
+  let livePageIds = [];
+  if (workflow === REGION_WORKFLOW && slot === "primary") {
+    try { livePageIds = (await cdp.listPages()).map((page) => page.id); }
+    catch (error) { throw taskError("TASK_TAB_TARGET_UNAVAILABLE", error.message); }
+  }
   const spec = {
-    port, taskId, slot, workflow, owner, exclusiveContext, sellerCentral,
+    port, taskId, slot, workflow, owner, exclusiveContext, sellerCentral, claimScope,
     allowOperatorActivity, origin: originOf(initialUrl), policy,
+    livePageIds,
   };
   let reservation = await registry.reserveTaskTab(spec);
   let opened = null;
@@ -199,6 +233,7 @@ async function acquireTaskPageInner({
         opened.session.close();
         opened = null;
       }
+      if (!opened) opened = await openExistingPage(cdp, reservation.targetId);
       if (!opened) {
         const replacement = await registry.prepareMissingTaskTabReplacement({
           port, taskId, slot, targetId: reservation.targetId, controlToken, policy,
@@ -231,7 +266,7 @@ async function acquireTaskPageInner({
   }
 
   const handle = {
-    port: Number(port), taskId, slot, workflow, controlToken, contextScope,
+    port: Number(port), taskId, slot, workflow, controlToken, contextScope, regionScope,
     targetId: page.targetId, session: page.session, source: page.source,
     reused: page.source === "reused", contextVerificationRequired: true,
     _registry: registry, _policy: policy, _released: false,
@@ -255,7 +290,18 @@ async function acquireTaskPageInner({
     await handle.session.assertTaskControl();
     return handle;
   } catch (error) {
-    await releaseTaskPage(handle, { outcome: "error" }).catch(() => {});
+    let keepAnchor = false;
+    if (workflow === REGION_WORKFLOW && slot === "primary") {
+      try {
+        const livePage = (await cdp.listPages()).find((entry) => entry.id === handle.targetId);
+        keepAnchor = Boolean(livePage && scopeForOrigin(livePage.url) === regionScope);
+      } catch { /* A failed target probe cannot establish safe reuse. */ }
+    }
+    // Setup has not handed control to the workflow. Preserve a live region
+    // target on its origin so transient setup failures do not multiply tabs.
+    await (keepAnchor
+      ? finishTaskPage(handle, "abandonTaskTabReservation")
+      : releaseTaskPage(handle, { outcome: "error" })).catch(() => {});
     throw error;
   }
 }
@@ -270,12 +316,40 @@ export async function acquireTaskPage(spec = {}, dependencies = {}) {
   } catch (error) { unlock(); throw error; }
 }
 
-export async function releaseTaskPage(handle, { outcome = "handoff" } = {}) {
+/**
+ * Release successfully by default. Pass "handoff" deliberately for an explicit operator handover.
+ * A failed regional home navigation detaches the target and may throw REGION_PARK_FAILED.
+ */
+export async function releaseTaskPage(handle, { outcome = "success" } = {}) {
+  if (!handle || handle._released) return null;
+  if (handle.workflow === REGION_WORKFLOW && handle.slot === "primary") {
+    if (!["success", "handoff"].includes(outcome)) return detachTaskPage(handle, { outcome });
+    if (outcome === "success") {
+      try {
+        const anchorKey = REGION_ANCHOR_KEYS[handle.regionScope ?? handle.contextScope];
+        const anchor = handle._policy.ports?.[String(handle.port)]?.anchors?.find((entry) => entry.key === anchorKey);
+        if (!anchor) throw taskError("REGION_ANCHOR_REQUIRED", `policy has no ${anchorKey} anchor`);
+        const navigation = await handle.session.send("Page.navigate", { url: anchor.url }, { timeoutMs: 15000 });
+        if (navigation.errorText) throw new Error(`REGION_PARK_FAILED: ${navigation.errorText}`);
+      } catch (error) {
+        await detachTaskPage(handle, { outcome: "error" });
+        throw error;
+      }
+    }
+  }
+  return finishTaskPage(handle, "releaseTaskTabControl", outcome);
+}
+
+export async function detachTaskPage(handle, { outcome = "inspection" } = {}) {
+  return finishTaskPage(handle, "detachTaskTab", outcome);
+}
+
+async function finishTaskPage(handle, method, outcome) {
   if (!handle || handle._released) return null;
   handle._released = true;
   if (handle.session?._taskHeartbeat) clearInterval(handle.session._taskHeartbeat);
   handle.session?.close();
-  try { return await handle._registry.releaseTaskTabControl({
+  try { return await handle._registry[method]({
     port: handle.port, taskId: handle.taskId, slot: handle.slot,
     controlToken: handle.controlToken, contextScope: handle.contextScope, outcome, policy: handle._policy,
   }); } finally { handle._unlockSession?.(); }

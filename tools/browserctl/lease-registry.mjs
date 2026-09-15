@@ -2,7 +2,8 @@ import { randomUUID } from "node:crypto";
 import { mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
 import { basename, join } from "node:path";
 import { RUNTIME_ROOT, loadBrowserPolicy } from "./policy.mjs";
-import { resolveContextScope, isRegionalScope, scopeForOrigin } from "./context-scopes.mjs";
+import { resolveContextScope, isRegionalScope, scopeForOrigin,
+  REGION_WORKFLOW, REGION_ANCHOR_KEYS } from "./context-scopes.mjs";
 
 export const LEASE_CLASSES = new Set([
   "anchor", "background-active", "background-success", "interactive", "inspection",
@@ -125,6 +126,25 @@ function taskControlIsHealthy(control, now) {
   return Boolean(control && Number(control.expiresAt || 0) > now);
 }
 
+function isRegionPrimary(record) {
+  return record.workflow === REGION_WORKFLOW && record.slot === "primary";
+}
+
+function regionAnchor(record, policy) {
+  const anchorKey = REGION_ANCHOR_KEYS[record.regionScope ?? record.contextScope];
+  return policy.ports?.[String(record.port)]?.anchors?.find((anchor) => anchor.key === anchorKey);
+}
+
+function preferredAnchor(leases, livePageIds) {
+  const live = new Set(livePageIds);
+  return leases.find((lease) => live.has(lease.targetId)) || leases[0];
+}
+
+function allowsAnchor(record, lease) {
+  return isRegionPrimary(record) && isRegionalScope(record.regionScope ?? record.contextScope)
+    && lease.anchorKey === REGION_ANCHOR_KEYS[record.regionScope ?? record.contextScope];
+}
+
 const regionClaimKey = (port, scope) => `${Number(port)}:${scope}`;
 const recordScope = (record) => record.exclusiveContext ? (record.contextScope ?? "global") : null;
 const guardIdentity = (port) => `@regional-guard:${Number(port)}`;
@@ -238,8 +258,10 @@ function clearContextClaimFor(state, record, controlToken = null, now = Date.now
 }
 
 function activateLease(lease, { owner, now }) {
-  lease.class = "background-active";
-  lease.owner = String(owner);
+  if (lease.class !== "anchor") {
+    lease.class = "background-active";
+    lease.owner = String(owner);
+  }
   lease.state = "active";
   lease.updatedAt = now;
   lease.heartbeatAt = now;
@@ -252,8 +274,11 @@ function activateLease(lease, { owner, now }) {
 }
 
 function applyLeaseOutcome(lease, outcome, now, policy) {
-  if (lease.class === "anchor") return;
-  if (outcome === "success") {
+  if (lease.class === "anchor") {
+    lease.state = "leased";
+    lease.expiresAt = null;
+    lease.lastReleasedAt = now;
+  } else if (outcome === "success") {
     lease.class = "background-success";
     lease.state = "released";
     lease.expiresAt = now + policy.cleanup.background_grace_ms;
@@ -278,7 +303,7 @@ function applyLeaseOutcome(lease, outcome, now, policy) {
 
 export async function acquireLease({
   port, targetId, leaseClass = "background-active", owner = "unknown", origin = null,
-  anchorKey = null, now = Date.now(), policy = loadBrowserPolicy(), recoverClosing = false,
+  anchorKey = null, url = null, now = Date.now(), policy = loadBrowserPolicy(), recoverClosing = false,
 }) {
   assertLeaseInput({ port, targetId, leaseClass });
   return transaction((state) => {
@@ -298,6 +323,8 @@ export async function acquireLease({
       state: leaseClass === "background-active" ? "active" : "leased",
       origin: normalizedOrigin(origin) || previous?.origin || null,
       anchorKey: anchorKey || (leaseClass === "anchor" ? previous?.anchorKey || null : null),
+      url: url || previous?.url || (leaseClass === "anchor"
+        ? policy.ports[String(Number(port))]?.anchors.find((anchor) => anchor.key === anchorKey)?.url : null) || null,
       acquiredAt: previous?.acquiredAt || now,
       updatedAt: now,
       heartbeatAt: leaseClass === "background-active" ? now : previous?.heartbeatAt || null,
@@ -359,7 +386,7 @@ export async function touchLease({ port, targetId, kind = "activity", now = Date
       lease.activityTrackerBaselineAt = lease.lastActivityAt;
       delete lease.activityTrackerProtectionStartedAt;
       delete lease.activityTrackerRestoredAt;
-      if (lease.class === "background-success") {
+      if (lease.class === "background-success" && kind === "interaction") {
         lease.class = "interactive";
         lease.state = "leased";
         lease.outcome = "manual-activity";
@@ -397,6 +424,12 @@ export async function releaseLease({
 export async function transitionMissedHeartbeat({ port, targetId, now = Date.now(), policy = loadBrowserPolicy() }) {
   return transaction((state) => {
     const lease = state.leases[leaseKey(port, targetId)];
+    if (lease?.class === "anchor") {
+      const record = Object.values(state.task_tabs).find((entry) =>
+        entry.port === Number(port) && entry.targetId === targetId && isRegionPrimary(entry));
+      if (!record?.controller || taskControlIsHealthy(record.controller, now)) return structuredClone(lease);
+      return detachBoundTaskTab(state, record, "heartbeat-lost", now, policy).lease;
+    }
     if (!lease || lease.class !== "background-active") return null;
     if (now - Number(lease.heartbeatAt || lease.acquiredAt) <= policy.cleanup.heartbeat_stale_ms) {
       return structuredClone(lease);
@@ -454,13 +487,23 @@ export async function restartActivityMeasurement({
 
 export async function reserveTaskTab({
   port, taskId, slot = "primary", workflow, owner = "unknown",
-  exclusiveContext = false, sellerCentral, allowOperatorActivity = false, origin = null,
-  interactionProbe = null, now = null, policy = loadBrowserPolicy(),
+  exclusiveContext = false, sellerCentral, claimScope, allowOperatorActivity = false, origin = null,
+  interactionProbe = null, livePageIds = [], now = null, policy = loadBrowserPolicy(),
 }) {
   const normalizedTaskId = assertTaskText("taskId", taskId);
   const normalizedSlot = assertTaskText("slot", slot, 100);
   const normalizedWorkflow = assertTaskText("workflow", workflow, 100);
-  const requestedScope = resolveContextScope({ exclusiveContext, sellerCentral });
+  const regionScope = resolveContextScope({ exclusiveContext, sellerCentral });
+  if (claimScope !== undefined && (claimScope !== "global" || !exclusiveContext)) {
+    throw Object.assign(new Error("TASK_TAB_CONTEXT_INVALID: claimScope requires global exclusive context"),
+      { code: "TASK_TAB_CONTEXT_INVALID" });
+  }
+  const requestedScope = claimScope || regionScope;
+  const regionPrimary = isRegionPrimary({ workflow: normalizedWorkflow, slot: normalizedSlot });
+  if (regionPrimary && !isRegionalScope(regionScope)) {
+    throw Object.assign(new Error("REGION_SCOPE_REQUIRED: a mapped Seller Central region is required"),
+      { code: "REGION_SCOPE_REQUIRED" });
+  }
   const testPortAllowed = /^(1|true|yes|on)$/i.test(
     String(process.env.CDP_ENABLE_TEST_LEASES || ""),
   );
@@ -476,8 +519,12 @@ export async function reserveTaskTab({
         || Boolean(record.exclusiveContext) !== Boolean(exclusiveContext))) {
       throw new Error(`TASK_TAB_CONFLICT: ${normalizedTaskId}/${normalizedSlot} metadata changed`);
     }
-    if (record?.contextScope !== undefined && recordScope(record) !== requestedScope) {
+    if (record?.contextScope !== undefined && recordScope(record) !== requestedScope
+        && !(regionPrimary && (record.regionScope ?? record.contextScope) === regionScope)) {
       throw new Error(`TASK_TAB_CONFLICT: ${normalizedTaskId}/${normalizedSlot} context scope changed`);
+    }
+    if (regionPrimary && record && (record.regionScope ?? record.contextScope) !== regionScope) {
+      throw new Error(`TASK_TAB_CONFLICT: ${normalizedTaskId}/${normalizedSlot} region changed`);
     }
     if (record?.completedAt) {
       throw new Error(`TASK_TAB_COMPLETED: ${normalizedTaskId} has already completed`);
@@ -502,8 +549,16 @@ export async function reserveTaskTab({
     const conflict = busyFor(effectiveScope);
     if (conflict) return conflict;
 
+    if (regionPrimary && record?.controller
+        && (!new Set(livePageIds).has(record.targetId) || !allowsAnchor(record, boundLease || {})
+          || boundLease?.class !== "anchor")) {
+      detachBoundTaskTab(state, record, "heartbeat-lost", now, policy);
+    }
+
     if (record?.targetId) {
-      if (boundLease?.class === "anchor") throw new Error(`TASK_TAB_ANCHOR_REFUSED: ${record.targetId}`);
+      if (boundLease?.class === "anchor" && !allowsAnchor(record, boundLease)) {
+        throw new Error(`TASK_TAB_ANCHOR_REFUSED: ${record.targetId}`);
+      }
       if (boundLease?.state === "closing") {
         return { kind: "busy", retryAt: now + 1000, reason: "lease-closing", taskTab: structuredClone(record) };
       }
@@ -531,7 +586,9 @@ export async function reserveTaskTab({
           // Retain the observation even if navigation later loses the tracker.
           boundLease.lastObservedInteractionAt = observedAt;
           boundLease.lastActivityAt = Math.max(Number(boundLease.lastActivityAt || 0), observedAt);
-          boundLease.expiresAt = Math.max(Number(boundLease.expiresAt || 0), observedAt + policy.cleanup.interactive_idle_ms);
+          if (boundLease.class !== "anchor") {
+            boundLease.expiresAt = Math.max(Number(boundLease.expiresAt || 0), observedAt + policy.cleanup.interactive_idle_ms);
+          }
           boundLease.generation = Number(boundLease.generation || 0) + 1;
           return { kind: "busy", retryAt: null, reason: "observed-interaction", taskTab: structuredClone(record) };
         }
@@ -578,9 +635,29 @@ export async function reserveTaskTab({
       };
     }
 
+    if (regionPrimary) record.regionScope = regionScope;
     // Leave ambiguous legacy records unscoped so a later evidenced retry can
-    // migrate them. New records and explicit scopes remain immutable.
+    // migrate them. Region primaries may widen their claim for account switching.
     if (effectiveScope === requestedScope) record.contextScope = effectiveScope;
+    if (regionPrimary && !record.targetId) {
+      const anchor = regionAnchor(record, policy);
+      if (!anchor) {
+        throw Object.assign(new Error(`REGION_ANCHOR_REQUIRED: policy has no ${REGION_ANCHOR_KEYS[regionScope]} anchor`),
+          { code: "REGION_ANCHOR_REQUIRED" });
+      }
+      const lease = preferredAnchor(Object.values(state.leases).filter((entry) =>
+        entry.port === Number(port) && entry.class === "anchor" && entry.anchorKey === anchor.key), livePageIds);
+      if (lease) {
+        const other = Object.values(state.task_tabs).find((entry) =>
+          entry.key !== key && entry.port === Number(port) && entry.targetId === lease.targetId);
+        if (other) throw new Error(`TASK_TAB_TARGET_CONFLICT: ${lease.targetId}`);
+        record.targetId = lease.targetId;
+        record.bindingGeneration = Number(record.bindingGeneration || 0) + 1;
+        record.reservationToken = null;
+        record.reservationExpiresAt = null;
+        lease.url ||= anchor.url;
+      }
+    }
     const controlToken = randomUUID();
     record.controller = {
       token: controlToken, owner: String(owner), heartbeatAt: now,
@@ -604,7 +681,7 @@ export async function reserveTaskTab({
 
     if (record.targetId) {
       const lease = state.leases[leaseKey(port, record.targetId)];
-      if (lease?.class === "anchor") {
+      if (lease?.class === "anchor" && !allowsAnchor(record, lease)) {
         clearContextClaimFor(state, record, controlToken, now);
         record.controller = null;
         throw new Error(`TASK_TAB_ANCHOR_REFUSED: ${record.targetId}`);
@@ -669,11 +746,24 @@ export async function bindReservedTaskTab({
       entry.key !== key && entry.targetId === targetId);
     if (conflicting) throw new Error(`TASK_TAB_TARGET_CONFLICT: ${targetId}`);
     const existingLease = state.leases[leaseKey(port, targetId)];
-    if (existingLease?.class === "anchor") {
+    if (existingLease?.class === "anchor" && !allowsAnchor(record, existingLease)) {
       throw new Error(`TASK_TAB_ANCHOR_REFUSED: ${targetId}`);
     }
     if (existingLease?.state === "closing") {
       throw new Error(`LEASE_CLOSING: target ${targetId} has already been claimed for cleanup`);
+    }
+    const anchor = isRegionPrimary(record) ? regionAnchor(record, policy) : null;
+    if (isRegionPrimary(record)) {
+      if (!anchor) throw new Error("REGION_ANCHOR_REQUIRED: policy has no region anchor");
+      // Anchor maintenance can win after reservation. Without a live-page
+      // snapshot here, refuse any other anchor and let acquisition retry.
+      const existingAnchor = Object.values(state.leases).find((entry) =>
+        entry.port === Number(port) && entry.class === "anchor"
+        && entry.anchorKey === anchor.key && entry.targetId !== targetId);
+      if (existingAnchor) {
+        throw Object.assign(new Error(`REGION_ANCHOR_CONFLICT: retry acquisition for ${anchor.key}`),
+          { code: "REGION_ANCHOR_CONFLICT", retryable: true });
+      }
     }
     record.state = "bound";
     record.targetId = targetId;
@@ -690,6 +780,12 @@ export async function bindReservedTaskTab({
       activityMeasurementEpochAt: now, activityTrackerBaselineAt: now,
       expiresAt: null, outcome: null, generation: 0,
     };
+    if (anchor) {
+      lease.class = "anchor";
+      lease.owner = "browserctl:anchor";
+      lease.anchorKey = anchor.key;
+      lease.url = anchor.url;
+    }
     activateLease(lease, { owner, now });
     lease.interactionVersion = 1;
     lease.lastObservedInteractionAt = 0;
@@ -795,6 +891,46 @@ export async function releaseTaskDownloads({ port, taskId, slot = "primary", con
   });
 }
 
+function detachBoundTaskTab(state, record, outcome, now, policy) {
+  const lease = record.targetId ? state.leases[leaseKey(record.port, record.targetId)] : null;
+  if (lease) {
+    lease.class = "inspection";
+    applyLeaseOutcome(lease, "inspection", now, policy);
+    lease.outcome = outcome;
+    lease.lastReleasedAt = now;
+    delete lease.anchorKey;
+    delete lease.taskId;
+    delete lease.taskSlot;
+    delete lease.taskBindingGeneration;
+  }
+  clearContextClaimFor(state, record, record.controller?.token, now);
+  record.targetId = null;
+  record.controller = null;
+  record.reservationToken = null;
+  record.reservationExpiresAt = null;
+  record.state = "unbound";
+  record.bindingGeneration = Number(record.bindingGeneration || 0) + 1;
+  record.releasedAt = now;
+  record.updatedAt = now;
+  return { taskTab: structuredClone(record), lease: lease ? structuredClone(lease) : null };
+}
+
+export async function detachTaskTab({
+  port, taskId, slot = "primary", controlToken, contextScope, outcome = "inspection",
+  now = null, policy = loadBrowserPolicy(),
+}) {
+  return transaction((state) => {
+    now ??= Date.now();
+    const key = taskSlotKey(port, assertTaskText("taskId", taskId), assertTaskText("slot", slot, 100));
+    const record = state.task_tabs[key];
+    if (!record || record.controller?.token !== controlToken) {
+      throw new Error(`TASK_TAB_STALE_CONTROL: ${taskId}/${slot}`);
+    }
+    requireTaskControl(state, { port, taskId, slot, controlToken, contextScope, now });
+    return detachBoundTaskTab(state, record, outcome, now, policy);
+  });
+}
+
 export async function releaseTaskTabControl({
   port, taskId, slot = "primary", controlToken, contextScope, outcome = "handoff",
   now = null, policy = loadBrowserPolicy(),
@@ -807,6 +943,9 @@ export async function releaseTaskTabControl({
       throw new Error(`TASK_TAB_STALE_CONTROL: ${taskId}/${slot}`);
     }
     requireTaskControl(state, { port, taskId, slot, controlToken, contextScope, now });
+    if (isRegionPrimary(record) && !["success", "handoff"].includes(outcome)) {
+      return detachBoundTaskTab(state, record, outcome, now, policy);
+    }
     const lease = record.targetId ? state.leases[leaseKey(port, record.targetId)] : null;
     if (lease && lease.state !== "closing") applyLeaseOutcome(lease, outcome, now, policy);
     clearContextClaimFor(state, record, controlToken, now);
@@ -891,6 +1030,34 @@ export async function removeLease({ port, targetId, expectedCloseToken = null })
 export async function listLeases() {
   const state = await readState();
   return Object.values(state.leases).map((lease) => structuredClone(lease));
+}
+
+export async function regionTabState(port, { now = Date.now() } = {}) {
+  const state = await readState();
+  return Object.entries(state.leases)
+    .filter(([, lease]) => lease.port === Number(port) && lease.class === "anchor")
+    .map(([leaseId, lease]) => {
+      const record = Object.values(state.task_tabs).find((entry) =>
+        entry.port === Number(port) && entry.targetId === lease.targetId);
+      return {
+        leaseId, anchorKey: lease.anchorKey ?? null, targetId: lease.targetId, url: lease.url || null,
+        boundTaskId: record?.taskId || null, boundSlot: record?.slot || null,
+        controllerFresh: taskControlIsHealthy(record?.controller, now),
+      };
+    });
+}
+
+export async function surplusAnchorLeases(port, livePageIds) {
+  const groups = new Map();
+  for (const lease of await listLeases()) {
+    if (lease.port !== Number(port) || lease.class !== "anchor") continue;
+    if (!groups.has(lease.anchorKey)) groups.set(lease.anchorKey, []);
+    groups.get(lease.anchorKey).push(lease);
+  }
+  return [...groups.values()].flatMap((leases) => {
+    const kept = preferredAnchor(leases, livePageIds);
+    return leases.filter((lease) => lease !== kept);
+  });
 }
 
 export async function claimExpiredLease({

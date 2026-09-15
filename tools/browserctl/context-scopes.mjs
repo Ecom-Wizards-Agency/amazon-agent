@@ -1,4 +1,7 @@
 /** Seller Central coordination groups. Selection is shared within each group. */
+export const REGION_WORKFLOW = "seller-central-region";
+export const REGION_ANCHOR_KEYS = Object.freeze({ "sc:na": "US", "sc:eu": "DE", "sc:au": "AUS" });
+
 const REGIONS = new Map([
   ...["us", "ca", "mx"].map((code) => [code, "sc:na"]),
   ...["de", "fr", "it", "es", "nl", "se", "pl", "be", "ie", "uk", "gb"].map((code) => [code, "sc:eu"]),
