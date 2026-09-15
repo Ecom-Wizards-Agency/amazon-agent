@@ -9,8 +9,13 @@ const attempt={identity_kind:'uploaded_file',upload_key:'SELLER-MARKET/1077-ffp-
 function fake(body={runId:'run-123'}) {
   const handlers={};
   return {subscribe:(name,fn)=>{handlers[name]=fn;},send:async name=>name==='Network.getResponseBody'?{body:JSON.stringify(body)}:{},
-    emit:(path='/api/v2/imports/excel/1077/update')=>{handlers['Network.responseReceived']({requestId:'response1',response:{url:'https://api.flatfile.pro'+path,status:200}});handlers['Network.loadingFinished']({requestId:'response1'});}};
+    emit:(path='/api/v2/imports/excel/1077/update',type='XHR')=>{handlers['Network.responseReceived']({requestId:type==='Preflight'?'preflight':'response1',type,response:{url:'https://api.flatfile.pro'+path,status:type==='Preflight'?204:200}});handlers['Network.loadingFinished']({requestId:type==='Preflight'?'preflight':'response1'});}};
 }
+test('CORS preflight is not mistaken for the submission response',async()=>{
+  const dir=await mkdtemp(join(tmpdir(),'ffp-submit-')),path=join(dir,'attempt.json'),session=fake();
+  try{const result=await submitAttended({session,attemptPath:path,attempt,click:async()=>{session.emit(undefined,'Preflight');session.emit();}});assert.equal(result.submission_id,'run-123');}
+  finally{await rm(dir,{recursive:true,force:true});}
+});
 test('exact update response persists runId after durable pre-click intent and never replays',async()=>{
   const dir=await mkdtemp(join(tmpdir(),'ffp-submit-')),path=join(dir,'attempt.json'),session=fake();let clicks=0;
   const click=async()=>{clicks++;assert.equal(JSON.parse(await readFile(path)).submission_intent,true);session.emit();};

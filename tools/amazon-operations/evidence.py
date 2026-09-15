@@ -1,6 +1,7 @@
 """Read-only evidence parsing and public approved-image content verification."""
 from __future__ import annotations
 import csv
+import datetime as dt
 import hashlib
 import http.client
 import io
@@ -69,6 +70,86 @@ def same_image_content(approved, observed):
         if left.size == right.size and left.tobytes() == right.tobytes():
             return 'identical_decoded_pixels'
     return None
+
+
+def review_digest(value):
+    return hashlib.sha256(json.dumps(value, sort_keys=True, separators=(',', ':'), ensure_ascii=False, allow_nan=False).encode()).hexdigest()
+
+
+def image_review_binding(plan, image):
+    """All identity dimensions are required; a rendition cannot authorize another slot."""
+    binding = {'account': plan['account'], 'operation_id': plan['operation_id'],
+            'plan_hash': review_digest(plan), 'sku': image['sku'], 'slot': image['slot'],
+            'asin': plan['body']['sku_asins'][image['sku']], 'source_sha256': image['sha256']}
+    if image.get('purpose') == 'preservation':
+        binding.update(purpose='preservation', baseline_url=image['baseline_url'])
+    return binding
+
+
+def build_image_review(plan, reviews, reviewer, reviewed_at, *, protected_sources=None):
+    """Trusted attended-process API. Caller must have inspected the complete pairs.
+
+    This records the real reviewing actor and context; it does not authenticate a
+    human, infer visual approval, or turn a similarity score into approval.
+    """
+    if (not isinstance(reviewer, dict) or reviewer.get('kind') not in {'attended_agent', 'human'} or
+            any(not isinstance(reviewer.get(key), str) or not reviewer[key].strip() for key in ('id', 'context'))):
+        raise ValueError('A real attended reviewer identity and review context are required')
+    when = dt.datetime.fromisoformat(reviewed_at.replace('Z', '+00:00'))
+    if when.tzinfo is None:
+        raise ValueError('Review time requires timezone')
+    expected = {('submitted', image['sku'], image['slot']): image for image in plan['body']['images']}
+    expected.update({('preservation', sku, slot): image for (sku, slot), image in (protected_sources or {}).items()})
+    seen, pairs = set(), []
+    for review in reviews:
+        key = (review.get('purpose', 'submitted'), review.get('sku'), review.get('slot'))
+        if key not in expected or key in seen or review.get('decision') != 'match':
+            raise ValueError('Review must approve each declared in-scope slot exactly once')
+        seen.add(key)
+        source = expected[key]
+        binding = image_review_binding(plan, source)
+        if any(review.get(field) != binding[field] for field in ('asin', 'source_sha256')):
+            raise ValueError('Reviewed source or ASIN differs from the immutable plan')
+        approved = Path(source['path']).read_bytes()
+        observed = Path(review['observed_path']).read_bytes()
+        if hashlib.sha256(approved).hexdigest() != source['sha256'] or hashlib.sha256(observed).hexdigest() != review.get('observed_sha256'):
+            raise ValueError('Reviewed image checksum changed')
+        from PIL import Image, ImageOps
+        with Image.open(io.BytesIO(approved)) as left, Image.open(io.BytesIO(observed)) as right:
+            dimensions = {'source_dimensions': list(ImageOps.exif_transpose(left).size),
+                          'observed_dimensions': list(ImageOps.exif_transpose(right).size)}
+        if not str(review.get('source_id', '')).startswith('https://'):
+            raise ValueError('Review requires the originating PDP evidence URL')
+        pairs.append({**binding, 'observed_sha256': review['observed_sha256'], **dimensions,
+                      'source_id': review['source_id'],
+                      **({'baseline_evidence_digest': source['baseline_evidence_digest']} if source.get('purpose') == 'preservation' else {})})
+    if not pairs:
+        raise ValueError('Review has no image pairs')
+    body = {'schema_version': 1, 'method': 'attended_visual_review', 'reviewer': reviewer,
+            'reviewed_at': reviewed_at, 'pairs': sorted(pairs, key=lambda p: (p['sku'], p['slot']))}
+    return {**body, 'receipt_sha256': review_digest(body)}
+
+
+def verify_public_rendition(plan, image, approved, observed, receipts=()):
+    """Exact content or an immutable attended approval of these exact bytes and slot."""
+    binding = image_review_binding(plan, image)
+    if hashlib.sha256(approved).hexdigest() != binding['source_sha256']:
+        raise ValueError('Immutable approved image changed')
+    observed_hash = hashlib.sha256(observed).hexdigest()
+    exact = same_image_content(approved, observed)
+    if exact:
+        return {'content_match': exact, 'observed_sha256': observed_hash}
+    for receipt in receipts:
+        body = {key: value for key, value in receipt.items() if key != 'receipt_sha256'}
+        if (receipt.get('method') != 'attended_visual_review' or
+                review_digest(body) != receipt.get('receipt_sha256')):
+            raise ValueError('Image review receipt checksum or method is invalid')
+        for pair in receipt.get('pairs', []):
+            if (pair.get('purpose', 'submitted') == image.get('purpose', 'submitted') and
+                    all(pair.get(key) == value for key, value in binding.items()) and pair.get('observed_sha256') == observed_hash):
+                return {'content_match': 'attended_visual_review', 'observed_sha256': observed_hash,
+                        'review_receipt_sha256': receipt['receipt_sha256']}
+    return {'content_match': None, 'observed_sha256': observed_hash}
 
 
 def canonical_header(value):

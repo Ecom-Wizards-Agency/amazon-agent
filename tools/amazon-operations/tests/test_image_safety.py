@@ -62,6 +62,59 @@ class ImageSafetyTests(unittest.TestCase):
         self.assertEqual(before[PT2], self.rows['a'][PT2])
         self.assertEqual(before[SWATCH], self.rows['a'][SWATCH])
 
+    def test_standalone_requires_explicit_ffp_route_and_no_parent(self):
+        row = self.request['inputs']['live']['rows']['a']
+        row.update({'parentage_level.0.value': '', 'child_parent_sku_relationship.0.parent_sku': '',
+                    'listing_relationship_evidence': 'standalone', 'itemName': 'Blue', 'product_type': 'SUPPLEMENT'})
+        with self.assertRaisesRegex(op.OperationError, 'child listings'):
+            self.prepare()
+        self.request['operation_id'] = 'standalone-valid'
+        self.request['inputs'].update(image_catalog_source='flatfilepro_listing_read', allow_standalone_images=True)
+        self.prepare()
+        self.assertEqual(self.plan['body']['image_before_rows']['a']['parentage_level.0.value'], '')
+        self.assertEqual(self.plan['body']['image_before_rows']['a']['listing_relationship_evidence'], 'standalone')
+        self.assertEqual(self.plan['body']['image_preview_metadata']['a']['productType'], 'SUPPLEMENT')
+        self.request['operation_id'] = 'standalone-invalid'
+        row['child_parent_sku_relationship.0.parent_sku'] = 'PARENT'
+        with self.assertRaisesRegex(op.OperationError, 'child listings'):
+            self.prepare()
+
+    def test_ffp_catalog_path_does_not_request_category_report(self):
+        self.request['inputs'].update(image_catalog_source='flatfilepro_listing_read')
+        self.request['inputs']['live']['rows']['a'].update(itemName='Blue', product_type='SUPPLEMENT')
+        result = self.prepare()
+        fresh = {'rows': copy.deepcopy(self.rows), 'path': str(self.source), 'sha256': op.file_hash(self.source),
+                 'observed_at': op.now(), 'source_kind': 'flatfilepro_listing_read'}
+        response = {'plan_hash': result['plan_hash'], 'status': 'blocked', 'attempted': False, 'reason': 'test_stop_before_apply'}
+        with patch.object(self.service, 'collect_image_catalog', return_value=fresh) as ffp, \
+             patch.object(self.service, 'collect_export', side_effect=AssertionError('CLR must not run')), \
+             patch.object(op.subprocess, 'run', return_value=type('Result', (), {'stdout': json.dumps(response)})()):
+            executed = self.service.execute(self.execute)
+        self.assertEqual(executed['status'], 'blocked')
+        ffp.assert_called_once()
+
+    def test_ffp_listing_collector_uses_real_dispatch_and_rejects_unknown_script(self):
+        self.request['inputs']['image_catalog_source'] = 'flatfilepro_listing_read'
+        self.request['inputs']['live']['rows']['a'].update(itemName='Blue', product_type='SUPPLEMENT')
+        result = self.prepare()
+        directory = Path(result['plan_path']).parent
+        response = {'status': 'collected', 'complete': True, 'source_kind': 'flatfilepro_listing_read',
+                    'account': self.account, 'plan_hash': result['plan_hash'], 'observed_at': op.now(), 'rows': self.rows}
+        path = self.root / 'ffp-listings.json'
+        path.write_text(json.dumps(response))
+        response.update(path=str(path), sha256=op.file_hash(path))
+        with patch.object(op.subprocess, 'run', return_value=type('Result', (), {'stdout': json.dumps(response)})()) as child:
+            observed = self.service.collect_image_catalog(directory, {'plan_hash': result['plan_hash']}, self.plan, purpose='preflight')
+            self.assertEqual(observed['rows'], self.rows)
+            self.assertTrue(child.call_args.args[0][1].endswith('/flatfilepro-listings.mjs'))
+            saved_input = json.loads((directory / 'flatfilepro-listings-input.json').read_text())
+            self.assertEqual(saved_input['targets'], [{'sku': 'a', 'asin': 'B000000001'}])
+            self.assertEqual(saved_input['account'], self.account)
+            child.reset_mock()
+            with self.assertRaisesRegex(op.OperationError, 'Unknown fixed collector'):
+                self.service.run_collector(directory, 'untrusted-script.mjs', saved_input)
+            child.assert_not_called()
+
     def test_main_or_swatch_cannot_enter_secondary_upload(self):
         for slot, field in [('MAIN', MAIN), ('SWCH', SWATCH)]:
             with self.subTest(slot=slot):
@@ -196,16 +249,277 @@ class ImageSafetyTests(unittest.TestCase):
                         {'sku': image['sku'], 'slot': image['slot'], 'source_sha256': image['sha256'], 'visually_verified': True, 'live_url': 'https://amazon.example/image.png'}
                         for image in self.plan['body']['images']]}
         request = {'schema_version': 1, 'operation_id': 'image-test', 'plan_hash': self.execute['plan_hash'], 'evidence': evidence}
-        with self.assertRaisesRegex(op.OperationError, 'complete exact-run'):
-            self.service.reconcile(request)
+        incomplete = self.service.reconcile(request)
+        self.assertEqual(incomplete['image_completion']['processing'], 'unknown')
+        evidence['preservation_source'] = {'observed_at': op.now()}
+        archive = self.root / 'state/image-test/observed-images'
+        archive.mkdir()
+        for image, observed in zip(self.plan['body']['images'], evidence['images']):
+            path = archive / image['sha256']
+            path.write_bytes(Path(image['path']).read_bytes())
+            observed.update(observed_path=str(path), observed_sha256=image['sha256'], asin='B000000001',
+                            observed_at=op.now(), source_id='https://www.amazon.com/dp/B000000001')
+        self.add_protected_fixture(evidence, path)
         evidence['ffp_processing'] = {'status': 'collected', 'complete': True, 'account': self.account,
-            'plan_hash': self.execute['plan_hash'], 'submission_id': 'run-1', 'attributes': [
-                {'sku': 'a', 'field': PT1, 'status': 'reflected'}, {'sku': 'a', 'field': PT2, 'status': 'rejected'}]}
+            'plan_hash': self.execute['plan_hash'], 'submission_id': 'run-1', 'observed_at': op.now(), 'attributes': [
+                {'sku': 'a', 'field': PT1, 'status': 'reflected', 'submitted_value': 'https://example.com/new.png'},
+                {'sku': 'a', 'field': PT2, 'status': 'rejected', 'submitted_value': 'https://example.com/new2.png'}]}
         result = self.service.reconcile(request)
         self.assertEqual(result['status'], 'failed')
-        self.assertEqual(result['matched'], ['a/PT01'])
+        self.assertEqual(result['matched'], ['a/PT01', 'a/PT02'])
         self.assertEqual(result['pending'], [])
         self.assertEqual(result['failures'], ['a/PT02: rejected'])
+
+    def completion_fixture(self):
+        self.prepare()
+        directory = self.root / 'state/image-test'
+        state = self.service.view(directory)
+        state.update(submission_id='run-1', execution_started_at=op.now(), effects_started=True)
+        self.service.persist(directory, state, 'processing')
+        image = self.plan['body']['images'][0]
+        path = directory / 'observed-images' / image['sha256']
+        path.parent.mkdir()
+        path.write_bytes(Path(image['path']).read_bytes())
+        evidence = {'account': self.account, 'plan_hash': self.execute['plan_hash'], 'submission_id': 'run-1',
+            'observed_at': op.now(), 'source_id': 'amazon-live-imageblock', 'processing_status': 'live_observed',
+            'protected_rows': copy.deepcopy(self.rows), 'preservation_source': {'observed_at': op.now()},
+            'images': [{'sku': 'a', 'slot': 'PT01', 'asin': 'B000000001', 'source_sha256': image['sha256'],
+                'observed_path': str(path), 'observed_sha256': image['sha256'], 'observed_at': op.now(),
+                'live_url': 'https://m.media-amazon.com/images/I/test.jpg', 'source_id': 'https://www.amazon.com/dp/B000000001'}],
+            'ffp_processing': {'status': 'collected', 'complete': True, 'account': self.account,
+                'plan_hash': self.execute['plan_hash'], 'submission_id': 'run-1', 'observed_at': op.now(),
+                'attributes': [{'sku': 'a', 'field': PT1, 'status': 'in_progress', 'submitted_value': 'https://example.com/new.png'}]}}
+        self.add_protected_fixture(evidence, path)
+        return directory, state, evidence
+
+    def add_protected_fixture(self, evidence, path):
+        evidence['protected_images'] = [
+            {'sku': sku, 'slot': slot, 'asin': self.plan['body']['sku_asins'][sku], 'observed_at': op.now(),
+             'expected_url': url, 'expected_path': str(path), 'observed_path': str(path),
+             'expected_sha256': op.file_hash(path), 'observed_sha256': op.file_hash(path)}
+            for (sku, slot), url in self.service.public_protected_images(self.plan).items()]
+
+    def test_publication_release_keeps_processing_pending_and_never_submits(self):
+        directory, state, evidence = self.completion_fixture()
+        request = {**self.execute, 'evidence': evidence}
+        with patch.object(self.service, 'execute', side_effect=AssertionError('Must never submit')):
+            for _ in range(2):
+                result = self.service.reconcile(request)
+                completion = result['image_completion']
+                self.assertEqual(completion['publication'], 'verified')
+                self.assertEqual(completion['processing'], 'pending')
+                self.assertTrue(completion['release_eligible'])
+                self.assertFalse(result['verified'])
+            proof = self.service.image_release_proof(self.execute)
+            self.assertTrue(proof['release_eligible'])
+            self.assertEqual(proof['proof_digest'], op.digest(evidence))
+        evidence['ffp_processing']['attributes'][0]['status'] = 'reflected'
+        self.assertTrue(self.service.reconcile(request)['verified'])
+
+    def test_release_rejects_stale_wrong_missing_or_changed_evidence(self):
+        directory, state, baseline = self.completion_fixture()
+        mutations = [
+            lambda e: e['ffp_processing'].update(observed_at='2020-01-01T00:00:00Z'),
+            lambda e: e['ffp_processing'].update(submission_id='other'),
+            lambda e: e['ffp_processing']['attributes'][0].update(submitted_value='wrong'),
+            lambda e: e['ffp_processing']['attributes'].append(copy.deepcopy(e['ffp_processing']['attributes'][0])),
+            lambda e: e['images'][0].update(asin='B000000002'),
+            lambda e: e['images'][0].update(observed_at='2020-01-01T00:00:00Z'),
+            lambda e: e['protected_rows']['a'].pop(SWATCH),
+            lambda e: e['protected_rows']['a'].update({MAIN: 'changed'}),
+            lambda e: e.pop('preservation_source'),
+            lambda e: e.pop('protected_images'),
+            lambda e: e['ffp_processing']['attributes'][0].update(status='rejected'),
+        ]
+        for mutation in mutations:
+            evidence = copy.deepcopy(baseline)
+            mutation(evidence)
+            with self.subTest(mutation=mutation):
+                self.assertFalse(self.service.image_completion(directory, state, self.plan, evidence)['release_eligible'])
+        wrong = copy.deepcopy(baseline)
+        wrong['account'] = {'client_slug': 'kabooki'}
+        with self.assertRaisesRegex(op.OperationError, 'identity mismatch'):
+            self.service.image_completion(directory, state, self.plan, wrong)
+
+    def test_attended_review_reuses_only_exact_reviewed_pair_and_slot(self):
+        from PIL import Image
+        directory, state, evidence = self.completion_fixture()
+        image = self.plan['body']['images'][0]
+        original = Path(image['path']).read_bytes()
+        jpeg = self.root / 'observed.jpg'
+        Image.open(image['path']).save(jpeg, quality=80)
+        self.assertIsNone(op.evidence_tools().same_image_content(original, jpeg.read_bytes()))
+        review = {'sku': 'a', 'slot': 'PT01', 'asin': 'B000000001', 'source_sha256': image['sha256'],
+                  'observed_path': str(jpeg), 'observed_sha256': op.file_hash(jpeg),
+                  'source_id': 'https://www.amazon.com/dp/B000000001', 'decision': 'match'}
+        request = {**self.execute, 'reviews': [review], 'reviewed_at': op.now(),
+                   'reviewer': {'kind': 'attended_agent', 'id': 'test-agent', 'context': 'test-attended-review'}}
+        receipt = self.service.record_image_review(request)
+        self.assertEqual(receipt, self.service.record_image_review(request))
+        self.assertEqual(len(list(directory.glob('image-review-*.json'))), 1)
+        archived = directory / 'observed-images' / op.file_hash(jpeg)
+        archived.write_bytes(jpeg.read_bytes())
+        evidence['images'][0].update(observed_path=str(archived), observed_sha256=op.file_hash(jpeg))
+        self.assertTrue(self.service.image_completion(directory, state, self.plan, evidence)['release_eligible'])
+        # A tiny pixel change is never accepted based on visual metrics.
+        changed = Image.open(jpeg)
+        changed.putpixel((1, 1), (0, 0, 255))
+        changed.save(archived, format='PNG')
+        evidence['images'][0]['observed_sha256'] = op.file_hash(archived)
+        self.assertFalse(self.service.image_completion(directory, state, self.plan, evidence)['release_eligible'])
+
+    def test_collectors_fail_independently(self):
+        directory, state, evidence = self.completion_fixture()
+        response = {'status': 'blocked', 'images': [], 'message': 'PDP timeout'}
+        with patch.object(self.service, 'run_collector', side_effect=[{'status': 'blocked'}, response]) as collector, \
+             patch.object(self.service, 'collect_image_catalog', return_value={'rows': self.rows, 'observed_at': op.now()}) as preserved, \
+             patch.object(self.service, 'collect_export', side_effect=AssertionError('Historical FFP image plans must not request CLR')):
+            original_hash = op.digest(self.plan)
+            self.assertNotIn('image_catalog_source', self.plan['body'])
+            result = self.service.collect_images(directory, state, self.plan)
+            self.assertEqual(collector.call_count, 2)
+            preserved.assert_called_once()
+            self.assertEqual(result['protected_rows'], self.rows)
+            self.assertEqual(result['pdp_collection']['message'], 'PDP timeout')
+            self.assertEqual(op.digest(self.plan), original_hash)
+
+    def test_complete_and_partial_pdp_observations_survive_busy_read_without_refresh(self):
+        directory, state, evidence = self.completion_fixture()
+        original_time = evidence['images'][0]['observed_at']
+        image = self.plan['body']['images'][0]
+        prior_images = [{key: item[key] for key in ('sku', 'slot', 'asin', 'observed_at', 'live_url', 'source_id')}
+                        for item in evidence['images']]
+        prior_images += [{**item, 'live_url': 'https://m.media-amazon.com/images/I/protected.jpg'}
+                         for item in evidence['protected_images']]
+        busy = {'status': 'blocked', 'message': 'BROWSER_SESSION_BUSY: another task holds session'}
+        evidence_module = op.evidence_tools()
+        for prior_status in ('collected', 'partial'):
+            with self.subTest(prior_status=prior_status):
+                previous = {'status': prior_status, 'operation_id': self.plan['operation_id'],
+                            'account': self.account, 'plan_hash': state['plan_hash'],
+                            'observed_at': original_time, 'images': copy.deepcopy(prior_images),
+                            'observations': [{'asin': 'B000000001', 'complete': True, 'observed_at': original_time}]}
+                state['last_collection'] = copy.deepcopy(previous)
+                later = (op.timestamp(original_time) + op.dt.timedelta(seconds=901)).isoformat()
+                with patch.object(op, 'now', return_value=later), \
+                     patch.object(self.service, 'run_collector', side_effect=[{'status': 'blocked'}, busy]), \
+                     patch.object(self.service, 'collect_image_catalog', return_value=None), \
+                     patch.object(op, 'evidence_tools', return_value=evidence_module), \
+                     patch.object(evidence_module, 'fetch_public_image', return_value=Path(image['path']).read_bytes()):
+                    result = self.service.collect_images(directory, state, self.plan)
+                    completion = self.service.image_completion(directory, state, self.plan, result)
+                self.assertEqual(state['last_collection'], previous)
+                self.assertEqual(state['last_collection_error'], busy)
+                self.assertEqual(result['pdp_collection_error'], busy)
+                self.assertEqual(result['pdp_collection'], previous)
+                self.assertEqual(result['images'][0]['observed_at'], original_time)
+                self.assertTrue(result['images'][0]['visually_verified'])
+                self.assertEqual(result['protected_images'][0]['observed_at'], prior_images[1]['observed_at'])
+                self.assertFalse(completion['release_eligible'])
+                self.assertNotEqual(completion['publication'], 'verified')
+
+    def test_blocked_pdp_read_does_not_reuse_another_plan_observations(self):
+        directory, state, evidence = self.completion_fixture()
+        state['last_collection'] = {'status': 'collected', 'operation_id': self.plan['operation_id'],
+            'account': self.account, 'plan_hash': 'other', 'images': evidence['images']}
+        busy = {'status': 'blocked', 'message': 'BROWSER_SESSION_BUSY'}
+        with patch.object(self.service, 'run_collector', side_effect=[{'status': 'blocked'}, busy]), \
+             patch.object(self.service, 'collect_image_catalog', return_value=None):
+            result = self.service.collect_images(directory, state, self.plan)
+        self.assertEqual(result['images'], [])
+        self.assertEqual(state['last_collection'], busy)
+        self.assertNotIn('pdp_collection_error', result)
+
+    def test_protected_image_review_requires_exact_collected_baseline_and_rendition(self):
+        from PIL import Image
+        directory, state, evidence = self.completion_fixture()
+        protected = evidence['protected_images'][0]
+        protected['source_id'] = 'https://www.amazon.com/dp/B000000001'
+        jpeg = self.root / 'preserved-main.jpg'
+        Image.open(protected['expected_path']).save(jpeg, quality=80)
+        archived = directory / 'observed-images' / op.file_hash(jpeg)
+        archived.write_bytes(jpeg.read_bytes())
+        protected.update(observed_path=str(archived), observed_sha256=op.file_hash(archived))
+        self.assertEqual(self.service.image_completion(directory, state, self.plan, evidence)['preservation'], 'conflict')
+        proof_hash = op.digest(evidence)
+        op.atomic_json(directory / f'evidence-{proof_hash}.json', evidence)
+        review = {'purpose': 'preservation', 'sku': protected['sku'], 'slot': protected['slot'],
+            'asin': protected['asin'], 'source_sha256': protected['expected_sha256'],
+            'observed_path': str(archived), 'observed_sha256': protected['observed_sha256'],
+            'source_id': protected['source_id'], 'decision': 'match'}
+        request = {**self.execute, 'review_evidence_digest': proof_hash, 'reviews': [review], 'reviewed_at': op.now(),
+            'reviewer': {'kind': 'attended_agent', 'id': 'test-agent', 'context': 'test-protected-review'}}
+        for mutate in (lambda r: r.pop('review_evidence_digest'),
+                       lambda r: r['reviews'][0].update(source_sha256='f' * 64),
+                       lambda r: r['reviews'][0].update(slot='PT01'),
+                       lambda r: r['reviews'][0].update(observed_sha256='e' * 64)):
+            invalid = copy.deepcopy(request)
+            mutate(invalid)
+            with self.assertRaises(op.OperationError):
+                self.service.record_image_review(invalid)
+        receipt = self.service.record_image_review(request)
+        self.assertEqual(receipt['pairs'][0]['purpose'], 'preservation')
+        self.assertEqual(receipt['pairs'][0]['baseline_url'], protected['expected_url'])
+        self.assertEqual(receipt['pairs'][0]['baseline_evidence_digest'], proof_hash)
+        self.assertEqual(self.service.record_image_review(request), receipt)
+        self.assertTrue(self.service.image_completion(directory, state, self.plan, evidence)['release_eligible'])
+        # Future collections may reuse only the identical before/after bytes.
+        changed = Image.open(archived)
+        changed.putpixel((1, 1), (0, 0, 255))
+        changed.save(archived, format='PNG')
+        protected['observed_sha256'] = op.file_hash(archived)
+        self.assertEqual(self.service.image_completion(directory, state, self.plan, evidence)['preservation'], 'conflict')
+
+    def test_protected_receipt_does_not_approve_submitted_image(self):
+        from PIL import Image
+        directory, state, evidence = self.completion_fixture()
+        source = self.plan['body']['images'][0]
+        jpeg = self.root / 'alternate.jpg'
+        Image.open(source['path']).save(jpeg, quality=80)
+        protected_source = {**source, 'purpose': 'preservation', 'baseline_url': self.rows['a'][MAIN], 'baseline_evidence_digest': 'd' * 64}
+        review = {'purpose': 'preservation', 'sku': 'a', 'slot': 'PT01', 'asin': 'B000000001',
+            'source_sha256': source['sha256'], 'observed_path': str(jpeg), 'observed_sha256': op.file_hash(jpeg),
+            'source_id': 'https://www.amazon.com/dp/B000000001', 'decision': 'match'}
+        module = op.evidence_tools()
+        receipt = module.build_image_review(self.plan, [review], {'kind': 'attended_agent', 'id': 'test', 'context': 'test'}, op.now(),
+                                           protected_sources={('a', 'PT01'): protected_source})
+        checked = module.verify_public_rendition(self.plan, source, Path(source['path']).read_bytes(), jpeg.read_bytes(), [receipt])
+        self.assertIsNone(checked['content_match'])
+
+    def test_historical_release_revalidates_pinned_proof_without_extending_initial_freshness(self):
+        directory, state, evidence = self.completion_fixture()
+        evidence['observed_at'] = op.now()
+        self.service.reconcile({**self.execute, 'evidence': evidence})
+        pinned = {**self.execute, 'proof_digest': op.digest(evidence)}
+        future = (op.timestamp(op.now()) + op.dt.timedelta(minutes=30)).isoformat()
+        with patch.object(op, 'now', return_value=future):
+            self.assertFalse(self.service.image_release_proof(self.execute)['release_eligible'])
+            self.assertTrue(self.service.image_release_proof(pinned)['release_eligible'])
+        archive = Path(evidence['images'][0]['observed_path'])
+        archive.write_bytes(b'changed')
+        self.assertFalse(self.service.image_release_proof(pinned)['release_eligible'])
+
+    def test_mixed_rejected_and_processing_stays_partial_until_every_contribution_resolves(self):
+        second = copy.deepcopy(self.request['inputs']['images'][0])
+        second.update(slot='PT02', url='https://example.com/new2.png')
+        self.request['inputs']['images'].append(second)
+        self.request['inputs']['image_fields']['PT02'] = PT2
+        directory, state, evidence = self.completion_fixture()
+        evidence['ffp_processing']['attributes'].append(
+            {'sku': 'a', 'field': PT2, 'status': 'rejected', 'submitted_value': 'https://example.com/new2.png'})
+        request = {**self.execute, 'evidence': evidence}
+        with patch.object(self.service, 'execute', side_effect=AssertionError('Reconciliation must not submit')):
+            for _ in range(2):
+                result = self.service.reconcile(request)
+                self.assertEqual(result['status'], 'partial')
+                self.assertEqual(result['image_completion']['processing'], 'failed')
+                self.assertEqual(result['image_completion']['processing_pending'], ['a/' + PT1])
+                self.assertEqual(result['failures'], ['a/PT02: rejected'])
+                self.assertFalse(result['image_completion']['release_eligible'])
+            evidence['ffp_processing']['attributes'][0]['status'] = 'reflected'
+            result = self.service.reconcile(request)
+            self.assertEqual(result['status'], 'failed')
+            self.assertEqual(result['image_completion']['processing_pending'], [])
 
 
 if __name__ == '__main__':

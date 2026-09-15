@@ -3,6 +3,7 @@ import { open, rename, readFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { createHash } from 'node:crypto';
 import { check } from './browser-ui.mjs';
+import { evaluate } from '../report-fetcher/cdp.mjs';
 
 export function importIdentity(url) {
   const parsed = new URL(url);
@@ -79,11 +80,46 @@ export function pageNavigation(state) {
     range: range ? {first:Number(range[1]),last:Number(range[2]),total:Number(range[3])} : null};
 }
 
+export async function readPreviewState(session, read) {
+  const state=await read();
+  const grids=await evaluate(session,`[...document.querySelectorAll('[role="grid"]')].filter(g=>g.getBoundingClientRect().width>0&&g.getBoundingClientRect().height>0).map(g=>({cols:Number(g.getAttribute('aria-colcount')),count:Number(g.getAttribute('aria-rowcount')),rows:[...g.querySelectorAll('[role="row"]')].map(e=>({id:e.getAttribute('data-id'),index:Number(e.getAttribute('aria-rowindex')),cells:[...e.querySelectorAll('[role="columnheader"],[role="cell"],[role="gridcell"]')].map(c=>({field:c.getAttribute('data-field'),index:Number(c.getAttribute('aria-colindex')),text:(c.innerText||c.textContent||'').trim()}))}))}))`);
+  return {...state,grids};
+}
+
+export function normalizePreviewState(state) {
+  if(!state.grids?.length)return state;
+  check(state.grids.length===1,'Preview must contain one technical grid');
+  const grid=state.grids[0],groups=new Map();
+  check(Number.isSafeInteger(grid.cols)&&grid.cols>0&&Number.isSafeInteger(grid.count)&&grid.count>1,'Invalid grid dimensions');
+  for(const fragment of grid.rows){
+    const index=Number(fragment.index);
+    check(Number.isSafeInteger(index)&&index>=1&&index<=grid.count,'Invalid grid row index');
+    check(index===1?fragment.id===null:typeof fragment.id==='string'&&fragment.id.length>0,'Missing grid row identity');
+    if(!groups.has(index))groups.set(index,{id:fragment.id,cells:[]});
+    const group=groups.get(index);check(group.id===fragment.id,'Pinned row identity mismatch');group.cells.push(...fragment.cells);
+  }
+  const ordered=[...groups].sort((a,b)=>a[0]-b[0]);
+  check(ordered[0]?.[0]===1,'Grid header missing');
+  const header=ordered[0][1].cells.slice().sort((a,b)=>a.index-b.index),fields=header.map(c=>c.field);
+  check(new Set(fields).size===grid.cols&&fields[0]==='sku','Duplicate technical headers or missing SKU');
+  const rows=[];
+  for(const [index,row] of ordered){
+    check(row.cells.length===grid.cols,'Missing or duplicate pinned grid cells');
+    const cells=row.cells.slice().sort((a,b)=>a.index-b.index);
+    check(cells.every((c,i)=>c.index===i+1&&c.field===fields[i]),'Grid technical field or column position changed');
+    if(index===1)rows.push(fields);
+    else {check(cells[0].text===row.id,'Grid SKU differs from row identity');rows.push(cells.map(c=>c.text));}
+  }
+  const navigation=pageNavigation(state);
+  if(navigation.range)check(grid.count===navigation.range.total+1,'Grid count disagrees with pagination');
+  return {...state,rows,technical_grid:true};
+}
+
 export async function collectPreview(read, next) {
   let headers = null, all = [], text = [], previousPage = null;
   const seen = new Set();
   for (let index = 0; index < 1000; index++) {
-    const state = await read();
+    const state = normalizePreviewState(await read());
     const matches = state.rows.filter(row => row.includes('sku') || row.includes('SKU'));
     check(matches.length === 1, 'Preview must expose one exact SKU table');
     const current = matches[0];
@@ -100,7 +136,7 @@ export async function collectPreview(read, next) {
       check(navigation.page === (previousPage === null ? 1 : previousPage + 1), 'Preview pagination skipped a page');
       previousPage = navigation.page;
     }
-    if (!navigation.next) return {rows: [headers, ...all], text: text.join('\n'), page_count: index + 1};
+    if (!navigation.next) return {rows: [headers, ...all], text: text.join('\n'), page_count: index + 1, technical_grid:state.technical_grid===true, last_page_rows:state.rows};
     await next(navigation.next, state);
   }
   throw new Error('Preview exceeds pagination limit');
@@ -139,8 +175,8 @@ export async function readAttempt(path, input) {
 export async function verifyImagePreflight(input, at = Date.now()) {
   if (input.plan.body.image_policy !== 'secondary_slots_only') return;
   const receipt = input.image_preflight;
-  check(receipt?.path && receipt.sha256 && receipt.report_generated_at, 'Fresh image preflight evidence is required before submit');
-  const age = at - Date.parse(receipt.report_generated_at);
+  check(receipt?.path && receipt.sha256 && (receipt.source_kind==='flatfilepro_listing_read'?receipt.observed_at:receipt.report_generated_at), 'Fresh image preflight evidence is required before submit');
+  const age = at - Date.parse(receipt.source_kind==='flatfilepro_listing_read'?receipt.observed_at:receipt.report_generated_at);
   check(Number.isFinite(age) && age >= 0 && age <= 300000, 'Image preflight expired before submit');
   check(createHash('sha256').update(await readFile(receipt.path)).digest('hex') === receipt.sha256, 'Image preflight report changed');
 }

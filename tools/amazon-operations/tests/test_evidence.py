@@ -1,4 +1,6 @@
 import importlib.util
+import copy
+import hashlib
 import io
 from pathlib import Path
 import tempfile
@@ -23,6 +25,36 @@ class EvidenceTests(unittest.TestCase):
         self.assertEqual(e.same_image_content(first,first),'sha256')
         self.assertEqual(e.same_image_content(first,second),'identical_decoded_pixels')
         self.assertIsNone(e.same_image_content(first,different))
+    def test_review_receipt_binds_source_rendition_account_and_slot(self):
+        from PIL import Image, ImageDraw
+        with tempfile.TemporaryDirectory() as directory:
+            source=Path(directory)/'source.png'; live=Path(directory)/'live.jpg'
+            picture=Image.new('RGB',(500,500),'white');ImageDraw.Draw(picture).text((50,50),'Dose 25 mg',fill='black')
+            picture.save(source);picture.save(live,quality=75)
+            image={'sku':'a','slot':'PT01','path':str(source),'sha256':hashlib.sha256(source.read_bytes()).hexdigest()}
+            plan={'account':{'seller_id':'A','marketplace':'US'},'operation_id':'op','body':{'images':[image],'sku_asins':{'a':'B000000001'}}}
+            review={'sku':'a','slot':'PT01','asin':'B000000001','source_sha256':image['sha256'],
+                    'observed_path':str(live),'observed_sha256':hashlib.sha256(live.read_bytes()).hexdigest(),
+                    'source_id':'https://www.amazon.com/dp/B000000001','decision':'match'}
+            receipt=e.build_image_review(plan,[review],{'kind':'attended_agent','id':'test','context':'test-review'},'2026-09-15T00:00:00Z')
+            original,observed=source.read_bytes(),live.read_bytes()
+            self.assertIsNone(e.same_image_content(original,observed))
+            self.assertIsNone(e.verify_public_rendition(plan,image,original,observed)['content_match'])
+            self.assertEqual(e.verify_public_rendition(plan,image,original,observed,[receipt])['content_match'],'attended_visual_review')
+            for mutated in [dict(plan,operation_id='another'),dict(plan,account={'seller_id':'B','marketplace':'US'})]:
+                self.assertIsNone(e.verify_public_rendition(mutated,image,original,observed,[receipt])['content_match'])
+            wrong_slot=dict(image,slot='PT02')
+            self.assertIsNone(e.verify_public_rendition(plan,wrong_slot,original,observed,[receipt])['content_match'])
+            corrupt=copy.deepcopy(receipt);corrupt['pairs'][0]['slot']='PT02'
+            with self.assertRaisesRegex(ValueError,'checksum'):
+                e.verify_public_rendition(plan,image,original,observed,[corrupt])
+            for variant in ('tiny_text','crop','color'):
+                altered=Image.open(live).copy()
+                if variant=='tiny_text':ImageDraw.Draw(altered).text((50,50),'26',fill='red')
+                elif variant=='crop':altered=altered.crop((1,0,500,500))
+                else:altered.putpixel((400,400),(0,255,0))
+                out=io.BytesIO();altered.save(out,format='PNG')
+                self.assertIsNone(e.verify_public_rendition(plan,image,original,out.getvalue(),[receipt])['content_match'])
     def test_report_maps_exact_backend_headers_and_rejects_duplicates(self):
         with tempfile.TemporaryDirectory() as directory:
             path=Path(directory)/'report.tsv';path.write_text('sku\tgeneric_keywords\tparent_sku\na\tbackend phrase\tPARENT\n')

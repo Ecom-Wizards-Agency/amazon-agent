@@ -338,6 +338,12 @@ def prepare_images(request, directory):
     if policy:
         prepared['image_policy'] = policy
         prepared['image_before_rows'] = image_before_rows(request, directory)
+        source_kind = inputs.get('image_catalog_source')
+        require(source_kind in {None, 'flatfilepro_listing_read'}, 'invalid_source', 'Unknown image catalog source')
+        if source_kind:
+            prepared['image_catalog_source'] = source_kind
+            prepared['image_preview_metadata'] = {sku: {'itemName': inputs['live']['rows'][sku].get('itemName') or inputs['live']['rows'][sku].get('item_name.0.value'), 'productType': inputs['live']['rows'][sku].get('product_type')} for sku in request['targets']}
+            require(all(x['itemName'] and x['productType'] for x in prepared['image_preview_metadata'].values()), 'missing_metadata', 'FFP image preview requires observed title and product type')
     return prepared
 
 
@@ -357,9 +363,15 @@ def image_before_rows(request, directory):
         require(all(field in live and as_text(live[field]) == value for field, value in image_fields.items()), 'stale_source', 'Complete live image evidence must match the source export, including protected slots')
         asin = inputs.get('sku_asins', {}).get(sku)
         require(isinstance(asin, str) and re.fullmatch(r'[A-Z0-9]{10}', asin) and (live.get('asin') or live.get('ASIN')) == asin, 'image_identity_mismatch', 'Live catalog evidence must bind every seller SKU to its exact ASIN')
-        require(evidence.field_value(live, 'parentage') == 'child', 'image_identity_mismatch', 'Secondary updates require verified child listings')
-        baseline[sku] = {**image_fields, 'asin': asin, 'parentage_level.0.value': 'child',
-                         'child_parent_sku_relationship.0.parent_sku': evidence.field_value(live, 'parent_sku')}
+        parentage = evidence.field_value(live, 'parentage')
+        parent = evidence.field_value(live, 'parent_sku')
+        standalone = (inputs.get('allow_standalone_images') is True and inputs.get('image_catalog_source') == 'flatfilepro_listing_read' and
+                      not parentage and not parent and live.get('listing_relationship_evidence') == 'standalone')
+        require(parentage == 'child' or standalone, 'image_identity_mismatch', 'Secondary updates require verified child listings or explicitly scoped standalone listings')
+        baseline[sku] = {**image_fields, 'asin': asin, 'parentage_level.0.value': parentage,
+                         'child_parent_sku_relationship.0.parent_sku': parent}
+        if standalone:
+            baseline[sku]['listing_relationship_evidence'] = 'standalone'
     return baseline
 
 
@@ -612,12 +624,16 @@ class Operations:
             require(grant.get('allow_live_canary') is True or grant.get('allow_validated_adapter') is True, 'canary_required', 'This adapter needs an explicitly scoped live canary before production enablement')
             image_preflight = None
             if plan['body'].get('image_policy') == 'secondary_slots_only':
-                fresh = self.collect_export(directory, state, plan, purpose='preflight')
+                ffp_source = plan['body'].get('image_catalog_source') == 'flatfilepro_listing_read'
+                fresh = self.collect_image_catalog(directory, state, plan, purpose='preflight') if ffp_source else self.collect_export(directory, state, plan, purpose='preflight')
                 if fresh is None:
-                    return self.persist(directory, state, 'processing', phase='image_preflight', effects_started=False, reason='fresh_report_pending', next_action='execute', retry_after_seconds=60)
+                    return self.persist(directory, state, 'processing', phase='image_preflight', effects_started=False, reason='fresh_catalog_pending', next_action='execute', retry_after_seconds=60)
                 self.validate_image_baseline(plan, fresh['rows'])
-                require(dt.timedelta(0) <= timestamp(now()) - timestamp(fresh['report_generated_at']) <= dt.timedelta(minutes=5), 'stale_report', 'Image pre-submit report must be no more than five minutes old and cannot be future dated')
-                image_preflight = {key: fresh[key] for key in ('path', 'sha256', 'report_generated_at')}
+                time_field = 'observed_at' if ffp_source else 'report_generated_at'
+                require(dt.timedelta(0) <= timestamp(now()) - timestamp(fresh[time_field]) <= dt.timedelta(minutes=5), 'stale_report', 'Image pre-submit evidence must be no more than five minutes old and cannot be future dated')
+                image_preflight = {key: fresh[key] for key in ('path', 'sha256', time_field)}
+                if ffp_source:
+                    image_preflight['source_kind'] = 'flatfilepro_listing_read'
             if plan['body'].get('restore_missing_only'):
                 receipt = state.get('preflight_receipt')
                 if receipt and timestamp(now()) - timestamp(receipt['report_generated_at']) <= dt.timedelta(minutes=5):
@@ -665,6 +681,188 @@ class Operations:
                 observed = evidence.field_value(rows.get(sku, {}), field)
                 require(observed is not None and observed == value, 'image_state_conflict', f'Current child identity or protected image changed: {sku}/{field}')
 
+    def record_image_review(self, request):
+        """Append an attended review; the journal changes only through reconciliation."""
+        directory = self.directory(request.get('operation_id'))
+        with self.lock(directory):
+            state, plan = self.bound(directory, request)
+            require(operation_kind(plan['operation']) == 'listing.images', 'wrong_operation', 'Image operation required')
+            require(state.get('submission_id'), 'missing_submission', 'Review requires an existing submission')
+            protected_sources = {}
+            if any(review.get('purpose') == 'preservation' for review in request['reviews']):
+                proof_hash = request.get('review_evidence_digest')
+                require(isinstance(proof_hash, str) and bool(re.fullmatch(r'[a-f0-9]{64}', proof_hash)),
+                        'review_evidence', 'Protected image review requires its exact collected evidence digest')
+                proof_path = directory / f'evidence-{proof_hash}.json'
+                proof = json.loads(proof_path.read_text())
+                require(digest(proof) == proof_hash and proof.get('account') == plan['account'] and
+                        proof.get('plan_hash') == state['plan_hash'] and proof.get('submission_id') == state['submission_id'],
+                        'review_evidence', 'Protected review evidence differs from this account, plan or submission')
+                expected = self.public_protected_images(plan)
+                observations = proof.get('protected_images', [])
+                indexed = {(item.get('sku'), item.get('slot')): item for item in observations}
+                require(len(indexed) == len(observations), 'review_evidence', 'Duplicate protected image observations')
+                for review in request['reviews']:
+                    if review.get('purpose') != 'preservation':
+                        continue
+                    key = (review.get('sku'), review.get('slot'))
+                    item = indexed.get(key, {})
+                    require(key in expected and item.get('expected_url') == expected[key] and
+                            item.get('asin') == plan['body']['sku_asins'][key[0]],
+                            'review_evidence', 'Reviewed protected slot or baseline URL differs from the immutable plan')
+                    require(timestamp(state.get('execution_started_at', plan['prepared_at'])) <= timestamp(item.get('observed_at')) <= timestamp(now()),
+                            'review_evidence', 'Protected image observation must follow submission')
+                    require(timestamp(request.get('reviewed_at', now())) >= timestamp(item['observed_at']),
+                            'review_evidence', 'Protected image review cannot predate its observed rendition')
+                    require(review.get('source_sha256') == item.get('expected_sha256') and
+                            review.get('observed_sha256') == item.get('observed_sha256') and
+                            review.get('source_id') == item.get('source_id'),
+                            'review_evidence', 'Protected review differs from the collected before/after image pair')
+                    for field in ('expected_path', 'observed_path'):
+                        require(Path(item.get(field, '')).resolve().parent == (directory / 'observed-images').resolve(),
+                                'review_evidence', 'Protected review files must be archived in this operation')
+                    require(file_hash(item['observed_path']) == item['observed_sha256'], 'review_evidence', 'Collected protected rendition changed')
+                    protected_sources[key] = {'sku': key[0], 'slot': key[1], 'path': item['expected_path'],
+                        'sha256': item['expected_sha256'], 'purpose': 'preservation', 'baseline_url': expected[key],
+                        'baseline_evidence_digest': proof_hash}
+            receipt = evidence_tools().build_image_review(plan, request['reviews'], request['reviewer'], request.get('reviewed_at', now()),
+                                                        protected_sources=protected_sources)
+            require(timestamp(state.get('execution_started_at', plan['prepared_at'])) <= timestamp(receipt['reviewed_at']) <= timestamp(now()),
+                    'invalid_time', 'Attended image review must follow submission and cannot be future dated')
+            path = directory / f"image-review-{receipt['receipt_sha256']}.json"
+            if path.exists():
+                require(json.loads(path.read_text()) == receipt, 'review_conflict', 'Immutable review receipt differs')
+            else:
+                with path.open('x') as stream:
+                    stream.write(canonical(receipt).decode() + '\n')
+                    stream.flush()
+                    os.fsync(stream.fileno())
+            return {'status': 'recorded', 'receipt_path': str(path), **receipt}
+
+    def image_release_proof(self, request):
+        """Revalidate durable proof with current freshness; never trusts job booleans."""
+        directory = self.directory(request.get('operation_id'))
+        with self.lock(directory):
+            state, plan = self.bound(directory, request)
+            pinned = request.get('proof_digest')
+            require(pinned is None or bool(re.fullmatch(r'[a-f0-9]{64}', pinned)), 'evidence_mismatch', 'Proof digest must be SHA256')
+            path = directory / f'evidence-{pinned}.json' if pinned else Path(state.get('evidence_path') or directory / 'missing-evidence')
+            if not path.is_file() or path.resolve().parent != directory.resolve():
+                return {'release_eligible': False, 'reason': 'missing_durable_evidence'}
+            evidence = json.loads(path.read_text())
+            require(path.name == f'evidence-{digest(evidence)}.json', 'evidence_mismatch', 'Durable evidence checksum mismatch')
+            reference_time = timestamp(evidence.get('observed_at')) if pinned else None
+            require(reference_time is None or reference_time <= timestamp(now()), 'invalid_time', 'Pinned proof cannot be future dated')
+            return self.image_completion(directory, state, plan, evidence, reference_time=reference_time)
+
+    def image_completion(self, directory, state, plan, evidence, *, reference_time=None):
+        """Separate publication from contribution processing. Pure except local proof reads."""
+        require(operation_kind(plan['operation']) == 'listing.images', 'wrong_operation', 'Image operation required')
+        require(evidence.get('account') == plan['account'] and evidence.get('plan_hash') == state['plan_hash'] and
+                evidence.get('submission_id') == state.get('submission_id'), 'evidence_mismatch', 'Image evidence identity mismatch')
+        body = plan['body']
+        clock = reference_time or timestamp(now())
+        def fresh(value):
+            try:
+                observed = timestamp(value)
+                return max(timestamp(state.get('execution_started_at', plan['prepared_at'])), clock - dt.timedelta(minutes=15)) <= observed <= clock
+            except OperationError:
+                return False
+        activity = evidence.get('ffp_processing') or {}
+        expected_fields = {(sku, evidence_tools().canonical_header(field)): value
+                           for sku, fields in body['expected_rows'].items() for field, value in fields.items()}
+        attributes = activity.get('attributes', [])
+        indexed = {(item.get('sku'), evidence_tools().canonical_header(item.get('field'))): item for item in attributes}
+        processing_valid = (activity.get('status') == 'collected' and activity.get('complete') is True and
+            activity.get('account') == plan['account'] and activity.get('plan_hash') == state['plan_hash'] and
+            activity.get('submission_id') == state.get('submission_id') and fresh(activity.get('observed_at')) and
+            len(indexed) == len(attributes) and set(indexed) == set(expected_fields) and
+            all(indexed[key].get('submitted_value') == value and indexed[key].get('status') in
+                {'reflected', 'pending', 'in_progress', 'failed', 'rejected'} for key, value in expected_fields.items()))
+        processing = ('failed' if any(x.get('status') in {'failed', 'rejected'} for x in attributes) else
+                      'complete' if all(x.get('status') == 'reflected' for x in attributes) else 'pending') if processing_valid else 'unknown'
+        processing_pending = [f'{sku}/{field}' for (sku, field), item in indexed.items()
+                              if item.get('status') in {'pending', 'in_progress'}] if processing_valid else []
+        preservation = 'unknown'
+        receipts = [json.loads(path.read_text()) for path in directory.glob('image-review-*.json')]
+        preservation_source = evidence.get('preservation_source') or {}
+        if fresh(preservation_source.get('observed_at')):
+            try:
+                self.validate_image_baseline(plan, evidence.get('protected_rows', {}), protected_only=True)
+                preservation = 'verified'
+            except OperationError:
+                preservation = 'conflict'
+        if preservation == 'verified':
+            protected_observations = evidence.get('protected_images', [])
+            indexed_protected = {(item.get('sku'), item.get('slot')): item for item in protected_observations}
+            protected_expected = self.public_protected_images(plan)
+            if len(indexed_protected) != len(protected_observations) or set(indexed_protected) != set(protected_expected):
+                preservation = 'unknown'
+            else:
+                for key, expected_url in protected_expected.items():
+                    item = indexed_protected[key]
+                    try:
+                        paths = [Path(item[name]) for name in ('expected_path', 'observed_path')]
+                        require(all(path.resolve().parent == (directory / 'observed-images').resolve() for path in paths), 'image_evidence_path', 'Protected image must be archived')
+                        before, after = [path.read_bytes() for path in paths]
+                        if (item.get('expected_url') != expected_url or item.get('asin') != body['sku_asins'][key[0]] or
+                            not fresh(item.get('observed_at')) or hashlib.sha256(before).hexdigest() != item.get('expected_sha256') or
+                            hashlib.sha256(after).hexdigest() != item.get('observed_sha256')):
+                            preservation = 'unknown'
+                        else:
+                            source = {'sku': key[0], 'slot': key[1], 'sha256': item['expected_sha256'],
+                                      'purpose': 'preservation', 'baseline_url': expected_url}
+                            if not evidence_tools().verify_public_rendition(plan, source, before, after, receipts)['content_match']:
+                                preservation = 'conflict'
+                    except (OSError, ValueError, KeyError):
+                        preservation = 'unknown'
+        observations = evidence.get('images', [])
+        observed = {(item.get('sku'), item.get('slot')): item for item in observations}
+        expected_slots = {(image['sku'], image['slot']) for image in body['images']}
+        require(len(observed) == len(observations) and set(observed) <= expected_slots, 'image_coverage', 'Unexpected or duplicate image observations')
+        matched, pending, failures = [], [], []
+        for image in body['images']:
+            key = (image['sku'], image['slot'])
+            label = '/'.join(key)
+            item = observed.get(key, {})
+            verified = False
+            try:
+                observed_path = Path(item.get('observed_path', ''))
+                require(observed_path.resolve().parent == (directory / 'observed-images').resolve(), 'image_evidence_path', 'Observed image must be archived in this operation')
+                content = observed_path.read_bytes()
+                match = evidence_tools().verify_public_rendition(plan, image, Path(image['path']).read_bytes(), content, receipts)
+                verified = (bool(match['content_match']) and item.get('observed_sha256') == match['observed_sha256'] and
+                    item.get('source_sha256') == image['sha256'] and item.get('asin') == body['sku_asins'][image['sku']] and
+                    fresh(item.get('observed_at')) and str(item.get('live_url', '')).startswith('https://') and
+                    str(item.get('source_id', '')).startswith('https://'))
+            except (OSError, ValueError, KeyError):
+                verified = False
+            (matched if verified else pending).append(label)
+            field = f'other_product_image_locator_{int(image["slot"][2:])}.0.media_location'
+            attribute = indexed.get((image['sku'], field), {})
+            if processing_valid and attribute.get('status') in {'failed', 'rejected'}:
+                failures.append(f'{label}: {attribute["status"]}')
+        publication = 'verified' if matched and not pending else ('pending' if observations else 'unobserved')
+        eligible = publication == 'verified' and preservation == 'verified' and processing in {'pending', 'complete'}
+        return {'publication': publication, 'processing': processing, 'preservation': preservation,
+                'release_eligible': eligible, 'proof_digest': digest(evidence), 'observed_at': evidence.get('observed_at'),
+                'account': plan['account'], 'operation_id': plan['operation_id'], 'plan_hash': state['plan_hash'],
+                'submission_id': state.get('submission_id'), 'matched': matched, 'pending': pending, 'failures': failures,
+                'processing_pending': sorted(processing_pending), 'freshness_seconds': 900}
+
+    def public_protected_images(self, plan):
+        """Public MAIN and populated untouched secondary slots; swatches retain catalog proof."""
+        touched = {(image['sku'], image['slot']) for image in plan['body']['images']}
+        expected = {}
+        for sku, row in plan['body'].get('image_before_rows', {}).items():
+            for field, url in row.items():
+                canonical_field = evidence_tools().canonical_header(field)
+                match = re.fullmatch(r'other_product_image_locator_([1-9])\.0\.media_location', canonical_field)
+                slot = 'MAIN' if canonical_field == 'main_product_image_locator.0.media_location' else f'PT0{match[1]}' if match else None
+                if slot and url and (sku, slot) not in touched:
+                    expected[(sku, slot)] = url
+        return expected
+
     def verified_health_noop(self, directory, state, plan, fresh):
         evidence = {'schema_version': 1, 'account': plan['account'], 'plan_hash': state['plan_hash'], 'source_id': fresh.get('source_id', fresh['path']), 'observed_at': now(), 'processing_status': 'live_observed', 'no_changes': True, 'report_artifact': {key: fresh[key] for key in ('path', 'sha256', 'report_generated_at') if key in fresh}, 'rows': {sku: {field: evidence_tools().field_value(fresh['rows'].get(sku, {}), field) for field in fields} for sku, fields in plan['body'].get('expected_rows', {}).items()}}
         path = directory / f'evidence-{digest(evidence)}.json'
@@ -687,7 +885,7 @@ class Operations:
                 require(current is not None and current == as_text(expected), 'health_conflict', f'Carried field {sku}/{field} is missing or changed; automatic restoration stopped')
 
     def run_collector(self, directory, script, request, timeout=180):
-        require(script in {'catalog-export.mjs', 'image-evidence.mjs', 'cases.mjs', 'flatfilepro.mjs', 'flatfilepro-export.mjs', 'flatfilepro-activity.mjs'}, 'invalid_collector', 'Unknown fixed collector')
+        require(script in {'catalog-export.mjs', 'image-evidence.mjs', 'cases.mjs', 'flatfilepro.mjs', 'flatfilepro-export.mjs', 'flatfilepro-activity.mjs', 'flatfilepro-listings.mjs', 'flatfilepro-discovery.mjs'}, 'invalid_collector', 'Unknown fixed collector')
         input_path = directory / (script.replace('.mjs', '') + '-input.json')
         atomic_json(input_path, request)
         try:
@@ -720,6 +918,23 @@ class Operations:
         response['rows'] = evidence_tools().report_rows(path)
         return response
 
+    def collect_image_catalog(self, directory, state, plan, purpose='verification'):
+        minimum = plan['prepared_at'] if purpose == 'preflight' else state.get('execution_started_at', plan['prepared_at'])
+        response = self.run_collector(directory, 'flatfilepro-listings.mjs', {
+            'schema_version': 1, 'operation_id': plan['operation_id'], 'account': plan['account'], 'plan_hash': state['plan_hash'],
+            'targets': [{'sku': sku, 'asin': plan['body']['sku_asins'][sku]} for sku in plan['body']['image_before_rows']],
+            'minimum_after': minimum, 'output_dir': str(directory / f'ffp-{purpose}')})
+        state['last_catalog_collection'] = response
+        if response.get('status') != 'collected':
+            return None
+        require(response.get('complete') is True and response.get('source_kind') == 'flatfilepro_listing_read' and
+                timestamp(minimum) <= timestamp(response.get('observed_at')) <= timestamp(now()), 'stale_report', 'Complete current FlatFilePro read required')
+        require(file_hash(response['path']) == response.get('sha256'), 'artifact_changed', 'FlatFilePro listing evidence changed')
+        saved = json.loads(Path(response['path']).read_text())
+        require(saved.get('rows') == response.get('rows') and saved.get('account') == plan['account'] and saved.get('plan_hash') == state['plan_hash'], 'artifact_changed', 'Listing evidence differs from receipt')
+        require(set(response.get('rows', {})) == set(plan['body']['image_before_rows']), 'scope_violation', 'Listing read SKU coverage differs')
+        return response
+
     def collect_images(self, directory, state, plan):
         body = plan['body']
         activity = None
@@ -729,37 +944,90 @@ class Operations:
                 'plan_hash': state['plan_hash'], 'submission_id': state['submission_id'],
                 'expected_rows': body['expected_rows']}, timeout=300)
             state['last_processing_collection'] = activity
-            if activity.get('status') != 'collected' or activity.get('complete') is not True:
-                return None
         mapping = body.get('sku_asins', {})
         if not all(image['sku'] in mapping for image in body['images']):
             return None
         targets = {}
         for image in body['images']:
             targets.setdefault(image['sku'], {'asin': mapping[image['sku']], 'slots': []})['slots'].append(image['slot'])
-        response = self.run_collector(directory, 'image-evidence.mjs', {'schema_version': 1, 'operation_id': plan['operation_id'], 'account': plan['account'], 'plan_hash': state['plan_hash'], 'targets': targets}, timeout=300)
-        if response.get('status') != 'collected':
+        protected_expected = self.public_protected_images(plan) if body.get('image_policy') else {}
+        for sku, slot in protected_expected:
+            targets[sku]['slots'].append(slot)
+        previous = state.get('last_collection')
+        response = self.run_collector(directory, 'image-evidence.mjs', {'schema_version': 1, 'operation_id': plan['operation_id'], 'account': plan['account'], 'plan_hash': state['plan_hash'], 'targets': targets,
+            'previous': previous}, timeout=300)
+        collection_error = None
+        if (response.get('status') == 'blocked' and previous and previous.get('status') in {'partial', 'collected'} and
+                previous.get('account') == plan['account'] and previous.get('plan_hash') == state['plan_hash'] and
+                previous.get('operation_id') == plan['operation_id']):
+            # Keep prior PDP observations with their original timestamps. A new
+            # failed read does not refresh them or conceal the current failure.
+            state['last_collection_error'] = response
+            collection_error = response
+            response = previous
+        else:
             state['last_collection'] = response
-            return None
+            state.pop('last_collection_error', None)
         approved = {(image['sku'], image['slot']): image for image in body['images']}
         observed = []
+        receipts = [json.loads(path.read_text()) for path in directory.glob('image-review-*.json')]
+        archives = directory / 'observed-images'
+        archives.mkdir(exist_ok=True)
+        downloads = {}
+        protected_images = []
         for image in response.get('images', []):
             source = approved.get((image['sku'], image['slot']))
-            require(source is not None, 'scope_violation', 'Image collector returned an unrequested slot')
+            protected_url = protected_expected.get((image['sku'], image['slot']))
+            require(source is not None or protected_url, 'scope_violation', 'Image collector returned an unrequested slot')
             try:
-                content = evidence_tools().fetch_public_image(image['live_url'])
-                match = evidence_tools().same_image_content(Path(source['path']).read_bytes(), content)
-            except (OSError, ValueError):
-                match = None
-            observed.append({**image, 'source_sha256': source['sha256'], 'visually_verified': bool(match), 'content_match': match})
+                if image['live_url'] not in downloads:
+                    downloads[image['live_url']] = evidence_tools().fetch_public_image(image['live_url'])
+                content = downloads[image['live_url']]
+                if protected_url:
+                    if protected_url not in downloads:
+                        downloads[protected_url] = evidence_tools().fetch_public_image(protected_url)
+                    before = downloads[protected_url]
+                    pair = {**image, 'expected_url': protected_url}
+                    for label, data in [('expected', before), ('observed', content)]:
+                        checksum = hashlib.sha256(data).hexdigest()
+                        path = archives / checksum
+                        if not path.exists():
+                            with path.open('xb') as stream:
+                                stream.write(data)
+                        pair.update({label + '_path': str(path), label + '_sha256': checksum})
+                    protected_images.append(pair)
+                    continue
+                match = evidence_tools().verify_public_rendition(plan, source, Path(source['path']).read_bytes(), content, receipts)
+                path = archives / match['observed_sha256']
+                if path.exists():
+                    require(file_hash(path) == match['observed_sha256'], 'image_evidence_changed', 'Archived rendition changed')
+                else:
+                    with path.open('xb') as stream:
+                        stream.write(content)
+                observed.append({**image, 'source_sha256': source['sha256'], 'observed_path': str(path),
+                    'observed_at': image.get('observed_at', response.get('observed_at')),
+                    'visually_verified': bool(match['content_match']), **match})
+            except (OSError, ValueError) as exc:
+                if source:
+                    observed.append({**image, 'source_sha256': source['sha256'], 'visually_verified': False, 'content_match': None, 'error': str(exc)})
+                else:
+                    protected_images.append({**image, 'error': str(exc)})
         protected = {}
         if body.get('image_policy'):
-            fresh = self.collect_export(directory, state, plan)
-            if fresh is None:
-                return None
-            self.validate_image_baseline(plan, fresh['rows'], protected_only=True)
-            protected = {'protected_rows': {sku: fresh['rows'][sku] for sku in body['image_before_rows']}}
+            try:
+                ffp_source = (body.get('image_catalog_source') == 'flatfilepro_listing_read' or
+                              (body.get('image_policy') == 'secondary_slots_only' and body.get('adapter') == 'flatfilepro.cdp'))
+                fresh = self.collect_image_catalog(directory, state, plan) if ffp_source else self.collect_export(directory, state, plan)
+                if fresh is not None:
+                    protected = {'protected_rows': fresh['rows'], 'preservation_source':
+                        {key: value for key, value in fresh.items() if key != 'rows'}}
+                    # A report timestamp remains a report timestamp, not a new read time.
+                    protected['preservation_source'].setdefault('observed_at', fresh.get('report_generated_at'))
+            except (OSError, ValueError) as exc:
+                protected = {'preservation_source': {'status': 'blocked', 'message': str(exc)}}
         return {'account': plan['account'], 'plan_hash': state['plan_hash'], 'source_id': 'amazon-live-imageblock', 'observed_at': now(), 'submission_id': state.get('submission_id'), 'processing_status': 'live_observed', 'images': observed, **protected,
+                'pdp_collection': response, 'protected_images': protected_images,
+                **({'pdp_collection_error': collection_error} if collection_error else {}),
                 **({'ffp_processing': activity} if activity else {})}
 
     def collect(self, directory, state, plan):
@@ -882,6 +1150,16 @@ class Operations:
                 return self.persist(directory, state, 'processing', submission_id=evidence['submission_id'], evidence_path=str(evidence_path))
             if processing == 'failed':
                 return self.persist(directory, state, 'failed', submission_id=evidence['submission_id'], evidence_path=str(evidence_path), failures=evidence.get('errors', ['Submission failed']))
+            if op == 'listing.images' and body.get('image_policy') and not body.get('no_changes'):
+                completion = self.image_completion(directory, state, plan, evidence)
+                status = ('partial' if completion['processing_pending'] and
+                          (completion['processing'] == 'failed' or completion['preservation'] == 'conflict') else
+                          'failed' if completion['processing'] == 'failed' or completion['preservation'] == 'conflict' else
+                          'verified' if completion['release_eligible'] and completion['processing'] == 'complete' else
+                          'partial' if completion['matched'] else 'processing')
+                return self.persist(directory, state, status, submission_id=evidence.get('submission_id'),
+                    matched=completion['matched'], pending=completion['pending'], failures=completion['failures'],
+                    evidence_path=str(evidence_path), image_completion=completion)
             matched, pending = [], []
             if op in {'seo.update', 'flatfilepro.update'}:
                 observed = evidence.get('rows', {})
@@ -996,7 +1274,7 @@ def capabilities():
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('command', choices=['capabilities', 'prepare', 'execute', 'advance', 'reconcile', 'status', 'observe'])
+    parser.add_argument('command', choices=['capabilities', 'prepare', 'execute', 'advance', 'reconcile', 'status', 'observe', 'record-image-review', 'image-release-proof'])
     parser.add_argument('--request', type=Path)
     parser.add_argument('--state-dir', type=Path)
     args = parser.parse_args(argv)
@@ -1007,7 +1285,7 @@ def main(argv=None):
             require(args.request is not None and args.state_dir is not None, 'missing_argument', '--request and --state-dir are required')
             request = json.loads(args.request.read_text())
             service = Operations(args.state_dir)
-            command = 'execute' if args.command == 'advance' else args.command
+            command = 'execute' if args.command == 'advance' else args.command.replace('-', '_')
             result = service.view(service.directory(request.get('operation_id'))) if command == 'status' else getattr(service, command)(request)
         print(json.dumps(result, ensure_ascii=False, allow_nan=False))
         return 0

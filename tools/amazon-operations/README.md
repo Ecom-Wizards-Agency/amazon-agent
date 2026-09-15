@@ -57,6 +57,21 @@ preserved MAIN/swatches. Rejected slots are reported separately from verified
 slots. The image-only workbook preserves the current export's exact headers;
 other workbook routes keep their existing normalization.
 
+The image route uses current exact FlatFilePro listing reads for identity and
+protected baselines. `flatfilepro-discovery.mjs` first verifies the complete
+paginated nonarchived inventory, then enriches only explicitly selected targets.
+Read time, Amazon update time and unavailable synchronization timestamps remain
+separate. A Category Listings Report is not required by this route.
+
+`record-image-review` appends a checksum-bound attended visual receipt for exact
+approved source and observed Amazon image bytes, account, plan, SKU, ASIN and
+slot. It does not mark an operation verified. Reconciliation must collect fresh
+matching PDP evidence, complete processing values and unchanged protected slots.
+The returned `image_completion` separates publication, preservation and
+processing. `image-release-proof` revalidates the stored evidence. Pending
+processing remains visible; mixed pending and rejected contributions keep the
+operation partial so the caller cannot treat unresolved writes as retryable.
+
 A durably captured runId is recoverable after loss of the adapter response.
 If the submission response itself was lost before its runId could be recorded,
 upload-to-run history correlation remains unavailable and the attempt stays

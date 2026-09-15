@@ -143,3 +143,64 @@ test('recovery requires one exact status and never treats import acceptance as i
   assert.throws(()=>recoveryStatus([]),/unavailable/);
   assert.throws(()=>recoveryStatus(['Product completed previously']),/unavailable/);
 });
+
+test('pinned grid fragments cover every page, metadata and exact technical cells',async()=>{
+ const {normalizePreviewState}=await import('../flatfilepro-contracts.mjs');
+ const fields=['sku','asin','itemName','productType',field];
+ const gridPage=(sku,n)=>({text:`${n}–${n} of 2`,controls:[{label:'Next page',disabled:n===2}],grids:[{cols:5,count:3,rows:[
+  {index:1,id:null,cells:[{field:'sku',index:1,text:'SKU'}]},
+  {index:1,id:null,cells:fields.slice(1).map((f,i)=>({field:f,index:i+2,text:'Localized'}))},
+  {index:n+1,id:sku,cells:[{field:'sku',index:1,text:sku}]},
+  {index:n+1,id:sku,cells:['B000000001','Blue','SUPPLEMENT','https://example.com/'+sku].map((v,i)=>({field:fields[i+1],index:i+2,text:v}))}
+ ]}]});
+ const pages=[gridPage('a',1),gridPage('b',2)];let index=0;
+ const result=await collectPreview(async()=>pages[index],async()=>index++);
+ const body={expected_rows:{a:{[field]:'https://example.com/a'},b:{[field]:'https://example.com/b'}},sku_asins:{a:'B000000001',b:'B000000001'},image_preview_metadata:{a:{itemName:'Blue',productType:'SUPPLEMENT'},b:{itemName:'Blue',productType:'SUPPLEMENT'}}};
+ assert.equal(verifyPreview(result,body),true);assert.equal(result.page_count,2);
+ const broken=structuredClone(pages[0]);broken.grids[0].rows[3].id='different';assert.throws(()=>normalizePreviewState(broken),/Pinned/);
+ const missing=structuredClone(pages[0]);missing.grids[0].rows[3].cells.pop();assert.throws(()=>normalizePreviewState(missing),/Missing/);
+ const swapped=structuredClone(pages[0]);swapped.grids[0].rows[3].cells[0].field=field;assert.throws(()=>normalizePreviewState(swapped),/technical/);
+ assert.throws(()=>verifyPreview(result,{...body,sku_asins:{a:'B000000002',b:'B000000001'}}),/ASIN/);
+ assert.throws(()=>verifyPreview(result,{...body,image_preview_metadata:{...body.image_preview_metadata,a:{itemName:'Other',productType:'SUPPLEMENT'}}}),/metadata/);
+});
+
+test('FFP preflight freshness uses read timestamp, not the Amazon version timestamp',async()=>{
+ const dir=await mkdtemp(join(tmpdir(),'ffp-read-preflight-'));try{
+ const path=join(dir,'read.json');await writeFile(path,'read');const at=Date.now();
+ const input={plan:{body:{image_policy:'secondary_slots_only'}},image_preflight:{source_kind:'flatfilepro_listing_read',path,sha256:createHash('sha256').update('read').digest('hex'),observed_at:new Date(at).toISOString(),amazon_updated_at:'2020-01-01T00:00:00Z'}};
+ await verifyImagePreflight(input,at);await assert.rejects(verifyImagePreflight(input,at+300001),/expired/);
+ }finally{await rm(dir,{recursive:true,force:true});}
+});
+
+test('final mapping waits for exact values and recovered complete import is not mapped twice',async()=>{
+ const {collectMappedPreview}=await import('../flatfilepro.mjs');
+ const body={expected_rows:{a:{[field]:'new'}}};
+ let tick=0,reads=0,maps=0;
+ const initial={text:'1–1 of 1',rows:[['sku'],['a']],controls:[]};
+ const pending={text:'1–1 of 1',rows:[['sku',field],['a','old']],controls:[]};
+ const complete={...pending,rows:[['sku',field],['a','new']]};
+ const preview=await collectMappedPreview({body,read:async()=>[initial,pending,complete][Math.min(reads++,2)],map:async()=>maps++,next:async()=>assert.fail('One page only'),now:()=>tick,pause:async ms=>tick+=ms});
+ assert.equal(maps,1);assert.equal(preview.reused_mapping,false);assert.equal(reads,3);
+ const recovered=await collectMappedPreview({body,read:async()=>complete,map:async()=>assert.fail('Mapped upload must not be remapped'),next:async()=>assert.fail('One page only')});
+ assert.equal(recovered.reused_mapping,true);assert.equal(verifyPreview(recovered,body),true);
+});
+
+test('settling timeout and partial existing mapping stop without blind remapping',async()=>{
+ const {collectMappedPreview}=await import('../flatfilepro.mjs');
+ const body={expected_rows:{a:{[field]:'new'}}};let tick=0;
+ const pending={text:'1–1 of 1',rows:[['sku',field],['a','old']],controls:[]};
+ await assert.rejects(collectMappedPreview({body,read:async()=>pending,map:async()=>assert.fail('No remapping'),next:async()=>{},timeoutMs:700,now:()=>tick,pause:async ms=>tick+=ms}),/did not settle/);
+ assert.equal(tick,700);
+ await assert.rejects(collectMappedPreview({body:{expected_rows:{a:{[field]:'new','other_product_image_locator_2.0.media_location':'second'}}},read:async()=>pending,map:async()=>assert.fail('Partial mapped import must be preserved'),next:async()=>{}}),/incomplete/);
+});
+
+test('pre-submit catalog read releases context then reacquires exact import target exclusively',async()=>{
+ const {refreshImagePreflight}=await import('../flatfilepro.mjs');
+ const calls=[],original={targetId:'exact-import-tab'},resumed={targetId:'exact-import-tab',session:{}};
+ const input={plan_hash:'a'.repeat(64),receipt_path:'/tmp/op/receipt.json',plan:{operation_id:'bound',account:{seller_id:'SELLER',marketplace_id:'MARKET'},body:{sku_asins:{a:'B000000001'},image_before_rows:{a:{asin:'B000000001'}}}}};
+ const fresh={status:'collected'};
+ const deps={release:async(page,options)=>{assert.equal(page,original);assert.equal(options.outcome,'handoff');calls.push('release');},collect:async request=>{assert.deepEqual(calls,['release']);assert.deepEqual(request.targets,[{sku:'a',asin:'B000000001'}]);calls.push('collect');return fresh;},acquire:async spec=>{assert.deepEqual(calls,['release','collect']);assert.equal(spec.expectedTargetId,original.targetId);assert.equal(spec.exclusiveContext,true);calls.push('acquire');return resumed;}};
+ assert.deepEqual(await refreshImagePreflight(input,original,deps),{page:resumed,fresh});
+ assert.deepEqual(calls,['release','collect','acquire']);
+ await assert.rejects(refreshImagePreflight(input,original,{release:async()=>{},collect:async()=>fresh,acquire:async spec=>{assert.equal(spec.expectedTargetId,original.targetId);throw new Error('EVIDENCE_TARGET_MISMATCH');}}),/EVIDENCE_TARGET_MISMATCH/);
+});

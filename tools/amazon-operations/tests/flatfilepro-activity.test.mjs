@@ -34,6 +34,13 @@ test('pending and rejected attributes remain explicit evidence, not Amazon verif
   assert.deepEqual(result.attributes.map(value=>value.status),['pending','rejected']);assert.equal(result.complete,true);
   assert.equal(result.verified,undefined);
 });
+test('observed JSON pointer destinations match flattened attributes and contradictions fail',async()=>{
+  const rows=[item('SKU1'),item('SKU2')];
+  for(const row of rows)Object.assign(row.attributes[0],{destinationPath:'/other_product_image_locator_1/0/media_location',destinationAttribute:field});
+  assert.equal((await collectActivity(input,async()=>page(rows))).attributes.length,2);
+  rows[0].attributes[0].destinationAttribute='other_product_image_locator_2__1__media_location';
+  await assert.rejects(collectActivity(input,async()=>page(rows)),/identifiers disagree/);
+});
 test('missing or contradictory pagination cannot produce complete evidence',async()=>{
   for(const value of [{summary,items:[item('SKU1')]},page([item('SKU1')],true,null),page([item('SKU1'),item('SKU2')],false,'unused')])
     await assert.rejects(collectActivity(input,async()=>value));
@@ -43,4 +50,10 @@ test('network matcher binds run ID, origin, seller, marketplace and cursor',()=>
   const url='https://api.flatfile.pro/listing-update-runs/run-123/items?seller_id=SELLER&marketplace_id=MARKET&pageSize=25';
   assert.equal(activityRequestMatch(url,input,null),'items');
   for(const other of [url.replace('api.flatfile.pro','other.example'),url.replace('run-123','run-999'),url.replace('SELLER','OTHER'),url+'&seller_id=SELLER',url+'&cursor=other',url.replace('25','50')])assert.equal(activityRequestMatch(other,input,null),null);
+});
+
+test('Amazon rewritten media URL remains processing evidence, never image verification',async()=>{
+ const rows=[item('SKU1'),item('SKU2')];rows[0].attributes[0].liveValue='https://m.media-amazon.com/images/I/reencoded.jpg';
+ const result=await collectActivity(input,async()=>page(rows));
+ assert.equal(result.attributes[0].live_value,rows[0].attributes[0].liveValue);assert.equal(result.attributes[0].submitted_value,input.expected_rows.SKU1[field]);assert.equal(result.verified,undefined);
 });

@@ -1,4 +1,4 @@
 interface:
   display_name: "Amazon Catalog"
-  short_description: "Plan and validate Amazon catalog changes"
-  default_prompt: "Use $amazon-catalog to plan and validate Amazon catalog changes for this request."
+  short_description: "Audit catalogs and correct Brand Store drafts"
+  default_prompt: "Use $amazon-catalog to audit this catalog or Brand Store request and complete the authorized changes with verification."

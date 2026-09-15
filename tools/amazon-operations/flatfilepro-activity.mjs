@@ -7,7 +7,8 @@ import {submittedRunIdentity} from './flatfilepro-submit.mjs';
 
 const states=new Set(['pending','in_progress','rejected','failed','reflected']);
 function canonical(field) {
-  return String(field).replace(/^(other_product_image_locator_[1-8])__1__media_location$/,'$1.0.media_location');
+  return String(field).replace(/^\/(other_product_image_locator_[1-8])\/0\/media_location$/,'$1.0.media_location')
+    .replace(/^(other_product_image_locator_[1-8])__1__media_location$/,'$1.0.media_location');
 }
 
 export function activityRequestMatch(url,input,cursor) {
@@ -41,12 +42,16 @@ export async function collectActivity(input,readPage) {
       ui.check(Array.isArray(item.attributes)&&item.attributes.length===fields.size,'Activity attribute coverage mismatch');
       const seenFields=new Set();
       for(const attribute of item.attributes) {
+        if(attribute.destinationPath!=null&&attribute.destinationAttribute!=null)
+          ui.check(canonical(attribute.destinationPath)===canonical(attribute.destinationAttribute),'Activity destination identifiers disagree');
         const key=canonical(attribute.destinationPath??attribute.destinationAttribute),field=fields.get(key);
         ui.check(field&&!seenFields.has(field)&&states.has(attribute.status),'Activity field or status unavailable, unexpected or duplicated');
         seenFields.add(field);
         ui.check(attribute.submittedValue===expected[item.sku][field],'Activity submitted value differs from bound plan');
-        if(attribute.status==='reflected')ui.check(attribute.liveValue===expected[item.sku][field],'Reflected attribute live value differs from plan');
-        attributes.push({sku:item.sku,field,status:attribute.status});
+        // Reflected media may use Amazon's rewritten URL. Content identity is
+        // established by the live-image verifier, never by this status alone.
+        if(attribute.status==='reflected')ui.check(typeof attribute.liveValue==='string'&&attribute.liveValue.startsWith('https://'),'Reflected attribute has no HTTPS live value');
+        attributes.push({sku:item.sku,field,status:attribute.status,live_value:attribute.liveValue??null,submitted_value:attribute.submittedValue});
       }
     }
     if(!response.hasMore) {
@@ -67,11 +72,12 @@ export async function run(input) {
     ui.check(input.schema_version===1&&input.operation_id,'Invalid Activity request');
     const identity=submittedRunIdentity({runId:input.submission_id});
     page=await acquireTaskPage({taskId:taskIdFor('amazon-operations',input.operation_id),workflow:'amazon-flatfilepro',initialUrl:identity.submission_url,exclusiveContext:true});
+    await page.session.send('Page.navigate',{url:'https://app.flatfile.pro/exports'});
     await ui.selectFlatFileProAccount(page.session,input.account);
     await page.session.send('Network.enable',{});
     let pending=null;
     page.session.subscribe('Network.responseReceived',event=>{
-      if(!pending)return;
+      if(!pending||!['XHR','Fetch'].includes(event.type))return;
       const kind=activityRequestMatch(event.response.url,input,pending.cursor);
       if(kind)pending.responses.push({kind,id:event.requestId,status:event.response.status});
     });

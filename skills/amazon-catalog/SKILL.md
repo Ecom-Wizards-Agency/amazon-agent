@@ -1,6 +1,6 @@
 ---
 name: amazon-catalog
-description: "Plan and validate Amazon catalog changes, including variations, parentage, attributes, feeds, A+ content, images, Brand Stores, and Brand Registry conflicts."
+description: "Audit and prepare Amazon catalog changes, including variations, feeds, and Brand Registry conflicts; build and correct Brand Store drafts, product grids, image links and approved artwork."
 ---
 
 # Amazon Catalog
@@ -55,22 +55,19 @@ For creating or editing variation families (parentage) or any targeted flat-file
 
 ## Brand Store Updates
 
-For every Brand Store build or update, first load the team vault's
-`Playbooks/amazon-brand-stores-playbook.md`.
+For Brand Store audits, corrections and builds, load
+[references/brand-store-updates.md](references/brand-store-updates.md). For module
+selection, Figma translation, crops and mobile composition, also load the team
+vault's `Playbooks/amazon-brand-stores-playbook.md`.
 
-- Always create a **new named content version** and make every change inside that
-  draft. Never edit the currently published content version in place, including
-  when Store Builder opens it by default.
-- Record the published version and status before building, then verify after the
-  draft build that the published Store is unchanged.
-- Treat preview, submission for moderation, scheduling, and publishing as separate
-  actions. Do not submit, schedule, or publish without approval for that exact action.
-- Upload a separate mobile asset only when the mobile design genuinely differs
-  from the desktop frame. Page Banners and same-ratio tiles use the desktop asset
-  alone.
-- A Product Grid is driven by one catalog search term. The prefilled breadcrumb
-  term matches nothing and renders an empty grid silently, so set a real term and
-  confirm the editor reads `Showing N ASINs` after reopening it.
-  When no term matches, switch the grid's `Automated grid` toggle off and add
-  products by ASIN search; the manual keyword search misses what the ASIN search
-  finds.
+- Audit every subpage, including nested and undesigned pages. Distinguish artwork,
+  destinations, product selections, stock and catalog relationships.
+- For corrections, copy the verified source into a new named draft and change only
+  the approved fields. Page rebuilding is a separate operation.
+- Verify product identity against the client's assortment, model, pack and variant.
+  Brand-picker acceptance and title wording alone do not establish eligibility.
+- Reopen changed editors, verify saved values and desktop/mobile results, and
+  compare the entire draft and source before reporting success.
+- Direct-chat authorization and Slack executor authorization have different
+  entry points. Neither changes the requirement for exact scope; submission,
+  scheduling and publishing require their own authorization.

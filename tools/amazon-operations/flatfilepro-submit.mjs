@@ -17,7 +17,7 @@ export async function submitAttended({session,click,attemptPath,attempt,timeoutM
   const responses=[],finished=new Set();let armed=false;
   await session.send('Network.enable',{});
   session.subscribe('Network.responseReceived',event=>{
-    if(armed&&event.response.url===endpoint)responses.push({id:event.requestId,status:event.response.status});
+    if(armed&&['XHR','Fetch'].includes(event.type)&&event.response.url===endpoint)responses.push({id:event.requestId,status:event.response.status});
   });
   session.subscribe('Network.loadingFinished',event=>{if(armed)finished.add(event.requestId);});
   try {
