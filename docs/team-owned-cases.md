@@ -66,9 +66,10 @@ Importing historical monitoring never creates sending authority.
 
 ## Access and rollout
 
-The shared account needs verified `Manage Your Cases` create/reply access for
-each enabled seller and marketplace. Monitoring remains read-only even when the
-session can edit a case; capability is not authorization.
+The shared account has provisioned `Manage Your Cases` create/reply access on
+case-enabled accounts. Verify the current seller and marketplace controls before
+submission. [Matrix row `cases.create-reply`](rights/README.md#cases.create-reply)
+defines the request-bound mandate; monitoring alone grants no sending authority.
 
 Classify missing Reply as login required, explicit access denial, confirmed
 nonreplyable closure or unknown UI state. Never infer closure from a missing

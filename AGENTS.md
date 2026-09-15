@@ -37,43 +37,63 @@ reachable browser to change mode. A mismatch fails with
 `MODE_CHANGE_REQUIRES_RESTART`; only `browserctl restart` may intentionally stop
 and relaunch a managed browser, and it requires an explicit reason.
 
-The standard machine preset remains headless. Evo X1 explicitly runs ports 9222
-and 9223 headed, with distinct window classes and US, DE, and AUS Seller Central
-anchor tabs on both. Anchor maintenance is additive: it creates a missing anchor
-but never navigates, repurposes, or closes another page. The Evo X1 five-minute
-cleanup pass also maintains these anchors, so a closed or navigated country
-anchor is replaced without waiting for another workflow to call `ensureChrome()`.
+The standard machine preset remains headless. Evo X1 runs ports 9222 and 9223
+headed with distinct window classes. Every programmatic tab has a machine-local
+lease. Active controllers heartbeat every 30 seconds. Three kinds of tab share
+the controller in `tools/browserctl/task-tabs.mjs`:
 
-Every programmatically created tab has a machine-local lease. Active background
-tasks heartbeat every 30 seconds. A successful release receives a 10-minute
-grace period. Interactive tabs and inspection tabs receive a 2-hour inactivity
-window. Errors, challenges, blocked work, and lost heartbeats become inspection
-leases. Standard machine presets never auto-close unknown or user-created tabs.
-Evo X1 instead adopts every newly observed unregistered tab into an inspection
-lease, starts activity measurement, and gives it a full 2-hour inactivity window
-before it can close. The first observation never closes the tab. Cleanup must
-preserve a tab when its activity cannot be measured, and raw CDP closure is
-reserved for an expired registered lease or an explicit operator request.
+- Region tab: exactly one permanent `anchor` per region per port, NA at the US
+  home, EU at the DE home, and AU at the AUS home. Seller Central primary work
+  uses the fixed `seller-central-region` workflow and its regional task ID.
+  `success` parks the page at its region home and keeps the anchor role;
+  explicit `handoff` keeps the anchor without parking. Every other release
+  outcome detaches the target into a two-hour inspection lease, removing its
+  anchor role and task binding. The next acquisition or cleanup creates the
+  missing region tab. Acquisition failure on a live regional target abandons
+  the reservation rather than detaching it. A concurrent anchor binding raises
+  retryable `REGION_ANCHOR_CONFLICT`. Maintenance never demotes or replaces a
+  live region tab with a fresh controller heartbeat, whatever its URL.
+- Task tab: FlatFilePro, public PDPs, Brand Store builder and named additional
+  slots use one stable task ID per rollout or job, never per revision or
+  sub-step. Steps and retries reacquire that target. `success` gives ten minutes
+  of grace before cleanup; `handoff` means explicit operator handover only.
+  The terminal step completes the task. Regional tasks are released, never
+  permanently completed. Bulk-image keys use `bulk-images:<rollout_id or job_id>`;
+  terminal reconciliation requests `complete_task: true`. Operations keeps
+  collector flags false, finishes preservation reads, then calls `task complete`
+  only for `verified`, `failed` or `blocked`. Processing and partial results
+  retain the task. Earlier steps never request completion.
+- Inspection tab: an error, lost heartbeat, detach or adoption preserves the
+  target for two hours of idle time. Only pointer, key or wheel input, kind
+  `interaction`, extends retention. Focus, pageshow and visibilitychange, kind
+  `activity`, do not. Evo X1 adopts unknown tabs with a full two-hour window on
+  first observation; standard presets preserve unknown tabs. Cleanup preserves
+  targets when interaction cannot be measured.
 
-Seller Central home anchors are navigation reserves, not working tabs.
-Automation must never repurpose one. Every workflow supplies one stable task ID
-and uses `tools/browserctl/task-tabs.mjs` for its primary page. Steps,
-verification passes, and retries with that task ID reacquire the same target. A
-second target is allowed only through a named additional slot for genuinely
-simultaneous or isolated work, an unavoidable site-created popup, or an explicit
-operator request. Direct `createPage()` calls are restricted to anchor
-maintenance and the task-tab controller; unknown options and unkeyed managed
-page creation fail closed.
+Seller Central tasks declare `sellerCentral: { marketplace, origin }` and
+`exclusiveContext: true`. Regional claims serialize US/CA/MX, EU/UK and AU work
+per port. Account-switcher workflows, including profile identity and FBA
+shipments, add `claimScope: "global"` (bridge flag `--claim global`) because the
+switcher uses the US host. Regional reads keep their regional claim. Unspecified,
+mixed or unmapped contexts retain global exclusion. Hold the claim through
+selection and dependent work; verify account, marketplace and region before
+using data. Non-region workflows cannot bind anchors. Direct `createPage()` is
+restricted to anchor maintenance and the keyed controller.
 
-Seller Central workflows declare `sellerCentral: { marketplace, origin }` with
-`exclusiveContext: true` when acquiring a task page. Claims are exclusive per
-port and region group: US/CA/MX, EU/UK, and AU. Different groups can run together;
-workflows within one group serialize regardless of client. Unspecified, mixed
-or unmapped contexts retain global exclusion. The same task keeps its claim
-through selection and dependent work, and every workflow reverifies the requested
-account, marketplace and region before using data. On success the one task target receives the normal 10-minute grace.
-Errors and blocked work keep that same target as inspection evidence for two
-hours instead of opening another target on each retry.
+The five-minute cleanup takes the port lock once per pass, waits up to 120
+seconds by default (`--lock-wait-ms`), and reports `deferred` with exit 0 when
+busy. `--audit-only` previews anchor changes and destructive actions, while
+tracker repair, observations and background heartbeat transitions still persist.
+Surplus anchors become inspection leases owned by `browserctl:anchor-duplicate`;
+permanent region anchors never
+expire. `task complete`, `task detach` and `region state` expose the registry
+through browserctl; task commands take the hashed task ID. Collector timeouts
+send SIGTERM, allow 15 seconds for cleanup, then send SIGKILL.
+
+Known implementation gap: cleanup follows interaction-only retention, but the
+low-level `touchLease(kind: "activity")` still extends an existing inspection or
+interactive lease. Callers must use `interaction` for retention updates; the
+low-level guard needs a separate browserctl change.
 
 Managed Chrome CDP on port 9223 is the default browser for Amazon workflows.
 Port 9222 is the separate operator browser, selected explicitly.
@@ -124,25 +144,12 @@ only. CAPTCHA, device approval, account recovery, identity verification, and
 invalid-credential states remain human-only. The agent must not inspect passwords,
 one-time codes, cookies, local storage, session stores, or browser profile data.
 
-The delegated least-privilege Amazon service account is the Grimoire Amazon
-identity even though its login can now be brokered on either CDP port.
-SPP grants View wherever available plus four explicit Edit exceptions: Reports,
-`Manage Inventory/Add a Product`, `Manage FBA Inventory/Shipments`, and
-`Inventory Planning`. The three Inventory exceptions expose required read data
-and never authorize runtime writes.
-Accounts enabled for the team-owned case workflow additionally need verified
-`Manage Your Cases` create/reply access. This is a scoped case capability, not
-general write permission. The case service checks its local rollout record and
-the live case controls before every submission. Monitoring remains read-only
-even when the session can edit a case.
-`~/os/wizards-ai/config.json` owns the exact authentication route allowlist.
-Initially it permits Seller Central `.com`, `.de`, and `.com.au`, their Amazon
-authentication origins, and `app.flatfile.pro`, on ports 9222 and 9223. Routes
-use a pinned 1Password item or an exact-origin match that must resolve to exactly
-one Login item. Authentication availability never broadens a workflow's action
-rights. FlatFilePro still stops before Update Listings, and port-9223 inventory
-work remains read-only. The exception never permits cookie or browser-storage
-inspection.
+Grimoire scheduled/Slack runs and attended Amazon Agent sessions share the
+delegated Seller Central login **Merlin by Ecom Wizards** on port 9223.
+Authentication availability never broadens action rights. Actor-specific gates,
+executor availability and grant evidence are defined in
+[the capability matrix](docs/rights/README.md); local standing permissions may
+only narrow its rows.
 
 Before every Amazon task, verify the browser session is logged in and confirm the selected account/advertiser, marketplace/country, visible page title/tool, and date range or filters when relevant. If the task names a client, brand, advertiser, seller account, or marketplace, switch to that exact account and marketplace before doing any task work, downloading files, reading reports, or confirming statuses. When the requested account and marketplace are visibly selected, continue without asking for an additional account-safety confirmation. Stop only when a different account is active, the requested account is unavailable, the selection is ambiguous, or login/session friction prevents verification. Repeat this verification after switching tools, opening a new Amazon area, changing marketplaces, changing advertiser/seller accounts, or returning from a login/session timeout. If the browser is unavailable or not logged in, pause and ask the operator to open it, complete login, or name which browser/session to use.
 
@@ -242,7 +249,7 @@ Default routing:
 - `amazon-sop-maintenance`: `/create-sop`, `/fix-sop`, verified SOP corrections, new SOP drafts, and SOP-vs-skill routing.
 - `amazon-logistics`: Send to Amazon, FBA shipments, removals, AWD, inventory operations.
 - `amazon-communications`: support cases, buyer messages, courtesy-refund follow-ups (creator replies inside Creator Connections → `amazon-creator-connections`).
-- `amazon-flatfilepro`: prepare narrow `.xlsx` files from backend exports and evidence, or upload and map an already prepared workbook in FlatFilePro; both modes stop before any catalog update is submitted.
+- `amazon-flatfilepro`: prepare narrow `.xlsx` files, then upload and map the exact workbook. Update Listings requires attended in-chat approval for that submission; unattended submission is disabled. See matrix row `flatfilepro.submit` in `docs/rights/README.md`.
 - `amazon-forecasting-sources`: per-client source precedence, historical evidence, assumptions, and caveats for forecasting questions. The skill is the structure; the filled-in pack lives outside this repo under `_local/forecasting-context/<client>/`. It is a context layer, not an audit or launch-plan builder.
 
 Amazon client onboarding trigger phrases:
@@ -789,14 +796,20 @@ resulting permalink in its internal control thread and receipt.
 
 The house writing standard is enforced by the helper itself and documented in `_local/slack-posting.md` (per-operator) and the company `integration-routing.md` (policy). Do not use a long channel-parent post or bypass the helper's house-style enforcement.
 
-The bot identity, helper script path and channel allowlist live in
+The bot identity, helper script path and local restrictions live in
 `_local/slack-posting.md`. Read it before a bot write. If it is missing, the
-helper is unavailable, the channel is not allowlisted, or the bot identity
+helper is unavailable, the destination is refused, or the bot identity
 cannot be verified, stop. Both personal and bot posts follow the same short
 parent and detailed-thread house style.
 
+Wizards AI may post to any non-client channel. Client channels must be configured
+active; they enter configuration before the bot is invited. Workflow-specific
+restrictions can narrow that boundary, including bulk-image acknowledgements in
+configured attended trial threads. See rows `slack.channels` and `slack.identity`
+in `docs/rights/README.md`.
+
 Generic rules regardless of operator:
 
-- The posting helper enforces a channel allowlist. If it refuses a channel, do not work around it. Ask the operator to extend the allowlist.
+- The posting helper enforces the channel policy. If it refuses a destination, do not work around it; report the applicable restriction.
 - Bot tokens never go into this repo, Notion, or chat output.
 - The bot's own workflows (ledgers, runbooks) are separate automations. This repo's agents only reuse the posting helper; they do not modify other automations' state.

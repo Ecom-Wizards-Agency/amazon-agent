@@ -1,0 +1,1631 @@
+{
+  "schema_version": 1,
+  "updated_on": "2026-09-15",
+  "rows": [
+    {
+      "id": "seller-central.read",
+      "domain": "amazon",
+      "capability": "Seller Central read and inspection",
+      "grimoire": {
+        "state": "allowed",
+        "how": "Verify the requested account, marketplace, page and filters; scheduled checks collect evidence only."
+      },
+      "amazon_agent": {
+        "state": "allowed",
+        "how": "Use the same delegated login and identity checks in attended chat."
+      },
+      "identity": "Merlin by Ecom Wizards delegated SPP service account (shared Grimoire session)",
+      "port": 9223,
+      "spp_rows": [],
+      "gates": [
+        {
+          "kind": "file_literal",
+          "repo": "amazon-agent",
+          "file": "AGENTS.md",
+          "literal": "Before every Amazon task, verify"
+        }
+      ],
+      "docs": [
+        {
+          "repo": "amazon-agent",
+          "path": "docs/rights/README.md",
+          "note": "Versioned authority; per-account grants remain vault evidence."
+        }
+      ],
+      "verified_on": "2026-09-15",
+      "notes": "Rights differ by gate, not by login.",
+      "modes": [
+        "*"
+      ]
+    },
+    {
+      "id": "catalog.listing.write",
+      "domain": "amazon",
+      "capability": "Catalog and listing mutations",
+      "grimoire": {
+        "state": "forbidden",
+        "how": "No general mutation executor. Only separately listed enabled actions may execute."
+      },
+      "amazon_agent": {
+        "state": "approval-gated",
+        "how": "Exact in-chat submission approval and verified per-account access are required."
+      },
+      "identity": "Merlin by Ecom Wizards delegated SPP service account (shared Grimoire session)",
+      "port": 9223,
+      "spp_rows": [
+        "Manage Inventory/Add a Product"
+      ],
+      "gates": [
+        {
+          "kind": "doc_only",
+          "justification": "General attended catalog authority is an operator policy; executor-specific restrictions remain in their rows."
+        }
+      ],
+      "docs": [
+        {
+          "repo": "amazon-agent",
+          "path": "docs/rights/README.md",
+          "note": "Versioned authority; per-account grants remain vault evidence."
+        }
+      ],
+      "verified_on": "2026-09-15",
+      "notes": "SPP Edit is capability evidence, not runtime authorization."
+    },
+    {
+      "id": "flatfilepro.submit",
+      "domain": "amazon",
+      "capability": "FlatFilePro Update Listings",
+      "grimoire": {
+        "state": "forbidden",
+        "how": "Unattended submission is disabled."
+      },
+      "amazon_agent": {
+        "state": "approval-gated",
+        "how": "Submit the exact reviewed workbook, mappings and target preview only with in-chat approval."
+      },
+      "identity": "Merlin by Ecom Wizards delegated SPP service account (shared Grimoire session)",
+      "port": 9223,
+      "spp_rows": [],
+      "gates": [
+        {
+          "kind": "doc_only",
+          "justification": "Operator-approved attended submission policy; historical runs 1416 and 1430 are evidence, not standing consent."
+        }
+      ],
+      "docs": [
+        {
+          "repo": "amazon-agent",
+          "path": "docs/rights/README.md",
+          "note": "Versioned authority; per-account grants remain vault evidence."
+        }
+      ],
+      "verified_on": "2026-09-15",
+      "notes": "Update Listings is an approval gate, not an unconditional stop. The bulk-image route uses FlatFilePro-only preflight."
+    },
+    {
+      "id": "cases.create-reply",
+      "domain": "amazon",
+      "capability": "Manage Your Cases create/reply",
+      "grimoire": {
+        "state": "approval-gated",
+        "how": "Verified team case requests authorize guarded case operations through amazon_cases.py under the request-bound mandate."
+      },
+      "amazon_agent": {
+        "state": "approval-gated",
+        "how": "Use the same case service, saved owner and issue-bound mandate."
+      },
+      "identity": "Merlin by Ecom Wizards delegated SPP service account (shared Grimoire session)",
+      "port": 9223,
+      "spp_rows": [
+        "Manage Your Cases"
+      ],
+      "gates": [
+        {
+          "kind": "file_literal",
+          "repo": "amazon-agent",
+          "file": "tools/amazon-operations/case_service.py",
+          "literal": "'permitted_actions': ['create', 'reply', 'chaser']"
+        },
+        {
+          "kind": "file_literal",
+          "repo": "amazon-agent",
+          "file": "tools/amazon-operations/case_service.py",
+          "literal": "'mandate_revoked'"
+        }
+      ],
+      "docs": [
+        {
+          "repo": "amazon-agent",
+          "path": "docs/team-owned-cases.md",
+          "note": "Request-bound case mandate and rollout checks."
+        },
+        {
+          "repo": "vault",
+          "path": "agency/SOPs/wizards-ai-amazon-rights.md",
+          "note": "Per-account grant evidence; SOP change-log line pending (operator). Unversioned team vault, ~/os/agency."
+        }
+      ],
+      "verified_on": "2026-09-15",
+      "notes": "Create/reply is provisioned on case-enabled accounts. Routine continuation stays within the same issue; monitoring grants no send authority.",
+      "modes": [
+        "case-pass",
+        "mention-pass"
+      ]
+    },
+    {
+      "id": "store.build_draft",
+      "domain": "amazon",
+      "capability": "store.build_draft",
+      "grimoire": {
+        "state": "approval-gated",
+        "how": "Exact fingerprint-bound proposal approval, managed account scope and unpublished draft only."
+      },
+      "amazon_agent": {
+        "state": "approval-gated",
+        "how": "Exact attended approval and verified access are required; this does not enable a disabled executor."
+      },
+      "identity": "Merlin by Ecom Wizards delegated SPP service account (shared Grimoire session)",
+      "port": 9223,
+      "spp_rows": [
+        "Store Design"
+      ],
+      "gates": [
+        {
+          "kind": "python_symbol_contains",
+          "repo": "wizards-ai",
+          "file": "approved_actions.py",
+          "symbol": "EXECUTORS",
+          "value": "store.build_draft"
+        },
+        {
+          "kind": "python_symbol_contains",
+          "repo": "wizards-ai",
+          "file": "merlin_policy.py",
+          "symbol": "ACTIONS",
+          "value": "store.build_draft"
+        },
+        {
+          "kind": "json_pointer_equals",
+          "repo": "wizards-ai",
+          "file": "config.json",
+          "pointer": "/merlin/enabled",
+          "value": false
+        },
+        {
+          "kind": "json_pointer_contains",
+          "repo": "wizards-ai",
+          "file": "config.json",
+          "pointer": "/approved_actions/executors",
+          "value": "store.build_draft"
+        }
+      ],
+      "docs": [
+        {
+          "repo": "amazon-agent",
+          "path": "docs/rights/README.md",
+          "note": "Versioned authority; per-account grants remain vault evidence."
+        }
+      ],
+      "verified_on": "2026-09-15",
+      "notes": "Store Design Edit is recorded on 17 of 18 accounts in vault evidence; verify the target account. Publishing is separate.",
+      "tags": [
+        "executor"
+      ],
+      "modes": [
+        "mention-pass"
+      ]
+    },
+    {
+      "id": "store.update_draft",
+      "domain": "amazon",
+      "capability": "store.update_draft",
+      "grimoire": {
+        "state": "forbidden",
+        "how": "Registered implementation, disabled in the executor allowlist."
+      },
+      "amazon_agent": {
+        "state": "approval-gated",
+        "how": "Exact attended approval and verified access are required; this does not enable a disabled executor."
+      },
+      "identity": "Merlin by Ecom Wizards delegated SPP service account (shared Grimoire session)",
+      "port": 9223,
+      "spp_rows": [
+        "Store Design"
+      ],
+      "gates": [
+        {
+          "kind": "python_symbol_contains",
+          "repo": "wizards-ai",
+          "file": "approved_actions.py",
+          "symbol": "EXECUTORS",
+          "value": "store.update_draft"
+        }
+      ],
+      "docs": [
+        {
+          "repo": "amazon-agent",
+          "path": "docs/rights/README.md",
+          "note": "Versioned authority; per-account grants remain vault evidence."
+        }
+      ],
+      "verified_on": "2026-09-15",
+      "notes": "Store Design Edit is recorded on 17 of 18 accounts in vault evidence; verify the target account. Publishing is separate.",
+      "tags": [
+        "executor"
+      ],
+      "modes": []
+    },
+    {
+      "id": "shipment.tracking.update",
+      "domain": "amazon",
+      "capability": "shipment.tracking.update",
+      "grimoire": {
+        "state": "approval-gated",
+        "how": "Authenticated exact team request from a configured approver; no second approval."
+      },
+      "amazon_agent": {
+        "state": "approval-gated",
+        "how": "Exact attended approval and verified access are required; this does not enable a disabled executor."
+      },
+      "identity": "Merlin by Ecom Wizards delegated SPP service account (shared Grimoire session)",
+      "port": 9223,
+      "spp_rows": [
+        "Manage FBA Inventory/Shipments"
+      ],
+      "gates": [
+        {
+          "kind": "python_symbol_contains",
+          "repo": "wizards-ai",
+          "file": "approved_actions.py",
+          "symbol": "EXECUTORS",
+          "value": "shipment.tracking.update"
+        },
+        {
+          "kind": "json_pointer_contains",
+          "repo": "wizards-ai",
+          "file": "config.json",
+          "pointer": "/approved_actions/executors",
+          "value": "shipment.tracking.update"
+        },
+        {
+          "kind": "json_pointer_equals",
+          "repo": "wizards-ai",
+          "file": "config.json",
+          "pointer": "/approved_actions/executor_authorizations/shipment.tracking.update/authorization_mode",
+          "value": "team-request"
+        }
+      ],
+      "docs": [
+        {
+          "repo": "amazon-agent",
+          "path": "docs/rights/README.md",
+          "note": "Versioned authority; per-account grants remain vault evidence."
+        }
+      ],
+      "verified_on": "2026-09-15",
+      "notes": "Live 9223 write. Nine configured approvers; authorization mode to be confirmed by the operator.",
+      "tags": [
+        "executor"
+      ],
+      "modes": [
+        "mention-pass"
+      ]
+    },
+    {
+      "id": "listing.images.replace",
+      "domain": "amazon",
+      "capability": "listing.images.replace",
+      "grimoire": {
+        "state": "consent-outdated",
+        "how": "General execution disabled; old consent permits 9222 and forbids the required 9223 route. See the separate canary row."
+      },
+      "amazon_agent": {
+        "state": "consent-outdated",
+        "how": "Reissue the local consent for the shared 9223 route before treating this executor as authorized."
+      },
+      "identity": "Merlin by Ecom Wizards delegated SPP service account (shared Grimoire session)",
+      "port": 9223,
+      "spp_rows": [
+        "Image upload / listing images"
+      ],
+      "gates": [
+        {
+          "kind": "python_symbol_contains",
+          "repo": "wizards-ai",
+          "file": "approved_actions.py",
+          "symbol": "EXECUTORS",
+          "value": "listing.images.replace"
+        },
+        {
+          "kind": "python_symbol_contains",
+          "repo": "wizards-ai",
+          "file": "merlin_policy.py",
+          "symbol": "ACTIONS",
+          "value": "listing.images.replace"
+        },
+        {
+          "kind": "json_pointer_equals",
+          "repo": "wizards-ai",
+          "file": "config.json",
+          "pointer": "/merlin/enabled",
+          "value": false
+        },
+        {
+          "kind": "json_pointer_equals",
+          "repo": "wizards-ai",
+          "file": "config.json",
+          "pointer": "/approved_actions/executor_settings/listing.images.replace/session_access_verified",
+          "value": false
+        }
+      ],
+      "docs": [
+        {
+          "repo": "amazon-agent",
+          "path": "docs/rights/README.md",
+          "note": "Versioned authority; per-account grants remain vault evidence."
+        },
+        {
+          "repo": "vault",
+          "path": "agency/SOPs/wizards-ai-amazon-rights.md",
+          "note": "Per-account image Edit grant evidence; not execution authority. Unversioned team vault, ~/os/agency."
+        }
+      ],
+      "verified_on": "2026-09-15",
+      "notes": "The 2026-09-03 local permission is outdated. Do not edit or infer replacement consent. Image Edit grants are recorded on 17 of 18 accounts in vault evidence; verify current target access.",
+      "tags": [
+        "executor"
+      ],
+      "modes": [
+        "mention-pass"
+      ]
+    },
+    {
+      "id": "seo.apply",
+      "domain": "amazon",
+      "capability": "seo.apply",
+      "grimoire": {
+        "state": "forbidden",
+        "how": "Closed Merlin catalogue entry only; no approved_actions implementation and Merlin is disabled."
+      },
+      "amazon_agent": {
+        "state": "approval-gated",
+        "how": "Exact attended approval and verified access are required; this does not enable a disabled executor."
+      },
+      "identity": "Merlin by Ecom Wizards delegated SPP service account (shared Grimoire session)",
+      "port": 9223,
+      "spp_rows": [],
+      "gates": [
+        {
+          "kind": "python_symbol_contains",
+          "repo": "wizards-ai",
+          "file": "merlin_policy.py",
+          "symbol": "ACTIONS",
+          "value": "seo.apply"
+        },
+        {
+          "kind": "json_pointer_equals",
+          "repo": "wizards-ai",
+          "file": "config.json",
+          "pointer": "/merlin/enabled",
+          "value": false
+        }
+      ],
+      "docs": [
+        {
+          "repo": "amazon-agent",
+          "path": "docs/rights/README.md",
+          "note": "Versioned authority; per-account grants remain vault evidence."
+        }
+      ],
+      "verified_on": "2026-09-15",
+      "notes": "Catalogue membership does not establish implementation or permission.",
+      "tags": [
+        "executor"
+      ],
+      "modes": []
+    },
+    {
+      "id": "flatfile.apply",
+      "domain": "amazon",
+      "capability": "flatfile.apply",
+      "grimoire": {
+        "state": "forbidden",
+        "how": "Closed Merlin catalogue entry only; no approved_actions implementation and Merlin is disabled."
+      },
+      "amazon_agent": {
+        "state": "approval-gated",
+        "how": "Exact attended approval and verified access are required; this does not enable a disabled executor."
+      },
+      "identity": "Merlin by Ecom Wizards delegated SPP service account (shared Grimoire session)",
+      "port": 9223,
+      "spp_rows": [],
+      "gates": [
+        {
+          "kind": "python_symbol_contains",
+          "repo": "wizards-ai",
+          "file": "merlin_policy.py",
+          "symbol": "ACTIONS",
+          "value": "flatfile.apply"
+        },
+        {
+          "kind": "json_pointer_equals",
+          "repo": "wizards-ai",
+          "file": "config.json",
+          "pointer": "/merlin/enabled",
+          "value": false
+        }
+      ],
+      "docs": [
+        {
+          "repo": "amazon-agent",
+          "path": "docs/rights/README.md",
+          "note": "Versioned authority; per-account grants remain vault evidence."
+        }
+      ],
+      "verified_on": "2026-09-15",
+      "notes": "Catalogue membership does not establish implementation or permission.",
+      "tags": [
+        "executor"
+      ],
+      "modes": []
+    },
+    {
+      "id": "catalog.products.create",
+      "domain": "amazon",
+      "capability": "catalog.products.create",
+      "grimoire": {
+        "state": "forbidden",
+        "how": "Closed Merlin catalogue entry only; no approved_actions implementation and Merlin is disabled."
+      },
+      "amazon_agent": {
+        "state": "approval-gated",
+        "how": "Exact attended approval and verified access are required; this does not enable a disabled executor."
+      },
+      "identity": "Merlin by Ecom Wizards delegated SPP service account (shared Grimoire session)",
+      "port": 9223,
+      "spp_rows": [],
+      "gates": [
+        {
+          "kind": "python_symbol_contains",
+          "repo": "wizards-ai",
+          "file": "merlin_policy.py",
+          "symbol": "ACTIONS",
+          "value": "catalog.products.create"
+        },
+        {
+          "kind": "json_pointer_equals",
+          "repo": "wizards-ai",
+          "file": "config.json",
+          "pointer": "/merlin/enabled",
+          "value": false
+        }
+      ],
+      "docs": [
+        {
+          "repo": "amazon-agent",
+          "path": "docs/rights/README.md",
+          "note": "Versioned authority; per-account grants remain vault evidence."
+        }
+      ],
+      "verified_on": "2026-09-15",
+      "notes": "Catalogue membership does not establish implementation or permission.",
+      "tags": [
+        "executor"
+      ],
+      "modes": []
+    },
+    {
+      "id": "catalog.family.update",
+      "domain": "amazon",
+      "capability": "catalog.family.update",
+      "grimoire": {
+        "state": "forbidden",
+        "how": "Closed Merlin catalogue entry only; no approved_actions implementation and Merlin is disabled."
+      },
+      "amazon_agent": {
+        "state": "approval-gated",
+        "how": "Exact attended approval and verified access are required; this does not enable a disabled executor."
+      },
+      "identity": "Merlin by Ecom Wizards delegated SPP service account (shared Grimoire session)",
+      "port": 9223,
+      "spp_rows": [],
+      "gates": [
+        {
+          "kind": "python_symbol_contains",
+          "repo": "wizards-ai",
+          "file": "merlin_policy.py",
+          "symbol": "ACTIONS",
+          "value": "catalog.family.update"
+        },
+        {
+          "kind": "json_pointer_equals",
+          "repo": "wizards-ai",
+          "file": "config.json",
+          "pointer": "/merlin/enabled",
+          "value": false
+        }
+      ],
+      "docs": [
+        {
+          "repo": "amazon-agent",
+          "path": "docs/rights/README.md",
+          "note": "Versioned authority; per-account grants remain vault evidence."
+        }
+      ],
+      "verified_on": "2026-09-15",
+      "notes": "Catalogue membership does not establish implementation or permission.",
+      "tags": [
+        "executor"
+      ],
+      "modes": []
+    },
+    {
+      "id": "shipment.create",
+      "domain": "amazon",
+      "capability": "shipment.create",
+      "grimoire": {
+        "state": "forbidden",
+        "how": "Closed Merlin catalogue entry only; no approved_actions implementation and Merlin is disabled."
+      },
+      "amazon_agent": {
+        "state": "approval-gated",
+        "how": "Exact attended approval and verified access are required; this does not enable a disabled executor."
+      },
+      "identity": "Merlin by Ecom Wizards delegated SPP service account (shared Grimoire session)",
+      "port": 9223,
+      "spp_rows": [
+        "Manage FBA Inventory/Shipments"
+      ],
+      "gates": [
+        {
+          "kind": "python_symbol_contains",
+          "repo": "wizards-ai",
+          "file": "merlin_policy.py",
+          "symbol": "ACTIONS",
+          "value": "shipment.create"
+        },
+        {
+          "kind": "json_pointer_equals",
+          "repo": "wizards-ai",
+          "file": "config.json",
+          "pointer": "/merlin/enabled",
+          "value": false
+        }
+      ],
+      "docs": [
+        {
+          "repo": "amazon-agent",
+          "path": "docs/rights/README.md",
+          "note": "Versioned authority; per-account grants remain vault evidence."
+        }
+      ],
+      "verified_on": "2026-09-15",
+      "notes": "Catalogue membership does not establish implementation or permission.",
+      "tags": [
+        "executor"
+      ],
+      "modes": []
+    },
+    {
+      "id": "account_health.fields.restore",
+      "domain": "amazon",
+      "capability": "account_health.fields.restore",
+      "grimoire": {
+        "state": "forbidden",
+        "how": "Closed Merlin catalogue entry only; no approved_actions implementation and Merlin is disabled."
+      },
+      "amazon_agent": {
+        "state": "approval-gated",
+        "how": "Exact attended approval and verified access are required; this does not enable a disabled executor."
+      },
+      "identity": "Merlin by Ecom Wizards delegated SPP service account (shared Grimoire session)",
+      "port": 9223,
+      "spp_rows": [],
+      "gates": [
+        {
+          "kind": "python_symbol_contains",
+          "repo": "wizards-ai",
+          "file": "merlin_policy.py",
+          "symbol": "ACTIONS",
+          "value": "account_health.fields.restore"
+        },
+        {
+          "kind": "json_pointer_equals",
+          "repo": "wizards-ai",
+          "file": "config.json",
+          "pointer": "/merlin/enabled",
+          "value": false
+        }
+      ],
+      "docs": [
+        {
+          "repo": "amazon-agent",
+          "path": "docs/rights/README.md",
+          "note": "Versioned authority; per-account grants remain vault evidence."
+        }
+      ],
+      "verified_on": "2026-09-15",
+      "notes": "Catalogue membership does not establish implementation or permission.",
+      "tags": [
+        "executor"
+      ],
+      "modes": []
+    },
+    {
+      "id": "account_health.images.restore",
+      "domain": "amazon",
+      "capability": "account_health.images.restore",
+      "grimoire": {
+        "state": "forbidden",
+        "how": "Closed Merlin catalogue entry only; no approved_actions implementation and Merlin is disabled."
+      },
+      "amazon_agent": {
+        "state": "approval-gated",
+        "how": "Exact attended approval and verified access are required; this does not enable a disabled executor."
+      },
+      "identity": "Merlin by Ecom Wizards delegated SPP service account (shared Grimoire session)",
+      "port": 9223,
+      "spp_rows": [],
+      "gates": [
+        {
+          "kind": "python_symbol_contains",
+          "repo": "wizards-ai",
+          "file": "merlin_policy.py",
+          "symbol": "ACTIONS",
+          "value": "account_health.images.restore"
+        },
+        {
+          "kind": "json_pointer_equals",
+          "repo": "wizards-ai",
+          "file": "config.json",
+          "pointer": "/merlin/enabled",
+          "value": false
+        }
+      ],
+      "docs": [
+        {
+          "repo": "amazon-agent",
+          "path": "docs/rights/README.md",
+          "note": "Versioned authority; per-account grants remain vault evidence."
+        }
+      ],
+      "verified_on": "2026-09-15",
+      "notes": "Catalogue membership does not establish implementation or permission.",
+      "tags": [
+        "executor"
+      ],
+      "modes": []
+    },
+    {
+      "id": "creators.sweep",
+      "domain": "amazon",
+      "capability": "creators.sweep",
+      "grimoire": {
+        "state": "forbidden",
+        "how": "Closed Merlin catalogue entry only; no approved_actions implementation and Merlin is disabled."
+      },
+      "amazon_agent": {
+        "state": "approval-gated",
+        "how": "Exact attended approval and verified access are required; this does not enable a disabled executor."
+      },
+      "identity": "Merlin by Ecom Wizards delegated SPP service account (shared Grimoire session)",
+      "port": 9223,
+      "spp_rows": [],
+      "gates": [
+        {
+          "kind": "python_symbol_contains",
+          "repo": "wizards-ai",
+          "file": "merlin_policy.py",
+          "symbol": "ACTIONS",
+          "value": "creators.sweep"
+        },
+        {
+          "kind": "json_pointer_equals",
+          "repo": "wizards-ai",
+          "file": "config.json",
+          "pointer": "/merlin/enabled",
+          "value": false
+        }
+      ],
+      "docs": [
+        {
+          "repo": "amazon-agent",
+          "path": "docs/rights/README.md",
+          "note": "Versioned authority; per-account grants remain vault evidence."
+        }
+      ],
+      "verified_on": "2026-09-15",
+      "notes": "Catalogue membership does not establish implementation or permission.",
+      "tags": [
+        "executor"
+      ],
+      "modes": []
+    },
+    {
+      "id": "creators.reply",
+      "domain": "amazon",
+      "capability": "creators.reply",
+      "grimoire": {
+        "state": "forbidden",
+        "how": "Closed Merlin catalogue entry only; no approved_actions implementation and Merlin is disabled."
+      },
+      "amazon_agent": {
+        "state": "approval-gated",
+        "how": "Exact attended approval and verified access are required; this does not enable a disabled executor."
+      },
+      "identity": "Merlin by Ecom Wizards delegated SPP service account (shared Grimoire session)",
+      "port": 9223,
+      "spp_rows": [],
+      "gates": [
+        {
+          "kind": "python_symbol_contains",
+          "repo": "wizards-ai",
+          "file": "merlin_policy.py",
+          "symbol": "ACTIONS",
+          "value": "creators.reply"
+        },
+        {
+          "kind": "json_pointer_equals",
+          "repo": "wizards-ai",
+          "file": "config.json",
+          "pointer": "/merlin/enabled",
+          "value": false
+        }
+      ],
+      "docs": [
+        {
+          "repo": "amazon-agent",
+          "path": "docs/rights/README.md",
+          "note": "Versioned authority; per-account grants remain vault evidence."
+        }
+      ],
+      "verified_on": "2026-09-15",
+      "notes": "Catalogue membership does not establish implementation or permission.",
+      "tags": [
+        "executor"
+      ],
+      "modes": []
+    },
+    {
+      "id": "creators.tracker.update",
+      "domain": "amazon",
+      "capability": "creators.tracker.update",
+      "grimoire": {
+        "state": "forbidden",
+        "how": "Closed Merlin catalogue entry only; no approved_actions implementation and Merlin is disabled."
+      },
+      "amazon_agent": {
+        "state": "approval-gated",
+        "how": "Exact attended approval and verified access are required; this does not enable a disabled executor."
+      },
+      "identity": "Merlin by Ecom Wizards delegated SPP service account (shared Grimoire session)",
+      "port": 9223,
+      "spp_rows": [],
+      "gates": [
+        {
+          "kind": "python_symbol_contains",
+          "repo": "wizards-ai",
+          "file": "merlin_policy.py",
+          "symbol": "ACTIONS",
+          "value": "creators.tracker.update"
+        },
+        {
+          "kind": "json_pointer_equals",
+          "repo": "wizards-ai",
+          "file": "config.json",
+          "pointer": "/merlin/enabled",
+          "value": false
+        }
+      ],
+      "docs": [
+        {
+          "repo": "amazon-agent",
+          "path": "docs/rights/README.md",
+          "note": "Versioned authority; per-account grants remain vault evidence."
+        }
+      ],
+      "verified_on": "2026-09-15",
+      "notes": "Catalogue membership does not establish implementation or permission.",
+      "tags": [
+        "executor"
+      ],
+      "modes": []
+    },
+    {
+      "id": "creators.samples.fulfill",
+      "domain": "amazon",
+      "capability": "creators.samples.fulfill",
+      "grimoire": {
+        "state": "forbidden",
+        "how": "Closed Merlin catalogue entry only; no approved_actions implementation and Merlin is disabled."
+      },
+      "amazon_agent": {
+        "state": "approval-gated",
+        "how": "Exact attended approval and verified access are required; this does not enable a disabled executor."
+      },
+      "identity": "Merlin by Ecom Wizards delegated SPP service account (shared Grimoire session)",
+      "port": 9223,
+      "spp_rows": [],
+      "gates": [
+        {
+          "kind": "python_symbol_contains",
+          "repo": "wizards-ai",
+          "file": "merlin_policy.py",
+          "symbol": "ACTIONS",
+          "value": "creators.samples.fulfill"
+        },
+        {
+          "kind": "json_pointer_equals",
+          "repo": "wizards-ai",
+          "file": "config.json",
+          "pointer": "/merlin/enabled",
+          "value": false
+        }
+      ],
+      "docs": [
+        {
+          "repo": "amazon-agent",
+          "path": "docs/rights/README.md",
+          "note": "Versioned authority; per-account grants remain vault evidence."
+        }
+      ],
+      "verified_on": "2026-09-15",
+      "notes": "Catalogue membership does not establish implementation or permission.",
+      "tags": [
+        "executor"
+      ],
+      "modes": []
+    },
+    {
+      "id": "listing.images.canary",
+      "domain": "amazon",
+      "capability": "Exact image fingerprint canary bypass",
+      "grimoire": {
+        "state": "consent-outdated",
+        "how": "Code can bypass executor enablement and session_access_verified for one allowlisted child fingerprint; general readiness is separate."
+      },
+      "amazon_agent": {
+        "state": "consent-outdated",
+        "how": "Requires reissued 9223 consent plus exact reviewed fingerprint and configured approver."
+      },
+      "identity": "Merlin by Ecom Wizards delegated SPP service account (shared Grimoire session)",
+      "port": 9223,
+      "spp_rows": [],
+      "gates": [
+        {
+          "kind": "file_literal",
+          "repo": "wizards-ai",
+          "file": "listing_images.py",
+          "literal": "and len(record.get(\"after\", {}).get(\"manifest\", {}).get(\"targets\", [])) == 1"
+        },
+        {
+          "kind": "file_literal",
+          "repo": "wizards-ai",
+          "file": "approved_actions.py",
+          "literal": "not executor_enabled(name, cfg, allow_mock=True) and not image_canary"
+        },
+        {
+          "kind": "file_literal",
+          "repo": "wizards-ai",
+          "file": "approved_actions.py",
+          "literal": "settings.get(\"session_access_verified\") is False and not image_canary"
+        }
+      ],
+      "docs": [
+        {
+          "repo": "amazon-agent",
+          "path": "docs/rights/README.md",
+          "note": "Versioned authority; per-account grants remain vault evidence."
+        }
+      ],
+      "verified_on": "2026-09-15",
+      "notes": "Zero allowlisted fingerprints at verification. expires_on is a documentation review deadline, not a runtime expiry; the existing bypass does not enforce a date.",
+      "expires_on": "2026-10-15",
+      "modes": [
+        "mention-pass"
+      ]
+    },
+    {
+      "id": "reports.category-listings",
+      "domain": "amazon",
+      "capability": "Category Listings Report availability",
+      "grimoire": {
+        "state": "undocumented",
+        "how": "Unavailable to the delegated identity; cause unverified."
+      },
+      "amazon_agent": {
+        "state": "open",
+        "how": "Verify availability on the same identity; do not assume an Edit grant fixes it."
+      },
+      "identity": "Merlin by Ecom Wizards delegated SPP service account (shared Grimoire session)",
+      "port": 9223,
+      "spp_rows": [
+        "Reports"
+      ],
+      "gates": [
+        {
+          "kind": "doc_only",
+          "justification": "The vault SOP records unavailability and an unverified cause. No code gate establishes the missing permission."
+        }
+      ],
+      "docs": [
+        {
+          "repo": "vault",
+          "path": "agency/SOPs/wizards-ai-amazon-rights.md",
+          "note": "Lines 53 and 57 record the unresolved report-access gap. Unversioned team vault, ~/os/agency."
+        }
+      ],
+      "verified_on": "2026-09-15",
+      "notes": "Open access gap. Category Listings Report is not a prerequisite of the shipped FlatFilePro image route."
+    },
+    {
+      "id": "account-health.read",
+      "domain": "amazon",
+      "capability": "Account Health evidence collection",
+      "grimoire": {
+        "state": "allowed",
+        "how": "Read Review details and preserve evidence; no appeal or acknowledgement in a check pass."
+      },
+      "amazon_agent": {
+        "state": "allowed",
+        "how": "Inspect the same account and marketplace before reporting."
+      },
+      "identity": "Merlin by Ecom Wizards delegated SPP service account (shared Grimoire session)",
+      "port": 9223,
+      "spp_rows": [],
+      "gates": [
+        {
+          "kind": "file_literal",
+          "repo": "amazon-agent",
+          "file": "AGENTS.md",
+          "literal": "Stop before submitting appeals, acknowledgements"
+        }
+      ],
+      "docs": [
+        {
+          "repo": "amazon-agent",
+          "path": "docs/rights/README.md",
+          "note": "Versioned authority; per-account grants remain vault evidence."
+        }
+      ],
+      "verified_on": "2026-09-15",
+      "notes": "Core monitoring is read-only.",
+      "modes": [
+        "account-health",
+        "weekly-operations",
+        "monthly-operations"
+      ]
+    },
+    {
+      "id": "account-health.submit",
+      "domain": "amazon",
+      "capability": "Appeals and acknowledgements",
+      "grimoire": {
+        "state": "forbidden",
+        "how": "No enabled general appeal or acknowledgement executor."
+      },
+      "amazon_agent": {
+        "state": "approval-gated",
+        "how": "Prepare the evidence and obtain exact submission approval; regulated appeals also require the designated final approver."
+      },
+      "identity": "Merlin by Ecom Wizards delegated SPP service account (shared Grimoire session)",
+      "port": 9223,
+      "spp_rows": [],
+      "gates": [
+        {
+          "kind": "doc_only",
+          "justification": "Attended appeals follow the troubleshooting and regulated-appeal workflow; no general Grimoire dispatcher exists."
+        }
+      ],
+      "docs": [
+        {
+          "repo": "amazon-agent",
+          "path": "docs/rights/README.md",
+          "note": "Versioned authority; per-account grants remain vault evidence."
+        }
+      ],
+      "verified_on": "2026-09-15",
+      "notes": "Restoration catalogue entries do not authorize appeals."
+    },
+    {
+      "id": "messages.buyer-creator",
+      "domain": "amazon",
+      "capability": "Buyer and Creator Connections messages",
+      "grimoire": {
+        "state": "forbidden",
+        "how": "No enabled general buyer/creator send executor; case mandates exclude these sends."
+      },
+      "amazon_agent": {
+        "state": "approval-gated",
+        "how": "Verify the exact recipient/thread and approved message or matching narrow standing permission."
+      },
+      "identity": "Merlin by Ecom Wizards delegated SPP service account (shared Grimoire session)",
+      "port": 9223,
+      "spp_rows": [],
+      "gates": [
+        {
+          "kind": "file_literal",
+          "repo": "amazon-agent",
+          "file": "AGENTS.md",
+          "literal": "it does not authorize buyer/creator messages"
+        }
+      ],
+      "docs": [
+        {
+          "repo": "amazon-agent",
+          "path": "docs/rights/README.md",
+          "note": "Versioned authority; per-account grants remain vault evidence."
+        }
+      ],
+      "verified_on": "2026-09-15",
+      "notes": "Creator catalogue rows remain disabled; do not confuse tracking with send authority."
+    },
+    {
+      "id": "ads.console",
+      "domain": "amazon",
+      "capability": "Ads Console reads and changes",
+      "grimoire": {
+        "state": "allowed",
+        "how": "Read and report through scoped tools; no general Ads mutation executor."
+      },
+      "amazon_agent": {
+        "state": "approval-gated",
+        "how": "Reads are allowed; exact bids, budgets, targeting or submission changes require approval."
+      },
+      "identity": "Merlin by Ecom Wizards delegated SPP service account (shared Grimoire session)",
+      "port": 9223,
+      "spp_rows": [],
+      "gates": [
+        {
+          "kind": "doc_only",
+          "justification": "Ads mutation approval is an attended workflow policy, separate from Seller Central SPP grants."
+        }
+      ],
+      "docs": [
+        {
+          "repo": "amazon-agent",
+          "path": "docs/rights/README.md",
+          "note": "Versioned authority; per-account grants remain vault evidence."
+        }
+      ],
+      "verified_on": "2026-09-15",
+      "notes": "Seller Central login and SPP grants do not establish advertiser access."
+    },
+    {
+      "id": "slack.channels",
+      "domain": "slack",
+      "capability": "Slack bot channel boundary",
+      "grimoire": {
+        "state": "allowed",
+        "how": "May post to any non-client channel; client channels must be configured active."
+      },
+      "amazon_agent": {
+        "state": "approval-gated",
+        "how": "Explicit bot sends use the same guarded channel checks."
+      },
+      "identity": "Service-specific connected identity; Slack follows the actor",
+      "port": null,
+      "spp_rows": [],
+      "gates": [
+        {
+          "kind": "file_literal",
+          "repo": "wizards-ai",
+          "file": "slack.py",
+          "literal": "if ch not in client_channel_ids(cfg):"
+        },
+        {
+          "kind": "file_literal",
+          "repo": "wizards-ai",
+          "file": "slack.py",
+          "literal": "c.get(\"channel_id\") == ch and c.get(\"active\")"
+        },
+        {
+          "kind": "file_literal",
+          "repo": "wizards-ai",
+          "file": "transport/broker.py",
+          "literal": "return self.clients.get(channel, True)"
+        }
+      ],
+      "docs": [
+        {
+          "repo": "amazon-agent",
+          "path": "docs/rights/README.md",
+          "note": "Versioned authority; per-account grants remain vault evidence."
+        }
+      ],
+      "verified_on": "2026-09-15",
+      "notes": "Deliberate since 2026-08-28. Client channels enter configuration before bot membership. Bulk-image acknowledgements additionally require configured attended trial threads in client channels.",
+      "modes": [
+        "*"
+      ]
+    },
+    {
+      "id": "slack.identity",
+      "domain": "slack",
+      "capability": "Slack write identity",
+      "grimoire": {
+        "state": "allowed",
+        "how": "Guarded Wizards AI helper for scheduled/background jobs, @Wizards AI responses and explicit human-approved bot sends."
+      },
+      "amazon_agent": {
+        "state": "approval-gated",
+        "how": "Post through the supervising operator's verified personal Slack identity when a send is authorized; explicit bot sends use the helper."
+      },
+      "identity": "Service-specific connected identity; Slack follows the actor",
+      "port": null,
+      "spp_rows": [],
+      "gates": [
+        {
+          "kind": "file_literal",
+          "repo": "wizards-ai",
+          "file": "slack.py",
+          "literal": "attended sessions use the supervising human's "
+        },
+        {
+          "kind": "file_literal",
+          "repo": "amazon-agent",
+          "file": "AGENTS.md",
+          "literal": "never falls back to a personal identity"
+        }
+      ],
+      "docs": [
+        {
+          "repo": "amazon-agent",
+          "path": "docs/rights/README.md",
+          "note": "Versioned authority; per-account grants remain vault evidence."
+        }
+      ],
+      "verified_on": "2026-09-15",
+      "notes": "Missing personal access means draft or stop; missing bot access fails closed. Neither route falls back to the other.",
+      "modes": [
+        "*"
+      ]
+    },
+    {
+      "id": "notion.write",
+      "domain": "notion",
+      "capability": "Notion task writes",
+      "grimoire": {
+        "state": "allowed",
+        "how": "Use configured database scope, ledger matching, completion evidence and readback; no archive/delete surface."
+      },
+      "amazon_agent": {
+        "state": "allowed",
+        "how": "Use native connected tools for authorized task work within the shared workspace."
+      },
+      "identity": "Service-specific connected identity; Slack follows the actor",
+      "port": null,
+      "spp_rows": [],
+      "gates": [
+        {
+          "kind": "file_literal",
+          "repo": "wizards-ai",
+          "file": "config.json",
+          "literal": "writes only into allowed_databases matched by ledger key"
+        }
+      ],
+      "docs": [
+        {
+          "repo": "amazon-agent",
+          "path": "docs/rights/README.md",
+          "note": "Versioned authority; per-account grants remain vault evidence."
+        }
+      ],
+      "verified_on": "2026-09-15",
+      "notes": "Existing internal task workflow authorization does not cover arbitrary external changes."
+    },
+    {
+      "id": "google.deliver",
+      "domain": "google",
+      "capability": "Google Drive and native Docs delivery",
+      "grimoire": {
+        "state": "allowed",
+        "how": "Guarded creative delivery resolves existing folders and verifies native document receipts."
+      },
+      "amazon_agent": {
+        "state": "allowed",
+        "how": "Use native Google connectors for authorized Docs and Sheets work; preserve canonical IDs and verify readback."
+      },
+      "identity": "Service-specific connected identity; Slack follows the actor",
+      "port": null,
+      "spp_rows": [],
+      "gates": [
+        {
+          "kind": "file_literal",
+          "repo": "wizards-ai",
+          "file": "creative_delivery.py",
+          "literal": "def verify_drive_receipt("
+        },
+        {
+          "kind": "file_literal",
+          "repo": "company-ai-skills",
+          "file": "skills/google-workspace-deliverables/SKILL.md",
+          "literal": "Google"
+        }
+      ],
+      "docs": [
+        {
+          "repo": "amazon-agent",
+          "path": "docs/rights/README.md",
+          "note": "Versioned authority; per-account grants remain vault evidence."
+        }
+      ],
+      "verified_on": "2026-09-15",
+      "notes": "A delivery workflow does not authorize arbitrary sharing or deletion."
+    },
+    {
+      "id": "monid.discovery",
+      "domain": "monid",
+      "capability": "Monid discovery and inspection",
+      "grimoire": {
+        "state": "allowed",
+        "how": "Discover tools and inspect metadata without paid execution."
+      },
+      "amazon_agent": {
+        "state": "allowed",
+        "how": "Use discovery to identify a suitable tool and its cost before execution."
+      },
+      "identity": "Service-specific connected identity; Slack follows the actor",
+      "port": null,
+      "spp_rows": [],
+      "gates": [
+        {
+          "kind": "json_pointer_equals",
+          "repo": "wizards-ai",
+          "file": "config.json",
+          "pointer": "/monid/enabled",
+          "value": true
+        }
+      ],
+      "docs": [
+        {
+          "repo": "amazon-agent",
+          "path": "docs/rights/README.md",
+          "note": "Versioned authority; per-account grants remain vault evidence."
+        }
+      ],
+      "verified_on": "2026-09-15",
+      "notes": "Discovery never grants endpoint or budget approval."
+    },
+    {
+      "id": "monid.paid",
+      "domain": "monid",
+      "capability": "Monid paid execution and caps",
+      "grimoire": {
+        "state": "forbidden",
+        "how": "execution_enabled is false. If enabled, matching review tools use the preapproved caps; other tools need per-request approval."
+      },
+      "amazon_agent": {
+        "state": "approval-gated",
+        "how": "Follow the attended tool and cost approval; do not bypass disabled Grimoire execution."
+      },
+      "identity": "Service-specific connected identity; Slack follows the actor",
+      "port": null,
+      "spp_rows": [],
+      "gates": [
+        {
+          "kind": "json_pointer_equals",
+          "repo": "wizards-ai",
+          "file": "config.json",
+          "pointer": "/monid/execution_enabled",
+          "value": false
+        },
+        {
+          "kind": "file_literal",
+          "repo": "wizards-ai",
+          "file": "transport/render_policy.py",
+          "literal": "\"task_limit_micros\": 5000000"
+        },
+        {
+          "kind": "file_literal",
+          "repo": "wizards-ai",
+          "file": "transport/render_policy.py",
+          "literal": "\"daily_limit_micros\": 5000000"
+        },
+        {
+          "kind": "file_literal",
+          "repo": "wizards-ai",
+          "file": "transport/monid_operations.py",
+          "literal": "Monid paid execution is not enabled"
+        }
+      ],
+      "docs": [
+        {
+          "repo": "amazon-agent",
+          "path": "docs/rights/README.md",
+          "note": "Versioned authority; per-account grants remain vault evidence."
+        }
+      ],
+      "verified_on": "2026-09-15",
+      "notes": "Caps are $5 per task and $5 per Bangkok day; unknown maximum costs block execution. Budget exceptions need their own approval."
+    },
+    {
+      "id": "pcloud.files",
+      "domain": "pcloud",
+      "capability": "pCloud reads and archive delivery",
+      "grimoire": {
+        "state": "allowed",
+        "how": "Use the read-only file bridge; scoped delivery workflows may write verified archives."
+      },
+      "amazon_agent": {
+        "state": "allowed",
+        "how": "Use the connected API for authorized transfers and verification."
+      },
+      "identity": "Service-specific connected identity; Slack follows the actor",
+      "port": null,
+      "spp_rows": [],
+      "gates": [
+        {
+          "kind": "file_literal",
+          "repo": "wizards-ai",
+          "file": "creative_delivery.py",
+          "literal": "def archive_poe("
+        },
+        {
+          "kind": "file_literal",
+          "repo": "wizards-ai",
+          "file": "config.json",
+          "literal": "exposes no write verbs at all"
+        }
+      ],
+      "docs": [
+        {
+          "repo": "amazon-agent",
+          "path": "docs/rights/README.md",
+          "note": "Versioned authority; per-account grants remain vault evidence."
+        }
+      ],
+      "verified_on": "2026-09-15",
+      "notes": "The generic read bridge does not authorize writes; archive delivery is a separate route. No automatic remote deletion."
+    },
+    {
+      "id": "figma.assets",
+      "domain": "figma",
+      "capability": "Figma assets and layouts",
+      "grimoire": {
+        "state": "allowed",
+        "how": "Read/export file content through the scoped asset service."
+      },
+      "amazon_agent": {
+        "state": "approval-gated",
+        "how": "Read assets or create/edit requested layouts through the connected tool with file-specific authority."
+      },
+      "identity": "Service-specific connected identity; Slack follows the actor",
+      "port": null,
+      "spp_rows": [],
+      "gates": [
+        {
+          "kind": "file_literal",
+          "repo": "wizards-ai",
+          "file": "config.json",
+          "literal": "PAT with read-only file-content scope"
+        }
+      ],
+      "docs": [
+        {
+          "repo": "amazon-agent",
+          "path": "docs/rights/README.md",
+          "note": "Versioned authority; per-account grants remain vault evidence."
+        }
+      ],
+      "verified_on": "2026-09-15",
+      "notes": "Grimoire asset access does not grant design writes."
+    },
+    {
+      "id": "keepa.read",
+      "domain": "keepa",
+      "capability": "Keepa history reads",
+      "grimoire": {
+        "state": "allowed",
+        "how": "Read through the credential-isolated transport within configured limits."
+      },
+      "amazon_agent": {
+        "state": "allowed",
+        "how": "Use the connected read capability and its quota limits."
+      },
+      "identity": "Service-specific connected identity; Slack follows the actor",
+      "port": null,
+      "spp_rows": [],
+      "gates": [
+        {
+          "kind": "file_literal",
+          "repo": "wizards-ai",
+          "file": "README.md",
+          "literal": "Keepa API client"
+        }
+      ],
+      "docs": [
+        {
+          "repo": "amazon-agent",
+          "path": "docs/rights/README.md",
+          "note": "Versioned authority; per-account grants remain vault evidence."
+        }
+      ],
+      "verified_on": "2026-09-15",
+      "notes": "No Amazon account mutation authority."
+    },
+    {
+      "id": "browser.anchor-refusal",
+      "domain": "browser",
+      "capability": "Region anchors reserved for regional primaries",
+      "grimoire": {
+        "state": "allowed",
+        "how": "Only seller-central-region primary slots may bind region anchors."
+      },
+      "amazon_agent": {
+        "state": "allowed",
+        "how": "Use the same task controller."
+      },
+      "identity": "Merlin by Ecom Wizards delegated SPP service account (shared Grimoire session)",
+      "port": 9223,
+      "spp_rows": [],
+      "gates": [
+        {
+          "kind": "file_literal",
+          "repo": "amazon-agent",
+          "file": "tools/browserctl/lease-registry.mjs",
+          "literal": "TASK_TAB_ANCHOR_REFUSED"
+        }
+      ],
+      "docs": [
+        {
+          "repo": "amazon-agent",
+          "path": "docs/rights/README.md",
+          "note": "Versioned authority; per-account grants remain vault evidence."
+        }
+      ],
+      "verified_on": "2026-09-15",
+      "notes": "Non-region workflows and additional slots use keyed task tabs."
+    },
+    {
+      "id": "browser.keyed-pages",
+      "domain": "browser",
+      "capability": "Keyed page creation",
+      "grimoire": {
+        "state": "allowed",
+        "how": "Use one stable task ID per rollout/job, never per revision or sub-step."
+      },
+      "amazon_agent": {
+        "state": "allowed",
+        "how": "Use the same keyed acquisition and completion contract."
+      },
+      "identity": "Merlin by Ecom Wizards delegated SPP service account (shared Grimoire session)",
+      "port": 9223,
+      "spp_rows": [],
+      "gates": [
+        {
+          "kind": "file_literal",
+          "repo": "amazon-agent",
+          "file": "tools/report-fetcher/cdp.mjs",
+          "literal": "FRESH_PAGE_REASON_REQUIRED"
+        }
+      ],
+      "docs": [
+        {
+          "repo": "amazon-agent",
+          "path": "docs/rights/README.md",
+          "note": "Versioned authority; per-account grants remain vault evidence."
+        }
+      ],
+      "verified_on": "2026-09-15",
+      "notes": "Terminal reconciliation completes ordinary tasks; regional tasks are released, never permanently completed."
+    },
+    {
+      "id": "browser.shared-executors",
+      "domain": "browser",
+      "capability": "Shared-session executor binding",
+      "grimoire": {
+        "state": "approval-gated",
+        "how": "Authorized shared-session executors declare 9223 and use the session lock."
+      },
+      "amazon_agent": {
+        "state": "approval-gated",
+        "how": "Use shared 9223 for the same executors; 9222 is explicit separate operator work."
+      },
+      "identity": "Merlin by Ecom Wizards delegated SPP service account (shared Grimoire session)",
+      "port": 9223,
+      "spp_rows": [],
+      "gates": [
+        {
+          "kind": "file_literal",
+          "repo": "wizards-ai",
+          "file": "approved_actions.py",
+          "literal": "int(settings[\"cdp_port\"]) != 9223"
+        },
+        {
+          "kind": "file_literal",
+          "repo": "wizards-ai",
+          "file": "approved_actions.py",
+          "literal": "shared-session executors must declare port 9223"
+        }
+      ],
+      "docs": [
+        {
+          "repo": "amazon-agent",
+          "path": "docs/rights/README.md",
+          "note": "Versioned authority; per-account grants remain vault evidence."
+        }
+      ],
+      "verified_on": "2026-09-15",
+      "notes": "Authentication availability never broadens action rights."
+    },
+    {
+      "id": "browser.region",
+      "domain": "browser",
+      "capability": "Regional working tabs",
+      "grimoire": {
+        "state": "allowed",
+        "how": "One permanent anchor per NA/EU/AU per port; success parks, handoff retains without parking, all other releases detach."
+      },
+      "amazon_agent": {
+        "state": "allowed",
+        "how": "Use seller-central-region and the regional exclusive claim; account-switcher work uses claimScope global."
+      },
+      "identity": "Merlin by Ecom Wizards delegated SPP service account (shared Grimoire session)",
+      "port": 9223,
+      "spp_rows": [],
+      "gates": [
+        {
+          "kind": "file_literal",
+          "repo": "amazon-agent",
+          "file": "tools/browserctl/context-scopes.mjs",
+          "literal": "export const REGION_WORKFLOW = \"seller-central-region\";"
+        },
+        {
+          "kind": "file_literal",
+          "repo": "amazon-agent",
+          "file": "tools/browserctl/task-tabs.mjs",
+          "literal": "claimScope !== \"global\""
+        }
+      ],
+      "docs": [
+        {
+          "repo": "amazon-agent",
+          "path": "docs/rights/README.md",
+          "note": "Versioned authority; per-account grants remain vault evidence."
+        }
+      ],
+      "verified_on": "2026-09-15",
+      "notes": "NA uses US home, EU DE home, AU AUS home. Fresh controllers protect live anchors at any URL. Setup failures abandon a live reservation; concurrent binding conflicts are retryable."
+    },
+    {
+      "id": "browser.retention",
+      "domain": "browser",
+      "capability": "Task grace and inspection retention",
+      "grimoire": {
+        "state": "allowed",
+        "how": "Task success gets 10 minutes; explicit handoff and inspection get 2 hours. Only pointer/key/wheel interaction extends inspection retention."
+      },
+      "amazon_agent": {
+        "state": "allowed",
+        "how": "Use identical leases and outcome rules."
+      },
+      "identity": "Merlin by Ecom Wizards delegated SPP service account (shared Grimoire session)",
+      "port": 9223,
+      "spp_rows": [],
+      "gates": [
+        {
+          "kind": "file_literal",
+          "repo": "amazon-agent",
+          "file": "tools/browserctl/policy.mjs",
+          "literal": "positiveDuration(raw.cleanup?.background_grace_ms, 10 * 60 * 1000"
+        },
+        {
+          "kind": "file_literal",
+          "repo": "amazon-agent",
+          "file": "tools/browserctl/policy.mjs",
+          "literal": "positiveDuration(raw.cleanup?.interactive_idle_ms, 2 * 60 * 60 * 1000"
+        }
+      ],
+      "docs": [
+        {
+          "repo": "amazon-agent",
+          "path": "docs/rights/README.md",
+          "note": "Versioned authority; per-account grants remain vault evidence."
+        }
+      ],
+      "verified_on": "2026-09-15",
+      "notes": "Defaults: background_grace_ms 600000, interactive_idle_ms 7200000. Runtime policy is machine-local; no home-path gate. Focus/pageshow/visibilitychange are activity, not interaction. Cleanup uses interaction only, but the low-level touchLease(kind: activity) still extends existing inspection/interactive leases; its guard remains an out-of-package fix."
+    }
+  ]
+}

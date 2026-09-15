@@ -43,7 +43,7 @@ AUTHORED_GLOBS = [
     "CLAUDE.md",
     "skills/**/*.md",
     "skills/**/*.yaml",
-    "docs/*.md",
+    "docs/**/*.md",
     ".claude/commands/*.md",
     "sop-drafts/*.md",
     "sop-updates/*.md",
@@ -273,11 +273,42 @@ def ads_doctrine_drift_errors(
     return errors
 
 
+def rights_matrix_errors(root: Path = ROOT) -> list[str]:
+    sys.path.insert(0, str(root / "tools/rights"))
+    from rights_matrix import load, resolve_gate, validate
+    from render_rights_matrix import rendered_readme
+
+    errors = []
+    try:
+        matrix = load(root / "docs/rights/capability-matrix.json")
+        errors.extend(validate(matrix))
+        if errors:
+            return errors
+        readme = (root / "docs/rights/README.md").read_text(encoding="utf-8")
+        if rendered_readme(matrix, readme) != readme:
+            errors.append("docs/rights/README.md: stale rendered rights matrix")
+        roots = {"amazon-agent": root, **{repo: root.parent / repo for repo in ("wizards-ai", "company-ai-skills")}}
+        missing = {repo for repo, path in roots.items() if not path.is_dir()}
+        for repo in sorted(missing):
+            print(f"NOTICE: rights gates skipped for missing sibling {repo}", file=sys.stderr)
+        for row in matrix["rows"]:
+            for gate in row["gates"]:
+                if gate.get("repo") in missing:
+                    continue
+                ok, detail = resolve_gate(roots, gate)
+                if not ok:
+                    errors.append(f"rights {row['id']}: {detail}")
+    except (OSError, ValueError) as exc:
+        errors.append(f"rights matrix: {exc}")
+    return errors
+
+
 def main() -> int:
     errors: list[str] = []
     missing_paths: list[tuple[str, int, str]] = []
 
     errors.extend(validate_datadive_routing())
+    errors.extend(rights_matrix_errors())
 
     # 1. Skill manifests for both agents.
     skill_dirs = sorted(d for d in (ROOT / "skills").iterdir() if d.is_dir())
@@ -294,6 +325,10 @@ def main() -> int:
             rel = str(path.relative_to(ROOT))
             if any(part in rel for part in EXEMPT_PARTS):
                 continue
+            if path.suffix == ".md" and not rel.startswith("docs/rights/"):
+                for lineno, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+                    if re.search(r"four explicit Edit exceptions|remains read-only", line, re.IGNORECASE):
+                        errors.append(f"{rel}:{lineno}: restates rights; point to docs/rights/README.md")
             for lineno in em_dash_violations(path):
                 errors.append(f"{rel}:{lineno}: spaced em-dash (rewrite the sentence)")
             if rel.startswith("skills/"):

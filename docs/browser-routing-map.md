@@ -9,6 +9,10 @@ Slack. Port 9222 is reserved for explicitly selected operator work. The T3 Code 
 silent fallback, and is unsuitable when a task depends on the managed profile,
 brokered login, or local upload/download handling.
 
+Actor authority is defined by [the capability matrix](rights/README.md), including
+`browser.region`, `browser.retention`, `browser.shared-executors` and
+`cases.create-reply`. A browser route never supplies approval.
+
 ## The Four Paths
 
 | Path | What it is | When |
@@ -45,7 +49,7 @@ On machines with separate profiles, the two hold independent sessions and do not
 | Amazon client onboarding | `amazon-client-onboarding` | Mixed | Seller Central and Ads over CDP on port 9223 through the task-tab controller; Notion through its connector; manifest validation local | Access preflight and assessment are read-only. Account changes require the current fingerprinted approval; independent inventory verification gates signoff. |
 | Amazon client offboarding handover | `amazon-client-offboarding` | Mixed | Read-only evidence from Amazon reports/UI, AdLabs/DataDive and client systems; local branded Doc/workbook builder; native Drive conversion | No account mutation, folder creation, message, or campaign upload. Unsupported areas are disclosed and omitted. |
 | FlatFilePro `.xlsx` preparation | `amazon-flatfilepro` (`/flatfilepro-prepare`) | Local | `prepare_flatfilepro_upload.py` | Label/package evidence comes from the operator. |
-| FlatFilePro upload + column mapping | `amazon-flatfilepro` (`/flatfilepro-upload`) | CDP | logged-in FlatFilePro session | Hidden native file input; MUI autocomplete mapping. Stop before **Update Listings**. |
+| FlatFilePro upload + column mapping | `amazon-flatfilepro` (`/flatfilepro-upload`) | CDP | logged-in FlatFilePro session | Update Listings requires exact attended in-chat approval; unattended submission is disabled. Matrix row `flatfilepro.submit`. |
 | Creator Connections (inbox, tracker, replies, campaigns) | `amazon-creator-connections` (`/creator-connections`) | CDP | Campaign Manager → Brand content → Creator connections | No MCP exists. Must drain the infinite-scroll thread list. Stop before any send/publish. |
 | Account health check | `amazon-account-health-check` | CDP | SC Account Health | Needs `Review details` clicks + screenshot evidence. |
 | Weekly/monthly operational checks | `amazon-operational-checks` (`/operational-checks`) | Mixed | Seller Central; Google Drive, Slack, and task connectors. Fee, dimension and weight findings come from the precomputed Keepa market-signals state file, with no browser | Dormant until explicit setup and activation; shipment checks are exception-only and never submit reconciliation. |
@@ -62,10 +66,21 @@ On machines with separate profiles, the two hold independent sessions and do not
 - Account/marketplace verification before task work applies to every path, including the CDP profile.
 - Browser mode comes from the machine policy. Evo X1 keeps ports 9222 and 9223 headed; `ensureChrome()` never changes a running mode.
 - Browser priority is port 9223 for Amazon workflows from either entry point, port 9222 for explicit operator work, and T3 Code in-app only by explicit choice.
-- US, DE, and AUS anchors are maintained additively on both Evo X1 ports. A newly discovered unregistered tab receives a two-hour inspection lease before inactivity can authorize cleanup; standard presets continue to preserve unknown tabs.
-- Anchors are home-page reserves, never workflow tabs. One stable task ID owns
-  one primary target across steps and retries. Extra targets require a named
-  slot, a site-created popup, or an explicit operator request.
+- One permanent US/NA, DE/EU and AUS/AU region anchor per port serves Seller
+  Central primary work through `seller-central-region`. Success parks at home;
+  explicit handoff keeps the anchor in place; all other releases detach into
+  inspection. Fresh controllers protect live anchors at any URL.
+- Other surfaces and named additional slots use stable task IDs per rollout/job.
+  Success receives ten minutes of grace; terminal reconciliation completes the
+  task. Inspection retention is two hours and extends only on pointer/key/wheel
+  interaction. Focus and page lifecycle events do not extend it.
+- Regional reads keep regional claims; account-switcher work adds
+  `claimScope: "global"`. Cleanup holds the port lock once per pass, defers with
+  exit 0 when busy. `--audit-only` previews anchor and destructive changes while
+  still repairing trackers and persisting observations and heartbeat transitions.
+- The low-level `touchLease(kind: "activity")` still extends existing inspection
+  leases. Cleanup uses `interaction`; the remaining API gap is recorded in
+  matrix row `browser.retention`.
 - Seller Central and FlatFilePro logins may use the exact-origin 1Password broker on ports 9222 and 9223. Human challenges remain operator-only, and no credential enters agent output.
 - One login per Seller Central region; switch marketplaces via the in-app switcher, never by changing the domain.
 - Stop-before-risk gates are path-independent: a send/upload/publish needs explicit approval no matter which browser executed the steps.
