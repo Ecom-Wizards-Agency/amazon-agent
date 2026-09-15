@@ -1,5 +1,6 @@
 /** Read exact listings through their normal FlatFilePro editor requests. */
 // Request envelope: optional task_key (stable job string) overrides input.operation_id for browser tabs only.
+// Optional top-level close_tab_after === true closes the task tab at release.
 // Optional complete_task === true completes all job tabs after release.
 // Keep task_key outside plan; operation_id still identifies receipts and revisions.
 import {readFile,mkdir,writeFile} from 'node:fs/promises';
@@ -50,7 +51,7 @@ export function normalizeListing(data,account,target,observedAt,sourceId){
   relationships:Array.isArray(data.relationships)?structuredClone(data.relationships):null,related_asins:relatedAsins,
   parent_sku:data.parent_sku??null,archived:data.archived??null};
 }
-export async function readListing(session,account,target){
+async function readListingOnce(session,account,target){
  await session.assertTaskControl({exclusiveContext:true});
  const location=listingLocation(account,target),responses=[],finished=new Set();let active=true;
  await session.send('Network.enable',{});
@@ -67,15 +68,26 @@ export async function readListing(session,account,target){
   return normalizeListing(data,account,target,new Date().toISOString(),location.url);
  }finally{active=false;for(const stop of stops)if(typeof stop==='function')stop();}
 }
+export async function readListing(session,account,target){
+ for(let attempt=0;attempt<2;attempt++){
+  try{return await readListingOnce(session,account,target);}
+  catch(error){
+   const transient=error.message==='Expected page state did not appear'||error.message.includes('No resource with given identifier found');
+   if(!transient||attempt===1)throw new Error('Listing '+target.sku+': '+error.message);
+   await session.assertTaskControl({exclusiveContext:true});
+  }
+ }
+}
+// Nested callers can await retained-tab cleanup through deps.beforeSigtermExit.
 export async function collect(input,deps={}){
  const common={schema_version:1,account:input.account,plan_hash:input.plan_hash,source_kind:'flatfilepro_listing_read'};
- let page,outcome='error';const at=deps.now||(()=>Date.now());
+ let page,releasing,outcome='error';const at=deps.now||(()=>Date.now());
 
  const onSigterm=async()=>{
-   if(page?._released)return;
-   try{if(page)await (deps.release||releaseTaskPage)(page,{outcome:'error'});}
+   if(page?._released&&!deps.beforeSigtermExit)return;
+   try{if(page)await (releasing??=(deps.release||releaseTaskPage)(page,{outcome:'error',closeTarget:input.close_tab_after===true}));}
    catch(error){console.error('SIGTERM browser release failed:',error.message);}
-   finally{process.exit(143);}
+   finally{try{await deps.beforeSigtermExit?.();}finally{process.exit(143);}}
  };
  process.once('SIGTERM',onSigterm);
  try{
@@ -84,7 +96,7 @@ export async function collect(input,deps={}){
   input.targets.forEach(x=>listingLocation(input.account,x));
   const minimum=input.minimum_after?Date.parse(input.minimum_after):0;ui.check(Number.isFinite(minimum)&&minimum<=at(),'Invalid listing read boundary');
   const directory=resolve(input.output_dir);await mkdir(directory,{recursive:true});
-  page=await (deps.acquire||acquireTaskPage)({taskId:taskIdFor('amazon-operations',input.task_key || input.operation_id),slot:'ffp-listing-read',workflow:'amazon-flatfilepro',initialUrl:'https://app.flatfile.pro/exports',exclusiveContext:true});
+  page=await (deps.acquire||acquireTaskPage)({closeOnFailure:input.close_tab_after===true,taskId:taskIdFor('amazon-operations',input.task_key || input.operation_id),slot:'ffp-listing-read',workflow:'amazon-flatfilepro',initialUrl:'https://app.flatfile.pro/exports',exclusiveContext:true});
   if(!deps.read){await page.session.send('Page.navigate',{url:'https://app.flatfile.pro/exports'});await ui.selectFlatFileProAccount(page.session,input.account);}
   const records=[];for(const target of input.targets)records.push(await (deps.read||readListing)(page.session,input.account,target));
   ui.check(records.length===input.targets.length&&records.every((r,i)=>r.sku===input.targets[i].sku&&r.asin===input.targets[i].asin&&Date.parse(r.observed_at)>=minimum&&Date.parse(r.observed_at)<=at()),'Listing coverage or read timestamp mismatch');
@@ -96,9 +108,10 @@ export async function collect(input,deps={}){
   outcome='success';return {...result,path,sha256:createHash('sha256').update(bytes).digest('hex')};
  }catch(error){return {...common,status:'blocked',reason:'ffp_listing_read_unavailable',message:error.message};}
  finally{
-  process.removeListener('SIGTERM',onSigterm);
-  if(page)await (deps.release||releaseTaskPage)(page,{outcome});
-  if(input.complete_task===true)await completeBrowserTask({taskId:taskIdFor('amazon-operations',input.task_key || input.operation_id)}).catch(error=>console.error('Browser task completion failed:',error.message));
+  try {
+   if(page)await (releasing??=(deps.release||releaseTaskPage)(page,{outcome,closeTarget:input.close_tab_after===true}));
+   if(input.complete_task===true)await completeBrowserTask({taskId:taskIdFor('amazon-operations',input.task_key || input.operation_id)}).catch(error=>console.error('Browser task completion failed:',error.message));
+  } finally {process.removeListener('SIGTERM',onSigterm);}
  }
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){try{ui.check(process.argv.length===4&&process.argv[2]==='--request','Usage: --request FILE');console.log(JSON.stringify(await collect(JSON.parse(await readFile(process.argv[3],'utf8')))));}catch(error){console.log(JSON.stringify({schema_version:1,status:'blocked',reason:'collector_preflight',message:error.message}));process.exitCode=2;}}

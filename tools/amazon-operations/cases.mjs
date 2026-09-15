@@ -1,5 +1,6 @@
 /** Seller Support cases: managed UI submission and independent GET readback.
  * Only fixed semantic controls may be clicked; no caller selectors/scripts.
+ * Request envelope: top-level close_tab_after === true closes the task tab at release.
  */
 import { readFile, writeFile, open, unlink, realpath } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
@@ -291,13 +292,13 @@ export async function run(input){
   const unlock=acquireSessionLock(9223,'amazon-cases');let page,outcome='error',executionEntered=false,claimPath=null;
   const onSigterm=async()=>{
     if(page?._released)return;
-    try{if(page)await releaseTaskPage(page,{outcome:'error'});}
+    try{if(page)await releaseTaskPage(page,{outcome:'error',closeTarget:input.close_tab_after===true});}
     catch(error){console.error('SIGTERM browser release failed:',error.message);}
     finally{process.exit(143);}
   };
   process.once('SIGTERM',onSigterm);
   try{
-    page=await acquireTaskPage({taskId:taskIdFor('amazon-operations',plan?.operation_id||input.operation_id),workflow:'amazon-communications',initialUrl:origin+'/home',exclusiveContext:true,sellerCentral:{marketplace:caseBrowserAccount(account).marketplace,origin}});
+    page=await acquireTaskPage({closeOnFailure:input.close_tab_after===true,taskId:taskIdFor('amazon-operations',plan?.operation_id||input.operation_id),workflow:'amazon-communications',initialUrl:origin+'/home',exclusiveContext:true,sellerCentral:{marketplace:caseBrowserAccount(account).marketplace,origin}});
     await switchAccount(page.session,origin,{accountName:account.seller_central_name||account.seller_account,marketplaceLabel:account.marketplace_label,marketplace:caseBrowserAccount(account).marketplace,parentAccountName:account.parent_account_name},{returnTo:'/home'});
     const homeIdentity=await readIdentity(page.session);
     await context(page,account,homeIdentity);
@@ -308,7 +309,7 @@ export async function run(input){
     if(claimPath&&answer.attempted===false){await unlink(claimPath);claimPath=null;}
     return answer;
   }catch(error){return{schema_version:1,plan_hash:input.plan_hash,account,status:executionEntered||error.code==='case_adapter_already_claimed'?'uncertain':'blocked',attempted:executionEntered||error.code==='case_adapter_already_claimed',reason:error.code||'case_access_unknown',message:error.message,capability:{state:error.code==='login_required'?'login_required':error.code==='permission_denied'?'permission_denied':'unknown'}};}
-  finally{process.removeListener('SIGTERM',onSigterm);try{if(page)await releaseTaskPage(page,{outcome});}catch{}finally{unlock();}}
+  finally{process.removeListener('SIGTERM',onSigterm);try{if(page)await releaseTaskPage(page,{outcome,closeTarget:input.close_tab_after===true});}catch{}finally{unlock();}}
 }
 
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){

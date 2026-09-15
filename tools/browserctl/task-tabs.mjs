@@ -143,7 +143,7 @@ async function createOrRecoverReservedPage({
 async function acquireTaskPageInner({
   port = configuredPort(), taskId, slot = "primary", workflow,
   initialUrl = "about:blank", exclusiveContext = false, sellerCentral, claimScope,
-  allowOperatorActivity = false, owner = ownerName(), expectedTargetId = null,
+  allowOperatorActivity = false, owner = ownerName(), expectedTargetId = null, closeOnFailure = false,
 } = {}, {
   registry = registryDefault, cdp = cdpDefault, policy = loadBrowserPolicy(),
 } = {}) {
@@ -269,7 +269,7 @@ async function acquireTaskPageInner({
     port: Number(port), taskId, slot, workflow, controlToken, contextScope, regionScope,
     targetId: page.targetId, session: page.session, source: page.source,
     reused: page.source === "reused", contextVerificationRequired: true,
-    _registry: registry, _policy: policy, _released: false,
+    _registry: registry, _cdp: cdp, _policy: policy, _released: false,
   };
   try {
     // createPage has a legacy heartbeat until the target is bound. From this
@@ -301,7 +301,7 @@ async function acquireTaskPageInner({
     // target on its origin so transient setup failures do not multiply tabs.
     await (keepAnchor
       ? finishTaskPage(handle, "abandonTaskTabReservation")
-      : releaseTaskPage(handle, { outcome: "error" })).catch(() => {});
+      : releaseTaskPage(handle, { outcome: "error", closeTarget: closeOnFailure === true })).catch(() => {});
     throw error;
   }
 }
@@ -320,7 +320,7 @@ export async function acquireTaskPage(spec = {}, dependencies = {}) {
  * Release successfully by default. Pass "handoff" deliberately for an explicit operator handover.
  * A failed regional home navigation detaches the target and may throw REGION_PARK_FAILED.
  */
-export async function releaseTaskPage(handle, { outcome = "success" } = {}) {
+export async function releaseTaskPage(handle, { outcome = "success", closeTarget = false } = {}) {
   if (!handle || handle._released) return null;
   if (handle.workflow === REGION_WORKFLOW && handle.slot === "primary") {
     if (!["success", "handoff"].includes(outcome)) return detachTaskPage(handle, { outcome });
@@ -337,22 +337,65 @@ export async function releaseTaskPage(handle, { outcome = "success" } = {}) {
       }
     }
   }
-  return finishTaskPage(handle, "releaseTaskTabControl", outcome);
+  return finishTaskPage(handle, "releaseTaskTabControl", outcome, closeTarget);
 }
 
-export async function detachTaskPage(handle, { outcome = "inspection" } = {}) {
-  return finishTaskPage(handle, "detachTaskTab", outcome);
+export async function detachTaskPage(handle, { outcome = "inspection", closeTarget = false } = {}) {
+  return finishTaskPage(handle, "detachTaskTab", outcome, closeTarget);
 }
 
-async function finishTaskPage(handle, method, outcome) {
+async function finishTaskPage(handle, method, outcome, closeTarget = false) {
   if (!handle || handle._released) return null;
   handle._released = true;
   if (handle.session?._taskHeartbeat) clearInterval(handle.session._taskHeartbeat);
   handle.session?.close();
-  try { return await handle._registry[method]({
-    port: handle.port, taskId: handle.taskId, slot: handle.slot,
-    controlToken: handle.controlToken, contextScope: handle.contextScope, outcome, policy: handle._policy,
-  }); } finally { handle._unlockSession?.(); }
+  try {
+    const result = await handle._registry[method]({
+      port: handle.port, taskId: handle.taskId, slot: handle.slot,
+      controlToken: handle.controlToken, contextScope: handle.contextScope, outcome, policy: handle._policy,
+    });
+    if (closeTarget === true && !(handle.workflow === REGION_WORKFLOW && handle.slot === "primary")) {
+      await closeTaskTarget(handle);
+    }
+    return result;
+  } finally { handle._unlockSession?.(); }
+}
+
+// The caller retained this exact handle across a temporary handoff. Recheck
+// its released binding under the port lock before closing the target.
+export async function closeReleasedTaskPage(handle) {
+  if (!handle?._released || (handle.workflow === REGION_WORKFLOW && handle.slot === "primary")) return false;
+  let unlock;
+  try {
+    unlock = handle._cdp !== cdpDefault ? () => {} : acquireSessionLock(handle.port, handle.taskId);
+    const record = (await handle._registry.listTaskTabs()).find((entry) =>
+      entry.port === handle.port && entry.taskId === handle.taskId && entry.slot === handle.slot);
+    if (!record || record.targetId !== handle.targetId || record.controller || record.reservationToken) return false;
+    const lease = (await handle._registry.listLeases()).find((entry) =>
+      entry.port === handle.port && entry.targetId === handle.targetId);
+    if (lease?.class === "anchor") return false;
+    return await closeTaskTarget(handle);
+  } catch (error) {
+    console.error("Released task target close failed:", error.message);
+    return false;
+  } finally { unlock?.(); }
+}
+
+async function closeTaskTarget(handle) {
+  let closed = false;
+  try {
+    await handle._cdp.closePageImmediately(handle.targetId, {
+      explicit: true, reason: `task release ${handle.taskId}/${handle.slot}`,
+    });
+    closed = true;
+  } catch (error) { console.error("Task target close failed:", error.message); }
+  try {
+    return await handle._registry.closeReleasedTaskTab({
+      port: handle.port, taskId: handle.taskId, slot: handle.slot,
+      targetId: handle.targetId, closed,
+    });
+  } catch (error) { console.error("Released task binding cleanup failed:", error.message); }
+  return false;
 }
 
 export async function completeBrowserTask({

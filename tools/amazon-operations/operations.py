@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import contextvars
 import csv
 import datetime as dt
 import fcntl
@@ -33,7 +34,8 @@ OPERATIONS = {'seo.update', 'flatfilepro.update', 'listing.images', 'catalog.cha
 
 def operation_kind(value):
     return ALIASES.get(value, value)
-TERMINAL = {'verified', 'failed'}
+TERMINAL = {'verified', 'failed', 'stalled'}
+_CLOSE_RECONCILE_TABS = contextvars.ContextVar('close_reconcile_tabs', default=False)
 IMAGE_FULL_VERIFY_SECONDS = 3600
 SEO_FIELDS = re.compile(r'^(item_name|bullet_point|product_description|generic_keyword|title_differentiation)([._]|$)|^itemName$')
 
@@ -969,6 +971,8 @@ class Operations:
 
     def run_collector(self, directory, script, request, timeout=180):
         require(script in {'catalog-export.mjs', 'image-evidence.mjs', 'cases.mjs', 'flatfilepro.mjs', 'flatfilepro-export.mjs', 'flatfilepro-activity.mjs', 'flatfilepro-listings.mjs', 'flatfilepro-discovery.mjs'}, 'invalid_collector', 'Unknown fixed collector')
+        if _CLOSE_RECONCILE_TABS.get():
+            request = {**request, 'close_tab_after': True}
         input_path = directory / (script.replace('.mjs', '') + '-input.json')
         atomic_json(input_path, request)
         try:
@@ -1170,7 +1174,7 @@ class Operations:
         and seller contributions require fresh export evidence; never substitute
         staged import values for live values.
         """
-        if state['status'] in {'verified', 'failed'}:
+        if state['status'] in TERMINAL:
             return None
         body = plan['body']
         if plan['operation'].startswith('case.'):
@@ -1240,7 +1244,7 @@ class Operations:
             return None
 
     def _complete_reconciled_task(self, request, state, plan, status):
-        if request.get('complete_task') is not True or status not in {'verified', 'failed', 'blocked'}:
+        if request.get('complete_task') is not True or status not in {'verified', 'failed', 'blocked', 'stalled'}:
             return
         try:
             # Match taskIdFor('amazon-operations', task_key || operation_id).
@@ -1254,9 +1258,29 @@ class Operations:
             print(f'Browser task completion failed: {exc}', file=sys.stderr)
 
     def reconcile(self, request):
+        """close_tabs controls collector envelopes; finalize='stalled' preserves evidence."""
+        token = _CLOSE_RECONCILE_TABS.set(request.get('close_tabs') is True)
+        try:
+            return self._reconcile(request)
+        finally:
+            _CLOSE_RECONCILE_TABS.reset(token)
+
+    def _reconcile(self, request):
         directory = self.directory(request.get('operation_id'))
         with self.lock(directory):
             state, plan = self.bound(directory, request)
+            require('finalize' not in request or request['finalize'] == 'stalled',
+                    'invalid_finalize', 'finalize must be stalled when supplied')
+            if request.get('finalize') == 'stalled':
+                if state['status'] == 'stalled':
+                    return state
+                result = self.persist(directory, state, 'stalled', stalled_from_status=state['status'],
+                    journal_note='Finalized as stalled by request; last evidence retained.')
+                self._complete_reconciled_task(request, state, plan, 'stalled')
+                return result
+            if state['status'] == 'stalled':
+                state['status'] = state.pop('stalled_from_status', 'processing')
+                state.pop('journal_note', None)
             if plan['operation'].startswith('case.'):
                 self.case_journal_boundary()
                 return case_tools().reconcile(self, directory, state, plan, request)

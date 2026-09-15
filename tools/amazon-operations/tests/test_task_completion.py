@@ -56,10 +56,10 @@ class TaskCompletionTests(unittest.TestCase):
 
     def test_only_boolean_true_and_terminal_statuses_complete(self):
         for flag in [None, False, 'true', 1, True]:
-            for status in ['processing', 'partial', 'uncertain', 'verified', 'failed', 'blocked']:
+            for status in ['processing', 'partial', 'uncertain', 'verified', 'failed', 'blocked', 'stalled']:
                 with self.subTest(flag=flag, status=status), patch.object(op.subprocess, 'run') as runner:
                     self.service._complete_reconciled_task({'complete_task': flag}, {}, {'operation_id': 'revision-1'}, status)
-                    self.assertEqual(runner.call_count, int(flag is True and status in {'verified', 'failed', 'blocked'}))
+                    self.assertEqual(runner.call_count, int(flag is True and status in {'verified', 'failed', 'blocked', 'stalled'}))
 
     def test_completion_failures_are_logged_before_terminal_persist(self):
         for error in [OSError('node unavailable'), subprocess.TimeoutExpired('node', 30), subprocess.CalledProcessError(1, 'node')]:
@@ -148,6 +148,73 @@ class TaskCompletionTests(unittest.TestCase):
             self.assertEqual(self.service.reconcile(request)['status'], 'blocked')
             self.assertIs(collector.call_args.kwargs['complete_task'], False)
             runner.assert_called_once()
+
+    def test_stalled_finalize_preserves_evidence_completes_once_and_resumes_explicitly(self):
+        directory, state, plan, request, evidence = self.fixture()
+        evidence_path = directory / 'last-evidence.json'
+        op.atomic_json(evidence_path, evidence)
+        retained = {'evidence_path': str(evidence_path), 'last_collection': {'observed_at': op.now()},
+                    'last_processing_collection': {'pending': 2}, 'image_completion': {'matched': []}}
+        self.service.persist(directory, state, 'processing', **retained)
+        original = evidence_path.read_bytes()
+        def completed(*args, **kwargs):
+            self.assertEqual(self.service.view(directory)['status'], 'stalled')
+        with patch.object(self.service, 'collect') as collect, patch.object(self.service, 'collect_images') as images, patch.object(op.subprocess, 'Popen') as reads, patch.object(op.subprocess, 'run', side_effect=completed) as complete:
+            result = self.service.reconcile({**request, 'finalize': 'stalled', 'close_tabs': True, 'evidence': {'invalid': True}})
+            self.assertEqual(result['status'], 'stalled')
+            self.assertEqual(result['journal_note'], 'Finalized as stalled by request; last evidence retained.')
+            self.assertEqual({key: result[key] for key in retained}, retained)
+            self.assertEqual(self.service.view(directory), result)
+            self.assertEqual(self.service.reconcile({**request, 'finalize': 'stalled'}), result)
+            complete.assert_called_once()
+            collect.assert_not_called()
+            images.assert_not_called()
+            reads.assert_not_called()
+        self.assertEqual(evidence_path.read_bytes(), original)
+        with patch.object(self.service, 'collect', return_value=None) as collect, patch.object(op.subprocess, 'run') as complete:
+            resumed = self.service.reconcile({**request, 'complete_task': False})
+            collect.assert_called_once()
+            self.assertEqual(resumed['status'], 'processing')
+            self.assertNotIn('stalled_from_status', resumed)
+            complete.assert_not_called()
+
+    def test_stalled_finalize_precedes_preflight_and_case_reads(self):
+        for operation, phase in [('listing.images', 'image_preflight'), ('catalog.change', 'preflight'), ('case.create', None)]:
+            with self.subTest(operation=operation):
+                directory, state, plan, request, evidence = self.fixture(operation)
+                self.service.persist(directory, state, 'processing', phase=phase, effects_started=False)
+                with patch.object(self.service, 'collect_export') as export, patch.object(self.service, 'case_journal_boundary') as cases, patch.object(op.subprocess, 'run') as complete:
+                    self.assertEqual(self.service.reconcile({**request, 'finalize': 'stalled'})['status'], 'stalled')
+                    export.assert_not_called()
+                    cases.assert_not_called()
+                    complete.assert_called_once()
+
+    def test_close_tabs_reaches_every_serialized_collector_envelope_and_does_not_leak(self):
+        directory, state, plan, request, evidence = self.fixture()
+        scripts = ['flatfilepro-activity.mjs', 'image-evidence.mjs', 'flatfilepro-listings.mjs',
+                   'catalog-export.mjs', 'flatfilepro-export.mjs', 'flatfilepro-discovery.mjs',
+                   'flatfilepro.mjs', 'cases.mjs']
+        envelope = {'schema_version': 1, 'plan': plan, 'task_key': state['task_key'], 'complete_task': False}
+        def collect(*args, **kwargs):
+            for script in scripts:
+                self.service.run_collector(directory, script, envelope)
+            return None
+        child = Mock(communicate=Mock(return_value=(json.dumps({'status': 'blocked'}), '')))
+        for flag in [True, False, 'true', None]:
+            with self.subTest(flag=flag), patch.object(self.service, 'collect', side_effect=collect), patch.object(op.subprocess, 'Popen', return_value=child) as process:
+                self.service.reconcile({**request, 'close_tabs': flag, 'complete_task': False})
+                self.assertEqual(process.call_count, len(scripts))
+                for script in scripts:
+                    saved = json.loads((directory / (script.removesuffix('.mjs') + '-input.json')).read_text())
+                    self.assertEqual(saved, {**envelope, **({'close_tab_after': True} if flag is True else {})})
+                    self.assertNotIn('close_tab_after', saved['plan'])
+                self.assertNotIn('close_tab_after', envelope)
+        with patch.object(self.service, '_reconcile', side_effect=RuntimeError('Interrupted')):
+            with self.assertRaises(RuntimeError):
+                self.service.reconcile({**request, 'close_tabs': True})
+        with patch.object(op.subprocess, 'Popen', return_value=child):
+            self.service.run_collector(directory, scripts[0], envelope)
+        self.assertEqual(json.loads((directory / 'flatfilepro-activity-input.json').read_text()), envelope)
 
 
 if __name__ == '__main__':

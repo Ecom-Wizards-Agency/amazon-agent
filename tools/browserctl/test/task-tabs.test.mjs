@@ -33,6 +33,7 @@ function fakeCdp({ createDelayMs = 0 } = {}) {
   const sequence = ++fakeSequence;
   const pages = [];
   const sessions = [];
+  const closed = [];
   let created = 0;
   const sessionFor = (targetId) => {
     const session = {
@@ -60,6 +61,14 @@ function fakeCdp({ createDelayMs = 0 } = {}) {
   return {
     pages,
     sessions,
+    closed,
+    closePageImmediately: async (targetId, options) => {
+      assert.equal(options.explicit, true);
+      assert.ok(options.reason);
+      closed.push(targetId);
+      const index = pages.findIndex((page) => page.id === targetId);
+      if (index >= 0) pages.splice(index, 1);
+    },
     get created() { return created; },
     ensureChrome: async () => ({}),
     listPages: async () => pages.map((entry) => ({ ...entry })),
@@ -349,7 +358,7 @@ test("a failed home navigation detaches the region tab", async () => {
 
 test("transient region setup failures preserve the live anchor across retries", async () => {
   const cdp = fakeCdp();
-  const spec = taskTabs.sellerCentralRegionTask({ marketplace: "au" });
+  const spec = { ...taskTabs.sellerCentralRegionTask({ marketplace: "au" }), closeOnFailure: true };
   const first = await taskTabs.acquireTaskPage(spec, { registry, cdp, policy });
   await taskTabs.releaseTaskPage(first);
   for (const step of ["viewport", "tracker", "control"]) {
@@ -367,6 +376,7 @@ test("transient region setup failures preserve the live anchor across retries", 
     assert.equal(record.controller, null);
     assert.equal(lease.class, "anchor");
     assert.equal(lease.expiresAt, null);
+    assert.deepEqual(cdp.closed, []);
     assert.equal(cdp.sessions.at(-1).closed, true);
     assert.equal(cdp.sessions.at(-1)._taskHeartbeat._destroyed, true);
   }
@@ -380,7 +390,7 @@ test("transient region setup failures preserve the live anchor across retries", 
 
 test("a timed-out initial region navigation preserves a target that reached its region", async () => {
   const cdp = fakeCdp();
-  const spec = taskTabs.sellerCentralRegionTask({ marketplace: "de" });
+  const spec = { ...taskTabs.sellerCentralRegionTask({ marketplace: "de" }), closeOnFailure: true };
   cdp.installLeaseActivityTracker = async (session) => {
     const send = session.send.bind(session);
     session.send = async (...args) => {
@@ -493,4 +503,123 @@ test("global region claims keep the anchor through switcher navigation and regio
     }
     assert.equal(cdp.created, 0);
   }
+});
+
+for (const [method, outcome] of [["releaseTaskPage", "success"], ["releaseTaskPage", "error"], ["detachTaskPage", "error"]]) {
+  test(`${method} ${outcome} with closeTarget closes under lock and removes lease and binding`, async () => {
+    const cdp = fakeCdp(), taskId = `close-${method}-${outcome}`;
+    const page = await acquire(cdp, taskId);
+    let unlocked = false;
+    page._unlockSession = () => { unlocked = true; };
+    const close = cdp.closePageImmediately;
+    cdp.closePageImmediately = async (...args) => {
+      assert.equal(unlocked, false);
+      const record = (await registry.listTaskTabs()).find((entry) => entry.taskId === taskId);
+      assert.equal(record.controller, null);
+      await close(...args);
+    };
+    const result = await taskTabs[method](page, { outcome, closeTarget: true });
+    assert.equal(result.lease.outcome, outcome);
+    assert.deepEqual(cdp.closed, [page.targetId]);
+    assert.equal(unlocked, true);
+    assert.equal((await registry.listLeases()).some((entry) => entry.targetId === page.targetId), false);
+    assert.equal((await registry.listTaskTabs()).some((entry) => entry.taskId === taskId), false);
+    assert.equal(await taskTabs[method](page, { closeTarget: true }), null);
+    const next = await acquire(cdp, taskId);
+    assert.notEqual(next.targetId, page.targetId);
+    await taskTabs.releaseTaskPage(next);
+  });
+}
+
+test("close failures are logged, preserve the release result, and clear the binding", async t => {
+  const cdp = fakeCdp(), page = await acquire(cdp, "failed-close");
+  cdp.closePageImmediately = async () => { throw new Error("close unavailable"); };
+  const logged = t.mock.method(console, "error", () => {});
+  const result = await taskTabs.releaseTaskPage(page, { closeTarget: true });
+  assert.equal(result.lease.class, "background-success");
+  assert.match(logged.mock.calls[0].arguments.join(" "), /Task target close failed: close unavailable/);
+  assert.equal((await registry.listTaskTabs()).some((entry) => entry.taskId === page.taskId), false);
+  const lease = (await registry.listLeases()).find((entry) => entry.targetId === page.targetId);
+  assert.equal(lease.class, "background-success");
+  assert.equal(lease.taskId, undefined);
+  const next = await acquire(cdp, page.taskId);
+  assert.notEqual(next.targetId, page.targetId);
+  await taskTabs.releaseTaskPage(next);
+});
+
+test("region primaries ignore closeTarget for release and detach; additional slots close", async () => {
+  const cdp = fakeCdp(), spec = taskTabs.sellerCentralRegionTask({ marketplace: "de" });
+  for (const [method, outcome] of [["releaseTaskPage", "success"], ["releaseTaskPage", "error"], ["detachTaskPage", "error"]]) {
+    const page = await taskTabs.acquireTaskPage(spec, { registry, cdp, policy });
+    const result = await taskTabs[method](page, { outcome, closeTarget: true });
+    assert.equal(result.lease.class, outcome === "success" ? "anchor" : "inspection");
+    assert.ok(cdp.pages.some((entry) => entry.id === page.targetId));
+    if (outcome === "success") assert.equal(cdp.pages.find((entry) => entry.id === page.targetId).url, "https://sellercentral.amazon.de/home");
+  }
+  assert.deepEqual(cdp.closed, []);
+  const extra = await taskTabs.acquireTaskPage({ ...spec, slot: "close-extra" }, { registry, cdp, policy });
+  await taskTabs.releaseTaskPage(extra, { closeTarget: true });
+  assert.deepEqual(cdp.closed, [extra.targetId]);
+});
+
+for (const step of ["viewport", "tracker", "navigate", "control"]) {
+  for (const closeOnFailure of [undefined, false, true]) {
+    test(`${step} setup failure closes only with closeOnFailure=${closeOnFailure}`, async () => {
+      const cdp = fakeCdp(), taskId = `setup-${step}-${closeOnFailure}`;
+      cdp.setDesktopViewport = async () => { if (step === "viewport") throw Error("setup failed"); };
+      cdp.installLeaseActivityTracker = async session => {
+        if (step === "tracker") throw Error("setup failed");
+        if (step === "navigate") session.send = async () => { throw Error("setup failed"); };
+        if (step === "control") {
+          session.send = async () => ({});
+          session.assertTaskControl = async () => { throw Error("setup failed"); };
+        }
+      };
+      await assert.rejects(acquire(cdp, taskId, { closeOnFailure }), /setup failed/);
+      const targetId = cdp.sessions[0].targetId;
+      assert.equal(cdp.sessions[0].closed, true);
+      assert.equal(cdp.sessions[0]._taskHeartbeat._destroyed, true);
+      assert.deepEqual(cdp.closed, closeOnFailure === true ? [targetId] : []);
+      const record = (await registry.listTaskTabs()).find(entry => entry.taskId === taskId);
+      const lease = (await registry.listLeases()).find(entry => entry.targetId === targetId);
+      if (closeOnFailure === true) {
+        assert.equal(record, undefined);
+        assert.equal(lease, undefined);
+      } else {
+        assert.equal(record.targetId, targetId);
+        assert.equal(record.controller, null);
+        assert.equal(lease.class, "inspection");
+      }
+    });
+  }
+}
+
+test("released handoff target closes once through its exact binding", async () => {
+  const cdp = fakeCdp(), page = await acquire(cdp, "handoff-close");
+  assert.equal(await taskTabs.closeReleasedTaskPage(page), false);
+  const result = await taskTabs.releaseTaskPage(page, { outcome: "handoff" });
+  assert.equal(result.lease.class, "interactive");
+  assert.equal(result.lease.expiresAt - result.lease.lastActivityAt, policy.cleanup.interactive_idle_ms);
+  assert.equal(await taskTabs.closeReleasedTaskPage(page), true);
+  assert.equal(await taskTabs.closeReleasedTaskPage(page), false);
+  assert.deepEqual(cdp.closed, [page.targetId]);
+  assert.equal((await registry.listTaskTabs()).some(entry => entry.taskId === page.taskId), false);
+  assert.equal((await registry.listLeases()).some(entry => entry.targetId === page.targetId), false);
+});
+
+test("released handoff closer preserves reacquired, replacement, and region targets", async () => {
+  const cdp = fakeCdp(), page = await acquire(cdp, "handoff-reacquired");
+  await taskTabs.releaseTaskPage(page, { outcome: "handoff" });
+  const resumed = await acquire(cdp, page.taskId);
+  assert.equal(await taskTabs.closeReleasedTaskPage(page), false);
+  assert.deepEqual(cdp.closed, []);
+  await taskTabs.releaseTaskPage(resumed, { closeTarget: true });
+  const replacement = await acquire(cdp, page.taskId);
+  await taskTabs.releaseTaskPage(replacement);
+  assert.equal(await taskTabs.closeReleasedTaskPage(page), false);
+  assert.deepEqual(cdp.closed, [page.targetId]);
+  const region = await taskTabs.acquireTaskPage(taskTabs.sellerCentralRegionTask({ marketplace: "de" }), { registry, cdp, policy });
+  await taskTabs.releaseTaskPage(region, { outcome: "handoff" });
+  assert.equal(await taskTabs.closeReleasedTaskPage(region), false);
+  assert.deepEqual(cdp.closed, [page.targetId]);
 });

@@ -215,3 +215,39 @@ test("global regional reservations create and detach the region anchor without c
   assert.equal(regional.taskTab.contextScope, "sc:eu");
   assert.equal(regional.taskTab.taskId, spec.taskId);
 });
+
+for (const detached of [false, true]) {
+  test(`closeReleasedTaskTab removes ${detached ? "detached" : "released"} records atomically`, async () => {
+    const spec = { port: 9223, taskId: "close-registry", workflow: "test", policy };
+    const reserved = await registry.reserveTaskTab(spec);
+    const bound = { ...spec, targetId: "close-target", reservationToken: reserved.reservationToken,
+      controlToken: reserved.controlToken };
+    await registry.bindReservedTaskTab(bound);
+    assert.equal(await registry.closeReleasedTaskTab(bound), false);
+    await registry[detached ? "detachTaskTab" : "releaseTaskTabControl"]({ ...bound, outcome: "success" });
+    assert.equal(await registry.closeReleasedTaskTab(bound), true);
+    assert.deepEqual(await registry.listLeases(), []);
+    assert.deepEqual(await registry.listTaskTabs(), []);
+    assert.equal(await registry.closeReleasedTaskTab(bound), false);
+    assert.equal((await registry.reserveTaskTab(spec)).kind, "create");
+  });
+}
+
+test("closeReleasedTaskTab refuses region anchors and replacement bindings", async () => {
+  const spec = { port: 9223, ...sellerCentralRegionTask({ marketplace: "us" }), policy };
+  const reserved = await registry.reserveTaskTab(spec);
+  const bound = { ...spec, targetId: "region-close-refused", reservationToken: reserved.reservationToken,
+    controlToken: reserved.controlToken };
+  await registry.bindReservedTaskTab(bound);
+  await registry.releaseTaskTabControl({ ...bound, outcome: "success" });
+  assert.equal(await registry.closeReleasedTaskTab(bound), false);
+  assert.equal((await registry.listLeases())[0].class, "anchor");
+  const task = { port: 9223, taskId: "replacement", workflow: "test", policy };
+  const reservation = await registry.reserveTaskTab(task);
+  const binding = { ...task, targetId: "new-target", reservationToken: reservation.reservationToken,
+    controlToken: reservation.controlToken };
+  await registry.bindReservedTaskTab(binding);
+  await registry.releaseTaskTabControl({ ...binding, outcome: "success" });
+  assert.equal(await registry.closeReleasedTaskTab({ ...binding, targetId: "old-target" }), false);
+  assert.equal((await registry.listTaskTabs()).find((entry) => entry.taskId === task.taskId).targetId, "new-target");
+});

@@ -1,5 +1,6 @@
 /** Read-only Activity evidence for a previously captured exact submission run. */
 // Request envelope: optional task_key (stable job string) overrides input.operation_id for browser tabs only.
+// Optional top-level close_tab_after === true closes the task tab at release.
 // Optional complete_task === true completes all job tabs after release; never put these fields inside plan.
 import {readFile} from 'node:fs/promises';
 import {pathToFileURL} from 'node:url';
@@ -72,7 +73,7 @@ export async function run(input) {
   let page,outcome='error';
   const onSigterm=async()=>{
     if(page?._released)return;
-    try{if(page)await releaseTaskPage(page,{outcome:'error'});}
+    try{if(page)await releaseTaskPage(page,{outcome:'error',closeTarget:input.close_tab_after===true});}
     catch(error){console.error('SIGTERM browser release failed:',error.message);}
     finally{process.exit(143);}
   };
@@ -80,7 +81,7 @@ export async function run(input) {
   try {
     ui.check(input.schema_version===1&&input.operation_id,'Invalid Activity request');
     const identity=submittedRunIdentity({runId:input.submission_id});
-    page=await acquireTaskPage({taskId:taskIdFor('amazon-operations',input.task_key || input.operation_id),workflow:'amazon-flatfilepro',initialUrl:identity.submission_url,exclusiveContext:true});
+    page=await acquireTaskPage({closeOnFailure:input.close_tab_after===true,taskId:taskIdFor('amazon-operations',input.task_key || input.operation_id),workflow:'amazon-flatfilepro',initialUrl:identity.submission_url,exclusiveContext:true});
     await page.session.send('Page.navigate',{url:'https://app.flatfile.pro/exports'});
     await ui.selectFlatFileProAccount(page.session,input.account);
     await page.session.send('Network.enable',{});
@@ -122,7 +123,7 @@ export async function run(input) {
   }catch(error){return {schema_version:1,status:'blocked',account:input.account,plan_hash:input.plan_hash,submission_id:input.submission_id,reason:'ffp_activity_unverified',message:error.message,complete:false};}
   finally{
     process.removeListener('SIGTERM',onSigterm);
-    if(page)await releaseTaskPage(page,{outcome});
+    if(page)await releaseTaskPage(page,{outcome,closeTarget:input.close_tab_after===true});
     if(input.complete_task===true)await completeBrowserTask({taskId:taskIdFor('amazon-operations',input.task_key || input.operation_id)}).catch(error=>console.error('Browser task completion failed:',error.message));
   }
 }

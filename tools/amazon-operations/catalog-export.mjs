@@ -1,5 +1,6 @@
 /** Fresh Category Listings Report collector. Generates reports, never catalog writes. */
 // Optional top-level task_key shares job tabs; complete_task === true completes them after release.
+// Optional top-level close_tab_after === true closes the task tab at release.
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -48,14 +49,14 @@ export async function collect(input) {
   let page,outcome='error';
   const onSigterm=async()=>{
     if(page?._released)return;
-    try{if(page)await releaseTaskPage(page,{outcome:'error'});}
+    try{if(page)await releaseTaskPage(page,{outcome:'error',closeTarget:input.close_tab_after===true});}
     catch(error){console.error('SIGTERM browser release failed:',error.message);}
     finally{process.exit(143);}
   };
   process.once('SIGTERM',onSigterm);
   const common={schema_version:1,account:input.account,plan_hash:input.plan_hash,observed_at:new Date().toISOString()};
   try {
-    page=await acquireTaskPage({taskId:taskIdFor('amazon-operations',input.task_key || input.operation_id),slot:'verification',workflow:'amazon-reporting',initialUrl:origin+'/listing/reports/ref=xx_invreport_favb_xx',exclusiveContext:true,sellerCentral:{marketplace:input.account.marketplace,origin}});
+    page=await acquireTaskPage({closeOnFailure:input.close_tab_after===true,taskId:taskIdFor('amazon-operations',input.task_key || input.operation_id),slot:'verification',workflow:'amazon-reporting',initialUrl:origin+'/listing/reports/ref=xx_invreport_favb_xx',exclusiveContext:true,sellerCentral:{marketplace:input.account.marketplace,origin}});
     // Navigation text renders before the account selector. Wait for the same
     // exact identity check used before every report action; never infer identity
     // from page length or accept a partially rendered header.
@@ -104,7 +105,7 @@ export async function collect(input) {
   }catch(error){return{...common,status:'blocked',reason:'category_report_collection_unavailable',message:error.message};}
   finally{
     process.removeListener('SIGTERM',onSigterm);
-    if(page)await releaseTaskPage(page,{outcome});
+    if(page)await releaseTaskPage(page,{outcome,closeTarget:input.close_tab_after===true});
     if(input.complete_task===true)await completeBrowserTask({taskId:taskIdFor('amazon-operations',input.task_key || input.operation_id)}).catch(error=>console.error('Browser task completion failed:',error.message));
   }
 }

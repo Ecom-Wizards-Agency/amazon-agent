@@ -1,5 +1,6 @@
 /** Exact public slots with independent ASIN observations and bounded retries. */
 // Request envelope: optional task_key (stable job string) overrides input.operation_id for browser tabs only.
+// Optional top-level close_tab_after === true closes the task tab at release.
 // Optional complete_task === true completes all job tabs after release; never put these fields inside plan.
 import {readFile} from 'node:fs/promises';
 import {pathToFileURL} from 'node:url';
@@ -156,19 +157,19 @@ export async function collect(input) {
 
  const onSigterm=async()=>{
    if(page?._released)return;
-   try{if(page)await releaseTaskPage(page,{outcome:'error'});}
+   try{if(page)await releaseTaskPage(page,{outcome:'error',closeTarget:input.close_tab_after===true});}
    catch(error){console.error('SIGTERM browser release failed:',error.message);}
    finally{process.exit(143);}
  };
  process.once('SIGTERM',onSigterm);
  try{
-  page=await acquireTaskPage({taskId:taskIdFor('amazon-operations',input.task_key || input.operation_id),slot:'public-images',workflow:'amazon-listing-capture',initialUrl:'about:blank'});
+  page=await acquireTaskPage({closeOnFailure:input.close_tab_after===true,taskId:taskIdFor('amazon-operations',input.task_key || input.operation_id),slot:'public-images',workflow:'amazon-listing-capture',initialUrl:'about:blank'});
   const result=await collectByAsin(input,(asin,slots)=>{navigated=true;return readAsin(page,tld,asin,slots);});
   outcome=navigated&&result.status!=='collected'?'error':'success';return result;
  }catch(error){outcome=navigated?'error':'success';return {schema_version:1,account:input.account,operation_id:input.operation_id,plan_hash:input.plan_hash,status:'blocked',reason:'image_collection_unavailable',message:error.message,images:[]};}
  finally{
   process.removeListener('SIGTERM',onSigterm);
-  if(page)await releaseTaskPage(page,{outcome});
+  if(page)await releaseTaskPage(page,{outcome,closeTarget:input.close_tab_after===true});
   if(input.complete_task===true)await completeBrowserTask({taskId:taskIdFor('amazon-operations',input.task_key || input.operation_id)}).catch(error=>console.error('Browser task completion failed:',error.message));
  }
 }

@@ -1,12 +1,14 @@
 /** FlatFilePro upload/map/apply driver. Requires a scoped canary; no live calls in tests. */
 // Request envelope: optional task_key (stable job string) overrides plan.operation_id for browser tabs only.
+// Optional top-level close_tab_after === true closes the task tab at release.
+// The pre-submit handoff retains the import target for reacquisition; failures close it when requested.
 // Optional complete_task === true completes all job tabs after release; never put these fields inside plan.
 import { readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { createHash } from 'node:crypto';
 import { evaluate } from '../report-fetcher/cdp.mjs';
-import { acquireTaskPage,releaseTaskPage,completeBrowserTask,taskIdFor } from '../browserctl/task-tabs.mjs';
+import { acquireTaskPage,releaseTaskPage,closeReleasedTaskPage,completeBrowserTask,taskIdFor } from '../browserctl/task-tabs.mjs';
 import * as ui from './browser-ui.mjs';
 import { collect as collectListings } from './flatfilepro-listings.mjs';
 import { verifyListingIdentities } from './image-identity.mjs';
@@ -139,15 +141,43 @@ export async function refreshImagePreflight(input,page,dependencies={}) {
   const release=dependencies.release||releaseTaskPage,acquire=dependencies.acquire||acquireTaskPage,collect=dependencies.collect||collectListings;
   const targetId=page.targetId;
   ui.check(typeof targetId==='string'&&targetId.length>0,'Exact import target is required for preflight handoff');
-  // Context claims are per task slot. Release only control of the import page;
-  // its exact target remains leased, and the enclosing browserctl lock persists.
-  // Transient handoff: collectListings runs next, then the same target is reacquired with expectedTargetId.
-  await release(page,{outcome:'handoff'});
-  const fresh=await collect({schema_version:1,task_key:input.task_key,operation_id:plan.operation_id,account:plan.account,plan_hash:input.plan_hash,
-    targets:Object.entries(body.sku_asins).filter(([sku])=>Object.hasOwn(body.image_before_rows,sku)).map(([sku,asin])=>({sku,asin})),
-    output_dir:join(dirname(input.receipt_path),'ffp-presubmit'),minimum_after:new Date().toISOString()});
-  const resumed=await acquire({taskId:taskIdFor('amazon-operations',input.task_key || plan.operation_id),workflow:'amazon-flatfilepro',initialUrl:'https://app.flatfile.pro/import',exclusiveContext:true,expectedTargetId:targetId});
-  return {page:resumed,fresh};
+  const close=dependencies.closeReleased||closeReleasedTaskPage;
+  let releasing,reacquiring,resumed,closing,collecting=false,interrupted=false;
+  const cleanup=()=>closing??=(async()=>{
+    await releasing;
+    if(reacquiring)resumed=await reacquiring.catch(()=>null);
+    if(resumed)await release(resumed,{outcome:'error',closeTarget:input.close_tab_after===true});
+    else if(input.close_tab_after===true)await close(page);
+  })();
+  const beforeSigtermExit=async()=>{interrupted=true;await cleanup();};
+  const onSigterm=async()=>{
+    // The nested collector releases its own page, then awaits our cleanup
+    // before exiting. This prevents either handler from cutting the other short.
+    if(collecting)return;
+    try{await beforeSigtermExit();}
+    catch(error){console.error('SIGTERM handoff cleanup failed:',error.message);}
+    finally{process.exit(143);}
+  };
+  process.once('SIGTERM',onSigterm);
+  try {
+    // Release the import claim for the nested read, retaining this exact target.
+    releasing=release(page,{outcome:'handoff'});
+    await releasing;
+    ui.check(!interrupted,'Preflight handoff interrupted');
+    collecting=true;
+    const fresh=await collect({schema_version:1,task_key:input.task_key,close_tab_after:input.close_tab_after===true,operation_id:plan.operation_id,account:plan.account,plan_hash:input.plan_hash,
+      targets:Object.entries(body.sku_asins).filter(([sku])=>Object.hasOwn(body.image_before_rows,sku)).map(([sku,asin])=>({sku,asin})),
+      output_dir:join(dirname(input.receipt_path),'ffp-presubmit'),minimum_after:new Date().toISOString()},{beforeSigtermExit});
+    collecting=false;
+    ui.check(!interrupted,'Preflight handoff interrupted');
+    reacquiring=acquire({closeOnFailure:input.close_tab_after===true,taskId:taskIdFor('amazon-operations',input.task_key || plan.operation_id),workflow:'amazon-flatfilepro',initialUrl:'https://app.flatfile.pro/import',exclusiveContext:true,expectedTargetId:targetId});
+    resumed=await reacquiring;
+    ui.check(!interrupted,'Preflight handoff interrupted');
+    return {page:resumed,fresh};
+  } catch(error) {
+    await cleanup().catch(failure=>console.error('Handoff target cleanup failed:',failure.message));
+    throw error;
+  } finally {process.removeListener('SIGTERM',onSigterm);}
 }
 
 export async function run(input) {
@@ -169,7 +199,7 @@ async function execute(input) {
   let attempted=false,outcome='error',phase='account_selection';
   const onSigterm=async()=>{
     if(page?._released)return;
-    try{if(page)await releaseTaskPage(page,{outcome:'error'});}
+    try{if(page)await releaseTaskPage(page,{outcome:'error',closeTarget:input.close_tab_after===true});}
     catch(error){console.error('SIGTERM browser release failed:',error.message);}
     finally{process.exit(143);}
   };
@@ -178,7 +208,7 @@ async function execute(input) {
   const result=data=>({schema_version:1,plan_hash:input.plan_hash,...data});
   try {
     if(body.image_policy==='secondary_slots_only')verifyListingIdentities(body.image_identity_rows,body.image_identity_rows||{},plan.targets);
-    page=await acquireTaskPage({taskId:taskIdFor('amazon-operations',input.task_key || plan.operation_id),workflow:'amazon-flatfilepro',initialUrl:'https://app.flatfile.pro/import',exclusiveContext:true});
+    page=await acquireTaskPage({closeOnFailure:input.close_tab_after===true,taskId:taskIdFor('amazon-operations',input.task_key || plan.operation_id),workflow:'amazon-flatfilepro',initialUrl:'https://app.flatfile.pro/import',exclusiveContext:true});
     // A competing invocation may have submitted while this one waited for the
     // managed browser lock. Recheck only after exclusive ownership is acquired.
     if((await readAttempt(attemptPath,input))?.submission_intent) return result({status:'uncertain',attempted:true,reason:'prior_submit_requires_reconciliation'});
@@ -273,7 +303,7 @@ async function execute(input) {
     const specific=['ffp_image_slot_unverifiable','ffp_submission_recovery_unverified'].find(code=>error.message.startsWith(code+':'));
     const answer=result({status:attempted?'uncertain':'blocked',attempted,reason:attempted?'apply_outcome_uncertain':specific||'ui_contract_unavailable',message:error.message,phase,...(diagnostic_path?{diagnostic_path}:{})});
     await ui.receipt(input.receipt_path,answer);return answer;
-  } finally {process.removeListener('SIGTERM',onSigterm);if(page)await releaseTaskPage(page,{outcome});}
+  } finally {process.removeListener('SIGTERM',onSigterm);if(page)await releaseTaskPage(page,{outcome,closeTarget:input.close_tab_after===true});}
 }
 
 export async function reconcileImport(input, attempt) {
@@ -292,13 +322,13 @@ export async function reconcileImport(input, attempt) {
   let outcome='error';
   const onSigterm=async()=>{
     if(page?._released)return;
-    try{if(page)await releaseTaskPage(page,{outcome:'error'});}
+    try{if(page)await releaseTaskPage(page,{outcome:'error',closeTarget:input.close_tab_after===true});}
     catch(error){console.error('SIGTERM browser release failed:',error.message);}
     finally{process.exit(143);}
   };
   process.once('SIGTERM',onSigterm);
   try {
-    page=await acquireTaskPage({taskId:taskIdFor('amazon-operations',input.task_key || input.plan.operation_id),workflow:'amazon-flatfilepro',initialUrl:attempt.import_url,exclusiveContext:true});
+    page=await acquireTaskPage({closeOnFailure:input.close_tab_after===true,taskId:taskIdFor('amazon-operations',input.task_key || input.plan.operation_id),workflow:'amazon-flatfilepro',initialUrl:attempt.import_url,exclusiveContext:true});
     await ui.context(page.session,input.plan.account,'ffp');
     await page.session.send('Page.navigate',{url:attempt.import_url});
     await ui.waitFor(()=>ui.snapshot(page.session),state=>state.text.length>0);
@@ -309,7 +339,7 @@ export async function reconcileImport(input, attempt) {
     outcome='success';
     return {...common,status:'collected',source_id:attempt.import_url,submission_id:attempt.import_id,processing_status:processing};
   }catch(error){return {...common,status:'blocked',reason:'import_recovery_unavailable',message:error.message};}
-  finally{process.removeListener('SIGTERM',onSigterm);if(page)await releaseTaskPage(page,{outcome});}
+  finally{process.removeListener('SIGTERM',onSigterm);if(page)await releaseTaskPage(page,{outcome,closeTarget:input.close_tab_after===true});}
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href) {
   let input;try{ui.check(process.argv.length===4&&process.argv[2]==='--request','Usage: --request FILE');input=JSON.parse(await readFile(process.argv[3],'utf8'));console.log(JSON.stringify(await run(input)));}catch(error){console.log(JSON.stringify({schema_version:1,plan_hash:input?.plan_hash,status:'blocked',reason:'adapter_preflight',message:error.message}));process.exitCode=2;}

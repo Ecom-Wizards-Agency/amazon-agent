@@ -63,6 +63,7 @@ the controller in `tools/browserctl/task-tabs.mjs`:
   collector flags false, finishes preservation reads, then calls `task complete`
   only for `verified`, `failed` or `blocked`. Processing and partial results
   retain the task. Earlier steps never request completion.
+  A workflow may close its own task tab at release, as scheduled image checks do; region tabs are never closed.
 - Inspection tab: an error, lost heartbeat, detach or adoption preserves the
   target for two hours of idle time. Only pointer, key or wheel input, kind
   `interaction`, extends retention. Focus, pageshow and visibilitychange, kind

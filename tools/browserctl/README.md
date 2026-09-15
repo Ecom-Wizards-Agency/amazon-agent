@@ -25,6 +25,11 @@ close a CDP session or browser target. Completion is permanent for that task ID.
 Shared `seller-central-region` tasks are released after each operation, never
 completed.
 
+`region state --port <port>` reports each region's stored `url` alongside
+`liveUrl` and `title` from a read-only request to that port's `/json/list`.
+Live fields are matched by target ID and are null when the target is missing
+or the endpoint is unavailable; the request times out after two seconds.
+
 Normal JavaScript workflows acquire pages through
 `tools/browserctl/task-tabs.mjs`. Each workflow provides a stable task ID and
 usually uses its `primary` slot. Repeated steps and retries reacquire that exact
@@ -32,7 +37,17 @@ target. Ordinary task targets use `background-active`; regional primaries keep
 their permanent `anchor` class. Each receives one atomic
 lease/controller/claim renewal while its CDP session is open, and is released with an
 explicit outcome. Callers never coordinate registry files, timeouts, activity
-probes, or raw target closure themselves.
+probes, or raw target closure themselves. `releaseTaskPage(handle, { outcome:
+"success", closeTarget: true })` and `detachTaskPage(handle, { outcome:
+"inspection", closeTarget: true })` apply the outcome, close the exact target,
+and remove its lease and task binding before unlocking. Region primaries ignore
+`closeTarget`; omitted flags keep normal retention. Close failures are logged
+without changing the release result; the binding is removed and the lease remains
+tracked for cleanup. `acquireTaskPage({ ..., closeOnFailure: true })` also closes
+non-region task targets when acquisition setup fails. Collectors forward the
+top-level boolean `close_tab_after` to both options. Temporary handoffs use
+`closeReleasedTaskPage(handle)` on failure or SIGTERM; it checks the retained
+binding under the port lock before closing the exact released target.
 
 Retention and ownership are separate. The two-hour inspection window preserves
 evidence; heartbeat recovery or tracker installation does not establish observed
@@ -214,6 +229,12 @@ Direct chat and Slack both use `grimoire` (9223). `operator` (9222) is explicit 
 ```sh
 node tools/browserctl/browserctl.mjs run --session grimoire -- node tools/opportunity-explorer/run-poe.mjs doctor --origin https://sellercentral.amazon.com
 ```
+
+`run --lock-wait-ms <milliseconds>` waits up to 120000 milliseconds by default
+for the shared session lock, retrying every two seconds within that deadline.
+Use `0` to fail immediately when busy. If the deadline expires, the command
+returns `BROWSER_SESSION_BUSY` with the elapsed wait in milliseconds and does
+not launch the child. The lock remains held until the child exits.
 
 `browserctl session --session grimoire` returns only the resolved non-secret environment. Python workers use `browser_session.py` as an adapter to that same resolver. The session is immutable within a process; conflicting ports or profiles fail before connection. Child workers inherit the route and a scoped lock chain. Sibling workers contend for the next link instead of bypassing serialization. Browser-independent MCP/API work needs no browser lock.
 

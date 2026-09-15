@@ -1,5 +1,6 @@
 /** Complete account-scoped catalog discovery. Grid coverage precedes exact item reads. */
 // Request envelope: optional task_key (stable job string) overrides input.operation_id for browser tabs only.
+// Optional top-level close_tab_after === true closes the task tab at release.
 // Keep task_key outside plan; operation_id still identifies receipts and revisions.
 import * as ui from './browser-ui.mjs';
 import {readListing} from './flatfilepro-listings.mjs';
@@ -50,7 +51,15 @@ export async function readCatalogPages(session,account){
   const url=new URL(event.response.url);
   if(url.origin==='https://api.flatfile.pro'&&['/amazon-listings/items','/amazon-listings/total-count'].includes(url.pathname))responses.push({id:event.requestId,url:event.response.url,status:event.response.status});
  }),session.subscribe('Network.loadingFinished',event=>finished.add(event.requestId))];
- const readResponse=async response=>{ui.check(response.status===200,'Catalog request failed');const body=await session.send('Network.getResponseBody',{requestId:response.id});ui.check(!body.base64Encoded,'Unexpected catalog response encoding');return {...response,data:JSON.parse(body.body),observed_at:new Date().toISOString()};};
+ const capturedBodies=new Map();
+ const readResponse=async response=>{
+  if(capturedBodies.has(response.id))return capturedBodies.get(response.id);
+  ui.check(response.status===200,'Catalog request failed');
+  const body=await session.send('Network.getResponseBody',{requestId:response.id});
+  ui.check(!body.base64Encoded,'Unexpected catalog response encoding');
+  const captured={...response,data:JSON.parse(body.body),observed_at:new Date().toISOString()};
+  capturedBodies.set(response.id,captured);return captured;
+ };
  try{
   await ui.clickFlatFilePro(session,'Listings');
   const pages=[];let count=null,scope=null;
@@ -91,7 +100,7 @@ export async function collect(input,deps={}){
 
  const onSigterm=async()=>{
    if(page?._released)return;
-   try{if(page)await (deps.release||releaseTaskPage)(page,{outcome:'error'});}
+   try{if(page)await (deps.release||releaseTaskPage)(page,{outcome:'error',closeTarget:input.close_tab_after===true});}
    catch(error){console.error('SIGTERM browser release failed:',error.message);}
    finally{process.exit(143);}
  };
@@ -101,7 +110,7 @@ export async function collect(input,deps={}){
   const minimum=input.minimum_after?Date.parse(input.minimum_after):0;ui.check(Number.isFinite(minimum)&&minimum<=now(),'Invalid catalog read boundary');
   ui.check(input.inventory_only===undefined||typeof input.inventory_only==='boolean','Invalid inventory-only selection');
   const directory=resolve(input.output_dir);await mkdir(directory,{recursive:true});
-  page=await(deps.acquire||acquireTaskPage)({taskId:taskIdFor('amazon-operations',input.task_key || input.operation_id),slot:'ffp-catalog-discovery',workflow:'amazon-flatfilepro',initialUrl:'https://app.flatfile.pro/exports',exclusiveContext:true});
+  page=await(deps.acquire||acquireTaskPage)({closeOnFailure:input.close_tab_after===true,taskId:taskIdFor('amazon-operations',input.task_key || input.operation_id),slot:'ffp-catalog-discovery',workflow:'amazon-flatfilepro',initialUrl:'https://app.flatfile.pro/exports',exclusiveContext:true});
   if(!deps.pages){await page.session.send('Page.navigate',{url:'https://app.flatfile.pro/exports'});await ui.selectFlatFileProAccount(page.session,input.account);}
   const pages=await(deps.pages||readCatalogPages)(page.session,input.account),inventory=validateCatalogPages(pages,input.account);
   ui.check(pages.every(value=>Date.parse(value.observed_at)>=minimum&&Date.parse(value.observed_at)<=now()),'Catalog read timestamp mismatch');
@@ -119,7 +128,7 @@ export async function collect(input,deps={}){
   if(page&&!deps.pages){try{evidence=join(resolve(input.output_dir),`catalog-failure-${now()}.png`);await ui.screenshot(page,evidence,input.account,'ffp');}catch{evidence=undefined;}}
   return {...common,status:'blocked',complete:false,reason:'ffp_catalog_discovery_unavailable',message:error.message,...(evidence?{evidence}:{})};
  }
- finally{process.removeListener('SIGTERM',onSigterm);if(page)await(deps.release||releaseTaskPage)(page,{outcome});}
+ finally{process.removeListener('SIGTERM',onSigterm);if(page)await(deps.release||releaseTaskPage)(page,{outcome,closeTarget:input.close_tab_after===true});}
 }
 
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){try{ui.check(process.argv.length===4&&process.argv[2]==='--request','Usage: --request FILE');console.log(JSON.stringify(await collect(JSON.parse(await readFile(process.argv[3],'utf8')))));}catch(error){console.log(JSON.stringify({schema_version:1,status:'blocked',reason:'collector_preflight',message:error.message}));process.exitCode=2;}}

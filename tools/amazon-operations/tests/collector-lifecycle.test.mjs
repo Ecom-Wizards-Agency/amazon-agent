@@ -13,6 +13,7 @@ const sources={
  'task-tabs.mjs':`export const taskIdFor=globalThis.__collectorLifecycle.taskIdFor;
  export const acquireTaskPage=(...args)=>globalThis.__collectorLifecycle.acquire(...args);
  export const releaseTaskPage=(...args)=>globalThis.__collectorLifecycle.release(...args);
+ export const closeReleasedTaskPage=(...args)=>globalThis.__collectorLifecycle.closeReleased(...args);
  export const completeBrowserTask=(...args)=>globalThis.__collectorLifecycle.complete(...args);`,
  'browser-ui.mjs':Object.keys(realUi).map(name=>typeof realUi[name]==='function'?`export const ${name}=(...args)=>globalThis.__collectorLifecycle.ui.${name}(...args);`:`export const ${name}=${JSON.stringify(realUi[name])};`).join('\n'),
  'cdp.mjs':`export const evaluate=(...args)=>globalThis.__collectorLifecycle.evaluate(...args);`,
@@ -46,11 +47,12 @@ const asin='B000000001',field='item_name.0.value',hash='a'.repeat(64);
 async function fixture(t) {
  const directory=await mkdtemp(join(tmpdir(),'collector-lifecycle-'));
  t.after(()=>rm(directory,{recursive:true,force:true}));
- const events=[],specs=[],subscribers=new Map();
+ const events=[],specs=[],releases=[],subscribers=new Map();
  let submitted=false;
  const state=()=>({url:'https://app.flatfile.pro/import?importId=exact',text:'Page 1 of 1',rows:[['sku',field],['sku-one','New']],controls:submitted?[]:[{label:'UPLOAD EXCEL FILE'},{label:'UPDATE LISTINGS'}]});
  boundary.acquire=async spec=>{specs.push(spec);return {taskId:spec.taskId,targetId:'target-'+specs.length,session:{assertTaskControl:async()=>{},send:(...args)=>boundary.send(...args),subscribe:(event,fn)=>subscribers.set(event,fn)}};};
- boundary.release=async(page,{outcome})=>{if(page._released)return;page._released=true;events.push(['release',outcome]);};
+ boundary.release=async(page,options)=>{if(page._released)return;page._released=true;releases.push(options);events.push(['release',options.outcome]);};
+ boundary.closeReleased=async page=>events.push(['close-released',page.targetId]);
  boundary.complete=async spec=>events.push(['complete',spec]);
  boundary.ui={...realUi,selectFlatFileProAccount:async()=>state(),context:async()=>state(),snapshot:async()=>state(),
   waitFor:async(read,predicate)=>{const value=await read();assert.ok(predicate(value));return value;},
@@ -77,7 +79,7 @@ async function fixture(t) {
  const planPath=join(directory,'plan.json');await writeFile(planPath,JSON.stringify(plan));
  const input={schema_version:1,operation_id:'revision-1',account,plan_hash:hash,submission_id:'exact',expected_rows:{'sku-one':{[field]:'New'}},targets:[{sku:'sku-one',asin}],minimum_after:'2026-01-01T00:00:00Z',output_dir:directory};
  const envelope={schema_version:1,plan,plan_hash:hash,plan_path:planPath,receipt_path:join(directory,'receipt.json')};
- return {events,specs,input,envelope,directory};
+ return {events,specs,releases,input,envelope,directory};
 }
 
 test('Activity releases completed reads as success and blocked reads as error',async t=>{
@@ -164,11 +166,13 @@ for(const name of ['activity','images','listings','discovery','exports','flatfil
   boundary.ui.context=async()=>{throw Error('Read interrupted');};
   const exit=t.mock.method(process,'exit',()=>{});
   const input=name==='flatfile'?f.envelope:name==='images'?{...f.input,targets:{'sku-one':{asin,slots:['PT01']}}}:f.input;
+  input.close_tab_after=true;
   const running=({activity:activity.run,images:images.collect,listings:listings.collect,discovery:discovery.collect,exports:exports.collect,flatfile:flatfile.run})[name](input);
   await ready;
   const handlers=process.listeners('SIGTERM').filter(listener=>!before.includes(listener));
   assert.equal(handlers.length,1);
   await handlers[0]();
+  assert.deepEqual(f.releases,[{outcome:'error',closeTarget:true}]);
   assert.deepEqual(f.events,[['release','error']]);
   assert.equal(exit.mock.calls.length,1);assert.deepEqual(exit.mock.calls[0].arguments,[143]);
   rejectRead(Error('Interrupted'));await running;
@@ -226,11 +230,13 @@ for(const name of ['catalog','cases']){
   boundary.ui.context=()=>boundary.send();
   const exit=t.mock.method(process,'exit',()=>{});
   const input=name==='cases'?{...f.input,mode:'observe',operation:'case.create'}:f.input;
+  input.close_tab_after=true;
   const running=(name==='cases'?cases.run:catalog.collect)(input);
   await ready;
   const handlers=process.listeners('SIGTERM').filter(listener=>!before.includes(listener));
   assert.equal(handlers.length,1);
   await handlers[0]();
+  assert.deepEqual(f.releases,[{outcome:'error',closeTarget:true}]);
   assert.deepEqual(f.events,[['release','error']]);
   assert.deepEqual(exit.mock.calls.map(call=>call.arguments),[[143]]);
   rejectRead(Error('Interrupted'));await running;
@@ -251,3 +257,184 @@ for(const name of ['flatfile','reconcile','catalog','cases']){
   assert.deepEqual(f.events,[]);
  });
 }
+
+for(const name of ['activity','images','listings','discovery','exports','flatfile','reconcile','catalog','cases']){
+ test(`${name} forwards boolean close_tab_after on success and error`,async t=>{
+  for(const flag of [undefined,false,'true',true]){
+   const f=await fixture(t);
+   const input={...(name==='flatfile'||name==='reconcile'?f.envelope:f.input),close_tab_after:flag};
+   if(name==='images')input.targets={'sku-one':{asin,slots:['PT01']}};
+   if(name==='cases')Object.assign(input,{mode:'observe',operation:'case.create',inputs:{subject:'Exact issue'}});
+   if(name==='discovery')delete input.targets;
+   let failRead=false;
+   const read=async()=>{if(failRead)throw Error('Read failed');return {sku:'sku-one',asin,observed_at:new Date().toISOString(),row:{asin}};};
+   const run=()=>({
+    activity:()=>activity.run(input),images:()=>images.collect(input),listings:()=>listings.collect(input,{read}),
+    discovery:()=>discovery.collect(input,{pages:async()=>{if(failRead)throw Error('Read failed');return [{...account,offset:0,total:0,has_more:false,items:[],observed_at:new Date().toISOString()}];}}),
+    exports:()=>exports.collect(input,{read:async()=>({controls:[{label:'EXPORT ALL LISTINGS'}],links:[]}),click:async()=>{}}),
+    flatfile:()=>flatfile.run(input),reconcile:()=>flatfile.reconcileImport(input,{submission_intent:true,import_url:'https://app.flatfile.pro/import?importId=exact',import_id:'exact'}),
+    catalog:()=>catalog.collect(input),cases:()=>cases.run(input),
+   })[name]();
+   if(name==='catalog'){
+    boundary.ui.snapshot=async()=>({url:'https://sellercentral.amazon.com/listing/reports',text:'Reports'});
+    boundary.ui.click=async()=>{};
+    boundary.evaluate=async(_session,source)=>source.includes('data.statuses')?[]:{report_value:'catalog',report_label:'Category Listings Report'};
+   }
+   if(name==='cases'){
+    boundary.ui.context=async()=>({url:'https://sellercentral.amazon.com/home',text:'Home'});
+    boundary.ui.snapshot=async()=>({url:'https://sellercentral.amazon.com/cu/case-lobby',text:'Case search results '.repeat(10)});
+    boundary.evaluate=async()=>({status:200,body:JSON.stringify({caseSearchResultList:[],totalNumberOfResults:0})});
+   }
+   const result=await run();
+   assert.equal(f.releases.length,1,JSON.stringify(result));
+   assert.equal(f.specs[0].closeOnFailure,flag===true);
+   assert.equal(f.releases[0].closeTarget,flag===true);
+   assert.equal(f.releases[0].outcome,'success',JSON.stringify(result));
+   failRead=true;
+   if(name==='flatfile')await rm(join(f.directory,'flatfilepro-attempt.json'));
+   boundary.send=async()=>{throw Error('Read failed');};
+   boundary.ui.context=()=>boundary.send();
+   boundary.ui.selectFlatFileProAccount=()=>boundary.send();
+   await run();
+   assert.equal(f.releases.at(-1).closeTarget,flag===true);
+   assert.equal(f.releases.at(-1).outcome,'error');
+  }
+ });
+}
+
+test('import recovery forwards close_tab_after on SIGTERM',async t=>{
+ const f=await fixture(t),before=process.listeners('SIGTERM');
+ let entered,rejectRead;const ready=new Promise(resolve=>entered=resolve);
+ boundary.send=()=>{entered();return new Promise((_resolve,reject)=>rejectRead=reject);};
+ const exit=t.mock.method(process,'exit',()=>{});
+ const running=flatfile.reconcileImport({...f.envelope,close_tab_after:true},
+  {submission_intent:true,import_url:'https://app.flatfile.pro/import?importId=exact',import_id:'exact'});
+ await ready;
+ const handlers=process.listeners('SIGTERM').filter(listener=>!before.includes(listener));
+ assert.equal(handlers.length,1);
+ await handlers[0]();
+ assert.deepEqual(f.releases,[{outcome:'error',closeTarget:true}]);
+ assert.deepEqual(exit.mock.calls.map(call=>call.arguments),[[143]]);
+ rejectRead(Error('Interrupted'));await running;
+ assert.deepEqual(process.listeners('SIGTERM'),before);
+});
+
+test('pre-submit handoff keeps the exact import target and forwards close_tab_after to the listing read',async t=>{
+ const f=await fixture(t),page={targetId:'exact-import'},resumed={targetId:'exact-import'},events=[];
+ const input={...f.envelope,close_tab_after:true,plan:{...f.envelope.plan,body:{
+  sku_asins:{'sku-one':asin},image_before_rows:{'sku-one':{}},
+ }}};
+ const fresh={status:'collected'};
+ const result=await flatfile.refreshImagePreflight(input,page,{
+  release:async(target,options)=>{assert.equal(target,page);assert.equal(options.closeTarget===true,false);events.push('release');},
+  collect:async envelope=>{assert.equal(envelope.close_tab_after,true);assert.equal(envelope.plan,undefined);events.push('collect');return fresh;},
+  acquire:async spec=>{assert.equal(spec.expectedTargetId,page.targetId);assert.equal(spec.closeOnFailure,true);events.push('acquire');return resumed;},
+ });
+ assert.deepEqual(events,['release','collect','acquire']);
+ assert.deepEqual(result,{page:resumed,fresh});
+});
+
+for(const step of ['collect','reacquire'])for(const flag of [undefined,false,true]){
+ test(`pre-submit ${step} failure closes retained target only when close_tab_after=${flag}`,async t=>{
+  const f=await fixture(t),page={targetId:'exact-import'},events=[];
+  const input={...f.envelope,close_tab_after:flag,plan:{...f.envelope.plan,body:{sku_asins:{'sku-one':asin},image_before_rows:{'sku-one':{}}}}};
+  await assert.rejects(flatfile.refreshImagePreflight(input,page,{
+   release:async(target,options)=>{assert.equal(target,page);assert.deepEqual(options,{outcome:'handoff'});page._released=true;},
+   collect:async()=>{if(step==='collect')throw Error('nested failed');return {status:'collected'};},
+   acquire:async()=>{throw Error('reacquire failed');},
+   closeReleased:async target=>{assert.equal(target,page);events.push(target.targetId);},
+  }),/failed/);
+  assert.deepEqual(events,flag===true?['exact-import']:[]);
+ });
+}
+
+for(const flag of [undefined,true]){
+ test(`SIGTERM during nested pre-submit read cleans both tabs before exit, close_tab_after=${flag}`,async t=>{
+  const f=await fixture(t),before=process.listeners('SIGTERM');
+  const input={...f.envelope,close_tab_after:flag,plan:{...f.envelope.plan,body:{sku_asins:{'sku-one':asin},image_before_rows:{'sku-one':{}}}}};
+  const page=await boundary.acquire({taskId:'import'});
+  let entered,rejectRead,finishClose;
+  const ready=new Promise(resolve=>entered=resolve);
+  const closeDone=new Promise(resolve=>finishClose=resolve);
+  boundary.ui.selectFlatFileProAccount=()=>{entered();return new Promise((_resolve,reject)=>rejectRead=reject);};
+  boundary.closeReleased=async target=>{await closeDone;f.events.push(['close-released',target.targetId]);};
+  const exit=t.mock.method(process,'exit',()=>{
+   assert.deepEqual(f.events,flag===true?[['release','handoff'],['release','error'],['close-released',page.targetId]]:[['release','handoff'],['release','error']]);
+  });
+  const running=flatfile.refreshImagePreflight(input,page);
+  const rejected=assert.rejects(running,/interrupted/);
+  await ready;
+  const handlers=process.listeners('SIGTERM').filter(listener=>!before.includes(listener));
+  assert.equal(handlers.length,2);
+  const stopping=Promise.all(handlers.map(handler=>handler()));
+  await new Promise(resolve=>setImmediate(resolve));
+  if(flag===true)assert.equal(exit.mock.calls.length,0);
+  finishClose();await stopping;
+  assert.deepEqual(exit.mock.calls.map(call=>call.arguments),[[143]]);
+  assert.equal(f.releases[1].closeTarget,flag===true);
+  rejectRead(Error('Interrupted'));await rejected;
+  assert.equal(f.specs.length,2,'SIGTERM must not reacquire the import target');
+  assert.deepEqual(process.listeners('SIGTERM'),before);
+ });
+}
+
+for(const flag of [undefined,true]){
+ test(`SIGTERM during pre-submit reacquisition releases resumed handle, close_tab_after=${flag}`,async t=>{
+  const f=await fixture(t),before=process.listeners('SIGTERM'),page={targetId:'exact-import'},resumed={targetId:'exact-import'},releases=[];
+  const input={...f.envelope,close_tab_after:flag,plan:{...f.envelope.plan,body:{sku_asins:{'sku-one':asin},image_before_rows:{'sku-one':{}}}}};
+  let entered,finishAcquire;const ready=new Promise(resolve=>entered=resolve);
+  const exit=t.mock.method(process,'exit',()=>{});
+  const running=flatfile.refreshImagePreflight(input,page,{
+   release:async(target,options)=>{target._released=true;releases.push(options);},
+   collect:async()=>({status:'collected'}),
+   acquire:()=>{entered();return new Promise(resolve=>finishAcquire=resolve);},
+   closeReleased:async()=>{assert.fail('Resumed handle owns the target');},
+  });
+  const rejected=assert.rejects(running,/interrupted/);
+  await ready;
+  const handlers=process.listeners('SIGTERM').filter(listener=>!before.includes(listener));
+  assert.equal(handlers.length,1);
+  const stopping=handlers[0]();finishAcquire(resumed);await stopping;await rejected;
+  assert.deepEqual(releases,[{outcome:'handoff'},{outcome:'error',closeTarget:flag===true}]);
+  assert.deepEqual(exit.mock.calls.map(call=>call.arguments),[[143]]);
+  assert.deepEqual(process.listeners('SIGTERM'),before);
+ });
+}
+
+test('SIGTERM during import handoff release waits for release before closing',async t=>{
+  const f=await fixture(t),before=process.listeners('SIGTERM'),page={targetId:'exact-import'},events=[];
+  const input={...f.envelope,close_tab_after:true,plan:{...f.envelope.plan,body:{sku_asins:{'sku-one':asin},image_before_rows:{'sku-one':{}}}}};
+  let finishRelease;
+  const exit=t.mock.method(process,'exit',()=>events.push('exit'));
+  const running=flatfile.refreshImagePreflight(input,page,{
+   release:async()=>{page._released=true;await new Promise(resolve=>finishRelease=resolve);events.push('released');},
+   collect:async()=>{assert.fail('Interrupted handoff must not start a listing read');},
+   closeReleased:async target=>{assert.equal(target,page);events.push('closed');},
+  });
+  const rejected=assert.rejects(running,/interrupted/);
+  const handlers=process.listeners('SIGTERM').filter(listener=>!before.includes(listener));
+  const stopping=handlers[0]();
+  assert.deepEqual(events,[]);finishRelease();await stopping;await rejected;
+  assert.deepEqual(events,['released','closed','exit']);
+  assert.deepEqual(exit.mock.calls.map(call=>call.arguments),[[143]]);
+  assert.deepEqual(process.listeners('SIGTERM'),before);
+ });
+
+test('nested listing SIGTERM waits for an in-progress release and handoff cleanup',async t=>{
+  const f=await fixture(t),before=process.listeners('SIGTERM'),events=[];
+  let entered,finishRelease;const ready=new Promise(resolve=>entered=resolve);
+  const exit=t.mock.method(process,'exit',()=>events.push('exit'));
+  const running=listings.collect({...f.input,close_tab_after:true},{
+   read:async()=>({sku:'sku-one',asin,observed_at:new Date().toISOString(),row:{asin}}),
+   release:async page=>{page._released=true;entered();await new Promise(resolve=>finishRelease=resolve);events.push('released');},
+   beforeSigtermExit:async()=>events.push('handoff-cleaned'),
+  });
+  await ready;
+  const handlers=process.listeners('SIGTERM').filter(listener=>!before.includes(listener));
+  assert.equal(handlers.length,1);
+  const stopping=handlers[0]();assert.deepEqual(events,[]);
+  finishRelease();await stopping;await running;
+  assert.deepEqual(events,['released','handoff-cleaned','exit']);
+  assert.deepEqual(exit.mock.calls.map(call=>call.arguments),[[143]]);
+  assert.deepEqual(process.listeners('SIGTERM'),before);
+ });

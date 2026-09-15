@@ -1008,6 +1008,31 @@ export async function listTaskTabs() {
   return Object.values(state.task_tabs).map((record) => structuredClone(record));
 }
 
+export async function closeReleasedTaskTab({ port, taskId, slot = "primary", targetId, closed = true }) {
+  return transaction((state) => {
+    const key = taskSlotKey(port, assertTaskText("taskId", taskId), assertTaskText("slot", slot, 100));
+    const record = state.task_tabs[key];
+    const leaseId = leaseKey(port, targetId);
+    const lease = state.leases[leaseId];
+    if (lease?.class === "anchor" || (record && (isRegionPrimary(record) || record.controller ||
+        record.reservationToken || (record.targetId && record.targetId !== targetId)))) return false;
+    if (Object.values(state.task_tabs).some((entry) => entry.port === Number(port) &&
+        entry.targetId === targetId && entry !== record)) return false;
+    if (closed) delete state.leases[leaseId];
+    else if (lease) {
+      // A failed close still leaves a tracked target for normal cleanup.
+      delete lease.taskId;
+      delete lease.taskSlot;
+      delete lease.taskBindingGeneration;
+    }
+    if (record) {
+      clearContextClaimFor(state, record, null);
+      delete state.task_tabs[key];
+    }
+    return Boolean(record || lease);
+  });
+}
+
 export async function removeLease({ port, targetId, expectedCloseToken = null }) {
   return transaction((state) => {
     const key = leaseKey(port, targetId);
