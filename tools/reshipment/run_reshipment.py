@@ -133,7 +133,7 @@ def pull_account(account: dict, region: dict, run_date: str, cdp_env: dict,
     outdir = (work_dir or REPO) / "downloads" / account["key"] / "inventory" / run_date
     outdir.mkdir(parents=True, exist_ok=True)
     run_stamp = datetime.datetime.now().astimezone().strftime("%H%M%S%f")
-    task_id = f"reshipment:{account['profile_key']}:{run_date}:{run_stamp}"
+    task_id = f"reshipment:{account['profile_key']}"
     provider_cfg = json.loads(config_path.read_text(encoding="utf-8"))
     provider_profile = ((provider_cfg.get("inventory_questions") or {}).get("profiles") or {}).get(
         account["profile_key"], {})
