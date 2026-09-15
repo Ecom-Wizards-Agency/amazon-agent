@@ -956,7 +956,8 @@
         }
       ],
       "verified_on": "2026-09-15",
-      "notes": "Open access gap. Category Listings Report is not a prerequisite of the shipped FlatFilePro image route."
+      "last_check": "Read-only checks on 2026-09-15 at 09:10 and 09:11 UTC, about 40 minutes after the delegated login's permissions changed, found that Reports > Inventory Reports offered only \"Amazon-fulfilled Inventory Report\" for both KABOOKI Germany and SwissKlip United States, while older Category Listings Reports remained in the history table. The missing option is not account-specific and points to the delegated user's permission set or report enablement rather than KABOOKI.",
+      "notes": "Open access gap. Last check: read-only checks on 2026-09-15 at 09:10 and 09:11 UTC found that Reports > Inventory Reports offered only \"Amazon-fulfilled Inventory Report\" for both KABOOKI Germany and SwissKlip United States, while older Category Listings Reports remained in the history table. The missing option is not account-specific and points to the delegated user's permission set or report enablement rather than KABOOKI. Category Listings Report is not a prerequisite of the shipped FlatFilePro image route."
     },
     {
       "id": "account-health.read",
