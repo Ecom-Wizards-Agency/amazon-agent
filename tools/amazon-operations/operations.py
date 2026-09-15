@@ -342,9 +342,21 @@ def prepare_images(request, directory):
         require(source_kind in {None, 'flatfilepro_listing_read'}, 'invalid_source', 'Unknown image catalog source')
         if source_kind:
             prepared['image_catalog_source'] = source_kind
+            prepared['image_identity_rows'] = {sku: image_listing_identity(inputs['live']['rows'][sku]) for sku in request['targets']}
             prepared['image_preview_metadata'] = {sku: {'itemName': inputs['live']['rows'][sku].get('itemName') or inputs['live']['rows'][sku].get('item_name.0.value'), 'productType': inputs['live']['rows'][sku].get('product_type')} for sku in request['targets']}
             require(all(x['itemName'] and x['productType'] for x in prepared['image_preview_metadata'].values()), 'missing_metadata', 'FFP image preview requires observed title and product type')
     return prepared
+
+
+def image_listing_identity(row):
+    """Freeze complete observed identity, including absent optional attributes."""
+    aliases = {'sku', 'asin', 'mpn', 'color', 'color_code', 'size', 'parentage',
+               'parent_sku', 'listing_relationship_evidence', 'product_type', 'archived',
+               'itemName', 'model_name', 'model_number'}
+    attributes = re.compile(r'^(?:item_name|model_name|model_number|part_number|color|size|'
+                            r'parentage_level|child_parent_sku_relationship|'
+                            r'externally_assigned_product_identifier|merchant_suggested_asin)\.')
+    return {k: v for k, v in row.items() if k in aliases or attributes.match(k)}
 
 
 def image_before_rows(request, directory):
@@ -682,6 +694,10 @@ class Operations:
 
     def validate_image_baseline(self, plan, rows, *, protected_only=False):
         evidence = evidence_tools()
+        if not protected_only:
+            for sku, identity in plan['body'].get('image_identity_rows', {}).items():
+                require(image_listing_identity(rows.get(sku, {})) == identity, 'image_state_conflict',
+                        f'Current listing model, color, size or identity changed: {sku}')
         touched = {(image['sku'], f"other_product_image_locator_{int(image['slot'][2:])}.0.media_location")
                    for image in plan['body']['images'] if image['slot'].startswith('PT')}
         for sku, baseline in plan['body']['image_before_rows'].items():

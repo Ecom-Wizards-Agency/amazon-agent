@@ -9,6 +9,7 @@ import { evaluate } from '../report-fetcher/cdp.mjs';
 import { acquireTaskPage,releaseTaskPage,completeBrowserTask,taskIdFor } from '../browserctl/task-tabs.mjs';
 import * as ui from './browser-ui.mjs';
 import { collect as collectListings } from './flatfilepro-listings.mjs';
+import { verifyListingIdentities } from './image-identity.mjs';
 import { submitAttended, submittedRunIdentity } from './flatfilepro-submit.mjs';
 import { collectPreview, readPreviewState, normalizePreviewState, destinationSearchField, durableReceipt, exactDestination, importIdentity, readAttempt, recoveryStatus, reserveSubmission, sameUploadedFile, uploadedFileIdentity, verifyImagePreflight, verifySelectedDestination } from './flatfilepro-contracts.mjs';
 
@@ -23,8 +24,12 @@ async function importForm(session,account) {
 }
 
 async function selectSourceHeader(session,account,label,field) {
-  await ui.waitFor(()=>importForm(session,account),s=>s.inputs.filter(x=>x.label===label).length===1&&!s.text.includes('Loading listing attributes'),60000);
-  await evaluate(session,`(()=>{const inputs=[...document.querySelectorAll('input[role="combobox"]')].filter(e=>e.getBoundingClientRect().width>0&&(e.parentElement.querySelector('legend')?.textContent||'').trim()===${JSON.stringify(label)});if(inputs.length!==1)throw Error('Expected one labeled FlatFilePro autocomplete');inputs[0].focus();inputs[0].select()})()`);
+  // React can replace these controls between the readiness snapshot and focus.
+  // Check and focus the exact field atomically; transient re-renders only retry.
+  await ui.waitFor(async()=>{
+    await ui.context(session,account,'ffp');
+    return evaluate(session,`(()=>{const inputs=[...document.querySelectorAll('input[role="combobox"]')].filter(e=>e.getBoundingClientRect().width>0&&(e.parentElement.querySelector('legend')?.textContent||'').trim()===${JSON.stringify(label)});if(inputs.length!==1||inputs[0].disabled||inputs[0].readOnly||document.body.innerText.includes('Loading listing attributes'))return false;inputs[0].focus();inputs[0].select();return document.activeElement===inputs[0]})()`);
+  },Boolean,60000);
   await session.send('Input.insertText',{text:field});
   const state=await ui.waitFor(()=>importForm(session,account),s=>s.options.length>0||s.text.includes('No options'));
   return state.options;
@@ -224,6 +229,7 @@ async function execute(input) {
       const fresh=refreshed.fresh;
       ui.check(fresh.status==='collected'&&fresh.complete===true,'Fresh FlatFilePro listing read unavailable: '+(fresh.message||''));
       for(const [sku,row] of Object.entries(body.image_before_rows))for(const [field,value] of Object.entries(row))ui.check(Object.hasOwn(fresh.rows[sku]||{},field)&&fresh.rows[sku][field]===value,'Pre-submit listing baseline changed: '+sku+'/'+field);
+      verifyListingIdentities(body.image_identity_rows,fresh.rows);
       input={...input,image_preflight:{path:fresh.path,sha256:fresh.sha256,source_kind:fresh.source_kind,observed_at:fresh.observed_at}};
       const current=normalizePreviewState(await readPreviewState(page.session,()=>ui.context(page.session,plan.account,'ffp')));
       ui.check(JSON.stringify(current.rows)===JSON.stringify(preview.last_page_rows),'Preview changed during pre-submit read');
