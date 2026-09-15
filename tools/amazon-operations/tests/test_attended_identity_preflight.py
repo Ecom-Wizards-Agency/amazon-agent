@@ -8,6 +8,21 @@ import test_image_safety as base
 
 
 class AttendedIdentityPreflightTests(base.ImageSafetyTests):
+    def test_periodic_full_read_checks_changed_identity_despite_unchanged_import(self):
+        directory, evidence, collected = self.image_poll_fixture()
+        with patch.object(self.service, 'run_collector', side_effect=collected) as collector:
+            skipped = self.service.reconcile(self.execute)
+        self.assertEqual(collector.call_count, 1)
+        self.assertEqual(skipped['evidence_skipped'], 'activity-unchanged')
+        evidence['protected_rows']['a']['asin'] = 'B000000002'
+        with patch.object(self.service, 'run_collector', side_effect=collected) as collector:
+            result = self.service.reconcile({**self.execute, 'full_verify_seconds': 0})
+        self.assertEqual(collector.call_count, 3)
+        self.assertNotIn('evidence_skipped', result)
+        self.assertEqual(result['image_completion']['preservation'], 'conflict')
+        self.assertFalse(result['image_completion']['release_eligible'])
+        self.assertFalse(result['verified'])
+
     def test_exact_identity_is_frozen_and_changed_attributes_block_adapter(self):
         self.request['inputs']['image_catalog_source'] = 'flatfilepro_listing_read'
         self.rows['a'].update(itemName='Navy rain set', product_type='SNOWSUIT',

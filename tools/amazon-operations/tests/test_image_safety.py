@@ -499,6 +499,216 @@ class ImageSafetyTests(unittest.TestCase):
             self.assertEqual(result['pdp_collection']['message'], 'PDP timeout')
             self.assertEqual(op.digest(self.plan), original_hash)
 
+    def image_poll_fixture(self, *, published=False):
+        directory, state, evidence = self.completion_fixture()
+        evidence['ffp_processing']['summary'] = {'reflected': 0, 'inProgress': 1, 'rejected': 0, 'failed': 0}
+        def collected(_directory, script, envelope, **kwargs):
+            self.assertIs(envelope['complete_task'], False)
+            if script == 'flatfilepro-activity.mjs':
+                return {**copy.deepcopy(evidence['ffp_processing']), 'observed_at': op.now()}
+            if script == 'image-evidence.mjs':
+                return {'status': 'collected', 'operation_id': self.plan['operation_id'],
+                        'account': self.account, 'plan_hash': state['plan_hash'],
+                        'observed_at': op.now(), 'images': [
+                            {**item, 'observed_at': op.now(), 'live_url': item.get('live_url', item.get('expected_url')),
+                             'source_id': 'https://www.amazon.com/dp/B000000001'}
+                            for item in evidence['images'] + evidence['protected_images']
+                        ] if published else []}
+            self.assertEqual(script, 'flatfilepro-listings.mjs')
+            result = {'status': 'collected', 'complete': True, 'source_kind': 'flatfilepro_listing_read',
+                      'account': self.account, 'plan_hash': state['plan_hash'], 'observed_at': op.now(),
+                      'rows': copy.deepcopy(evidence['protected_rows'])}
+            path = directory / 'poll-listings.json'
+            op.atomic_json(path, result)
+            return {**result, 'path': str(path), 'sha256': op.file_hash(path)}
+        with patch.object(self.service, 'run_collector', side_effect=collected) as collector, \
+             patch.object(op.evidence_tools(), 'fetch_public_image', return_value=Path(self.plan['body']['images'][0]['path']).read_bytes()):
+            result = self.service.reconcile(self.execute)
+        self.assertEqual(result['status'], 'partial' if published else 'processing')
+        self.assertEqual(collector.call_count, 3)
+        return directory, evidence, collected
+
+    def test_skipped_partial_keeps_publication_after_freshness_expiry(self):
+        directory, evidence, collected = self.image_poll_fixture(published=True)
+        before = self.service.view(directory)
+        for age in (1800, 3599):
+            with self.subTest(age=age):
+                clock = (op.timestamp(before['last_image_full_read_at']) + op.dt.timedelta(seconds=age)).isoformat()
+                with patch.object(op, 'now', return_value=clock), \
+                     patch.object(self.service, 'run_collector', side_effect=collected) as collector, \
+                     patch.object(self.service, '_complete_reconciled_task') as complete:
+                    result = self.service.reconcile(self.execute)
+                    proof = self.service.image_release_proof(self.execute)
+                self.assertEqual([call.args[1] for call in collector.call_args_list], ['flatfilepro-activity.mjs'])
+                self.assertEqual(result['evidence_skipped'], 'activity-unchanged')
+                for key in ('status', 'verified', 'matched', 'pending', 'failures', 'image_completion', 'last_image_full_read_at'):
+                    self.assertEqual(result[key], before[key])
+                self.assertEqual((len(result['matched']), len(result['pending'])), (1, 0))
+                self.assertFalse(proof['release_eligible'])
+                self.assertEqual(proof['matched'], [])
+                complete.assert_not_called()
+
+    def test_partial_past_full_read_bound_runs_pdp_and_preservation_reads(self):
+        directory, evidence, collected = self.image_poll_fixture(published=True)
+        before = self.service.view(directory)
+        clock = (op.timestamp(before['last_image_full_read_at']) + op.dt.timedelta(seconds=3601)).isoformat()
+        with patch.object(op, 'now', return_value=clock), \
+             patch.object(self.service, 'run_collector', side_effect=collected) as collector, \
+             patch.object(op.evidence_tools(), 'fetch_public_image', return_value=Path(self.plan['body']['images'][0]['path']).read_bytes()):
+            result = self.service.reconcile(self.execute)
+        self.assertEqual([call.args[1] for call in collector.call_args_list],
+                         ['flatfilepro-activity.mjs', 'image-evidence.mjs', 'flatfilepro-listings.mjs'])
+        self.assertNotIn('evidence_skipped', result)
+        self.assertEqual(result['last_image_full_read_at'], clock)
+        for key in ('status', 'matched', 'pending', 'failures'):
+            self.assertEqual(result[key], before[key])
+        saved = json.loads(Path(result['evidence_path']).read_text())
+        self.assertEqual(saved['images'][0]['observed_at'], clock)
+        self.assertEqual(saved['preservation_source']['observed_at'], clock)
+
+    def test_unchanged_processing_skips_reads_and_preserves_evidence_and_result(self):
+        directory, evidence, collected = self.image_poll_fixture()
+        before = self.service.view(directory)
+        previous_evidence = json.loads(Path(before['evidence_path']).read_text())
+        clock = previous_evidence['observed_at']
+        with patch.object(op, 'now', return_value=clock), \
+             patch.object(self.service, 'run_collector', side_effect=collected) as collector, \
+             patch.object(self.service, '_complete_reconciled_task') as complete:
+            skipped = self.service.reconcile(self.execute)
+            self.assertEqual([call.args[1] for call in collector.call_args_list], ['flatfilepro-activity.mjs'])
+            self.assertEqual(skipped['evidence_skipped'], 'activity-unchanged')
+            self.assertEqual(skipped['last_collection'], before['last_collection'])
+            self.assertEqual(skipped['last_catalog_collection'], before['last_catalog_collection'])
+            self.assertEqual(skipped['last_image_full_read_at'], before['last_image_full_read_at'])
+            self.assertEqual(skipped['image_completion'], before['image_completion'])
+            complete.assert_not_called()
+            saved = json.loads(Path(skipped['evidence_path']).read_text())
+            for key in ('images', 'pdp_collection', 'protected_images', 'preservation_source', 'protected_rows'):
+                self.assertEqual(saved[key], previous_evidence[key])
+            # Restore the same starting journal to compare with a forced full pass.
+            op.atomic_json(directory / 'journal.json', before)
+            full = self.service.reconcile({**self.execute, 'full_verify_seconds': 0})
+            self.assertNotIn('evidence_skipped', full)
+            self.assertEqual(collector.call_count, 4)
+        # Collection timestamps and evidence digests describe the reads performed.
+        for key in ('status', 'verified', 'matched', 'pending', 'failures', 'submission_id'):
+            self.assertEqual(skipped[key], full[key])
+        self.assertEqual(set(skipped), set(full) | {'evidence_skipped'})
+        for key in skipped['image_completion']:
+            if key != 'proof_digest':
+                self.assertEqual(skipped['image_completion'][key], full['image_completion'][key])
+        complete.assert_called_once()
+        self.assertEqual(complete.call_args.args[3], 'processing')
+
+    def test_changed_activity_always_runs_all_reads(self):
+        directory, evidence, collected = self.image_poll_fixture()
+        baseline = self.service.view(directory)
+        activity = copy.deepcopy(evidence['ffp_processing'])
+        mutations = [
+            lambda a: a['attributes'][0].update(status='pending'),
+            lambda a: a['summary'].update(inProgress=2),
+            lambda a: a['summary'].update(failed=1),
+            lambda a: a.update(errors=['New rejection']),
+            lambda a: a['attributes'][0].update(status='reflected'),
+            lambda a: a['attributes'][0].update(status='failed'),
+            lambda a: a['attributes'][0].update(status='rejected'),
+            lambda a: a.update(status='blocked', complete=False),
+        ]
+        for mutation in mutations:
+            with self.subTest(mutation=mutation):
+                op.atomic_json(directory / 'journal.json', baseline)
+                evidence['ffp_processing'] = copy.deepcopy(activity)
+                mutation(evidence['ffp_processing'])
+                with patch.object(self.service, 'run_collector', side_effect=collected) as collector:
+                    result = self.service.reconcile(self.execute)
+                self.assertEqual(collector.call_count, 3)
+                self.assertNotIn('evidence_skipped', result)
+
+    def test_periodic_bound_and_request_override_force_full_reads(self):
+        directory, evidence, collected = self.image_poll_fixture()
+        baseline = self.service.view(directory)
+        for age, override, count in [(3599, None, 1), (3600, None, 3), (3601, None, 3),
+                                     (61, 60, 3), (60, 120, 1), (0, 0, 3)]:
+            with self.subTest(age=age, override=override):
+                op.atomic_json(directory / 'journal.json', baseline)
+                clock = (op.timestamp(baseline['last_image_full_read_at']) + op.dt.timedelta(seconds=age)).isoformat()
+                request = {**self.execute, **({'full_verify_seconds': override} if override is not None else {})}
+                with patch.object(op, 'now', return_value=clock), patch.object(self.service, 'run_collector', side_effect=collected) as collector:
+                    result = self.service.reconcile(request)
+                self.assertEqual(collector.call_count, count)
+                self.assertEqual(result.get('evidence_skipped'), 'activity-unchanged' if count == 1 else None)
+
+    def test_complete_task_forces_full_reads_without_completing_processing_task(self):
+        directory, evidence, collected = self.image_poll_fixture()
+        with patch.object(self.service, 'run_collector', side_effect=collected) as collector, \
+             patch.object(op.subprocess, 'run') as complete:
+            result = self.service.reconcile({**self.execute, 'complete_task': True})
+        self.assertEqual(collector.call_count, 3)
+        self.assertEqual(result['status'], 'processing')
+        self.assertNotIn('evidence_skipped', result)
+        complete.assert_not_called()
+
+    def test_unchanged_terminal_activity_never_skips(self):
+        directory, evidence, collected = self.image_poll_fixture()
+        baseline = self.service.view(directory)
+        for status in ('reflected', 'failed', 'rejected'):
+            with self.subTest(status=status):
+                evidence['ffp_processing']['attributes'][0]['status'] = status
+                journal = copy.deepcopy(baseline)
+                journal['last_processing_collection'] = copy.deepcopy(evidence['ffp_processing'])
+                saved = json.loads(Path(baseline['evidence_path']).read_text())
+                saved['ffp_processing'] = copy.deepcopy(evidence['ffp_processing'])
+                path = directory / f'evidence-{op.digest(saved)}.json'
+                op.atomic_json(path, saved)
+                journal['evidence_path'] = str(path)
+                op.atomic_json(directory / 'journal.json', journal)
+                with patch.object(self.service, 'run_collector', side_effect=collected) as collector:
+                    result = self.service.reconcile(self.execute)
+                self.assertEqual(collector.call_count, 3)
+                self.assertNotIn('evidence_skipped', result)
+                if status in {'failed', 'rejected'}:
+                    self.assertEqual(result['status'], 'failed')
+
+    def test_terminal_candidate_from_cached_evidence_forces_current_reads(self):
+        directory, evidence, collected = self.image_poll_fixture()
+        baseline = self.service.view(directory)
+        completion = copy.deepcopy(baseline['image_completion'])
+        for processing, preservation in [('complete', 'verified'), ('failed', 'verified'), ('unknown', 'conflict')]:
+            with self.subTest(processing=processing, preservation=preservation):
+                op.atomic_json(directory / 'journal.json', baseline)
+                terminal = {**completion, 'processing': processing, 'preservation': preservation,
+                            'processing_pending': [], 'release_eligible': True}
+                with patch.object(self.service, 'run_collector', side_effect=collected) as collector, \
+                     patch.object(self.service, 'image_completion', side_effect=[terminal, completion]), \
+                     patch.object(self.service, '_complete_reconciled_task') as complete:
+                    result = self.service.reconcile(self.execute)
+                self.assertEqual([call.args[1] for call in collector.call_args_list],
+                    ['flatfilepro-activity.mjs', 'flatfilepro-activity.mjs', 'image-evidence.mjs', 'flatfilepro-listings.mjs'])
+                self.assertEqual(result['status'], 'processing')
+                self.assertNotIn('evidence_skipped', result)
+                complete.assert_called_once()
+                self.assertEqual(complete.call_args.args[3], 'processing')
+
+    def test_missing_or_invalid_full_read_history_forces_reads(self):
+        directory, evidence, collected = self.image_poll_fixture()
+        baseline = self.service.view(directory)
+        for field, value in [('last_image_full_read_at', None), ('last_image_full_read_at', 'invalid'),
+                             ('last_image_full_read_at', '2999-01-01T00:00:00Z'), ('evidence_path', '/missing'),
+                             ('last_processing_collection', None), ('image_completion', None)]:
+            with self.subTest(field=field, value=value):
+                op.atomic_json(directory / 'journal.json', {**baseline, field: value})
+                with patch.object(self.service, 'run_collector', side_effect=collected) as collector:
+                    self.service.reconcile(self.execute)
+                self.assertEqual(collector.call_count, 3)
+
+    def test_invalid_full_verify_bound_is_rejected_before_collectors(self):
+        directory, evidence, collected = self.image_poll_fixture()
+        for value in (-1, True, '60', None, float('inf'), float('nan')):
+            with self.subTest(value=value), patch.object(self.service, 'run_collector') as collector:
+                with self.assertRaisesRegex(op.OperationError, 'finite nonnegative number'):
+                    self.service.reconcile({**self.execute, 'full_verify_seconds': value})
+                collector.assert_not_called()
+
     def test_complete_and_partial_pdp_observations_survive_busy_read_without_refresh(self):
         directory, state, evidence = self.completion_fixture()
         original_time = evidence['images'][0]['observed_at']

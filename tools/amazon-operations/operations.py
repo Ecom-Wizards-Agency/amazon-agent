@@ -34,6 +34,7 @@ OPERATIONS = {'seo.update', 'flatfilepro.update', 'listing.images', 'catalog.cha
 def operation_kind(value):
     return ALIASES.get(value, value)
 TERMINAL = {'verified', 'failed'}
+IMAGE_FULL_VERIFY_SECONDS = 3600
 SEO_FIELDS = re.compile(r'^(item_name|bullet_point|product_description|generic_keyword|title_differentiation)([._]|$)|^itemName$')
 
 class OperationError(ValueError):
@@ -1028,15 +1029,53 @@ class Operations:
         require(set(response.get('rows', {})) == set(plan['body']['image_before_rows']), 'scope_violation', 'Listing read SKU coverage differs')
         return response
 
-    def collect_images(self, directory, state, plan, *, complete_task=False):
+    def collect_images(self, directory, state, plan, *, complete_task=False, full_verify_seconds=IMAGE_FULL_VERIFY_SECONDS):
         body = plan['body']
+        require(isinstance(full_verify_seconds, (int, float)) and not isinstance(full_verify_seconds, bool) and
+                math.isfinite(full_verify_seconds) and full_verify_seconds >= 0,
+                'invalid_full_verify_seconds', 'full_verify_seconds must be a finite nonnegative number')
+        state.pop('evidence_skipped', None)
         activity = None
+        previous_activity = state.get('last_processing_collection')
         if body.get('image_policy') and state.get('submission_id'):
             activity = self.run_collector(directory, 'flatfilepro-activity.mjs', {
                 'schema_version': 1, 'operation_id': plan['operation_id'], 'account': plan['account'],
                 'plan_hash': state['plan_hash'], 'submission_id': state['submission_id'],
                 'expected_rows': body['expected_rows'], 'task_key': state.get('task_key'), 'complete_task': False}, timeout=300)
             state['last_processing_collection'] = activity
+            # Read timestamps change on every poll; all other Activity values,
+            # including counts and failures, must agree before reusing evidence.
+            def snapshot(value):
+                if not isinstance(value, dict):
+                    return None
+                return {**{key: item for key, item in value.items() if key not in {'observed_at', 'attributes'}},
+                        'attributes': sorted(value.get('attributes', []), key=canonical)}
+            attributes = activity.get('attributes', [])
+            summary = activity.get('summary') or {}
+            pending = (not body.get('no_changes') and activity.get('status') == 'collected' and activity.get('complete') is True and
+                       activity.get('account') == plan['account'] and activity.get('plan_hash') == state['plan_hash'] and
+                       activity.get('submission_id') == state['submission_id'] and
+                       any(item.get('status') in {'pending', 'in_progress'} for item in attributes) and
+                       all(item.get('status') in {'pending', 'in_progress', 'reflected'} for item in attributes) and
+                       not any(summary.get(key) or activity.get(key) for key in ('failed', 'rejected', 'errors', 'failures')) and
+                       activity.get('processing_status', 'processing') == 'processing')
+            if (pending and complete_task is not True and state.get('status') in {'processing', 'partial'} and
+                    isinstance(state.get('image_completion'), dict) and snapshot(activity) == snapshot(previous_activity)):
+                try:
+                    age = (timestamp(now()) - timestamp(state.get('last_image_full_read_at'))).total_seconds()
+                    path = Path(state.get('evidence_path') or '')
+                    if 0 <= age < full_verify_seconds and path.resolve().parent == directory.resolve():
+                        saved = json.loads(path.read_text())
+                        if (isinstance(saved, dict) and path.name == f'evidence-{digest(saved)}.json' and
+                                saved.get('account') == plan['account'] and saved.get('plan_hash') == state['plan_hash'] and
+                                saved.get('submission_id') == state['submission_id'] and
+                                saved.get('processing_status') == 'live_observed' and
+                                snapshot(saved.get('ffp_processing')) == snapshot(activity)):
+                            state['evidence_skipped'] = 'activity-unchanged'
+                            # Preserve every PDP and preservation observation time.
+                            return {**saved, 'ffp_processing': activity, 'observed_at': now()}
+                except (OSError, ValueError):
+                    pass
         mapping = body.get('sku_asins', {})
         if not all(image['sku'] in mapping for image in body['images']):
             return None
@@ -1110,7 +1149,7 @@ class Operations:
             try:
                 ffp_source = (body.get('image_catalog_source') == 'flatfilepro_listing_read' or
                               (body.get('image_policy') == 'secondary_slots_only' and body.get('adapter') == 'flatfilepro.cdp'))
-                fresh = self.collect_image_catalog(directory, state, plan, complete_task=complete_task) if ffp_source else self.collect_export(directory, state, plan, complete_task=complete_task)
+                fresh = self.collect_image_catalog(directory, state, plan, complete_task=False) if ffp_source else self.collect_export(directory, state, plan, complete_task=False)
                 if fresh is not None:
                     protected = {'protected_rows': fresh['rows'], 'preservation_source':
                         {key: value for key, value in fresh.items() if key != 'rows'}}
@@ -1118,6 +1157,7 @@ class Operations:
                     protected['preservation_source'].setdefault('observed_at', fresh.get('report_generated_at'))
             except (OSError, ValueError) as exc:
                 protected = {'preservation_source': {'status': 'blocked', 'message': str(exc)}}
+        state['last_image_full_read_at'] = now()
         return {'account': plan['account'], 'plan_hash': state['plan_hash'], 'source_id': 'amazon-live-imageblock', 'observed_at': now(), 'submission_id': state.get('submission_id'), 'processing_status': 'live_observed', 'images': observed, **protected,
                 'pdp_collection': response, 'protected_images': protected_images,
                 **({'pdp_collection_error': collection_error} if collection_error else {}),
@@ -1235,8 +1275,14 @@ class Operations:
                 receipt = {key: fresh[key] for key in ('path', 'sha256', 'report_generated_at', 'observed_at')}
                 return self.persist(directory, state, 'partial', phase='preflight', effects_started=False, next_action='execute', reason='fresh_missing_fields_verified', preflight_receipt=receipt)
             evidence = request.get('evidence')
+            state.pop('evidence_skipped', None)
             if not evidence:
-                evidence = self.collect(directory, state, plan, complete_task=False)
+                if (operation_kind(plan['operation']) == 'listing.images' and state.get('submission_id') and
+                        state['status'] not in TERMINAL and not isinstance(state.get('adapter_result', {}).get('evidence'), dict)):
+                    evidence = self.collect_images(directory, state, plan, complete_task=request.get('complete_task') is True,
+                        full_verify_seconds=request.get('full_verify_seconds', IMAGE_FULL_VERIFY_SECONDS))
+                else:
+                    evidence = self.collect(directory, state, plan, complete_task=False)
                 if evidence is None:
                     self._complete_reconciled_task(request, state, plan, state['status'])
                     return self.persist(directory, state, state['status'], evidence_required=['Fresh operation-scoped Amazon processing result and final live state'], reason='verification_evidence_required')
@@ -1261,12 +1307,24 @@ class Operations:
                 self._complete_reconciled_task(request, state, plan, 'failed')
                 return self.persist(directory, state, 'failed', submission_id=evidence['submission_id'], evidence_path=str(evidence_path), failures=evidence.get('errors', ['Submission failed']))
             if op == 'listing.images' and body.get('image_policy') and not body.get('no_changes'):
-                completion = self.image_completion(directory, state, plan, evidence)
-                status = ('partial' if completion['processing_pending'] and
-                          (completion['processing'] == 'failed' or completion['preservation'] == 'conflict') else
-                          'failed' if completion['processing'] == 'failed' or completion['preservation'] == 'conflict' else
-                          'verified' if completion['release_eligible'] and completion['processing'] == 'complete' else
-                          'partial' if completion['matched'] else 'processing')
+                while True:
+                    completion = self.image_completion(directory, state, plan, evidence)
+                    status = ('partial' if completion['processing_pending'] and
+                              (completion['processing'] == 'failed' or completion['preservation'] == 'conflict') else
+                              'failed' if completion['processing'] == 'failed' or completion['preservation'] == 'conflict' else
+                              'verified' if completion['release_eligible'] and completion['processing'] == 'complete' else
+                              'partial' if completion['matched'] else 'processing')
+                    if not state.get('evidence_skipped') or status not in {'verified', 'failed', 'blocked'}:
+                        break
+                    # A terminal decision must use collectors from this pass.
+                    evidence = self.collect_images(directory, state, plan, complete_task=True)
+                    require(evidence is not None, 'missing_image_evidence', 'Terminal image verification requires current reads')
+                    evidence_path = directory / f'evidence-{digest(evidence)}.json'
+                    atomic_json(evidence_path, evidence)
+                if state.get('evidence_skipped'):
+                    # Unchanged Activity carries the persisted publication result
+                    # forward. Freshness above still gates terminal decisions.
+                    return self.persist(directory, state, state['status'], evidence_path=str(evidence_path))
                 self._complete_reconciled_task(request, state, plan, status)
                 return self.persist(directory, state, status, submission_id=evidence.get('submission_id'),
                     matched=completion['matched'], pending=completion['pending'], failures=completion['failures'],
