@@ -930,12 +930,12 @@
       "domain": "amazon",
       "capability": "Category Listings Report availability",
       "grimoire": {
-        "state": "undocumented",
-        "how": "Unavailable to the delegated identity; cause unverified."
+        "state": "allowed",
+        "how": "Victor changed the delegated Grimoire user's Seller Central rights on 15.09.2026. Read-only Inventory Reports dropdown reads verified Category Listings Report availability for KABOOKI Germany and SwissKlip United States; no report was requested or downloaded."
       },
       "amazon_agent": {
-        "state": "open",
-        "how": "Verify availability on the same identity; do not assume an Edit grant fixes it."
+        "state": "allowed",
+        "how": "Category Listings Report is available to the shared Grimoire identity, verified for KABOOKI Germany and SwissKlip United States on 15.09.2026. tools/amazon-operations/catalog-export.mjs requests and downloads the report through Operations.collect_export in tools/amazon-operations/operations.py. This executor was not run during the read-only availability check."
       },
       "identity": "Grimoire delegated Seller Central login (shared Grimoire session)",
       "port": 9223,
@@ -945,19 +945,19 @@
       "gates": [
         {
           "kind": "doc_only",
-          "justification": "The vault SOP records unavailability and an unverified cause. No code gate establishes the missing permission."
+          "justification": "This Amazon-side permission was verified by read-only Inventory Reports dropdown reads. No code gate exists for the permission."
         }
       ],
       "docs": [
         {
           "repo": "vault",
           "path": "agency/SOPs/wizards-ai-amazon-rights.md",
-          "note": "Lines 53 and 57 record the unresolved report-access gap. Unversioned team vault, ~/os/agency."
+          "note": "See the 15.09.2026 change-log entry for the grant and verification; the Current gaps rows describe the historical report-access gap. Unversioned team vault, ~/os/agency."
         }
       ],
       "verified_on": "2026-09-15",
-      "last_check": "Read-only checks on 2026-09-15 at 09:10 and 09:11 UTC, about 40 minutes after the delegated login's permissions changed, found that Reports > Inventory Reports offered only \"Amazon-fulfilled Inventory Report\" for both KABOOKI Germany and SwissKlip United States, while older Category Listings Reports remained in the history table. The missing option is not account-specific and points to the delegated user's permission set or report enablement rather than KABOOKI.",
-      "notes": "Open access gap. Last check: read-only checks on 2026-09-15 at 09:10 and 09:11 UTC found that Reports > Inventory Reports offered only \"Amazon-fulfilled Inventory Report\" for both KABOOKI Germany and SwissKlip United States, while older Category Listings Reports remained in the history table. The missing option is not account-specific and points to the delegated user's permission set or report enablement rather than KABOOKI. Category Listings Report is not a prerequisite of the shipped FlatFilePro image route."
+      "last_check": "Read-only enumeration of Reports > Inventory Reports > Request an Inventory report on 2026-09-15: KABOOKI / Germany (sellercentral.amazon.de), 15:09:47 UTC, 12 options including Category Listings Report; evidence: /tmp/wp/clr-check/kabooki-de/options.txt, /tmp/wp/clr-check/kabooki-de/inventory-reports.png, /tmp/wp/clr-check/kabooki-de/result.json. SwissKlip / United States (sellercentral.amazon.com), 15:10:33 UTC, 14 options including Category Listings Report; evidence: /tmp/wp/clr-check/swissklip-us/options.txt, /tmp/wp/clr-check/swissklip-us/inventory-reports.png, /tmp/wp/clr-check/swissklip-us/result.json. Nothing clicked, no report requested, no download. The earlier negative checks at 09:10 and 09:11 UTC, showing only Amazon-fulfilled Inventory Report, are preserved under /tmp/wp/clr-check/run1/.",
+      "notes": "The report-access gap is resolved for KABOOKI Germany and SwissKlip United States. Category Listings Report is not a prerequisite of the shipped FlatFilePro image route. FlatFilePro remains the selected bulk image route; the report is a fallback data source for the report-based verifier. The exact SPP row Victor changed was not captured in this session."
     },
     {
       "id": "account-health.read",
