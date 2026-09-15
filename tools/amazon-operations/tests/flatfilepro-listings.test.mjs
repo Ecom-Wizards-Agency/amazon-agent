@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {mkdtemp,rm,readFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
+import {IMAGE_IDENTITY_KEYS} from '../image-identity.mjs';
 import {collect,normalizeListing,listingLocation} from '../flatfilepro-listings.mjs';
 const account={seller_id:'SELLER',marketplace_id:'MARKET'},target={sku:'sku / 1',asin:'B000000001'},at='2026-09-14T10:00:00.000Z';
 const data=()=>({seller_id:'SELLER',marketplace_id:'MARKET',...target,attributes:{main_product_image_locator:[{media_location:'https://example.com/main.png'}]},relationships:[],productType:'SUPPLEMENT',itemName:'Blue',lastUpdatedDate:'2026-09-10T00:00:00Z',id:123});
@@ -13,11 +14,11 @@ test('listing reader binds exact identity and distinguishes read time from Amazo
  for(const changed of [{seller_id:'OTHER'},{marketplace_id:'OTHER'},{sku:'wrong'},{asin:'B000000002'},{attributes:null}])assert.throws(()=>normalizeListing({...data(),...changed},account,target,at,'source'));
 });
 test('missing or nonempty relationship data never implies standalone',()=>{
- for(const relationships of [undefined,[{parentSkus:['PARENT']}],[{childSkus:['CHILD']}]])assert.equal(normalizeListing({...data(),relationships},account,target,at,'source').row.listing_relationship_evidence,undefined);
- const record=data();record.attributes.parentage_level=[{value:'parent'}];assert.equal(normalizeListing(record,account,target,at,'source').row.listing_relationship_evidence,undefined);
+ for(const relationships of [undefined,[{parentSkus:['PARENT']}],[{childSkus:['CHILD']}]])assert.equal(normalizeListing({...data(),relationships},account,target,at,'source').row.listing_relationship_evidence,'');
+ const record=data();record.attributes.parentage_level=[{value:'parent'}];assert.equal(normalizeListing(record,account,target,at,'source').row.listing_relationship_evidence,'');
 });
 test('observed scalar related-ASIN arrays preserve variation evidence without becoming image values',()=>{
- const d=data();d.attributes.parentAsins=['B000000099'];const r=normalizeListing(d,account,target,at,'source');assert.deepEqual(r.related_asins,{parentAsins:['B000000099']});assert.equal(r.row.listing_relationship_evidence,undefined);
+ const d=data();d.attributes.parentAsins=['B000000099'];const r=normalizeListing(d,account,target,at,'source');assert.deepEqual(r.related_asins,{parentAsins:['B000000099']});assert.equal(r.row.listing_relationship_evidence,'');
  d.attributes.parentAsins=['not-an-asin'];assert.throws(()=>normalizeListing(d,account,target,at,'source'),/related listing/);
  d.attributes.parentAsins=['B000000099','B000000099'];assert.throws(()=>normalizeListing(d,account,target,at,'source'),/related listing/);
 });
@@ -43,4 +44,13 @@ test('collector records complete exact-SKU evidence with independent checksum',a
  assert.equal((await collect({...input,targets:[target,target]},deps)).status,'blocked');
  assert.equal((await collect(input,{...deps,read:async()=>({...await deps.read(),observed_at:'2026-09-13T10:00:00Z'})})).status,'blocked');
  }finally{await rm(dir,{recursive:true,force:true});}
+});
+
+test('complete listing responses emit every canonical identity key with explicit blanks',()=>{
+ const record=data();record.attributes.color=[{value:'Blue'}];record.attributes.model_number=[{value:'M1'}];
+ const row=normalizeListing(record,account,target,at,'source').row;
+ for(const key of IMAGE_IDENTITY_KEYS)assert.ok(Object.hasOwn(row,key),key);
+ assert.equal(row['color.0.value'],'Blue');assert.equal(row['model_number.0.value'],'M1');
+ assert.equal(row['size.0.value'],'');assert.equal(row.model_name,'');
+ assert.equal(row['other_product_image_locator_9.0.media_location'],'');
 });

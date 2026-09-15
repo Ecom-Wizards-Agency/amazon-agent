@@ -177,6 +177,7 @@ async function execute(input) {
 
   const result=data=>({schema_version:1,plan_hash:input.plan_hash,...data});
   try {
+    if(body.image_policy==='secondary_slots_only')verifyListingIdentities(body.image_identity_rows,body.image_identity_rows||{},plan.targets);
     page=await acquireTaskPage({taskId:taskIdFor('amazon-operations',input.task_key || plan.operation_id),workflow:'amazon-flatfilepro',initialUrl:'https://app.flatfile.pro/import',exclusiveContext:true});
     // A competing invocation may have submitted while this one waited for the
     // managed browser lock. Recheck only after exclusive ownership is acquired.
@@ -229,7 +230,7 @@ async function execute(input) {
       const fresh=refreshed.fresh;
       ui.check(fresh.status==='collected'&&fresh.complete===true,'Fresh FlatFilePro listing read unavailable: '+(fresh.message||''));
       for(const [sku,row] of Object.entries(body.image_before_rows))for(const [field,value] of Object.entries(row))ui.check(Object.hasOwn(fresh.rows[sku]||{},field)&&fresh.rows[sku][field]===value,'Pre-submit listing baseline changed: '+sku+'/'+field);
-      verifyListingIdentities(body.image_identity_rows,fresh.rows);
+      verifyListingIdentities(body.image_identity_rows,fresh.rows,plan.targets);
       input={...input,image_preflight:{path:fresh.path,sha256:fresh.sha256,source_kind:fresh.source_kind,observed_at:fresh.observed_at}};
       const current=normalizePreviewState(await readPreviewState(page.session,()=>ui.context(page.session,plan.account,'ffp')));
       ui.check(JSON.stringify(current.rows)===JSON.stringify(preview.last_page_rows),'Preview changed during pre-submit read');

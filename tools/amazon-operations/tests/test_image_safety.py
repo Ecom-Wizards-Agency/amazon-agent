@@ -25,7 +25,7 @@ class ImageSafetyTests(unittest.TestCase):
         self.root = Path(temporary.name)
         self.service = op.Operations(self.root / 'state')
         self.account = {'client_slug': 'brand', 'profile_key': 'brand-us', 'marketplace': 'US'}
-        self.rows = {'a': {MAIN: 'https://example.com/main.png', PT1: 'https://example.com/old.png', PT2: 'https://example.com/keep.png', SWATCH: 'https://example.com/swatch.png', 'asin': 'B000000001', 'parentage_level.0.value': 'child', 'child_parent_sku_relationship.0.parent_sku': 'parent'}}
+        self.rows = {'a': {**dict.fromkeys(op.IMAGE_IDENTITY_KEYS, ''), MAIN: 'https://example.com/main.png', PT1: 'https://example.com/old.png', PT2: 'https://example.com/keep.png', SWATCH: 'https://example.com/swatch.png', 'asin': 'B000000001', 'parentage_level.0.value': 'child', 'child_parent_sku_relationship.0.parent_sku': 'parent'}}
         self.source = self.root / 'export.csv'
         with self.source.open('w') as stream:
             writer = csv.DictWriter(stream, fieldnames=['sku', MAIN, PT1, PT2, SWATCH])

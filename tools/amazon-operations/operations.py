@@ -338,25 +338,50 @@ def prepare_images(request, directory):
     if policy:
         prepared['image_policy'] = policy
         prepared['image_before_rows'] = image_before_rows(request, directory)
+        prepared['image_identity_rows'] = {sku: {**dict.fromkeys(IMAGE_IDENTITY_KEYS, ''), **image_listing_identity(inputs['live']['rows'][sku])} for sku in request['targets']}
         source_kind = inputs.get('image_catalog_source')
         require(source_kind in {None, 'flatfilepro_listing_read'}, 'invalid_source', 'Unknown image catalog source')
         if source_kind:
             prepared['image_catalog_source'] = source_kind
-            prepared['image_identity_rows'] = {sku: image_listing_identity(inputs['live']['rows'][sku]) for sku in request['targets']}
             prepared['image_preview_metadata'] = {sku: {'itemName': inputs['live']['rows'][sku].get('itemName') or inputs['live']['rows'][sku].get('item_name.0.value'), 'productType': inputs['live']['rows'][sku].get('product_type')} for sku in request['targets']}
             require(all(x['itemName'] and x['productType'] for x in prepared['image_preview_metadata'].values()), 'missing_metadata', 'FFP image preview requires observed title and product type')
     return prepared
 
 
+IMAGE_IDENTITY_KEYS = [
+    'sku',
+    'asin',
+    'mpn',
+    'color',
+    'color_code',
+    'size',
+    'parentage',
+    'parent_sku',
+    'listing_relationship_evidence',
+    'product_type',
+    'archived',
+    'itemName',
+    'model_name',
+    'model_number',
+    'item_name.0.value',
+    'model_name.0.value',
+    'model_number.0.value',
+    'part_number.0.value',
+    'color.0.value',
+    'size.0.value',
+    'parentage_level.0.value',
+    'child_parent_sku_relationship.0.parent_sku',
+    'externally_assigned_product_identifier.0.value',
+    'merchant_suggested_asin.0.value',
+]
+
+
 def image_listing_identity(row):
-    """Freeze complete observed identity, including absent optional attributes."""
-    aliases = {'sku', 'asin', 'mpn', 'color', 'color_code', 'size', 'parentage',
-               'parent_sku', 'listing_relationship_evidence', 'product_type', 'archived',
-               'itemName', 'model_name', 'model_number'}
+    """Freeze every observed identity field, preserving blank optional values."""
     attributes = re.compile(r'^(?:item_name|model_name|model_number|part_number|color|size|'
                             r'parentage_level|child_parent_sku_relationship|'
                             r'externally_assigned_product_identifier|merchant_suggested_asin)\.')
-    return {k: v for k, v in row.items() if k in aliases or attributes.match(k)}
+    return {k: v for k, v in row.items() if k in IMAGE_IDENTITY_KEYS or attributes.match(k)}
 
 
 def image_before_rows(request, directory):
@@ -631,6 +656,13 @@ class Operations:
                 self.case_journal_boundary()
             target_match = grant.get('targets') == plan['targets'] if case_operation else set(x.get('sku') if isinstance(x, dict) else x for x in grant.get('targets', [])) == set(plan['targets'])
             require(grant.get('execute') is True and grant.get('account') == plan['account'] and grant.get('operation') == plan['operation'] and grant.get('plan_hash') == state['plan_hash'] and target_match, 'grant_mismatch', 'Execution grant must bind exact account, operation, targets and plan hash')
+            if plan['body'].get('image_policy') == 'secondary_slots_only' and not state.get('effects_started'):
+                try:
+                    self.validate_image_baseline(plan, None)
+                except OperationError as exc:
+                    if exc.code != 'identity_map_incomplete':
+                        raise
+                    return self.persist(directory, state, 'blocked', reason=exc.code, message=str(exc), effects_started=False, next_action='re-prepare the plan')
             if plan['body'].get('no_changes') and state['status'] == 'prepared':
                 return self.persist(directory, state, 'processing', phase='verification', effects_started=False, next_action='reconcile', reason='live_image_verification_required')
             image_preflight_pending = state.get('phase') == 'image_preflight' and state.get('effects_started') is False
@@ -650,7 +682,12 @@ class Operations:
                 fresh = self.collect_image_catalog(directory, state, plan, purpose='preflight') if ffp_source else self.collect_export(directory, state, plan, purpose='preflight')
                 if fresh is None:
                     return self.persist(directory, state, 'processing', phase='image_preflight', effects_started=False, reason='fresh_catalog_pending', next_action='execute', retry_after_seconds=60)
-                self.validate_image_baseline(plan, fresh['rows'])
+                try:
+                    self.validate_image_baseline(plan, fresh['rows'])
+                except OperationError as exc:
+                    if exc.code != 'identity_map_incomplete':
+                        raise
+                    return self.persist(directory, state, 'blocked', reason=exc.code, message=str(exc), effects_started=False, next_action='re-prepare the plan')
                 time_field = 'observed_at' if ffp_source else 'report_generated_at'
                 require(dt.timedelta(0) <= timestamp(now()) - timestamp(fresh[time_field]) <= dt.timedelta(minutes=5), 'stale_report', 'Image pre-submit evidence must be no more than five minutes old and cannot be future dated')
                 image_preflight = {key: fresh[key] for key in ('path', 'sha256', time_field)}
@@ -695,9 +732,24 @@ class Operations:
     def validate_image_baseline(self, plan, rows, *, protected_only=False):
         evidence = evidence_tools()
         if not protected_only:
-            for sku, identity in plan['body'].get('image_identity_rows', {}).items():
-                require(image_listing_identity(rows.get(sku, {})) == identity, 'image_state_conflict',
-                        f'Current listing model, color, size or identity changed: {sku}')
+            expected = plan['body'].get('image_identity_rows')
+            missing = []
+            for sku in plan['targets']:
+                identity = expected.get(sku) if isinstance(expected, dict) else None
+                if not isinstance(identity, dict) or not image_listing_identity(identity):
+                    missing.append(sku)
+                    continue
+                fields = set(IMAGE_IDENTITY_KEYS)
+                if rows is not None:
+                    fields.update(image_listing_identity(rows.get(sku, {})))
+                fields = sorted(fields - set(identity))
+                if fields:
+                    missing.append(f'{sku} (missing fields: {", ".join(fields)})')
+            legacy = 'Plan predates identity capture; ' if expected is None else ''
+            require(not missing and bool(plan['targets']), 'identity_map_incomplete',
+                    f'IDENTITY_MAP_INCOMPLETE: {legacy}missing or incomplete identity for SKUs: {", ".join(missing)}; re-prepare the plan')
+            if rows is None:
+                return
         touched = {(image['sku'], f"other_product_image_locator_{int(image['slot'][2:])}.0.media_location")
                    for image in plan['body']['images'] if image['slot'].startswith('PT')}
         for sku, baseline in plan['body']['image_before_rows'].items():
@@ -706,6 +758,10 @@ class Operations:
                     continue
                 observed = evidence.field_value(rows.get(sku, {}), field)
                 require(observed is not None and observed == value, 'image_state_conflict', f'Current child identity or protected image changed: {sku}/{field}')
+        if not protected_only:
+            for sku in plan['targets']:
+                require(image_listing_identity(rows.get(sku, {})) == expected[sku], 'image_state_conflict',
+                        f'Current listing model, color, size or identity changed: {sku}')
 
     def record_image_review(self, request):
         """Append an attended review; the journal changes only through reconciliation."""

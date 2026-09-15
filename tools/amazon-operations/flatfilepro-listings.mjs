@@ -8,6 +8,7 @@ import {createHash} from 'node:crypto';
 import {pathToFileURL} from 'node:url';
 import {acquireTaskPage,releaseTaskPage,completeBrowserTask,taskIdFor} from '../browserctl/task-tabs.mjs';
 import * as ui from './browser-ui.mjs';
+import {IMAGE_IDENTITY_KEYS} from './image-identity.mjs';
 
 export const imageFields=['main_product_image_locator','swatch_product_image_locator',...Array.from({length:9},(_,i)=>`other_product_image_locator_${i+1}`)].map(x=>x+'.0.media_location');
 export function listingLocation(account,target){
@@ -39,6 +40,7 @@ export function normalizeListing(data,account,target,observedAt,sourceId){
  // occurrences remain unavailable to the resolver rather than choosing the first.
  const value=field=>{const values=[...new Set((data.attributes[field]||[]).map(x=>x.value).filter(x=>x!==undefined&&x!==null&&String(x).trim()!=='').map(String))];return values.length===1?values[0]:'';};
  for(const [key,field] of Object.entries({mpn:'part_number',color:'color',size:'size',parentage:'parentage_level'}))row[key]=value(field);
+ for(const field of IMAGE_IDENTITY_KEYS)if(!Object.hasOwn(row,field))row[field]='';
  const summary=(data.summaries||[]).filter(x=>!x.marketplaceId||x.marketplaceId===account.marketplace_id);
  ui.check(summary.length<=1,'Ambiguous listing summary marketplace');
  const amazonUpdated=summary[0]?.lastUpdatedDate??data.lastUpdatedDate??null;
