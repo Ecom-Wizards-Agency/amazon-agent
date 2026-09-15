@@ -331,6 +331,7 @@ test("cleanup retains the original probe error and reports incomplete work", { c
     reachable: true, complete: false, actions: [{ reason: "session-busy", probe: { stage: "connect" } }],
   }], "active");
   assert.equal(deferred.complete, false);
+  assert.equal(deferred.ok, true);
   assert.equal(deferred.status, "deferred");
   await registry.removeLease({ port: 9222, targetId: "probe-timeout" });
 });
@@ -772,9 +773,11 @@ test("cleanup CLI defers a busy lock at the deadline with exit zero and preserve
     }),
   });
   assert.deepEqual(sleeps, [5000, 5000, 2000]);
-  assert.equal(attempts, 4);
+  assert.equal(attempts, 3);
   assert.equal(result.exitCode, 0);
   const summary = result.lines[0];
+  assert.equal(summary.ok, true);
+  assert.equal(summary.complete, false);
   assert.equal(summary.status, "deferred");
   assert.equal(summary.mode, "audit");
   assert.equal(summary.results[0].reason, "session-busy");
@@ -786,6 +789,13 @@ test("cleanup CLI defers a busy lock at the deadline with exit zero and preserve
     cleanup: async () => ({ reachable: true, complete: false, actions: [{ reason: "close-failed" }] }),
   });
   assert.equal(failed.exitCode, 1);
+  assert.equal(failed.lines[0].ok, false);
+  for (const actions of [[], [{ reason: "session-busy" }, { activityTracked: false }],
+    [{ reason: "session-busy" }, { reason: "activity-unavailable" }]]) {
+    const incomplete = controller.cleanupSummary([{ reachable: true, complete: false, actions }], "active");
+    assert.equal(incomplete.ok, false);
+    assert.equal(incomplete.status, "incomplete");
+  }
 });
 
 test("cleanup retries then holds one lock across the port pass and always releases it", async () => {
@@ -887,6 +897,55 @@ test("task detach CLI fences control and region state reports the binding", asyn
   assert.equal(lines[0].result.lease.outcome, "inspection");
   assert.deepEqual((await runCli(["region", "state", "--port", "9222"])).lines[0].regions, []);
   await registry.removeLease({ port: 9222, targetId: "cli-region" });
+});
+
+test("region state joins live page URL and title by target ID without changing stored state", async () => {
+  await registry.acquireLease({ port: 9222, targetId: "live-region", leaseClass: "anchor", anchorKey: "US", policy });
+  const before = await registry.regionTabState(9222);
+  let liveUrl = "https://sellercentral.amazon.com/inventory";
+  try {
+    const fetch = async (url, options) => {
+      assert.equal(url, "http://127.0.0.1:9222/json/list");
+      assert.ok(options.signal instanceof AbortSignal);
+      return { ok: true, json: async () => [
+        { id: "other-region", type: "page", url: "https://example.test/wrong", title: "Wrong page" },
+        { id: "live-region", type: "page", url: liveUrl, title: "Inventory" },
+      ] };
+    };
+    for (const url of [liveUrl, "https://sellercentral.amazon.com/reports"]) {
+      liveUrl = url;
+      const result = await runCli(["region", "state", "--port", "9222"], { fetch });
+      assert.equal(result.exitCode, 0);
+      assert.deepEqual(result.lines[0].regions, before.map(region => ({ ...region, liveUrl, title: "Inventory" })));
+    }
+    assert.deepEqual(await registry.regionTabState(9222), before);
+  } finally { await registry.removeLease({ port: 9222, targetId: "live-region" }); }
+});
+
+test("region state preserves stored URL with null live fields for unavailable or missing targets", async () => {
+  const { sellerCentralRegionTask } = await import("../task-tabs.mjs");
+  const regionPolicy = { ...policy, ports: { ...policy.ports, "9223": policy.ports["9222"] } };
+  const spec = { ...sellerCentralRegionTask({ marketplace: "de" }), port: 9223, policy: regionPolicy };
+  await registry.acquireLease({ port: 9223, targetId: "offline-region", leaseClass: "anchor", anchorKey: "DE", policy });
+  const reserved = await registry.reserveTaskTab({ ...spec, livePageIds: ["offline-region"] });
+  await registry.releaseTaskTabControl({ ...spec, controlToken: reserved.controlToken,
+    outcome: "success" });
+  const before = await registry.regionTabState(9223);
+  assert.equal(before[0].url, "https://sellercentral.amazon.de/home");
+  try {
+    for (const response of [null, { ok: false }, { ok: true, json: async () => { throw new Error("invalid JSON"); } },
+      { ok: true, json: async () => ({}) }, { ok: true, json: async () => [] }]) {
+      const result = await runCli(["region", "state", "--port", "9223"], { fetch: async url => {
+        assert.equal(url, "http://127.0.0.1:9223/json/list");
+        if (!response) throw new Error("ECONNREFUSED");
+        return response;
+      } });
+      assert.equal(result.exitCode, 0);
+      assert.equal(result.lines[0].ok, true);
+      assert.deepEqual(result.lines[0].regions, before.map(region => ({ ...region, liveUrl: null, title: null })));
+    }
+    assert.deepEqual(await registry.regionTabState(9223), before);
+  } finally { await registry.removeLease({ port: 9223, targetId: "offline-region" }); }
 });
 
 test("machine policy rejects silent in-app browser fallback", { concurrency: false }, () => {

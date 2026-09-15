@@ -3,9 +3,9 @@ import test from 'node:test';
 import {mkdtempSync,rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {spawnSync} from 'node:child_process';
+import {spawn,spawnSync} from 'node:child_process';
 import {sessionEnvironment} from '../session.mjs';
-import {acquireSessionLock,assertSessionLock} from '../session-lock.mjs';
+import {acquireSessionLock,acquireSessionLockWithWait,assertSessionLock} from '../session-lock.mjs';
 const dir=mkdtempSync(join(tmpdir(),'grimoire-session-'));
 const env={...process.env,AMAZON_BROWSER_LOCK_DIR:dir};
 for(const k of ['CDP_PORT','CDP_PROFILE','CDP_HOST','AMAZON_BROWSER_SESSION','AMAZON_BROWSER_LOCK_TOKEN']) delete env[k];
@@ -42,6 +42,85 @@ test('independent workers cannot take the lock; children can inherit',()=>{
   const child=spawnSync(process.execPath,['--input-type=module','-e',code],{env:{...env,AMAZON_BROWSER_LOCK_TOKEN:process.env.AMAZON_BROWSER_LOCK_TOKEN},encoding:'utf8'});
   assert.equal(child.status,0,child.stderr);assertSessionLock(9223);
  }finally{unlock();if(old)process.env.AMAZON_BROWSER_LOCK_DIR=old;else delete process.env.AMAZON_BROWSER_LOCK_DIR;}
+});
+
+test('lock waiting uses two-second retries and preserves the release function',async()=>{
+ let now=1000,attempts=0;
+ const sleeps=[],release=()=>{};
+ const result=await acquireSessionLockWithWait(9223,'wait-test',{}, {
+  acquire:(port,owner)=>{
+   assert.equal(port,9223);assert.equal(owner,'wait-test');
+   if(++attempts<3)throw new Error('BROWSER_SESSION_BUSY: fixture');
+   return release;
+  },
+  clock:()=>now,sleep:async ms=>{sleeps.push(ms);now+=ms;},
+ });
+ assert.equal(result,release);assert.equal(attempts,3);assert.deepEqual(sleeps,[2000,2000]);
+});
+
+test('lock waiting stops at the deadline, including zero wait and delayed timers',async()=>{
+ for(const [lockWaitMs,delay,expectedSleeps,expectedWait] of [[4500,0,[2000,2000,500],4500],[0,0,[],0],[1000,500,[1000],1500]]){
+  let now=0,attempts=0;
+  const sleeps=[],busy=new Error('BROWSER_SESSION_BUSY: fixture');
+  await assert.rejects(acquireSessionLockWithWait(9223,'deadline',{lockWaitMs},{
+   acquire:()=>{attempts++;throw busy;},clock:()=>now,
+   sleep:async ms=>{sleeps.push(ms);now+=ms+delay;},
+  }),error=>{
+   assert.equal(error,busy);assert.equal(error.waitMs,expectedWait);
+   assert.equal(error.message,`BROWSER_SESSION_BUSY: fixture; waited ${expectedWait} ms`);return true;
+  });
+  assert.deepEqual(sleeps,expectedSleeps);assert.equal(attempts,Math.max(1,expectedSleeps.length));
+ }
+});
+
+test('default lock deadline is 120 seconds and other errors fail immediately',async()=>{
+ let now=0,attempts=0;
+ await assert.rejects(acquireSessionLockWithWait(9223,'default',{}, {
+  acquire:()=>{attempts++;throw new Error('BROWSER_SESSION_BUSY: fixture');},
+  clock:()=>now,sleep:async ms=>{now+=ms;},
+ }),/waited 120000 ms/);
+ assert.equal(now,120000);assert.equal(attempts,60);
+ const failure=new Error('BROWSER_SESSION_LOCK_LOST: fixture');
+ await assert.rejects(acquireSessionLockWithWait(9223,'failure',{}, {
+  acquire:()=>{throw failure;},sleep:async()=>assert.fail('must not sleep'),
+ }),error=>error===failure);
+ for(const lockWaitMs of [-1,1.5,NaN,Infinity])
+  await assert.rejects(acquireSessionLockWithWait(9223,'invalid',{lockWaitMs}),/INVALID_LOCK_WAIT_MS/);
+ await assert.rejects(acquireSessionLockWithWait(9223,'invalid',{retryIntervalMs:0}),/INVALID_LOCK_RETRY_INTERVAL_MS/);
+});
+
+test('run waits for a real independent lock and launches the child after release',async()=>{
+ const old=process.env.AMAZON_BROWSER_LOCK_DIR;process.env.AMAZON_BROWSER_LOCK_DIR=dir;
+ const unlock=acquireSessionLock(9223,'run-blocker');
+ let child,timer;
+ try{
+  child=spawn(process.execPath,[controller,'run','--session','grimoire','--',process.execPath,'--input-type=module','-e',
+   `import {acquireSessionLock,assertSessionLock} from ${JSON.stringify(lockModule)}; const release=acquireSessionLock(9223);assertSessionLock(9223);release();console.log('child-owned');`],{env});
+  let stdout='',stderr='';
+  child.stdout.on('data',data=>{stdout+=data;});child.stderr.on('data',data=>{stderr+=data;});
+  const finished=new Promise((resolve,reject)=>{child.once('error',reject);child.once('exit',code=>resolve(code));});
+  timer=setTimeout(unlock,500);
+  assert.equal(await finished,0,stdout+stderr);assert.equal(stdout.trim(),'child-owned');
+  const release=acquireSessionLock(9223,'after-run');release();
+ }finally{clearTimeout(timer);child?.kill();unlock();if(old)process.env.AMAZON_BROWSER_LOCK_DIR=old;else delete process.env.AMAZON_BROWSER_LOCK_DIR;}
+});
+
+test('run rejects expired waits without launching and validates lock-wait-ms',()=>{
+ const old=process.env.AMAZON_BROWSER_LOCK_DIR;process.env.AMAZON_BROWSER_LOCK_DIR=dir;
+ const unlock=acquireSessionLock(9223,'run-deadline');
+ try{
+  for(const value of ['0','80']){
+   const r=spawnSync(process.execPath,[controller,'run','--session','grimoire','--lock-wait-ms',value,'--',process.execPath,'-e',"console.log('must-not-launch')"],{env,encoding:'utf8',timeout:5000});
+   assert.equal(r.status,1,r.stdout+r.stderr);assert.doesNotMatch(r.stdout,/must-not-launch/);
+   const result=JSON.parse(r.stdout);assert.equal(result.ok,false);
+   assert.match(result.error,/^BROWSER_SESSION_BUSY:.*waited \d+ ms$/);
+   assert.ok(Number(result.error.match(/waited (\d+) ms/)[1])>=Number(value));
+  }
+ }finally{unlock();if(old)process.env.AMAZON_BROWSER_LOCK_DIR=old;else delete process.env.AMAZON_BROWSER_LOCK_DIR;}
+ for(const value of ['-1','bad','1.5',null]){
+  const r=spawnSync(process.execPath,[controller,'run','--lock-wait-ms',...(value===null?[]:[value]),'--',process.execPath,'-e',''],{env,encoding:'utf8'});
+  assert.equal(r.status,1);assert.match(r.stdout,/INVALID_LOCK_WAIT_MS/);
+ }
 });
 
 test('sibling Python workers cannot borrow the same parent workflow concurrently', async()=>{

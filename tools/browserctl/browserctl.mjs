@@ -10,7 +10,7 @@ import {
 } from "./lease-registry.mjs";
 import { anchorMatchesUrl, loadBrowserPolicy, policyForPort } from "./policy.mjs";
 import { sessionEnvironment } from "./session.mjs";
-import { acquireSessionLock } from "./session-lock.mjs";
+import { acquireSessionLock, acquireSessionLockWithWait } from "./session-lock.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const CDP_MODULE = resolve(HERE, "../report-fetcher/cdp.mjs");
@@ -447,23 +447,17 @@ export async function cleanupPortWithLock(port, {
   sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
 } = {}) {
   if (!Number.isSafeInteger(lockWaitMs) || lockWaitMs < 0) throw new Error("INVALID_LOCK_WAIT_MS");
-  const startedAt = clock();
-  const deadline = startedAt + lockWaitMs;
   let unlock;
-  while (!unlock) {
-    try {
-      unlock = acquire(port, "browserctl:cleanup");
-    } catch (error) {
-      if (!String(error.message).startsWith("BROWSER_SESSION_BUSY")) {
-        return { port: Number(port), complete: false, actions: [], error: error.message };
-      }
-      const remaining = deadline - clock();
-      if (remaining <= 0) {
-        return { port: Number(port), status: "deferred", reason: "session-busy",
-          waitMs: clock() - startedAt, auditOnly: options.auditOnly, complete: false, actions: [] };
-      }
-      await sleep(Math.min(5000, remaining));
+  try {
+    unlock = await acquireSessionLockWithWait(port, "browserctl:cleanup", {
+      lockWaitMs, retryIntervalMs: 5000,
+    }, { acquire, clock, sleep });
+  } catch (error) {
+    if (String(error.message).startsWith("BROWSER_SESSION_BUSY")) {
+      return { port: Number(port), status: "deferred", reason: "session-busy",
+        waitMs: error.waitMs, auditOnly: options.auditOnly, complete: false, actions: [] };
     }
+    return { port: Number(port), complete: false, actions: [], error: error.message };
   }
   try {
     return await cleanup(port, options);
@@ -475,9 +469,11 @@ export function cleanupSummary(results, mode) {
   const deferred = !complete && results.every(result =>
     (result.status === "deferred" && result.reason === "session-busy" && !result.error)
     || (result.reachable && !result.error
-    && (result.complete !== false || result.actions.every(action =>
-      action.reason === "session-busy" || (!action.probe && action.reason !== "close-failed")))));
-  return { ok: complete, complete, status: complete ? "complete" : deferred ? "deferred" : "incomplete", mode, results };
+    && (result.complete !== false || (result.actions?.some(action => action.reason === "session-busy")
+      && result.actions.every(action => action.reason === "session-busy"
+        || (!action.probe && action.activityTracked !== false
+          && !["activity-unavailable", "close-failed"].includes(action.reason)))))));
+  return { ok: complete || deferred, complete, status: complete ? "complete" : deferred ? "deferred" : "incomplete", mode, results };
 }
 
 async function statusCommand(port, policy) {
@@ -521,7 +517,7 @@ export async function acquireTargetLease({
   }
 }
 
-export async function main(raw = process.argv.slice(2), { cleanup = cleanupPortWithLock } = {}) {
+export async function main(raw = process.argv.slice(2), { cleanup = cleanupPortWithLock, fetch = globalThis.fetch } = {}) {
   const separator = raw.indexOf("--");
   if (["run", "session"].includes(raw[0])) {
     const { options } = parseArgs(separator < 0 ? raw : raw.slice(0, separator));
@@ -532,7 +528,9 @@ export async function main(raw = process.argv.slice(2), { cleanup = cleanupPortW
     }
     const command = separator < 0 ? [] : raw.slice(separator + 1);
     if (!command.length) throw new Error("USAGE: browserctl run --session grimoire -- command [args]");
-    const unlock = acquireSessionLock(Number(env.CDP_PORT), "browserctl:run");
+    const lockWaitMs = options["lock-wait-ms"] === undefined ? 120_000 : Number(options["lock-wait-ms"]);
+    if (options["lock-wait-ms"] === true) throw new Error("INVALID_LOCK_WAIT_MS");
+    const unlock = await acquireSessionLockWithWait(Number(env.CDP_PORT), "browserctl:run", { lockWaitMs });
     env.AMAZON_BROWSER_LOCK_TOKEN = process.env.AMAZON_BROWSER_LOCK_TOKEN || "";
     env.AMAZON_BROWSER_LOCK_CHAIN = process.env.AMAZON_BROWSER_LOCK_CHAIN || "[]";
     try {
@@ -618,7 +616,20 @@ export async function main(raw = process.argv.slice(2), { cleanup = cleanupPortW
   }
   if (command === "region" && subcommand === "state") {
     const port = portNumber(required(options, "port"));
-    console.log(JSON.stringify({ ok: true, port, regions: await regionTabState(port) }));
+    const regions = await regionTabState(port);
+    let pages = [];
+    try {
+      const response = await fetch(`http://127.0.0.1:${port}/json/list`, { signal: AbortSignal.timeout(2000) });
+      if (response.ok) {
+        const targets = await response.json();
+        if (Array.isArray(targets)) pages = targets.filter(page => page?.type === "page");
+      }
+    } catch { /* An offline browser still has useful stored region state. */ }
+    const pageById = new Map(pages.map(page => [page.id, page]));
+    console.log(JSON.stringify({ ok: true, port, regions: regions.map(region => ({
+      ...region, liveUrl: pageById.get(region.targetId)?.url ?? null,
+      title: pageById.get(region.targetId)?.title ?? null,
+    })) }));
     return;
   }
   if (command === "cleanup") {

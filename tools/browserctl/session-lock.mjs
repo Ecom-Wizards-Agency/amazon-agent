@@ -30,6 +30,27 @@ export function acquireSessionLock(port=9223,owner=`node:${process.pid}`){
  else {process.env.AMAZON_BROWSER_LOCK_TOKEN=token;delete process.env.AMAZON_BROWSER_LOCK_CHAIN;}
  return ()=>release(root,state);
 }
+export async function acquireSessionLockWithWait(port=9223,owner=`node:${process.pid}`,{
+ lockWaitMs=120_000,retryIntervalMs=2000,
+}={}, {acquire=acquireSessionLock,clock=Date.now,sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms))}={}){
+ if(!Number.isSafeInteger(lockWaitMs)||lockWaitMs<0)throw new Error('INVALID_LOCK_WAIT_MS');
+ if(!Number.isSafeInteger(retryIntervalMs)||retryIntervalMs<=0)throw new Error('INVALID_LOCK_RETRY_INTERVAL_MS');
+ const startedAt=clock(),deadline=startedAt+lockWaitMs;
+ let busy;
+ while(true){
+  if(busy&&clock()>=deadline){
+   busy.waitMs=clock()-startedAt;
+   busy.message+=`; waited ${busy.waitMs} ms`;
+   throw busy;
+  }
+  try{return acquire(port,owner);}catch(error){
+   if(!String(error.message).startsWith('BROWSER_SESSION_BUSY'))throw error;
+   busy=error;
+  }
+  const remaining=deadline-clock();
+  if(remaining>0)await sleep(Math.min(retryIntervalMs,remaining));
+ }
+}
 function release(root,state){if(locks.get(root)!==state||--state.users>0)return;
  if(read(state.path).token===state.token)unlinkSync(state.path);locks.delete(root);
  for(const [key,value] of [['AMAZON_BROWSER_LOCK_TOKEN',state.previous],['AMAZON_BROWSER_LOCK_CHAIN',state.previousChain]]){if(value)process.env[key]=value;else delete process.env[key];}}
