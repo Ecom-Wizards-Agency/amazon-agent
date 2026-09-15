@@ -20,6 +20,7 @@ const quote = { carrier:"Other",ship_date:"2026-09-10",ship_mode:"SPD",carrier_m
 
 function fakeUi(events, override={}) {
   return {open:async()=>events.push("open"),assertIdentity:async()=>events.push("identity"),
+    pause:async()=>events.push("pause"),resume:async()=>events.push("resume"),
     createWorkflow:async()=>{events.push("create");return "wf-example";},prepareContent:async()=>events.push("prepare"),verifyContent:async()=>events.push("verify_content"),
     confirmContent:async()=>events.push("confirm_content"),prepareShipping:async()=>({...quote}),readQuote:async()=>({...quote}),
     confirmShipping:async()=>events.push("confirm_shipping"),readConfirmed:async()=>({workflow_id:"wf-example",shipment_ids:["FBAEXAMPLE01"],url:"https://sellercentral.amazon.com/fba/sendtoamazon?wf=wf-example"}),
@@ -53,7 +54,10 @@ test("every irreversible action is journaled first and completion waits for inde
   assert.equal(result.evidence.submission_id,"wf-example");
   assert.deepEqual(result.evidence.submission_ids,["FBAEXAMPLE01"]);
   for(const [action,phase] of [["create","creating_workflow"],["confirm_content","confirming_content"],["confirm_shipping","confirming_shipping"]]){
-    assert.equal(events[events.indexOf(action)-1],"receipt:"+phase);
+    const receiptIndex=events.indexOf("receipt:"+phase),actionIndex=events.indexOf(action);
+    assert.equal(events[receiptIndex-1],"pause");
+    assert.equal(events[receiptIndex+1],"resume");
+    assert.ok(receiptIndex<actionIndex);
     assert.equal(receipts.find(record=>record.phase===phase).status,"uncertain");
   }
 });
@@ -63,6 +67,36 @@ test("lost submission response is uncertain and never retries the shipping click
   const result=await executeShipment(request(),fakeUi(events,{confirmShipping:async()=>{events.push("confirm_shipping");throw new Error("connection lost");}}),()=>{});
   assert.equal(result.status,"uncertain");assert.equal(result.phase,"confirming_shipping");
   assert.equal(events.filter(event=>event==="confirm_shipping").length,1);
+});
+
+test("shipment receipts release the page and recheck terms after reacquisition",async()=>{
+  const events=[];let held=false,resumedPhase;
+  const ui=fakeUi(events,{
+    open:async()=>{held=true;},pause:async()=>{assert.equal(held,true);held=false;},
+    resume:async record=>{assert.equal(held,false);held=true;resumedPhase=record.phase;},
+    close:async()=>{held=false;},
+    readQuote:async()=>({...quote,actual_cost:resumedPhase==='confirming_shipping'?1:0}),
+  });
+  const result=await executeShipment(request(),ui,()=>assert.equal(held,false,'save must follow page release'));
+  assert.equal(result.status,'uncertain');assert.match(result.reason,/terms changed during receipt write/);
+  assert.equal(events.includes('confirm_shipping'),false);assert.equal(held,false);
+});
+
+test("shipment resume requires the exact target, receipt, account and workflow",async t=>{
+  const directory=fs.mkdtempSync(path.join(os.tmpdir(),'shipment-resume-'));
+  t.after(()=>fs.rmSync(directory,{recursive:true,force:true}));
+  for(const change of ['none','receipt','account','workflow']){
+    const envelope={...request(),receipt_path:path.join(directory,'receipt.json')};
+    const browser=new StaBrowser(envelope),record={plan_hash:envelope.plan_hash,workflow_id:'wf-example'};
+    browser.reservation={targetId:'exact',url:'https://sellercentral.amazon.com/fba/sendtoamazon?wf=wf-example'};
+    browser.taskSpec={taskId:'shipment'};
+    browser.acquire=async spec=>{assert.equal(spec.expectedTargetId,'exact');return {session:{}};};
+    browser.assertIdentity=async()=>{if(change==='account')throw Error('Account changed');};
+    browser.ev=async()=>change==='workflow'?'https://sellercentral.amazon.com/fba/sendtoamazon?wf=wf-other':browser.reservation.url;
+    writeReceipt(envelope.receipt_path,change==='receipt'?{}:record);
+    if(change==='none')await browser.resume(record);
+    else await assert.rejects(browser.resume(record),/receipt changed|Account changed|workflow changed/);
+  }
 });
 
 test("changed terms and account mismatch prevent final shipping commitment",async()=>{
@@ -81,7 +115,7 @@ test("missing carton labels cannot produce evidence-ready",async()=>{
   assert.equal(result.evidence,undefined);
 });
 
-test("label download behavior stays inside the task download claim through PDF validation",async()=>{
+test("label download claim releases before task release and PDF validation",async()=>{
   const directory=fs.mkdtempSync(path.join(os.tmpdir(),"shipment-routing-test-"));
   try {
     const events=[];
@@ -91,10 +125,14 @@ test("label download behavior stays inside the task download claim through PDF v
     browser.page={port:9222,taskId:"shipment",slot:"primary",targetId:"target",controlToken:"token",contextScope:"sc:na",
       session:browser.session,_registry:{acquireTaskDownloads:async()=>{events.push("acquire");return {};},
         releaseTaskDownloads:async()=>events.push("release")}};
-    // A missing output fails the real PDF coverage check while the claim is held.
+    browser.release=async()=>events.push("release-page");
+    const page=browser.page;
+    // A missing output fails the real PDF coverage check after both claims release.
     await assert.rejects(browser.downloadLabels({shipment:{cartons:[{id:"missing",contents:{WIDGET:10}}]}},
       {shipment_ids:[]}),/label PDFs do not cover all requested cartons/);
-    assert.deepEqual(events,["assert","acquire","assert","Browser.setDownloadBehavior","release"]);
+    assert.deepEqual(events,["assert","acquire","assert","Browser.setDownloadBehavior","assert","release","release-page"]);
+    assert.equal(browser.page,null);
+    browser.page=page;
     browser.page._registry.acquireTaskDownloads=async()=>{throw Object.assign(new Error("busy"),{code:"TASK_TAB_DOWNLOAD_BUSY"});};
     events.length=0;
     await assert.rejects(browser.downloadLabels({shipment:{cartons:[]}}, {shipment_ids:[]}),{code:"TASK_TAB_DOWNLOAD_BUSY"});

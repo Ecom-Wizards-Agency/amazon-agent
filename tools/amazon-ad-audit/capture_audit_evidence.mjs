@@ -24,17 +24,18 @@ for (const item of spec.captures || []) {
     exclusiveContext: Boolean(stored.exclusiveContext),
     sellerCentral: regional[region] ? {marketplace:regional[region]} : undefined,
     expectedTargetId: task.targetId, initialUrl: null });
-  let outcome = "error";
+  let outcome = "error", shot;
   try {
     if (handle.targetId !== task.targetId) throw new Error("EVIDENCE_TARGET_MISMATCH");
-    const { data, evidence } = await captureTaskEvidence(handle, { expected: item.expected || spec.expected, selector: item.selector });
+    shot = await captureTaskEvidence(handle, { expected: item.expected || spec.expected, selector: item.selector });
     if (!/^[a-zA-Z0-9_-]+$/.test(item.id)) throw new Error("EVIDENCE_ID_INVALID");
-    await fs.mkdir(spec.output_dir, { recursive: true });
-    const out = path.join(spec.output_dir, `${item.id}.png`);
-    await fs.writeFile(out, data);
-    candidates.push({ ...item, path: out, ...evidence, account: evidence.verified_identity.accountName || null, marketplace: evidence.verified_identity.requestedMarketplace || evidence.verified_identity.marketplace || null, source_url: evidence.verified_identity.url });
     outcome = "handoff";
   } finally { await releaseTaskPage(handle, { outcome }); }
+  const { data, evidence } = shot;
+  await fs.mkdir(spec.output_dir, { recursive: true });
+  const out = path.join(spec.output_dir, `${item.id}.png`);
+  await fs.writeFile(out, data);
+  candidates.push({ ...item, path: out, ...evidence, account: evidence.verified_identity.accountName || null, marketplace: evidence.verified_identity.requestedMarketplace || evidence.verified_identity.marketplace || null, source_url: evidence.verified_identity.url });
 }
 await fs.mkdir(spec.output_dir, { recursive: true });
 const manifest = path.join(spec.output_dir, "evidence_candidates.json");

@@ -248,7 +248,7 @@ export async function exactAsinSearch(marketplace, asin, language = "en_US") {
 export async function captureScreenshot(url, outputPath) {
   await ensureChrome();
   const page = await acquireBrowserPage(url);
-  let outcome = "success";
+  let outcome = "success", shot;
   try {
     await sleep(3000);
     await page.session.send("Page.enable");
@@ -256,15 +256,15 @@ export async function captureScreenshot(url, outputPath) {
     const marketplace = {"www.amazon.com":"US","www.amazon.de":"DE","www.amazon.co.uk":"UK",
       "www.amazon.ca":"CA","www.amazon.com.au":"AU","www.amazon.fr":"FR","www.amazon.it":"IT","www.amazon.es":"ES"}[requested.hostname];
     const asin = requested.pathname.match(/\/(?:dp|gp\/product)\/([A-Z0-9]{10})(?:\/|$)/)?.[1];
-    const shot = await captureTaskEvidence(page, {expected:{kind:"amazon-retail",marketplace,
+    shot = await captureTaskEvidence(page, {expected:{kind:"amazon-retail",marketplace,
       ...(asin?{asin}:{query:requested.searchParams.get("k")})}});
-    fs.writeFileSync(outputPath, shot.data);
-    fs.writeFileSync(outputPath+".json", JSON.stringify(shot.evidence,null,2)+"\n");
-    return outputPath;
   } catch (error) {
     outcome = "error";
     throw error;
   } finally {
     await releaseTaskPage(page, { outcome }).catch(() => {});
   }
+  fs.writeFileSync(outputPath, shot.data);
+  fs.writeFileSync(outputPath+".json", JSON.stringify(shot.evidence,null,2)+"\n");
+  return outputPath;
 }

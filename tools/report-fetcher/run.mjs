@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /*
- * One-command Seller Central report fetch — hands-off, no console paste.
+ * One-command Seller Central report fetch: hands-off, no console paste.
  *
  * Runs the fetch in Chrome's REAL page main world over the DevTools Protocol (CDP),
  * using the operator's existing logged-in session. Any agent with shell access
@@ -145,7 +145,7 @@ async function waitReady(session, needMetaTag) {
     if (ok) return;
     await new Promise((r) => setTimeout(r, 200));
   }
-  throw new Error("page did not become ready" + (needMetaTag ? " (anti-csrftoken meta tag never appeared — not a Brand Analytics page / not logged in)" : ""));
+  throw new Error("page did not become ready" + (needMetaTag ? " (anti-csrftoken meta tag never appeared: not a Brand Analytics page / not logged in)" : ""));
 }
 async function runFetch(taskPage, baseline, pageUrl, needMetaTag, call) {
   const { session } = taskPage;
@@ -198,19 +198,19 @@ function emit(doc, outPath, verbose, desc) {
     const firstRow = (doc.batches || []).flatMap((b) => b.rows || [])[0] || {};
     console.log("[verbose]", rawPath, "| column ids:", Object.keys(firstRow).join(", ") || "(none)");
   }
-  if (doc.error) die(`fetch error: ${doc.error}\n  (${desc}) — tab logged out / wrong marketplace, or a payload field changed. --verbose captures the raw response.`);
+  if (doc.error) die(`fetch error: ${doc.error}\n  (${desc}): tab logged out / wrong marketplace, or a payload field changed. --verbose captures the raw response.`);
   if (doc.report === "file") {             // inventory/listing report: raw file, no reformatting
     ensureDir(outPath); writeFileSync(outPath, doc.text || "");
     registerReportArtifact(outPath);
     const lines = (doc.text || "").split("\n").filter((l) => l.trim()).length;
-    console.log(`OK — ${outPath} (${Math.max(0, lines - 1)} rows) · ${desc} · ${doc.filename || ""}`);
+    console.log(`OK: ${outPath} (${Math.max(0, lines - 1)} rows) · ${desc} · ${doc.filename || ""}`);
     return;
   }
   const csv = format(doc);                 // throws + lists columns if a required one is unmapped
   ensureDir(outPath); writeFileSync(outPath, csv);
   registerReportArtifact(outPath);
   const rows = csv.split("\n").filter((l) => l.trim()).length - 1;
-  console.log(`OK — ${outPath} (${rows} rows) · ${desc}`);
+  console.log(`OK: ${outPath} (${rows} rows) · ${desc}`);
   if (doc.truncated) console.log(`   NOTE: ${doc.note}`);
 }
 
@@ -282,7 +282,7 @@ function buildJobs(report, cfg, args, mp) {
     // aliases. Before this, `--report parent` was read by none of them and silently fell back
     // to the CHILD report, so a "parent" pull returned child rows under a parent filename.
     const variant = args.report || args.report_variant || args.variant || c.report_variant || "child";
-    if (!LEGACY[variant]) die(`unknown --report "${variant}" — expected one of: ${Object.keys(LEGACY).join(", ")}`);
+    if (!LEGACY[variant]) die(`unknown --report "${variant}": expected one of: ${Object.keys(LEGACY).join(", ")}`);
     const legacy = LEGACY[variant] || c.legacy_report_id || LEGACY.child;
     const asins = list(args.asins || c.asins);
     const out = args.out || c.out || join(c.out_dir || "output/<client>/reporting/", `business_${start}.csv`);
@@ -356,9 +356,7 @@ function withAccount(url, params) {
   return u.toString();
 }
 
-async function runSqpJob(taskPage, baseline, origin, job, args, acct) {
-  const p = { asins: job.asins, marketplace: (args.marketplace || "us").toLowerCase(), reportingRange: job.range, periodEndDates: job.weeks };
-  const doc = await runFetch(taskPage, baseline, withAccount(origin + job.pageUrl, acct), true, `fetchSqp(${JSON.stringify(p)})`);
+function emitSqpJob(doc, job, args) {
   if (doc && doc.error) return emit(doc, `${job.stem}.csv`, args.verbose, `SQP ${job.group}`);
   if (job.split) {
     for (const asin of job.asins) {
@@ -455,6 +453,7 @@ async function main() {
   const sellerCentral = { marketplace: mp, origin };
   sellerCentralScope(sellerCentral); // Reject contradictory caller routing before acquisition.
   console.log(`Region: ${new URL(origin).host} for --marketplace ${mp}`);
+  const collected = [];
   const taskPage = await acquireTaskPage({
     taskId: browserTaskId, workflow: "amazon-reporting",
     initialUrl: "about:blank", exclusiveContext: true, sellerCentral,
@@ -596,13 +595,20 @@ async function main() {
     const acct = reportAccountParams(live.url || "", forcedAcct);
 
     for (const job of jobs) {
-      if (job.report === "sqp") await runSqpJob(taskPage, baseline, origin, job, args, acct);
-      else { const doc = await runFetch(taskPage, baseline, withAccount(origin + job.pageUrl, acct), job.needMetaTag, job.call); emit(doc, job.out, args.verbose, job.desc); }
+      const p = { asins: job.asins, marketplace: mp, reportingRange: job.range, periodEndDates: job.weeks };
+      const call = job.report === "sqp" ? `fetchSqp(${JSON.stringify(p)})` : job.call;
+      const doc = await runFetch(taskPage, baseline, withAccount(origin + job.pageUrl, acct), job.needMetaTag, call);
+      collected.push({ job, doc });
+      if (!doc || doc.error) break;
     }
-    if (artifactRun) artifactRun.complete("success");
-    outcome = "success";
+    outcome = collected.every(({ doc }) => doc && !doc.error) ? "success" : "error";
   } finally {
     await releaseTaskPage(taskPage, { outcome });
+    for (const { job, doc } of collected) {
+      if (job.report === "sqp") emitSqpJob(doc, job, args);
+      else emit(doc, job.out, args.verbose, job.desc);
+    }
+    if (outcome === "success" && artifactRun) artifactRun.complete("success");
   }
 }
 

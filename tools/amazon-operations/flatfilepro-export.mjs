@@ -6,11 +6,14 @@ import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { createHash } from 'node:crypto';
+import { isDeepStrictEqual } from 'node:util';
 import https from 'node:https';
 import { evaluate } from '../report-fetcher/cdp.mjs';
-import { acquireTaskPage, releaseTaskPage, taskIdFor } from '../browserctl/task-tabs.mjs';
+import { acquireTaskPage, releaseTaskPage, closeReleasedTaskPage, taskIdFor } from '../browserctl/task-tabs.mjs';
 import { durableReceipt, reserveSubmission } from './flatfilepro-contracts.mjs';
 import * as ui from './browser-ui.mjs';
+
+export const MARKER_EXPIRY_MS=24*60*60*1000;
 
 const EXPORT_ORIGIN='https://ffp-export.s3.us-east-2.amazonaws.com';
 const NAME=/^all-(\d{4})-(\d{2})-(\d{2})-(\d{2})-(\d{2})-(\d{2})-(\d{3})\.xlsx$/;
@@ -78,13 +81,14 @@ export function fetchExport(url,{maximumBytes=30*1024*1024,timeoutMs=90000}={}) 
 
 export async function collect(input,dependencies={}) {
   const common={schema_version:1,account:input.account,plan_hash:input.plan_hash};
-  let page,outcome='error';
+  let page,releasedPage,outcome='error';
   const acquire=dependencies.acquire||acquireTaskPage,release=dependencies.release||releaseTaskPage;
   const read=dependencies.read||exportsState,click=dependencies.click||ui.clickFlatFilePro,download=dependencies.download||fetchExport;
   const at=dependencies.now||(()=>Date.now());
+  const taskSpec={closeOnFailure:input.close_tab_after===true,taskId:taskIdFor('amazon-operations',input.task_key || input.operation_id),slot:'ffp-export',workflow:'amazon-flatfilepro',initialUrl:'https://app.flatfile.pro/exports',exclusiveContext:true};
   const onSigterm=async()=>{
     if(page?._released)return;
-    try{if(page)await release(page,{outcome:'error',closeTarget:input.close_tab_after===true});}
+    try{if(page)await release(page,{outcome:'error',closeTarget:input.close_tab_after===true});if(releasedPage&&input.close_tab_after===true)await closeReleasedTaskPage(releasedPage);}
     catch(error){console.error('SIGTERM browser release failed:',error.message);}
     finally{process.exit(143);}
   };
@@ -105,7 +109,16 @@ export async function collect(input,dependencies={}) {
         return {...common,...marker.result,status:'collected',observed_at:new Date(at()).toISOString()};
       }
     }
-    page=await acquire({closeOnFailure:input.close_tab_after===true,taskId:taskIdFor('amazon-operations',input.task_key || input.operation_id),slot:'ffp-export',workflow:'amazon-flatfilepro',initialUrl:'https://app.flatfile.pro/exports',exclusiveContext:true});
+    const persistRequest=async(reserve=false)=>{
+      const targetId=page.targetId;
+      releasedPage=page;
+      await release(page,{outcome:'success'});page=null;
+      if(reserve)await reserveSubmission(markerPath,marker);else await durableReceipt(markerPath,marker);
+      page=await acquire({...taskSpec,expectedTargetId:targetId});releasedPage=null;
+      ui.check(isDeepStrictEqual(JSON.parse(await readFile(markerPath,'utf8')),marker),'FFP export reservation changed during receipt write');
+      return read(page.session,input.account);
+    };
+    page=await acquire(taskSpec);
     await page.session.send('Page.navigate',{url:'https://app.flatfile.pro/exports'});
     if(!dependencies.read) {
       await ui.waitFor(()=>ui.snapshot(page.session),value=>value.text.length>80);
@@ -117,12 +130,13 @@ export async function collect(input,dependencies={}) {
       ui.check(buttons.length===1&&!buttons[0].disabled,'Exact EXPORT ALL LISTINGS control is unavailable or busy');
       marker={schema_version:1,account:input.account,plan_hash:input.plan_hash,minimum_after:input.minimum_after,
         requested_at:new Date(at()).toISOString(),before_names:[...new Set(state.links.filter(l=>NAME.test(l.name)).map(l=>l.name))],state:'request_outcome_unknown'};
-      await reserveSubmission(markerPath,marker);
+      state=await persistRequest(true);
+      ui.check(state.controls.filter(c=>c.label==='EXPORT ALL LISTINGS'&&!c.disabled).length===1&&
+        JSON.stringify([...new Set(state.links.filter(l=>NAME.test(l.name)).map(l=>l.name))])===JSON.stringify(marker.before_names),'FFP export state changed during receipt write');
       // The marker survives a lost click response. Resume observes, never clicks again.
       try {await click(page.session,'EXPORT ALL LISTINGS');}
       catch(error){outcome='success';return {...common,status:'processing',reason:'ffp_export_request_outcome_unknown',message:error.message,report_request:markerPath,observed_at:new Date(at()).toISOString()};}
-      marker.state='requested';await durableReceipt(markerPath,marker);
-      state=await read(page.session,input.account);
+      marker.state='requested';state=await persistRequest();
     }
     let selected=selectCompletedExport(state,marker,input.account,input.minimum_after,at());
     if(!selected&&!dependencies.read){
@@ -132,11 +146,25 @@ export async function collect(input,dependencies={}) {
         selected=await ui.waitFor(async()=>selectCompletedExport(await read(page.session,input.account),marker,input.account,input.minimum_after,at()),Boolean,10000);
       }catch(error){if(error.message!=='Expected page state did not appear')throw error;}
     }
-    if(!selected){outcome='success';return {...common,status:'processing',reason:'ffp_export_pending',report_request:markerPath,observed_at:new Date(at()).toISOString()};}
+    if(!selected){
+      const expired=at()-Date.parse(marker.requested_at)>=MARKER_EXPIRY_MS;
+      outcome=expired?'error':'success';return {...common,status:expired?'blocked':'processing',reason:expired?'marker_expired':'ffp_export_pending',report_request:markerPath,observed_at:new Date(at()).toISOString()};
+    }
+    await read(page.session,input.account); // Verify ownership before leaving the browser.
+    await release(page,{outcome:'success',closeTarget:input.close_tab_after===true});
+    page=null;
     // Download only the publicly readable observed S3 object, without cookies or browser routing.
     const downloaded=await download(selected.href);
     ui.check(downloaded.bytes.length>4&&downloaded.bytes.subarray(0,2).toString()==='PK','FFP export is not an XLSX ZIP file');
+    page=await acquire(taskSpec);
+    ui.check(isDeepStrictEqual(JSON.parse(await readFile(markerPath,'utf8')),marker),'FFP export reservation changed during download');
+    await page.session.send('Page.navigate',{url:'https://app.flatfile.pro/exports'});
+    if(!dependencies.read){
+      await ui.waitFor(()=>ui.snapshot(page.session),value=>value.text.length>80);
+    }
     await read(page.session,input.account); // Account ownership remains valid through retrieval.
+    await release(page,{outcome:'success',closeTarget:input.close_tab_after===true});
+    page=null;
     const path=join(directory,selected.name);await writeFile(path,downloaded.bytes,{flag:'wx'}).catch(async error=>{
       if(error.code!=='EEXIST')throw error;
       ui.check(sha256(await readFile(path))===sha256(downloaded.bytes),'Existing export file differs; preserve it for inspection');
@@ -147,7 +175,8 @@ export async function collect(input,dependencies={}) {
     await durableReceipt(markerPath,marker);
     outcome='success';return {...common,...result,status:'collected',observed_at:new Date(at()).toISOString()};
   }catch(error){return {...common,status:'blocked',reason:'ffp_export_collection_unavailable',message:error.message,observed_at:new Date(at()).toISOString()};}
-  finally{process.removeListener('SIGTERM',onSigterm);if(page)await release(page,{outcome,closeTarget:input.close_tab_after===true});}
+  finally{process.removeListener('SIGTERM',onSigterm);if(page)await release(page,{outcome,closeTarget:input.close_tab_after===true});
+    if(releasedPage&&input.close_tab_after===true)await closeReleasedTaskPage(releasedPage);}
 }
 
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){

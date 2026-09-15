@@ -24,6 +24,7 @@ from __future__ import annotations
 import argparse
 import csv
 import datetime
+import hashlib
 import json
 import os
 import subprocess
@@ -487,8 +488,26 @@ def plan(entries: list[dict], run_date: str, start: str, end: str, work_dir: Pat
     return manifests
 
 
+def _plan_fingerprint(manifests: list[dict], replies: list[str]) -> str:
+    """Compare plan values and all product rows, excluding run-local provenance."""
+    plans = []
+    for manifest in manifests:
+        values = {key: value for key, value in manifest.items()
+                  if not key.startswith("_") and key not in {
+                      "sources", "csv", "xlsx", "slack", "notes", "profileSource"}}
+        # The manifest contains totals. Include the full CSV so reallocating
+        # units between products also changes the fingerprint, beyond Slack's
+        # ten-row preview. Paths and evidence timestamps change on every pull.
+        if manifest.get("csv"):
+            with Path(manifest["csv"]).open(newline="", encoding="utf-8") as fh:
+                values["rows"] = sorted(json.dumps(row, sort_keys=True) for row in csv.DictReader(fh))
+        plans.append(json.dumps(values, sort_keys=True))
+    content = json.dumps([sorted(plans), sorted(replies)], sort_keys=True)
+    return hashlib.sha256(content.encode("utf-8")).hexdigest()
+
+
 def post(region_label: str, manifests: list[dict], blocked: list[dict], run_date: str) -> str:
-    """One thread per region run. The parent is what the freshness guard claims on."""
+    """Reuse the day's last thread when the plan is unchanged; retain receipts."""
     stamp = datetime.date.fromisoformat(run_date).strftime("%d.%m.%Y")
     sending = [m for m in manifests if m["sendUnits"] > 0]
     quiet = [m for m in manifests if m["sendUnits"] == 0]
@@ -505,22 +524,48 @@ def post(region_label: str, manifests: list[dict], blocked: list[dict], run_date
         parent += f" · {len(quiet)} need nothing"
     if blocked:
         parent += f" · {len(blocked)} blocked"
-    result = json.loads(slack_helper.run_helper("post", CHANNEL, parent))
-    thread = result["ts"]
-
+    replies = []
     for m in sending:
         body = m["_slack"].read_text(encoding="utf-8") if m["_slack"].exists() else ""
         detail = body.split("\n\n*Reshipment*\n", 1)[1] if "\n\n*Reshipment*\n" in body else ""
         entry = m["_entry"]
-        slack_helper.run_helper("post", CHANNEL, (
+        replies.append((
             f"*{entry['brand']} {entry['market']}* · {m['sendUnits']:,} unit(s) · "
-            f"{m['effectiveCoverageDays']}d coverage\n{detail}").strip(), thread)
+            f"{m['effectiveCoverageDays']}d coverage\n{detail}").strip())
 
     if blocked:
-        slack_helper.run_helper("post", CHANNEL, "*Not planned this run*\n" + "\n".join(
-            f"• {b['brand']} {b['market']} · {b['blocker']}" for b in blocked), thread)
+        replies.append("*Not planned this run*\n" + "\n".join(sorted(
+            f"• {b['brand']} {b['market']} · {b['blocker']}" for b in blocked)))
 
-    return json.loads(slack_helper.run_helper("permalink", CHANNEL, thread))["permalink"]
+    fingerprint = _plan_fingerprint(manifests, [parent, *replies])
+    scope = hashlib.sha256(json.dumps([CHANNEL, region_label, run_date]).encode("utf-8")).hexdigest()
+    ledger_path = REPO / "output" / "reshipment-slack-receipts" / f"{run_date}-{scope}.json"
+    ledger_path.parent.mkdir(parents=True, exist_ok=True)
+    ledger = json.loads(ledger_path.read_text(encoding="utf-8")) if ledger_path.exists() else []
+
+    def save_receipts():
+        temporary = ledger_path.with_suffix(".tmp")
+        temporary.write_text(json.dumps(ledger, indent=2) + "\n", encoding="utf-8")
+        temporary.replace(ledger_path)
+
+    receipt = ledger[-1] if ledger and ledger[-1]["fingerprint"] == fingerprint else None
+    if receipt is None:
+        result = json.loads(slack_helper.run_helper("post", CHANNEL, parent))
+        receipt = {"fingerprint": fingerprint, "channel": CHANNEL, "region": region_label,
+                   "date": run_date, "parent": result, "messages": replies, "replies": []}
+        ledger.append(receipt)
+        save_receipts()
+    thread = receipt["parent"]["ts"]
+    # Save each acknowledgement so a failed reply or permalink lookup can be
+    # retried in the same thread without repeating confirmed sends.
+    for body in receipt["messages"][len(receipt["replies"]):]:
+        result = json.loads(slack_helper.run_helper("post", CHANNEL, body, thread))
+        receipt["replies"].append(result)
+        save_receipts()
+    if "permalink" not in receipt:
+        receipt["permalink"] = json.loads(slack_helper.run_helper("permalink", CHANNEL, thread))["permalink"]
+        save_receipts()
+    return receipt["permalink"]
 
 
 def main() -> int:

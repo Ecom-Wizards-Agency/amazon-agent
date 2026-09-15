@@ -74,9 +74,9 @@ try {
       listings.push({ asin, status: "error", error: e.message });
     }
   }
-  fs.mkdirSync(out.replace(/\/[^/]+$/, ""), { recursive: true });
-  fs.writeFileSync(out, JSON.stringify({ schemaVersion: "amazon-agent.listing-reference.v1", capturedAt: new Date().toISOString().slice(0,10), marketplace: tld, listings }, null, 2));
-  console.error(`\nwrote ${out} (${listings.length} listings)`);
 } finally {
   await releaseTaskPage(taskPage, { outcome: hadError ? "error" : "success" }).catch(() => {});
 }
+fs.mkdirSync(out.replace(/\/[^/]+$/, ""), { recursive: true });
+fs.writeFileSync(out, JSON.stringify({ schemaVersion: "amazon-agent.listing-reference.v1", capturedAt: new Date().toISOString().slice(0,10), marketplace: tld, listings }, null, 2));
+console.error(`\nwrote ${out} (${listings.length} listings)`);

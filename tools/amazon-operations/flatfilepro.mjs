@@ -10,6 +10,7 @@ import { createHash } from 'node:crypto';
 import { evaluate } from '../report-fetcher/cdp.mjs';
 import { acquireTaskPage,releaseTaskPage,closeReleasedTaskPage,completeBrowserTask,taskIdFor } from '../browserctl/task-tabs.mjs';
 import * as ui from './browser-ui.mjs';
+import { releaseLauncherSessionLock } from '../browserctl/session-lock.mjs';
 import { collect as collectListings } from './flatfilepro-listings.mjs';
 import { verifyListingIdentities } from './image-identity.mjs';
 import { submitAttended, submittedRunIdentity } from './flatfilepro-submit.mjs';
@@ -37,14 +38,19 @@ async function selectSourceHeader(session,account,label,field) {
   return state.options;
 }
 
-export async function stageImport(input,page) {
-  const {plan}=input,account=plan.account,directory=dirname(input.receipt_path);
-  const bytes=await readFile(plan.body.upload),hash=createHash('sha256').update(bytes).digest('hex');
-  const filename=`ffp-${input.plan_hash}.xlsx`,path=join(directory,filename),journalPath=join(directory,'flatfilepro-upload.json');
+export async function stageWorkbook(input) {
+  const bytes=await readFile(input.plan.body.upload),hash=createHash('sha256').update(bytes).digest('hex');
+  const filename=`ffp-${input.plan_hash}.xlsx`,path=join(dirname(input.receipt_path),filename);
   await writeFile(path,bytes,{flag:'wx'}).catch(async error=>{
     if(error.code!=='EEXIST')throw error;
     ui.check(createHash('sha256').update(await readFile(path)).digest('hex')===hash,'Previously staged workbook bytes changed');
   });
+  return Object.freeze({path,filename,hash});
+}
+
+export async function stageImport(input,page,staged) {
+  const account=input.plan.account,{path,filename,hash}=staged;
+  const journalPath=join(dirname(input.receipt_path),'flatfilepro-upload.json');
   let journal;
   try{journal=JSON.parse(await readFile(journalPath,'utf8'));}catch(error){if(error.code!=='ENOENT')throw error;}
   if(journal)ui.check(journal.plan_hash===input.plan_hash&&journal.upload_sha256===hash&&JSON.stringify(journal.account)===JSON.stringify(account),'Upload journal differs from the exact account or workbook');
@@ -208,6 +214,8 @@ async function execute(input) {
   const result=data=>({schema_version:1,plan_hash:input.plan_hash,...data});
   try {
     if(body.image_policy==='secondary_slots_only')verifyListingIdentities(body.image_identity_rows,body.image_identity_rows||{},plan.targets);
+    await releaseLauncherSessionLock(Number(process.env.CDP_PORT||9223));
+    const staged=await stageWorkbook(input);
     page=await acquireTaskPage({closeOnFailure:input.close_tab_after===true,taskId:taskIdFor('amazon-operations',input.task_key || plan.operation_id),workflow:'amazon-flatfilepro',initialUrl:'https://app.flatfile.pro/import',exclusiveContext:true});
     // A competing invocation may have submitted while this one waited for the
     // managed browser lock. Recheck only after exclusive ownership is acquired.
@@ -218,7 +226,7 @@ async function execute(input) {
       await ui.waitFor(()=>ui.snapshot(page.session),s=>s.controls.some(c=>c.label==='UPLOAD EXCEL FILE'));
     }
     phase='upload_and_parse';
-    const uploadIdentity=await stageImport(input,page);
+    const uploadIdentity=await stageImport(input,page,staged);
     phase='mapping_and_preview';
     const readMapped=()=>readPreviewState(page.session,()=>ui.context(page.session,plan.account,'ffp'));
     const preview=await collectMappedPreview({read:readMapped,body,map:async()=>{for(const field of body.mapping) {
@@ -274,7 +282,7 @@ async function execute(input) {
     phase='submission';
     attempted=true; // A failed/existing reservation is uncertain, never retryable.
     const attempt={schema_version:1,plan_hash:input.plan_hash,account:plan.account,...identity,
-      upload_sha256:createHash('sha256').update(await readFile(body.upload)).digest('hex'),
+      upload_sha256:staged.hash,
       submission_intent:true,started_at:new Date().toISOString(),preview_pages:preview.page_count,preview_path:previewPath,image_preflight:input.image_preflight||null,evidence};
     if(identity.identity_kind==='uploaded_file') {
       const submitted=await submitAttended({session:page.session,click:()=>ui.clickFlatFilePro(page.session,'UPDATE LISTINGS'),attemptPath,attempt});

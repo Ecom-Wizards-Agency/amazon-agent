@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {registerHooks} from 'node:module';
+import {registerHooks,syncBuiltinESMExports} from 'node:module';
+import fsPromises from 'node:fs/promises';
 import {mkdtemp,writeFile,rm} from 'node:fs/promises';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
@@ -18,7 +19,7 @@ const sources={
  'browser-ui.mjs':Object.keys(realUi).map(name=>typeof realUi[name]==='function'?`export const ${name}=(...args)=>globalThis.__collectorLifecycle.ui.${name}(...args);`:`export const ${name}=${JSON.stringify(realUi[name])};`).join('\n'),
  'cdp.mjs':`export const evaluate=(...args)=>globalThis.__collectorLifecycle.evaluate(...args);`,
  'sc-account.mjs':`export const switchAccount=(...args)=>globalThis.__collectorLifecycle.send(...args);export const readIdentity=async()=>({});`,
- 'session-lock.mjs':`export const acquireSessionLock=()=>()=>{};`,
+ 'session-lock.mjs':`export const acquireSessionLock=()=>()=>{};export const releaseLauncherSessionLock=async()=>{};`,
  'marketplace-postcode.mjs':`export const ensureDeliveryPostcode=async()=>({ok:true});export const assertDeliveryPostcode=ensureDeliveryPostcode;`,
 };
 boundary.taskIdFor=taskIdFor;
@@ -54,7 +55,7 @@ async function fixture(t) {
  boundary.release=async(page,options)=>{if(page._released)return;page._released=true;releases.push(options);events.push(['release',options.outcome]);};
  boundary.closeReleased=async page=>events.push(['close-released',page.targetId]);
  boundary.complete=async spec=>events.push(['complete',spec]);
- boundary.ui={...realUi,selectFlatFileProAccount:async()=>state(),context:async()=>state(),snapshot:async()=>state(),
+ boundary.ui={...realUi,selectFlatFileProAccount:async()=>state(),context:async(_session,_account,kind)=>kind==='catalog'?boundary.ui.snapshot():state(),snapshot:async()=>state(),
   waitFor:async(read,predicate)=>{const value=await read();assert.ok(predicate(value));return value;},
   screenshot:async()=>{},attach:async()=>{},contextMatches:()=>true,clickFlatFilePro:async()=>{submitted=true;}};
  boundary.send=async(method,args)=>{
@@ -195,7 +196,8 @@ for(const name of ['listings','catalog']){
    const run=name==='listings'?input=>listings.collect(input,{read}):catalog.collect;
    assert.equal((await run(input)).status,'collected');
    assert.equal(f.specs[0].taskId,taskIdFor('amazon-operations','bulk-images:terminal'));
-   assert.deepEqual(f.events,completeTask===true?[['release','success'],['complete',{taskId:taskIdFor('amazon-operations','bulk-images:terminal')}]]:[['release','success']]);
+   const released=Array.from({length:name==='catalog'?3:1},()=>['release','success']);
+   assert.deepEqual(f.events,completeTask===true?[...released,['complete',{taskId:taskIdFor('amazon-operations','bulk-images:terminal')}]]:released);
    if(completeTask===true){
     const logged=[];
     const logger=t.mock.method(console,'error',(...args)=>logged.push(args.join(' ')));
@@ -216,10 +218,10 @@ test('catalog pending report polls release as success and genuine failures relea
  boundary.ui.click=async()=>{};
  boundary.evaluate=async(_session,source)=>source.includes('data.statuses')?[]:{report_value:'catalog',report_label:'Category Listings Report'};
  assert.equal((await catalog.collect(f.input)).status,'processing');
- assert.deepEqual(f.events,[['release','success']]);
+ assert.deepEqual(f.events,Array.from({length:3},()=>['release','success']));
  boundary.evaluate=async()=>{throw Error('Report status unavailable');};
  assert.equal((await catalog.collect(f.input)).status,'blocked');
- assert.deepEqual(f.events,[['release','success'],['release','error']]);
+ assert.deepEqual(f.events,[...Array.from({length:3},()=>['release','success']),['release','error']]);
 });
 
 for(const name of ['catalog','cases']){
@@ -286,10 +288,10 @@ for(const name of ['activity','images','listings','discovery','exports','flatfil
     boundary.evaluate=async()=>({status:200,body:JSON.stringify({caseSearchResultList:[],totalNumberOfResults:0})});
    }
    const result=await run();
-   assert.equal(f.releases.length,1,JSON.stringify(result));
+   assert.equal(f.releases.length,['catalog','exports'].includes(name)?3:1,JSON.stringify(result));
    assert.equal(f.specs[0].closeOnFailure,flag===true);
-   assert.equal(f.releases[0].closeTarget,flag===true);
-   assert.equal(f.releases[0].outcome,'success',JSON.stringify(result));
+   assert.equal(f.releases.at(-1).closeTarget,flag===true);
+   assert.equal(f.releases.at(-1).outcome,'success',JSON.stringify(result));
    failRead=true;
    if(name==='flatfile')await rm(join(f.directory,'flatfilepro-attempt.json'));
    boundary.send=async()=>{throw Error('Read failed');};
@@ -438,3 +440,137 @@ test('nested listing SIGTERM waits for an in-progress release and handoff cleanu
   assert.deepEqual(exit.mock.calls.map(call=>call.arguments),[[143]]);
   assert.deepEqual(process.listeners('SIGTERM'),before);
  });
+
+for(const state of ['requested','request_outcome_unknown'])test(`S3 catalog marker expires at 24 hours and late completion wins: ${state}`,async t=>{
+ const f=await fixture(t),requested=Date.parse('2026-09-13T12:00:00Z');
+ const marker={plan_hash:f.input.plan_hash,minimum_after:f.input.minimum_after,requested_at:new Date(requested).toISOString(),state,report_value:'catalog',report_label:'Category Listings Report'};
+ await writeFile(join(f.directory,'report-request.json'),JSON.stringify(marker));
+ boundary.ui.snapshot=async()=>({url:'https://sellercentral.amazon.com/listing/reports',text:'Reports'});
+ boundary.ui.click=async()=>assert.fail('An unknown or requested marker must never repeat the request click');
+ let complete=false;
+ boundary.evaluate=async(_session,source)=>source.includes('data.statuses')?(complete?[{reportType:{value:'catalog'},processingState:{name:'DONE'},submissionDate:marker.requested_at,actions:[{link:'/listing/download'}]}]:[]):{base64:Buffer.from('sku\tasin').toString('base64')};
+ let at=requested+catalog.MARKER_EXPIRY_MS-1;
+ t.mock.method(Date,'now',()=>at);
+ assert.equal((await catalog.collect(f.input)).status,'processing');
+ at++;
+ const expired=await catalog.collect(f.input);
+ assert.equal(expired.status,'blocked');assert.equal(expired.reason,'marker_expired');
+ assert.equal((await catalog.collect(f.input)).reason,'marker_expired');
+ complete=true;
+ assert.equal((await catalog.collect(f.input)).status,'collected');
+});
+
+test('S17 catalog decoding starts after release and preserves the report receipt',async t=>{
+ const f=await fixture(t);
+ const open=fsPromises.open;let writes=0;
+ const mocked=t.mock.method(fsPromises,'open',async(path,flags,...args)=>{
+  if(String(path).includes('report-request.json')&&['wx','w'].includes(flags)){
+   assert.equal(f.specs.length,f.releases.length,'catalog receipt write must follow release');writes++;
+  }
+  return open(path,flags,...args);
+ });
+ syncBuiltinESMExports();t.after(()=>{mocked.mock.restore();syncBuiltinESMExports();});
+ const receipt=boundary.ui.receipt;
+ boundary.ui.receipt=async(...args)=>{assert.equal(f.specs.length,f.releases.length);return receipt(...args);};
+ boundary.ui.snapshot=async()=>({url:'https://sellercentral.amazon.com/listing/reports',text:'Reports'});
+ boundary.ui.click=async()=>{};
+ boundary.evaluate=async(_session,source)=>{
+  if(source.includes('data.statuses'))return [{reportType:{value:'catalog'},processingState:{name:'DONE'},submissionDate:new Date().toISOString(),actions:[{link:'/listing/download'}]}];
+  if(source.includes('arrayBuffer'))return {get base64(){assert.equal(f.releases.length,3);return Buffer.from('sku\tasin').toString('base64');}};
+  return {report_value:'catalog',report_label:'Category Listings Report'};
+ };
+ const result=await catalog.collect({...f.input,close_tab_after:true});
+ assert.equal(result.status,'collected');assert.match(result.sha256,/^[a-f0-9]{64}$/);
+ assert.deepEqual(f.releases,[{outcome:'success'},{outcome:'success'},{outcome:'success',closeTarget:true}]);
+ const {readFile}=await import('node:fs/promises');
+ assert.equal(await readFile(result.path,'utf8'),'sku\tasin');
+ assert.equal(JSON.parse(await readFile(join(f.directory,'report-request.json'),'utf8')).state,'downloaded');
+ assert.equal(writes,1); // The exclusive reservation uses the durable file handle.
+});
+
+for(const name of ['catalog','exports'])for(const failure of ['reservation','receipt','reacquire'])for(const flag of [undefined,false,true]){
+ test(`${name} ${failure} failure retains the exact released target, close_tab_after=${flag}`,async t=>{
+  const f=await fixture(t),acquire=boundary.acquire,open=fsPromises.open;
+  const handles=[],closed=[];let clicks=0,writes=0;
+  boundary.acquire=async spec=>{
+   if(failure==='reacquire'&&handles.length)throw Error('reacquire failed');
+   const page=await acquire(spec);handles.push(page);return page;
+  };
+  boundary.closeReleased=async page=>{assert.equal(page._released,true);closed.push(page);};
+  boundary.ui.snapshot=async()=>({url:'https://sellercentral.amazon.com/listing/reports',text:'Reports'});
+  boundary.ui.click=async()=>{clicks++;};
+  boundary.evaluate=async()=>({report_value:'catalog',report_label:'Category Listings Report'});
+  const mocked=t.mock.method(fsPromises,'open',async(path,flags,...args)=>{
+   if(String(path).includes('request.json')&&['wx','w'].includes(flags)){
+    assert.equal(handles.length,f.releases.length);writes++;
+    if(failure==='reservation'||(failure==='receipt'&&writes===2))throw Error(failure+' failed');
+   }
+   return open(path,flags,...args);
+  });
+  syncBuiltinESMExports();t.after(()=>{mocked.mock.restore();syncBuiltinESMExports();});
+  if(failure==='receipt')boundary.ui.receipt=async()=>{assert.equal(handles.length,f.releases.length);throw Error('receipt failed');};
+  const input={...f.input,close_tab_after:flag};
+  const result=name==='catalog'?await catalog.collect(input):await exports.collect(input,{
+   read:async()=>({controls:[{label:'EXPORT ALL LISTINGS'}],links:[]}),click:async()=>{clicks++;},
+  });
+  assert.equal(result.status,'blocked');assert.match(result.message,new RegExp(failure+' failed'));
+  assert.equal(clicks,failure==='receipt'?1:0);
+  assert.equal(handles.length,failure==='receipt'?2:1);
+  assert.deepEqual(f.releases,handles.map(()=>({outcome:'success'})));
+  assert.deepEqual(closed,flag===true?[handles.at(-1)]:[]);
+ });
+}
+
+test('catalog rechecks reservation and identity before a request click',async t=>{
+ for(const change of ['reservation','account','page']){
+  const f=await fixture(t),acquire=boundary.acquire;let clicks=0;
+  boundary.ui.snapshot=async()=>({url:change==='page'&&f.specs.length===2?'https://sellercentral.amazon.com/home':'https://sellercentral.amazon.com/listing/reports',text:'Reports'});
+  const context=boundary.ui.context;
+  boundary.ui.context=async(...args)=>{if(change==='account'&&f.specs.length===2)throw Error('Account changed');return context(...args);};
+  boundary.acquire=async spec=>{const page=await acquire(spec);if(change==='reservation'&&f.specs.length===2)await writeFile(join(f.directory,'report-request.json'),'{}');return page;};
+  boundary.ui.click=async()=>{clicks++;};
+  boundary.evaluate=async()=>({report_value:'catalog',report_label:'Category Listings Report'});
+  const result=await catalog.collect(f.input);
+  assert.equal(result.status,'blocked');assert.match(result.message,/reservation changed|Account changed|page changed/);
+  assert.equal(clicks,0);assert.equal(f.specs.length,f.releases.length);
+ }
+});
+
+for(const name of ['listings','discovery'])test(`S19/S20 ${name} serializes only after release`,async t=>{
+ const f=await fixture(t);
+ const row={asin,toJSON(){assert.equal(f.releases.length,1);return {asin};}};
+ const result=name==='listings'?await listings.collect({...f.input,close_tab_after:true},{read:async()=>({sku:'sku-one',asin,observed_at:new Date().toISOString(),row})}):await discovery.collect({...f.input,targets:undefined,close_tab_after:true},{pages:async()=>[{...account,offset:0,total:0,has_more:false,items:[],observed_at:new Date().toISOString(),toJSON(){assert.equal(f.releases.length,1);return {};}}]});
+ assert.equal(result.status,'collected',result.message);assert.match(result.sha256,/^[a-f0-9]{64}$/);
+ assert.deepEqual(f.releases,[{outcome:'success',closeTarget:true}]);
+});
+
+test('S21 changed source after acquisition cannot change uploaded bytes or receipt hash',async t=>{
+ const f=await fixture(t);
+ const {readFile}=await import('node:fs/promises');
+ const {createHash}=await import('node:crypto');
+ const expected=createHash('sha256').update(await readFile(f.envelope.plan.body.upload)).digest('hex');
+ const acquire=boundary.acquire;
+ boundary.acquire=async spec=>{await writeFile(f.envelope.plan.body.upload,'changed source');return acquire(spec);};
+ let attached;
+ boundary.ui.attach=async(_session,path)=>{attached=await readFile(path);};
+ assert.equal((await flatfile.run(f.envelope)).status,'processing');
+ const attempt=JSON.parse(await readFile(join(f.directory,'flatfilepro-attempt.json'),'utf8'));
+ assert.equal(attempt.upload_sha256,expected);
+ assert.equal(createHash('sha256').update(attached).digest('hex'),expected);
+ assert.equal(attached.toString(),'fixture');
+});
+
+test('S3 failed catalog request click becomes terminal after its unknown marker expires',async t=>{
+ const f=await fixture(t);let clicks=0;
+ boundary.ui.snapshot=async()=>({url:'https://sellercentral.amazon.com/listing/reports',text:'Reports'});
+ boundary.ui.click=async()=>{clicks++;throw Error('Request click failed');};
+ boundary.evaluate=async(_session,source)=>source.includes('data.statuses')?[]:{report_value:'catalog',report_label:'Category Listings Report'};
+ assert.equal((await catalog.collect(f.input)).status,'blocked');
+ assert.equal((await catalog.collect(f.input)).status,'processing');
+ const {readFile}=await import('node:fs/promises');
+ const marker=JSON.parse(await readFile(join(f.directory,'report-request.json'),'utf8'));
+ assert.equal(marker.state,'request_outcome_unknown');
+ t.mock.method(Date,'now',()=>Date.parse(marker.requested_at)+catalog.MARKER_EXPIRY_MS);
+ const expired=await catalog.collect(f.input);
+ assert.equal(expired.status,'blocked');assert.equal(expired.reason,'marker_expired');assert.equal(clicks,1);
+});

@@ -103,6 +103,8 @@ export async function collect(input,deps={}){
   const rows=Object.fromEntries(records.map(r=>[r.sku,r.row]));
   const observed_at=new Date(Math.min(...records.map(r=>Date.parse(r.observed_at)))).toISOString();
   const result={...common,status:'collected',complete:true,observed_at,source_id:'flatfilepro:item-detail',rows,records};
+  outcome='success';
+  await (releasing??=(deps.release||releaseTaskPage)(page,{outcome,closeTarget:input.close_tab_after===true}));
   const bytes=Buffer.from(JSON.stringify(result)),path=join(directory,`listings-${at()}-${createHash('sha256').update(bytes).digest('hex').slice(0,12)}.json`);
   await writeFile(path,bytes,{flag:'wx'}).catch(async e=>{if(e.code!=='EEXIST'||!(await readFile(path)).equals(bytes))throw e;});
   outcome='success';return {...result,path,sha256:createHash('sha256').update(bytes).digest('hex')};

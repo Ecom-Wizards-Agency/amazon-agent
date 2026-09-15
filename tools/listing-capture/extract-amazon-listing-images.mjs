@@ -89,24 +89,25 @@ const taskPage = await acquireTaskPage({
 });
 const s = taskPage.session;
 let leaseOutcome = 'success';
+let data;
 try {
   await s.send('Page.navigate', { url });
   await s.send('Runtime.enable', {});
   // let the image block hydrate
   await new Promise(r => setTimeout(r, 6000));
-  const data = await evaluate(s, EXPR, 60000);
+  data = await evaluate(s, EXPR, 60000);
   if (!data || !data.title) {
     console.error('WARN: no product title found. A login wall or captcha may be showing. Check the tab.');
   }
-  const json = JSON.stringify(data, null, 2);
-  if (out) { mkdirSync(dirname(out), { recursive: true }); writeFileSync(out, json); console.log(`wrote ${out}`); }
-  console.log(`ASIN ${data.asin} · images ${data.images.length} · video thumbs ${data.videoCount} · A+ ${data.aplus.present ? `yes (${data.aplus.modules} modules, ${data.aplus.images} imgs)` : 'no'}`);
-  console.log(`title: ${(data.title || '').slice(0, 90)}`);
-  console.log(`price: ${data.price} · rating: ${data.rating} · reviews: ${data.reviewCount}`);
-  if (!out) console.log(json);
 } catch (error) {
   leaseOutcome = 'error';
   throw error;
 } finally {
   await releaseTaskPage(taskPage, { outcome: leaseOutcome }).catch(() => {});
 }
+const json = JSON.stringify(data, null, 2);
+if (out) { mkdirSync(dirname(out), { recursive: true }); writeFileSync(out, json); console.log(`wrote ${out}`); }
+console.log(`ASIN ${data.asin} · images ${data.images.length} · video thumbs ${data.videoCount} · A+ ${data.aplus.present ? `yes (${data.aplus.modules} modules, ${data.aplus.images} imgs)` : 'no'}`);
+console.log(`title: ${(data.title || '').slice(0, 90)}`);
+console.log(`price: ${data.price} · rating: ${data.rating} · reviews: ${data.reviewCount}`);
+if (!out) console.log(json);

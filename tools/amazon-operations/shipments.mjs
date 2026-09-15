@@ -6,6 +6,8 @@ import path from "node:path";
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
+import { isDeepStrictEqual } from "node:util";
+import { releaseLauncherSessionLock } from "../browserctl/session-lock.mjs";
 import { withTaskDownloads } from "../browserctl/task-downloads.mjs";
 
 const MARKETS = { US: ["https://sellercentral.amazon.com", "United States"],
@@ -95,11 +97,20 @@ export function writeReceipt(filename, value, { exclusive = false } = {}) {
 export async function executeShipment(envelope, ui, save) {
   const context = validateShipment(envelope);
   let record = { schema_version: 1, plan_hash: envelope.plan_hash, status: "blocked", phase: "preflight", updated_at: now() };
-  const persist = changes => { record = { ...record, ...changes, updated_at: now() }; save(record); return record; };
+  const persist = async (changes, resume = true) => {
+    if (resume) await ui.pause(); else await ui.close();
+    record = { ...record, ...changes, updated_at: now() };
+    await save(record);
+    if (resume) await ui.resume(record);
+    return record;
+  };
   let committed = false;
   const commit = async (phase, action) => {
     await ui.assertIdentity();
-    persist({ status: "uncertain", phase, reason: "submission_attempt_started" });
+    await persist({ status: "uncertain", phase, reason: "submission_attempt_started" });
+    await ui.assertIdentity();
+    if (phase === "confirming_content") await ui.verifyContent(context, record.workflow_id);
+    if (phase === "confirming_shipping") assert(equal(validateQuote(await ui.readQuote(context), context), record.quote), "shipping terms changed during receipt write");
     committed = true;
     return action();
   };
@@ -108,12 +119,12 @@ export async function executeShipment(envelope, ui, save) {
     await ui.assertIdentity();
     const workflowId = await commit("creating_workflow", () => ui.createWorkflow());
     assert(/^wf[a-zA-Z0-9-]+$/.test(workflowId), "workflow ID was not captured");
-    persist({ workflow_id: workflowId, submission_id: workflowId, phase: "preparing_content" });
+    await persist({ workflow_id: workflowId, submission_id: workflowId, phase: "preparing_content" });
     await ui.prepareContent(context, workflowId);
     await ui.verifyContent(context, workflowId);
     await commit("confirming_content", () => ui.confirmContent());
     const quote = validateQuote(await ui.prepareShipping(context), context);
-    persist({ phase: "shipping_prepared", quote });
+    await persist({ phase: "shipping_prepared", quote });
     await ui.assertIdentity();
     const final = validateQuote(await ui.readQuote(context), context);
     assert(equal(final, quote), "shipping terms changed after preparation");
@@ -122,7 +133,7 @@ export async function executeShipment(envelope, ui, save) {
     assert(confirmed.workflow_id === workflowId && confirmed.shipment_ids?.length &&
       confirmed.shipment_ids.every(id => /^FBA[A-Z0-9]+$/.test(id)) && new Set(confirmed.shipment_ids).size === confirmed.shipment_ids.length,
       "confirmed shipment IDs are missing or inconsistent");
-    persist({ status: "processing", phase: "downloading_labels", submission_ids: confirmed.shipment_ids, reason: "awaiting_label_verification" });
+    await persist({ status: "processing", phase: "downloading_labels", submission_ids: confirmed.shipment_ids, reason: "awaiting_label_verification" });
     await ui.assertIdentity();
     const labels = await ui.downloadLabels(context, confirmed);
     assert(labels.length === context.shipment.cartons.length &&
@@ -134,15 +145,18 @@ export async function executeShipment(envelope, ui, save) {
       shipment_reference: context.shipment.shipment_reference, carrier: quote.carrier,
       currency: quote.currency, actual_cost: quote.actual_cost, quantities: context.quantities,
       labels, workflow_id: workflowId, shipping_quote: quote };
-    return persist({ status: "processing", phase: "evidence_ready", reason: "independent_reconciliation_required", evidence });
+    return await persist({ status: "processing", phase: "evidence_ready", reason: "independent_reconciliation_required", evidence }, false);
   } catch (error) {
-    return persist({ status: committed ? "uncertain" : "blocked", reason: String(error.message || error), phase: record.phase });
+    return await persist({ status: committed ? "uncertain" : "blocked", reason: String(error.message || error), phase: record.phase }, false);
   } finally { await ui.close().catch(() => {}); }
 }
 
 export class StaBrowser {
   constructor(envelope) { this.envelope = envelope; this.directory = path.dirname(envelope.receipt_path); }
   async open(context) {
+    await releaseLauncherSessionLock(Number(process.env.CDP_PORT || 9223));
+    // Verify PDF tooling before creating anything externally.
+    for (const command of ["pdfinfo", "pdftotext"]) execFileSync(command, ["-v"], { stdio: "pipe" });
     this.context = context;
     [this.origin, this.marketplaceLabel] = MARKETS[context.plan.account.marketplace];
     const cdp = await import("../report-fetcher/cdp.mjs");
@@ -150,15 +164,31 @@ export class StaBrowser {
     const tasks = await import("../browserctl/task-tabs.mjs");
     this.evaluate = cdp.evaluate; this.readIdentity = account.readIdentity;
     this.clickAt = account.trustedClick; this.release = tasks.releaseTaskPage;
-    this.page = await tasks.acquireTaskPage({ port: Number(process.env.CDP_PORT || 9223),
+    this.acquire = tasks.acquireTaskPage;
+    this.taskSpec = { port: Number(process.env.CDP_PORT || 9223),
       taskId: `amazon-operation:${context.plan.operation_id}`, slot: "primary", workflow: "amazon-logistics",
       initialUrl: this.origin + "/home", exclusiveContext: true,
-      sellerCentral: { marketplace: context.plan.account.marketplace, origin: this.origin } });
+      sellerCentral: { marketplace: context.plan.account.marketplace, origin: this.origin } };
+    this.page = await this.acquire(this.taskSpec);
     this.session = this.page.session;
     await account.switchAccount(this.session, this.origin, { accountName: context.plan.account.seller_central_name,
       marketplaceLabel: this.marketplaceLabel, marketplace: context.plan.account.marketplace }, { returnTo: "/fba/sendtoamazon" });
-    // Verify PDF tooling before creating anything externally.
-    for (const command of ["pdfinfo", "pdftotext"]) execFileSync(command, ["-v"], { stdio: "pipe" });
+  }
+  async pause() {
+    await this.assertIdentity();
+    this.reservation = { targetId: this.page.targetId, url: await this.ev("location.href") };
+    await this.release(this.page, { outcome: "success" });
+    this.page = null;
+  }
+  async resume(record) {
+    assert(this.reservation, "shipment page reservation is missing");
+    this.page = await this.acquire({ ...this.taskSpec, expectedTargetId: this.reservation.targetId });
+    this.session = this.page.session;
+    assert(isDeepStrictEqual(JSON.parse(fs.readFileSync(this.envelope.receipt_path, "utf8")), record), "shipment receipt changed during reacquisition");
+    await this.assertIdentity();
+    const url = await this.ev("location.href");
+    assert(url === this.reservation.url && (!record.workflow_id || new URL(url).searchParams.get("wf") === record.workflow_id), "shipment workflow changed during receipt write");
+    this.reservation = null;
   }
   ev(expression) { return this.evaluate(this.session, expression, 20000); }
   async wait(fn, label, attempts = 60) {
@@ -322,7 +352,7 @@ export class StaBrowser {
     }, "created shipments and labels", 180);
   }
   async downloadLabels(context, confirmed) {
-    return withTaskDownloads(this.page, async () => {
+    const outputs = await withTaskDownloads(this.page, async () => {
       const downloads = path.join(this.directory, "shipment-labels"); fs.mkdirSync(downloads, { recursive: true });
       await this.session.send("Browser.setDownloadBehavior", { behavior: "allow", downloadPath: downloads, eventsEnabled: true }, { timeoutMs: 10000 });
       const outputs = [];
@@ -350,12 +380,15 @@ export class StaBrowser {
           const pdfs=fresh.filter(name=>name.toLowerCase().endsWith('.pdf'));
           assert(pdfs.length<=1,"ambiguous label downloads");return pdfs.length===1?path.join(downloads,pdfs[0]):null;
         }, `completed label PDF for ${id}`);
-        outputs.push({ shipment_id:id,path:file,sha256:sha256(fs.readFileSync(file)) });
+        outputs.push({ shipment_id:id,path:file });
       }
-      return verifyLabelPdfs(outputs, context.shipment.cartons);
+      return outputs;
     });
+    await this.close();
+    for (const output of outputs) output.sha256 = sha256(fs.readFileSync(output.path));
+    return verifyLabelPdfs(outputs, context.shipment.cartons);
   }
-  async close() { if(this.page)await this.release(this.page,{outcome:"inspection"}); }
+  async close() { if(this.page){await this.release(this.page,{outcome:"inspection"});this.page=null;} }
 }
 
 export function labelPages(text, shipmentId) {

@@ -1,5 +1,5 @@
 /*
- * Minimal Chrome DevTools Protocol client — zero dependencies (Node 22+ global
+ * Minimal Chrome DevTools Protocol client, zero dependencies (Node 22+ global
  * WebSocket + fetch). Used to run the report fetch in the page's REAL main world
  * (which has fetch + the logged-in session), driven from the terminal.
  *
@@ -333,10 +333,8 @@ export class Session {
     (this._subs[method] = this._subs[method] || []).push(fn);
   }
 
-  // `timeoutMs` is opt-in: the default remains wait-forever because long-lived
-  // callers (POE evaluates, endpoint-discovery listeners) legitimately wait
-  // minutes. Control-plane calls (Runtime.enable, Page.enable) should pass one.
-  async send(method, params = {}, { timeoutMs } = {}) {
+  // Direct commands get a deadline; longer operations can pass their own budget.
+  async send(method, params = {}, { timeoutMs = 30000 } = {}) {
     if (this._unlockSession) assertSessionLock(Number(PORT));
     if (this._taskControlError) throw this._taskControlError;
     if (this._taskControlGuard) await this.assertTaskControl();
@@ -582,7 +580,7 @@ export async function evaluate(session, expression, timeoutMs = 120000) {
         await session.send("Runtime.enable", {}, { timeoutMs: 10000 });
         return session.send("Runtime.evaluate", {
           expression, awaitPromise: true, returnByValue: true, timeout: timeoutMs,
-        });
+        }, { timeoutMs: hardTimeoutMs });
       })(),
       timeout,
     ]);

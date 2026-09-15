@@ -3,12 +3,16 @@
 // Optional top-level close_tab_after === true closes the task tab at release.
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { createHash } from 'node:crypto';
+import { isDeepStrictEqual } from 'node:util';
 import { evaluate } from '../report-fetcher/cdp.mjs';
-import { acquireTaskPage, releaseTaskPage, completeBrowserTask, taskIdFor } from '../browserctl/task-tabs.mjs';
+import { acquireTaskPage, releaseTaskPage, closeReleasedTaskPage, completeBrowserTask, taskIdFor } from '../browserctl/task-tabs.mjs';
 import * as ui from './browser-ui.mjs';
+import { reserveSubmission } from './flatfilepro-contracts.mjs';
+
+export const MARKER_EXPIRY_MS=24*60*60*1000;
 
 export function matchingCompletedReports(statuses, marker, minimumAfter) {
   const minimum=Math.max(Date.parse(marker.requested_at),Date.parse(minimumAfter));
@@ -46,17 +50,28 @@ export async function collect(input) {
   const origin=ui.origins[input.account.marketplace];ui.check(origin,'Unsupported marketplace');
   const directory=input.output_dir;await mkdir(directory,{recursive:true});
   const markerPath=join(directory,'report-request.json');
-  let page,outcome='error';
+  const taskSpec={closeOnFailure:input.close_tab_after===true,taskId:taskIdFor('amazon-operations',input.task_key || input.operation_id),slot:'verification',workflow:'amazon-reporting',initialUrl:origin+'/listing/reports/ref=xx_invreport_favb_xx',exclusiveContext:true,sellerCentral:{marketplace:input.account.marketplace,origin}};
+  let page,releasedPage,outcome='error';
+  const persistRequest=async(marker,reserve=false)=>{
+    const targetId=page.targetId;
+    releasedPage=page;
+    await releaseTaskPage(page,{outcome:'success'});page=null;
+    if(reserve)await reserveSubmission(markerPath,marker);else await ui.receipt(markerPath,marker);
+    page=await acquireTaskPage({...taskSpec,expectedTargetId:targetId});releasedPage=null;
+    ui.check(isDeepStrictEqual(JSON.parse(await readFile(markerPath,'utf8')),marker),'Report reservation changed during receipt write');
+    const state=await ui.context(page.session,input.account,'catalog');
+    ui.check(new URL(state.url).pathname.startsWith('/listing/reports'),'Report page changed during receipt write');
+  };
   const onSigterm=async()=>{
     if(page?._released)return;
-    try{if(page)await releaseTaskPage(page,{outcome:'error',closeTarget:input.close_tab_after===true});}
+    try{if(page)await releaseTaskPage(page,{outcome:'error',closeTarget:input.close_tab_after===true});if(releasedPage&&input.close_tab_after===true)await closeReleasedTaskPage(releasedPage);}
     catch(error){console.error('SIGTERM browser release failed:',error.message);}
     finally{process.exit(143);}
   };
   process.once('SIGTERM',onSigterm);
   const common={schema_version:1,account:input.account,plan_hash:input.plan_hash,observed_at:new Date().toISOString()};
   try {
-    page=await acquireTaskPage({closeOnFailure:input.close_tab_after===true,taskId:taskIdFor('amazon-operations',input.task_key || input.operation_id),slot:'verification',workflow:'amazon-reporting',initialUrl:origin+'/listing/reports/ref=xx_invreport_favb_xx',exclusiveContext:true,sellerCentral:{marketplace:input.account.marketplace,origin}});
+    page=await acquireTaskPage(taskSpec);
     // Navigation text renders before the account selector. Wait for the same
     // exact identity check used before every report action; never infer identity
     // from page length or accept a partially rendered header.
@@ -76,19 +91,25 @@ export async function collect(input) {
     if(existsSync(markerPath)) {
       marker=JSON.parse(await readFile(markerPath,'utf8'));
       ui.check(marker.plan_hash===input.plan_hash&&marker.minimum_after===input.minimum_after,'Report request belongs to another operation revision');
-      if(marker.state==='downloaded') marker=null;
+      // A completed reservation is still owned by this run; never replace it
+      // with a second report request after a restart.
     }
     if(!marker) {
       const choice=await selectReport(page.session);
       await ui.context(page.session,input.account,'catalog');
       marker={...choice,plan_hash:input.plan_hash,minimum_after:input.minimum_after,requested_at:new Date().toISOString(),state:'request_outcome_unknown'};
-      await ui.receipt(markerPath,marker); // Never repeat an unknown report-generation click after restart.
+      await persistRequest(marker,true); // Never repeat an unknown report-generation click after restart.
+      ui.check(JSON.stringify(await selectReport(page.session))===JSON.stringify(choice),'Selected report changed during receipt write');
+      await ui.context(page.session,input.account,'catalog');
       await ui.click(page.session,'Request Report');
-      marker.state='requested';await ui.receipt(markerPath,marker);
+      marker.state='requested';await persistRequest(marker);
     }
     await ui.context(page.session,input.account,'catalog');
     const completed=matchingCompletedReports(await statuses(page.session),marker,input.minimum_after);
-    if(!completed.length){outcome='success';return{...common,status:'processing',reason:'fresh_category_report_pending',report_request:markerPath};}
+    if(!completed.length){
+      const expired=Date.now()-Date.parse(marker.requested_at)>=MARKER_EXPIRY_MS;
+      outcome=expired?'error':'success';return{...common,status:expired?'blocked':'processing',reason:expired?'marker_expired':'fresh_category_report_pending',report_request:markerPath};
+    }
     const report=completed[0];
     const links=(report.actions||[]).map(x=>x.link).filter(Boolean);
     ui.check(links.length===1,'Category report must expose one unambiguous download action');
@@ -97,6 +118,9 @@ export async function collect(input) {
     const content=await evaluate(page.session,`(async()=>{const response=await fetch(${JSON.stringify(url.href)},{credentials:'same-origin'});if(!response.ok)throw new Error('Report download HTTP '+response.status);const bytes=new Uint8Array(await response.arrayBuffer());if(bytes.length>30000000)throw new Error('Report exceeds 30 MB');let raw='';for(let i=0;i<bytes.length;i+=32768)raw+=String.fromCharCode(...bytes.subarray(i,i+32768));return{base64:btoa(raw),content_type:response.headers.get('content-type')};})()`,60000);
     await ui.context(page.session,input.account,'catalog');
     await page.session.assertTaskControl({exclusiveContext:true,sellerCentral:{marketplace:input.account.marketplace,origin}});
+    outcome='success';
+    await releaseTaskPage(page,{outcome,closeTarget:input.close_tab_after===true});
+    page=null;
     const bytes=Buffer.from(content.base64,'base64');
     const extension=bytes.subarray(0,2).toString()==='PK'?'.xlsx':'.tsv';
     const path=join(directory,'category-listings'+extension);await writeFile(path,bytes);
@@ -106,6 +130,7 @@ export async function collect(input) {
   finally{
     process.removeListener('SIGTERM',onSigterm);
     if(page)await releaseTaskPage(page,{outcome,closeTarget:input.close_tab_after===true});
+    if(releasedPage&&input.close_tab_after===true)await closeReleasedTaskPage(releasedPage);
     if(input.complete_task===true)await completeBrowserTask({taskId:taskIdFor('amazon-operations',input.task_key || input.operation_id)}).catch(error=>console.error('Browser task completion failed:',error.message));
   }
 }

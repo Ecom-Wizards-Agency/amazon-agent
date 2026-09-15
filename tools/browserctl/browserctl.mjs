@@ -10,7 +10,7 @@ import {
 } from "./lease-registry.mjs";
 import { anchorMatchesUrl, loadBrowserPolicy, policyForPort } from "./policy.mjs";
 import { sessionEnvironment } from "./session.mjs";
-import { acquireSessionLock, acquireSessionLockWithWait } from "./session-lock.mjs";
+import { acquireSessionLock, acquireSessionLockWithWait, sessionLockHasChildren } from "./session-lock.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const CDP_MODULE = resolve(HERE, "../report-fetcher/cdp.mjs");
@@ -530,11 +530,19 @@ export async function main(raw = process.argv.slice(2), { cleanup = cleanupPortW
     if (!command.length) throw new Error("USAGE: browserctl run --session grimoire -- command [args]");
     const lockWaitMs = options["lock-wait-ms"] === undefined ? 120_000 : Number(options["lock-wait-ms"]);
     if (options["lock-wait-ms"] === true) throw new Error("INVALID_LOCK_WAIT_MS");
-    const unlock = await acquireSessionLockWithWait(Number(env.CDP_PORT), "browserctl:run", { lockWaitMs });
+    let unlock = await acquireSessionLockWithWait(Number(env.CDP_PORT), "browserctl:run", { lockWaitMs });
     env.AMAZON_BROWSER_LOCK_TOKEN = process.env.AMAZON_BROWSER_LOCK_TOKEN || "";
     env.AMAZON_BROWSER_LOCK_CHAIN = process.env.AMAZON_BROWSER_LOCK_CHAIN || "[]";
+    env.AMAZON_BROWSER_LAUNCHER_CONTROL = "sigusr1-v1";
+    env.AMAZON_BROWSER_LAUNCHER_PID = String(process.pid);
+    env.AMAZON_BROWSER_LOCK_WAIT_MS = String(lockWaitMs);
     try {
       const child = spawn(command[0], command.slice(1), { env, stdio: "inherit" });
+      const releaseEarly = () => {
+        if (!unlock || sessionLockHasChildren(Number(env.CDP_PORT))) return;
+        unlock(); unlock = null;
+      };
+      process.on("SIGUSR1", releaseEarly);
       const forwardTerm = () => child.kill("SIGTERM");
       const forwardInt = () => child.kill("SIGINT");
       process.on("SIGTERM", forwardTerm); process.on("SIGINT", forwardInt);
@@ -543,8 +551,8 @@ export async function main(raw = process.argv.slice(2), { cleanup = cleanupPortW
           child.once("error", reject);
           child.once("exit", (code, signal) => resolve(code ?? (signal === "SIGINT" ? 130 : 143)));
         });
-      } finally { process.off("SIGTERM", forwardTerm); process.off("SIGINT", forwardInt); }
-    } finally { unlock(); }
+      } finally { process.off("SIGUSR1", releaseEarly); process.off("SIGTERM", forwardTerm); process.off("SIGINT", forwardInt); }
+    } finally { unlock?.(); }
     return;
   }
   const { positional, options } = parseArgs(raw);

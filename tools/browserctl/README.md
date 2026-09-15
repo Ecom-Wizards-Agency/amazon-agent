@@ -234,7 +234,38 @@ node tools/browserctl/browserctl.mjs run --session grimoire -- node tools/opport
 for the shared session lock, retrying every two seconds within that deadline.
 Use `0` to fail immediately when busy. If the deadline expires, the command
 returns `BROWSER_SESSION_BUSY` with the elapsed wait in milliseconds and does
-not launch the child. The lock remains held until the child exits.
+not launch the child.
+
+The launcher releases its lock when its direct child finishes its last task
+page, while the child can continue downloading, formatting, or running PDF
+tools. The control message is `SIGUSR1` to `process.ppid`. The launcher sets
+`AMAZON_BROWSER_LAUNCHER_CONTROL=sigusr1-v1` and
+`AMAZON_BROWSER_LAUNCHER_PID`; the child checks both, validates the inherited
+lock chain, and verifies that its parent owns the final link before signaling.
+The launcher ignores a signal while its lock has a child delegation. It clears
+its release callback after releasing, so child exit cannot release a later
+owner's lock. Children that never release task pages retain the exit fallback.
+
+`releaseLauncherSessionLock(port = 9223)` waits up to ten seconds for removal
+of the launcher's exact lock token as acknowledgement, then clears the child's
+inherited token, chain, and launcher-control environment. A timeout fails with
+`BROWSER_SESSION_LOCK_LOST`. Release, detach, acquisition failure and target-close
+paths call it after releasing their local lock references; other active pages
+or CDP sessions keep those references and prevent early release.
+
+Later `acquireTaskPage({...spec, lockWaitMs?})` calls acquire the session lock
+directly, without a parent token. They wait for a pending release acknowledgement
+and use the existing BUSY/retry behavior. The wait defaults to the launcher's
+`--lock-wait-ms`, propagated as `AMAZON_BROWSER_LOCK_WAIT_MS`, or 0 outside
+a launcher. `0` fails immediately. `sessionLockHasChildren(port = 9223)` exposes
+the launcher's delegation guard. In-process scheduled workers without the
+launcher-control environment keep their existing lock ownership.
+
+Before initial local preparation, a direct child can also await
+`releaseLauncherSessionLock(port)` while it holds no task page or other local
+session-lock reference. FlatFilePro does this before staging the workbook;
+shipments do it before probing PDF tools. Their first page acquisition then
+uses the same independent lock and wait path as later reacquisitions.
 
 `browserctl session --session grimoire` returns only the resolved non-secret environment. Python workers use `browser_session.py` as an adapter to that same resolver. The session is immutable within a process; conflicting ports or profiles fail before connection. Child workers inherit the route and a scoped lock chain. Sibling workers contend for the next link instead of bypassing serialization. Browser-independent MCP/API work needs no browser lock.
 

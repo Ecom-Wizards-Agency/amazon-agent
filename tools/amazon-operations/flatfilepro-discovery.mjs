@@ -120,6 +120,9 @@ export async function collect(input,deps={}){
   const detail=inventoryOnly?{inventory:inventory.targets,pages,rows:{},records:[],coverage:{complete:true,total:inventory.total,pages:inventory.pages,exact_reads:0},observed_at:new Date(Math.min(...pages.map(value=>Date.parse(value.observed_at)))).toISOString()}:await enrichCatalog(page.session,pages,input.account,{read:deps.read||readListing,minimum,now,targets:input.targets});
   const detailCoverage=inventoryOnly?'none':detail.records.length===inventory.total?'complete':'selected';
   const result={...common,...detail,status:'collected',complete:detailCoverage==='complete',inventory_complete:true,verified:true,source_id:'flatfilepro:catalog-items',catalog_scope:'all_nonarchived_listings',detail_coverage:detailCoverage};
+  outcome='success';
+  await(deps.release||releaseTaskPage)(page,{outcome,closeTarget:input.close_tab_after===true});
+  page=null;
   const bytes=Buffer.from(JSON.stringify(result)),sha256=createHash('sha256').update(bytes).digest('hex'),path=join(directory,`catalog-${now()}-${sha256.slice(0,12)}.json`);
   await writeFile(path,bytes,{flag:'wx'}).catch(async error=>{if(error.code!=='EEXIST'||!(await readFile(path)).equals(bytes))throw error;});
   outcome='success';return {...result,path,sha256};

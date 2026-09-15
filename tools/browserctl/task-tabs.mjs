@@ -5,7 +5,7 @@ import * as registryDefault from "./lease-registry.mjs";
 import { loadBrowserPolicy } from "./policy.mjs";
 import { resolveContextScope, scopeForOrigin, assertContextCovers, isRegionalScope,
   REGION_WORKFLOW, REGION_ANCHOR_KEYS } from "./context-scopes.mjs";
-import { acquireSessionLock } from "./session-lock.mjs";
+import { acquireSessionLockWithWait, releaseLauncherSessionLock } from "./session-lock.mjs";
 
 const configuredPort = () => Number(process.env.CDP_PORT || 9223);
 const markerUrl = (token) => `about:blank#ew-task-tab=${encodeURIComponent(token)}`;
@@ -307,13 +307,16 @@ async function acquireTaskPageInner({
 }
 
 export async function acquireTaskPage(spec = {}, dependencies = {}) {
+  const port = spec.port ?? configuredPort();
   const unlock = dependencies.cdp && dependencies.cdp !== cdpDefault ? () => {}
-    : acquireSessionLock(spec.port ?? configuredPort(), spec.taskId);
+    : await acquireSessionLockWithWait(port, spec.taskId, {
+      lockWaitMs: spec.lockWaitMs ?? Number(process.env.AMAZON_BROWSER_LOCK_WAIT_MS ?? 0),
+    });
   try {
     const handle = await acquireTaskPageInner(spec, dependencies);
     handle._unlockSession = unlock;
     return handle;
-  } catch (error) { unlock(); throw error; }
+  } catch (error) { unlock(); await releaseLauncherSessionLock(port); throw error; }
 }
 
 /**
@@ -348,8 +351,8 @@ async function finishTaskPage(handle, method, outcome, closeTarget = false) {
   if (!handle || handle._released) return null;
   handle._released = true;
   if (handle.session?._taskHeartbeat) clearInterval(handle.session._taskHeartbeat);
-  handle.session?.close();
   try {
+    handle.session?.close();
     const result = await handle._registry[method]({
       port: handle.port, taskId: handle.taskId, slot: handle.slot,
       controlToken: handle.controlToken, contextScope: handle.contextScope, outcome, policy: handle._policy,
@@ -358,7 +361,7 @@ async function finishTaskPage(handle, method, outcome, closeTarget = false) {
       await closeTaskTarget(handle);
     }
     return result;
-  } finally { handle._unlockSession?.(); }
+  } finally { handle._unlockSession?.(); await releaseLauncherSessionLock(handle.port); }
 }
 
 // The caller retained this exact handle across a temporary handoff. Recheck
@@ -367,7 +370,9 @@ export async function closeReleasedTaskPage(handle) {
   if (!handle?._released || (handle.workflow === REGION_WORKFLOW && handle.slot === "primary")) return false;
   let unlock;
   try {
-    unlock = handle._cdp !== cdpDefault ? () => {} : acquireSessionLock(handle.port, handle.taskId);
+    unlock = handle._cdp !== cdpDefault ? () => {} : await acquireSessionLockWithWait(handle.port, handle.taskId, {
+      lockWaitMs: Number(process.env.AMAZON_BROWSER_LOCK_WAIT_MS ?? 0),
+    });
     const record = (await handle._registry.listTaskTabs()).find((entry) =>
       entry.port === handle.port && entry.taskId === handle.taskId && entry.slot === handle.slot);
     if (!record || record.targetId !== handle.targetId || record.controller || record.reservationToken) return false;
@@ -378,7 +383,7 @@ export async function closeReleasedTaskPage(handle) {
   } catch (error) {
     console.error("Released task target close failed:", error.message);
     return false;
-  } finally { unlock?.(); }
+  } finally { unlock?.(); await releaseLauncherSessionLock(handle.port); }
 }
 
 async function closeTaskTarget(handle) {
