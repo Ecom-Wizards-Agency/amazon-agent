@@ -145,7 +145,7 @@ invalid-credential states remain human-only. The agent must not inspect password
 one-time codes, cookies, local storage, session stores, or browser profile data.
 
 Grimoire scheduled/Slack runs and attended Amazon Agent sessions share the
-delegated Seller Central login **Merlin by Ecom Wizards** on port 9223.
+delegated Seller Central login **Grimoire** on port 9223.
 Authentication availability never broadens action rights. Actor-specific gates,
 executor availability and grant evidence are defined in
 [the capability matrix](docs/rights/README.md); local standing permissions may
@@ -381,7 +381,7 @@ Keyword and opportunity research draws on two complementary sources with differe
 - Product Opportunity Explorer (POE/OEI): Products, Search Terms, Customer Review Insights, Returns, and Related Niches. This lives behind the Seller Central login and has NO MCP. It is always internal/connected browser work. Use the API-first downloader (`tools/opportunity-explorer/fetch-poe.js` via `run-poe.mjs` or internal-browser evaluate; niche data can be fetched without manual CSV download) and the per-niche export checklist (`skills/amazon-opportunity-explorer/references/poe-niche-export-checklist.md`).
 - Listing copy (title/bullets/link) for the anchor + competitors: not in DataDive or POE. Capture it from the live product pages via the `amazon-listing-capture` skill / `tools/listing-capture/extract-amazon-listing-copy.js` (connected browser; deterministic ASIN; bullets primary `#feature-bullets ul` then fallback `#productFactsDesktopExpander > div:first-child ul`). Output one `listing-reference` JSON per `tools/listing-capture/listing-reference.schema.v1.json`; the builder fills the workbook ASINs tab from it. Replaces the legacy ZeroWork scrape, whose client-specific capture artifacts are intentionally not shipped.
 
-The two are complementary: DataDive gives ranking/keyword intelligence; POE gives Amazon-native demand, review/return voice-of-customer, and related-niche structure. POE data has one permanent store: the client's pCloud `_Data/opportunity-data/` tree. This applies to Amazon Agent and Wizards AI. The canonical downloader streams bytes directly from memory and verifies pCloud delivery without creating local payload files; data commands cannot write into local output folders. Keep only path/checksum receipts locally. Analysis copies fetched from pCloud must use temporary storage and be removed when that task ends. The seven-day artifact retention and quarantine policy does not apply to new POE transfer/analysis copies. Never discard an existing unarchived historical capture: migrate it with remote checksum verification before removing its unchanged local source. DataDive and listing-reference evidence retain their own storage rules.
+The two are complementary: DataDive gives ranking/keyword intelligence; POE gives Amazon-native demand, review/return voice-of-customer, and related-niche structure. POE data has one permanent store: the client's pCloud `_Data/opportunity-data/` tree. This applies to Amazon Agent and Grimoire. The canonical downloader streams bytes directly from memory and verifies pCloud delivery without creating local payload files; data commands cannot write into local output folders. Keep only path/checksum receipts locally. Analysis copies fetched from pCloud must use temporary storage and be removed when that task ends. The seven-day artifact retention and quarantine policy does not apply to new POE transfer/analysis copies. Never discard an existing unarchived historical capture: migrate it with remote checksum verification before removing its unchanged local source. DataDive and listing-reference evidence retain their own storage rules.
 
 Listing field terminology for SEO and FlatFilePro work:
 
@@ -786,10 +786,10 @@ Before any Slack write, read `_local/slack-posting.md`. This is mandatory even w
 Slack authorship follows the actor. An attended session supervised by Victor,
 João or Danica posts through that operator's verified native Slack MCP identity.
 If personal MCP access is missing, prepare a draft or stop; never fall back to
-Wizards AI.
+Grimoire.
 
-Scheduled/background Evo work, `@Wizards AI` responses and explicit
-human-approved bot sends use the guarded Wizards AI helper. Missing bot access
+Scheduled/background Evo work, `@Grimoire` responses and explicit
+human-approved bot sends use the guarded Grimoire helper. Missing bot access
 fails closed and never falls back to a personal identity. Approved bot sends
 must include requester ID and source event so the helper can record the
 resulting permalink in its internal control thread and receipt.
@@ -802,7 +802,7 @@ helper is unavailable, the destination is refused, or the bot identity
 cannot be verified, stop. Both personal and bot posts follow the same short
 parent and detailed-thread house style.
 
-Wizards AI may post to any non-client channel. Client channels must be configured
+Grimoire may post to any non-client channel. Client channels must be configured
 active; they enter configuration before the bot is invited. Workflow-specific
 restrictions can narrow that boundary, including bulk-image acknowledgements in
 configured attended trial threads. See rows `slack.channels` and `slack.identity`

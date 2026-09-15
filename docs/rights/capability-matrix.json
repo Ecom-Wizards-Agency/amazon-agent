@@ -14,7 +14,7 @@
         "state": "allowed",
         "how": "Use the same delegated login and identity checks in attended chat."
       },
-      "identity": "Merlin by Ecom Wizards delegated SPP service account (shared Grimoire session)",
+      "identity": "Grimoire delegated Seller Central login (shared Grimoire session)",
       "port": 9223,
       "spp_rows": [],
       "gates": [
@@ -50,7 +50,7 @@
         "state": "approval-gated",
         "how": "Exact in-chat submission approval and verified per-account access are required."
       },
-      "identity": "Merlin by Ecom Wizards delegated SPP service account (shared Grimoire session)",
+      "identity": "Grimoire delegated Seller Central login (shared Grimoire session)",
       "port": 9223,
       "spp_rows": [
         "Manage Inventory/Add a Product"
@@ -83,7 +83,7 @@
         "state": "approval-gated",
         "how": "Submit the exact reviewed workbook, mappings and target preview only with in-chat approval."
       },
-      "identity": "Merlin by Ecom Wizards delegated SPP service account (shared Grimoire session)",
+      "identity": "Grimoire delegated Seller Central login (shared Grimoire session)",
       "port": 9223,
       "spp_rows": [],
       "gates": [
@@ -114,7 +114,7 @@
         "state": "approval-gated",
         "how": "Use the same case service, saved owner and issue-bound mandate."
       },
-      "identity": "Merlin by Ecom Wizards delegated SPP service account (shared Grimoire session)",
+      "identity": "Grimoire delegated Seller Central login (shared Grimoire session)",
       "port": 9223,
       "spp_rows": [
         "Manage Your Cases"
@@ -142,7 +142,7 @@
         {
           "repo": "vault",
           "path": "agency/SOPs/wizards-ai-amazon-rights.md",
-          "note": "Per-account grant evidence; SOP change-log line pending (operator). Unversioned team vault, ~/os/agency."
+          "note": "Per-account grant evidence; SOP change-log correction recorded 15.09.2026. Unversioned team vault, ~/os/agency."
         }
       ],
       "verified_on": "2026-09-15",
@@ -164,7 +164,7 @@
         "state": "approval-gated",
         "how": "Exact attended approval and verified access are required; this does not enable a disabled executor."
       },
-      "identity": "Merlin by Ecom Wizards delegated SPP service account (shared Grimoire session)",
+      "identity": "Grimoire delegated Seller Central login (shared Grimoire session)",
       "port": 9223,
       "spp_rows": [
         "Store Design"
@@ -227,7 +227,7 @@
         "state": "approval-gated",
         "how": "Exact attended approval and verified access are required; this does not enable a disabled executor."
       },
-      "identity": "Merlin by Ecom Wizards delegated SPP service account (shared Grimoire session)",
+      "identity": "Grimoire delegated Seller Central login (shared Grimoire session)",
       "port": 9223,
       "spp_rows": [
         "Store Design"
@@ -267,7 +267,7 @@
         "state": "approval-gated",
         "how": "Exact attended approval and verified access are required; this does not enable a disabled executor."
       },
-      "identity": "Merlin by Ecom Wizards delegated SPP service account (shared Grimoire session)",
+      "identity": "Grimoire delegated Seller Central login (shared Grimoire session)",
       "port": 9223,
       "spp_rows": [
         "Manage FBA Inventory/Shipments"
@@ -303,7 +303,7 @@
         }
       ],
       "verified_on": "2026-09-15",
-      "notes": "Live 9223 write. Nine configured approvers; authorization mode to be confirmed by the operator.",
+      "notes": "Live 9223 write. Team-request from the nine configured approvers, no second approval; confirmed by Victor 15.09.2026.",
       "tags": [
         "executor"
       ],
@@ -316,14 +316,14 @@
       "domain": "amazon",
       "capability": "listing.images.replace",
       "grimoire": {
-        "state": "consent-outdated",
-        "how": "General execution disabled; old consent permits 9222 and forbids the required 9223 route. See the separate canary row."
+        "state": "approval-gated",
+        "how": "General execution remains disabled until the deterministic driver and attended canary pass. Victor must approve the exact fingerprinted proposal; see the separate canary row."
       },
       "amazon_agent": {
-        "state": "consent-outdated",
-        "how": "Reissue the local consent for the shared 9223 route before treating this executor as authorized."
+        "state": "approval-gated",
+        "how": "Use the renewed shared 9223 consent with Victor's approval of the exact fingerprinted proposal and verified access; executor and canary gates still apply."
       },
-      "identity": "Merlin by Ecom Wizards delegated SPP service account (shared Grimoire session)",
+      "identity": "Grimoire delegated Seller Central login (shared Grimoire session)",
       "port": 9223,
       "spp_rows": [
         "Image upload / listing images"
@@ -371,7 +371,7 @@
         }
       ],
       "verified_on": "2026-09-15",
-      "notes": "The 2026-09-03 local permission is outdated. Do not edit or infer replacement consent. Image Edit grants are recorded on 17 of 18 accounts in vault evidence; verify current target access.",
+      "notes": "Standing permission re-issued 15.09.2026 for port 9223 (machine-local consent record). Image Edit grants are recorded on 17 of 18 accounts in vault evidence; verify current target access.",
       "tags": [
         "executor"
       ],
@@ -385,13 +385,13 @@
       "capability": "seo.apply",
       "grimoire": {
         "state": "forbidden",
-        "how": "Closed Merlin catalogue entry only; no approved_actions implementation and Merlin is disabled."
+        "how": "Closed Grimoire catalogue entry only; no approved_actions implementation and merlin.enabled is false."
       },
       "amazon_agent": {
         "state": "approval-gated",
         "how": "Exact attended approval and verified access are required; this does not enable a disabled executor."
       },
-      "identity": "Merlin by Ecom Wizards delegated SPP service account (shared Grimoire session)",
+      "identity": "Grimoire delegated Seller Central login (shared Grimoire session)",
       "port": 9223,
       "spp_rows": [],
       "gates": [
@@ -430,13 +430,13 @@
       "capability": "flatfile.apply",
       "grimoire": {
         "state": "forbidden",
-        "how": "Closed Merlin catalogue entry only; no approved_actions implementation and Merlin is disabled."
+        "how": "Closed Grimoire catalogue entry only; no approved_actions implementation and merlin.enabled is false."
       },
       "amazon_agent": {
         "state": "approval-gated",
         "how": "Exact attended approval and verified access are required; this does not enable a disabled executor."
       },
-      "identity": "Merlin by Ecom Wizards delegated SPP service account (shared Grimoire session)",
+      "identity": "Grimoire delegated Seller Central login (shared Grimoire session)",
       "port": 9223,
       "spp_rows": [],
       "gates": [
@@ -475,13 +475,13 @@
       "capability": "catalog.products.create",
       "grimoire": {
         "state": "forbidden",
-        "how": "Closed Merlin catalogue entry only; no approved_actions implementation and Merlin is disabled."
+        "how": "Closed Grimoire catalogue entry only; no approved_actions implementation and merlin.enabled is false."
       },
       "amazon_agent": {
         "state": "approval-gated",
         "how": "Exact attended approval and verified access are required; this does not enable a disabled executor."
       },
-      "identity": "Merlin by Ecom Wizards delegated SPP service account (shared Grimoire session)",
+      "identity": "Grimoire delegated Seller Central login (shared Grimoire session)",
       "port": 9223,
       "spp_rows": [],
       "gates": [
@@ -520,13 +520,13 @@
       "capability": "catalog.family.update",
       "grimoire": {
         "state": "forbidden",
-        "how": "Closed Merlin catalogue entry only; no approved_actions implementation and Merlin is disabled."
+        "how": "Closed Grimoire catalogue entry only; no approved_actions implementation and merlin.enabled is false."
       },
       "amazon_agent": {
         "state": "approval-gated",
         "how": "Exact attended approval and verified access are required; this does not enable a disabled executor."
       },
-      "identity": "Merlin by Ecom Wizards delegated SPP service account (shared Grimoire session)",
+      "identity": "Grimoire delegated Seller Central login (shared Grimoire session)",
       "port": 9223,
       "spp_rows": [],
       "gates": [
@@ -565,13 +565,13 @@
       "capability": "shipment.create",
       "grimoire": {
         "state": "forbidden",
-        "how": "Closed Merlin catalogue entry only; no approved_actions implementation and Merlin is disabled."
+        "how": "Closed Grimoire catalogue entry only; no approved_actions implementation and merlin.enabled is false."
       },
       "amazon_agent": {
         "state": "approval-gated",
         "how": "Exact attended approval and verified access are required; this does not enable a disabled executor."
       },
-      "identity": "Merlin by Ecom Wizards delegated SPP service account (shared Grimoire session)",
+      "identity": "Grimoire delegated Seller Central login (shared Grimoire session)",
       "port": 9223,
       "spp_rows": [
         "Manage FBA Inventory/Shipments"
@@ -612,13 +612,13 @@
       "capability": "account_health.fields.restore",
       "grimoire": {
         "state": "forbidden",
-        "how": "Closed Merlin catalogue entry only; no approved_actions implementation and Merlin is disabled."
+        "how": "Closed Grimoire catalogue entry only; no approved_actions implementation and merlin.enabled is false."
       },
       "amazon_agent": {
         "state": "approval-gated",
         "how": "Exact attended approval and verified access are required; this does not enable a disabled executor."
       },
-      "identity": "Merlin by Ecom Wizards delegated SPP service account (shared Grimoire session)",
+      "identity": "Grimoire delegated Seller Central login (shared Grimoire session)",
       "port": 9223,
       "spp_rows": [],
       "gates": [
@@ -657,13 +657,13 @@
       "capability": "account_health.images.restore",
       "grimoire": {
         "state": "forbidden",
-        "how": "Closed Merlin catalogue entry only; no approved_actions implementation and Merlin is disabled."
+        "how": "Closed Grimoire catalogue entry only; no approved_actions implementation and merlin.enabled is false."
       },
       "amazon_agent": {
         "state": "approval-gated",
         "how": "Exact attended approval and verified access are required; this does not enable a disabled executor."
       },
-      "identity": "Merlin by Ecom Wizards delegated SPP service account (shared Grimoire session)",
+      "identity": "Grimoire delegated Seller Central login (shared Grimoire session)",
       "port": 9223,
       "spp_rows": [],
       "gates": [
@@ -702,13 +702,13 @@
       "capability": "creators.sweep",
       "grimoire": {
         "state": "forbidden",
-        "how": "Closed Merlin catalogue entry only; no approved_actions implementation and Merlin is disabled."
+        "how": "Closed Grimoire catalogue entry only; no approved_actions implementation and merlin.enabled is false."
       },
       "amazon_agent": {
         "state": "approval-gated",
         "how": "Exact attended approval and verified access are required; this does not enable a disabled executor."
       },
-      "identity": "Merlin by Ecom Wizards delegated SPP service account (shared Grimoire session)",
+      "identity": "Grimoire delegated Seller Central login (shared Grimoire session)",
       "port": 9223,
       "spp_rows": [],
       "gates": [
@@ -747,13 +747,13 @@
       "capability": "creators.reply",
       "grimoire": {
         "state": "forbidden",
-        "how": "Closed Merlin catalogue entry only; no approved_actions implementation and Merlin is disabled."
+        "how": "Closed Grimoire catalogue entry only; no approved_actions implementation and merlin.enabled is false."
       },
       "amazon_agent": {
         "state": "approval-gated",
         "how": "Exact attended approval and verified access are required; this does not enable a disabled executor."
       },
-      "identity": "Merlin by Ecom Wizards delegated SPP service account (shared Grimoire session)",
+      "identity": "Grimoire delegated Seller Central login (shared Grimoire session)",
       "port": 9223,
       "spp_rows": [],
       "gates": [
@@ -792,13 +792,13 @@
       "capability": "creators.tracker.update",
       "grimoire": {
         "state": "forbidden",
-        "how": "Closed Merlin catalogue entry only; no approved_actions implementation and Merlin is disabled."
+        "how": "Closed Grimoire catalogue entry only; no approved_actions implementation and merlin.enabled is false."
       },
       "amazon_agent": {
         "state": "approval-gated",
         "how": "Exact attended approval and verified access are required; this does not enable a disabled executor."
       },
-      "identity": "Merlin by Ecom Wizards delegated SPP service account (shared Grimoire session)",
+      "identity": "Grimoire delegated Seller Central login (shared Grimoire session)",
       "port": 9223,
       "spp_rows": [],
       "gates": [
@@ -837,13 +837,13 @@
       "capability": "creators.samples.fulfill",
       "grimoire": {
         "state": "forbidden",
-        "how": "Closed Merlin catalogue entry only; no approved_actions implementation and Merlin is disabled."
+        "how": "Closed Grimoire catalogue entry only; no approved_actions implementation and merlin.enabled is false."
       },
       "amazon_agent": {
         "state": "approval-gated",
         "how": "Exact attended approval and verified access are required; this does not enable a disabled executor."
       },
-      "identity": "Merlin by Ecom Wizards delegated SPP service account (shared Grimoire session)",
+      "identity": "Grimoire delegated Seller Central login (shared Grimoire session)",
       "port": 9223,
       "spp_rows": [],
       "gates": [
@@ -888,7 +888,7 @@
         "state": "consent-outdated",
         "how": "Requires reissued 9223 consent plus exact reviewed fingerprint and configured approver."
       },
-      "identity": "Merlin by Ecom Wizards delegated SPP service account (shared Grimoire session)",
+      "identity": "Grimoire delegated Seller Central login (shared Grimoire session)",
       "port": 9223,
       "spp_rows": [],
       "gates": [
@@ -937,7 +937,7 @@
         "state": "open",
         "how": "Verify availability on the same identity; do not assume an Edit grant fixes it."
       },
-      "identity": "Merlin by Ecom Wizards delegated SPP service account (shared Grimoire session)",
+      "identity": "Grimoire delegated Seller Central login (shared Grimoire session)",
       "port": 9223,
       "spp_rows": [
         "Reports"
@@ -970,7 +970,7 @@
         "state": "allowed",
         "how": "Inspect the same account and marketplace before reporting."
       },
-      "identity": "Merlin by Ecom Wizards delegated SPP service account (shared Grimoire session)",
+      "identity": "Grimoire delegated Seller Central login (shared Grimoire session)",
       "port": 9223,
       "spp_rows": [],
       "gates": [
@@ -1008,7 +1008,7 @@
         "state": "approval-gated",
         "how": "Prepare the evidence and obtain exact submission approval; regulated appeals also require the designated final approver."
       },
-      "identity": "Merlin by Ecom Wizards delegated SPP service account (shared Grimoire session)",
+      "identity": "Grimoire delegated Seller Central login (shared Grimoire session)",
       "port": 9223,
       "spp_rows": [],
       "gates": [
@@ -1039,7 +1039,7 @@
         "state": "approval-gated",
         "how": "Verify the exact recipient/thread and approved message or matching narrow standing permission."
       },
-      "identity": "Merlin by Ecom Wizards delegated SPP service account (shared Grimoire session)",
+      "identity": "Grimoire delegated Seller Central login (shared Grimoire session)",
       "port": 9223,
       "spp_rows": [],
       "gates": [
@@ -1072,7 +1072,7 @@
         "state": "approval-gated",
         "how": "Reads are allowed; exact bids, budgets, targeting or submission changes require approval."
       },
-      "identity": "Merlin by Ecom Wizards delegated SPP service account (shared Grimoire session)",
+      "identity": "Grimoire delegated Seller Central login (shared Grimoire session)",
       "port": 9223,
       "spp_rows": [],
       "gates": [
@@ -1145,7 +1145,7 @@
       "capability": "Slack write identity",
       "grimoire": {
         "state": "allowed",
-        "how": "Guarded Wizards AI helper for scheduled/background jobs, @Wizards AI responses and explicit human-approved bot sends."
+        "how": "Guarded Grimoire helper for scheduled/background jobs, @Grimoire responses and explicit human-approved bot sends."
       },
       "amazon_agent": {
         "state": "approval-gated",
@@ -1456,7 +1456,7 @@
         "state": "allowed",
         "how": "Use the same task controller."
       },
-      "identity": "Merlin by Ecom Wizards delegated SPP service account (shared Grimoire session)",
+      "identity": "Grimoire delegated Seller Central login (shared Grimoire session)",
       "port": 9223,
       "spp_rows": [],
       "gates": [
@@ -1489,7 +1489,7 @@
         "state": "allowed",
         "how": "Use the same keyed acquisition and completion contract."
       },
-      "identity": "Merlin by Ecom Wizards delegated SPP service account (shared Grimoire session)",
+      "identity": "Grimoire delegated Seller Central login (shared Grimoire session)",
       "port": 9223,
       "spp_rows": [],
       "gates": [
@@ -1522,7 +1522,7 @@
         "state": "approval-gated",
         "how": "Use shared 9223 for the same executors; 9222 is explicit separate operator work."
       },
-      "identity": "Merlin by Ecom Wizards delegated SPP service account (shared Grimoire session)",
+      "identity": "Grimoire delegated Seller Central login (shared Grimoire session)",
       "port": 9223,
       "spp_rows": [],
       "gates": [
@@ -1561,7 +1561,7 @@
         "state": "allowed",
         "how": "Use seller-central-region and the regional exclusive claim; account-switcher work uses claimScope global."
       },
-      "identity": "Merlin by Ecom Wizards delegated SPP service account (shared Grimoire session)",
+      "identity": "Grimoire delegated Seller Central login (shared Grimoire session)",
       "port": 9223,
       "spp_rows": [],
       "gates": [
@@ -1600,7 +1600,7 @@
         "state": "allowed",
         "how": "Use identical leases and outcome rules."
       },
-      "identity": "Merlin by Ecom Wizards delegated SPP service account (shared Grimoire session)",
+      "identity": "Grimoire delegated Seller Central login (shared Grimoire session)",
       "port": 9223,
       "spp_rows": [],
       "gates": [
