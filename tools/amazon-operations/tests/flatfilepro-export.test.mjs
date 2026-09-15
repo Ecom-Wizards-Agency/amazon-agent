@@ -36,10 +36,10 @@ test('old files cannot substitute for this completed export',()=>{
 async function fixture(t) {
   const directory=await mkdtemp(join(tmpdir(),'ffp-export-'));t.after(()=>rm(directory,{recursive:true,force:true}));
   const input={schema_version:1,operation_id:'export-test',account,plan_hash:'a'.repeat(64),minimum_after:'2026-09-13T12:54:00Z',output_dir:directory};
-  const facts={time:Date.parse(marker.requested_at),clicks:0,downloads:0,acquires:0,releases:0,pending:false,lostClick:false,changeAccount:false,reads:0};
+  const facts={time:Date.parse(marker.requested_at),clicks:0,downloads:0,acquires:0,releases:0,pending:false,lostClick:false,changeAccount:false,reads:0,outcomes:[],specs:[],navigations:[]};
   const dependencies={
     now:()=>facts.time,
-    acquire:async()=>{facts.acquires++;return {session:{}};},release:async()=>{facts.releases++;},
+    acquire:async spec=>{facts.acquires++;facts.specs.push(spec);return {session:{send:async(method,args)=>facts.navigations.push({method,...args})}};},release:async(page,{outcome})=>{facts.releases++;facts.outcomes.push(outcome);},
     read:async()=>{
       facts.reads++;
       if(facts.changeAccount&&facts.downloads)throw new Error('Exact selected account changed');
@@ -72,6 +72,8 @@ test('pending export is resumed without generating a second export',async t=>{
   assert.equal((await collect(input,dependencies)).status,'processing');
   assert.equal((await collect(input,dependencies)).status,'processing');
   assert.equal(facts.clicks,1);
+  assert.deepEqual(facts.outcomes,['success','success']);
+  assert.deepEqual(facts.navigations,Array(2).fill({method:'Page.navigate',url:'https://app.flatfile.pro/exports'}));
   facts.pending=false;
   assert.equal((await collect(input,dependencies)).status,'collected');
   assert.equal(facts.clicks,1);
@@ -81,6 +83,7 @@ test('lost export click response recovers the finished file without another clic
   const {input,facts,dependencies}=await fixture(t);facts.lostClick=true;
   const unknown=await collect(input,dependencies);
   assert.equal(unknown.status,'processing');assert.equal(unknown.reason,'ffp_export_request_outcome_unknown');
+  assert.deepEqual(facts.outcomes,['success']);
   facts.lostClick=false;
   assert.equal((await collect(input,dependencies)).status,'collected');
   assert.equal(facts.clicks,1);
@@ -90,7 +93,7 @@ test('account changes during download cannot produce a collected export',async t
   const {input,facts,dependencies}=await fixture(t);facts.changeAccount=true;
   const result=await collect(input,dependencies);
   assert.equal(result.status,'blocked');assert.match(result.message,/account changed/);
-  assert.equal(facts.releases,1);
+  assert.equal(facts.releases,1);assert.deepEqual(facts.outcomes,['error']);
 });
 
 test('changed cached bytes and a reused marker with another plan fail closed',async t=>{

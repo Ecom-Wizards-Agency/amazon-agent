@@ -1,4 +1,6 @@
 /** Complete account-scoped catalog discovery. Grid coverage precedes exact item reads. */
+// Request envelope: optional task_key (stable job string) overrides input.operation_id for browser tabs only.
+// Keep task_key outside plan; operation_id still identifies receipts and revisions.
 import * as ui from './browser-ui.mjs';
 import {readListing} from './flatfilepro-listings.mjs';
 import {readFile,mkdir,writeFile} from 'node:fs/promises';
@@ -42,7 +44,7 @@ export function normalizeCatalogPage(itemResponse,countResponse,account){
 export async function readCatalogPages(session,account){
  await session.assertTaskControl({exclusiveContext:true});
  await session.send('Network.enable',{});
- const responses=[],finished=new Set();let active=true;
+ const responses=[],finished=new Set();let active=true,page=0,phase='open-listings';
  const stops=[session.subscribe('Network.responseReceived',event=>{
   if(!active||!['XHR','Fetch'].includes(event.type))return;
   const url=new URL(event.response.url);
@@ -52,40 +54,54 @@ export async function readCatalogPages(session,account){
  try{
   await ui.clickFlatFilePro(session,'Listings');
   const pages=[];let count=null,scope=null;
-  for(let page=0;;page++){
+  for(page=0;;page++){
    ui.check(page<10000,'Catalog pagination exceeded bounded coverage');
+   phase='wait-items';
    await ui.waitFor(async()=>responses,list=>list.some(response=>{try{return catalogRequest(response.url,account).kind==='items'&&catalogRequest(response.url,account).page===page&&finished.has(response.id);}catch{return false;}}),60000);
    if(!count){
+    phase='wait-count';
     await ui.waitFor(async()=>responses,list=>list.some(response=>{try{return catalogRequest(response.url,account).kind==='count'&&finished.has(response.id);}catch{return false;}}),60000);
     const candidates=responses.filter(response=>catalogRequest(response.url,account).kind==='count'&&finished.has(response.id));
     const counts=await Promise.all(candidates.map(readResponse));count=counts.at(-1);
     ui.check(counts.every(value=>value.data?.count===count.data?.count),'Catalog total changed during initial read');
    }
+   phase='validate-responses';
    const candidates=responses.filter(response=>{const request=catalogRequest(response.url,account);return request.kind==='items'&&request.page===page&&finished.has(response.id);});
    const reads=await Promise.all(candidates.map(readResponse)),current=reads.at(-1);
    ui.check(reads.every(value=>JSON.stringify(value.data)===JSON.stringify(current.data)),'Catalog page changed during read');
    const request=catalogRequest(current.url,account);scope??=request.scope;ui.check(request.scope===scope,'Catalog scope changed between pages');
    for(const response of responses.filter(response=>catalogRequest(response.url,account).kind==='count'&&finished.has(response.id))){const latest=await readResponse(response);ui.check(catalogRequest(latest.url,account).scope===scope&&latest.data?.count===count.data.count,'Catalog total or scope changed during pagination');}
    const normalized=normalizeCatalogPage(current,count,account);pages.push(normalized);
-   await ui.context(session,account,'ffp');
+   phase='verify-context';await ui.context(session,account,'ffp');
    // The grid has identical top/bottom pagination controls. Require agreement.
-   await ui.waitFor(()=>evaluate(session,`(()=>{const buttons=[...document.querySelectorAll('button[aria-label="Go to next page"]')].filter(e=>e.getBoundingClientRect().width>0);return buttons.map(e=>({disabled:e.disabled}))})()`),controls=>controls.length>0&&controls.every(control=>control.disabled===!normalized.has_more),15000);
+   phase='wait-pagination';await ui.waitFor(()=>evaluate(session,`(()=>{const buttons=[...document.querySelectorAll('button[aria-label="Go to next page"]')].filter(e=>e.getBoundingClientRect().width>0);return buttons.map(e=>({disabled:e.disabled}))})()`),controls=>controls.length>0&&controls.every(control=>control.disabled===!normalized.has_more),15000);
    if(!normalized.has_more)break;
    await evaluate(session,`(()=>{const buttons=[...document.querySelectorAll('button[aria-label="Go to next page"]')].filter(e=>e.getBoundingClientRect().width>0);if(!buttons.length||buttons.some(e=>e.disabled))throw Error('Catalog next page unavailable');buttons[0].click()})()`);
   }
   validateCatalogPages(pages,account);return pages;
+ }catch(error){
+  const observed=responses.flatMap(response=>{try{const r=catalogRequest(response.url,account);return [{kind:r.kind,page:r.page,finished:finished.has(response.id),status:response.status}];}catch{return [];}});
+  throw new Error(`Catalog page ${page}, phase ${phase}: ${error.message}; observed requests ${JSON.stringify(observed.slice(-8))}`);
  }finally{active=false;for(const stop of stops)if(typeof stop==='function')stop();}
 }
 
 export async function collect(input,deps={}){
  const common={schema_version:1,account:input.account,plan_hash:input.plan_hash,source_kind:'flatfilepro_catalog_discovery'};
  let page,outcome='error';const now=deps.now||(()=>Date.now());
+
+ const onSigterm=async()=>{
+   if(page?._released)return;
+   try{if(page)await (deps.release||releaseTaskPage)(page,{outcome:'error'});}
+   catch(error){console.error('SIGTERM browser release failed:',error.message);}
+   finally{process.exit(143);}
+ };
+ process.once('SIGTERM',onSigterm);
  try{
   ui.check(input.schema_version===1&&input.operation_id&&/^[a-f0-9]{64}$/.test(input.plan_hash||''),'Invalid catalog discovery request');
   const minimum=input.minimum_after?Date.parse(input.minimum_after):0;ui.check(Number.isFinite(minimum)&&minimum<=now(),'Invalid catalog read boundary');
   ui.check(input.inventory_only===undefined||typeof input.inventory_only==='boolean','Invalid inventory-only selection');
   const directory=resolve(input.output_dir);await mkdir(directory,{recursive:true});
-  page=await(deps.acquire||acquireTaskPage)({taskId:taskIdFor('amazon-operations',input.operation_id),slot:'ffp-catalog-discovery',workflow:'amazon-flatfilepro',initialUrl:'https://app.flatfile.pro/exports',exclusiveContext:true});
+  page=await(deps.acquire||acquireTaskPage)({taskId:taskIdFor('amazon-operations',input.task_key || input.operation_id),slot:'ffp-catalog-discovery',workflow:'amazon-flatfilepro',initialUrl:'https://app.flatfile.pro/exports',exclusiveContext:true});
   if(!deps.pages){await page.session.send('Page.navigate',{url:'https://app.flatfile.pro/exports'});await ui.selectFlatFileProAccount(page.session,input.account);}
   const pages=await(deps.pages||readCatalogPages)(page.session,input.account),inventory=validateCatalogPages(pages,input.account);
   ui.check(pages.every(value=>Date.parse(value.observed_at)>=minimum&&Date.parse(value.observed_at)<=now()),'Catalog read timestamp mismatch');
@@ -98,8 +114,12 @@ export async function collect(input,deps={}){
   const bytes=Buffer.from(JSON.stringify(result)),sha256=createHash('sha256').update(bytes).digest('hex'),path=join(directory,`catalog-${now()}-${sha256.slice(0,12)}.json`);
   await writeFile(path,bytes,{flag:'wx'}).catch(async error=>{if(error.code!=='EEXIST'||!(await readFile(path)).equals(bytes))throw error;});
   outcome='success';return {...result,path,sha256};
- }catch(error){return {...common,status:'blocked',complete:false,reason:'ffp_catalog_discovery_unavailable',message:error.message};}
- finally{if(page)await(deps.release||releaseTaskPage)(page,{outcome});}
+ }catch(error){
+  let evidence;
+  if(page&&!deps.pages){try{evidence=join(resolve(input.output_dir),`catalog-failure-${now()}.png`);await ui.screenshot(page,evidence,input.account,'ffp');}catch{evidence=undefined;}}
+  return {...common,status:'blocked',complete:false,reason:'ffp_catalog_discovery_unavailable',message:error.message,...(evidence?{evidence}:{})};
+ }
+ finally{process.removeListener('SIGTERM',onSigterm);if(page)await(deps.release||releaseTaskPage)(page,{outcome});}
 }
 
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){try{ui.check(process.argv.length===4&&process.argv[2]==='--request','Usage: --request FILE');console.log(JSON.stringify(await collect(JSON.parse(await readFile(process.argv[3],'utf8')))));}catch(error){console.log(JSON.stringify({schema_version:1,status:'blocked',reason:'collector_preflight',message:error.message}));process.exitCode=2;}}

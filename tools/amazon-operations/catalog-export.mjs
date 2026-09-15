@@ -1,11 +1,12 @@
 /** Fresh Category Listings Report collector. Generates reports, never catalog writes. */
+// Optional top-level task_key shares job tabs; complete_task === true completes them after release.
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { createHash } from 'node:crypto';
 import { evaluate } from '../report-fetcher/cdp.mjs';
-import { acquireTaskPage, releaseTaskPage, taskIdFor } from '../browserctl/task-tabs.mjs';
+import { acquireTaskPage, releaseTaskPage, completeBrowserTask, taskIdFor } from '../browserctl/task-tabs.mjs';
 import * as ui from './browser-ui.mjs';
 
 export function matchingCompletedReports(statuses, marker, minimumAfter) {
@@ -44,10 +45,17 @@ export async function collect(input) {
   const origin=ui.origins[input.account.marketplace];ui.check(origin,'Unsupported marketplace');
   const directory=input.output_dir;await mkdir(directory,{recursive:true});
   const markerPath=join(directory,'report-request.json');
-  const page=await acquireTaskPage({taskId:taskIdFor('amazon-operations',input.operation_id),slot:'verification',workflow:'amazon-reporting',initialUrl:origin+'/listing/reports/ref=xx_invreport_favb_xx',exclusiveContext:true,sellerCentral:{marketplace:input.account.marketplace,origin}});
-  let outcome='error';
+  let page,outcome='error';
+  const onSigterm=async()=>{
+    if(page?._released)return;
+    try{if(page)await releaseTaskPage(page,{outcome:'error'});}
+    catch(error){console.error('SIGTERM browser release failed:',error.message);}
+    finally{process.exit(143);}
+  };
+  process.once('SIGTERM',onSigterm);
   const common={schema_version:1,account:input.account,plan_hash:input.plan_hash,observed_at:new Date().toISOString()};
   try {
+    page=await acquireTaskPage({taskId:taskIdFor('amazon-operations',input.task_key || input.operation_id),slot:'verification',workflow:'amazon-reporting',initialUrl:origin+'/listing/reports/ref=xx_invreport_favb_xx',exclusiveContext:true,sellerCentral:{marketplace:input.account.marketplace,origin}});
     // Navigation text renders before the account selector. Wait for the same
     // exact identity check used before every report action; never infer identity
     // from page length or accept a partially rendered header.
@@ -79,7 +87,7 @@ export async function collect(input) {
     }
     await ui.context(page.session,input.account,'catalog');
     const completed=matchingCompletedReports(await statuses(page.session),marker,input.minimum_after);
-    if(!completed.length){outcome='handoff';return{...common,status:'processing',reason:'fresh_category_report_pending',report_request:markerPath};}
+    if(!completed.length){outcome='success';return{...common,status:'processing',reason:'fresh_category_report_pending',report_request:markerPath};}
     const report=completed[0];
     const links=(report.actions||[]).map(x=>x.link).filter(Boolean);
     ui.check(links.length===1,'Category report must expose one unambiguous download action');
@@ -94,7 +102,11 @@ export async function collect(input) {
     marker.state='downloaded';marker.downloaded_at=new Date().toISOString();await ui.receipt(markerPath,marker);
     outcome='success';return{...common,status:'collected',path,sha256:createHash('sha256').update(bytes).digest('hex'),source_id:url.href,report_generated_at:report.submissionDate,report_type:report.reportType,complete_report:true};
   }catch(error){return{...common,status:'blocked',reason:'category_report_collection_unavailable',message:error.message};}
-  finally{await releaseTaskPage(page,{outcome});}
+  finally{
+    process.removeListener('SIGTERM',onSigterm);
+    if(page)await releaseTaskPage(page,{outcome});
+    if(input.complete_task===true)await completeBrowserTask({taskId:taskIdFor('amazon-operations',input.task_key || input.operation_id)}).catch(error=>console.error('Browser task completion failed:',error.message));
+  }
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){
  try{ui.check(process.argv.length===4&&process.argv[2]==='--request','Usage: --request FILE');console.log(JSON.stringify(await collect(JSON.parse(await readFile(process.argv[3],'utf8')))));}

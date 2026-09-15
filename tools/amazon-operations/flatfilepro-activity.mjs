@@ -1,7 +1,9 @@
 /** Read-only Activity evidence for a previously captured exact submission run. */
+// Request envelope: optional task_key (stable job string) overrides input.operation_id for browser tabs only.
+// Optional complete_task === true completes all job tabs after release; never put these fields inside plan.
 import {readFile} from 'node:fs/promises';
 import {pathToFileURL} from 'node:url';
-import {acquireTaskPage,releaseTaskPage,taskIdFor} from '../browserctl/task-tabs.mjs';
+import {acquireTaskPage,releaseTaskPage,completeBrowserTask,taskIdFor} from '../browserctl/task-tabs.mjs';
 import * as ui from './browser-ui.mjs';
 import {submittedRunIdentity} from './flatfilepro-submit.mjs';
 
@@ -67,11 +69,18 @@ export async function collectActivity(input,readPage) {
 }
 
 export async function run(input) {
-  let page;
+  let page,outcome='error';
+  const onSigterm=async()=>{
+    if(page?._released)return;
+    try{if(page)await releaseTaskPage(page,{outcome:'error'});}
+    catch(error){console.error('SIGTERM browser release failed:',error.message);}
+    finally{process.exit(143);}
+  };
+  process.once('SIGTERM',onSigterm);
   try {
     ui.check(input.schema_version===1&&input.operation_id,'Invalid Activity request');
     const identity=submittedRunIdentity({runId:input.submission_id});
-    page=await acquireTaskPage({taskId:taskIdFor('amazon-operations',input.operation_id),workflow:'amazon-flatfilepro',initialUrl:identity.submission_url,exclusiveContext:true});
+    page=await acquireTaskPage({taskId:taskIdFor('amazon-operations',input.task_key || input.operation_id),workflow:'amazon-flatfilepro',initialUrl:identity.submission_url,exclusiveContext:true});
     await page.session.send('Page.navigate',{url:'https://app.flatfile.pro/exports'});
     await ui.selectFlatFileProAccount(page.session,input.account);
     await page.session.send('Network.enable',{});
@@ -82,7 +91,7 @@ export async function run(input) {
       if(kind)pending.responses.push({kind,id:event.requestId,status:event.response.status});
     });
     page.session.subscribe('Network.loadingFinished',event=>{if(pending)pending.finished.add(event.requestId);});
-    return await collectActivity(input,async cursor=>{
+    const result=await collectActivity(input,async cursor=>{
       pending={cursor,responses:[],finished:new Set()};
       const url=new URL(identity.submission_url);
       if(cursor) {
@@ -109,8 +118,13 @@ export async function run(input) {
       pending=null;
       return {summary:data.summary,...data.items};
     });
+    outcome='success';return result;
   }catch(error){return {schema_version:1,status:'blocked',account:input.account,plan_hash:input.plan_hash,submission_id:input.submission_id,reason:'ffp_activity_unverified',message:error.message,complete:false};}
-  finally{if(page)await releaseTaskPage(page,{outcome:'handoff'});}
+  finally{
+    process.removeListener('SIGTERM',onSigterm);
+    if(page)await releaseTaskPage(page,{outcome});
+    if(input.complete_task===true)await completeBrowserTask({taskId:taskIdFor('amazon-operations',input.task_key || input.operation_id)}).catch(error=>console.error('Browser task completion failed:',error.message));
+  }
 }
 
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href) {

@@ -1,10 +1,12 @@
 /** FlatFilePro upload/map/apply driver. Requires a scoped canary; no live calls in tests. */
+// Request envelope: optional task_key (stable job string) overrides plan.operation_id for browser tabs only.
+// Optional complete_task === true completes all job tabs after release; never put these fields inside plan.
 import { readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { createHash } from 'node:crypto';
 import { evaluate } from '../report-fetcher/cdp.mjs';
-import { acquireTaskPage,releaseTaskPage,taskIdFor } from '../browserctl/task-tabs.mjs';
+import { acquireTaskPage,releaseTaskPage,completeBrowserTask,taskIdFor } from '../browserctl/task-tabs.mjs';
 import * as ui from './browser-ui.mjs';
 import { collect as collectListings } from './flatfilepro-listings.mjs';
 import { submitAttended, submittedRunIdentity } from './flatfilepro-submit.mjs';
@@ -134,26 +136,43 @@ export async function refreshImagePreflight(input,page,dependencies={}) {
   ui.check(typeof targetId==='string'&&targetId.length>0,'Exact import target is required for preflight handoff');
   // Context claims are per task slot. Release only control of the import page;
   // its exact target remains leased, and the enclosing browserctl lock persists.
+  // Transient handoff: collectListings runs next, then the same target is reacquired with expectedTargetId.
   await release(page,{outcome:'handoff'});
-  const fresh=await collect({schema_version:1,operation_id:plan.operation_id,account:plan.account,plan_hash:input.plan_hash,
+  const fresh=await collect({schema_version:1,task_key:input.task_key,operation_id:plan.operation_id,account:plan.account,plan_hash:input.plan_hash,
     targets:Object.entries(body.sku_asins).filter(([sku])=>Object.hasOwn(body.image_before_rows,sku)).map(([sku,asin])=>({sku,asin})),
     output_dir:join(dirname(input.receipt_path),'ffp-presubmit'),minimum_after:new Date().toISOString()});
-  const resumed=await acquire({taskId:taskIdFor('amazon-operations',plan.operation_id),workflow:'amazon-flatfilepro',initialUrl:'https://app.flatfile.pro/import',exclusiveContext:true,expectedTargetId:targetId});
+  const resumed=await acquire({taskId:taskIdFor('amazon-operations',input.task_key || plan.operation_id),workflow:'amazon-flatfilepro',initialUrl:'https://app.flatfile.pro/import',exclusiveContext:true,expectedTargetId:targetId});
   return {page:resumed,fresh};
 }
 
 export async function run(input) {
   await ui.verifyEnvelope(input);
+  try {return await execute(input);}
+  finally {
+    if(input.complete_task===true)await completeBrowserTask({taskId:taskIdFor('amazon-operations',input.task_key || input.plan.operation_id)}).catch(error=>console.error('Browser task completion failed:',error.message));
+  }
+}
+
+async function execute(input) {
   const {plan}=input,body=plan.body;
   ui.check(body.adapter==='flatfilepro.cdp','Wrong adapter');
   const attemptPath=join(dirname(input.receipt_path),'flatfilepro-attempt.json');
   const prior=await readAttempt(attemptPath,input);
   if(input.mode==='reconcile') return reconcileImport(input,prior);
   if(prior?.submission_intent) return {schema_version:1,plan_hash:input.plan_hash,status:'uncertain',attempted:true,reason:'prior_submit_requires_reconciliation'};
-  let page=await acquireTaskPage({taskId:taskIdFor('amazon-operations',plan.operation_id),workflow:'amazon-flatfilepro',initialUrl:'https://app.flatfile.pro/import',exclusiveContext:true});
+  let page;
   let attempted=false,outcome='error',phase='account_selection';
+  const onSigterm=async()=>{
+    if(page?._released)return;
+    try{if(page)await releaseTaskPage(page,{outcome:'error'});}
+    catch(error){console.error('SIGTERM browser release failed:',error.message);}
+    finally{process.exit(143);}
+  };
+  process.once('SIGTERM',onSigterm);
+
   const result=data=>({schema_version:1,plan_hash:input.plan_hash,...data});
   try {
+    page=await acquireTaskPage({taskId:taskIdFor('amazon-operations',input.task_key || plan.operation_id),workflow:'amazon-flatfilepro',initialUrl:'https://app.flatfile.pro/import',exclusiveContext:true});
     // A competing invocation may have submitted while this one waited for the
     // managed browser lock. Recheck only after exclusive ownership is acquired.
     if((await readAttempt(attemptPath,input))?.submission_intent) return result({status:'uncertain',attempted:true,reason:'prior_submit_requires_reconciliation'});
@@ -247,7 +266,7 @@ export async function run(input) {
     const specific=['ffp_image_slot_unverifiable','ffp_submission_recovery_unverified'].find(code=>error.message.startsWith(code+':'));
     const answer=result({status:attempted?'uncertain':'blocked',attempted,reason:attempted?'apply_outcome_uncertain':specific||'ui_contract_unavailable',message:error.message,phase,...(diagnostic_path?{diagnostic_path}:{})});
     await ui.receipt(input.receipt_path,answer);return answer;
-  } finally {await releaseTaskPage(page,{outcome});}
+  } finally {process.removeListener('SIGTERM',onSigterm);if(page)await releaseTaskPage(page,{outcome});}
 }
 
 export async function reconcileImport(input, attempt) {
@@ -262,9 +281,17 @@ export async function reconcileImport(input, attempt) {
     }
     return {...common,status:'blocked',reason:'ffp_submission_recovery_unverified',message:'The server upload key is preserved, but upload alone does not prove submission. Activity history correlation is required; no upload or Update Listings click was repeated.'};
   }
-  const page=await acquireTaskPage({taskId:taskIdFor('amazon-operations',input.plan.operation_id),workflow:'amazon-flatfilepro',initialUrl:attempt.import_url,exclusiveContext:true});
+  let page;
   let outcome='error';
+  const onSigterm=async()=>{
+    if(page?._released)return;
+    try{if(page)await releaseTaskPage(page,{outcome:'error'});}
+    catch(error){console.error('SIGTERM browser release failed:',error.message);}
+    finally{process.exit(143);}
+  };
+  process.once('SIGTERM',onSigterm);
   try {
+    page=await acquireTaskPage({taskId:taskIdFor('amazon-operations',input.task_key || input.plan.operation_id),workflow:'amazon-flatfilepro',initialUrl:attempt.import_url,exclusiveContext:true});
     await ui.context(page.session,input.plan.account,'ffp');
     await page.session.send('Page.navigate',{url:attempt.import_url});
     await ui.waitFor(()=>ui.snapshot(page.session),state=>state.text.length>0);
@@ -275,7 +302,7 @@ export async function reconcileImport(input, attempt) {
     outcome='success';
     return {...common,status:'collected',source_id:attempt.import_url,submission_id:attempt.import_id,processing_status:processing};
   }catch(error){return {...common,status:'blocked',reason:'import_recovery_unavailable',message:error.message};}
-  finally{await releaseTaskPage(page,{outcome});}
+  finally{process.removeListener('SIGTERM',onSigterm);if(page)await releaseTaskPage(page,{outcome});}
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href) {
   let input;try{ui.check(process.argv.length===4&&process.argv[2]==='--request','Usage: --request FILE');input=JSON.parse(await readFile(process.argv[3],'utf8'));console.log(JSON.stringify(await run(input)));}catch(error){console.log(JSON.stringify({schema_version:1,plan_hash:input?.plan_hash,status:'blocked',reason:'adapter_preflight',message:error.message}));process.exitCode=2;}

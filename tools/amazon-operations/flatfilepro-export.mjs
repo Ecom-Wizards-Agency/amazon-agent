@@ -1,4 +1,6 @@
 /** Observed FFP /exports workflow, isolated from listing submissions. */
+// Request envelope: optional task_key (stable job string) overrides input.operation_id for browser tabs only.
+// Keep task_key outside plan; operation_id still identifies receipts and revisions.
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -79,6 +81,13 @@ export async function collect(input,dependencies={}) {
   const acquire=dependencies.acquire||acquireTaskPage,release=dependencies.release||releaseTaskPage;
   const read=dependencies.read||exportsState,click=dependencies.click||ui.clickFlatFilePro,download=dependencies.download||fetchExport;
   const at=dependencies.now||(()=>Date.now());
+  const onSigterm=async()=>{
+    if(page?._released)return;
+    try{if(page)await release(page,{outcome:'error'});}
+    catch(error){console.error('SIGTERM browser release failed:',error.message);}
+    finally{process.exit(143);}
+  };
+  process.once('SIGTERM',onSigterm);
   try {
     ui.check(input.schema_version===1&&input.account&&input.operation_id&&/^[a-f0-9]{64}$/.test(input.plan_hash||'')&&input.output_dir&&Number.isFinite(Date.parse(input.minimum_after))&&Date.parse(input.minimum_after)<=at(),'Invalid FFP export collector request');
     const directory=resolve(input.output_dir);await mkdir(directory,{recursive:true});
@@ -95,7 +104,8 @@ export async function collect(input,dependencies={}) {
         return {...common,...marker.result,status:'collected',observed_at:new Date(at()).toISOString()};
       }
     }
-    page=await acquire({taskId:taskIdFor('amazon-operations',input.operation_id),slot:'ffp-export',workflow:'amazon-flatfilepro',initialUrl:'https://app.flatfile.pro/exports',exclusiveContext:true});
+    page=await acquire({taskId:taskIdFor('amazon-operations',input.task_key || input.operation_id),slot:'ffp-export',workflow:'amazon-flatfilepro',initialUrl:'https://app.flatfile.pro/exports',exclusiveContext:true});
+    await page.session.send('Page.navigate',{url:'https://app.flatfile.pro/exports'});
     if(!dependencies.read) {
       await ui.waitFor(()=>ui.snapshot(page.session),value=>value.text.length>80);
       await ui.selectFlatFileProAccount(page.session,input.account);
@@ -109,12 +119,12 @@ export async function collect(input,dependencies={}) {
       await reserveSubmission(markerPath,marker);
       // The marker survives a lost click response. Resume observes, never clicks again.
       try {await click(page.session,'EXPORT ALL LISTINGS');}
-      catch(error){outcome='handoff';return {...common,status:'processing',reason:'ffp_export_request_outcome_unknown',message:error.message,report_request:markerPath,observed_at:new Date(at()).toISOString()};}
+      catch(error){outcome='success';return {...common,status:'processing',reason:'ffp_export_request_outcome_unknown',message:error.message,report_request:markerPath,observed_at:new Date(at()).toISOString()};}
       marker.state='requested';await durableReceipt(markerPath,marker);
       state=await read(page.session,input.account);
     }
     const selected=selectCompletedExport(state,marker,input.account,input.minimum_after,at());
-    if(!selected){outcome='handoff';return {...common,status:'processing',reason:'ffp_export_pending',report_request:markerPath,observed_at:new Date(at()).toISOString()};}
+    if(!selected){outcome='success';return {...common,status:'processing',reason:'ffp_export_pending',report_request:markerPath,observed_at:new Date(at()).toISOString()};}
     // Download only the publicly readable observed S3 object, without cookies or browser routing.
     const downloaded=await download(selected.href);
     ui.check(downloaded.bytes.length>4&&downloaded.bytes.subarray(0,2).toString()==='PK','FFP export is not an XLSX ZIP file');
@@ -129,7 +139,7 @@ export async function collect(input,dependencies={}) {
     await durableReceipt(markerPath,marker);
     outcome='success';return {...common,...result,status:'collected',observed_at:new Date(at()).toISOString()};
   }catch(error){return {...common,status:'blocked',reason:'ffp_export_collection_unavailable',message:error.message,observed_at:new Date(at()).toISOString()};}
-  finally{if(page)await release(page,{outcome});}
+  finally{process.removeListener('SIGTERM',onSigterm);if(page)await release(page,{outcome});}
 }
 
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){

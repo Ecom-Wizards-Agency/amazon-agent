@@ -572,17 +572,23 @@ class Operations:
         request = health_request(request)
         directory = self.directory(request.get('operation_id'))
         with self.lock(directory):
-            fingerprint = digest(request)
+            fingerprint = digest({k: v for k, v in request.items() if k not in {'task_key', 'complete_task'}})
             if (directory / 'plan.json').exists():
                 old = json.loads((directory / 'plan.json').read_text())
                 require(old['request_hash'] == fingerprint, 'immutable_request', 'An operation ID cannot be reused with different inputs; create a new revision ID')
-                return self.view(directory)
+                state = self.view(directory)
+                if request.get('task_key'):
+                    state['task_key'] = request['task_key']
+                    atomic_json(directory / 'journal.json', state)
+                return state
             handlers = {'seo.update': prepare_copy, 'flatfilepro.update': prepare_copy, 'listing.images': prepare_images, 'catalog.change': prepare_catalog, 'shipment.create': prepare_shipment, 'case.create': case_tools().prepare, 'case.reply': case_tools().prepare}
             body = handlers[operation_kind(request['operation'])](request, directory)
             artifacts = [{'path': str(p), 'sha256': file_hash(p)} for p in sorted(directory.rglob('*')) if p.is_file() and p.name != '.lock']
             plan = {'schema_version': 1, 'operation_id': request['operation_id'], 'operation': request['operation'], 'account': request['account'], 'targets': targets, 'request_hash': fingerprint, 'prepared_at': now(), 'body': body, 'artifacts': artifacts}
             atomic_json(directory / 'plan.json', plan)
             initial = {'schema_version': 1, 'operation_id': request['operation_id'], 'operation': request['operation'], 'plan_hash': digest(plan), 'plan_path': str(directory / 'plan.json'), 'account': request['account'], 'targets': targets, 'required_inputs': body.get('required_inputs', []), 'capability': {'adapter': body.get('adapter'), 'requires_live_canary': body.get('requires_live_canary', False)}}
+            if request.get('task_key'):
+                initial['task_key'] = request['task_key']
             if body['status'] == 'verified':
                 evidence = {'schema_version': 1, 'account': plan['account'], 'plan_hash': digest(plan), 'source_id': body['source_id'], 'observed_at': body['observed_at'], 'processing_status': 'live_observed', 'no_changes': True, 'rows': body['expected_rows']}
                 path = directory / f'evidence-{digest(evidence)}.json'
@@ -597,6 +603,10 @@ class Operations:
         for artifact in plan['artifacts']:
             path = Path(artifact['path'])
             require(path.is_file() and file_hash(path) == artifact['sha256'], 'artifact_changed', 'Prepared artifact changed or disappeared')
+        # Browser task identity is journal metadata, outside the immutable plan.
+        if request.get('task_key') and request['task_key'] != state.get('task_key'):
+            state['task_key'] = request['task_key']
+            atomic_json(directory / 'journal.json', state)
         return state, plan
 
     def execute(self, request):
@@ -651,7 +661,7 @@ class Operations:
                 verify_hosted_asset(image['path'], image['url'])
             # Journal intent before spawning; loss of response can never cause blind replay.
             self.persist(directory, state, 'uncertain', execution_started_at=now(), reason='submission_attempt_started', execution_stage=state.pop('next_stage', state.get('execution_stage', 1)), submission_id=None, effects_started=True, phase='executing', next_action=None)
-            envelope = {'schema_version': 1, 'plan': plan, 'plan_path': str(directory / 'plan.json'), 'plan_hash': state['plan_hash'], 'receipt_path': str(directory / 'adapter-receipt.json'), 'stage': state['execution_stage'], 'mode': 'execute'}
+            envelope = {'schema_version': 1, 'plan': plan, 'plan_path': str(directory / 'plan.json'), 'plan_hash': state['plan_hash'], 'receipt_path': str(directory / 'adapter-receipt.json'), 'stage': state['execution_stage'], 'mode': 'execute', 'task_key': state.get('task_key'), 'complete_task': False}
             if image_preflight:
                 envelope['image_preflight'] = image_preflight
                 envelope['allow_attended_canary'] = grant.get('allow_live_canary') is True
@@ -889,8 +899,18 @@ class Operations:
         input_path = directory / (script.replace('.mjs', '') + '-input.json')
         atomic_json(input_path, request)
         try:
-            result = subprocess.run(['node', str(ROOT / 'tools/amazon-operations' / script), '--request', str(input_path)], capture_output=True, text=True, timeout=timeout, check=False, env={**os.environ, **session_environment(os.environ.get('AMAZON_BROWSER_SESSION', 'grimoire'), inherit=True)})
-            data = json.loads(result.stdout)
+            process = subprocess.Popen(['node', str(ROOT / 'tools/amazon-operations' / script), '--request', str(input_path)], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env={**os.environ, **session_environment(os.environ.get('AMAZON_BROWSER_SESSION', 'grimoire'), inherit=True)})
+            try:
+                stdout, _ = process.communicate(timeout=timeout)
+            except subprocess.TimeoutExpired:
+                process.terminate()
+                try:
+                    process.communicate(timeout=15)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    process.communicate()
+                return {'status': 'blocked', 'reason': 'collector_result_unavailable'}
+            data = json.loads(stdout)
             if data.get('status') == 'collected':
                 require(data.get('account') == request['account'] and data.get('plan_hash') == request['plan_hash'], 'collector_identity', 'Collector account or plan mismatch')
             return data
@@ -903,11 +923,11 @@ class Operations:
         account(request.get('account'))
         case_tools().validate_targets(request['operation'], request.get('targets'))
         directory = self.directory(request.get('operation_id'))
-        return self.run_collector(directory, 'cases.mjs', {**request, 'mode': 'observe', 'plan_hash': digest(request)})
+        return self.run_collector(directory, 'cases.mjs', {**request, 'mode': 'observe', 'plan_hash': digest({k: v for k, v in request.items() if k not in {'task_key', 'complete_task'}})})
 
-    def collect_export(self, directory, state, plan, purpose='verification'):
+    def collect_export(self, directory, state, plan, purpose='verification', *, complete_task=False):
         minimum = plan['prepared_at'] if purpose == 'preflight' else state.get('execution_started_at', plan['prepared_at'])
-        request = {'schema_version': 1, 'operation_id': plan['operation_id'], 'account': plan['account'], 'plan_hash': state['plan_hash'], 'minimum_after': minimum, 'output_dir': str(directory / f"backend-{purpose}-{state.get('execution_stage', 1)}")}
+        request = {'schema_version': 1, 'operation_id': plan['operation_id'], 'account': plan['account'], 'plan_hash': state['plan_hash'], 'minimum_after': minimum, 'output_dir': str(directory / f"backend-{purpose}-{state.get('execution_stage', 1)}"), 'task_key': state.get('task_key'), 'complete_task': complete_task is True}
         response = self.run_collector(directory, 'catalog-export.mjs', request)
         state['last_collection'] = {k: v for k, v in response.items() if k not in {'account', 'plan_hash'}}
         if response.get('status') != 'collected':
@@ -918,12 +938,13 @@ class Operations:
         response['rows'] = evidence_tools().report_rows(path)
         return response
 
-    def collect_image_catalog(self, directory, state, plan, purpose='verification'):
+    def collect_image_catalog(self, directory, state, plan, purpose='verification', *, complete_task=False):
         minimum = plan['prepared_at'] if purpose == 'preflight' else state.get('execution_started_at', plan['prepared_at'])
         response = self.run_collector(directory, 'flatfilepro-listings.mjs', {
             'schema_version': 1, 'operation_id': plan['operation_id'], 'account': plan['account'], 'plan_hash': state['plan_hash'],
             'targets': [{'sku': sku, 'asin': plan['body']['sku_asins'][sku]} for sku in plan['body']['image_before_rows']],
-            'minimum_after': minimum, 'output_dir': str(directory / f'ffp-{purpose}')})
+            'minimum_after': minimum, 'output_dir': str(directory / f'ffp-{purpose}'),
+            'task_key': state.get('task_key'), 'complete_task': complete_task is True})
         state['last_catalog_collection'] = response
         if response.get('status') != 'collected':
             return None
@@ -935,14 +956,14 @@ class Operations:
         require(set(response.get('rows', {})) == set(plan['body']['image_before_rows']), 'scope_violation', 'Listing read SKU coverage differs')
         return response
 
-    def collect_images(self, directory, state, plan):
+    def collect_images(self, directory, state, plan, *, complete_task=False):
         body = plan['body']
         activity = None
         if body.get('image_policy') and state.get('submission_id'):
             activity = self.run_collector(directory, 'flatfilepro-activity.mjs', {
                 'schema_version': 1, 'operation_id': plan['operation_id'], 'account': plan['account'],
                 'plan_hash': state['plan_hash'], 'submission_id': state['submission_id'],
-                'expected_rows': body['expected_rows']}, timeout=300)
+                'expected_rows': body['expected_rows'], 'task_key': state.get('task_key'), 'complete_task': False}, timeout=300)
             state['last_processing_collection'] = activity
         mapping = body.get('sku_asins', {})
         if not all(image['sku'] in mapping for image in body['images']):
@@ -955,7 +976,7 @@ class Operations:
             targets[sku]['slots'].append(slot)
         previous = state.get('last_collection')
         response = self.run_collector(directory, 'image-evidence.mjs', {'schema_version': 1, 'operation_id': plan['operation_id'], 'account': plan['account'], 'plan_hash': state['plan_hash'], 'targets': targets,
-            'previous': previous}, timeout=300)
+            'previous': previous, 'task_key': state.get('task_key'), 'complete_task': False}, timeout=300)
         collection_error = None
         if (response.get('status') == 'blocked' and previous and previous.get('status') in {'partial', 'collected'} and
                 previous.get('account') == plan['account'] and previous.get('plan_hash') == state['plan_hash'] and
@@ -1017,7 +1038,7 @@ class Operations:
             try:
                 ffp_source = (body.get('image_catalog_source') == 'flatfilepro_listing_read' or
                               (body.get('image_policy') == 'secondary_slots_only' and body.get('adapter') == 'flatfilepro.cdp'))
-                fresh = self.collect_image_catalog(directory, state, plan) if ffp_source else self.collect_export(directory, state, plan)
+                fresh = self.collect_image_catalog(directory, state, plan, complete_task=complete_task) if ffp_source else self.collect_export(directory, state, plan, complete_task=complete_task)
                 if fresh is not None:
                     protected = {'protected_rows': fresh['rows'], 'preservation_source':
                         {key: value for key, value in fresh.items() if key != 'rows'}}
@@ -1030,7 +1051,7 @@ class Operations:
                 **({'pdp_collection_error': collection_error} if collection_error else {}),
                 **({'ffp_processing': activity} if activity else {})}
 
-    def collect(self, directory, state, plan):
+    def collect(self, directory, state, plan, *, complete_task=False):
         """Read-only live PDP collector using the established listing-capture runner.
 
         Public title/bullet/description fields can be verified here. Hidden fields
@@ -1047,18 +1068,18 @@ class Operations:
             return driver_evidence
         kind = operation_kind(plan['operation'])
         if kind == 'listing.images' and state.get('effects_started') and not state.get('submission_id'):
-            recovery = self.run_collector(directory, 'flatfilepro.mjs', {'schema_version': 1, 'plan': plan, 'plan_path': str(directory / 'plan.json'), 'plan_hash': state['plan_hash'], 'receipt_path': str(directory / 'adapter-receipt.json'), 'account': plan['account'], 'mode': 'reconcile'})
+            recovery = self.run_collector(directory, 'flatfilepro.mjs', {'schema_version': 1, 'plan': plan, 'plan_path': str(directory / 'plan.json'), 'plan_hash': state['plan_hash'], 'receipt_path': str(directory / 'adapter-receipt.json'), 'account': plan['account'], 'mode': 'reconcile', 'task_key': state.get('task_key'), 'complete_task': False})
             state['last_import_recovery'] = recovery
             if recovery.get('status') == 'collected' and recovery.get('submission_id'):
                 state['submission_id'] = recovery['submission_id']
                 if recovery.get('processing_status') == 'failed':
                     return recovery
         if kind == 'listing.images' and (state.get('submission_id') or body.get('no_changes')):
-            return self.collect_images(directory, state, plan)
+            return self.collect_images(directory, state, plan, complete_task=complete_task)
         if not state.get('submission_id'):
             return None
         if kind == 'catalog.change':
-            exported = self.collect_export(directory, state, plan)
+            exported = self.collect_export(directory, state, plan, complete_task=complete_task)
             if exported is None:
                 return None
             return {'account': plan['account'], 'plan_hash': state['plan_hash'], 'source_id': exported['source_id'], 'observed_at': now(), 'submission_id': state['submission_id'], 'processing_status': 'live_observed', **evidence_tools().catalog_evidence(plan, state, exported['rows'])}
@@ -1067,7 +1088,7 @@ class Operations:
         expected = body.get('expected_rows', {})
         hidden_fields = any(not re.fullmatch(r'item_name.0.value|itemName|bullet_point.[0-9]+.value|product_description.0.value', field) for row in expected.values() for field in row)
         if hidden_fields or not body.get('sku_asins'):
-            exported = self.collect_export(directory, state, plan)
+            exported = self.collect_export(directory, state, plan, complete_task=complete_task)
             if exported is None:
                 return None
             rows = {sku: {field: value for field in fields if (value := evidence_tools().field_value(exported['rows'].get(sku, {}), field)) is not None} for sku, fields in expected.items()}
@@ -1106,6 +1127,20 @@ class Operations:
         except (OSError, subprocess.TimeoutExpired, ValueError, KeyError):
             return None
 
+    def _complete_reconciled_task(self, request, state, plan, status):
+        if request.get('complete_task') is not True or status not in {'verified', 'failed', 'blocked'}:
+            return
+        try:
+            # Match taskIdFor('amazon-operations', task_key || operation_id).
+            key = state.get('task_key') or plan['operation_id']
+            task_id = 'amazon-operations:' + hashlib.sha256(str(key).encode()).hexdigest()[:20]
+            env = {**os.environ, **session_environment(os.environ.get('AMAZON_BROWSER_SESSION', 'grimoire'), inherit=True)}
+            subprocess.run(['node', str(ROOT / 'tools/browserctl/browserctl.mjs'), 'task', 'complete',
+                            '--port', env['CDP_PORT'], '--task-id', task_id],
+                           capture_output=True, text=True, timeout=30, check=True, env=env)
+        except Exception as exc:
+            print(f'Browser task completion failed: {exc}', file=sys.stderr)
+
     def reconcile(self, request):
         directory = self.directory(request.get('operation_id'))
         with self.lock(directory):
@@ -1123,13 +1158,15 @@ class Operations:
                 self.health_preflight(plan, fresh)
                 changes = plan['body']['changes']
                 if all(evidence_tools().field_value(fresh['rows'].get(c['sku'], {}), c['field']) == c['after'] for c in changes):
+                    self._complete_reconciled_task(request, state, plan, 'verified')
                     return self.verified_health_noop(directory, state, plan, fresh)
                 receipt = {key: fresh[key] for key in ('path', 'sha256', 'report_generated_at', 'observed_at')}
                 return self.persist(directory, state, 'partial', phase='preflight', effects_started=False, next_action='execute', reason='fresh_missing_fields_verified', preflight_receipt=receipt)
             evidence = request.get('evidence')
             if not evidence:
-                evidence = self.collect(directory, state, plan)
+                evidence = self.collect(directory, state, plan, complete_task=False)
                 if evidence is None:
+                    self._complete_reconciled_task(request, state, plan, state['status'])
                     return self.persist(directory, state, state['status'], evidence_required=['Fresh operation-scoped Amazon processing result and final live state'], reason='verification_evidence_required')
             scoped(evidence, plan['account'], 'reconciliation evidence')
             require(evidence.get('plan_hash') == state['plan_hash'] and evidence.get('source_id'), 'evidence_mismatch', 'Evidence requires exact plan_hash and source_id')
@@ -1149,6 +1186,7 @@ class Operations:
             if processing == 'processing':
                 return self.persist(directory, state, 'processing', submission_id=evidence['submission_id'], evidence_path=str(evidence_path))
             if processing == 'failed':
+                self._complete_reconciled_task(request, state, plan, 'failed')
                 return self.persist(directory, state, 'failed', submission_id=evidence['submission_id'], evidence_path=str(evidence_path), failures=evidence.get('errors', ['Submission failed']))
             if op == 'listing.images' and body.get('image_policy') and not body.get('no_changes'):
                 completion = self.image_completion(directory, state, plan, evidence)
@@ -1157,6 +1195,7 @@ class Operations:
                           'failed' if completion['processing'] == 'failed' or completion['preservation'] == 'conflict' else
                           'verified' if completion['release_eligible'] and completion['processing'] == 'complete' else
                           'partial' if completion['matched'] else 'processing')
+                self._complete_reconciled_task(request, state, plan, status)
                 return self.persist(directory, state, status, submission_id=evidence.get('submission_id'),
                     matched=completion['matched'], pending=completion['pending'], failures=completion['failures'],
                     evidence_path=str(evidence_path), image_completion=completion)
@@ -1213,6 +1252,7 @@ class Operations:
                         ok = re.fullmatch(r'[A-Z0-9]{10}', str(live.get('asin', ''))) and live.get('product_type') == product['product_type'] and live.get('title') == product['title'] and live.get('parent_sku') in {'', None}
                         (matched if ok else pending).append(product['sku'])
                     status = 'verified' if matched and not pending and not evidence.get('errors') else ('partial' if matched else ('processing' if processing == 'live_observed' else 'failed'))
+                    self._complete_reconciled_task(request, state, plan, status)
                     return self.persist(directory, state, status, matched=matched, pending=pending, evidence_path=str(evidence_path))
                 parent = family['parent']['sku']
                 deletion = len(body['stages']) > 1 and stage == 1 or manifest['operation'] == 'delete_parent'
@@ -1265,6 +1305,7 @@ class Operations:
                 # Retain the verified subset while stopping a fully resolved
                 # rejected batch; polling cannot repair terminal feed failures.
                 status = 'failed'
+            self._complete_reconciled_task(request, state, plan, status)
             return self.persist(directory, state, status, submission_id=evidence.get('submission_id'), matched=matched, pending=pending, failures=errors, evidence_path=str(evidence_path))
 
 

@@ -289,6 +289,13 @@ export async function run(input){
   ui.check(Number(process.env.CDP_PORT||9223)===9223&&(!process.env.AMAZON_BROWSER_SESSION||process.env.AMAZON_BROWSER_SESSION==='grimoire'),'Cases require the Grimoire session on 9223');
   const origin=caseOrigin(account);ui.check(origin,'Unsupported marketplace');
   const unlock=acquireSessionLock(9223,'amazon-cases');let page,outcome='error',executionEntered=false,claimPath=null;
+  const onSigterm=async()=>{
+    if(page?._released)return;
+    try{if(page)await releaseTaskPage(page,{outcome:'error'});}
+    catch(error){console.error('SIGTERM browser release failed:',error.message);}
+    finally{process.exit(143);}
+  };
+  process.once('SIGTERM',onSigterm);
   try{
     page=await acquireTaskPage({taskId:taskIdFor('amazon-operations',plan?.operation_id||input.operation_id),workflow:'amazon-communications',initialUrl:origin+'/home',exclusiveContext:true,sellerCentral:{marketplace:caseBrowserAccount(account).marketplace,origin}});
     await switchAccount(page.session,origin,{accountName:account.seller_central_name||account.seller_account,marketplaceLabel:account.marketplace_label,marketplace:caseBrowserAccount(account).marketplace,parentAccountName:account.parent_account_name},{returnTo:'/home'});
@@ -301,7 +308,7 @@ export async function run(input){
     if(claimPath&&answer.attempted===false){await unlink(claimPath);claimPath=null;}
     return answer;
   }catch(error){return{schema_version:1,plan_hash:input.plan_hash,account,status:executionEntered||error.code==='case_adapter_already_claimed'?'uncertain':'blocked',attempted:executionEntered||error.code==='case_adapter_already_claimed',reason:error.code||'case_access_unknown',message:error.message,capability:{state:error.code==='login_required'?'login_required':error.code==='permission_denied'?'permission_denied':'unknown'}};}
-  finally{try{if(page)await releaseTaskPage(page,{outcome});}catch{}finally{unlock();}}
+  finally{process.removeListener('SIGTERM',onSigterm);try{if(page)await releaseTaskPage(page,{outcome});}catch{}finally{unlock();}}
 }
 
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){

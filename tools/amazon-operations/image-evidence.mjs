@@ -1,8 +1,10 @@
 /** Exact public slots with independent ASIN observations and bounded retries. */
+// Request envelope: optional task_key (stable job string) overrides input.operation_id for browser tabs only.
+// Optional complete_task === true completes all job tabs after release; never put these fields inside plan.
 import {readFile} from 'node:fs/promises';
 import {pathToFileURL} from 'node:url';
 import {evaluate} from '../report-fetcher/cdp.mjs';
-import {acquireTaskPage,releaseTaskPage,taskIdFor} from '../browserctl/task-tabs.mjs';
+import {acquireTaskPage,releaseTaskPage,completeBrowserTask,taskIdFor} from '../browserctl/task-tabs.mjs';
 import {ensureDeliveryPostcode,assertDeliveryPostcode} from '../report-fetcher/marketplace-postcode.mjs';
 import {check} from './browser-ui.mjs';
 
@@ -150,12 +152,24 @@ async function readAsin(page,tld,asin,slots) {
 
 export async function collect(input) {
  const tld={US:'com',DE:'de',AU:'com.au',UK:'co.uk',IT:'it',FR:'fr',ES:'es',CA:'ca'}[input.account.marketplace];check(tld,'Unsupported image marketplace');
- let page,outcome='error';
+ let page,outcome='success',navigated=false;
+
+ const onSigterm=async()=>{
+   if(page?._released)return;
+   try{if(page)await releaseTaskPage(page,{outcome:'error'});}
+   catch(error){console.error('SIGTERM browser release failed:',error.message);}
+   finally{process.exit(143);}
+ };
+ process.once('SIGTERM',onSigterm);
  try{
-  page=await acquireTaskPage({taskId:taskIdFor('amazon-operations',input.operation_id),slot:'public-images',workflow:'amazon-listing-capture',initialUrl:'about:blank'});
-  const result=await collectByAsin(input,(asin,slots)=>readAsin(page,tld,asin,slots));
-  outcome=result.status==='collected'?'success':'error';return result;
- }catch(error){return {schema_version:1,account:input.account,operation_id:input.operation_id,plan_hash:input.plan_hash,status:'blocked',reason:'image_collection_unavailable',message:error.message,images:[]};}
- finally{if(page)await releaseTaskPage(page,{outcome});}
+  page=await acquireTaskPage({taskId:taskIdFor('amazon-operations',input.task_key || input.operation_id),slot:'public-images',workflow:'amazon-listing-capture',initialUrl:'about:blank'});
+  const result=await collectByAsin(input,(asin,slots)=>{navigated=true;return readAsin(page,tld,asin,slots);});
+  outcome=navigated&&result.status!=='collected'?'error':'success';return result;
+ }catch(error){outcome=navigated?'error':'success';return {schema_version:1,account:input.account,operation_id:input.operation_id,plan_hash:input.plan_hash,status:'blocked',reason:'image_collection_unavailable',message:error.message,images:[]};}
+ finally{
+  process.removeListener('SIGTERM',onSigterm);
+  if(page)await releaseTaskPage(page,{outcome});
+  if(input.complete_task===true)await completeBrowserTask({taskId:taskIdFor('amazon-operations',input.task_key || input.operation_id)}).catch(error=>console.error('Browser task completion failed:',error.message));
+ }
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){try{check(process.argv.length===4&&process.argv[2]==='--request','Usage: --request FILE');console.log(JSON.stringify(await collect(JSON.parse(await readFile(process.argv[3],'utf8')))));}catch(error){console.log(JSON.stringify({schema_version:1,status:'blocked',reason:'collector_preflight',message:error.message}));process.exitCode=2;}}

@@ -1,9 +1,12 @@
 /** Read exact listings through their normal FlatFilePro editor requests. */
+// Request envelope: optional task_key (stable job string) overrides input.operation_id for browser tabs only.
+// Optional complete_task === true completes all job tabs after release.
+// Keep task_key outside plan; operation_id still identifies receipts and revisions.
 import {readFile,mkdir,writeFile} from 'node:fs/promises';
 import {join,resolve} from 'node:path';
 import {createHash} from 'node:crypto';
 import {pathToFileURL} from 'node:url';
-import {acquireTaskPage,releaseTaskPage,taskIdFor} from '../browserctl/task-tabs.mjs';
+import {acquireTaskPage,releaseTaskPage,completeBrowserTask,taskIdFor} from '../browserctl/task-tabs.mjs';
 import * as ui from './browser-ui.mjs';
 
 export const imageFields=['main_product_image_locator','swatch_product_image_locator',...Array.from({length:9},(_,i)=>`other_product_image_locator_${i+1}`)].map(x=>x+'.0.media_location');
@@ -65,13 +68,21 @@ export async function readListing(session,account,target){
 export async function collect(input,deps={}){
  const common={schema_version:1,account:input.account,plan_hash:input.plan_hash,source_kind:'flatfilepro_listing_read'};
  let page,outcome='error';const at=deps.now||(()=>Date.now());
+
+ const onSigterm=async()=>{
+   if(page?._released)return;
+   try{if(page)await (deps.release||releaseTaskPage)(page,{outcome:'error'});}
+   catch(error){console.error('SIGTERM browser release failed:',error.message);}
+   finally{process.exit(143);}
+ };
+ process.once('SIGTERM',onSigterm);
  try{
   ui.check(input.schema_version===1&&input.operation_id&&/^[a-f0-9]{64}$/.test(input.plan_hash||'')&&Array.isArray(input.targets)&&input.targets.length>0,'Invalid listing collector request');
   ui.check(new Set(input.targets.map(x=>x.sku)).size===input.targets.length,'Duplicate listing target');
   input.targets.forEach(x=>listingLocation(input.account,x));
   const minimum=input.minimum_after?Date.parse(input.minimum_after):0;ui.check(Number.isFinite(minimum)&&minimum<=at(),'Invalid listing read boundary');
   const directory=resolve(input.output_dir);await mkdir(directory,{recursive:true});
-  page=await (deps.acquire||acquireTaskPage)({taskId:taskIdFor('amazon-operations',input.operation_id),slot:'ffp-listing-read',workflow:'amazon-flatfilepro',initialUrl:'https://app.flatfile.pro/exports',exclusiveContext:true});
+  page=await (deps.acquire||acquireTaskPage)({taskId:taskIdFor('amazon-operations',input.task_key || input.operation_id),slot:'ffp-listing-read',workflow:'amazon-flatfilepro',initialUrl:'https://app.flatfile.pro/exports',exclusiveContext:true});
   if(!deps.read){await page.session.send('Page.navigate',{url:'https://app.flatfile.pro/exports'});await ui.selectFlatFileProAccount(page.session,input.account);}
   const records=[];for(const target of input.targets)records.push(await (deps.read||readListing)(page.session,input.account,target));
   ui.check(records.length===input.targets.length&&records.every((r,i)=>r.sku===input.targets[i].sku&&r.asin===input.targets[i].asin&&Date.parse(r.observed_at)>=minimum&&Date.parse(r.observed_at)<=at()),'Listing coverage or read timestamp mismatch');
@@ -82,6 +93,10 @@ export async function collect(input,deps={}){
   await writeFile(path,bytes,{flag:'wx'}).catch(async e=>{if(e.code!=='EEXIST'||!(await readFile(path)).equals(bytes))throw e;});
   outcome='success';return {...result,path,sha256:createHash('sha256').update(bytes).digest('hex')};
  }catch(error){return {...common,status:'blocked',reason:'ffp_listing_read_unavailable',message:error.message};}
- finally{if(page)await (deps.release||releaseTaskPage)(page,{outcome});}
+ finally{
+  process.removeListener('SIGTERM',onSigterm);
+  if(page)await (deps.release||releaseTaskPage)(page,{outcome});
+  if(input.complete_task===true)await completeBrowserTask({taskId:taskIdFor('amazon-operations',input.task_key || input.operation_id)}).catch(error=>console.error('Browser task completion failed:',error.message));
+ }
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){try{ui.check(process.argv.length===4&&process.argv[2]==='--request','Usage: --request FILE');console.log(JSON.stringify(await collect(JSON.parse(await readFile(process.argv[3],'utf8')))));}catch(error){console.log(JSON.stringify({schema_version:1,status:'blocked',reason:'collector_preflight',message:error.message}));process.exitCode=2;}}

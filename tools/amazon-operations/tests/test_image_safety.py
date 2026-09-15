@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 spec = importlib.util.spec_from_file_location('image_safety_operations', Path(__file__).resolve().parents[1] / 'operations.py')
 op = importlib.util.module_from_spec(spec)
@@ -52,6 +52,122 @@ class ImageSafetyTests(unittest.TestCase):
 
     def fresh(self):
         return {'path': str(self.source), 'sha256': op.file_hash(self.source), 'report_generated_at': op.now(), 'rows': copy.deepcopy(self.rows)}
+
+    def test_task_key_persists_outside_plan_and_prepare_hash(self):
+        plain = copy.deepcopy(self.request)
+        self.request.update(task_key='bulk-images:rollout', complete_task=True)
+        state = self.prepare()
+        self.assertEqual(state['task_key'], 'bulk-images:rollout')
+        self.assertEqual(self.plan['request_hash'], op.digest(plain))
+        self.assertNotIn('task_key', self.plan)
+        self.assertNotIn('complete_task', state)
+        self.assertNotIn('complete_task', self.plan)
+        self.assertEqual(self.service.prepare(plain)['plan_hash'], state['plan_hash'])
+        rebound, plan = self.service.bound(Path(state['plan_path']).parent, self.execute)
+        self.assertEqual(rebound['task_key'], 'bulk-images:rollout')
+        self.assertEqual(op.digest(plan), state['plan_hash'])
+
+    def test_execute_persists_new_task_key_even_on_noop_return(self):
+        state = self.prepare()
+        directory = Path(state['plan_path']).parent
+        self.service.persist(directory, state, 'verified')
+        self.service.execute({**self.execute, 'task_key': 'bulk-images:execute', 'complete_task': True})
+        self.assertEqual(self.service.view(directory)['task_key'], 'bulk-images:execute')
+        self.assertNotIn('complete_task', self.service.view(directory))
+
+    def test_execute_forwards_saved_key_to_adapter_and_both_preflight_routes(self):
+        for source in ['flatfilepro_listing_read', 'category_report']:
+            with self.subTest(source=source):
+                self.request['operation_id'] = source
+                self.request['task_key'] = 'bulk-images:rollout'
+                self.request['inputs']['image_catalog_source'] = source if source == 'flatfilepro_listing_read' else None
+                self.rows['a'].update(itemName='Blue', product_type='SUPPLEMENT')
+                state = self.prepare()
+                execute = {**self.execute, 'operation_id': source, 'complete_task': True}
+                directory = Path(state['plan_path']).parent
+                def collected(_directory, script, envelope, **kwargs):
+                    self.assertEqual(envelope['task_key'], 'bulk-images:rollout')
+                    self.assertIs(envelope['complete_task'], False)
+                    response = {'status': 'collected', 'complete': True, 'complete_report': True,
+                                'source_kind': 'flatfilepro_listing_read', 'account': self.account,
+                                'plan_hash': state['plan_hash'], 'observed_at': op.now(),
+                                'report_generated_at': op.now(), 'rows': self.rows}
+                    path = directory / 'fresh.json'
+                    path.write_text(json.dumps(response))
+                    return {**response, 'path': str(path), 'sha256': op.file_hash(path)}
+                response = {'plan_hash': state['plan_hash'], 'status': 'processing', 'submission_id': 'run'}
+                with patch.object(self.service, 'run_collector', side_effect=collected) as collector, patch.object(op, 'evidence_tools', return_value=Mock(report_rows=Mock(return_value=self.rows), field_value=op.evidence_tools().field_value)), patch.object(op.subprocess, 'run', return_value=Mock(stdout=json.dumps(response))):
+                    self.service.execute(execute)
+                self.assertEqual(collector.call_count, 1)
+                self.assertEqual(collector.call_args.args[1], 'flatfilepro-listings.mjs' if source == 'flatfilepro_listing_read' else 'catalog-export.mjs')
+                envelope = json.loads((directory / 'adapter-input.json').read_text())
+                self.assertEqual(envelope['task_key'], 'bulk-images:rollout')
+                self.assertIs(envelope['complete_task'], False)
+                self.assertEqual(op.digest(envelope['plan']), state['plan_hash'])
+
+    def test_reconcile_completion_only_reaches_final_preservation_collector(self):
+        for source in ['flatfilepro_listing_read', 'category_report']:
+            for complete_task in [False, True]:
+                with self.subTest(source=source, complete_task=complete_task):
+                    operation_id = f'{source}-{complete_task}'
+                    self.request.update(operation_id=operation_id, task_key='bulk-images:rollout')
+                    self.request['inputs']['image_catalog_source'] = source if source == 'flatfilepro_listing_read' else None
+                    self.rows['a'].update(itemName='Blue', product_type='SUPPLEMENT')
+                    state = self.prepare()
+                    directory = Path(state['plan_path']).parent
+                    if source == 'category_report':
+                        self.plan['body']['adapter'] = 'catalog.cdp'
+                    op.atomic_json(directory / 'plan.json', self.plan)
+                    state['plan_hash'] = op.digest(self.plan)
+                    self.service.persist(directory, state, 'processing', effects_started=True, submission_id='run')
+                    request = {'schema_version': 1, 'operation_id': operation_id,
+                               'plan_hash': state['plan_hash'], 'complete_task': complete_task}
+                    pending = {'processing_pending': True, 'processing': 'pending', 'preservation': 'pending',
+                               'release_eligible': False, 'matched': [], 'pending': [], 'failures': []}
+                    complete = {**pending, 'processing_pending': False, 'processing': 'complete',
+                                'preservation': 'verified', 'release_eligible': True, 'matched': ['a/PT01']}
+                    # Keep actual collector dispatch, with empty PDP results avoiding downloads.
+                    with patch.object(self.service, 'run_collector', return_value={'status': 'blocked', 'images': []}) as collector, patch.object(self.service, 'image_completion', side_effect=[pending, complete]), patch.object(op, 'session_environment', return_value={'CDP_PORT': '9223'}), patch.object(op.subprocess, 'run') as completion:
+                        self.assertEqual(self.service.reconcile(request)['status'], 'processing')
+                        completion.assert_not_called()
+                        first_calls = list(collector.call_args_list)
+                        self.assertEqual(self.service.reconcile(request)['status'], 'verified')
+                        self.assertEqual(completion.call_count, int(complete_task))
+                    scripts = [call.args[1] for call in first_calls]
+                    self.assertEqual(scripts, ['flatfilepro-activity.mjs', 'image-evidence.mjs', 'flatfilepro-listings.mjs' if source == 'flatfilepro_listing_read' else 'catalog-export.mjs'])
+                    self.assertEqual(collector.call_count, 2 * len(scripts))
+                    for call in collector.call_args_list:
+                        self.assertEqual(call.args[2]['task_key'], 'bulk-images:rollout')
+                        self.assertIs(call.args[2]['complete_task'], False)
+                    self.assertNotIn('complete_task', self.service.view(directory))
+
+    def test_reconcile_persists_late_key_and_recovery_does_not_complete(self):
+        state = self.prepare()
+        directory = Path(state['plan_path']).parent
+        self.service.persist(directory, state, 'uncertain', effects_started=True)
+        request = {**self.execute, 'task_key': 'bulk-images:recovery', 'complete_task': True}
+        def collected(_directory, script, envelope, **kwargs):
+            if script == 'flatfilepro.mjs':
+                return {'status': 'collected', 'submission_id': 'recovered', 'processing_status': 'processing'}
+            return {'status': 'blocked', 'images': []}
+        with patch.object(self.service, 'run_collector', side_effect=collected) as collector, patch.object(self.service, 'image_completion', return_value={'processing_pending': True, 'processing': 'pending', 'preservation': 'pending', 'release_eligible': False, 'matched': [], 'pending': [], 'failures': []}):
+            self.service.reconcile(request)
+        self.assertEqual(collector.call_args_list[0].args[1], 'flatfilepro.mjs')
+        for index, call in enumerate(collector.call_args_list):
+            self.assertEqual(call.args[2]['task_key'], 'bulk-images:recovery')
+            self.assertIs(call.args[2]['complete_task'], False)
+        self.assertEqual(self.service.bound(directory, self.execute)[0]['task_key'], 'bulk-images:recovery')
+
+    def test_case_observe_hash_excludes_browser_lifecycle_fields(self):
+        request = {'schema_version': 1, 'operation_id': 'observe', 'operation': 'case.create',
+                   'account': self.account, 'targets': [{'issue_key': 'test-case'}]}
+        for extras in [{}, {'task_key': 'bulk-images:rollout', 'complete_task': True}]:
+            with self.subTest(extras=extras), patch.object(self.service, 'run_collector', return_value={}) as collector:
+                self.service.observe({**request, **extras})
+                envelope = collector.call_args.args[2]
+                self.assertEqual(envelope['plan_hash'], op.digest(request))
+                for key, value in extras.items():
+                    self.assertEqual(envelope[key], value)
 
     def test_upload_contains_only_requested_secondaries_and_freezes_other_images(self):
         self.prepare()
@@ -103,7 +219,7 @@ class ImageSafetyTests(unittest.TestCase):
         path = self.root / 'ffp-listings.json'
         path.write_text(json.dumps(response))
         response.update(path=str(path), sha256=op.file_hash(path))
-        with patch.object(op.subprocess, 'run', return_value=type('Result', (), {'stdout': json.dumps(response)})()) as child:
+        with patch.object(op.subprocess, 'Popen', return_value=Mock(communicate=Mock(return_value=(json.dumps(response), '')))) as child:
             observed = self.service.collect_image_catalog(directory, {'plan_hash': result['plan_hash']}, self.plan, purpose='preflight')
             self.assertEqual(observed['rows'], self.rows)
             self.assertTrue(child.call_args.args[0][1].endswith('/flatfilepro-listings.mjs'))
