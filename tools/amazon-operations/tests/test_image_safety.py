@@ -848,5 +848,77 @@ class ImageSafetyTests(unittest.TestCase):
             self.assertEqual(result['image_completion']['processing_pending'], [])
 
 
+    def test_reporting_keeps_last_verified_when_next_read_is_busy_and_stale(self):
+        directory, state, evidence = self.completion_fixture()
+        first = self.service.reconcile({**self.execute, 'evidence': evidence})
+        fact = copy.deepcopy(first['image_observations']['publication']['last_successful'])
+        later = (op.timestamp(evidence['observed_at']) + op.dt.timedelta(seconds=901)).isoformat()
+        blocked = copy.deepcopy(evidence)
+        blocked.update(observed_at=later, pdp_collection_error={'status': 'blocked', 'message': 'BROWSER_SESSION_BUSY'})
+        blocked['ffp_processing'] = {'status': 'blocked', 'message': 'BROWSER_SESSION_BUSY'}
+        blocked.pop('preservation_source')
+        with patch.object(op, 'now', return_value=later):
+            result = self.service.reconcile({**self.execute, 'evidence': blocked})
+            self.assertFalse(self.service.image_release_proof(self.execute)['release_eligible'])
+        self.assertEqual(result['image_observations']['publication']['last_successful'], fact)
+        self.assertEqual(result['image_collection_attempt']['outcome'], 'deferred')
+        self.assertEqual(result['image_completion']['publication'], 'pending')
+
+    def test_reporting_fresh_mismatch_and_rejection_replace_historical_success(self):
+        from PIL import Image
+        directory, state, evidence = self.completion_fixture()
+        self.service.reconcile({**self.execute, 'evidence': evidence})
+        mismatch = copy.deepcopy(evidence)
+        path = directory / 'observed-images' / 'different.png'
+        Image.new('RGB', (800, 800), 'blue').save(path)
+        mismatch['images'][0].update(observed_path=str(path), observed_sha256=op.file_hash(path))
+        mismatch['ffp_processing']['attributes'][0]['status'] = 'rejected'
+        result = self.service.reconcile({**self.execute, 'evidence': mismatch})
+        self.assertEqual(result['image_observations']['publication']['last_successful']['value'], 'pending')
+        self.assertEqual(result['image_observations']['processing']['last_successful']['value'], 'failed')
+        self.assertFalse(result['verified'])
+
+    def test_reporting_invalid_provenance_cannot_erase_verified_fact(self):
+        directory, state, evidence = self.completion_fixture()
+        first = self.service.reconcile({**self.execute, 'evidence': evidence})
+        fact = copy.deepcopy(first['image_observations']['publication']['last_successful'])
+        evidence['images'][0].pop('source_id')
+        result = self.service.reconcile({**self.execute, 'evidence': evidence})
+        self.assertEqual(result['image_observations']['publication']['last_successful'], fact)
+        self.assertFalse(result['image_completion']['release_eligible'])
+
+    def test_reporting_rebuild_is_local_scoped_and_idempotent(self):
+        directory, state, evidence = self.completion_fixture()
+        self.service.reconcile({**self.execute, 'evidence': evidence})
+        state = self.service.view(directory)
+        state.pop('image_observations')
+        op.atomic_json(directory / 'journal.json', state)
+        wrong = copy.deepcopy(evidence)
+        wrong.update(plan_hash='other-plan', observed_at=(op.timestamp(op.now()) + op.dt.timedelta(days=1)).isoformat())
+        op.atomic_json(directory / f'evidence-{op.digest(wrong)}.json', wrong)
+        op.atomic_json(directory / f'evidence-{op.digest(42)}.json', 42)
+        nullable = copy.deepcopy(evidence)
+        nullable.update(observed_at=op.now(), ffp_processing=None, images=[], protected_images=[], preservation_source=None)
+        op.atomic_json(directory / f'evidence-{op.digest(nullable)}.json', nullable)
+        with patch.object(self.service, 'run_collector', side_effect=AssertionError('No live reads')):
+            first = self.service.refresh_image_observations(self.execute, persist=True)
+            second = self.service.refresh_image_observations(self.execute, persist=True)
+        self.assertEqual(first['image_observations'], second['image_observations'])
+        self.assertEqual(first['image_observations']['publication']['last_successful']['value'], 'verified')
+        self.assertEqual(first['image_observations']['publication']['last_successful']['observed_at'], evidence['images'][0]['observed_at'])
+        self.assertEqual(first['submission_id'], 'run-1')
+
+    def test_retry_after_busy_collection_does_not_skip_pdp_read(self):
+        directory, evidence, collected = self.image_poll_fixture(published=True)
+        state = self.service.view(directory)
+        state['image_collection_attempt'] = {'outcome': 'deferred'}
+        op.atomic_json(directory / 'journal.json', state)
+        clock = (op.timestamp(state['last_image_full_read_at']) + op.dt.timedelta(seconds=300)).isoformat()
+        with patch.object(op, 'now', return_value=clock), patch.object(self.service, 'run_collector', side_effect=collected) as collector, patch.object(op.evidence_tools(), 'fetch_public_image', return_value=Path(self.plan['body']['images'][0]['path']).read_bytes()):
+            result = self.service.reconcile(self.execute)
+        self.assertIn('image-evidence.mjs', [call.args[1] for call in collector.call_args_list])
+        self.assertNotIn('evidence_skipped', result)
+
+
 if __name__ == '__main__':
     unittest.main()
