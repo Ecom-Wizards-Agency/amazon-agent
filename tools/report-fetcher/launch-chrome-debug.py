@@ -22,10 +22,12 @@ Env: CDP_PORT (9223) · CDP_PROFILE · CHROME_BIN · CDP_START_URL ·
 CDP_BROWSER_MODE (machine policy, otherwise headless) · CDP_WINDOW_SIZE (1920,1080)
 """
 import argparse
+import errno
 import json
 import os
 import shlex
 import subprocess
+import struct
 import sys
 import time
 import urllib.error
@@ -287,6 +289,40 @@ def stop_managed_browser(state: dict) -> None:
     raise RuntimeError(f"Dedicated Chrome on port {PORT} did not stop cleanly")
 
 
+def broker_traverse_acl(parent: Path) -> bytes | None:
+    """Retain only an installed broker's traverse entry on the private root.
+
+    Linux chmod(0700) zeros the POSIX ACL mask, which silently disables the
+    authentication broker's existing --x entry. Rebuild a restrictive access
+    ACL instead of restoring the old mask, which could enable other entries.
+    The binary layout is the Linux UAPI in linux/posix_acl_xattr.h.
+    """
+    if not sys.platform.startswith("linux"):
+        return None
+    import pwd
+    try:
+        broker_uid = pwd.getpwnam("wizards-transport").pw_uid
+    except KeyError:
+        return None
+    try:
+        acl = os.getxattr(parent, "system.posix_acl_access")
+    except OSError as exc:
+        if exc.errno in (errno.ENODATA, errno.EOPNOTSUPP):
+            return None
+        raise
+    if len(acl) < 4 or (len(acl) - 4) % 8 or struct.unpack("<I", acl[:4])[0] != 2:
+        raise RuntimeError("Unrecognized Linux access ACL on the browser root")
+    entries = list(struct.iter_unpack("<HHI", acl[4:]))
+    # A declared --x entry is the installed grant, even if an earlier chmod
+    # masked it. Never add a new broker grant or retain read/write permissions.
+    if (0x02, 0x01, broker_uid) not in entries:
+        return None
+    undefined = 0xFFFFFFFF
+    private = ((0x01, 0x07, undefined), (0x02, 0x01, broker_uid),
+               (0x04, 0, undefined), (0x10, 0x01, undefined), (0x20, 0, undefined))
+    return struct.pack("<I", 2) + b"".join(struct.pack("<HHI", *entry) for entry in private)
+
+
 def protect_profile() -> None:
     parent = PROFILE.parent
     parent_created = not parent.exists()
@@ -297,7 +333,11 @@ def protect_profile() -> None:
         # A custom profile may sit under /tmp or another shared directory whose
         # permissions this process neither owns nor should change.
         if parent_created or parent == Path.home() / ".amazon-agent":
-            os.chmod(parent, 0o700)
+            acl = broker_traverse_acl(parent) if not parent_created else None
+            if acl is None:
+                os.chmod(parent, 0o700)
+            else:
+                os.setxattr(parent, "system.posix_acl_access", acl)
         os.chmod(PROFILE, 0o700)
 
 
