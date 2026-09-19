@@ -841,6 +841,9 @@ class Operations:
             return self.image_completion(directory, state, plan, evidence, reference_time=reference_time)
 
     def image_completion(self, directory, state, plan, evidence, *, reference_time=None):
+        return self._assess_image_completion(directory, state, plan, evidence, reference_time=reference_time)
+
+    def _assess_image_completion(self, directory, state, plan, evidence, *, reference_time=None):
         """Separate publication from contribution processing. Pure except local proof reads."""
         require(operation_kind(plan['operation']) == 'listing.images', 'wrong_operation', 'Image operation required')
         require(evidence.get('account') == plan['account'] and evidence.get('plan_hash') == state['plan_hash'] and
@@ -934,6 +937,156 @@ class Operations:
                 'account': plan['account'], 'operation_id': plan['operation_id'], 'plan_hash': state['plan_hash'],
                 'submission_id': state.get('submission_id'), 'matched': matched, 'pending': pending, 'failures': failures,
                 'processing_pending': sorted(processing_pending), 'freshness_seconds': 900}
+
+    def refresh_image_observations(self, request, *, persist=False):
+        """Rebuild display history from local proofs only; never run a collector."""
+        directory = self.directory(request.get('operation_id'))
+        with self.lock(directory):
+            state, plan = self.bound(directory, request)
+            self._update_image_observations(directory, state, plan)
+            if persist:
+                atomic_json(directory / 'journal.json', state)
+            return state
+
+    def _update_image_observations(self, directory, state, plan, evidence=None):
+        """Compact, scope-bound reporting facts; completion never consumes these."""
+        binding = {key: state.get(key) for key in ('operation_id', 'plan_hash', 'submission_id')}
+        binding['account'] = plan['account']
+        history = state.get('image_observations')
+        rebuild = not isinstance(history, dict) or history.get('binding') != binding
+        if rebuild:
+            history = {'schema_version': 1, 'binding': binding,
+                       **{name: {'slots': {}} if name == 'publication' else {}
+                          for name in ('publication', 'processing', 'preservation')}}
+        samples = []
+        if rebuild:
+            for path in directory.glob('evidence-*.json'):
+                try:
+                    value = json.loads(path.read_text())
+                    if (isinstance(value, dict) and path.name == f'evidence-{digest(value)}.json' and
+                            value.get('account') == plan['account'] and value.get('plan_hash') == state['plan_hash'] and
+                            value.get('submission_id') == state.get('submission_id') and
+                            timestamp(state.get('execution_started_at', plan['prepared_at'])) <= timestamp(value.get('observed_at')) <= timestamp(now())):
+                        samples.append(value)
+                except (OSError, ValueError):
+                    continue
+            samples.sort(key=lambda value: timestamp(value['observed_at']))
+        if evidence is not None and (not samples or digest(samples[-1]) != digest(evidence)):
+            samples.append(evidence)
+        samples.sort(key=lambda value: timestamp(value['observed_at']), reverse=True)
+        expected = {(row['sku'], row['slot']): row for row in plan['body']['images']}
+
+        def remember(name, value, dates, proof, *, slots=None):
+            if not dates:
+                return
+            observed = min(dates, key=timestamp)
+            fact = {'value': value, 'observed_at': observed, 'evidence_digest': proof}
+            if slots is not None:
+                fact['matched'] = slots
+            old = history[name].get('last_successful')
+            if not old or timestamp(observed) >= timestamp(old['observed_at']):
+                history[name]['last_successful'] = fact
+            if value == 'verified':
+                old = history[name].get('last_verified')
+                if not old or timestamp(observed) >= timestamp(old['observed_at']):
+                    history[name]['last_verified'] = fact
+
+        publication_coverage = {}
+        for sample in samples:
+            if rebuild and all(history[name].get('last_successful') for name in ('publication', 'processing', 'preservation')):
+                break
+            try:
+                activity = sample.get('ffp_processing') or {}
+                if not isinstance(activity, dict):
+                    continue
+                if rebuild and not any((
+                        not history['publication'].get('last_successful') and sample.get('images') and not sample.get('pdp_collection_error'),
+                        not history['processing'].get('last_successful') and activity.get('status') == 'collected',
+                        not history['preservation'].get('last_successful') and sample.get('preservation_source'))):
+                    continue
+                dates = [sample['observed_at']]
+                dates += [r['observed_at'] for r in sample.get('images', []) + sample.get('protected_images', []) if r.get('observed_at')]
+                dates += [sample[k]['observed_at'] for k in ('ffp_processing', 'preservation_source')
+                          if isinstance(sample.get(k), dict) and sample[k].get('observed_at')]
+                moment = max(map(timestamp, dates))
+                if moment > timestamp(now()):
+                    continue
+                # Reuse the execution validator at the original observation time.
+                # This validates historical facts without refreshing their age.
+                completion = self._assess_image_completion(directory, state, plan, sample, reference_time=moment)
+                proof = digest(sample)
+                activity = sample.get('ffp_processing') or {}
+                if completion['processing'] != 'unknown':
+                    remember('processing', completion['processing'], [activity['observed_at']], proof)
+                protected = sample.get('preservation_source') or {}
+                if completion['preservation'] != 'unknown':
+                    dates = [protected['observed_at']] + [row['observed_at'] for row in sample.get('protected_images', [])]
+                    remember('preservation', completion['preservation'], dates, proof)
+                valid = []
+                for row in sample.get('images', []):
+                    key = (row.get('sku'), row.get('slot'))
+                    source = expected.get(key)
+                    if source is None or sample.get('pdp_collection_error'):
+                        continue
+                    observed = timestamp(row.get('observed_at'))
+                    path = Path(row.get('observed_path', ''))
+                    if (not moment - dt.timedelta(seconds=900) <= observed <= moment or
+                            observed < timestamp(state.get('execution_started_at', plan['prepared_at'])) or
+                            path.resolve().parent != (directory / 'observed-images').resolve() or
+                            file_hash(path) != row.get('observed_sha256') or
+                            row.get('source_sha256') != source['sha256'] or
+                            file_hash(source['path']) != source['sha256'] or
+                            row.get('asin') != plan['body']['sku_asins'][key[0]] or
+                            not str(row.get('source_id', '')).startswith('https://') or
+                            not str(row.get('live_url', '')).startswith('https://')):
+                        continue
+                    label = '/'.join(key)
+                    fact = {'value': 'verified' if label in completion['matched'] else 'unverified',
+                            'observed_at': row['observed_at'], 'evidence_digest': proof}
+                    old = history['publication']['slots'].get(label)
+                    if not old or observed >= timestamp(old['observed_at']):
+                        history['publication']['slots'][label] = fact
+                    valid.append(row)
+                if len(valid) == len(expected):
+                    remember('publication', completion['publication'], [row['observed_at'] for row in valid],
+                             proof, slots=completion['matched'])
+                publication_coverage[proof] = len(valid) == len(sample.get('images', []))
+            except (OSError, ValueError, KeyError, TypeError, AttributeError):
+                continue  # Bad history cannot establish a reporting fact.
+        if evidence is None and samples:
+            evidence = samples[0]
+        if evidence is not None:
+            sources = {'publication': evidence.get('pdp_collection_error') or evidence.get('pdp_collection'),
+                       'processing': evidence.get('ffp_processing'),
+                       'preservation': evidence.get('preservation_source') or state.get('last_catalog_collection')}
+            attempts = []
+            for name, response in sources.items():
+                response = response or {}
+                if not isinstance(response, dict):
+                    response = {'status': 'invalid', 'reason': 'Malformed collection result.'}
+                if state.get('evidence_skipped') and name != 'processing':
+                    attempts.append(history[name].get('last_attempt') or {'outcome': 'collected', 'retryable': False, 'reason': ''})
+                    continue
+                detail = ' '.join(str(response.get(k) or '') for k in ('code', 'reason', 'message'))
+                transient = bool(re.search(r'BROWSER_SESSION_BUSY|ECONNRESET|ETIMEDOUT|EAI_AGAIN|HTTP (?:429|502|503|504)|timed?\s*out|timeout|collector_result_unavailable', detail, re.I))
+                outcome = response.get('status', 'unavailable')
+                if name == 'publication' and outcome == 'collected' and not publication_coverage.get(digest(evidence), True):
+                    outcome = 'invalid'
+                    detail = 'Image evidence lacks verified provenance or complete coverage.'
+                if outcome not in {'collected', 'partial', 'blocked', 'invalid'}:
+                    outcome = 'unavailable'
+                attempt = {'attempted_at': evidence['observed_at'], 'outcome': outcome,
+                           'retryable': transient, 'reason': detail.strip()[:500]}
+                history[name]['last_attempt'] = attempt
+                attempts.append(attempt)
+            state['image_collection_attempt'] = {
+                'attempted_at': evidence['observed_at'],
+                'outcome': 'deferred' if any(a['retryable'] for a in attempts) else
+                           'collected' if all(a['outcome'] == 'collected' for a in attempts) else 'incomplete',
+                'reasons': list(dict.fromkeys(a['reason'] for a in attempts if a['reason']))}
+        history['reconstructed'] = True
+        state['image_observations'] = history
+        return history
 
     def public_protected_images(self, plan):
         """Public MAIN and populated untouched secondary slots; swatches retain catalog proof."""
@@ -1064,6 +1217,7 @@ class Operations:
                        not any(summary.get(key) or activity.get(key) for key in ('failed', 'rejected', 'errors', 'failures')) and
                        activity.get('processing_status', 'processing') == 'processing')
             if (pending and complete_task is not True and state.get('status') in {'processing', 'partial'} and
+                    state.get('image_collection_attempt', {}).get('outcome') not in {'deferred', 'incomplete'} and
                     isinstance(state.get('image_completion'), dict) and snapshot(activity) == snapshot(previous_activity)):
                 try:
                     age = (timestamp(now()) - timestamp(state.get('last_image_full_read_at'))).total_seconds()
@@ -1345,6 +1499,7 @@ class Operations:
                     require(evidence is not None, 'missing_image_evidence', 'Terminal image verification requires current reads')
                     evidence_path = directory / f'evidence-{digest(evidence)}.json'
                     atomic_json(evidence_path, evidence)
+                self._update_image_observations(directory, state, plan, evidence)
                 if state.get('evidence_skipped'):
                     # Unchanged Activity carries the persisted publication result
                     # forward. Freshness above still gates terminal decisions.
