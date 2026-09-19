@@ -247,7 +247,7 @@ def _root_category(root: str, vocab: dict) -> str:
     """Semantic bucket for a root. Guard buckets (Brand/Claim/Form/Off-niche)
     win over Core/Product so an ad-root marker can never land on them."""
     words = _word_tokens(root)
-    if any(w in vocab["brand"] for w in words):
+    if _token_hit(norm(root), list(vocab["brand"]), "word"):
         return "Brand"
     if any(w in vocab["claim"] for w in words):
         return "Claim risk"
@@ -2118,11 +2118,19 @@ def run_validations(wb, cfg, counts, related_result, paths, warnings) -> list[di
         if ih_val and ih_val.strip() and not str(ih_val).strip().startswith("("):
             ih = str(ih_val).strip()
             bad_seps = [s for s in (" – ", " — ", " | ", " - ") if s in ih]
-            chips = [c.strip() for c in ih.split(" · ")]
+            # Current Amazon modular-title guidance can override the legacy
+            # house style. Require a source URL for this per-workbook override.
+            ih_policy = cfg.get("item_highlights_policy") or {}
+            ih_comma = ih_policy.get("separator") == "comma"
+            ih_separator = "," if ih_comma else " · "
+            chips = [c.strip() for c in ih.split(ih_separator)]
+            policy_valid = not ih_comma or bool(ih_policy.get("source_url"))
+            if ih_comma and "·" in ih:
+                bad_seps.append("·")
             add(
-                "Item Highlights use the middot separator (no dash/pipe; the dash belongs to the TITLE)",
-                not bad_seps and len(chips) > 1,
-                (f"separator={'MIDDOT' if len(chips) > 1 else 'NONE'} chips={len(chips)}"
+                "Item Highlights use the documented separator (no dash/pipe)",
+                policy_valid and not bad_seps and len(chips) > 1 and all(chips),
+                (f"separator={('COMMA' if ih_comma else 'MIDDOT') if len(chips) > 1 else 'NONE'} chips={len(chips)} policy_valid={policy_valid}"
                  + (f" BAD_SEPARATORS={bad_seps!r} (dashes belong to the TITLE only)" if bad_seps else "")),
             )
 
@@ -2168,7 +2176,7 @@ def run_validations(wb, cfg, counts, related_result, paths, warnings) -> list[di
         # ("Vegan · Bio · Gluten Free") is legitimately single-word.
         if ih_val and _copy_line(ih_val) and not _copy_line(ih_val).startswith("("):
             ih_line = _copy_line(ih_val)
-            ih_chips = [c.strip() for c in ih_line.split(" · ") if c.strip()]
+            ih_chips = [c.strip() for c in ih_line.split("," if (cfg.get("item_highlights_policy") or {}).get("separator") == "comma" else " · ") if c.strip()]
             if ih_chips:
                 singles = [c for c in ih_chips if len(c.split()) == 1]
                 share = len(singles) / len(ih_chips)
