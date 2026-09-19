@@ -20,11 +20,14 @@ For image reuse, crop geometry and inspection side effects, see
 | Fix merged product families or wrong listing attributes | Separate catalog workflow | Store selections do not change parentage |
 
 In direct chat, proceed with concrete changes already authorized in the session;
-do not ask for the same permission again. In Slack reasoning runs, stage the exact
-proposal and use the authorized registered executor. The Store update executor is
-`store.update_draft`; its operations are `set_link`, `replace_image` and `set_grid`.
+do not ask for the same permission again. In Slack reasoning runs, submit the exact prepared request through Wizards AI
+`store_requests.py`. Configured teammates in internal channels authorize requested
+draft changes without a second Victor approval. Current and newly ready managed
+clients inherit access; no per-account activation or canary is required. The Store update executor is
+`store.update_draft`; its operations are `set_link`, `replace_image`, `restore_image_fit` and `set_grid`.
 It is separate from `store.build_draft`, which clears and rebuilds planned pages.
-Registration, tests and browser access do not enable an executor or authorize a run.
+Explicit pauses, authenticated request scope, current account identity and result
+verification remain enforced. Interrupted scoped updates use `--resume-existing`: require the same plan journal and bound draft, reconcile all saved state, then finish only missing approved operations. Builds and cancelled requests retain verification-only recovery. Registration alone does not authorize unrelated actions.
 Read the Wizards AI `store_builder/README.md` and its scoped-update reference before
 preparing an executor payload. An unavailable or disabled executor is a scoped
 execution blocker, not evidence that the browser UI cannot perform the action.
@@ -125,6 +128,12 @@ after reopening, alongside desktop/mobile rendering. A new media URL or a Crop c
 does not prove the intended crop persisted. Preserve existing mobile artwork during
 unrelated corrections; a same-ratio design is not permission to remove it. If crop
 readback is unavailable or differs, report a verification gap instead of success.
+The separate `restore_image_fit` operation can restore a complete approved desktop
+image with native Fit when a fixed-ratio tile clips it. Require matching decoded
+pixels, native full-source dimensions and zero offsets, reopened Fit selection,
+and actual editor/preview geometry proving the complete image is visible. Record
+retained cropper metadata separately; it is not crop proof for this operation.
+Preserve mobile artwork, links, section structure and all unrelated fields.
 Inspect persisted crop fields without entering crop-edit mode on a source/live
 edition: opening Crop and then Cancel can still persist display-geometry metadata.
 Opening that control belongs
@@ -135,7 +144,9 @@ them through an unexplained baseline refresh.
 **Other modules.** Inspect current UI capabilities before declaring an operation
 impossible. Video upload support exists in the rebuild driver and has mocked tests;
 current-account live compatibility requires an authorized draft canary. Scoped
-updates do not gain video, hotspot or layout operations by analogy. Report the
+updates do not gain video, hotspot or other layout operations by analogy. The
+explicit full-source desktop Fit operation above does not authorize restructuring
+sections or changing mobile layouts. Report the
 observed UI, executor coverage and authorization separately.
 
 ## Verify and deliver

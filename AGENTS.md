@@ -260,7 +260,7 @@ Default routing:
 - `amazon-sop-maintenance`: `/create-sop`, `/fix-sop`, verified SOP corrections, new SOP drafts, and SOP-vs-skill routing.
 - `amazon-logistics`: Send to Amazon, FBA shipments, removals, AWD, inventory operations.
 - `amazon-communications`: support cases, buyer messages, courtesy-refund follow-ups (creator replies inside Creator Connections → `amazon-creator-connections`).
-- `amazon-flatfilepro`: prepare narrow `.xlsx` files, then upload and map the exact workbook. Update Listings requires attended in-chat approval for that submission; unattended submission is disabled. See matrix row `flatfilepro.submit` in `docs/rights/README.md`.
+- `amazon-flatfilepro`: prepare narrow `.xlsx` files, then upload and map the exact workbook. General Update Listings submissions require exact in-chat approval. The existing secondary-image bulk pipeline accepts authenticated team requests for current managed-ready clients; see `listing.images.bulk` and `flatfilepro.submit` in `docs/rights/README.md`.
 - `amazon-forecasting-sources`: per-client source precedence, historical evidence, assumptions, and caveats for forecasting questions. The skill is the structure; the filled-in pack lives outside this repo under `_local/forecasting-context/<client>/`. It is a context layer, not an audit or launch-plan builder.
 
 Amazon client onboarding trigger phrases:

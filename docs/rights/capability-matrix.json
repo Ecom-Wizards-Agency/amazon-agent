@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_on": "2026-09-15",
+  "updated_on": "2026-09-16",
   "rows": [
     {
       "id": "seller-central.read",
@@ -74,10 +74,10 @@
     {
       "id": "flatfilepro.submit",
       "domain": "amazon",
-      "capability": "FlatFilePro Update Listings",
+      "capability": "General FlatFilePro Update Listings",
       "grimoire": {
         "state": "forbidden",
-        "how": "Unattended submission is disabled."
+        "how": "General unattended workbook submission is disabled. The separately listed listing.images.bulk pipeline is enabled."
       },
       "amazon_agent": {
         "state": "approval-gated",
@@ -100,7 +100,54 @@
         }
       ],
       "verified_on": "2026-09-15",
-      "notes": "Update Listings is an approval gate, not an unconditional stop. The bulk-image route uses FlatFilePro-only preflight."
+      "notes": "General workbook submission retains exact approval. Secondary-image bulk jobs use listing.images.bulk, with independent processing, publication and protected-field checks."
+    },
+    {
+      "id": "listing.images.bulk",
+      "domain": "amazon",
+      "capability": "FlatFilePro secondary-image bulk pipeline",
+      "grimoire": {
+        "state": "allowed",
+        "how": "Authenticated team request for a current managed-ready client authorizes the exact secondary-image batch."
+      },
+      "amazon_agent": {
+        "state": "allowed",
+        "how": "Concrete team request authorizes the same bounded FlatFilePro pipeline."
+      },
+      "identity": "FlatFilePro binding verified against exact seller and marketplace identity",
+      "port": 9223,
+      "spp_rows": [],
+      "gates": [
+        {
+          "kind": "json_pointer_equals",
+          "repo": "wizards-ai",
+          "file": "config.json",
+          "pointer": "/listing_image_jobs/enabled",
+          "value": true
+        },
+        {
+          "kind": "json_pointer_equals",
+          "repo": "wizards-ai",
+          "file": "config.json",
+          "pointer": "/listing_image_jobs/account_scope",
+          "value": "managed-ready"
+        },
+        {
+          "kind": "file_literal",
+          "repo": "wizards-ai",
+          "file": "listing_image_jobs.py",
+          "literal": "flatfilepro-account.mjs"
+        }
+      ],
+      "docs": [
+        {
+          "repo": "wizards-ai",
+          "path": "docs/bulk-listing-images-setup.md",
+          "note": "Current rollout policy and historical test evidence."
+        }
+      ],
+      "verified_on": "2026-09-16",
+      "notes": "MAIN, swatches and unspecified slots remain unchanged. Authenticate sources, freeze revisions and assets, verify complete requested coverage and prevent overlapping submissions. Existing submitted operations reconcile without resubmission. The legacy Seller Central gallery executor remains disabled."
     },
     {
       "id": "cases.create-reply",
@@ -157,12 +204,12 @@
       "domain": "amazon",
       "capability": "store.build_draft",
       "grimoire": {
-        "state": "approval-gated",
-        "how": "Exact fingerprint-bound proposal approval, managed account scope and unpublished draft only."
+        "state": "allowed",
+        "how": "A concrete authenticated team request authorizes this unpublished draft action for a current managed-ready client; no second Victor approval."
       },
       "amazon_agent": {
-        "state": "approval-gated",
-        "how": "Exact attended approval and verified access are required; this does not enable a disabled executor."
+        "state": "allowed",
+        "how": "A concrete authenticated team request authorizes this unpublished draft action for a current managed-ready client; no second Victor approval."
       },
       "identity": "Grimoire delegated Seller Central login (shared Grimoire session)",
       "port": 9223,
@@ -178,11 +225,31 @@
           "value": "store.build_draft"
         },
         {
-          "kind": "python_symbol_contains",
+          "kind": "json_pointer_contains",
           "repo": "wizards-ai",
-          "file": "merlin_policy.py",
-          "symbol": "ACTIONS",
+          "file": "config.json",
+          "pointer": "/approved_actions/executors",
           "value": "store.build_draft"
+        },
+        {
+          "kind": "json_pointer_equals",
+          "repo": "wizards-ai",
+          "file": "config.json",
+          "pointer": "/approved_actions/executor_authorizations/store.build_draft/authorization_mode",
+          "value": "team-request"
+        },
+        {
+          "kind": "json_pointer_equals",
+          "repo": "wizards-ai",
+          "file": "config.json",
+          "pointer": "/approved_actions/executor_authorizations/store.build_draft/account_scope",
+          "value": "managed-ready"
+        },
+        {
+          "kind": "file_literal",
+          "repo": "wizards-ai",
+          "file": "store_requests.py",
+          "literal": "def submit_store_request("
         },
         {
           "kind": "json_pointer_equals",
@@ -190,13 +257,6 @@
           "file": "config.json",
           "pointer": "/merlin/enabled",
           "value": false
-        },
-        {
-          "kind": "json_pointer_contains",
-          "repo": "wizards-ai",
-          "file": "config.json",
-          "pointer": "/approved_actions/executors",
-          "value": "store.build_draft"
         }
       ],
       "docs": [
@@ -206,8 +266,8 @@
           "note": "Versioned authority; per-account grants remain vault evidence."
         }
       ],
-      "verified_on": "2026-09-15",
-      "notes": "Store Design Edit is recorded on 17 of 18 accounts in vault evidence; verify the target account. Publishing is separate.",
+      "verified_on": "2026-09-16",
+      "notes": "Current active/onboarding managed-ready clients inherit access once identity and service connections resolve. Preserve pauses, revocations and offboarding. Jobs bind authenticated requests, frozen plans and assets; retries reconcile existing drafts. Publishing remains separate.",
       "tags": [
         "executor"
       ],
@@ -220,12 +280,12 @@
       "domain": "amazon",
       "capability": "store.update_draft",
       "grimoire": {
-        "state": "forbidden",
-        "how": "Registered implementation, disabled in the executor allowlist."
+        "state": "allowed",
+        "how": "A concrete authenticated team request authorizes this unpublished draft action for a current managed-ready client; no second Victor approval."
       },
       "amazon_agent": {
-        "state": "approval-gated",
-        "how": "Exact attended approval and verified access are required; this does not enable a disabled executor."
+        "state": "allowed",
+        "how": "A concrete authenticated team request authorizes this unpublished draft action for a current managed-ready client; no second Victor approval."
       },
       "identity": "Grimoire delegated Seller Central login (shared Grimoire session)",
       "port": 9223,
@@ -239,6 +299,40 @@
           "file": "approved_actions.py",
           "symbol": "EXECUTORS",
           "value": "store.update_draft"
+        },
+        {
+          "kind": "json_pointer_contains",
+          "repo": "wizards-ai",
+          "file": "config.json",
+          "pointer": "/approved_actions/executors",
+          "value": "store.update_draft"
+        },
+        {
+          "kind": "json_pointer_equals",
+          "repo": "wizards-ai",
+          "file": "config.json",
+          "pointer": "/approved_actions/executor_authorizations/store.update_draft/authorization_mode",
+          "value": "team-request"
+        },
+        {
+          "kind": "json_pointer_equals",
+          "repo": "wizards-ai",
+          "file": "config.json",
+          "pointer": "/approved_actions/executor_authorizations/store.update_draft/account_scope",
+          "value": "managed-ready"
+        },
+        {
+          "kind": "file_literal",
+          "repo": "wizards-ai",
+          "file": "store_requests.py",
+          "literal": "def submit_store_request("
+        },
+        {
+          "kind": "json_pointer_equals",
+          "repo": "wizards-ai",
+          "file": "config.json",
+          "pointer": "/merlin/enabled",
+          "value": false
         }
       ],
       "docs": [
@@ -248,12 +342,14 @@
           "note": "Versioned authority; per-account grants remain vault evidence."
         }
       ],
-      "verified_on": "2026-09-15",
-      "notes": "Store Design Edit is recorded on 17 of 18 accounts in vault evidence; verify the target account. Publishing is separate.",
+      "verified_on": "2026-09-16",
+      "notes": "Current active/onboarding managed-ready clients inherit access once identity and service connections resolve. Preserve pauses, revocations and offboarding. Jobs bind authenticated requests, frozen plans and assets; retries reconcile existing drafts. Publishing remains separate.",
       "tags": [
         "executor"
       ],
-      "modes": []
+      "modes": [
+        "mention-pass"
+      ]
     },
     {
       "id": "shipment.tracking.update",
