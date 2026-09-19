@@ -272,3 +272,80 @@ uses the same independent lock and wait path as later reacquisitions.
 The existing task controller still owns workflow IDs, regional claims, stable targets, heartbeat and cleanup. Screenshots call `captureTaskEvidence(handle, {expected})` in the owning worker. Standalone audit captures require the retained `taskId`, `workflow`, `targetId`, and expected identity; they cannot search for a matching tab or replace a missing target. Supported identities are Seller Central seller/marketplace, DataDive niche/hero keyword, and Amazon retail marketplace plus ASIN or search query. Capture receipts retain actual verified identity separately from report association.
 
 A browser login grants no additional action rights. DataDive login recovery occurs in 9223. Extension-only capabilities must be demonstrated in that profile; missing support never redirects work to 9222.
+
+
+## Authentication and profile identity
+
+An anchor redirected to a same-origin sign-in, MFA, CAPTCHA or recovery page,
+or to authentication on a configured `auth_origins` host, stays an anchor.
+Maintenance marks `authRequired: true` and returns `reason: "auth-required"` in
+`kept`. Returning to an accepted URL clears the flag. No login is attempted by
+anchor maintenance. Existing live anchors block replacement, and missing anchors
+respect `auth_retry_cooldown_ms` for their port and origin. Recent navigation or
+inspection leases for the key or origin also suppress creation. The result's
+`skipped` entries carry `key`, `reason` and `retryAt`; cleanup includes them in
+`anchorMaintenance`. Audit mode previews this without changing auth state.
+
+Before anchor or lease changes, `browserctl ensure` and cleanup check the actual
+listening process's `--user-data-dir` against the policy profile using real paths.
+A reachable port with a failed check returns `PROFILE_MISMATCH: port N is served
+by a browser whose profile is not <policy profile>`. Cleanup returns an empty
+action list and null `anchorMaintenance`. The operator profile symlink remains
+valid. `status --port N` includes `profile_verified` and `devtools_active_port`
+(the first line of the profile's DevToolsActivePort file, or null). A stale launcher
+state file or DevToolsActivePort file cannot establish profile identity. Linux
+uses socket ownership from `/proc`; other Unix hosts use `lsof`. Unavailable
+process evidence fails verification; Windows verification is not implemented.
+
+## GNOME autostart installation
+
+Run this only from the deployed repository after review:
+
+```sh
+tools/browserctl/autostart/install.sh
+```
+
+`AMAZON_AGENT_REPO` can select the deployed repo. The installer copies
+`operator-9222` and `grimoire-9223` to `~/.local/bin` and writes
+`amazon-operator-9222.desktop` and `wizards-ai-9223.desktop` in
+`~/.config/autostart`, with delays of 8 and 12 seconds and `Terminal=false`.
+Their Exec lines set `AMAZON_AGENT_REPO` and invoke the copied wrappers, which
+exec `node <repo>/tools/browserctl/browserctl.mjs ensure --port N`. Source-tree
+wrappers also resolve the repo relative to their own location. The policy supplies
+profiles, browser executable, mode and window classes.
+
+The installer retires the raw `chrome-amazon-operator.desktop` and
+`chrome-wizards-readonly.desktop` entries and their same-named bin wrappers,
+plus duplicate autostart entries referencing these ports. It moves them to
+`~/.amazon-agent/retired-autostart-<date>/`, preserves relative paths, and prints
+every retirement, installation or unchanged result. Re-running it leaves one
+managed autostart entry per port and preserves earlier backups.
+
+Read-only inspection on 2026-09-19 also found application-menu entries at
+`~/.local/share/applications/amazon-operator-9222.desktop` and
+`~/.local/share/applications/wizards-ai-9223.desktop`. Their Exec lines run
+`tools/report-fetcher/launch-chrome-debug.py --mode headed` with the correct
+`~/.amazon-agent/chrome-debug` and `~/.amazon-agent/wizards-ai-chrome` profiles,
+respectively. They select `chrome-amazon-operator-classed` and `chrome-wizards-ai`
+through `CHROME_BIN`. The new entries preserve their names and StartupWMClass
+values but route execution through browserctl and policy. The old raw 9223
+wrapper selected `~/.config/google-chrome-wizards-readonly`, causing the conflict.
+The installer does not edit application-menu entries, systemd units or Wizards AI
+code. The deployer must reconcile any separate login invocation of those launchers
+and verify equivalent headed mode and window-class values in policy.
+
+On an already reachable, verified managed port, ensure reuses Chrome without a
+restart. On a cold start, the Python launcher uses `start_new_session=True` and
+redirects browser output to DEVNULL, so Chrome survives the autostart process.
+Ensure waits for startup and anchor maintenance, then returns; it is not a daemon.
+A wrong profile is preserved and reported, never killed or silently adopted.
+
+Validation:
+
+```sh
+node --test tools/browserctl/test
+```
+
+```sh
+python3 tools/lint_agent_docs.py
+```

@@ -1,0 +1,12 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Amazon Operator  9222
+Comment=Managed Amazon operator Chrome on local port 9222
+Exec=@EXEC@
+Icon=web-browser
+Terminal=false
+Categories=Network;WebBrowser;
+StartupNotify=true
+StartupWMClass=AmazonOperator9222
+X-GNOME-Autostart-Delay=8

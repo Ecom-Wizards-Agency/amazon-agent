@@ -36,6 +36,16 @@ behavior. Mode, profile, window class, anchors, and cleanup timings come from
 reachable browser to change mode. A mismatch fails with
 `MODE_CHANGE_REQUIRES_RESTART`; only `browserctl restart` may intentionally stop
 and relaunch a managed browser, and it requires an explicit reason.
+`browserctl ensure` and cleanup reject a reachable port with `PROFILE_MISMATCH`
+when its listening process does not use the policy profile. Profile comparison
+resolves symlinks. Status exposes `profile_verified` and `devtools_active_port`.
+Seller Central sign-in and authentication redirects keep their anchor lease with
+`authRequired: true`; maintenance reports `auth-required` and suppresses replacement
+creation during the origin cooldown. Recent inspection leases also delay creation.
+Install managed GNOME autostart entries with `tools/browserctl/autostart/install.sh`
+from the deployed repo. It archives competing raw Chrome entries and wrappers;
+review the reconciliation notes in `tools/browserctl/README.md` before deployment.
+
 
 The standard machine preset remains headless. Evo X1 runs ports 9222 and 9223
 headed with distinct window classes. Every programmatic tab has a machine-local

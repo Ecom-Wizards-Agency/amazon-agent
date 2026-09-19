@@ -165,20 +165,28 @@ export function policyForPort(port, policy = loadBrowserPolicy()) {
 // anchor. Observed 07.09.2026: ~4 tabs every 5 minutes across both ports.
 const SIGNED_IN_ANCHOR_PATH = /^\/account-switcher(?:\/|$)/;
 
-export function anchorMatchesUrl(anchor, rawUrl) {
+export const ANCHOR_AUTH_PATH = /signin|auth|mfa|captcha|\/ap\/cvf|account-recovery/i;
+const SAME_ORIGIN_AUTH_PATH = /^(?:\/ap\/(?:signin|mfa|cvf|captcha|account-recovery)|\/(?:signin|mfa|captcha))\b/i;
+
+export function anchorAuthState(anchor, rawUrl) {
   let actual;
   let wanted;
   try {
     actual = new URL(rawUrl);
     wanted = new URL(anchor.url);
   } catch {
-    return false;
+    return "off";
   }
   if (actual.origin === wanted.origin) {
     const path = actual.pathname.replace(/\/$/, "");
-    return anchor.accepted_paths.some((accepted) => path === accepted.replace(/\/$/, ""))
-      || SIGNED_IN_ANCHOR_PATH.test(actual.pathname);
+    if (anchor.accepted_paths.some((accepted) => path === accepted.replace(/\/$/, ""))
+      || SIGNED_IN_ANCHOR_PATH.test(actual.pathname)) return "ok";
+    return SAME_ORIGIN_AUTH_PATH.test(actual.pathname) ? "auth" : "off";
   }
-  if (!anchor.auth_origins.includes(actual.origin)) return false;
-  return /signin|auth|mfa|captcha|\/ap\/cvf|account-recovery/i.test(actual.pathname + actual.search);
+  if (actual.origin !== wanted.origin && !anchor.auth_origins.includes(actual.origin)) return "off";
+  return ANCHOR_AUTH_PATH.test(actual.pathname + actual.search) ? "auth" : "off";
+}
+
+export function anchorMatchesUrl(anchor, rawUrl) {
+  return anchorAuthState(anchor, rawUrl) === "ok";
 }

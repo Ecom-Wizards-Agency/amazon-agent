@@ -24,6 +24,7 @@ CDP_BROWSER_MODE (machine policy, otherwise headless) · CDP_WINDOW_SIZE (1920,1
 import argparse
 import json
 import os
+import shlex
 import subprocess
 import sys
 import time
@@ -144,42 +145,111 @@ def read_state() -> dict:
         return {}
 
 
-def process_matches(pid: int) -> bool:
+def process_arguments(pid: int) -> list[str]:
+    if sys.platform.startswith("linux"):
+        try:
+            return Path(f"/proc/{pid}/cmdline").read_bytes().decode().strip("\0").split("\0")
+        except (OSError, UnicodeError):
+            return []
+    result = subprocess.run(["ps", "-p", str(pid), "-o", "command="],
+                            capture_output=True, text=True, check=False)
+    try:
+        return shlex.split(result.stdout) if result.returncode == 0 else []
+    except ValueError:
+        return []
+
+
+def argument_value(arguments: list[str], flag: str) -> str | None:
+    for index, argument in enumerate(arguments):
+        if argument.startswith(flag + "="):
+            return argument[len(flag) + 1:]
+        if argument == flag and index + 1 < len(arguments):
+            return arguments[index + 1]
+    return None
+
+
+def process_matches(pid: int) -> bool | None:
     if pid <= 0:
         return False
     if sys.platform.startswith("win"):
-        return True
-    result = subprocess.run(
-        ["ps", "-p", str(pid), "-o", "command="],
-        capture_output=True, text=True, check=False,
-    )
-    return result.returncode == 0 and f"--user-data-dir={PROFILE}" in result.stdout
+        return None
+    arguments = process_arguments(pid)
+    if not arguments:
+        return None
+    profile = argument_value(arguments, "--user-data-dir")
+    return bool(profile and os.path.realpath(profile) == os.path.realpath(PROFILE)
+                and argument_value(arguments, "--remote-debugging-port") == str(PORT)
+                and not any(arg.startswith("--type=") for arg in arguments))
+
+
+def listening_processes() -> set[int] | None:
+    """Resolve socket owners, not processes that merely name the debug port."""
+    if sys.platform.startswith("win"):
+        return None
+    if sys.platform.startswith("linux"):
+        sockets = set()
+        for table in ("tcp", "tcp6"):
+            try:
+                for line in Path(f"/proc/net/{table}").read_text().splitlines()[1:]:
+                    fields = line.split()
+                    if fields[3] == "0A" and int(fields[1].split(":")[-1], 16) == int(PORT):
+                        sockets.add("socket:[" + fields[9] + "]")
+            except OSError:
+                continue
+        owners = set()
+        if not sockets:
+            return None
+        try:
+            entries = list(Path("/proc").iterdir())
+        except OSError:
+            return None
+        for entry in entries:
+            if not entry.name.isdigit():
+                continue
+            try:
+                for fd in (entry / "fd").iterdir():
+                    try:
+                        if os.readlink(fd) in sockets:
+                            owners.add(int(entry.name))
+                            break
+                    except OSError:
+                        continue
+            except OSError:
+                continue
+        return owners or None
+    try:
+        result = subprocess.run(["lsof", "-nP", f"-iTCP:{PORT}", "-sTCP:LISTEN", "-t"],
+                                capture_output=True, text=True, check=False)
+        return {int(pid) for pid in result.stdout.split() if pid.isdigit()} or None
+    except OSError:
+        return None
 
 
 def find_matching_process() -> tuple[int, str] | None:
-    """Find a legacy debug Chrome for this exact port and profile.
+    """Verify the listening process's port and canonical profile before adoption."""
+    return listener_profile_status()[1]
 
-    Older launcher versions did not write STATE_FILE. We never infer ownership
-    from an open port alone: both command-line flags must match before an
-    explicit --adopt-existing can take control of that process.
-    """
-    if sys.platform.startswith("win"):
+
+def listener_profile_status() -> tuple[bool | None, tuple[int, str] | None]:
+    owners = listening_processes()
+    verified = None
+    for pid in sorted(owners or []):
+        matches = process_matches(pid)
+        if matches is True:
+            arguments = process_arguments(pid)
+            mode = "headless" if any(arg.startswith("--headless") for arg in arguments) else "headed"
+            return True, (pid, mode)
+        if matches is False:
+            verified = False
+    return verified, None
+
+
+def devtools_active_port() -> str | None:
+    try:
+        lines = (PROFILE / "DevToolsActivePort").read_text(encoding="utf-8").splitlines()
+        return lines[0] if lines else None
+    except OSError:
         return None
-    result = subprocess.run(
-        ["ps", "ax", "-o", "pid=,command="],
-        capture_output=True, text=True, check=False,
-    )
-    port_flag = f"--remote-debugging-port={PORT}"
-    profile_flag = f"--user-data-dir={PROFILE}"
-    for line in result.stdout.splitlines():
-        try:
-            pid_text, command = line.strip().split(None, 1)
-        except ValueError:
-            continue
-        if port_flag in command and profile_flag in command and "--type=" not in command:
-            mode = "headless" if "--headless" in command else "headed"
-            return int(pid_text), mode
-    return None
 
 
 def write_state(pid: int, mode: str, *, adopted: bool = False) -> dict:
@@ -198,7 +268,8 @@ def write_state(pid: int, mode: str, *, adopted: bool = False) -> dict:
 
 def stop_managed_browser(state: dict) -> None:
     pid = int(state.get("pid") or 0)
-    if not process_matches(pid):
+    matches = process_matches(pid)
+    if matches is False or (matches is None and not sys.platform.startswith("win")):
         raise RuntimeError(
             f"Debug port {PORT} is active, but its managed Chrome process could not be verified. "
             "Close only the dedicated browser and retry."
@@ -234,9 +305,13 @@ def main() -> None:
     options = parse_args()
     state = read_state()
     if options.mode == "status":
-        legacy = find_matching_process() if not state and port_is_up() else None
+        running = port_is_up()
+        verified, matching = listener_profile_status() if running else (None, None)
+        legacy = matching if not state else None
         print(json.dumps({"port": PORT, "profile": str(PROFILE),
-                          "running": port_is_up(), "managed": bool(state),
+                          "running": running, "managed": bool(state),
+                          "profile_verified": verified,
+                          "devtools_active_port": devtools_active_port(),
                           "mode": state.get("mode") or (legacy[1] if legacy else None),
                           "pid": state.get("pid") or (legacy[0] if legacy else None),
                           "adoptable": bool(legacy)}))
