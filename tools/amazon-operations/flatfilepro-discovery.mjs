@@ -66,7 +66,15 @@ export async function readCatalogPages(session,account){
   for(page=0;;page++){
    ui.check(page<10000,'Catalog pagination exceeded bounded coverage');
    phase='wait-items';
-   await ui.waitFor(async()=>responses,list=>list.some(response=>{try{return catalogRequest(response.url,account).kind==='items'&&catalogRequest(response.url,account).page===page&&finished.has(response.id);}catch{return false;}}),60000);
+   const received=()=>ui.waitFor(async()=>responses,list=>list.some(response=>{try{return catalogRequest(response.url,account).kind==='items'&&catalogRequest(response.url,account).page===page&&finished.has(response.id);}catch{return false;}}),15000);
+   try{await received();}catch(error){
+    if(error.message!=='Expected page state did not appear')throw error;
+    // A client-cached grid page can advance without a new observable response.
+    // Reload only that exact read-only page, then require its complete response.
+    const current=await ui.context(session,account,'ffp'),url=new URL(current.url);
+    ui.check(url.pathname==='/amazon-listings-items'&&url.searchParams.get('page')===String(page),'Catalog retry no longer owns the expected page');
+    phase='reload-missing-page';await session.send('Page.reload',{});await received();
+   }
    if(!count){
     phase='wait-count';
     await ui.waitFor(async()=>responses,list=>list.some(response=>{try{return catalogRequest(response.url,account).kind==='count'&&finished.has(response.id);}catch{return false;}}),60000);

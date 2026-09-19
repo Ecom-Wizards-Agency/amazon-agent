@@ -59,7 +59,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const evaluate = async (session, expression) =>
   (await session.send("Runtime.evaluate", { expression, returnByValue: true, awaitPromise: true })).result?.value;
 
-const SHIP_TO = `(() => { const e = document.querySelector("#glow-ingress-line2");
+const SHIP_TO = `(() => { const e = document.querySelector("#glow-ingress-line2, #glow-ingress-single-line");
   return e ? e.innerText.trim().replace(/\\s+/g, " ") : null; })()`;
 
 // The glow widget is a plain jQuery popover, so a scripted click plus input/change
