@@ -207,7 +207,7 @@ test("Evo cleanup adopts an unknown page and waits a full inspection window", { 
   };
   const options = {
     policy: adoptionPolicy, auditOnly: false, cdp,
-    managedStatus: { managed: true, running: true, mode: "headed" }, maintainAnchors: false,
+    managedStatus: { managed: true, running: true, profile_verified: true, mode: "headed" }, maintainAnchors: false,
   };
 
   const adopted = await controller.cleanupPort(9222, { ...options, now: 1_000 });
@@ -255,7 +255,7 @@ test("cleanup preserves a tab when activity cannot be measured", { concurrency: 
   };
   const result = await controller.cleanupPort(9222, {
     policy, auditOnly: false, now: 700_000, cdp,
-    managedStatus: { managed: true, running: true, mode: "headed" }, maintainAnchors: false,
+    managedStatus: { managed: true, running: true, profile_verified: true, mode: "headed" }, maintainAnchors: false,
   });
   assert.equal(result.actions[0].action, "preserved");
   assert.equal(result.actions[0].reason, "activity-unavailable");
@@ -320,7 +320,7 @@ test("cleanup retains the original probe error and reports incomplete work", { c
   };
   const result = await controller.cleanupPort(9222, {
     policy, auditOnly: false, now: 700_000, cdp,
-    managedStatus: { managed: true, running: true, mode: "headed" }, maintainAnchors: false,
+    managedStatus: { managed: true, running: true, profile_verified: true, mode: "headed" }, maintainAnchors: false,
   });
   assert.equal(result.complete, false);
   assert.equal(result.actions[0].probe.stage, "read-activity");
@@ -350,7 +350,7 @@ test("overlapping cleanup passes atomically close an expired target once", { con
   };
   const options = {
     policy, auditOnly: false, now: 601_001, cdp,
-    managedStatus: { managed: true, running: true, mode: "headed" }, maintainAnchors: false,
+    managedStatus: { managed: true, running: true, profile_verified: true, mode: "headed" }, maintainAnchors: false,
   };
   const results = await Promise.all([
     controller.cleanupPort(9222, options),
@@ -397,10 +397,10 @@ test("scheduled cleanup additively recreates a missing anchor", { concurrency: f
   };
   const result = await controller.cleanupPort(9222, {
     policy: oneAnchorPolicy, auditOnly: false, now: 2, cdp,
-    managedStatus: { managed: true, running: true, mode: "headed" },
+    managedStatus: { managed: true, running: true, profile_verified: true, mode: "headed" },
   });
   assert.deepEqual(created, ["replacement-anchor"]);
-  assert.deepEqual(result.anchorMaintenance, { kept: 1, created: 1, reclassified: 0 });
+  assert.deepEqual(result.anchorMaintenance, { kept: 1, created: 1, reclassified: 0, skipped: [] });
   assert.equal(pages.some((page) => page.id === "unknown"), true);
   await registry.removeLease({ port: 9222, targetId: "replacement-anchor" });
 });
@@ -482,9 +482,9 @@ test("duplicate anchors become inspection leases and missing duplicates are drop
     closePageImmediately: async (id) => { closed.push(id); },
   };
   const options = { policy: oneAnchorPolicy, cdp, auditOnly: false,
-    managedStatus: { managed: true, running: true, mode: "headed" } };
+    managedStatus: { managed: true, running: true, profile_verified: true, mode: "headed" } };
   const result = await controller.cleanupPort(9222, { ...options, now: 1000 });
-  assert.deepEqual(result.anchorMaintenance, { kept: 1, created: 0, reclassified: 1 });
+  assert.deepEqual(result.anchorMaintenance, { kept: 1, created: 0, reclassified: 1, skipped: [] });
   const leases = await registry.listLeases();
   assert.equal(leases.some((lease) => lease.targetId === "gone-anchor"), false);
   const duplicate = leases.find((lease) => lease.targetId === "duplicate-anchor");
@@ -531,7 +531,7 @@ test("anchor creation failure still expires leases and reports only expiry failu
     closePageImmediately: async (id) => { closed.push(id); },
   };
   const options = { policy, auditOnly: false, cdp, now: 601_001,
-    managedStatus: { managed: true, running: true, mode: "headed" } };
+    managedStatus: { managed: true, running: true, profile_verified: true, mode: "headed" } };
   for (const closeFails of [false, true]) {
     await registry.acquireLease({ port: 9222, targetId: "expiry-after-anchor-failure", now: 1, policy });
     await registry.releaseLease({ port: 9222, targetId: "expiry-after-anchor-failure", outcome: "success", now: 1000, policy });
@@ -647,7 +647,7 @@ test("audit-only previews mutations while recording observed activity and heartb
     readLeaseInteraction: async (session) => ({ ok: true, lastInteractionAt: session.id === "audit-input" ? 601_000 : 0 }),
   };
   const result = await controller.cleanupPort(9222, { policy: auditPolicy, auditOnly: true, cdp, now: 601_001,
-    managedStatus: { managed: true, running: true, mode: "headed" } });
+    managedStatus: { managed: true, running: true, profile_verified: true, mode: "headed" } });
   const anchorActions = result.anchorMaintenance.actions;
   for (const targetId of ["audit-stale", "audit-duplicate", "audit-moved"]) {
     assert.ok(anchorActions.some((action) => action.action === "would-reclassify" && action.targetId === targetId));
@@ -731,7 +731,7 @@ test("cleanup ignores focus activity but extends inspection for interaction", as
       closePageImmediately: async (id) => { closed.push(id); },
     };
     await controller.cleanupPort(9222, { policy, cdp, auditOnly: false, now: 7_201_001,
-      managedStatus: { managed: true, running: true, mode: "headed" }, maintainAnchors: false });
+      managedStatus: { managed: true, running: true, profile_verified: true, mode: "headed" }, maintainAnchors: false });
     assert.deepEqual(closed, interacted ? [] : ["inspection-input"]);
     if (interacted) {
       assert.equal((await registry.listLeases()).find((lease) => lease.targetId === "inspection-input").expiresAt, 14_401_000);

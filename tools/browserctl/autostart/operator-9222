@@ -1,0 +1,9 @@
+#!/bin/sh
+set -eu
+repo=${AMAZON_AGENT_REPO:-$(dirname "$(readlink -f "$0")")/../../..}
+if [ ! -f "$repo/tools/browserctl/browserctl.mjs" ]; then
+    echo "No browserctl in $repo; set AMAZON_AGENT_REPO" >&2
+    exit 1
+fi
+if [ "$#" -eq 0 ]; then set -- ensure --port 9222; fi
+exec "${AMAZON_AGENT_NODE:-/usr/local/bin/node}" "$repo/tools/browserctl/browserctl.mjs" "$@"

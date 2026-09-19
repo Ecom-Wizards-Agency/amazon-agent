@@ -1,0 +1,12 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Wizards AI  9223
+Comment=Managed Grimoire Chrome on local port 9223
+Exec=@EXEC@
+Icon=dialog-password
+Terminal=false
+Categories=Network;WebBrowser;
+StartupNotify=true
+StartupWMClass=WizardsAI9223
+X-GNOME-Autostart-Delay=12

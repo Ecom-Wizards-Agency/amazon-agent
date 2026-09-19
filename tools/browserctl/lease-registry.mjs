@@ -326,6 +326,7 @@ export async function acquireLease({
       url: url || previous?.url || (leaseClass === "anchor"
         ? policy.ports[String(Number(port))]?.anchors.find((anchor) => anchor.key === anchorKey)?.url : null) || null,
       acquiredAt: previous?.acquiredAt || now,
+      reclassifiedAt: previous && previous.class !== leaseClass ? now : previous?.reclassifiedAt ?? null,
       updatedAt: now,
       heartbeatAt: leaseClass === "background-active" ? now : previous?.heartbeatAt || null,
       lastActivityAt: previous?.lastActivityAt || now,
@@ -1101,6 +1102,17 @@ export async function claimExpiredLease({
     if (Number(lease.expiresAt || Infinity) > now) return null;
     lease.state = "closing";
     lease.closeToken = randomUUID();
+    lease.updatedAt = now;
+    lease.generation = Number(lease.generation || 0) + 1;
+    return structuredClone(lease);
+  });
+}
+
+export async function setAnchorAuthRequired({ port, targetId, required, now = Date.now() }) {
+  return transaction((state) => {
+    const lease = state.leases[leaseKey(port, targetId)];
+    if (!lease || lease.class !== "anchor") return null;
+    lease.authRequired = required;
     lease.updatedAt = now;
     lease.generation = Number(lease.generation || 0) + 1;
     return structuredClone(lease);

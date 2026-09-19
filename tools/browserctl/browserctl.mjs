@@ -4,11 +4,12 @@ import { realpathSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import {
+  authAttemptStatus, recordAuthAttempt, setAnchorAuthRequired,
   acquireLease, adoptUnregisteredLease, claimExpiredLease, listLeases, recordActivityProbeFailure,
   releaseLease, removeLease, restartActivityMeasurement, touchLease,
   transitionMissedHeartbeat, listTaskTabs, completeTaskTabs, detachTaskTab, regionTabState, surplusAnchorLeases,
 } from "./lease-registry.mjs";
-import { anchorMatchesUrl, loadBrowserPolicy, policyForPort } from "./policy.mjs";
+import { anchorAuthState, anchorMatchesUrl, loadBrowserPolicy, policyForPort } from "./policy.mjs";
 import { sessionEnvironment } from "./session.mjs";
 import { acquireSessionLock, acquireSessionLockWithWait, sessionLockHasChildren } from "./session-lock.mjs";
 
@@ -105,6 +106,10 @@ export async function ensureAnchors(port, { policy = loadBrowserPolicy(), cdp = 
   const actions = [];
   const detached = new Set();
   for (const region of regions) {
+    const anchor = config.anchors.find((entry) => entry.key === region.anchorKey);
+    const page = pageById.get(region.targetId);
+    // Login recovery keeps the permanent target even after its worker expires.
+    if (anchor && page && anchorAuthState(anchor, page.url) === "auth") continue;
     if (region.boundTaskId && !region.controllerFresh) {
       if (auditOnly) {
         detached.add(region.targetId);
@@ -119,6 +124,9 @@ export async function ensureAnchors(port, { policy = loadBrowserPolicy(), cdp = 
   const kept = [];
   const created = [];
   const reclassified = [];
+  const skipped = [];
+  const cooldownMs = policy.cleanup.auth_retry_cooldown_ms;
+  const authScope = (anchor) => ({ port, targetId: "anchor-origin", routeId: safeOrigin(anchor.url) });
 
   const fresh = new Set(regions.filter((region) => region.controllerFresh && pageById.has(region.targetId))
     .map((region) => region.targetId));
@@ -156,11 +164,6 @@ export async function ensureAnchors(port, { policy = loadBrowserPolicy(), cdp = 
   for (const anchor of config.anchors) {
     const registered = leases.find((lease) => lease.class === "anchor" && lease.anchorKey === anchor.key);
     const page = registered && pageById.get(registered.targetId);
-    if (page && fresh.has(registered.targetId)) {
-      used.add(registered.targetId);
-      kept.push({ key: anchor.key, targetId: registered.targetId, url: page.url, source: "registry" });
-      continue;
-    }
     if (!page) {
       if (registered) {
         if (auditOnly) actions.push({ action: "would-remove", targetId: registered.targetId, reason: "target-missing" });
@@ -168,22 +171,59 @@ export async function ensureAnchors(port, { policy = loadBrowserPolicy(), cdp = 
       }
       continue;
     }
-    if (anchorMatchesUrl(anchor, page.url)) {
+    const authState = anchorAuthState(anchor, page.url);
+    if (authState === "auth") {
+      const attempt = await authAttemptStatus({ ...authScope(anchor), now, cooldownMs });
+      if (!auditOnly) {
+        await setAnchorAuthRequired({ port, targetId: page.id, required: true, now });
+        if (attempt.allowed) await recordAuthAttempt({ ...authScope(anchor), now });
+      }
+      used.add(page.id);
+      kept.push({ key: anchor.key, targetId: page.id, url: page.url, source: "registry", reason: "auth-required" });
+      skipped.push({ key: anchor.key, reason: "auth-required", retryAt: auditOnly ? null : attempt.allowed ? now + cooldownMs : attempt.retryAt });
+      continue;
+    }
+    if (registered.authRequired && !auditOnly) {
+      await setAnchorAuthRequired({ port, targetId: page.id, required: false, now });
+    }
+    if (authState === "ok" || fresh.has(registered.targetId)) {
       used.add(page.id);
       kept.push({ key: anchor.key, targetId: page.id, url: page.url, source: "registry" });
       continue;
     }
     if (auditOnly) actions.push({ action: "would-reclassify", targetId: page.id, key: anchor.key,
-      class: "interactive", reason: "anchor-navigation" });
+      class: "interactive", reason: "anchor-navigation", reclassifiedAt: now });
     else await acquireLease({
       port, targetId: page.id, leaseClass: "interactive", owner: "browserctl:anchor-navigation",
       origin: safeOrigin(page.url), now, policy,
     });
-    reclassified.push({ key: anchor.key, targetId: page.id, origin: safeOrigin(page.url) });
+    reclassified.push({ key: anchor.key, targetId: page.id, origin: safeOrigin(page.url), reclassifiedAt: now });
   }
 
+  leases = (await listLeases()).filter((lease) => lease.port === Number(port));
+  if (auditOnly) leases = leases.map((lease) => {
+    const preview = reclassified.find((entry) => entry.targetId === lease.targetId && entry.reclassifiedAt != null);
+    return preview ? { ...lease, class: "interactive", owner: "browserctl:anchor-navigation",
+      anchorKey: null, origin: preview.origin, reclassifiedAt: preview.reclassifiedAt } : lease;
+  });
   for (const anchor of config.anchors) {
     if (kept.some((entry) => entry.key === anchor.key)) continue;
+    const liveAnchor = leases.find((lease) => lease.class === "anchor" && lease.anchorKey === anchor.key
+      && pageById.has(lease.targetId) && !(auditOnly && (surplus.has(lease.targetId) || detached.has(lease.targetId)
+        || reclassified.some((entry) => entry.targetId === lease.targetId))));
+    const attempt = await authAttemptStatus({ ...authScope(anchor), now, cooldownMs });
+    const recent = leases.filter((lease) =>
+      (lease.owner === "browserctl:anchor-navigation" || lease.class === "inspection")
+      && (lease.anchorKey === anchor.key || lease.origin === safeOrigin(anchor.url)
+        || anchor.auth_origins.includes(lease.origin))
+      && Number(lease.reclassifiedAt ?? lease.updatedAt) + cooldownMs > now);
+    if (liveAnchor || !attempt.allowed || recent.length) {
+      skipped.push({ key: anchor.key,
+        reason: liveAnchor ? "live-anchor" : !attempt.allowed ? "auth-cooldown" : "inspection-cooldown",
+        retryAt: liveAnchor ? null : !attempt.allowed ? attempt.retryAt
+          : Math.max(...recent.map((lease) => Number(lease.reclassifiedAt ?? lease.updatedAt) + cooldownMs)) });
+      continue;
+    }
     const existing = pages.find((page) =>
       !used.has(page.id) && !leasedTargetIds.has(page.id) && anchorMatchesUrl(anchor, page.url));
     if (existing) {
@@ -210,22 +250,29 @@ export async function ensureAnchors(port, { policy = loadBrowserPolicy(), cdp = 
     kept.push({ key: anchor.key, targetId: opened.targetId, url: anchor.url, source: "created" });
   }
 
-  return { port: Number(port), kept, created, reclassified, closed: [], ...(auditOnly ? { actions } : {}) };
+  return { port: Number(port), kept, created, reclassified, skipped, closed: [], ...(auditOnly ? { actions } : {}) };
 }
 
-export async function ensureBrowser(port, { policy = loadBrowserPolicy() } = {}) {
-  const cdp = await cdpForPort(port, policy);
-  const version = await cdp.ensureChrome();
-  const status = launcherStatus(port, policy);
+function profileMismatch(port, policy) {
+  return `PROFILE_MISMATCH: port ${port} is served by a browser whose profile is not ${policyForPort(port, policy).profile}`;
+}
+
+export async function ensureBrowser(port, { policy = loadBrowserPolicy(), cdp = null, getStatus = launcherStatus } = {}) {
+  const status = getStatus(port, policy);
+  if (status.running && status.profile_verified === false) throw new Error(profileMismatch(port, policy));
+  const profileVerified = status.profile_verified ?? null;
+  if (profileVerified === null) console.warn(`PROFILE_UNVERIFIED: port ${port}; listener profile could not be verified`);
   const configuredMode = policyForPort(port, policy).mode;
-  if (!status.managed) {
+  if (status.running && !status.managed) {
     throw new Error(`UNMANAGED_CDP_BROWSER: port ${port} is reachable but is not owned by browserctl`);
   }
-  if (status.managed && status.mode && status.mode !== configuredMode) {
+  if (status.running && status.managed && status.mode && status.mode !== configuredMode) {
     throw new Error(`MODE_CHANGE_REQUIRES_RESTART: port ${port} is ${status.mode}; configured mode is ${configuredMode}`);
   }
+  cdp ||= await cdpForPort(port, policy);
+  const version = await cdp.ensureChrome();
   const anchors = await ensureAnchors(port, { policy, cdp });
-  return { port: Number(port), browser: version.Browser, mode: status.mode, anchors };
+  return { port: Number(port), browser: version.Browser, mode: status.running ? status.mode : configuredMode, profileVerified, anchors };
 }
 
 async function probeActivity(cdp, page) {
@@ -269,10 +316,16 @@ export async function cleanupPort(port, {
   } catch (error) {
     return { port: Number(port), reachable: false, auditOnly, actions: [], error: error.message };
   }
+  const profileVerified = managedStatus.profile_verified ?? null;
+  if (profileVerified === null) console.warn(`PROFILE_UNVERIFIED: port ${port}; listener profile could not be verified`);
+  if (managedStatus.running && managedStatus.profile_verified === false) {
+    return { port: Number(port), profileVerified, reachable: true, auditOnly, actions: [], anchorMaintenance: null,
+      error: profileMismatch(port, policy) };
+  }
   const configuredMode = policyForPort(port, policy).mode;
   if (!managedStatus.managed || managedStatus.mode !== configuredMode) {
     return {
-      port: Number(port), reachable: Boolean(managedStatus.running), auditOnly, actions: [],
+      port: Number(port), profileVerified, reachable: Boolean(managedStatus.running), auditOnly, actions: [],
       error: !managedStatus.managed
         ? "UNMANAGED_CDP_BROWSER"
         : `MODE_CHANGE_REQUIRES_RESTART: running ${managedStatus.mode}; configured ${configuredMode}`,
@@ -290,13 +343,14 @@ export async function cleanupPort(port, {
           kept: maintained.kept.length,
           created: maintained.created.length,
           reclassified: maintained.reclassified.length,
+          skipped: maintained.skipped,
           ...(auditOnly ? { actions: maintained.actions } : {}),
         };
       } catch (error) { anchorMaintenance = { error: error.message }; }
     }
     pages = await cdp.listPages();
   } catch (error) {
-    return { port: Number(port), reachable: false, auditOnly, actions: [], error: error.message };
+    return { port: Number(port), profileVerified, reachable: false, auditOnly, actions: [], error: error.message };
   }
   const pageById = new Map(pages.map((page) => [page.id, page]));
   const actions = [];
@@ -429,7 +483,7 @@ export async function cleanupPort(port, {
   }
   const incomplete = actions.some(action => action.reason === "activity-unavailable"
     || action.reason === "session-busy" || action.reason === "close-failed" || action.activityTracked === false);
-  return { port: Number(port), reachable: true, auditOnly, complete: !incomplete, anchorMaintenance, actions };
+  return { port: Number(port), profileVerified, reachable: true, auditOnly, complete: !incomplete, anchorMaintenance, actions };
 }
 
 function publicProbeFailure(activity) {
@@ -518,6 +572,10 @@ export async function acquireTargetLease({
 }
 
 export async function main(raw = process.argv.slice(2), { cleanup = cleanupPortWithLock, fetch = globalThis.fetch } = {}) {
+  if (raw.includes("--help")) {
+    console.log("Usage: browserctl ensure|status|restart|lease|task|region|cleanup|auth");
+    return;
+  }
   const separator = raw.indexOf("--");
   if (["run", "session"].includes(raw[0])) {
     const { options } = parseArgs(separator < 0 ? raw : raw.slice(0, separator));
