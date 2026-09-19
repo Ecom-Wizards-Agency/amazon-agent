@@ -1123,7 +1123,7 @@ class Operations:
                 require(current is not None and current == as_text(expected), 'health_conflict', f'Carried field {sku}/{field} is missing or changed; automatic restoration stopped')
 
     def run_collector(self, directory, script, request, timeout=180):
-        require(script in {'catalog-export.mjs', 'image-evidence.mjs', 'cases.mjs', 'flatfilepro.mjs', 'flatfilepro-export.mjs', 'flatfilepro-activity.mjs', 'flatfilepro-listings.mjs', 'flatfilepro-discovery.mjs'}, 'invalid_collector', 'Unknown fixed collector')
+        require(script in {'catalog-export.mjs', 'image-evidence.mjs', 'cases.mjs', 'flatfilepro.mjs', 'flatfilepro-export.mjs', 'flatfilepro-activity.mjs', 'flatfilepro-listings.mjs', 'flatfilepro-discovery.mjs', 'flatfilepro-account.mjs'}, 'invalid_collector', 'Unknown fixed collector')
         if _CLOSE_RECONCILE_TABS.get():
             request = {**request, 'close_tab_after': True}
         input_path = directory / (script.replace('.mjs', '') + '-input.json')

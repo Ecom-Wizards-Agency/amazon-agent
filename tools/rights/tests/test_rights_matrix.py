@@ -139,7 +139,7 @@ class RightsMatrixTests(unittest.TestCase):
     def test_digest_is_canonical_and_sensitive(self):
         reordered = dict(reversed(list(self.matrix.items())))
         self.assertEqual(rights.digest(self.matrix), rights.digest(reordered))
-        reordered["updated_on"] = "2026-09-16"
+        reordered["updated_on"] += "-changed"
         self.assertNotEqual(rights.digest(self.matrix), rights.digest(reordered))
 
     def test_renderer_preserves_narrative_and_detects_drift(self):

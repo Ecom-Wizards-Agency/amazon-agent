@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_on": "2026-09-15",
+  "updated_on": "2026-09-16",
   "rows": [
     {
       "id": "seller-central.read",
@@ -74,10 +74,10 @@
     {
       "id": "flatfilepro.submit",
       "domain": "amazon",
-      "capability": "FlatFilePro Update Listings",
+      "capability": "General FlatFilePro Update Listings",
       "grimoire": {
         "state": "forbidden",
-        "how": "Unattended submission is disabled."
+        "how": "General unattended workbook submission is disabled. The separately listed listing.images.bulk pipeline is enabled."
       },
       "amazon_agent": {
         "state": "approval-gated",
@@ -100,7 +100,54 @@
         }
       ],
       "verified_on": "2026-09-15",
-      "notes": "Update Listings is an approval gate, not an unconditional stop. The bulk-image route uses FlatFilePro-only preflight."
+      "notes": "General workbook submission retains exact approval. Secondary-image bulk jobs use listing.images.bulk, with independent processing, publication and protected-field checks."
+    },
+    {
+      "id": "listing.images.bulk",
+      "domain": "amazon",
+      "capability": "FlatFilePro secondary-image bulk pipeline",
+      "grimoire": {
+        "state": "allowed",
+        "how": "Authenticated team request for a current managed-ready client authorizes the exact secondary-image batch."
+      },
+      "amazon_agent": {
+        "state": "allowed",
+        "how": "Concrete team request authorizes the same bounded FlatFilePro pipeline."
+      },
+      "identity": "FlatFilePro binding verified against exact seller and marketplace identity",
+      "port": 9223,
+      "spp_rows": [],
+      "gates": [
+        {
+          "kind": "json_pointer_equals",
+          "repo": "wizards-ai",
+          "file": "config.json",
+          "pointer": "/listing_image_jobs/enabled",
+          "value": true
+        },
+        {
+          "kind": "json_pointer_equals",
+          "repo": "wizards-ai",
+          "file": "config.json",
+          "pointer": "/listing_image_jobs/account_scope",
+          "value": "managed-ready"
+        },
+        {
+          "kind": "file_literal",
+          "repo": "wizards-ai",
+          "file": "listing_image_jobs.py",
+          "literal": "flatfilepro-account.mjs"
+        }
+      ],
+      "docs": [
+        {
+          "repo": "wizards-ai",
+          "path": "docs/bulk-listing-images-setup.md",
+          "note": "Current rollout policy and historical test evidence."
+        }
+      ],
+      "verified_on": "2026-09-16",
+      "notes": "MAIN, swatches and unspecified slots remain unchanged. Authenticate sources, freeze revisions and assets, verify complete requested coverage and prevent overlapping submissions. Existing submitted operations reconcile without resubmission. The legacy Seller Central gallery executor remains disabled."
     },
     {
       "id": "cases.create-reply",
