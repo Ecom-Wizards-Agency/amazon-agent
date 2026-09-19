@@ -333,11 +333,16 @@ def protect_profile() -> None:
         # A custom profile may sit under /tmp or another shared directory whose
         # permissions this process neither owns nor should change.
         if parent_created or parent == Path.home() / ".amazon-agent":
-            acl = broker_traverse_acl(parent) if not parent_created else None
+            try:
+                acl = broker_traverse_acl(parent) if not parent_created else None
+                if acl is not None:
+                    os.setxattr(parent, "system.posix_acl_access", acl)
+            except Exception as exc:
+                print(f"Warning: browser-root ACL rebuild failed ({type(exc).__name__}); falling back to chmod 0700",
+                      file=sys.stderr)
+                acl = None
             if acl is None:
                 os.chmod(parent, 0o700)
-            else:
-                os.setxattr(parent, "system.posix_acl_access", acl)
         os.chmod(PROFILE, 0o700)
 
 

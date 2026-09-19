@@ -1,6 +1,7 @@
 """Filesystem regression tests; no browser or authentication process is started."""
 import errno
 import importlib.util
+import io
 import os
 import shutil
 import stat
@@ -108,6 +109,31 @@ class LauncherPermissionsTests(unittest.TestCase):
         self.launcher.protect_profile()
         self.assertEqual((self.acl(shared), stat.S_IMODE(shared.stat().st_mode)), before)
         self.assertEqual(stat.S_IMODE(self.launcher.PROFILE.stat().st_mode), 0o700)
+
+    def test_malformed_acl_version_falls_back_to_private_permissions(self):
+        self.profile.mkdir()
+        os.chmod(self.parent, 0o777)
+        os.chmod(self.profile, 0o777)
+        malformed_acl = struct.pack("<I", 3) + access_acl()[4:]
+        with patch.object(os, "getxattr", return_value=malformed_acl), \
+                patch("sys.stderr", new_callable=io.StringIO) as stderr:
+            self.launcher.protect_profile()
+        self.assertEqual(stat.S_IMODE(self.parent.stat().st_mode), 0o700)
+        self.assert_private_profile()
+        self.assertEqual(len(stderr.getvalue().splitlines()), 1)
+        self.assertIn("RuntimeError", stderr.getvalue())
+
+    def test_getxattr_eacces_falls_back_to_private_permissions(self):
+        self.profile.mkdir()
+        os.chmod(self.parent, 0o777)
+        os.chmod(self.profile, 0o777)
+        with patch.object(os, "getxattr", side_effect=OSError(errno.EACCES, "Permission denied")), \
+                patch("sys.stderr", new_callable=io.StringIO) as stderr:
+            self.launcher.protect_profile()
+        self.assertEqual(stat.S_IMODE(self.parent.stat().st_mode), 0o700)
+        self.assert_private_profile()
+        self.assertEqual(len(stderr.getvalue().splitlines()), 1)
+        self.assertIn("PermissionError", stderr.getvalue())
 
     def test_new_private_root_has_no_automatically_installed_broker_acl(self):
         self.parent.rmdir()
