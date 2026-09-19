@@ -55,6 +55,8 @@ For creating or editing variation families (parentage) or any targeted flat-file
 
 ## Brand Store Updates
 
+Store build/update draft work is enabled for current managed-ready clients. A concrete authenticated team request binds the account, frozen plan and assets and authorizes execution without a second Victor approval. New active/onboarding clients inherit eligibility once identity and connections resolve; pauses, revocations, offboarding and reporting-only restrictions remain effective. Slack requests use `wizards-ai/store_requests.py`; Merlin remains disabled. Submit, schedule and publish remain separate actions.
+
 For Brand Store audits, corrections and builds, load
 [references/brand-store-updates.md](references/brand-store-updates.md). For module
 selection, Figma translation, crops and mobile composition, also load the team
