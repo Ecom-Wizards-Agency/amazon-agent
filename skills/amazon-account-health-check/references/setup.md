@@ -17,6 +17,7 @@ Required setup values:
 - `{escalation_owner}`: the person who receives true escalations only. Record their chat member ID and task-system person ID. Mention them only on escalation lines, never on clean runs.
 - `{supervisor}`: optional strategic supervisor who receives a weekly digest instead of daily output. Record their chat member ID.
 - `{findings_ledger_path}`: local path of the private findings ledger JSON, stored next to the automation, never in the repo or GitHub.
+- `{findings_projection_command}`: the exact command that returns the open findings of one region as a compact JSON array, and the same command's single-finding form. Step 0 reads the ledger only through it. Record both forms, including how the region and the finding key are passed.
 - `{preferred_browser}`: the operator's locally saved browser preference for all live runs - the built-in in-app browser, or a Chromium browser connected through the browser extension (such as Chrome or Brave). The non-preferred approved browser is the fallback.
 - `{schedule}` and `{timezone}`: optional local recurring automation schedule.
 
