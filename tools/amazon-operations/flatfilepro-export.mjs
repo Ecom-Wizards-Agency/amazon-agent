@@ -14,6 +14,8 @@ import { durableReceipt, reserveSubmission } from './flatfilepro-contracts.mjs';
 import * as ui from './browser-ui.mjs';
 
 export const MARKER_EXPIRY_MS=24*60*60*1000;
+// The exact browser-ui context failure; matched verbatim, never by substring.
+export const CONTEXT_UNVERIFIED='Exact selected account/marketplace cannot be verified against live IDs or a uniquely bound registry label';
 
 const EXPORT_ORIGIN='https://ffp-export.s3.us-east-2.amazonaws.com';
 const NAME=/^all-(\d{4})-(\d{2})-(\d{2})-(\d{2})-(\d{2})-(\d{2})-(\d{3})\.xlsx$/;
@@ -49,8 +51,13 @@ export function selectCompletedExport(state,marker,account,minimumAfter,at=Date.
   }
   ui.check(candidates.length<=1,'More than one new FFP export matches this request; do not guess');
   if(!candidates.length)return null;
+  // The completion notice is a transient toast, so a resumed page never shows it again.
+  // Whenever the page still carries one it must name this exact seller and marketplace; a notice
+  // for other IDs is never acceptable. With no notice at all, the single candidate stays bound by
+  // what a resume can still verify: the public bucket and exact /<seller>-<marketplace>/ path from
+  // validateExportLink, the marker's before_names and the filename timestamp checked above.
   const notices=[...state.text.matchAll(/Export of listings complete for ([A-Z0-9]+) on marketplace ([A-Z0-9]+), download it now\./g)];
-  ui.check(notices.some(m=>m[1]===account.seller_id&&m[2]===account.marketplace_id),'FFP export completion does not confirm the exact seller and marketplace');
+  ui.check(!notices.length||notices.some(m=>m[1]===account.seller_id&&m[2]===account.marketplace_id),'FFP export completion does not confirm the exact seller and marketplace');
   return candidates[0];
 }
 
@@ -85,6 +92,20 @@ export async function collect(input,dependencies={}) {
   const acquire=dependencies.acquire||acquireTaskPage,release=dependencies.release||releaseTaskPage;
   const read=dependencies.read||exportsState,click=dependencies.click||ui.clickFlatFilePro,download=dependencies.download||fetchExport;
   const at=dependencies.now||(()=>Date.now());
+  // The click re-renders the exports page with its completion toast, which briefly hides the
+  // 'Seller & Marketplace' selector value. Retry that exact verification failure, as
+  // catalog-export.mjs does after navigation; every other failure still blocks immediately.
+  // Only reads that follow the click use this; the read gating the click stays strict.
+  const readAfterClick=async(session,account,{timeoutMs=15000,intervalMs=500}={})=>{
+    const end=Date.now()+timeoutMs;
+    for(;;) {
+      try{return await read(session,account);}
+      catch(error){
+        if(error.message!==CONTEXT_UNVERIFIED||Date.now()>=end)throw error;
+        await new Promise(done=>setTimeout(done,intervalMs));
+      }
+    }
+  };
   const taskSpec={closeOnFailure:input.close_tab_after===true,taskId:taskIdFor('amazon-operations',input.task_key || input.operation_id),slot:'ffp-export',workflow:'amazon-flatfilepro',initialUrl:'https://app.flatfile.pro/exports',exclusiveContext:true};
   const onSigterm=async()=>{
     if(page?._released)return;
@@ -109,14 +130,14 @@ export async function collect(input,dependencies={}) {
         return {...common,...marker.result,status:'collected',observed_at:new Date(at()).toISOString()};
       }
     }
-    const persistRequest=async(reserve=false)=>{
+    const persistRequest=async(reserve=false,afterClick=false)=>{
       const targetId=page.targetId;
       releasedPage=page;
       await release(page,{outcome:'success'});page=null;
       if(reserve)await reserveSubmission(markerPath,marker);else await durableReceipt(markerPath,marker);
       page=await acquire({...taskSpec,expectedTargetId:targetId});releasedPage=null;
       ui.check(isDeepStrictEqual(JSON.parse(await readFile(markerPath,'utf8')),marker),'FFP export reservation changed during receipt write');
-      return read(page.session,input.account);
+      return afterClick?readAfterClick(page.session,input.account):read(page.session,input.account);
     };
     page=await acquire(taskSpec);
     await page.session.send('Page.navigate',{url:'https://app.flatfile.pro/exports'});
@@ -136,7 +157,7 @@ export async function collect(input,dependencies={}) {
       // The marker survives a lost click response. Resume observes, never clicks again.
       try {await click(page.session,'EXPORT ALL LISTINGS');}
       catch(error){outcome='success';return {...common,status:'processing',reason:'ffp_export_request_outcome_unknown',message:error.message,report_request:markerPath,observed_at:new Date(at()).toISOString()};}
-      marker.state='requested';state=await persistRequest();
+      marker.state='requested';state=await persistRequest(false,true);
     }
     let selected=selectCompletedExport(state,marker,input.account,input.minimum_after,at());
     if(!selected&&!dependencies.read){

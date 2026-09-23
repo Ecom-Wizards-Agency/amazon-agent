@@ -5,7 +5,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import fsPromises from 'node:fs/promises';
 import { syncBuiltinESMExports } from 'node:module';
-import { collect, exportDate, selectCompletedExport, validateExportLink } from '../flatfilepro-export.mjs';
+import * as ui from '../browser-ui.mjs';
+import { CONTEXT_UNVERIFIED, collect, exportDate, selectCompletedExport, validateExportLink } from '../flatfilepro-export.mjs';
 
 const account={seller_id:'SELLER1',marketplace_id:'MARKET1',marketplace:'DE'};
 const OLD='all-2026-09-12-01-02-03-000.xlsx',FRESH='all-2026-09-13-12-55-22-631.xlsx';
@@ -63,6 +64,19 @@ test('old files cannot substitute for this completed export',()=>{
   assert.equal(selectCompletedExport(complete,{...marker,before_names:[OLD,FRESH]},account,marker.requested_at,at),null);
   assert.throws(()=>selectCompletedExport({...complete,text:notice.replace(account.marketplace_id,'OTHER')},marker,account,marker.requested_at,at),/completion/);
   assert.throws(()=>selectCompletedExport({...complete,links:[...complete.links,link('all-2026-09-13-12-55-23-000.xlsx')]},marker,account,marker.requested_at,at),/More than one/);
+});
+
+test('a resumed page keeps the export bound after the transient completion notice is gone',()=>{
+  const at=Date.parse('2026-09-13T12:56:00Z');
+  // The toast is gone on every resumed page; path, before_names and freshness still bind the file.
+  assert.equal(selectCompletedExport({...complete,text:'Exports EXPORT ALL LISTINGS'},marker,account,marker.requested_at,at).name,FRESH);
+  // With no notice the path is the only account gate left, so it must still reject a foreign file.
+  for(const href of [link(FRESH).href.replace(account.seller_id,'OTHER'),link(FRESH).href.replace(account.marketplace_id,'OTHER'),link(FRESH).href.replace('ffp-export.s3.us-east-2.amazonaws.com','evil.example')])
+    assert.throws(()=>selectCompletedExport({...complete,text:'Exports',links:[{name:FRESH,href}]},marker,account,marker.requested_at,at),/exact seller\/marketplace path/);
+  for(const other of [notice.replace(account.seller_id,'OTHER'),notice.replace(account.marketplace_id,'OTHER'),'Exports '+notice.replace(account.seller_id,'OTHER')])
+    assert.throws(()=>selectCompletedExport({...complete,text:other},marker,account,marker.requested_at,at),/does not confirm the exact seller and marketplace/);
+  assert.equal(selectCompletedExport(complete,marker,account,marker.requested_at,at).name,FRESH);
+  assert.equal(selectCompletedExport({...complete,links:[link(OLD)],text:'Exports'},marker,account,marker.requested_at,at),null);
 });
 
 async function fixture(t) {
@@ -166,4 +180,67 @@ test('S18 download failure keeps all claims released and never reacquires or wri
   const result=await collect({...input,close_tab_after:true},dependencies);
   assert.equal(result.status,'blocked');assert.match(result.message,/S3 unavailable/);
   assert.equal(facts.acquires,3);assert.equal(facts.releases,3);
+});
+
+test('a requested marker resumes to collected from a page that no longer shows the notice',async t=>{
+  const {directory,input,facts,dependencies}=await fixture(t);
+  await writeFile(join(directory,'ffp-export-request.json'),JSON.stringify({schema_version:1,account,plan_hash:input.plan_hash,
+    minimum_after:input.minimum_after,requested_at:marker.requested_at,before_names:[OLD],state:'requested'}));
+  facts.time=Date.parse('2026-09-13T12:55:23Z');
+  dependencies.read=async()=>{facts.reads++;return {...complete,text:'Exports EXPORT ALL LISTINGS'};};
+  const result=await collect(input,dependencies);
+  assert.equal(result.status,'collected');assert.equal(result.report_generated_at,'2026-09-13T12:55:22.631Z');
+  assert.equal(facts.clicks,0);assert.equal(facts.downloads,1);assert.equal(facts.acquires,facts.releases);
+  assert.equal(JSON.parse(await readFile(join(directory,'ffp-export-request.json'),'utf8')).state,'downloaded');
+});
+
+test('a transient context re-render right after the click is retried, never re-clicked',async t=>{
+  const {directory,input,facts,dependencies}=await fixture(t),read=dependencies.read;
+  let unverified=0;
+  dependencies.read=async(...args)=>{
+    if(facts.clicks===1&&unverified<2){unverified++;throw new Error(CONTEXT_UNVERIFIED);}
+    return read(...args);
+  };
+  const result=await collect(input,dependencies);
+  assert.equal(result.status,'collected');assert.equal(unverified,2);
+  assert.equal(facts.clicks,1);assert.equal(facts.downloads,1);assert.equal(facts.acquires,facts.releases);
+  const saved=JSON.parse(await readFile(join(directory,'ffp-export-request.json'),'utf8'));
+  assert.equal(saved.state,'downloaded');assert.equal(saved.sha256,result.sha256);
+});
+
+test('another failure right after the click still blocks without a second click',async t=>{
+  const {input,facts,dependencies}=await fixture(t),read=dependencies.read;
+  dependencies.read=async(...args)=>{if(facts.clicks===1)throw new Error('Task control lost');return read(...args);};
+  const result=await collect(input,dependencies);
+  assert.equal(result.status,'blocked');assert.match(result.message,/Task control lost/);
+  assert.equal(facts.clicks,1);assert.equal(facts.downloads,0);assert.equal(facts.acquires,facts.releases);
+});
+
+test('the retried context message is exactly the one the live account check throws',async()=>{
+  // CONTEXT_UNVERIFIED is only useful if it still equals what browser-ui throws; drifting wording
+  // would turn the post-click retry into a silent no-op and bring the resumed-export defect back.
+  const ffp={...account,flatfilepro_display_name:'Example Seller',marketplace_label:'Germany',
+    context_binding:{seller_id:account.seller_id,marketplace_id:account.marketplace_id,unique_label_mapping:true}};
+  const session=contexts=>({assertTaskControl:async()=>{},
+    send:async method=>method==='Runtime.evaluate'?{result:{value:{url:'https://app.flatfile.pro/exports',text:'Exports',contexts,contextTokens:[]}}}:{}});
+  assert.equal((await ui.context(session(['Seller & Marketplace Example Seller']),ffp,'ffp')).url,'https://app.flatfile.pro/exports');
+  await assert.rejects(ui.context(session(['Seller & Marketplace Other Seller']),ffp,'ffp'),error=>error.message===CONTEXT_UNVERIFIED);
+});
+
+// Only reads that follow the click are tolerant. A build that also retried the reads gating
+// EXPORT ALL LISTINGS would reach 'collected' with one click in both stages below.
+for(const stage of ['first','reservation'])test(`a context failure before the export click blocks without clicking, stage=${stage}`,async t=>{
+  const {directory,input,facts,dependencies}=await fixture(t),read=dependencies.read;
+  let thrown=false;
+  dependencies.read=async(...args)=>{
+    if(!thrown&&facts.acquires===(stage==='first'?1:2)){thrown=true;throw new Error(CONTEXT_UNVERIFIED);}
+    return read(...args);
+  };
+  const result=await collect(input,dependencies);
+  assert.equal(thrown,true);
+  assert.equal(result.status,'blocked');assert.equal(result.message,CONTEXT_UNVERIFIED);
+  assert.equal(facts.clicks,0);assert.equal(facts.downloads,0);assert.equal(facts.acquires,facts.releases);
+  // A failure at the reservation read keeps the unclicked marker; the next pass observes, never clicks.
+  if(stage==='first')await assert.rejects(readFile(join(directory,'ffp-export-request.json'),'utf8'),{code:'ENOENT'});
+  else assert.equal(JSON.parse(await readFile(join(directory,'ffp-export-request.json'),'utf8')).state,'request_outcome_unknown');
 });
