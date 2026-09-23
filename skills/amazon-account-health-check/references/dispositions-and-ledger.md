@@ -30,6 +30,8 @@ Dispositions are the workflow's internal routing layer: they decide what happens
 - **Waiting**: action taken, now pending an external party (marketplace case reply, client documents, reinstatement review). Update the task with who it waits on and since when; set the task status to the closest waiting/blocked status the database offers. Owner stays `{daily_runner}`.
 - **Escalate**: meets an escalation trigger. Task assigned to `{escalation_owner}` at the highest priority. The digest picks the finding up from the ledger and carries it, so no post is needed from the run. Post an immediate one-line escalation only when it cannot wait for the digest (deactivation warning, policy deadline inside 3 days, high-severity finding with no owner), and then set `last_reported` so the digest does not repeat it. Format in `output-and-tasks.md`.
 
+`offboarded` and `out_of_scope` are lifecycle closures written only by the ledger maintenance command when a client leaves or is taken out of the scheduled checks; a check run never sets them and never re-opens a finding that carries one.
+
 Escalation triggers (exhaustive - everything else defaults to `{daily_runner}`):
 
 - account deactivation/suspension or an explicit deactivation warning

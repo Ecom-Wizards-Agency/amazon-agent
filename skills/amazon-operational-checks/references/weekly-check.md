@@ -15,7 +15,7 @@ Run accounts in the configured stable regional order. Re-check open weekly findi
    - Confirmation source for a fee change is Amazon's own Referral Fee Preview report (`sc_vla_referral_fee_preview_report_0313`). Fetch it headlessly with `tools/report-fetcher/run.mjs` (`--report inventory --report-type sc_vla_referral_fee_preview_report_0313`). Keepa is the daily tripwire; that report is what settles it.
    - Use Sellerboard only as a confirmation-only second opinion on a specific finding when needed. It never originates a finding.
    - Do not perform a manual Seller Central Fee Preview sample.
-   - Coverage limit, state it rather than hide it: Keepa only sees ASINs registered in a profile's `monitoring` block. As of 12.08.2026 that covers 13 of 15 active profiles and 856 ASINs. The two large clothing catalogues (Kabooki DE and JBS DE) are monitored at parent level rather than per variant, so a change on a child variant alone is not seen. An unregistered ASIN is a coverage gap, not a clean account. Report it as a gap.
+   - Coverage limit, state it rather than hide it: Keepa only sees ASINs registered in a profile's `monitoring` block. As of 23.09.2026 that covers 11 of 17 active profiles and 328 ASINs. The large clothing catalogue (JBS DE) is monitored at parent level rather than per variant, so a change on a child variant alone is not seen. Kabooki DE was removed from monitoring and from the scheduled checks on 23.09.2026 and is not a coverage gap. An unregistered ASIN is a coverage gap, not a clean account. Report it as a gap.
 9. Match every actionable item to an open task using account, marketplace, issue type, and ASIN, shipment ID, or review URL. Update the existing task when matched.
 
 ## Completion
