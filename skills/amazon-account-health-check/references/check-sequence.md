@@ -2,7 +2,7 @@
 
 ## Check Sequence
 
-Step 0 of every run, before any new checks: re-check open findings. Load `{findings_ledger_path}` and the open follow-up tasks it links for in-scope accounts. Every open finding gets re-verified in Seller Central during its account's check and re-disposed (see dispositions-and-ledger.md) - the run starts by answering "what was still open yesterday, and what is its status today?", not by looking for new issues.
+Step 0 of every run, before any new checks: re-check open findings. Read them through the ledger's own compact projection - one JSON array of the open findings for this run's region, carrying key, account, marketplace, issue type, summary, severity, disposition, deadline, last movement and next step - plus the open follow-up tasks it links for in-scope accounts. Never open, print or serialize `{findings_ledger_path}` itself: it is mostly closed history and dumping it spends the context the sweep needs. When one finding needs its full notes and evidence, ask the projection for that single key. The scheduled runner names its exact command in its own instructions. Every open finding gets re-verified in Seller Central during its account's check and re-disposed (see dispositions-and-ledger.md) - the run starts by answering "what was still open yesterday, and what is its status today?", not by looking for new issues.
 
 Process account-marketplaces by region in this order:
 
