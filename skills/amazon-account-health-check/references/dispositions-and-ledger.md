@@ -41,6 +41,191 @@ Escalation triggers (exhaustive - everything else defaults to `{daily_runner}`):
 - a hard marketplace deadline within 48 hours that is not already handled
 - Seller Central login/MFA blockers after both approved browsers were tried
 
-Severity maps to default routing: Critical findings are escalation candidates; High and Medium route to `{daily_runner}`; Low is No action needed unless recurring.
+### How The Triggers Are Read
+
+T1 to T6 are the six triggers above, in order. These readings settle the cases that were applied unevenly before the table below existed.
+
+- **T1 deactivation.** Amazon says the account, a marketplace store, or a selling privilege (seller-fulfilled offers, a store's selling access) is deactivated, suspended or restricted, or warns in writing that it may be. A listing or offer that is removed, suppressed, deactivated for a pricing error, or "at risk of removal" is not T1. Neither is a warning about an inbound or fulfilment program such as optimized placement.
+- **T2 stop-before-risk decision.** The next step is an appeal, acknowledgement, support reply, claim response or upload whose content commits the seller beyond supplying facts Amazon asked for: an admission, a root-cause and corrective-action plan, statements about the seller's own conduct, or accepting a claim, violation, removal or disposal instead of contesting it. Gathering and submitting requested documents (certificates, test, inspection or product-verification reports, safety data sheets, GPSR details, invoices, proof of delivery, tracking) is not T2, and neither is an appeal built only from such documents. Those still stop before the submit for the operator's approval under the Hard Rules; that approval is not an escalation.
+- **T3 identity, bank, tax or verification.** Amazon asks the seller to verify or supply its own identity, business, bank or payment, tax or VAT, or account-contact information, INFORM certification and the emergency contact included. It applies in any marketplace the seller account reaches, including one outside the profile's marketplace. Product verification (GMP, third-party testing and inspection, safety documents) is product compliance, not T3.
+- **T4 legal, IP or counterfeit.** A rights owner, an authority or Amazon alleges infringement, inauthenticity or a legal violation against the seller, or the next step is filing such a claim against another seller.
+- **T5 deadline and T6 login/MFA** are rules about a date and about the browser, not about the issue type. They apply to every row below as written above and outrank its default. The table does not restate them, and a finding escalated under T5 or T6 is not a departure from the table.
+- **Metric versus target.** Whether an order or delivery metric is above or below target is read from Amazon's own target and status on the page. The thresholds are Amazon's and the runner's, not this table's. A metric row escalates only on T1 wording.
+
+### Default Disposition By Issue Type
+
+Every finding starts from the default of its `issue_type` in the tables below. For a listed type the table outranks the severity line: severity sets task priority, never the disposition.
+
+Defaults:
+
+- **Escalate**: the type is itself a trigger.
+- **Runner**: routes to `{daily_runner}`. Action needed on first sight, then Assigned or Waiting as the task moves. Moving among those three is the normal lifecycle, not a departure.
+- **No action**: informational; no task.
+
+A finding verified resolved in Seller Central becomes No action with `resolved_date` under any default. That is resolution, not an override.
+
+A finding leaves its default only through one of these overrides, and only on evidence seen in this run. When that evidence holds, the override applies; the default is not a choice to keep:
+
+- `esc`: Escalate when this finding carries evidence of T1 to T4. Name the trigger and the Amazon label or wording that carries it.
+- `cov`: No action when another open finding on the same account already tracks the cause. Name that finding's issue type and scope.
+- `expl`: No action when a verified, intended state explains the signal: a parent ASIN, a closed or discontinued offer, a stock-out the client confirmed as planned.
+- `floor`: No action below the materiality floor that the market-signal worker or the owning weekly check applies (for any rating finding, the review-count floor the worker uses for the displayed star), or when that check's confirmation source (Amazon's Referral Fee Preview report, for fees) does not confirm the change. The floors live in that code and skill, not here.
+- `wait`: Escalate types only. Waiting once the escalation owner's decision has been carried out, or none is needed, and only Amazon's dated review or reply remains. Fill `waiting_on` and `waiting_since`. Return to Escalate on any new warning, rejection or missed date.
+- `scope`: `store_deactivated_indicator` only. Runner when the page shows the deactivated store belongs to a marketplace the client does not sell in and no T3 request is attached, to confirm the client's intent.
+- `mon`: `market_not_monitored` only. Runner when the profile enables monitoring but no ASIN is covered.
+- `own`: `price_changed` and its cluster only. Runner when the client did not set the new price.
+
+Record every override on the finding itself as one dated line in `notes`: `DD.MM.YYYY disposition override <code>: default <default>, set <disposition>; <evidence seen this run>`. Re-check that evidence on every verifying run. When it no longer holds, return to the default and add a line in the same form saying so. A departure without that line disagrees with the table: the next run writes the line if the evidence still holds, and restores the default if it does not.
+
+Where a row lists aliases, older findings keep their existing key and are updated under it; a new finding uses the first name. For a type the table does not list, reuse the listed type that describes the same Amazon label before minting a new one. If none fits, route it by the severity line and name the new type among the finish note's blockers, so the table gets a row.
+
+Account status, identity and seller conduct:
+
+| issue_type | Default | Trigger | Override |
+|---|---|---|---|
+| `account_information_deactivation_risk` | Escalate | T1, T3 | `wait` |
+| `account_information_verification` | Escalate | T3 | `wait` |
+| `inform_act_certification` | Escalate | T3 | `wait` |
+| `emergency_contact_unverified` | Escalate | T3 | `wait` |
+| `european_vat_registration_requirements` | Escalate | T3 | `wait` |
+| `store_deactivated_indicator` | Escalate | T1 | `wait`, `scope` |
+| `customer_reviews_policy_violation` | Escalate | T1, T2 | `wait` |
+| `policy_warning_notice` | Runner | none | `esc` |
+| `policy_compliance_priority_actions` (account-level summary; each priority action is also its own finding) | Runner | none | `esc`, `cov` |
+| `brand_registry_access` | Runner | none | `esc` |
+
+Order, delivery and buyer-contact metrics:
+
+| issue_type | Default | Trigger | Override |
+|---|---|---|---|
+| `odr_deactivation_warning` | Escalate | T1 | `wait` |
+| `late_shipment_rate_deactivation_risk` | Escalate | T1 | `wait` |
+| `otdr_deactivation_risk` | Escalate | T1 | `wait` |
+| `otdr_vtr_deactivation_risk` | Escalate | T1 | `wait` |
+| `late_shipment_rate_above_target` | Runner | none | `esc` |
+| `on_time_delivery_below_target` | Runner | none | `esc` |
+| `on_time_delivery_declining` | Runner | none | `esc` |
+| `valid_tracking_rate_below_target` | Runner | none | `esc` |
+| `buyer_messages_over_target` | Runner | none | `esc` |
+| `messages_pending_response` | Runner | none | `esc` |
+| `chargebacks_pending_review` | Runner | none | `esc` |
+| `atoz_nonreceipt_claim` | Runner | none | `esc` |
+
+Product compliance and listing policy:
+
+| issue_type | Default | Trigger | Override |
+|---|---|---|---|
+| `food_safety_gmp_certification` | Runner | none | `esc` |
+| `food_safety_skin_lightening` | Runner | none | `esc` |
+| `chemical_safety_compliance` | Runner | none | `esc` |
+| `gpsr_warning_safety_information` | Runner | none | `esc` |
+| `gpsr_compliance_submissions` | Runner | none | `esc` |
+| `gpsr_safety_warning_cluster` | Runner | none | `esc`, `cov` |
+| `epr_packaging_submission` | Runner | none | `esc` |
+| `fic_information_requested` | Runner | none | `esc` |
+| `product_safety_issue` | Runner | none | `esc` |
+| `product_safety_priority_actions` | Runner | none | `esc`, `cov` |
+| `restricted_product_policy_violation` (aliases `restricted_product_policy_violations`, `restricted_products_policy_violations`) | Runner | none | `esc` |
+| `category_approval_required` | Runner | none | `esc` |
+| `product_detail_page_warning` | Runner | none | `esc` |
+| `product_condition_complaint` | Runner | none | `esc` |
+| `merchant_fulfilled_listing_investigations` | Runner | none | `esc` |
+| `investigation_case` | Runner | none | `esc` |
+| `automated_recall_disposal` | Runner | none | `esc` |
+| `transparency_unsellable_inventory` | Runner | none | `esc` |
+| `reseller_removal` | Runner | none | `esc` |
+| `fair_pricing_policy_violation` | Runner | none | `esc` |
+| `pricing_error_deactivated_offers` | Runner | none | `esc`, `expl` |
+| `bundle_featured_offer_pricing_restrictions` | Runner | none | `esc` |
+| `price_error_listings` | Runner | none | `expl` |
+| `removed_detail_pages` | Runner | none | `esc`, `cov` |
+| `subscribe_save_reinstatement` | Runner | none | `esc` |
+| `prime_eligibility_change_notification` | Runner | none | `esc` |
+| `optimized_placement_suspension_warning` | Runner | none | `esc` |
+
+Listings, inventory, shipments and cases:
+
+| issue_type | Default | Trigger | Override |
+|---|---|---|---|
+| `inactive_listings` | Runner | none | `cov`, `expl` |
+| `inactive_out_of_stock` | Runner | none | `cov`, `expl` |
+| `active_zero_available` | Runner | none | `cov`, `expl` |
+| `out_of_stock` | Runner | none | `cov`, `expl` |
+| `low_available_stockout_risk` | Runner | none | `cov`, `expl` |
+| `no_active_listings` | Runner | none | `cov`, `expl` |
+| `missing_offer` | Runner | none | `cov`, `expl` |
+| `monitored_asin_not_listed` | Runner | none | `cov`, `expl` |
+| `search_suppressed_listings` | Runner | none | `cov`, `expl` |
+| `stranded_inventory` | Runner | none | `cov`, `expl` |
+| `stranded_listing_error` | Runner | none | `cov`, `expl` |
+| `reserved_inventory_sellable_stockout` | Runner | none | `cov`, `expl` |
+| `listing_availability_collapse` | Runner | none | `esc`, `cov` |
+| `featured_offer_drop` | Runner | none | `cov`, `expl` |
+| `featured_offer_high_price` | Runner | none | `cov`, `expl` |
+| `featured_offer_ineligible_uncompetitive_price` | Runner | none | `cov`, `expl` |
+| `featured_offer_share_low` | Runner | none | `cov`, `expl` |
+| `barcode_defect_manual_review` | Runner | none | `cov` |
+| `carton_defect_manual_review` | Runner | none | `cov` |
+| `inbound_receipt_reconciliation` | Runner | none | `cov` |
+| `inbound_shipment_missing_tracking` | Runner | none | `cov` |
+| `inbound_shipment_stalled` | Runner | none | `cov` |
+| `shipment_problems` | Runner | none | `cov` |
+| `support_cases_needing_attention` | Runner | none | `esc`, `cov` |
+| `open_case_requiring_attention` | Runner | none | `esc`, `cov` |
+| `performance_notification_unread` (read it; its content becomes a finding of its own type) | Runner | none | `esc`, `cov` |
+
+Market signals and listing watch (observations, not verified Seller Central state):
+
+| issue_type | Default | Trigger | Override |
+|---|---|---|---|
+| `buybox_lost` | Runner | none | `cov`, `expl`, `esc` |
+| `buybox_loss_cluster` | Runner | none | `cov`, `expl`, `esc` |
+| `bsr_degradation` | No action | none | none; a verified cause becomes a finding of its own type |
+| `bsr_degradation_cluster` | No action | none | none; a verified cause becomes a finding of its own type |
+| `bsr_competitor_proximity` (cannot fire while no competitor ASIN is registered) | Runner | none | `floor` |
+| `rating_drop` | Runner | none | `floor`, `cov` |
+| `rating_display_dropped` | Runner | none | `floor`, `cov` |
+| `rating_display_improved` | No action, never written to the ledger (check-sequence.md) | none | none |
+| `reviews_disappeared` | Runner | none | `floor`, `cov` |
+| `reviews_disappeared_cluster` | Runner | none | `floor`, `cov` |
+| `browse_node_changed` | No action | none | none |
+| `browse_node_change_cluster` | No action | none | none |
+| `root_category_changed` | Runner | none | `expl` |
+| `price_changed` | No action | none | `own` |
+| `price_change_cluster` | No action | none | `own` |
+| `fba_fee_changed` (alias `fba_fee_change`) | Runner | none | `floor` |
+| `fba_fee_change_cluster` | Runner | none | `floor` |
+| `referral_fee_changed` | Runner | none | `floor` |
+| `referral_fee_change_cluster` | Runner | none | `floor` |
+| `package_dimensions_changed` (alias `package_measurement_changed`) | Runner | none | `floor` |
+| `package_weight_changed` (alias `package_weight_change`) | Runner | none | `floor` |
+| `package_measurement_change_cluster` | Runner | none | `floor` |
+| `listing_content_changed` | Runner | none | `cov`, `expl` |
+
+The weekly operational check (`amazon-operational-checks`) confirms fee, package dimension and package weight findings and owns their task; the daily run links that task instead of opening a second one.
+
+Coverage and workflow gaps (the digest reports these as coverage gaps, not account problems):
+
+| issue_type | Default | Trigger | Override |
+|---|---|---|---|
+| `market_not_monitored` | No action | none | `mon` |
+| `market_data_not_covered` | Runner | none | none |
+| `keepa_rate_limited` | Runner | none | none |
+| `market_signal_findings_overwritten` | Runner | none | none |
+| `market_state_findings_overwritten` | Runner | none | none |
+| `sellersonar_stale_source` (retired source; never create) | No action | none | none |
+| `buybox_check_disabled_missing_seller_id` | Runner | none | none |
+| `homepage_widgets_unreadable` | Runner | none | none |
+| `inventory_status_counts_unreadable` | Runner | none | none |
+| `check_label_form_wrong_domain` | Runner | none | none |
+| `account_name_mismatch` | Runner | none | none |
+| `account_not_in_switcher` | Runner | T6 when it blocks login | none |
+| `europe_session_logged_out`, `us_session_logged_out`, `rest_session_logged_out` | Runner | T6 | none |
+| `read_browser_not_driveable` | Runner | T6 | none |
+| `seller_central_access_blockers` | Runner | T6 | none |
+
+For an issue type the tables do not list, severity maps to default routing: Critical findings are escalation candidates; High and Medium route to `{daily_runner}`; Low is No action needed unless recurring.
+
+### Degraded Run
 
 Degraded run (Seller Central blocked in both approved browsers): write the ledger under the carry-forward rule and write the coverage entry for the region with `checked: 0` and the blocked accounts in `skipped`. Carry every unverified finding forward untouched: never re-dispose it, never mark it resolved, and never restate it as verified today. Report the login blocker in the finish note, and post nothing beyond an immediate escalation if the blocker itself meets that bar. There is no queue post to fall back on, so a degraded run is visible through its coverage entry and the digest's pending count, not through a post.
