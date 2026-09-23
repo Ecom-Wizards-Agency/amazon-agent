@@ -41,3 +41,4 @@ Rules:
 - Record the country/region on every finding, and use it as the region key of the run's coverage entry, so the digest can group and count by region.
 - Do not use or display `Fulfillment Method` in the daily account-health workflow.
 - Skip profiles missing `{seller_central_name_field}` or `{marketplace_field}` and list them under blockers.
+- Exclude any profile the account source marks as out of scope for scheduled checks. Such a profile is not counted in `in_scope`, is not in the checked list, and is not in `skipped`; its existing findings are carried forward untouched.
