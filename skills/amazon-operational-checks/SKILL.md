@@ -23,7 +23,7 @@ Keep this skill dormant by default. Loading or installing it must never create a
 
 Use the running runtime's native automation manager for activation, pause, resume, inspection, or deletion. Find the current project ID first and prefer updating a matching automation over creating a duplicate. Do not emulate recurring schedules with local cron files or background processes.
 
-**Codex.** That manager is the Codex app automation manager; use it for activation, pause, resume, inspection, or deletion.
+**Codex.** That manager is the Codex app automation manager.
 
 ## Run Boundaries
 
