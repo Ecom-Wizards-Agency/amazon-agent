@@ -4,16 +4,19 @@ Use this reference for Product Opportunity Explorer / OEI / POE workflows that f
 
 ## Extraction Tool
 
-Repo-native extraction workflow:
+Use the repo-native API-first downloader when an export is needed: one `getNiche` call returns every niche-detail tab (overview, Products, Search Terms, Customer Review Insights positive+negative with snippets, Returns, trends); the keyword search returns the related-niches grid:
 
-- `tools/opportunity-explorer/extract-opportunity-explorer.js`
-- `tools/opportunity-explorer/format-opportunity-explorer-export.mjs`
+- `tools/opportunity-explorer/fetch-poe.js` (browser-side, same-origin GraphQL; window.amazonAgentFetchPoe*)
+- `tools/opportunity-explorer/format-poe.mjs` (local formatter, `--self-test`)
+- `tools/opportunity-explorer/run-poe.mjs` (one-command CDP runner; shares the report-fetcher debug Chrome)
+- Contract + verification: `tools/opportunity-explorer/references/poe-endpoints.md`, `poe-gap-matrix.md`
+- Deprecated DOM-scraping fallback: `extract-opportunity-explorer.js` + `format-opportunity-explorer-export.mjs`
 
-Original Chrome extension/source backup, as the operator's current local placeholder path:
+Original Chrome extension/source backup, as a local placeholder path:
 
 `<your-pcloud>/Account shares/Amazon Wizards/2_Company/2.7_Tools/Chrome Extension-Opportunity Explorer Downloader`
 
-The operator confirmed ownership and backend clearance for reusing the previous extension logic. The path is a historical/source reference only, not a repo dependency. The repo workflow is to run the browser-side extractor on the visible Product Opportunity Explorer page and save JSON/Markdown.
+The operator confirmed ownership and backend clearance for reusing the previous extension logic. The extension path is a historical/source reference only, not a repo dependency. The extension is not part of the intended workflow once the script is tested. Do not inspect cookies, session storage, local storage, tokens, or credentials while extracting OEI/POE data.
 
 ## Script-First Operating Model
 
