@@ -21,7 +21,9 @@ Keep this skill dormant by default. Loading or installing it must never create a
 | `Resume the operational checks` | Preview both schedules and next-run times, then resume only after explicit confirmation. Do not run immediately. |
 | `Show the operational checks setup` | Display state, accounts, destinations, schedules, automation IDs, and next-run times. Do not mutate anything. |
 
-Use the Codex app automation manager for activation, pause, resume, inspection, or deletion. Find the current project ID first and prefer updating a matching automation over creating a duplicate. Do not emulate recurring schedules with local cron files or background processes.
+Use the running runtime's native automation manager for activation, pause, resume, inspection, or deletion. Find the current project ID first and prefer updating a matching automation over creating a duplicate. Do not emulate recurring schedules with local cron files or background processes.
+
+**Codex.** That manager is the Codex app automation manager; use it for activation, pause, resume, inspection, or deletion.
 
 ## Run Boundaries
 

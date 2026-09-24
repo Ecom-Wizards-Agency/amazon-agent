@@ -138,19 +138,26 @@ def normalise_whitespace(text: str) -> str:
 
 
 def agents_md_contract_phrases(root: Path = ROOT) -> list[str]:
-    """The fixed contract phrases plus every rights-matrix literal pinned in AGENTS.md."""
+    """The fixed contract phrases plus every rights-matrix literal pinned in AGENTS.md.
+
+    Deduplicated by normalised text, first occurrence kept, so a phrase that is
+    both fixed here and pinned by the matrix is reported once when it drifts.
+    """
     phrases = list(CONTRACT_PHRASES)
     try:
         matrix = json.loads((root / "docs/rights/capability-matrix.json").read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
-        return phrases  # rights_matrix_errors reports the unreadable matrix
+        matrix = {}  # rights_matrix_errors reports the unreadable matrix
     for row in matrix.get("rows", []) if isinstance(matrix, dict) else []:
         for gate in row.get("gates", []) if isinstance(row, dict) else []:
             if (isinstance(gate, dict) and gate.get("kind") == "file_literal"
                     and gate.get("repo") == "amazon-agent" and gate.get("file") == "AGENTS.md"
                     and isinstance(gate.get("literal"), str) and gate["literal"].strip()):
                 phrases.append(gate["literal"])
-    return phrases
+    unique: dict[str, str] = {}
+    for phrase in phrases:
+        unique.setdefault(normalise_whitespace(phrase), phrase)
+    return list(unique.values())
 
 
 def agents_md_budget_errors(root: Path = ROOT) -> list[str]:
@@ -175,7 +182,7 @@ def agents_md_budget_errors(root: Path = ROOT) -> list[str]:
 def model_name_errors(root: Path = ROOT) -> list[str]:
     """Flag model ids, model families and runtime agent types in skill instructions."""
     errors: list[str] = []
-    paths = sorted(root.glob("skills/*/SKILL.md")) + sorted(root.glob("skills/*/references/*.md"))
+    paths = sorted(root.glob("skills/*/SKILL.md")) + sorted(root.glob("skills/*/references/**/*.md"))
     for path in paths:
         rel = path.relative_to(root)
         for lineno, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
@@ -493,8 +500,9 @@ def main() -> int:
     for rule in required_operating_rules:
         if rule not in agents_md:
             errors.append(f"AGENTS.md: missing operating invariant `{rule}`")
-    # The block is the run of one-line `- ` entries directly after the label.
-    routing = re.search(r"^Default routing:[ \t]*\n((?:- [^\n]*\n)+)", agents_md, re.M)
+    # The block is the run of one-line `- ` entries after the label, which may be
+    # separated from the first entry by one blank line.
+    routing = re.search(r"^Default routing:[ \t]*\n(?:[ \t]*\n)?((?:- [^\n]*\n)+)", agents_md, re.M)
     if not routing:
         errors.append("AGENTS.md: `Default routing:` block not found")
     else:
