@@ -5,6 +5,7 @@
 Maintain a private findings ledger at `{findings_ledger_path}`, stored locally next to the automation. The ledger is the automation's memory only - finding identity, history, and links to follow-up tasks - so findings are never forgotten or duplicated between runs. It is not a task system: `{follow_up_task_database}` remains the human task source of truth. Never commit the ledger to the repo or GitHub.
 
 - Finding key: `{account}|{marketplace}|{scope}|{issue_type}`, where scope is `ASIN:<asin>` for listing-level issues, `ACCOUNT` for account-level issues (order metrics, verification, Account Health Rating), or `CASE:<id>` for case-only threads.
+- Market-signal rows are banned by source (23.09.2026, widened on 25.09.2026). Never write a row keyed `{account}|{marketplace}|ASIN:<asin>|<issue_type>` whose evidence is a finding in `{market_signals_state_path}` (its `source` is `keepa`), whatever its issue type, including types added after this line. Those findings stay in the state file, which is where the run reads them. What the ledger keeps is one account-scope cluster row per issue type, keyed `{account}|{market}|ACCOUNT|<issue_type>_cluster`, carrying the count, the composition and the one action, with the ASINs named in its summary or notes. Cluster rows that already exist keep their names (`buybox_loss_cluster`, `bsr_degradation_cluster` and the others in the market-signal table below). A per-ASIN market movement gets its own row only when it carries a specific human action the cluster does not, such as a hijacker to report with a named owner and next step, and that row is never disposed No action.
 - Entry fields: key, account, marketplace, scope, asin, case_id, issue_type, summary, severity (critical/high/medium/low), disposition, owner, task URL, first_seen, last_verified, last_status, last_movement, last_reported, deadline, waiting_on, waiting_since, resolved_date, impact, current_state, next_step.
 - If an account is skipped or blocked today, carry its entries forward unchanged. Never infer resolved from a missed check.
 - Set resolved_date only after Seller Central verification. Keep resolved entries 30 days for dedup, then prune.
@@ -176,31 +177,41 @@ Listings, inventory, shipments and cases:
 
 Market signals and listing watch (observations, not verified Seller Central state):
 
-| issue_type | Default | Trigger | Override |
-|---|---|---|---|
-| `buybox_lost` | Runner | none | `cov`, `expl`, `esc` |
-| `buybox_loss_cluster` | Runner | none | `cov`, `expl`, `esc` |
-| `bsr_degradation` | No action | none | none; a verified cause becomes a finding of its own type |
-| `bsr_degradation_cluster` | No action | none | none; a verified cause becomes a finding of its own type |
-| `bsr_competitor_proximity` (cannot fire while no competitor ASIN is registered) | Runner | none | `floor` |
-| `rating_drop` | Runner | none | `floor`, `cov` |
-| `rating_display_dropped` | Runner | none | `floor`, `cov` |
-| `rating_display_improved` | No action, never written to the ledger (check-sequence.md) | none | none |
-| `reviews_disappeared` | Runner | none | `floor`, `cov` |
-| `reviews_disappeared_cluster` | Runner | none | `floor`, `cov` |
-| `browse_node_changed` | No action | none | none |
-| `browse_node_change_cluster` | No action | none | none |
-| `root_category_changed` | Runner | none | `expl` |
-| `price_changed` | No action | none | `own` |
-| `price_change_cluster` | No action | none | `own` |
-| `fba_fee_changed` (alias `fba_fee_change`) | Runner | none | `floor` |
-| `fba_fee_change_cluster` | Runner | none | `floor` |
-| `referral_fee_changed` | Runner | none | `floor` |
-| `referral_fee_change_cluster` | Runner | none | `floor` |
-| `package_dimensions_changed` (alias `package_measurement_changed`) | Runner | none | `floor` |
-| `package_weight_changed` (alias `package_weight_change`) | Runner | none | `floor` |
-| `package_measurement_change_cluster` | Runner | none | `floor` |
-| `listing_content_changed` | Runner | none | `cov`, `expl` |
+`Family` and `Base route` copy the `RULES` table in `~/os/wizards-ai/market_signals.py`, which is the authority: if the two disagree, the code is right and this table is wrong. The base route is the code's delivery filter before any override or label: `selected` rows are eligible for the daily market report, `weekly` rows are held out of it (the fees and package families are read by the weekly operational check), and `never` rows are never delivered. No base route is `now`; only a hero override in the code raises a row to `now`. It says how the code delivers a signal, not how the run disposes the finding; the `Default` column does that. Cluster rows and listing-watch rows are not in `RULES` and show `n/a`. Under the ban by source above, the per-ASIN types here reach the ledger only as members of their cluster row or as the human-action exception.
+
+| issue_type | Family | Base route | Default | Trigger | Override |
+|---|---|---|---|---|---|
+| `buybox_lost` (a third party, Amazon or a seller Keepa has not identified holds the Buy Box) | buybox | selected | Runner | none | `cov`, `expl`, `esc` |
+| `buybox_loss_cluster` | buybox | n/a | Runner | none | `cov`, `expl`, `esc` |
+| `buybox_suppressed` (no offer qualified for the Buy Box) | buybox | selected | Runner | none | `cov`, `expl`, `esc` |
+| `buybox_suppressed_cluster` | buybox | n/a | Runner | none | `cov`, `expl`, `esc` |
+| `out_of_stock` (Keepa: no new offer on the listing; a per-ASIN ledger row of this name is the Seller Central finding in the table above) | stock | selected | Runner | none | `cov`, `expl` |
+| `out_of_stock_cluster` | stock | n/a | Runner | none | `cov`, `expl` |
+| `offer_count_increased` (a new seller joined the listing) | offers | selected | Runner | none | `cov`, `expl`, `esc` |
+| `offer_count_increased_cluster` | offers | n/a | Runner | none | `cov`, `expl`, `esc` |
+| `bsr_degradation` | rank | weekly | No action | none | none; a verified cause becomes a finding of its own type |
+| `bsr_degradation_cluster` | rank | n/a | No action | none | none; a verified cause becomes a finding of its own type |
+| `bsr_competitor_proximity` (cannot fire while no competitor ASIN is registered) | rank | weekly | Runner | none | `floor` |
+| `rating_drop` | rating | selected | Runner | none | `floor`, `cov` |
+| `rating_display_dropped` | rating | selected | Runner | none | `floor`, `cov` |
+| `rating_display_improved` | rating | never | No action, never written to the ledger (check-sequence.md) | none | none |
+| `reviews_disappeared` | reviews | selected | Runner | none | `floor`, `cov` |
+| `reviews_disappeared_cluster` | reviews | n/a | Runner | none | `floor`, `cov` |
+| `browse_node_changed` | category | weekly | No action | none | none |
+| `browse_node_change_cluster` | category | n/a | No action | none | none |
+| `root_category_changed` | category | selected | Runner | none | `expl` |
+| `price_changed` | price | selected | No action | none | `own` |
+| `price_change_cluster` | price | n/a | No action | none | `own` |
+| `fba_fee_changed` (alias `fba_fee_change`) | fees | weekly | Runner | none | `floor` |
+| `fba_fee_change_cluster` | fees | n/a | Runner | none | `floor` |
+| `referral_fee_changed` | fees | weekly | Runner | none | `floor` |
+| `referral_fee_change_cluster` | fees | n/a | Runner | none | `floor` |
+| `package_dimensions_changed` (alias `package_measurement_changed`) | package | weekly | Runner | none | `floor` |
+| `package_weight_changed` (alias `package_weight_change`) | package | weekly | Runner | none | `floor` |
+| `package_measurement_change_cluster` | package | n/a | Runner | none | `floor` |
+| `listing_content_changed` | n/a | n/a | Runner | none | `cov`, `expl` |
+
+`buybox_suppressed`, `out_of_stock` and `offer_count_increased` appear in the state file only once `market_signals.rules.stage` is `live`. From that stage `buybox_lost` no longer covers "No Buy Box winner", which becomes `buybox_suppressed` or `out_of_stock`. Where an `out_of_stock_cluster` and the Seller Central inventory read describe the same ASINs, `cov` applies and the cause is reported once. On `offer_count_increased`, `esc` needs T4 evidence seen this run, such as a counterfeit or IP claim to file against the new seller; a new offer alone is Runner.
 
 The weekly operational check (`amazon-operational-checks`) confirms fee, package dimension and package weight findings and owns their task; the daily run links that task instead of opening a second one.
 
