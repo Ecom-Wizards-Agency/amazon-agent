@@ -14,21 +14,32 @@ Never use a name, email fragment, address, or old tracker row alone as the MCF t
 
 ## MCF execution
 
-An MCF order is an external paid action. It requires the current operator instruction or matching local standing permission.
+An MCF order is an external paid action. It requires the current operator instruction or matching local standing permission. For a lane handed to Arcana, that act is the operator pressing "Send 1 unit via Amazon" on the Arcana lane screen; the skill never presses it.
 
-1. Resolve the explicit Creator Record ID and run `reserve-mcf` after pre-flight. Retain its unique reservation ID.
+Hand the lane to Arcana (the normal route):
+
+1. Resolve the live tracker headers and read the exact selected row, registry entry, and latest thread.
+2. Run `preflight` with `"order_owner": "arcana"`. It applies every MCF pre-flight check in `lifecycle-execution-guardrails.md`, including the explicit FBA/AFN channel, live MCF-fulfillable quantity, inventory-check timestamp, and private evidence reference, with a cap-only fee check. Seller-fulfilled or FBM stock does not count.
+3. Call `creators.preflight_result` with the output and keep its `derived_order_key` exactly as returned.
+4. Run `reserve-mcf` with the same proposal and that key. Retain the reservation ID.
+5. Call `creators.register_record` with the locked registry row, then tell the operator the lane is ready in Arcana for the tracker row with that Creator Record ID. If it refuses the row, keep the lock, do not tell the operator, and escalate.
+6. On later runs, read `creators.sample_send_outcome` with the stored key and run `arcana-outcome` on the payload. `not_found` means no send yet. Run `record-api-order` only for `placed`, `cancel-mcf` with `amazon_rejected` and `--outcome` for `failed`, wait on `pending` or `uncertain`, and escalate an escalated or `cancelled` send.
+7. After `record-api-order` passes, update the tracker to `Sample Sent` and the action log, then send the standard confirmation by hand.
+
+Seller Central form (order owner `runner`, only when the operator names that route for the lane):
+
+1. Run `preflight` and `creators.preflight_result`, then `reserve-mcf` with the returned `derived_order_key`. Retain its unique reservation ID.
 2. Resolve the live tracker headers and read the exact selected row, registry entry, and latest thread.
-3. Apply every MCF pre-flight check in `lifecycle-execution-guardrails.md`, including the explicit FBA/AFN channel, live MCF-fulfillable quantity, inventory-check timestamp, and private evidence reference. Seller-fulfilled or FBM stock does not count.
-4. Populate MCF from the selected row, then capture evidence that visibly shows the recipient, selected SKU/ASIN, exactly one unit, Standard shipping, and estimated fee.
-5. Run `verify-mcf` against the reservation. Submit only after it returns `PASS` for the same creator, campaign, tracker row, product, recipient, and reservation ID.
-6. Re-read the confirmation screen and run `confirm-mcf` with the matching reservation ID, ASIN, SKU, one unit, order ID, and evidence.
-7. Update the tracker and action log, then send the standard confirmation only after confirmed fulfillment.
+3. Populate MCF from the selected row, with the stored derived key as the order ID, then capture evidence that visibly shows the recipient, selected SKU/ASIN, exactly one unit, Standard shipping, estimated fee, and order ID.
+4. Run `verify-mcf` against the reservation. Submit only after it returns `PASS` for the same creator, campaign, tracker row, product, recipient, order ID, and reservation ID.
+5. Re-read the confirmation screen and run `confirm-mcf` with the matching reservation ID, ASIN, SKU, one unit, order ID, and evidence.
+6. Update the tracker and action log, then send the standard confirmation only after confirmed fulfillment.
 
-If submission definitively failed, run `cancel-mcf` with the supported reason code and evidence so the reservation can be released safely. Never hand-edit the registry. If the request timed out or the outcome is unknown, do not cancel or retry: retain the lock, mark `Reconciliation Required`, and check Amazon order history first.
+On the Seller Central route, if submission definitively failed, run `cancel-mcf` with the supported reason code and evidence so the reservation can be released safely. Never hand-edit the registry. If the request timed out or the outcome is unknown, do not cancel or retry: retain the lock, mark `Reconciliation Required`, and check Amazon order history first.
 
 If order history proves the order exists, run `reconcile-mcf` with the exact reservation, creator, campaign, tracker row, product, recipient, one-unit quantity, existing order ID, and captured order-history evidence. This records the existing order and releases its lock without submitting another order. Identical replay is safe; conflicting evidence stays held. A failed `verify-mcf` recheck revokes any earlier approval for that reservation, so a corrected form requires a fresh PASS before submission.
 
-The order ID is `CC-{BRAND}-{PRODUCTCODE}-{CREATOR}-{ASIN}-{YYMMDD}`. Standard shipping is the default only when permitted by the client policy. Never use expedited shipping without an explicit rule.
+The order ID is the lane's `derived_order_key` (`CCS-` plus 32 lower-case hex) from `creators.preflight_result`, stored in the reservation. Never compose it by hand. A reservation made before keys were stored keeps the `CC-{BRAND}-{PRODUCTCODE}-{CREATOR}-{ASIN}-{YYMMDD}` ID it was placed under. Standard shipping is the default only when permitted by the client policy. Never use expedited shipping without an explicit rule.
 
 If the exact ASIN cannot be added to MCF, stop. Do not substitute. Run the product-switch preflight, offer only a same-campaign alternate that is already verified as MCF-fulfillable, and wait for the creator to reply with the exact alternate ASIN before changing the row or rerunning MCF.
 
