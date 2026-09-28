@@ -1,0 +1,4 @@
+interface:
+  display_name: "Seller Assistant Case Creation"
+  short_description: "Prepare and verify new Seller Central support cases"
+  default_prompt: "Use $amazon-seller-assistant-case-creation to prepare this new Seller Central issue through Seller Assistant and verify whether Amazon created a case."
