@@ -96,6 +96,24 @@ Verify:
 
 A processed upload is not completion. If a critical mismatch appears, keep the affected new campaign paused and prepare the exact correction. Apply another Amazon write only under the repository's approval rules, then repeat the live readback.
 
+## Quality reporting and SYNQ
+
+The campaign builder can write a machine-readable quality report for preflight or artifact validation. This report is the integration boundary for SYNQ/Coalesce Quality and other observability systems. The local guardrails remain authoritative and do not depend on an external service being available.
+
+Use `--quality-report <path.json>` with either create or update mode:
+
+```bash
+python3 tools/amazon-campaign-builder/build_campaigns.py \
+  --config <cfg> --preflight --quality-report output/<client>/ads/preflight-quality.json
+
+python3 tools/amazon-campaign-builder/update_campaigns.py \
+  --config <cfg> --validate --quality-report output/<client>/ads/artifact-quality.json
+```
+
+The versioned JSON includes the mode, phase, pass/fail status, client, marketplace, counts, and individual errors, warnings, and notes. It performs no network call and contains no credentials. Keep reports in a gitignored output directory because check messages can contain campaign names, keywords, or ASINs.
+
+SYNQ is the quality history and alerting layer, not the PPC policy source or Amazon executor. Connecting or publishing to a SYNQ workspace requires separate approval of the workspace, region, credentials, and data scope. A SYNQ outage must never turn a failed local check into a pass. Post-launch reporting must come from a live Amazon readback and use the same report contract before a launch is marked complete.
+
 ## Experiments and creative feedback
 
 Before an A/B test, verify that the product is eligible and appears in the experiment selector or search. Record video creative ID, angle, product, and start date. Every review produces a metric-backed action for the designer: keep, iterate, replace, or pause.

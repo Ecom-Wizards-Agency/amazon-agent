@@ -15,6 +15,13 @@ below.
 `config.UPDATE.<client>-<market>.json` files are gitignored; only the `.TEMPLATE.json` files
 are committed.
 
+Add `--quality-report <path.json>` to an explicit `--preflight` or `--validate` run, or to a
+normal build, to write a versioned machine-readable result. A normal build records artifact
+validation because preflight has already passed. This local JSON is the supported boundary
+for SYNQ/Coalesce Quality. The builder does not publish it, store credentials, or depend on
+SYNQ to enforce a guardrail. Keep the report under `output/` because its messages may contain
+campaign names, keywords, or ASINs.
+
 Create-mode campaign specs may set `child_state` separately from `state`. Leave it empty to
 make ad groups, product ads, targets, keywords, and negatives inherit the campaign state.
 Set `state: "paused"` with `child_state: "enabled"` when a file should be fully configured

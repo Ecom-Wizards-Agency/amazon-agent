@@ -14,6 +14,10 @@ Amazon SP campaign builder: text brief -> config -> bulk-upload .xlsx.
   # QA gates only (re-check an already-built file)
   python3 tools/amazon-campaign-builder/build_campaigns.py --config <cfg> --validate
 
+  # Optional machine-readable quality artifact for SYNQ or another quality system
+  python3 tools/amazon-campaign-builder/build_campaigns.py --config <cfg> --preflight \
+    --quality-report <report.json>
+
 Output is a FILE ONLY. This tool never uploads or touches live campaigns.
 Uploading via Campaign Manager > Bulk Operations is a separate, operator-
 confirmed action (stop-before-risk). Everything client-specific lives in
@@ -42,6 +46,7 @@ from campaign_model import (  # noqa: E402
     launch_bid_from_suggested, normalize_target_key,
     resolve_bidding_strategy, resolve_campaign_purpose,
 )
+from quality_report import write_quality_report  # noqa: E402
 
 # v2 default: the Ecom Wizards 8-slot naming convention (naming-convention.md).
 # Every existing config that sets its own naming.variable_order is unaffected.
@@ -195,7 +200,7 @@ def generate_all(cfg):
 
 
 # ----------------------------------------------------------------- preflight
-def preflight(cfg):
+def preflight(cfg, report_path=None):
     issues, notes = [], []
     for key in ("client", "marketplace"):
         if not cfg.get(key):
@@ -502,6 +507,16 @@ def preflight(cfg):
         print(f"  [MISSING] {msg}")
     for msg in notes:
         print(f"  [NOTE]    {msg}")
+    if report_path:
+        report = write_quality_report(
+            report_path, mode="create", phase="preflight", cfg=cfg,
+            errors=issues, notes=notes,
+            metrics={
+                "campaign_spec_count": len(cfg.get("campaigns", [])),
+                "campaign_count": len(campaigns),
+            },
+        )
+        print(f"  [REPORT]  {_rel(report)}")
     if issues:
         print(f"\nNOT READY. Fix the {len(issues)} item(s) above in the config.")
         return 1
@@ -585,7 +600,7 @@ def write_review(cfg, campaigns, rows, xlsx):
 
 
 # ----------------------------------------------------------------- build
-def build(cfg, override_out=None):
+def build(cfg, override_out=None, report_path=None):
     from openpyxl import Workbook
 
     campaigns = generate_all(cfg)
@@ -615,27 +630,27 @@ def build(cfg, override_out=None):
     for line in summarize(cfg, campaigns):
         print(f"  {line}")
     print()
-    return validate(cfg, override_out)
+    return validate(cfg, override_out, report_path)
 
 
 # ----------------------------------------------------------------- QA gates
-def validate(cfg, override_out=None):
+def validate(cfg, override_out=None, report_path=None):
     from openpyxl import load_workbook
 
     xlsx = out_path(cfg, override_out)
     fails, warns = [], []
     if not xlsx.exists():
-        print(f"VALIDATE: file not found at {xlsx}")
-        return 1
+        fails.append(f"file not found at {xlsx}")
+        return _report(fails, warns, cfg=cfg, mode="create", report_path=report_path)
     wb = load_workbook(xlsx, data_only=True)
     if SHEET_NAMES["SP"] not in wb.sheetnames:
         fails.append(f"sheet '{SHEET_NAMES['SP']}' missing (found {wb.sheetnames})")
-        return _report(fails, warns)
+        return _report(fails, warns, cfg=cfg, mode="create", report_path=report_path)
     ws = wb[SHEET_NAMES["SP"]]
     header = [ws.cell(1, c).value for c in range(1, ws.max_column + 1)]
     if header != COLUMNS["SP"]:
         fails.append(f"header mismatch: {header} != expected {COLUMNS['SP']}")
-        return _report(fails, warns)
+        return _report(fails, warns, cfg=cfg, mode="create", report_path=report_path)
 
     rows = []
     for r in range(2, ws.max_row + 1):
@@ -754,14 +769,23 @@ def validate(cfg, override_out=None):
         if not ents & {"Keyword", "Product Targeting"}:
             fails.append(f"campaign {cid}: no Keyword or Product Targeting row, so no targets")
 
-    return _report(fails, warns)
+    return _report(
+        fails, warns, cfg=cfg, mode="create", report_path=report_path,
+        metrics={"row_count": len(rows), "campaign_count": len(camp_ids)},
+    )
 
 
-def _report(fails, warns):
+def _report(fails, warns, *, cfg=None, mode=None, report_path=None, metrics=None):
     for w in warns:
         print(f"  [WARN] {w}")
     for f in fails:
         print(f"  [FAIL] {f}")
+    if report_path:
+        report = write_quality_report(
+            report_path, mode=mode, phase="artifact_validation", cfg=cfg or {},
+            errors=fails, warnings=warns, metrics=metrics,
+        )
+        print(f"  [REPORT] {_rel(report)}")
     if fails:
         print(f"VALIDATE: FAIL ({len(fails)} gate(s), {len(warns)} warning(s))")
         return 1
@@ -783,6 +807,8 @@ def main():
     ap.add_argument("--preflight", action="store_true", help="check the config, list missing fields")
     ap.add_argument("--preview", action="store_true", help="print planned campaigns, write nothing")
     ap.add_argument("--validate", action="store_true", help="run QA gates on the built file only")
+    ap.add_argument("--quality-report",
+                    help="write a local machine-readable JSON result for SYNQ or another quality system")
     args = ap.parse_args()
 
     cfg = load_config(args.config)
@@ -795,15 +821,15 @@ def main():
         cfg["campaigns"] = specs + cfg.get("campaigns", [])
         print(f"keyword-file: {len(specs)} campaign spec(s) parsed from {args.keyword_file}\n")
     if args.preflight:
-        return preflight(cfg)
+        return preflight(cfg, args.quality_report)
     if args.preview:
         return preview(cfg)
     if args.validate:
-        return validate(cfg, args.out)
-    if preflight(cfg) != 0:
+        return validate(cfg, args.out, args.quality_report)
+    if preflight(cfg, args.quality_report) != 0:
         return 1
     print()
-    return build(cfg, args.out)
+    return build(cfg, args.out, args.quality_report)
 
 
 if __name__ == "__main__":

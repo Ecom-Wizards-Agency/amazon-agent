@@ -15,6 +15,10 @@ Archive/Create bulk-upload .xlsx.
   # QA gates only (re-check an already-built file against the same export)
   python3 tools/amazon-campaign-builder/update_campaigns.py --config <cfg> --validate
 
+  # Optional machine-readable quality artifact for SYNQ or another quality system
+  python3 tools/amazon-campaign-builder/update_campaigns.py --config <cfg> --preflight \
+    --quality-report <report.json>
+
 Output is a FILE ONLY. This tool never uploads or touches live campaigns. Unlike
 create mode, update-mode rows reference REAL, currently-live entities (via IDs read
 from a bulksheets download), so uploading the resulting file WILL change/pause/archive
@@ -41,6 +45,7 @@ REPO = HERE.parent.parent
 sys.path.insert(0, str(HERE))
 
 from campaign_model import COLUMNS, SHEET_NAMES  # noqa: E402
+from quality_report import write_quality_report  # noqa: E402
 from update_model import build_change_set_rows, looks_like_real_id, read_export  # noqa: E402
 
 
@@ -88,12 +93,25 @@ def _plan(cfg):
 
 
 # ----------------------------------------------------------------- preflight
-def preflight(cfg):
+def preflight(cfg, report_path=None):
     print(f"Preflight: {cfg.get('client', '?')} ({cfg.get('marketplace', '?')}) [UPDATE mode]")
+    missing = []
     for key in ("client", "marketplace", "export_file"):
         if not cfg.get(key):
-            print(f"  [MISSING] config: `{key}` is required")
-    if not cfg.get("client") or not cfg.get("marketplace") or not cfg.get("export_file"):
+            message = f"config: `{key}` is required"
+            missing.append(message)
+            print(f"  [MISSING] {message}")
+    if cfg.get("export_file") and not Path(cfg["export_file"]).exists():
+        message = f"export_file not found: {cfg['export_file']!r}"
+        missing.append(message)
+        print(f"  [MISSING] {message}")
+    if missing:
+        if report_path:
+            report = write_quality_report(
+                report_path, mode="update", phase="preflight", cfg=cfg, errors=missing,
+                metrics={"planned_row_count": 0, "campaign_count": 0, "skipped_count": 0},
+            )
+            print(f"  [REPORT]  {_rel(report)}")
         print("\nNOT READY.")
         return 1
 
@@ -103,6 +121,17 @@ def preflight(cfg):
     skipped = [r for r in review if r.startswith("SKIPPED")]
     for s in skipped:
         print(f"  [NOTE]    {s}")
+    if report_path:
+        report = write_quality_report(
+            report_path, mode="update", phase="preflight", cfg=cfg,
+            errors=errors, notes=skipped,
+            metrics={
+                "planned_row_count": len(rows),
+                "campaign_count": len({r["Campaign ID"] for r in rows if r.get("Campaign ID")}),
+                "skipped_count": len(skipped),
+            },
+        )
+        print(f"  [REPORT]  {_rel(report)}")
     if errors:
         print(f"\nNOT READY. Fix the {len(errors)} item(s) above in the change-set.")
         return 1
@@ -174,7 +203,7 @@ def write_review(cfg, review, rows, xlsx):
 
 
 # ----------------------------------------------------------------- build
-def build(cfg, override_out=None):
+def build(cfg, override_out=None, report_path=None):
     from openpyxl import Workbook
 
     export, rows, review, errors = _plan(cfg)
@@ -207,7 +236,7 @@ def build(cfg, override_out=None):
     for r in review:
         print(f"  {r}")
     print()
-    return validate(cfg, override_out)
+    return validate(cfg, override_out, report_path)
 
 
 # ----------------------------------------------------------------- QA gates
@@ -229,25 +258,25 @@ EXPORT_INDEX_FOR_ENTITY = {
 }
 
 
-def validate(cfg, override_out=None):
+def validate(cfg, override_out=None, report_path=None):
     from openpyxl import load_workbook
 
     xlsx = out_path(cfg, override_out)
     fails, warns = [], []
     if not xlsx.exists():
-        print(f"VALIDATE: file not found at {xlsx}")
-        return 1
+        fails.append(f"file not found at {xlsx}")
+        return _report(fails, warns, cfg=cfg, report_path=report_path)
     export = _load_export_or_die(cfg)
 
     wb = load_workbook(xlsx, data_only=True)
     if SHEET_NAMES["SP"] not in wb.sheetnames:
         fails.append(f"sheet '{SHEET_NAMES['SP']}' missing (found {wb.sheetnames})")
-        return _report(fails, warns)
+        return _report(fails, warns, cfg=cfg, report_path=report_path)
     ws = wb[SHEET_NAMES["SP"]]
     header = [ws.cell(1, c).value for c in range(1, ws.max_column + 1)]
     if header != COLUMNS["SP"]:
         fails.append(f"header mismatch: {header} != expected {COLUMNS['SP']}")
-        return _report(fails, warns)
+        return _report(fails, warns, cfg=cfg, report_path=report_path)
     rows = []
     for r in range(2, ws.max_row + 1):
         rows.append({h: (ws.cell(r, c + 1).value if ws.cell(r, c + 1).value is not None else "")
@@ -333,14 +362,23 @@ def validate(cfg, override_out=None):
                 fails.append(f"row {i}: {ent} archived while its parent Campaign/Ad Group is "
                              f"also archived in this file; redundant, drop the child row")
 
-    return _report(fails, warns)
+    return _report(
+        fails, warns, cfg=cfg, report_path=report_path,
+        metrics={"row_count": len(rows)},
+    )
 
 
-def _report(fails, warns):
+def _report(fails, warns, *, cfg=None, report_path=None, metrics=None):
     for w in warns:
         print(f"  [WARN] {w}")
     for f in fails:
         print(f"  [FAIL] {f}")
+    if report_path:
+        report = write_quality_report(
+            report_path, mode="update", phase="artifact_validation", cfg=cfg or {},
+            errors=fails, warnings=warns, metrics=metrics,
+        )
+        print(f"  [REPORT] {_rel(report)}")
     if fails:
         print(f"VALIDATE: FAIL ({len(fails)} gate(s), {len(warns)} warning(s))")
         return 1
@@ -357,19 +395,21 @@ def main():
     ap.add_argument("--preflight", action="store_true", help="check the change-set, list missing/invalid")
     ap.add_argument("--preview", action="store_true", help="print planned changes in plain English, write nothing")
     ap.add_argument("--validate", action="store_true", help="run QA gates on the built file only")
+    ap.add_argument("--quality-report",
+                    help="write a local machine-readable JSON result for SYNQ or another quality system")
     args = ap.parse_args()
 
     cfg = load_config(args.config)
     if args.preflight:
-        return preflight(cfg)
+        return preflight(cfg, args.quality_report)
     if args.preview:
         return preview(cfg)
     if args.validate:
-        return validate(cfg, args.out)
-    if preflight(cfg) != 0:
+        return validate(cfg, args.out, args.quality_report)
+    if preflight(cfg, args.quality_report) != 0:
         return 1
     print()
-    return build(cfg, args.out)
+    return build(cfg, args.out, args.quality_report)
 
 
 if __name__ == "__main__":

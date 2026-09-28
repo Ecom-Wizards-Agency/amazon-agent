@@ -316,17 +316,33 @@ def test_create_ew():
     import io
     from contextlib import redirect_stdout
     buf = io.StringIO()
+    preflight_report_path = TMP / "create_preflight_quality.json"
     with redirect_stdout(buf):
-        rc_pre = bc.preflight(loaded)
+        rc_pre = bc.preflight(loaded, preflight_report_path)
     out_text = buf.getvalue()
     print(out_text)
     check("preflight READY", rc_pre == 0)
     check("preflight accepts verified structure, products, exclusions, and suggested bids",
           "[MISSING]" not in out_text, out_text)
+    preflight_report = json.loads(preflight_report_path.read_text(encoding="utf-8"))
+    check("create preflight quality report is SYNQ-ready",
+          preflight_report["schema_version"] == 1
+          and preflight_report["mode"] == "create"
+          and preflight_report["phase"] == "preflight"
+          and preflight_report["status"] == "pass"
+          and preflight_report["summary"]["campaign_count"] == len(campaigns),
+          str(preflight_report))
 
     out = TMP / "ew.xlsx"
-    rc_build = bc.build(loaded, str(out))
+    validation_report_path = TMP / "create_validation_quality.json"
+    rc_build = bc.build(loaded, str(out), validation_report_path)
     check("build+validate PASS", rc_build == 0)
+    validation_report = json.loads(validation_report_path.read_text(encoding="utf-8"))
+    check("create artifact validation report records a passing row count",
+          validation_report["phase"] == "artifact_validation"
+          and validation_report["status"] == "pass"
+          and validation_report["summary"]["row_count"] > 0,
+          str(validation_report))
     built = openpyxl.load_workbook(out, data_only=True)["Sponsored Products Campaigns"]
     placement_rows = [
         row for row in built.iter_rows(values_only=True)
@@ -442,8 +458,9 @@ def test_ew_guardrails_fail_closed():
     import io
     from contextlib import redirect_stdout
     buf = io.StringIO()
+    quality_report_path = TMP / "create_blocked_quality.json"
     with redirect_stdout(buf):
-        rc = bc.preflight(loaded)
+        rc = bc.preflight(loaded, quality_report_path)
     out_text = buf.getvalue()
     print(out_text)
     check("guardrail preflight fails", rc == 1)
@@ -459,6 +476,14 @@ def test_ew_guardrails_fail_closed():
           "duplicate adjacent naming token(s): auto" in out_text, out_text)
     check("catches wrong bidding strategy",
           "differs from the approved" in out_text, out_text)
+    quality_report = json.loads(quality_report_path.read_text(encoding="utf-8"))
+    check("blocked preflight quality report preserves every blocking issue",
+          quality_report["status"] == "fail"
+          and quality_report["summary"]["error_count"] > 0
+          and len([item for item in quality_report["checks"]
+                   if item["severity"] == "error"])
+          == quality_report["summary"]["error_count"],
+          str(quality_report))
 
 
 # =================================================================== C. keyword-file input
@@ -710,8 +735,16 @@ def test_update_good():
     cfg_path.write_text(json.dumps(cfg))
     loaded = uc.load_config(str(cfg_path))
 
-    rc_pre = uc.preflight(loaded)
+    preflight_report_path = TMP / "update_preflight_quality.json"
+    rc_pre = uc.preflight(loaded, preflight_report_path)
     check("update preflight READY", rc_pre == 0)
+    preflight_report = json.loads(preflight_report_path.read_text(encoding="utf-8"))
+    check("update preflight quality report is SYNQ-ready",
+          preflight_report["mode"] == "update"
+          and preflight_report["phase"] == "preflight"
+          and preflight_report["status"] == "pass"
+          and preflight_report["summary"]["planned_row_count"] > 0,
+          str(preflight_report))
 
     export2, rows, review, errors = uc._plan(loaded)
     check("no generation errors", errors == [], str(errors))
@@ -773,8 +806,15 @@ def test_update_good():
           len(target_enable) == 1 and target_enable[0]["State"] == "enabled")
 
     out = TMP / "update_good.xlsx"
-    rc_build = uc.build(loaded, str(out))
+    validation_report_path = TMP / "update_validation_quality.json"
+    rc_build = uc.build(loaded, str(out), validation_report_path)
     check("update build+validate PASS", rc_build == 0)
+    validation_report = json.loads(validation_report_path.read_text(encoding="utf-8"))
+    check("update artifact validation quality report passes",
+          validation_report["mode"] == "update"
+          and validation_report["phase"] == "artifact_validation"
+          and validation_report["status"] == "pass",
+          str(validation_report))
 
     # --preview / --validate CLI smoke test
     import subprocess
