@@ -46,6 +46,7 @@ naming, see tools/amazon-campaign-builder/README.md):
 from __future__ import annotations
 
 from datetime import date
+from decimal import Decimal, ROUND_HALF_UP
 
 # ----------------------------------------------------------------- domain constants (1:1 app)
 CAMPAIGN_TYPES = ("SKW", "Halo", "Phrase", "Auto", "PAT")
@@ -141,6 +142,22 @@ MIN_BID = 0.02
 DEFAULT_BID = 0.50
 DEFAULT_BUDGET = 10.00
 
+
+def normalize_target_key(value):
+    """Stable config key for keyword, ASIN, category, and Auto target bids."""
+    return " ".join(str(value or "").strip().lower().split())
+
+
+def launch_bid_from_suggested(value):
+    """EW launch bid: 30% below the target's current suggested bid.
+
+    Decimal half-up rounding preserves the approved example: 0.75 -> 0.53.
+    Amazon's minimum bid remains the floor.
+    """
+    suggested = Decimal(str(value))
+    bid = (suggested * Decimal("0.70")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    return float(max(bid, Decimal(str(MIN_BID))))
+
 # ----------------------------------------------------------------- Amazon bulksheet vocabulary
 # Keyed by channel so SB/SD writers can slot in later without restructuring.
 SHEET_NAMES = {"SP": "Sponsored Products Campaigns"}
@@ -181,7 +198,9 @@ def _variable_value(variable, ctx, settings, today):
     if variable == "CampaignType":
         return CAMPAIGN_TYPE_LABELS.get(ctx["campaign_type"], ctx["campaign_type"])
     if variable == "TriggerWord":
-        return ctx.get("trigger_word") or CAMPAIGN_TYPE_LABELS.get(ctx["campaign_type"], ctx["campaign_type"])
+        if "trigger_word" in ctx:
+            return ctx["trigger_word"]
+        return CAMPAIGN_TYPE_LABELS.get(ctx["campaign_type"], ctx["campaign_type"])
     if variable == "ProductName":
         return ctx.get("product_name") or "ProductName"
     if variable == "Keyword":
@@ -193,10 +212,10 @@ def _variable_value(variable, ctx, settings, today):
     if variable == "Counter":
         return f"{ctx['counter']:02d}" if ctx.get("counter") is not None else ""
     if variable == "CampCounter":
-        # naming-convention.md: "Camp Counter ONLY used for Halo and Auto campaigns;
-        # leave it off for everything else". Blank parts are dropped when the name
-        # is joined, so returning "" here is how "off otherwise" is enforced.
-        if ctx.get("campaign_type") in ("Halo", "Auto") and ctx.get("counter") is not None:
+        # EW uses a campaign counter for grouped Halo campaigns. Auto campaigns use
+        # the enabled targeting group as their disambiguator; adding 01 there hides
+        # the actual structure and produced names such as "Auto | Auto | ... | 01".
+        if ctx.get("campaign_type") == "Halo" and ctx.get("counter") is not None:
             return f"{ctx['counter']:02d}"
         return ""
     if variable == "Date":
@@ -266,6 +285,9 @@ def resolve_campaign_purpose(form):
 
 def resolve_trigger_word(form):
     purpose = resolve_campaign_purpose(form)
+    if form["campaign_type"] == "Auto":
+        # MatchType already supplies the single Auto token in the EW name.
+        return ""
     return TRIGGER_WORD_LABELS.get(purpose) or CAMPAIGN_TYPE_LABELS.get(form["campaign_type"], form["campaign_type"])
 
 
@@ -299,6 +321,7 @@ def _build_campaign(overrides, form, bidding_strategy):
         "asin": form.get("asin", ""),
         "daily_budget": form["daily_budget"],
         "keyword_bid": form["keyword_bid"],
+        "target_bids": form.get("target_bids", {}),
         "bidding_strategy": bidding_strategy,
         "negative_keywords": form.get("negative_keywords", []),
         "negative_target_asins": form.get("negative_target_asins", []),
@@ -352,10 +375,11 @@ def generate_campaigns(form, naming_settings, today=None):
     def push(c, kws, asins, categories=None):
         c = {**c, "trigger_word": trigger_word,
              "keyword_text": kws[0] if len(kws) == 1 else (c.get("target_descriptor") or "")}
-        name = generate_campaign_name(naming, c, today)
+        name = form.get("campaign_name") or generate_campaign_name(naming, c, today)
+        ad_group_name = form.get("ad_group_name") or generate_ad_group_name(naming, c, today)
         campaigns.append(_build_campaign({
             "campaign_name": name,
-            "ad_group_name": generate_ad_group_name(naming, c, today),
+            "ad_group_name": ad_group_name,
             "targeting_type": targeting_type,
             "campaign_type": form["campaign_type"],
             "campaign_purpose": purpose,
@@ -499,7 +523,9 @@ def build_sp_campaign_rows(campaign, defaults, next_id, today=None):
     if campaign["targeting_type"] == "AUTO":
         for grp, expression in (("close_match", "close-match"), ("loose_match", "loose-match"),
                                 ("substitutes", "substitutes"), ("complements", "complements")):
-            bid = campaign.get(f"auto_{grp}_bid")
+            bid = campaign.get("target_bids", {}).get(normalize_target_key(grp))
+            if bid is None:
+                bid = campaign.get(f"auto_{grp}_bid")
             state = campaign.get(f"auto_{grp}_state")
             rows.append({
                 **_empty_row(),
@@ -520,6 +546,10 @@ def build_sp_campaign_rows(campaign, defaults, next_id, today=None):
             for target_asin in campaign["asins"]
         )
         for expression in expressions:
+            raw_target = expression.split('="', 1)[1].rsplit('"', 1)[0]
+            target_bid = campaign.get("target_bids", {}).get(
+                normalize_target_key(raw_target), campaign["keyword_bid"]
+            )
             rows.append({
                 **_empty_row(),
                 "Entity": "Product Targeting",
@@ -528,11 +558,14 @@ def build_sp_campaign_rows(campaign, defaults, next_id, today=None):
                 "Campaign Name": campaign["campaign_name"],
                 "Ad Group Name": campaign["ad_group_name"],
                 "State": child_state,
-                "Bid": _money(campaign["keyword_bid"]),
+                "Bid": _money(target_bid),
                 "Product Targeting Expression": expression,
             })
     else:
         for kw in campaign["keywords"]:
+            target_bid = campaign.get("target_bids", {}).get(
+                normalize_target_key(kw), campaign["keyword_bid"]
+            )
             rows.append({
                 **_empty_row(),
                 "Entity": "Keyword",
@@ -541,7 +574,7 @@ def build_sp_campaign_rows(campaign, defaults, next_id, today=None):
                 "Campaign Name": campaign["campaign_name"],
                 "Ad Group Name": campaign["ad_group_name"],
                 "State": child_state,
-                "Bid": _money(campaign["keyword_bid"]),
+                "Bid": _money(target_bid),
                 "Keyword Text": kw,
                 "Match Type": AMAZON_MATCH[campaign["match_type"]],
             })

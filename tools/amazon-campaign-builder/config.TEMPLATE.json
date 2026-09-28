@@ -6,8 +6,21 @@
   "amazon_account": "<advertiser account + country, e.g. Acme US (Seller Central)>",
   "date": "",
   "vendor_central_mode": false,
+  "guardrails": {
+    "_note": "Required for EW builds. structure_reference identifies the approved campaign-structure card or internal source used for this batch. negative_list_source identifies the product keyword workbook and its Never-Ever tab. own_brand_terms contains atomic brand names/aliases, not generic product phrases. own_asins contains only verified advertised-product ASINs. product_validation_verified may be true only after marketplace, product type, variation, buyability, stock, suppression, and ad eligibility are checked.",
+    "structure_reference": "<approved Figma card or internal structure reference>",
+    "negative_list_source": "<keyword workbook URL/path and Never-Ever tab>",
+    "own_brand_terms": [
+      "<verified own brand>"
+    ],
+    "own_asins": [
+      "<verified own ASIN>"
+    ],
+    "never_negative_terms": [],
+    "product_validation_verified": false
+  },
   "naming": {
-    "_note": "Campaign name = variable_order joined by delimiter; ad group name drops the shorter form's prefix/suffix tokens (Goal/AdType/EW/Counter/CampCounter/Date). Default preset is EW (this file's variable_order below), the 8-slot Ecom Wizards convention: Goal | Ad Type | Match Type | Trigger Words | Product Identifier | Keyword | Camp Counter | Suffix. Set `preset: \"LEGACY\"` to use the pre-v2 6-token order instead (Goal | SP | MatchType | ProductName | TargetDescriptor | EW). Extra tokens available: Counter, CampCounter (Halo/Auto only, blank otherwise), Date, Custom1, Custom2, CampaignType.",
+    "_note": "Campaign name = variable_order joined by delimiter; ad group name drops the shorter form's prefix/suffix tokens (Goal/AdType/EW/Counter/CampCounter/Date). Default preset is EW (this file's variable_order below), the 8-slot Ecom Wizards convention: Goal | Ad Type | Match Type | Trigger Words | Product Identifier | Keyword | Camp Counter | Suffix. Set `preset: \"LEGACY\"` to use the pre-v2 6-token order instead (Goal | SP | MatchType | ProductName | TargetDescriptor | EW). Extra tokens available: Counter, CampCounter (Halo only, blank otherwise), Date, Custom1, Custom2, CampaignType.",
     "preset": "EW",
     "variable_order": [
       "Goal",
@@ -25,7 +38,7 @@
     "custom2_value": ""
   },
   "defaults": {
-    "_note": "Per-campaign fields override these. state=paused is the safety default: campaigns only go live when the operator flips them on after upload (or explicitly asks for enabled). child_state empty makes ad groups, product ads, targets, keywords, and negatives inherit the campaign state; set child_state=enabled when campaigns must remain paused but all child entities should be upload-ready. start_date empty = today. Placements are whole-number percentages (0 = no Bidding Adjustment row).",
+    "_note": "Per-campaign fields override these. state=paused is the safety default: campaigns only go live when the operator flips them on after upload (or explicitly asks for enabled). child_state empty makes ad groups, product ads, targets, keywords, and negatives inherit the campaign state; set child_state=enabled when campaigns must remain paused but all child entities should be upload-ready. start_date empty = today. Placements are whole-number percentages (0 = no Bidding Adjustment row). keyword_bid is a LEGACY fallback; EW builds calculate each target bid from suggested_bids.",
     "state": "paused",
     "child_state": "",
     "start_date": "",
@@ -41,9 +54,11 @@
   },
   "campaigns": [
     {
-      "_note": "One entry per campaign spec; SKW fans out to one campaign per keyword, transpose_keywords chunks keywords into keywords_per_campaign-sized campaigns. campaign_type: SKW (exact, Rank) | Halo (exact, Profit) | Phrase | Auto (4 auto groups) | PAT (ASIN targeting via target_asins; match_type ASIN_EXACT or ASIN_EXPANDED). Sponsored Products BMM is disabled. goal/match_type/bidding_strategy empty = campaign-type default. campaign_purpose (optional) overrides the naming-convention.md bidding default and EW trigger word for campaigns whose intent cuts across campaign_type: SHIELD (own-brand SKW/Phrase, down only), SELF_TARGETING (self-PAT, up and down), CATEGORY (up and down); leave empty for the plain per-type default (Rank SKW=Fixed, Auto=up/down, Halo/Phrase/PAT=down only).",
+      "_note": "One entry per campaign spec; SKW fans out to one campaign per keyword, transpose_keywords chunks keywords into keywords_per_campaign-sized campaigns. campaign_type: SKW (exact, Rank) | Halo (exact, Profit) | Phrase | Auto (one enabled auto group, other three paused) | PAT (ASIN targeting via target_asins; match_type ASIN_EXACT or ASIN_EXPANDED). Sponsored Products BMM is disabled. EW builds require campaign_name and ad_group_name copied exactly from the approved Figma card; the builder validates them but does not invent agency names. goal/match_type/bidding_strategy empty = campaign-type default. campaign_purpose (optional) overrides the approved bidding default and EW trigger word: SHIELD (own-brand SKW/Phrase, down only), SELF_TARGETING (self-PAT, up and down), CATEGORY (up and down). EW builds require campaign-level Negative Phrase brand exclusions in generic campaigns and block those exclusions in Shield campaigns.",
       "campaign_type": "<SKW|Halo|Phrase|Auto|PAT>",
       "campaign_purpose": "",
+      "campaign_name": "<exact approved Figma campaign name ending in | EW>",
+      "ad_group_name": "<approved shorter name without the goal and EW suffix>",
       "goal": "",
       "product_name": "<short product label for the campaign name>",
       "target_descriptor": "<targeting label for the name, e.g. generic>",
@@ -56,6 +71,13 @@
       "keywords": [
         "<one keyword per entry>"
       ],
+      "suggested_bids": {
+        "<exact keyword, ASIN, category ID, or Auto group key>": 0.75,
+        "close_match": 0.75,
+        "loose_match": 0.75,
+        "substitutes": 0.75,
+        "complements": 0.75
+      },
       "target_asins": [],
       "target_categories": [],
       "negative_target_asins": [],
@@ -65,10 +87,11 @@
       "swap_name_order": false,
       "skw_include_keyword_in_name": true,
       "negative_keywords": [],
-      "negative_match_type": "NEGATIVE_EXACT",
-      "negative_level": "ad_group",
+      "negative_match_type": "NEGATIVE_PHRASE",
+      "negative_level": "campaign",
       "daily_budget": null,
       "keyword_bid": null,
+      "approved_bidding_strategy": "<Down only|Up and down|Fixed bids, copied from Figma>",
       "bidding_strategy": "",
       "portfolio_id": "",
       "state": "",

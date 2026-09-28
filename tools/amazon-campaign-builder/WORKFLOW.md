@@ -31,9 +31,10 @@ contract; nothing in the code is client-specific.
 3. **Preflight**: `build_campaigns.py --config <cfg> [--keyword-file <wb>] --preflight`
    until READY. Catches invalid enums, sub-minimum bids/budgets, missing SKUs/keywords, past
    start dates, name fan-out without a disambiguating `Counter`/`CampCounter`/`Keyword` token,
-   and NOTEs (non-blocking): bidding-strategy overrides of the naming-convention.md per-purpose
-   defaults, discovery campaigns missing a negative-keyword list, Self-Targeting Expanded
-   missing a negative-ASIN list, and ad-group names that collide with their campaign name.
+   EW builds also fail closed on missing guardrail evidence, a bidding-strategy mismatch,
+   missing per-target suggested bids, branded-versus-generic exclusion errors, positive-negative
+   collisions, unsafe multi-variation structures, invalid split Auto states, and missing exact
+   own-ASIN negatives in Self-Targeting Expanded.
 
 4. **Preview**: `--preview` prints every planned campaign (name, type, state, budget, bid,
    strategy, target counts) and the combined daily budget. Show this to the operator; adjust
