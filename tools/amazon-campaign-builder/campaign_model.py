@@ -233,12 +233,13 @@ def generate_campaign_name(settings, ctx, today=None):
 
 
 def generate_ad_group_name(settings, ctx, today=None):
-    # "Ad group name is the shorter form, drop prefix & suffix" (naming-convention.md).
-    # NOTE: "SP" is deliberately NOT dropped here: the original (legacy-preset) app
-    # behavior keeps it in the ad group name and that's what the 71-row parity fixture
-    # verifies. The EW preset uses "AdType" (not "SP") for the same slot, so adding
-    # AdType/CampCounter to the drop set only affects the new preset, never the legacy one.
-    drop = ("Goal", "EW", "Counter", "Date", "AdType", "CampCounter")
+    # EW rule: remove only the first goal token and final agency suffix. Keep every
+    # middle token, including SP and an approved counter. Legacy preserves its existing
+    # shorter-form behavior for compatibility with old configs and parity fixtures.
+    if "AdType" in settings["variable_order"]:
+        drop = ("Goal", "EW")
+    else:
+        drop = ("Goal", "EW", "Counter", "Date", "AdType", "CampCounter")
     keep = [v for v in settings["variable_order"] if v not in drop]
     parts = [_variable_value(v, ctx, settings, today) for v in keep]
     return settings["delimiter"].join(p for p in parts if p)

@@ -60,6 +60,26 @@ def slugify(s):
     return re.sub(r"[^a-z0-9]+", "-", s.lower()).strip("-")
 
 
+def expected_ad_group_name(campaign_name, delimiter=" | "):
+    """Return the agency ad-group base: campaign name without first/last tokens."""
+    parts = [part.strip() for part in str(campaign_name or "").split(delimiter)]
+    if len(parts) < 3 or not all(parts):
+        return ""
+    return delimiter.join(parts[1:-1])
+
+
+def ad_group_name_matches_campaign(campaign_name, ad_group_name, delimiter=" | "):
+    """Allow the exact base or one visible child/pack modifier after ` - `."""
+    expected = expected_ad_group_name(campaign_name, delimiter)
+    actual = str(ad_group_name or "").strip()
+    if not expected:
+        return False
+    if actual == expected:
+        return True
+    prefix = f"{expected} - "
+    return actual.startswith(prefix) and bool(actual[len(prefix):].strip())
+
+
 def _rel(p):
     try:
         return p.relative_to(REPO)
@@ -318,6 +338,11 @@ def preflight(cfg):
                 issues.append(f"{tag}: new agency campaigns must end with '| EW'")
             if form["ad_group_name"] == form["campaign_name"]:
                 issues.append(f"{tag}: ad_group_name must be the approved shorter form, not the campaign name")
+            if not ad_group_name_matches_campaign(
+                    form["campaign_name"], form["ad_group_name"], cfg["naming"]["delimiter"]):
+                expected = expected_ad_group_name(form["campaign_name"], cfg["naming"]["delimiter"])
+                issues.append(f"{tag}: ad_group_name must be '{expected}' or add one real child/pack "
+                              f"modifier as '{expected} - <variation>'")
         if form["state"] not in STATES:
             issues.append(f"{tag}: state must be enabled|paused")
         if form["child_state"] and form["child_state"] not in STATES:
@@ -457,10 +482,12 @@ def preflight(cfg):
 
     campaigns = generate_all(cfg) if not issues else []
     for c in campaigns:
-        if c["ad_group_name"] == c["campaign_name"]:
-            notes.append(f"'{c['campaign_name']}': ad group name equals campaign name; naming-convention.md "
-                         f"QC requires the ad group name to differ (drop prefix & suffix)")
         if ew_guardrails:
+            if not ad_group_name_matches_campaign(
+                    c["campaign_name"], c["ad_group_name"], cfg["naming"]["delimiter"]):
+                expected = expected_ad_group_name(c["campaign_name"], cfg["naming"]["delimiter"])
+                issues.append(f"'{c['campaign_name']}': ad group name must be '{expected}' or "
+                              f"'{expected} - <variation>'")
             parts = [normalize_target_key(p) for p in c["campaign_name"].split(cfg["naming"]["delimiter"])]
             duplicate_pairs = [parts[i] for i in range(len(parts) - 1) if parts[i] == parts[i + 1]]
             if duplicate_pairs:

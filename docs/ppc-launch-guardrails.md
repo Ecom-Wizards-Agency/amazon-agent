@@ -21,7 +21,8 @@ The approved campaign-structure card controls campaign type, targeting, bidding 
 - The name must describe the live match type and targeting expression.
 - Do not repeat fields such as `Auto | Auto`, `PAT | PAT`, or `Exact | Exact`.
 - Do not add counters where the approved format does not use them.
-- Ad-group names remove the goal and agency suffix. Add only the real pack or child-variation modifier.
+- Derive every ad-group name mechanically from its campaign name: remove only the first goal token and the final `EW` token, keeping every middle token in the same order. Example: `Rank | SP | Exact | SKW | Widget | red widget | EW` becomes `SP | Exact | SKW | Widget | red widget`.
+- When a real pack or child variation needs its own ad group, append one modifier to the final segment using ` - <variation>`, for example `SP | Exact | SKW | Widget | red widget - 3 pack`. Never copy the full campaign name into the ad group, remove extra middle tokens, or invent a variation.
 - Exact, Phrase, Broad, Auto, ASIN Exact, and ASIN Expanded remain separate targeting strategies.
 - SKW campaigns contain one target. Grouped Halo campaigns follow the approved target limit.
 - When products have real child or pack variations, create separate variation ad groups. Do not place every product ad in one undifferentiated ad group.

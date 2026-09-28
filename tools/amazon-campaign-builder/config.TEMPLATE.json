@@ -58,7 +58,7 @@
       "campaign_type": "<SKW|Halo|Phrase|Auto|PAT>",
       "campaign_purpose": "",
       "campaign_name": "<exact approved Figma campaign name ending in | EW>",
-      "ad_group_name": "<approved shorter name without the goal and EW suffix>",
+      "ad_group_name": "<campaign name without only the first goal and final EW tokens; append ' - variation' only for a real child/pack>",
       "goal": "",
       "product_name": "<short product label for the campaign name>",
       "target_descriptor": "<targeting label for the name, e.g. generic>",

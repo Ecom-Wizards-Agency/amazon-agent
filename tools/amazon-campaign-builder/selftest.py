@@ -236,6 +236,30 @@ def test_create_ew():
           loaded["naming"]["variable_order"] ==
           ["Goal", "AdType", "MatchType", "TriggerWord", "ProductName", "Keyword", "CampCounter", "EW"],
           str(loaded["naming"]["variable_order"]))
+    generated_ctx = {
+        "goal": "Rank", "ad_type": "SP", "match_type": "EXACT", "campaign_type": "SKW",
+        "product_name": "Widget", "keyword_text": "red widget", "counter": None,
+    }
+    check("generated EW ad-group name removes only goal and suffix",
+          cm.generate_ad_group_name(loaded["naming"], generated_ctx)
+          == "SP | Exact | SKW | Widget | red widget",
+          cm.generate_ad_group_name(loaded["naming"], generated_ctx))
+    check("ad-group guardrail accepts an exact derived name",
+          bc.ad_group_name_matches_campaign(
+              "Rank | SP | Exact | SKW | Widget | red widget | EW",
+              "SP | Exact | SKW | Widget | red widget"))
+    check("ad-group guardrail accepts one variation modifier",
+          bc.ad_group_name_matches_campaign(
+              "Rank | SP | Exact | SKW | Widget | red widget | EW",
+              "SP | Exact | SKW | Widget | red widget - 3 pack"))
+    check("ad-group guardrail rejects the full campaign name",
+          not bc.ad_group_name_matches_campaign(
+              "Rank | SP | Exact | SKW | Widget | red widget | EW",
+              "Rank | SP | Exact | SKW | Widget | red widget | EW"))
+    check("ad-group guardrail rejects missing middle tokens",
+          not bc.ad_group_name_matches_campaign(
+              "Rank | SP | Exact | SKW | Widget | red widget | EW",
+              "Exact | SKW | Widget | red widget"))
 
     campaigns = bc.generate_all(loaded)
     rank_skw = campaigns[0]
