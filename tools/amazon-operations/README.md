@@ -303,3 +303,160 @@ Case readiness is recorded per exact seller/marketplace and separately for
 journal and independent saved-correspondence evidence. A visible button alone
 is insufficient. The create/reply form selectors still need live validation in
 an account with confirmed access before production release.
+
+## Seller Assistant step driver
+
+Amazon routes new Seller Support requests through Seller Assistant, a chat that
+hands over to a human associate. `seller-assistant.mjs` drives that chat one
+approved step at a time. It is for attended sessions only; Grimoire never runs
+it, and a case mandate does not replace the operator's send-plan approval. The
+route, the approval model and case registration are described in
+[the Seller Assistant route](../../skills/amazon-communications/references/seller-assistant-route.md).
+
+One controller process holds the browser for the whole chat. Client calls queue
+one command each and wait for its result; they never touch the browser.
+
+```sh
+node tools/browserctl/browserctl.mjs run --session grimoire -- node tools/amazon-operations/seller-assistant.mjs serve --run <dir> [--max-minutes 90] [--idle-minutes 20]
+node tools/amazon-operations/seller-assistant.mjs send --run <dir> <command> [args]
+```
+
+| Command | Effect |
+|---|---|
+| `open [--via-lobby]` | Record the `/cu/case-lobby` controls, then open `/assistant?client=sellerSupport-meldFullPage`, or click `Get help with a new issue` with `--via-lobby` |
+| `state` | Read URL, frames, composer label, value and counter, visible controls, status texts, tour, access denial, and the handoff terms with their SHA-256 |
+| `navigate --label <label>` | Click `Get help with a new issue`, `Show more` or `Show less`; tour labels (`Skip`, `Skip tour`, `Got it`, `Done`, `Next`, `Finish`, `Close`, `Dismiss`) only on a control inside the tour container |
+| `type --text-file <f> --sha256 <h>` | Insert the text into the empty composer and read it back; never submits. Multi-line text only into a `TEXTAREA` composer |
+| `submit --expect-sha256 <h> --approval-file <f> [--expect-attachment <name>]...` | Click `Submit` when the composer, the expected hash and the approval agree |
+| `approve --expect-terms-sha256 <h> --approval-file <f>` | Click the handoff `Approve` when the terms hash matches |
+| `attach --file <path> --sha256 <h> --approval-file <f>` | Set one file on the chat's file input and wait for its chip; never submits |
+| `transcript [--wait-new <n>] [--timeout <s>]` | Save and print the conversation text and a structural outline |
+| `screenshot [--name <label>]` | Identity-verified screenshot with its receipt |
+| `viewcase-raw --case-id <digits>` | Save the raw ViewCase JSON; print a summary without emails or senders |
+| `stop` | Release the task tab and exit |
+
+`send` exits 0 for `ok`, `sent`, `approved` and `attached`, 1 for any other
+result status (`refused`, `blocked`, `uncertain`, `timeout`, `expired`, `error`,
+`sent_identity_unverified`, `approved_identity_unverified`,
+`attached_identity_unverified`), and 2 when no result arrived. The three
+`*_identity_unverified` statuses mean the action happened but the identity check
+after it failed, so the controller halted. Every queued command carries
+`expires_at`; one without it is refused as `command_malformed`.
+
+Before it runs a command, `serve` writes `results/NNN.running`, and every
+`approvals.jsonl` line carries the command's `queue_id`. When `send` gives up
+(`serve_exited` or `client_timeout`) it checks both. If `serve` had started the
+command, the answer is `uncertain` and nothing is cancelled; with `serve` gone
+it also writes that `uncertain` result. Only a command that never started gets
+a `cancelled` result, which a later `serve` skips. On startup, `serve` marks
+every command with a leftover marker, or with an attempt line and no result
+line, as `uncertain` (`interrupted`) and never runs it again. SIGTERM, SIGINT,
+an uncaught exception or an unhandled rejection marks the command in flight the
+same way before the tab is released as `error`. The handler first sets an
+aborting flag, before any wait, so no click, insert or upload starts after the
+interrupt, and no new command starts. The client then reads `uncertain`
+(`interrupted`) or `blocked` (`aborting`) for the stopped action. Nothing was
+clicked in either case.
+
+Safety model:
+
+- Only `Submit`, `Approve` and the navigation labels above can be clicked. The
+  driver never presses Enter, never opens `Open the tool` and never drives a new
+  tab. A click that opens a new page target halts `serve`. For `submit` and
+  `approve` the status still reports the delivery (`sent`, `approved` or
+  `uncertain`) with reason `new_target`, so a sent message never reads as unsent.
+- A tour label is clicked only when a dialog, tooltip or popover holding the
+  `Step N/M` text is found outside the conversation and the composer, and the
+  label matches exactly one control inside that container. `Step N/M` text in a
+  chat message is not a tour.
+- `type` refuses text containing a line break unless the composer is a
+  `TEXTAREA`: `Input.insertText` commits each line break as an edit that a
+  rich-text chat editor may treat as Enter. The first live run records how the
+  composer handles it.
+- `submit` clicks only when the SHA-256 of the composer text equals
+  `--expect-sha256` and the approval file's `sha256`. The composer must be
+  enabled, and its `Submit` must be the only visible `Submit` in the frame
+  (enabled or disabled), enabled, and inside the composer's region, the nearest
+  ancestor that also holds `Submit` or `Upload file`. A region that spans the
+  conversation does not count. The page repeats this check when it looks up the
+  control for the click. Attachments are bound to this run: every file shown as
+  a chip or held by the file input, and every `--expect-attachment` name, must
+  be a file this run's `attach` logged as `attached`, and the expected names must
+  equal the files present (none when omitted). A file in the input with no
+  detected chip is refused. A `submit` that carried a file uses it up once it is
+  sent or uncertain; a chip with the same name then needs a new approved
+  `attach`. It
+  waits up to 30 seconds for a busy assistant (`Working on it` or a progress
+  indicator) to finish, and checks the composer, chips, upload state and
+  `Submit` again after the identity read, right before the click. It then waits up to 60 seconds for the composer to clear and the text to appear
+  once more in the conversation, and reports `sent` or `uncertain`. An uncertain
+  send is never retried. Each approved hash is sent once per run; P2 twice.
+- `approve` waits for a busy assistant like `submit`, and reports `approved`
+  only when, after the click, the `Approve` control is gone or disabled or the
+  composer label changed, on two consecutive scans with a valid frame selection
+  and the `Approve` frame still reachable. A new message alone, or one empty
+  scan during a re-render, gives `uncertain`.
+- After a Submit or Approve click or a file upload, any failure, including a
+  replaced frame or a failed log write, is reported as `uncertain` with
+  `clicked: true` or `attached: true` and a result line in `approvals.jsonl`,
+  never as a plain `error`.
+- `approve` hashes the text of the container around the unique `Approve`
+  control: the nearest dialog, card or message ancestor with text outside any
+  button (basis `card`), else the smallest ancestor with such text (basis
+  `smallest_text`), never one holding the composer or the whole conversation.
+  `state` shows that text, hash and basis; screenshot the terms before asking
+  for approval. The hash normalizes line endings, collapses spaces within a line and
+  drops blank lines.
+- `attach` first copies the file to `uploads/NN/<name>` in the run directory,
+  hashes the copy, and uploads the copy, so a later change to the source file
+  cannot reach Amazon. The approval hash, `--sha256` and the copy's hash must
+  match, with an enabled `Upload file` control and exactly one file input.
+- Seller and marketplace are verified before and after every command and again
+  right before each outbound click. The check reads the live header and the
+  GetUserContext IDs. A live seller or marketplace ID that differs from
+  `run.json` stops at once. When a page lacks one or both live IDs, the IDs read
+  on `/home` at startup fill only the missing ones, together with the exact
+  header, as the case adapter does. Read errors during a re-render are retried
+  for 15 seconds. A mismatch halts `serve`, which releases the tab as `error`.
+- The driver works in the one same-origin frame, main frame included, that
+  holds exactly one visible composer. It evaluates each frame in an isolated
+  world, reused until the frame loads a new document. Zero or several
+  composers, or a cross-origin frame whose URL looks like the chat, block with
+  details. Other cross-origin frames (ads, metrics) are ignored rather than
+  stopping the run, because Seller Central pages carry them routinely.
+- It never reads cookies, storage or tokens.
+
+Text for `type` and approved texts must already be normalized: UTF-8 without a
+byte order mark, LF line endings, no leading or trailing newline, at most 2,500
+characters (JavaScript string length). Then `sha256sum <file>` equals the hash
+that `type`, `submit` and the approval use.
+
+Approval files are JSON:
+`{"schema_version":1,"plan_item":"P1|P2|P3|approve|attachment|followup","sha256":"<hex>","run_id":"<run.json run_id>","seller_id":"<run.json account.seller_id>","approved_at":"<ISO time with timezone>","approval_text":"<operator's verbatim approval>"}`.
+`run_id` and `seller_id` must equal `run.json`, so an approval never carries
+over to another run or account. `approved_at` must be a real calendar time with
+a timezone and not later than the controller clock plus five minutes.
+`submit` accepts P1, P2, P3 and followup, `approve` accepts approve, and
+`attach` accepts attachment.
+
+The run directory holds `run.json`:
+`{"schema_version":1,"run_id":"<slug>","account":{"profile_key","client_slug","marketplace","seller_id","marketplace_id","seller_central_name","marketplace_label","parent_account_name","context_binding"}}`
+with every account value a non-empty string. `context_binding` is optional and
+copied from the case policy when the profile has one:
+`{"seller_id","marketplace_id","unique_label_mapping":true}` with the account's
+own IDs; anything else is refused. The driver writes `queue/NNN.json`,
+`results/NNN.json`, `results/NNN.running` while a command runs,
+`steps/NN-<command>.json` (URL, frames, controls, composer state and result for
+every command), `approvals.jsonl` (the approval and outcome of every outbound
+attempt, with its `queue_id`), `uploads/`, `transcripts/`, `screenshots/`,
+`viewcase/`, `serve.pid` and `serve.json`.
+
+`serve` runs only in the Grimoire session on 9223. It acquires one task tab
+(`amazon-communications`, exclusive Seller Central context), switches to the
+account and keeps the 9223 lock until it exits, so scheduled Grimoire browser
+jobs defer for that time. `stop` releases the tab as `success`. An exception or
+SIGTERM releases it as `error`; so do a halt, `--max-minutes` and
+`--idle-minutes`, which keeps the chat tab in a two-hour inspection lease. A
+`transcript` wait never runs past the `--max-minutes` budget. The conversation-area
+and attachment-chip detection is a heuristic until the first live run records
+the real page structure.
