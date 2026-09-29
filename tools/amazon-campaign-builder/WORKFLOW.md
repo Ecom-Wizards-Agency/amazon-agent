@@ -35,8 +35,8 @@ contract; nothing in the code is client-specific.
    missing per-target suggested bids, branded-versus-generic exclusion errors, positive-negative
    collisions, unsafe multi-variation structures, invalid split Auto states, and missing exact
    own-ASIN negatives in Self-Targeting Expanded.
-   Add `--quality-report <gitignored-path.json>` when the run must feed SYNQ or another quality
-   history. The JSON is local only; the builder never publishes it.
+   Add `--quality-report <gitignored-path.json>` when the run needs machine-readable quality
+   evidence. The JSON is local only; the builder never publishes it.
 
 4. **Preview**: `--preview` prints every planned campaign (name, type, state, budget, bid,
    strategy, target counts) and the combined daily budget. Show this to the operator; adjust
@@ -65,8 +65,8 @@ contract; nothing in the code is client-specific.
    ID not found in the export, invalid enum, or a disallowed `clear_end_date`. NOTEs every
    no-op and cascade-skip (e.g. an explicit ad-group archive whose parent campaign is also
    archived in the same file).
-   Add `--quality-report <gitignored-path.json>` when the run must feed SYNQ or another quality
-   history. Publishing remains a separately configured external action.
+   Add `--quality-report <gitignored-path.json>` when the run needs machine-readable quality
+   evidence. Publishing remains a separately configured external action.
 
 4. **Preview**: `--preview` prints a plain-English line per change (and per skip). Show this
    to the operator. This is the change-set's real content, not a technical row dump.

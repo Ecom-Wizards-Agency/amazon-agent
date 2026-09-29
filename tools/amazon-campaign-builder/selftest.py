@@ -325,7 +325,7 @@ def test_create_ew():
     check("preflight accepts verified structure, products, exclusions, and suggested bids",
           "[MISSING]" not in out_text, out_text)
     preflight_report = json.loads(preflight_report_path.read_text(encoding="utf-8"))
-    check("create preflight quality report is SYNQ-ready",
+    check("create preflight quality report is machine-readable",
           preflight_report["schema_version"] == 1
           and preflight_report["mode"] == "create"
           and preflight_report["phase"] == "preflight"
@@ -739,7 +739,7 @@ def test_update_good():
     rc_pre = uc.preflight(loaded, preflight_report_path)
     check("update preflight READY", rc_pre == 0)
     preflight_report = json.loads(preflight_report_path.read_text(encoding="utf-8"))
-    check("update preflight quality report is SYNQ-ready",
+    check("update preflight quality report is machine-readable",
           preflight_report["mode"] == "update"
           and preflight_report["phase"] == "preflight"
           and preflight_report["status"] == "pass"

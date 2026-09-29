@@ -2,7 +2,7 @@
 
 The report is a local artifact. It contains no credentials and performs no
 network calls. A separate, explicitly configured integration may publish the
-report to SYNQ or another quality system later.
+report to an approved reporting system later.
 """
 from __future__ import annotations
 

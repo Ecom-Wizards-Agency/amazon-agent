@@ -15,7 +15,7 @@ Archive/Create bulk-upload .xlsx.
   # QA gates only (re-check an already-built file against the same export)
   python3 tools/amazon-campaign-builder/update_campaigns.py --config <cfg> --validate
 
-  # Optional machine-readable quality artifact for SYNQ or another quality system
+  # Optional local machine-readable quality artifact
   python3 tools/amazon-campaign-builder/update_campaigns.py --config <cfg> --preflight \
     --quality-report <report.json>
 
@@ -396,7 +396,7 @@ def main():
     ap.add_argument("--preview", action="store_true", help="print planned changes in plain English, write nothing")
     ap.add_argument("--validate", action="store_true", help="run QA gates on the built file only")
     ap.add_argument("--quality-report",
-                    help="write a local machine-readable JSON result for SYNQ or another quality system")
+                    help="write a local machine-readable JSON quality result")
     args = ap.parse_args()
 
     cfg = load_config(args.config)

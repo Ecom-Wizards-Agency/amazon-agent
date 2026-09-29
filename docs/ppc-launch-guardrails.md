@@ -96,9 +96,9 @@ Verify:
 
 A processed upload is not completion. If a critical mismatch appears, keep the affected new campaign paused and prepare the exact correction. Apply another Amazon write only under the repository's approval rules, then repeat the live readback.
 
-## Quality reporting and SYNQ
+## Quality reporting
 
-The campaign builder can write a machine-readable quality report for preflight or artifact validation. This report is the integration boundary for SYNQ/Coalesce Quality and other observability systems. The local guardrails remain authoritative and do not depend on an external service being available.
+The campaign builder can write a machine-readable quality report for preflight or artifact validation. The report is local evidence for review, automation, or an approved reporting system. The local guardrails remain authoritative and do not depend on an external service being available.
 
 Use `--quality-report <path.json>` with either create or update mode:
 
@@ -112,7 +112,14 @@ python3 tools/amazon-campaign-builder/update_campaigns.py \
 
 The versioned JSON includes the mode, phase, pass/fail status, client, marketplace, counts, and individual errors, warnings, and notes. It performs no network call and contains no credentials. Keep reports in a gitignored output directory because check messages can contain campaign names, keywords, or ASINs.
 
-SYNQ is the quality history and alerting layer, not the PPC policy source or Amazon executor. Connecting or publishing to a SYNQ workspace requires separate approval of the workspace, region, credentials, and data scope. A SYNQ outage must never turn a failed local check into a pass. Post-launch reporting must come from a live Amazon readback and use the same report contract before a launch is marked complete.
+## SYNQ execution route
+
+SYNQ is an optional Amazon PPC operations route for batch-applying approved changes such as bid optimizations and Negative Phrase additions. It does not replace the Figma structure, product workbook, campaign-builder preflight, operator approval, or post-launch live readback.
+
+- Use SYNQ only after the proposed targets, negatives, bids, advertiser, marketplace, and scope pass the same guardrails as a bulk file or console change.
+- For non-branded campaigns, batch-apply the verified own-brand terms as campaign-level Negative Phrase. Do not add generic product terms or relevant branded terms to Shield or other branded campaigns.
+- Review the SYNQ batch before applying it and retain its change record with the run evidence.
+- A queued or applied SYNQ change is not completion. Verify the processed live campaigns and targeting before closing the run.
 
 ## Experiments and creative feedback
 
