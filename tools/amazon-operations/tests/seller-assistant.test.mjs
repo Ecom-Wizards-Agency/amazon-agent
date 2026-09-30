@@ -171,6 +171,11 @@ test('navigation allowlist refuses unlisted labels and tour labels without a vis
   assert.equal(isNavigationAllowed('Open the tool', {}).reason, 'label_not_allowed');
   assert.equal(isNavigationAllowed('Skip', { tour: { visible: false } }).reason, 'tour_not_visible');
   assert.equal(isNavigationAllowed('Skip', { tour: { visible: true } }).kind, 'tour');
+  assert.equal(isNavigationAllowed('Request changes', {}).reason, 'summary_not_visible');
+  assert.equal(isNavigationAllowed('Request changes', { handoff: { approve_count: 0 } }).reason, 'summary_not_visible');
+  assert.equal(isNavigationAllowed('Request changes', { handoff: { approve_count: 2 } }).reason, 'summary_not_visible');
+  assert.deepEqual(isNavigationAllowed('Request changes', { handoff: { approve_count: 1 } }), { ok: true, kind: 'summary' });
+  assert.equal(isNavigationAllowed('Approve', { handoff: { approve_count: 1 } }).reason, 'label_not_allowed');
   const dir = await runDir();
   try {
     const { rt, events } = fakeRuntime(dir, { state: baseState({ controls: [...baseState().controls, { frame_id: 'main', label: 'Open the tool', disabled: false }, { frame_id: 'main', label: 'Got it', disabled: false }] }) });

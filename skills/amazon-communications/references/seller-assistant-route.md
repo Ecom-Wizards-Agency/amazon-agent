@@ -6,7 +6,7 @@ The `case.create` adapter supports only the retired case form, so a new case on 
 
 ## Observed labels
 
-"Live" means observed on the Grimoire delegated login between 2026-09-21 and 2026-09-25. "Demo" means seen only in a recorded demonstration on another machine on 2026-09-28. Demo labels are expectations. When the live screen differs, capture it with `state` and `screenshot` and stop before the next outbound action.
+"Live" means observed on the Grimoire delegated login between 2026-09-05 and 2026-09-25; the email-case rows come from two cases created on 2026-09-05. "Demo" means seen only in a recorded demonstration on another machine on 2026-09-28. Demo labels are expectations. When the live screen differs, capture it with `state` and `screenshot` and stop before the next outbound action.
 
 | Surface | Label or behavior | Source |
 | --- | --- | --- |
@@ -21,9 +21,14 @@ The `case.create` adapter supports only the retired case form, so a new case on 
 | Access denial | `You don't currently have permission to create support cases on this account.` with a pointer to User Permissions | Live |
 | Entry route | Help > `Manage support cases` > `Get help with a new issue` | Demo |
 | Self-service | `Open the tool` on a suggested tool | Demo |
+| Docked panel on Seller Central pages | `Undock panel`, `Minimize panel`, `Open full-page chat`, `Download chat` | Live |
 | Thread view | `Chat history` > conversation `Options` > `Open full-page chat` | Demo |
-| Handoff | Terms text with `Approve`; the composer then becomes a message field for the associate, whose name varies | Demo |
-| Case ID | Where and when Amazon shows it for a chat-created case | Not observed |
+| Contact options | `Email` ("Send a message and receive a response via email. You can also view responses in the Seller Central Case Log.") or `Chat` (live chat with an estimated wait time), answered by typing | Live |
+| Email Issue summary | `Issue summary` with Subject, Details, the relevant IDs, `Your e-mail` and `Attachments`, then `Approve` and `Request changes` and "Option valid for 1 hour"; the composer reads "Select an option above to proceed." | Live |
+| `Request changes` | The assistant asks "What would you like to change?" | Live |
+| Email case created | `Approve` returns "Your case has been successfully created. Case ID:" with the numeric ID, and says an associate replies by email | Live |
+| Chat handoff | Terms text with `Approve`; the composer then becomes a message field for the associate, whose name varies | Demo |
+| Case ID after a live chat | Where and when Amazon shows it | Not observed |
 | Chat messages in the case | Whether chat messages appear as case contacts | Not observed |
 
 Frame rule: drive the unique frame that contains the composer. That may be the main document, which is what the live run showed. More than one candidate, a cross-origin frame that looks like the chat, or a new tab stops the run. Unrelated cross-origin frames, such as ad or metrics frames, are ignored.
@@ -41,6 +46,16 @@ Frame rule: drive the unique frame that contains the composer. That may be the m
 9. Window: agree a time with the operator away from scheduled Grimoire browser jobs such as the daily case pass. The controller holds the 9223 lock for up to 90 minutes and those jobs defer while it runs. Tell the operator that unplanned replies need quick approval, because a live chat can time out.
 
 Every browser command runs under `node tools/browserctl/browserctl.mjs run --session grimoire --`. For `observe` that is `node tools/browserctl/browserctl.mjs run --session grimoire -- python3 tools/amazon-operations/operations.py observe --request <file> --state-dir ~/.amazon-agent/cases/operations > <output file>`. Always redirect it: the output holds every case message, sender and signature. Show only a summary, for example `jq '{status, reason, history_complete, observed_at, case_ids, candidates: [.candidates[]? | {case_id, subject, status}], case_id, subject, case_status}' <output file>`.
+
+## Email case branch
+
+Use this branch when the operator chooses an email case. It was observed end to end on 2026-09-05 and gives a case ID in the chat.
+
+- **E1** (plan item `P1`), the first message: ask for a new Seller Support case by email, then give the exact subject and the exact signed message, and ask the assistant to use them "without summarising or rewording". Keep it within 2,500 characters. On this branch the signed case text goes to the assistant verbatim, because the assistant writes the case from it.
+- **E2** (plan item `followup`): "Email, please. Keep the subject and message text exactly as I provided." Send it only when the assistant asks for the contact method or a confirmation.
+- Compare the Issue summary with the approved text from `state` or `transcript`. Subject and Details must equal the approved subject and message after whitespace normalization, and Attachments must match the plan. The assistant paraphrases unless told not to.
+- **E3** (plan item `followup`): when the summary differs, `navigate --label "Request changes"`, then send "Please use exactly the subject and message text from my first message, without summarising or rewording it." A second mismatch stops the run.
+- **Approve** (plan item `approve`): only on an exact match, with the summary hash from `state` as `--expect-terms-sha256`. The option expires after one hour. Read the case ID from `transcript`.
 
 ## Approval model
 
@@ -70,7 +85,7 @@ Every step is then one client call, which queues a command and waits for its res
 | --- | --- |
 | `open [--via-lobby]` | Record the case lobby controls, then open Seller Assistant |
 | `state` | Read URL, frames, composer label, value and counter, controls, status texts, tour text, denial text, and the handoff terms with their hash |
-| `navigate --label <label>` | Read-only clicks from a fixed list: `Get help with a new issue`, `Show more`, `Show less`, and tour-dismiss labels while a tour step is visible |
+| `navigate --label <label>` | Clicks that send nothing, from a fixed list: `Get help with a new issue`, `Show more`, `Show less`, tour-dismiss labels while a tour step is visible, and `Request changes` while an email Issue summary shows one `Approve` |
 | `type --text-file <f> --sha256 <h>` | Put an approved draft into the empty composer and verify it; never submits |
 | `submit --expect-sha256 <h> --approval-file <f> [--expect-attachment <name>]...` | Click the composer's own `Submit` only when the composer text, the expected hash and the approval hash agree, and the files present are exactly the named files this run attached |
 | `approve --expect-terms-sha256 <h> --approval-file <f>` | Click the handoff `Approve` only when the terms hash matches |
@@ -92,7 +107,7 @@ The controller re-checks seller and marketplace before and after every command, 
 
 ## Signatures
 
-- P1, P2 and other assistant turns are unsigned and carry no personal name.
+- P1, P2 and other assistant turns are unsigned and carry no personal name. The email branch is the exception: E1 hands the exact signed case message to the assistant.
 - Messages to the associate carry the approved signature of the case owner registered by `start`. Never use the host computer's default name or the placeholder `CURRENT USERNAME`.
 - The signature does not change Amazon's login attribution. Record both the delegated login and the case owner.
 

@@ -325,7 +325,7 @@ node tools/amazon-operations/seller-assistant.mjs send --run <dir> <command> [ar
 |---|---|
 | `open [--via-lobby]` | Record the `/cu/case-lobby` controls, then open `/assistant?client=sellerSupport-meldFullPage`, or click `Get help with a new issue` with `--via-lobby` |
 | `state` | Read URL, frames, composer label, value and counter, visible controls, status texts, tour, access denial, and the handoff terms with their SHA-256 |
-| `navigate --label <label>` | Click `Get help with a new issue`, `Show more` or `Show less`; tour labels (`Skip`, `Skip tour`, `Got it`, `Done`, `Next`, `Finish`, `Close`, `Dismiss`) only on a control inside the tour container |
+| `navigate --label <label>` | Click `Get help with a new issue`, `Show more` or `Show less`; tour labels (`Skip`, `Skip tour`, `Got it`, `Done`, `Next`, `Finish`, `Close`, `Dismiss`) only on a control inside the tour container; `Request changes` only while exactly one `Approve` control is visible (an email-case Issue summary) |
 | `type --text-file <f> --sha256 <h>` | Insert the text into the empty composer and read it back; never submits. Multi-line text only into a `TEXTAREA` composer |
 | `submit --expect-sha256 <h> --approval-file <f> [--expect-attachment <name>]...` | Click `Submit` when the composer, the expected hash and the approval agree |
 | `approve --expect-terms-sha256 <h> --approval-file <f>` | Click the handoff `Approve` when the terms hash matches |

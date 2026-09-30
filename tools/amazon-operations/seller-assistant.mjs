@@ -23,6 +23,9 @@ import { pathToFileURL } from 'node:url';
 export const MAX_COMPOSER_CHARS = 2500;
 export const NAVIGATION_LABELS = Object.freeze(['Get help with a new issue', 'Show more', 'Show less']);
 export const TOUR_LABELS = Object.freeze(['Skip', 'Skip tour', 'Got it', 'Done', 'Next', 'Finish', 'Close', 'Dismiss']);
+// Request changes reopens an email-case Issue summary for editing and sends
+// nothing. It is allowed only while exactly one Approve control is visible.
+export const SUMMARY_LABELS = Object.freeze(['Request changes']);
 export const PLAN_ITEMS = Object.freeze(['P1', 'P2', 'P3', 'approve', 'attachment', 'followup']);
 const COMMAND_PLAN_ITEMS = { submit: ['P1', 'P2', 'P3', 'followup'], approve: ['approve'], attach: ['attachment'] };
 // P2 ("Please connect me with a Seller Support associate.") may be sent twice.
@@ -177,6 +180,9 @@ export function isNavigationAllowed(label, state = {}) {
   if (NAVIGATION_LABELS.includes(wanted)) return { ok: true, kind: 'navigation' };
   if (TOUR_LABELS.includes(wanted)) {
     return state?.tour?.visible === true ? { ok: true, kind: 'tour' } : { ok: false, reason: 'tour_not_visible' };
+  }
+  if (SUMMARY_LABELS.includes(wanted)) {
+    return state?.handoff?.approve_count === 1 ? { ok: true, kind: 'summary' } : { ok: false, reason: 'summary_not_visible' };
   }
   return { ok: false, reason: 'label_not_allowed' };
 }
