@@ -187,7 +187,7 @@ export function isNavigationAllowed(label, state = {}) {
   return { ok: false, reason: 'label_not_allowed' };
 }
 
-const DENIALS = [/(?:don['’]t|do not) currently have permission to create support cases[^.\n]*\.?/i,
+const DENIALS = [/(?:don['’]t|do not) currently have permission to create (?:a )?support cases?[^.\n]*\.?/i,
   /do not currently have permission[^.\n]*\.?/i];
 export function detectDenial(text) {
   const value = String(text ?? '');

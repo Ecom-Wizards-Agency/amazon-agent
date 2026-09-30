@@ -306,6 +306,10 @@ test('denial and tour text are detected', () => {
   assert.match(denial.text, /permission to create support cases/);
   assert.equal(detectDenial("You don't currently have permission to create support cases on this account.").detected, true);
   assert.equal(detectDenial('You do not currently have permission to view this page.').detected, true);
+  // Wording observed live on 2026-09-30 (Blissta US).
+  const variant = detectDenial('Here\'s what I found\nIt looks like you don’t currently have permission to create a support case on this account. The primary account holder may be able to grant you this permission via User Permissions in Seller Central.');
+  assert.equal(variant.detected, true);
+  assert.match(variant.text, /create a support case on this account/);
   assert.equal(detectDenial("Here's what I found").detected, false);
   assert.equal(detectTour('Welcome Step 2/4 Next').visible, true);
   assert.equal(detectTour('Steps to take').visible, false);

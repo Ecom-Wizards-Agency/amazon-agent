@@ -6,7 +6,7 @@ The `case.create` adapter supports only the retired case form, so a new case on 
 
 ## Observed labels
 
-"Live" means observed on the Grimoire delegated login between 2026-09-05 and 2026-09-25; the email-case rows come from two cases created on 2026-09-05. "Demo" means seen only in a recorded demonstration on another machine on 2026-09-28. Demo labels are expectations. When the live screen differs, capture it with `state` and `screenshot` and stop before the next outbound action.
+"Live" means observed on Seller Central between 2026-09-05 and 2026-09-30. The email-case rows come from two cases created on 2026-09-05 from the operator browser on port 9222; the other rows come from the Grimoire login on 9223. "Demo" means seen only in a recorded demonstration on another machine on 2026-09-28. Demo labels are expectations. When the live screen differs, capture it with `state` and `screenshot` and stop before the next outbound action.
 
 | Surface | Label or behavior | Source |
 | --- | --- | --- |
@@ -18,7 +18,9 @@ The `case.create` adapter supports only the retired case form, so a new case on 
 | Conversation URL after the first Submit | `/assistant/amzn1.cyrano.conversation.cid.v2.<id>?client=sellerSupport-meldFullPage` | Live |
 | Progress text | `Working on it`, then `Here's what I found` | Live |
 | First-use tour | `Step 1/4 Welcome to support on Seller Assistant` | Live |
-| Access denial | `You don't currently have permission to create support cases on this account.` with a pointer to User Permissions | Live |
+| Access denial | `You don't currently have permission to create support cases on this account.` (2026-09-25), or `It looks like you don't currently have permission to create a support case on this account.` (2026-09-30), each with a pointer to User Permissions | Live |
+| Full page `/assistant?client=sellerSupport-meldFullPage` | `New chat`, `Recent`, suggested topics, `Show more`; the composer sits in a same-origin frame, not the main document | Live |
+| Sent message bubble | Rendered as Markdown: numbered lists, curly quotes, `Message:` joined to the next line, signature lines joined | Live |
 | Entry route | Help > `Manage support cases` > `Get help with a new issue` | Demo |
 | Self-service | `Open the tool` on a suggested tool | Demo |
 | Docked panel on Seller Central pages | `Undock panel`, `Minimize panel`, `Open full-page chat`, `Download chat` | Live |
@@ -31,7 +33,7 @@ The `case.create` adapter supports only the retired case form, so a new case on 
 | Case ID after a live chat | Where and when Amazon shows it | Not observed |
 | Chat messages in the case | Whether chat messages appear as case contacts | Not observed |
 
-Frame rule: drive the unique frame that contains the composer. That may be the main document, which is what the live run showed. More than one candidate, a cross-origin frame that looks like the chat, or a new tab stops the run. Unrelated cross-origin frames, such as ad or metrics frames, are ignored.
+Frame rule: drive the unique frame that contains the composer. That may be the main document; on the 2026-09-30 full page it was a same-origin frame. More than one candidate, a cross-origin frame that looks like the chat, or a new tab stops the run. Unrelated cross-origin frames, such as ad or metrics frames, are ignored.
 
 ## Before the first message
 
@@ -110,6 +112,12 @@ The controller re-checks seller and marketplace before and after every command, 
 - P1, P2 and other assistant turns are unsigned and carry no personal name. The email branch is the exception: E1 hands the exact signed case message to the assistant.
 - Messages to the associate carry the approved signature of the case owner registered by `start`. Never use the host computer's default name or the placeholder `CURRENT USERNAME`.
 - The signature does not change Amazon's login attribution. Record both the delegated login and the case owner.
+
+## Access findings
+
+On 2026-09-30 the Grimoire login was refused on Blissta US although the operator had confirmed `Manage Your Cases` at Edit that day; SwissKlip US was refused on 2026-09-25. The only chat-created cases so far (2026-09-05) came from the operator browser on 9222. Until a Grimoire case is created, treat Edit on `Manage Your Cases` as necessary but not proven sufficient, and check the exact delegated user and a fresh login after a grant change.
+
+After `submit`, a Markdown-rendered bubble can make the driver report `uncertain` with `only_prefix_visible` even though the whole message went out. Read `transcript` before deciding anything, and never resend on that result alone.
 
 ## Outcome states
 
