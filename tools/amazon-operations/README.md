@@ -323,14 +323,14 @@ node tools/amazon-operations/seller-assistant.mjs send --run <dir> <command> [ar
 
 | Command | Effect |
 |---|---|
-| `open [--via-lobby]` | Record the `/cu/case-lobby` controls, then open `/assistant?client=sellerSupport-meldFullPage`, or click `Get help with a new issue` with `--via-lobby` |
+| `open [--via-lobby \| --conversation <path>]` | Record the `/cu/case-lobby` controls, then open `/assistant?client=sellerSupport-meldFullPage`, click `Get help with a new issue` with `--via-lobby`, or reopen an existing conversation path (`/assistant/amzn1.cyrano.conversation.cid.v2.<digits>?client=sellerSupport-meldFullPage`) after a restart |
 | `state` | Read URL, frames, composer label, value and counter, visible controls, status texts, tour, access denial, and the handoff terms with their SHA-256 |
 | `navigate --label <label>` | Click `Get help with a new issue`, `Show more` or `Show less`; tour labels (`Skip`, `Skip tour`, `Got it`, `Done`, `Next`, `Finish`, `Close`, `Dismiss`) only on a control inside the tour container; `Request changes` only while exactly one `Approve` control is visible (an email-case Issue summary) |
 | `type --text-file <f> --sha256 <h>` | Insert the text into the empty composer and read it back; never submits. Multi-line text only into a `TEXTAREA` composer |
 | `submit --expect-sha256 <h> --approval-file <f> [--expect-attachment <name>]...` | Click `Submit` when the composer, the expected hash and the approval agree |
 | `approve --expect-terms-sha256 <h> --approval-file <f>` | Click the handoff `Approve` when the terms hash matches |
 | `attach --file <path> --sha256 <h> --approval-file <f>` | Set one file on the chat's file input and wait for its chip; never submits |
-| `transcript [--wait-new <n>] [--timeout <s>]` | Save and print the conversation text and a structural outline |
+| `transcript [--wait-new <n>] [--timeout <s>]` | Save and print the conversation text and a structural outline, plus `page_text` (`transcripts/NN-transcript-page.txt`) and a shadow-piercing `deep_text` of every frame (`transcripts/NN-transcript-deep.txt`); denial detection reads all three |
 | `screenshot [--name <label>]` | Identity-verified screenshot with its receipt |
 | `viewcase-raw --case-id <digits>` | Save the raw ViewCase JSON; print a summary without emails or senders |
 | `stop` | Release the task tab and exit |

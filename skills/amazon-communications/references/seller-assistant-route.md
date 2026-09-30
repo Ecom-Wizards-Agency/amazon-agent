@@ -26,12 +26,14 @@ The `case.create` adapter supports only the retired case form, so a new case on 
 | Docked panel on Seller Central pages | `Undock panel`, `Minimize panel`, `Open full-page chat`, `Download chat` | Live |
 | Thread view | `Chat history` > conversation `Options` > `Open full-page chat` | Demo |
 | Contact options | `Email` ("Send a message and receive a response via email. You can also view responses in the Seller Central Case Log.") or `Chat` (live chat with an estimated wait time), answered by typing | Live |
-| Email Issue summary | `Issue summary` with Subject, Details, the relevant IDs, `Your e-mail` and `Attachments`, then `Approve` and `Request changes` and "Option valid for 1 hour"; the composer reads "Select an option above to proceed." | Live |
+| Contact question (2026-09-30) | "Support offers two contact options for this case. Would you like to proceed via Chat (typical wait under a minute) or Email (as you originally requested)?" | Live |
+| Email Issue summary | `Issue summary` with Subject, Details, the relevant IDs, `Your e-mail` and `Attachments`, then `Approve` and `Request changes` and "Option valid for 1 hour"; the composer reads "Select an option above to proceed." On the full page its fields sit in a shadow root, so only `transcript` `deep_text` shows them | Live |
 | `Request changes` | The assistant asks "What would you like to change?" | Live |
-| Email case created | `Approve` returns "Your case has been successfully created. Case ID:" with the numeric ID, and says an associate replies by email | Live |
+| Email case created | `Approve` returns "Your case has been successfully created. Case ID:" (2026-09-05) or "Your case has been created successfully. Case ID:" with a link to the case (2026-09-30). The `Approve` control stays enabled afterwards | Live |
 | Chat handoff | Terms text with `Approve`; the composer then becomes a message field for the associate, whose name varies | Demo |
 | Case ID after a live chat | Where and when Amazon shows it | Not observed |
-| Chat messages in the case | Whether chat messages appear as case contacts | Not observed |
+| Email case record | Case title equals the approved subject; the single seller contact (channel `EMAIL`) equals the approved message, followed by Amazon's "Sent from Seller Assistant" and "FNSKU:" lines; status `PendingAmazonAction` | Live |
+| Chat messages in the case | Whether live-chat messages appear as case contacts | Not observed |
 
 Frame rule: drive the unique frame that contains the composer. That may be the main document; on the 2026-09-30 full page it was a same-origin frame. More than one candidate, a cross-origin frame that looks like the chat, or a new tab stops the run. Unrelated cross-origin frames, such as ad or metrics frames, are ignored.
 
@@ -57,7 +59,8 @@ Use this branch when the operator chooses an email case. It was observed end to 
 - **E2** (plan item `followup`): "Email, please. Keep the subject and message text exactly as I provided." Send it only when the assistant asks for the contact method or a confirmation.
 - Compare the Issue summary with the approved text from `state` or `transcript`. Subject and Details must equal the approved subject and message after whitespace normalization, and Attachments must match the plan. The assistant paraphrases unless told not to.
 - **E3** (plan item `followup`): when the summary differs, `navigate --label "Request changes"`, then send "Please use exactly the subject and message text from my first message, without summarising or rewording it." A second mismatch stops the run.
-- **Approve** (plan item `approve`): only on an exact match, with the summary hash from `state` as `--expect-terms-sha256`. The option expires after one hour. Read the case ID from `transcript`.
+- **Approve** (plan item `approve`): only on an exact match, with the summary hash from `state` as `--expect-terms-sha256`. The option expires after one hour. The driver reports `uncertain` because `Approve` stays enabled; read the case ID from `transcript` `deep_text` and never approve twice.
+- Rendering is not a mismatch: the summary and the sent bubble show curly quotes, list numbers drawn by the page and the signature on one line, while the stored case text keeps the approved characters. Compare after normalizing quotes, list markers and whitespace, and confirm the stored text with `observe` afterwards.
 
 ## Approval model
 
@@ -85,14 +88,14 @@ Every step is then one client call, which queues a command and waits for its res
 
 | Command | Use |
 | --- | --- |
-| `open [--via-lobby]` | Record the case lobby controls, then open Seller Assistant |
+| `open [--via-lobby \| --conversation <path>]` | Record the case lobby controls, then open a new Seller Assistant chat, or reopen an existing `/assistant/amzn1.cyrano.conversation.cid.v2.<id>?client=sellerSupport-meldFullPage` conversation after a controller restart |
 | `state` | Read URL, frames, composer label, value and counter, controls, status texts, tour text, denial text, and the handoff terms with their hash |
 | `navigate --label <label>` | Clicks that send nothing, from a fixed list: `Get help with a new issue`, `Show more`, `Show less`, tour-dismiss labels while a tour step is visible, and `Request changes` while an email Issue summary shows one `Approve` |
 | `type --text-file <f> --sha256 <h>` | Put an approved draft into the empty composer and verify it; never submits |
 | `submit --expect-sha256 <h> --approval-file <f> [--expect-attachment <name>]...` | Click the composer's own `Submit` only when the composer text, the expected hash and the approval hash agree, and the files present are exactly the named files this run attached |
 | `approve --expect-terms-sha256 <h> --approval-file <f>` | Click the handoff `Approve` only when the terms hash matches |
 | `attach --file <path> --sha256 <h> --approval-file <f>` | Copy the file into the run directory, check the copy's hash, upload the copy and verify its chip; never submits |
-| `transcript [--wait-new <n>] [--timeout <s>]` | Save and print the conversation. After P3 it contains the owner's signature, so quote signed messages to the operator by path and hash |
+| `transcript [--wait-new <n>] [--timeout <s>]` | Save and print the conversation, plus `page_text` (the frame's text) and `deep_text` (every frame, including shadow roots). On the full page the assistant's replies and the Issue summary appear only in `deep_text`, and `--wait-new` does not see them, so poll with plain `transcript`. After P3 or E1 it contains the owner's signature, so quote signed messages to the operator by path and hash |
 | `screenshot [--name <label>]` | Identity-verified screenshot |
 | `viewcase-raw --case-id <digits>` | Save the raw case record to the run directory; prints a summary only |
 | `stop` | Release the task tab and exit |
@@ -115,7 +118,7 @@ The controller re-checks seller and marketplace before and after every command, 
 
 ## Access findings
 
-On 2026-09-30 the Grimoire login was refused on Blissta US although the operator had confirmed `Manage Your Cases` at Edit that day; SwissKlip US was refused on 2026-09-25. The only chat-created cases so far (2026-09-05) came from the operator browser on 9222. Until a Grimoire case is created, treat Edit on `Manage Your Cases` as necessary but not proven sufficient, and check the exact delegated user and a fresh login after a grant change.
+On 2026-09-30 the Grimoire login was first refused on Blissta US although the operator had confirmed `Manage Your Cases` at Edit that morning; SwissKlip US was refused on 2026-09-25. After the operator corrected the Grimoire user's permission, the retry on 9223 created case 22352352471 the same evening. A refusal means the grant for that exact delegated user is still wrong or not yet active; fix it and retry in a new chat, never by resending in the refused one.
 
 After `submit`, a Markdown-rendered bubble can make the driver report `uncertain` with `only_prefix_visible` even though the whole message went out. Read `transcript` before deciding anything, and never resend on that result alone.
 

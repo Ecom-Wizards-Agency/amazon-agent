@@ -617,6 +617,34 @@ test('submit waits out a busy assistant and re-checks chips after the identity r
   } finally { await rm(dir, { recursive: true, force: true }); }
 });
 
+test('transcript saves the whole frame text and finds a denial there', async () => {
+  const dir = await runDir();
+  try {
+    const { rt } = fakeRuntime(dir);
+    rt.browser.conversation = async () => ({ text: 'I need to open a new case', message_count: 1, messages: [], busy: false, status: [], message_detection: 'text_blocks',
+      page_text: 'I need to open a new case\nSeller Assistant\nIt looks like you don\u2019t currently have permission to create a support case on this account.' });
+    const result = await executeCommand(rt, command('001', 'transcript', {}));
+    assert.equal(result.status, 'ok');
+    assert.equal(result.denial.detected, true);
+    assert.match(await readFile(result.page_text_path, 'utf8'), /Seller Assistant/);
+    rt.browser.deepText = async frameId => ({ text: `Issue summary\nSubject\nFrame ${frameId}` });
+    const deep = await executeCommand(rt, command('002', 'transcript', {}));
+    assert.match(deep.deep_text, /Issue summary\nSubject/);
+    assert.match(await readFile(deep.deep_text_path, 'utf8'), /Issue summary/);
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
+test('open accepts only a Seller Assistant conversation path', () => {
+  const good = '/assistant/amzn1.cyrano.conversation.cid.v2.10021790765749518386464?client=sellerSupport-meldFullPage';
+  assert.equal(SA.validateCommandArgs('open', { conversation: good }).ok, true);
+  for (const bad of ['https://evil.example/assistant/amzn1.cyrano.conversation.cid.v2.1002179076574951?client=sellerSupport-meldFullPage',
+    '/assistant?client=sellerSupport-meldFullPage', '/assistant/amzn1.cyrano.conversation.cid.v2.123/../../x?client=sellerSupport-meldFullPage',
+    '//evil.example/assistant/amzn1.cyrano.conversation.cid.v2.10021790765749518386464?client=sellerSupport-meldFullPage']) {
+    assert.equal(SA.validateCommandArgs('open', { conversation: bad }).ok, false, bad);
+  }
+  assert.deepEqual(parseArgs(['send', '--run', '/tmp/x', 'open', '--conversation', good]).args, { conversation: good });
+});
+
 test('transcript waits are capped by the serve deadline', async () => {
   const dir = await runDir();
   try {

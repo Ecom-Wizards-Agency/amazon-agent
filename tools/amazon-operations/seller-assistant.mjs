@@ -33,6 +33,8 @@ const COMMAND_PLAN_ITEMS = { submit: ['P1', 'P2', 'P3', 'followup'], approve: ['
 // never retried automatically.
 const SEND_LIMITS = { P2: 2 };
 const ASSISTANT_PATH = '/assistant?client=sellerSupport-meldFullPage';
+// An existing Seller Assistant conversation, reopened after a controller restart.
+export const CONVERSATION_PATH = /^\/assistant\/amzn1\.cyrano\.conversation\.cid\.v2\.\d{10,40}\?client=sellerSupport-meldFullPage$/;
 const LOBBY_PATH = '/cu/case-lobby';
 const RUN_ID = /^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$/;
 const SHA = /^[a-f0-9]{64}$/;
@@ -289,7 +291,7 @@ export function summarizeViewCase(payload) {
 // ------------------------------------------------------------------ arguments
 
 const FLAG_TYPES = {
-  open: { 'via-lobby': 'bool' },
+  open: { 'via-lobby': 'bool', conversation: 'conversation' },
   state: {},
   navigate: { label: 'label' },
   type: { 'text-file': 'path', sha256: 'sha' },
@@ -325,6 +327,7 @@ export function validateCommandArgs(command, args, { absolutePaths = true } = {}
     if (type === 'label' && !(typeof value === 'string' && collapse(value) && value.length <= 100)) return bad();
     if (type === 'name' && !(typeof value === 'string' && /^[A-Za-z0-9][A-Za-z0-9_.-]{0,39}$/.test(value))) return bad();
     if (type === 'caseid' && !(typeof value === 'string' && /^\d{5,30}$/.test(value))) return bad();
+    if (type === 'conversation' && !(typeof value === 'string' && CONVERSATION_PATH.test(value))) return bad();
     if (type === 'int' && !(Number.isInteger(value) && value >= INT_RANGE[key][0] && value <= INT_RANGE[key][1])) return bad();
     if (type === 'list' && !(Array.isArray(value) && value.every(v => typeof v === 'string' && v && v.length <= 200 && !/[\\/]/.test(v)))) return bad();
   }
@@ -581,6 +584,29 @@ export function pageAgent(op, arg, lib) {
     if (smallest) return pack(smallest, 'smallest_text');
     fail('terms_container_not_found');
   }
+  if (op === 'deep_text') {
+    // Read-only text of the whole frame, including open shadow roots, which
+    // innerText skips. The 2026-09-30 email Issue summary rendered its fields
+    // where neither the conversation area nor body.innerText reached them.
+    const out = [];
+    const BLOCK = /^(?:DIV|P|LI|UL|OL|H[1-6]|TR|TD|TH|SECTION|ARTICLE|HEADER|FOOTER|DT|DD|LABEL|BUTTON)$/;
+    const walk = n => {
+      if (out.length > 60000) return;
+      if (n.nodeType === 3) { const t = n.textContent.replace(/\s+/g, ' '); if (t.trim()) out.push(t); return; }
+      if (n.nodeType !== 1 && n.nodeType !== 11) return;
+      if (n.nodeType === 1) {
+        if (/^(?:SCRIPT|STYLE|NOSCRIPT|TEMPLATE)$/.test(n.tagName)) return;
+        const cs = getComputedStyle(n);
+        if (cs.display === 'none' || cs.visibility === 'hidden') return;
+        if (n.tagName === 'BR') { out.push('\n'); return; }
+        if (n.shadowRoot) walk(n.shadowRoot);
+      }
+      for (const c of n.childNodes) walk(c);
+      if (n.nodeType === 1 && BLOCK.test(n.tagName)) out.push('\n');
+    };
+    walk(document.body || document.documentElement);
+    return { text: out.join('').replace(/[ \t]+\n/g, '\n').replace(/\n[ \t]+/g, '\n').replace(/\n{3,}/g, '\n\n').slice(0, 200000) };
+  }
   if (op === 'conversation') {
     const c = conv();
     const depthOf = el => { let d = 0; for (let n = el; n && n !== c.area; n = parentOf(n)) d++; return d; };
@@ -590,6 +616,9 @@ export function pageAgent(op, arg, lib) {
       basis: c.basis, text: c.text.slice(0, 200000), message_count: c.message_count, message_detection: c.message_detection,
       messages: c.msgs.slice(-300).map(m => ({ text: m.text.slice(0, 4000), role: m.el.getAttribute('role'), aria_label: m.el.getAttribute('aria-label'), testid: m.el.getAttribute('data-testid') })),
       outline, busy: busy(), status: statusTexts(),
+      // The whole frame text as read-only backup: on the 2026-09-30 full page the
+      // chosen area held only the seller's own message, not the assistant reply.
+      page_text: (document.body?.innerText || '').slice(0, 200000),
     };
   }
   if (op === 'occurrences') {
@@ -795,6 +824,7 @@ export function makeBrowser({ send, listPageTargets = async () => [], sleep = ms
     async setFile({ objectId }, path) { await send('DOM.setFileInputFiles', { files: [path], objectId }); },
     occurrences: (frameId, text) => run(frameId, 'occurrences', { text }),
     conversation: frameId => run(frameId, 'conversation', null, { timeoutMs: 30000 }),
+    deepText: frameId => run(frameId, 'deep_text', null, { timeoutMs: 30000 }),
     async navigate(url) {
       const answer = await send('Page.navigate', { url }, { timeoutMs: 30000 });
       if (answer?.errorText) throw codeError('navigation_failed', answer.errorText);
@@ -975,7 +1005,12 @@ export const handlers = {
       get_help_present: lobbyState.controls.some(c => collapse(c.label) === 'Get help with a new issue'),
       ask_present: lobbyState.controls.some(c => collapse(c.label) === 'Ask Seller Assistant') };
     let via = 'url';
-    if (args['via-lobby']) {
+    if (args['via-lobby'] && args.conversation) return { status: 'refused', reason: 'via_lobby_with_conversation', lobby };
+    if (args.conversation) {
+      assertNotAborting(rt);
+      await rt.browser.navigate(rt.origin + args.conversation);
+      via = 'conversation';
+    } else if (args['via-lobby']) {
       const match = allControlsMatch(lobbyState, 'Get help with a new issue');
       if (!match.ok) return { status: 'blocked', reason: `control_${match.reason}`, lobby };
       const click = await guardedClick(rt, match.control.frame_id, 'Get help with a new issue');
@@ -1198,12 +1233,27 @@ export const handlers = {
       composer_label: first.composer?.label ?? null, text_sha256: textSha, ...conversation };
     const jsonPath = join(rt.runDir, 'transcripts', `${stem}.json`), textPath = join(rt.runDir, 'transcripts', `${stem}.txt`);
     await atomicWrite(textPath, conversation.text);
+    const pagePath = join(rt.runDir, 'transcripts', `${stem}-page.txt`);
+    await atomicWrite(pagePath, conversation.page_text || '');
+    // Shadow-piercing text of every reachable frame, saved for reading only.
+    const deep = [];
+    if (typeof rt.browser.deepText === 'function') {
+      for (const f of first.frames || []) {
+        try { const d = await rt.browser.deepText(f.frame_id); if (d?.text) deep.push({ frame_id: f.frame_id, url: f.url || null, text: d.text }); }
+        catch (error) { if (isFatal(error)) throw error; }
+      }
+    }
+    const deepPath = join(rt.runDir, 'transcripts', `${stem}-deep.txt`);
+    const deepText = deep.map(d => `=== frame ${d.frame_id} ${d.url || ''}\n${d.text}`).join('\n\n');
+    await atomicWrite(deepPath, deepText);
     await atomicWrite(jsonPath, JSON.stringify(record, null, 2));
     rt.baseline = conversation.message_count;
     return { status: satisfied ? 'ok' : 'timeout', ...(satisfied ? {} : { reason: 'wait_new_timeout' }), path: jsonPath, text_path: textPath, text_sha256: textSha,
       message_count: conversation.message_count, new_messages: conversation.message_count - base, message_detection: conversation.message_detection,
-      conversation_url: first.conversation_url, busy: conversation.busy, status_texts: conversation.status, denial: detectDenial(conversation.text),
-      text: conversation.text, messages: conversation.messages.slice(-20) };
+      conversation_url: first.conversation_url, busy: conversation.busy, status_texts: conversation.status,
+      denial: detectDenial(`${conversation.text}\n${conversation.page_text || ''}\n${deepText}`),
+      text: conversation.text, page_text_path: pagePath, page_text: conversation.page_text || '', deep_text_path: deepPath, deep_text: deepText,
+      messages: conversation.messages.slice(-20) };
   },
 
   async screenshot(rt, args, cmd) {
