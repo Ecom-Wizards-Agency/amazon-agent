@@ -431,7 +431,7 @@ class CaseService:
         members = [m for m in self._policy()['members'].values() if m.get('approved') is True and m.get('signature_name') and m.get('signature')]
         signoffs = {line.strip().casefold() for m in members for line in [m['signature_name'], *m['signature'].splitlines()] if line.strip()}
         # A sign-off is a whole line of a member's name or signature, or a closing that ends in a member's
-        # name after a comma or dash ("Best regards, Danica"). A name inside a word ("Davenport") is not.
+        # name after a comma or dash ("Best regards, Alex"). A name inside a word ("Alexander") is not.
         names = {m['signature_name'].strip().casefold() for m in members} | {owner['signature_name'].strip().casefold()}
         closing = re.compile(r'[,\-\u2013\u2014]\s*(?:' + '|'.join(re.escape(n) for n in sorted(names) if n) + r')[.!]?$')
         tail = [line.strip().casefold() for line in text.split('\n') if line.strip()][-3:]

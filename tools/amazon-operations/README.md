@@ -326,8 +326,8 @@ the case log still answers older Amazon messages.
 body that already ends in the owner's exact policy signature. It refuses
 `signature_conflict` when one of the last three lines is a sign-off: a whole line
 equal to an approved member's name or signature line, or a closing that ends in a
-member's name after a comma or dash (`Best regards, Danica`). A name inside a word
-or a sentence (`Davenport`) is body text. Otherwise it appends the owner's
+member's name after a comma or dash (`Best regards, Alex`). A name inside a word
+or a sentence (`Alexander`) is body text. Otherwise it appends the owner's
 signature, exactly as before. `prepare-send` uses the same rule. A case without an
 owner, or a request without `registry_id`, signs as the attended operator
 (`owner_source: attended_operator`). Write `signed_body` to the text file without
@@ -337,7 +337,7 @@ name" field may carry.
 
 ```json
 {"registry_id":"b8b3…","body":"Dear Amazon Support,\n\nThe invoice is attached."}
-{"status":"signed","registry_id":"b8b3…","owner_member_id":"U01…","owner_source":"case_owner","signature_name":"Victor Uhl","signed_body":"Dear Amazon Support,\n\nThe invoice is attached.\n\nVictor Uhl\nEcom Wizards","sha256":"75b8…","baseline":{"last_sent_at":"2026-09-30T14:02:11+00:00"}}
+{"status":"signed","registry_id":"b8b3…","owner_member_id":"U01…","owner_source":"case_owner","signature_name":"Alex Doe","signed_body":"Dear Amazon Support,\n\nThe invoice is attached.\n\nAlex Doe\nEcom Wizards","sha256":"75b8…","baseline":{"last_sent_at":"2026-09-30T14:02:11+00:00"}}
 ```
 
 `claim-attended` is the driver's check before each outbound click of one reply
@@ -358,7 +358,7 @@ sets `next_action` to `human`, so Grimoire cannot answer over an attended send
 that may be out but is not recorded yet.
 
 ```json
-{"registry_id":"b8b3…","run_id":"acme-12345678901-r1","account":{"seller_id":"A2RB…","marketplace_id":"ATVPDKIKX0DER"},"case_id":"12345678901","signature_name":"Victor Uhl","baseline":{"last_sent_at":"2026-09-30T14:02:11+00:00"},"authorization":{"kind":"attended","requester_id":"U01…","source":{"session_id":"…","request_id":"acme-12345678901-send","instruction":"this is perfect, send it"}}}
+{"registry_id":"b8b3…","run_id":"acme-12345678901-r1","account":{"seller_id":"A1TEST","marketplace_id":"ATVPDKIKX0DER"},"case_id":"12345678901","signature_name":"Alex Doe","baseline":{"last_sent_at":"2026-09-30T14:02:11+00:00"},"authorization":{"kind":"attended","requester_id":"U01…","source":{"session_id":"…","request_id":"acme-12345678901-send","instruction":"this is perfect, send it"}}}
 {"status":"claimed","operation_id":"attended-3f1c…","authorization_revision":7}
 ```
 

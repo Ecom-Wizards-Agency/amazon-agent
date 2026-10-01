@@ -1256,11 +1256,11 @@ test('an attached name is used up by the submit that carried it', async () => {
 
 // ------------------------------------------------ attended case replies (9222)
 
-const CASE_ID = '22354454371';
+const CASE_ID = '10000000001';
 const CASE_URL = `${SC}/cu/case-dashboard/view-case?caseID=${CASE_ID}`;
-// Shape of the 2026-10-01 Evora chat window URL.
-const CHAT_URL = `${SC}/hill/website/chat?formType=reply&originalHttpRequestId=RVB41GNAWCS48T6AZPXD&caseID=${CASE_ID}&contactRequestId=${CASE_ID}%3ACRQ%2Fabc`;
-const P3 = 'Dear Amazon Support,\n\nPlease escalate the catalog issue for ASIN B0TEST0001.\n\nVictor Uhl\nEcom Wizards';
+// Shape of the chat window URL observed on 2026-10-01 on one scoped account.
+const CHAT_URL = `${SC}/hill/website/chat?formType=reply&originalHttpRequestId=TESTREQUEST000000001&caseID=${CASE_ID}&contactRequestId=${CASE_ID}%3ACRQ%2Fabc`;
+const P3 = 'Dear Amazon Support,\n\nPlease escalate the catalog issue for ASIN B0TEST0001.\n\nAlex Doe\nEcom Wizards';
 const P3_SHA = sha256(P3);
 const ATTENDED = { kind: 'attended', requester_id: 'U01', source: { session_id: 'session-1', instruction: 'Approved, send P1 as drafted.' } };
 // A reply run is bound to its registry row (open --case refuses otherwise).
@@ -1270,7 +1270,7 @@ const claimed = async () => ({ ok: true, status: 'claimed' });
 function caseState(overrides = {}) {
   const state = baseState({ url: CASE_URL, frames: [{ frame_id: 'main', url: CASE_URL, origin: SC, same_origin: true, reachable: true, composer_count: 1 }],
     controls: [{ frame_id: 'main', label: 'Reply', disabled: false }, { frame_id: 'main', label: 'Cancel', disabled: false }, { frame_id: 'main', label: 'Chat now', disabled: false }],
-    name_field: { count: 1, value: 'Thermoslim LLC', disabled: false }, ...overrides });
+    name_field: { count: 1, value: 'Acme LLC', disabled: false }, ...overrides });
   Object.assign(state.composer, { label: '', submit_controls: [], submit_by_label: { Submit: [], Send: [], 'Chat now': [{ disabled: false, in_region: true }] } });
   return state;
 }
@@ -1292,7 +1292,7 @@ function chatRuntime(dir, { popups = null, adopt = null, claim = null, config = 
     targets: async () => infos().map(t => t.targetId), targetInfos: async () => infos(),
     fillName: async (_frame, text) => { main.events.push('fill-name'); main.current.name_field.value = text; },
   });
-  Object.assign(main.rt, { caseId: CASE_ID, taskTargetId: 'task', chat: null, config: { ...main.rt.config, ...BOUND, signature_name: 'Victor', ...config } });
+  Object.assign(main.rt, { caseId: CASE_ID, taskTargetId: 'task', chat: null, config: { ...main.rt.config, ...BOUND, signature_name: 'Alex', ...config } });
   main.rt.deps.adoptChat = adopt || (async target => { main.events.push(`adopt:${target.targetId}`); return { targetId: target.targetId, browser: chat.rt.browser, release: async () => {} }; });
   main.rt.deps.claimAttended = claim || claimed;
   return { ...main, chat };
@@ -1416,11 +1416,11 @@ test('page: Send and Chat now are scoped to the composer region; Attach anchors 
   assert.equal(pageCode(() => runPage(body, 'control', { label: 'Reply', composerSubmit: true })), 'composer_submit_label');
   // The reply form: "Your name" input with its label, the message, Chat now.
   const form = (extraName = false) => el('body', {}, [el('div', { class: 'reply-form' }, [
-    el('div', { 'data-test-tag': 'input-name' }, [el('label', { for: 'input-2' }, [], 'Your name'), el('input', { id: 'input-2', type: 'text', value: 'Thermoslim LLC' })]),
+    el('div', { 'data-test-tag': 'input-name' }, [el('label', { for: 'input-2' }, [], 'Your name'), el('input', { id: 'input-2', type: 'text', value: 'Acme LLC' })]),
     ...(extraName ? [el('input', { type: 'text', 'aria-label': 'Your name', value: '' })] : []),
     el('textarea', {}), el('button', {}, [], 'Cancel'), el('button', {}, [], 'Chat now')])]);
   const reply = runPage(form(), 'scan');
-  assert.deepEqual(reply.name_field, { count: 1, value: 'Thermoslim LLC', disabled: false });
+  assert.deepEqual(reply.name_field, { count: 1, value: 'Acme LLC', disabled: false });
   assert.deepEqual(reply.region.submit_by_label['Chat now'], [{ disabled: false, in_region: true }]);
   assert.equal(runPage(form(), 'name-input').getAttribute('id'), 'input-2');
   assert.equal(pageCode(() => runPage(form(true), 'name-input')), 'name_field_count', 'two name fields fail closed');
@@ -1440,10 +1440,10 @@ test('Chat now fills the name and opening line, then adopts exactly the case cha
     assert.equal(run.rt.browser, run.chat.rt.browser, 'later commands drive the chat window');
     const order = ['fill-name', 'insert', 'prepare:Chat now', 'dispatch', 'adopt:chat-1'].map(e => run.events.indexOf(e));
     assert.ok(order.every((v, i) => v >= 0 && (i === 0 || v > order[i - 1])), `order: ${run.events.join(',')}`);
-    assert.equal(run.current.name_field.value, 'Victor'); assert.equal(run.current.composer.value, SA.CHAT_OPENING_LINE);
+    assert.equal(run.current.name_field.value, 'Alex'); assert.equal(run.current.composer.value, SA.CHAT_OPENING_LINE);
     let log = await readLog(dir);
     assert.deepEqual(log.map(x => [x.phase, x.command, x.status ?? null]), [['attempt', 'chat_now', null], ['result', 'chat_now', 'sent']]);
-    assert.equal(log[0].label, 'routine'); assert.equal(log[0].name, 'Victor'); assert.equal(log[0].opening_line_sha256, sha256(SA.CHAT_OPENING_LINE));
+    assert.equal(log[0].label, 'routine'); assert.equal(log[0].name, 'Alex'); assert.equal(log[0].opening_line_sha256, sha256(SA.CHAT_OPENING_LINE));
     // The approved message then goes out through the chat window's Send.
     run.chat.current.composer.value = P3;
     const sent = await executeCommand(run.rt, command('002', 'submit', { 'expect-sha256': P3_SHA, 'approval-file': approval, label: 'Send' }));
@@ -1614,7 +1614,7 @@ test('the claim before Chat now names the opened case and the chat name for the 
     const run = chatRuntime(dir, { claim: async request => { requests.push(request); return { ok: true, status: 'claimed' }; } });
     const result = await executeCommand(run.rt, command('001', 'submit', { 'expect-sha256': P3_SHA, 'approval-file': await approvalFile(dir, { plan_item: 'P3', sha256: P3_SHA }), label: 'Chat now' }));
     assert.equal(result.status, 'sent');
-    assert.deepEqual([requests[0].case_id, requests[0].signature_name, requests[0].authorization], [CASE_ID, 'Victor', ATTENDED]);
+    assert.deepEqual([requests[0].case_id, requests[0].signature_name, requests[0].authorization], [CASE_ID, 'Alex', ATTENDED]);
     assert.equal('signature_name' in SA.claimRequest({ run_id: 'r', registry_id: 'x', account: { seller_id: 'S', marketplace_id: 'M' }, baseline: {}, authorization: ATTENDED }), false, 'no name without the chat form');
   } finally { await rm(dir, { recursive: true, force: true }); }
 });
@@ -1639,8 +1639,8 @@ test('claim-attended runs the case service and only exit 0 with claimed passes',
 test('run.json keeps the case binding and the signature name, strictly', () => {
   const account = { profile_key: 'acme-us', client_slug: 'acme', marketplace: 'US', seller_id: 'S', marketplace_id: 'M', seller_central_name: 'Acme', marketplace_label: 'United States', parent_account_name: 'Acme' };
   const base = { schema_version: 1, run_id: 'r1', account };
-  const bound = validateRunConfig({ ...base, registry_id: 'b8b3', baseline: { last_sent_at: null }, authorization: ATTENDED, signature_name: 'Victor Uhl' });
-  assert.deepEqual([bound.registry_id, bound.baseline, bound.authorization, bound.signature_name], ['b8b3', { last_sent_at: null }, ATTENDED, 'Victor Uhl']);
+  const bound = validateRunConfig({ ...base, registry_id: 'b8b3', baseline: { last_sent_at: null }, authorization: ATTENDED, signature_name: 'Alex Doe' });
+  assert.deepEqual([bound.registry_id, bound.baseline, bound.authorization, bound.signature_name], ['b8b3', { last_sent_at: null }, ATTENDED, 'Alex Doe']);
   assert.equal(validateRunConfig({ ...base, registry_id: 'b8b3', baseline: { last_sent_at: '2026-10-01T14:40:22.371000+00:00' }, authorization: ATTENDED }).baseline.last_sent_at, '2026-10-01T14:40:22.371000+00:00');
   assert.equal(validateRunConfig(base).registry_id, undefined);
   assert.throws(() => validateRunConfig({ ...base, registry_id: 'b8b3', authorization: ATTENDED }), /baseline/);
@@ -1648,7 +1648,7 @@ test('run.json keeps the case binding and the signature name, strictly', () => {
   assert.throws(() => validateRunConfig({ ...base, registry_id: 'b8b3', baseline: { last_sent_at: null } }), /authorization/);
   assert.throws(() => validateRunConfig({ ...base, registry_id: 'b8b3', baseline: { last_sent_at: null }, authorization: { ...ATTENDED, kind: 'slack' } }), /authorization/);
   assert.throws(() => validateRunConfig({ ...base, registry_id: '' }), /registry_id/);
-  assert.throws(() => validateRunConfig({ ...base, signature_name: 'Victor\nUhl' }), /signature_name/);
+  assert.throws(() => validateRunConfig({ ...base, signature_name: 'Alex\nDoe' }), /signature_name/);
   assert.throws(() => validateRunConfig({ ...base, signature_name: 'x'.repeat(101) }), /signature_name/);
 });
 
@@ -1848,7 +1848,7 @@ test('page: the Send and Chat now lookups re-check the composer text like Submit
   const form = value => {
     const chatNow = el('button', {}, [], 'Chat now');
     const body = el('body', {}, [el('div', { class: 'reply-form' }, [
-      el('div', { 'data-test-tag': 'input-name' }, [el('label', { for: 'input-2' }, [], 'Your name'), el('input', { id: 'input-2', type: 'text', value: 'Victor' })]),
+      el('div', { 'data-test-tag': 'input-name' }, [el('label', { for: 'input-2' }, [], 'Your name'), el('input', { id: 'input-2', type: 'text', value: 'Alex' })]),
       el('textarea', { value }), el('button', {}, [], 'Cancel'), chatNow])]);
     return { body, chatNow };
   };

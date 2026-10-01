@@ -454,7 +454,7 @@ class CaseServiceTests(unittest.TestCase):
     def current(self, case):
         return next(c for c in self.service.list()['cases'] if c['registry_id'] == case['registry_id'])
 
-    def driver_run(self, case, texts, statuses=None, run_id='evora-1-r1', label='routine', account=None, at=None, approvals=None, claim=True, registry=True, conversation=None):
+    def driver_run(self, case, texts, statuses=None, run_id='acme-1-r1', label='routine', account=None, at=None, approvals=None, claim=True, registry=True, conversation=None):
         """A Seller Assistant run directory: run.json plus approvals.jsonl attempt and result lines.
 
         The run claims the case first, a second before its first click, as the driver does. `conversation` is the
@@ -504,7 +504,7 @@ class CaseServiceTests(unittest.TestCase):
     def case_log(self, case, contacts, observed=None, name='readback.json'):
         return self.evidence(name, {'schema_version': 1, 'status': 'collected', 'account': self.account, 'case_id': case['case_id'], 'history_complete': True, 'contacts': contacts, 'observed_at': (observed or self.now).isoformat()})
 
-    def claim(self, case, last, run_id='evora-1-r1', **extra):
+    def claim(self, case, last, run_id='acme-1-r1', **extra):
         return self.service.claim_attended({'registry_id': case['registry_id'], 'run_id': run_id, 'account': {'seller_id': 'SELLER', 'marketplace_id': 'ATVPDKIKX0DER'}, 'case_id': case['case_id'], 'baseline': {'last_sent_at': last}, 'authorization': self.attended(), **extra})
 
     def test_sign_keeps_owner_signature_refuses_other_signoffs_and_appends(self):
@@ -527,13 +527,13 @@ class CaseServiceTests(unittest.TestCase):
         self.assertEqual('attended_operator', self.service.sign({'registry_id': imported['registry_id'], 'body': 'Status?'})['owner_source'])
 
     def test_sign_treats_a_name_inside_a_word_as_body_text_on_both_paths(self):
-        self.policy_value['members']['UDAVE'] = {'signature_name': 'Dave', 'signature': 'Dave\nEcom Wizards', 'approved': True}
+        self.policy_value['members']['UROBIN'] = {'signature_name': 'Robin', 'signature': 'Robin\nEcom Wizards', 'approved': True}
         self.policy.write_text(json.dumps(self.policy_value))
-        case = self.start('UDAVE', '100.5', 'dave')
-        body = 'Please check the Davenport warehouse shipment FBA123.'
-        self.assertEqual(body + '\n\nDave\nEcom Wizards', self.service.sign({'registry_id': case['registry_id'], 'body': body})['signed_body'])
-        self.assertEqual(body + '\n\nDave\nEcom Wizards', self.prepare(case, body=body)['operation_request']['inputs']['signed_body'])
-        self.assertCode('signature_conflict', lambda: self.service.sign({'registry_id': case['registry_id'], 'body': 'Please check it.\n\nThanks, Dave'}))
+        case = self.start('UROBIN', '100.5', 'robin')
+        body = 'Please check the Robinson warehouse shipment FBA123.'
+        self.assertEqual(body + '\n\nRobin\nEcom Wizards', self.service.sign({'registry_id': case['registry_id'], 'body': body})['signed_body'])
+        self.assertEqual(body + '\n\nRobin\nEcom Wizards', self.prepare(case, body=body)['operation_request']['inputs']['signed_body'])
+        self.assertCode('signature_conflict', lambda: self.service.sign({'registry_id': case['registry_id'], 'body': 'Please check it.\n\nThanks, Robin'}))
 
     def test_prepare_send_signs_once_and_keeps_unsigned_bodies_unchanged(self):
         plain = self.prepare(self.start())['operation_request']['inputs']['signed_body']
@@ -653,7 +653,7 @@ class CaseServiceTests(unittest.TestCase):
         self.assertCode('stale_case_binding', lambda: self.service.validate_binding(binding))
         again = self.claim(case, baseline)
         self.assertEqual((first['operation_id'], first['authorization_revision'] + 1), (again['operation_id'], again['authorization_revision']))
-        self.assertEqual(2, self.service.list()['cases'][0]['attended_claims']['evora-1-r1']['count'])
+        self.assertEqual(2, self.service.list()['cases'][0]['attended_claims']['acme-1-r1']['count'])
         self.assertCode('account_mismatch', lambda: self.claim(case, baseline, account={'seller_id': 'OTHER', 'marketplace_id': 'ATVPDKIKX0DER'}))
         self.assertCode('case_mismatch', lambda: self.claim(case, baseline, case_id='99999999'))
         self.assertCode('case_mismatch', lambda: self.claim(case, baseline, case_id=None))
@@ -683,11 +683,11 @@ class CaseServiceTests(unittest.TestCase):
         # The chat closed before any outbound click: run.json only, no approvals.jsonl.
         run_dir, _ = self.driver_run(case, {}, claim=False)
         (run_dir / 'approvals.jsonl').unlink()
-        release = lambda path, run_id='evora-1-r1', **extra: self.service.release({'registry_id': case['registry_id'], 'run_id': run_id, 'run_dir': str(run_dir), 'authorization': self.attended('Nothing went out; release it'), 'evidence': {'readback_path': str(path), 'summary': 'Chat closed before Send'}, **extra})  # noqa: E731
+        release = lambda path, run_id='acme-1-r1', **extra: self.service.release({'registry_id': case['registry_id'], 'run_id': run_id, 'run_dir': str(run_dir), 'authorization': self.attended('Nothing went out; release it'), 'evidence': {'readback_path': str(path), 'summary': 'Chat closed before Send'}, **extra})  # noqa: E731
         self.assertCode('missing_run_dir', lambda: release(self.case_log(case, []), run_dir=None))
-        self.assertCode('run_mismatch', lambda: release(self.case_log(case, []), run_id='evora-9'))
-        ghost, _ = self.driver_run(case, {}, run_id='evora-9', claim=False)
-        self.assertCode('unknown_claim', lambda: release(self.case_log(case, []), run_id='evora-9', run_dir=str(ghost)))
+        self.assertCode('run_mismatch', lambda: release(self.case_log(case, []), run_id='acme-9'))
+        ghost, _ = self.driver_run(case, {}, run_id='acme-9', claim=False)
+        self.assertCode('unknown_claim', lambda: release(self.case_log(case, []), run_id='acme-9', run_dir=str(ghost)))
         self.assertCode('stale_readback', lambda: release(self.case_log(case, [], observed=claimed_at - dt.timedelta(minutes=1))))
         other_case = self.evidence('other-case.json', {'account': self.account, 'history_complete': True, 'observed_at': self.now.isoformat(), 'cases': [{'case_id': '1', 'contacts': []}]})
         self.assertCode('readback_mismatch', lambda: release(other_case))
@@ -711,7 +711,7 @@ class CaseServiceTests(unittest.TestCase):
         run_dir, messages = self.driver_run(case, {'P3': 'Here is the invoice.\n\nDanica\nEcom Wizards'})
         self.record_attended(case, run_dir, messages)
         self.assertEqual([], self.service._open_claims(self.current(case)))
-        self.assertCode('run_recorded', lambda: self.service.release({'registry_id': case['registry_id'], 'run_id': 'evora-1-r1', 'run_dir': str(run_dir), 'authorization': self.attended(), 'evidence': {'readback_path': str(self.case_log(case, [])), 'summary': 'x'}}))
+        self.assertCode('run_recorded', lambda: self.service.release({'registry_id': case['registry_id'], 'run_id': 'acme-1-r1', 'run_dir': str(run_dir), 'authorization': self.attended(), 'evidence': {'readback_path': str(self.case_log(case, [])), 'summary': 'x'}}))
 
     def test_release_refuses_a_run_whose_driver_log_shows_a_submit(self):
         # Review F1: a chat reply can be missing from the case log, so a clean case log cannot release a run
@@ -726,24 +726,24 @@ class CaseServiceTests(unittest.TestCase):
         # An uncertain submit needs the operator's statement and the driver's transcript as well.
         for status, code in (('sent', 'run_sent'), ('uncertain', 'missing_operator_statement'), (None, 'run_sent')):
             with self.subTest(status=status):
-                run_id = f'evora-1-{status}'
+                run_id = f'acme-1-{status}'
                 run_dir, _ = self.driver_run(case, {'P3': text}, statuses={'P3': status}, run_id=run_id)
                 self.assertCode(code, lambda: release(run_dir, run_id))
         current = self.current(case)
         self.assertEqual(3, len(self.service._open_claims(current)))
         self.assertCode('reconciliation_required', lambda: self.prepare(current, 'reply', daily_key=observed['daily_key']))
         # The sent run is recorded instead; a run whose only submit was blocked before dispatch is released.
-        sent_dir = self.root / 'runs' / 'evora-1-sent'
+        sent_dir = self.root / 'runs' / 'acme-1-sent'
         messages = [{'plan_item': 'P3', 'sha256': hashlib.sha256(text.encode()).hexdigest(), 'text_path': str(sent_dir / 'P3.txt')}]
         self.assertEqual('recorded', self.record_attended(case, sent_dir, messages)['status'])
-        blocked, _ = self.driver_run(case, {'P3': text}, statuses={'P3': 'blocked'}, run_id='evora-1-blocked')
-        self.assertEqual('released', release(blocked, 'evora-1-blocked')['status'])
+        blocked, _ = self.driver_run(case, {'P3': text}, statuses={'P3': 'blocked'}, run_id='acme-1-blocked')
+        self.assertEqual('released', release(blocked, 'acme-1-blocked')['status'])
         # run.json must name this run, account and case.
-        other, _ = self.driver_run(case, {}, run_id='evora-1-other', account={'seller_id': 'OTHER'})
-        self.assertCode('account_mismatch', lambda: release(other, 'evora-1-other'))
-        unbound, _ = self.driver_run(case, {}, run_id='evora-1-unbound', registry=False)
-        self.assertCode('registry_binding_required', lambda: release(unbound, 'evora-1-unbound'))
-        self.assertCode('run_mismatch', lambda: release(blocked, 'evora-1-unbound'))
+        other, _ = self.driver_run(case, {}, run_id='acme-1-other', account={'seller_id': 'OTHER'})
+        self.assertCode('account_mismatch', lambda: release(other, 'acme-1-other'))
+        unbound, _ = self.driver_run(case, {}, run_id='acme-1-unbound', registry=False)
+        self.assertCode('registry_binding_required', lambda: release(unbound, 'acme-1-unbound'))
+        self.assertCode('run_mismatch', lambda: release(blocked, 'acme-1-unbound'))
 
     # The conversation the driver saw before the click in the uncertain-release tests: two messages, the last "Hello.".
     SNAPSHOT = {'frame_id': 'F1', 'message_count': 2, 'message_detection': 'structural', 'last_message': 'Hello.'}
@@ -780,10 +780,10 @@ class CaseServiceTests(unittest.TestCase):
         self.now += dt.timedelta(minutes=30)
         text = 'Here is the invoice for shipment FBA15ABCDEF. It lists the units we sent on 12 September and the carrier receipt for the same pallet count.\n\nDanica\nEcom Wizards'
         clicked = self.now - dt.timedelta(minutes=10)
-        run_dir, messages = self.driver_run(case, {'P3': text}, statuses={'P3': 'uncertain'}, run_id='evora-1-u', at=clicked, conversation=self.SNAPSHOT)
+        run_dir, messages = self.driver_run(case, {'P3': text}, statuses={'P3': 'uncertain'}, run_id='acme-1-u', at=clicked, conversation=self.SNAPSHOT)
         url = self.URL
         (run_dir / 'steps').mkdir()
-        self.evidence('runs/evora-1-u/steps/00-submit.json', {'schema_version': 1, 'id': '000', 'command': 'submit', 'result': {'status': 'uncertain'}, 'url': url})
+        self.evidence('runs/acme-1-u/steps/00-submit.json', {'schema_version': 1, 'id': '000', 'command': 'submit', 'result': {'status': 'uncertain'}, 'url': url})
         chat = self.CHAT
         page = self.transcript(run_dir, clicked + dt.timedelta(minutes=2), url, chat, chat + '\nType your message', chat, self.BEFORE)
         statement = 'The invoice message did not go out, the composer was empty and nothing new is in the chat'
@@ -792,7 +792,7 @@ class CaseServiceTests(unittest.TestCase):
 
         def release(readback=None, **extra):
             evidence = {'readback_path': str(readback or self.case_log(case, [])), 'summary': 'Case log and transcript show no seller message', 'page_evidence_path': str(page), 'text_paths': [messages[0]['text_path']], **extra.pop('evidence', {})}
-            request = {'registry_id': case['registry_id'], 'run_id': 'evora-1-u', 'run_dir': str(run_dir), 'authorization': self.attended('It was not sent, release the run'), 'operator_statement': statement, 'evidence': evidence, **extra}
+            request = {'registry_id': case['registry_id'], 'run_id': 'acme-1-u', 'run_dir': str(run_dir), 'authorization': self.attended('It was not sent, release the run'), 'operator_statement': statement, 'evidence': evidence, **extra}
             return self.service.release({k: v for k, v in request.items() if v is not None})
 
         # Each of the four pieces is required.
@@ -838,7 +838,7 @@ class CaseServiceTests(unittest.TestCase):
         readback = self.case_log(case, [], name='observe-after-u.json')
         released = release(readback)
         self.assertEqual('released', released['status'])
-        record = released['case']['attended_claims']['evora-1-u']['released']
+        record = released['case']['attended_claims']['acme-1-u']['released']
         self.assertEqual((statement, self.now.isoformat()), (record['operator_statement'], record['at']))
         self.assertEqual((str(page.resolve()), hashlib.sha256(page.read_bytes()).hexdigest()), (record['page_evidence']['path'], record['page_evidence']['sha256']))
         self.assertEqual(hashlib.sha256((run_dir / 'transcripts' / '07-transcript-deep.txt').read_bytes()).hexdigest(), record['page_evidence']['deep_text_sha256'])
@@ -849,7 +849,7 @@ class CaseServiceTests(unittest.TestCase):
         # The case is sendable again, and the released run cannot click again.
         self.assertEqual([], self.service._open_claims(self.current(case)))
         self.assertEqual('ready', self.prepare(self.current(case), 'reply', daily_key=observed['daily_key'])['status'])
-        self.assertCode('claim_released', lambda: self.claim(case, self.current(case)['last_sent_at'], run_id='evora-1-u'))
+        self.assertCode('claim_released', lambda: self.claim(case, self.current(case)['last_sent_at'], run_id='acme-1-u'))
 
     def test_release_needs_a_transcript_that_shows_the_conversation_as_before_the_click(self):
         # 2026-10-02 review F1 and F2(a): a transcript that shows nothing, another frame, or one more message.
@@ -857,7 +857,7 @@ class CaseServiceTests(unittest.TestCase):
         self.now += dt.timedelta(days=1)
         clicked = self.now - dt.timedelta(minutes=20)
         text = 'Here is the invoice for shipment FBA15ABCDEF.\n\nDanica\nEcom Wizards'
-        run_dir, release = self.uncertain(case, 'evora-1-f1', text, clicked)
+        run_dir, release = self.uncertain(case, 'acme-1-f1', text, clicked)
         minute = iter(range(2, 20))
         page = lambda **kw: self.transcript(run_dir, clicked + dt.timedelta(minutes=next(minute)), self.URL, **{'text': self.CHAT, 'page_text': self.CHAT, 'deep': self.CHAT, 'messages': self.BEFORE, **kw})  # noqa: E731
         for name, kwargs, code in (
@@ -874,7 +874,7 @@ class CaseServiceTests(unittest.TestCase):
         # The same conversation as before the click releases the run.
         self.assertEqual('released', release(page())['status'])
         # An attempt line without the snapshot, from a driver that did not write one, never releases.
-        older, release_older = self.uncertain(case, 'evora-1-f1-old', text, clicked, snapshot=None)
+        older, release_older = self.uncertain(case, 'acme-1-f1-old', text, clicked, snapshot=None)
         latest = self.transcript(older, clicked + dt.timedelta(minutes=2), self.URL, self.CHAT, self.CHAT, self.CHAT, self.BEFORE)
         self.assertCode('page_evidence_mismatch', lambda: release_older(latest))
 
@@ -893,7 +893,7 @@ class CaseServiceTests(unittest.TestCase):
             with self.subTest(name):
                 shown = rendered(text)
                 self.assertNotIn(' '.join(text.split())[:120], ' '.join(shown.split()))
-                run_dir, release = self.uncertain(case, f'evora-1-{name.replace(" ", "-")}', text, clicked)
+                run_dir, release = self.uncertain(case, f'acme-1-{name.replace(" ", "-")}', text, clicked)
                 chat = self.CHAT + '\n\nYou: ' + shown
                 page = self.transcript(run_dir, clicked + dt.timedelta(minutes=2), self.URL, chat, chat, chat, (*self.BEFORE, shown))
                 self.assertCode('message_in_page_evidence', lambda: release(page))
@@ -907,17 +907,17 @@ class CaseServiceTests(unittest.TestCase):
         shown = self.CHAT + '\n\nYou: ' + text
         clean = lambda run_dir, minutes, step: self.transcript(run_dir, clicked + dt.timedelta(minutes=minutes), self.URL, self.CHAT, self.CHAT, self.CHAT, self.BEFORE, step=step)  # noqa: E731
         # Transcript 07 at click + 70 s, before the message rendered; 09 at click + 5 min shows it.
-        run_dir, release = self.uncertain(case, 'evora-1-late', text, clicked)
+        run_dir, release = self.uncertain(case, 'acme-1-late', text, clicked)
         early = self.transcript(run_dir, clicked + dt.timedelta(seconds=70), self.URL, self.CHAT, self.CHAT, self.CHAT, self.BEFORE, step='07')
         later = self.transcript(run_dir, clicked + dt.timedelta(minutes=5), self.URL, shown, shown, shown, (*self.BEFORE, text), step='09')
         self.assertCode('page_evidence_mismatch', lambda: release(early))
         self.assertCode('message_in_page_evidence', lambda: release(later))
         # The latest transcript is clean, an earlier one after the click shows the text.
-        run_dir, release = self.uncertain(case, 'evora-1-earlier', text, clicked)
+        run_dir, release = self.uncertain(case, 'acme-1-earlier', text, clicked)
         self.transcript(run_dir, clicked + dt.timedelta(minutes=2), self.URL, shown, shown, shown, (*self.BEFORE, text), step='07')
         self.assertCode('message_in_page_evidence', lambda: release(clean(run_dir, 6, '09')))
         # Only the -page.txt the driver wrote next to an earlier transcript shows it.
-        run_dir, release = self.uncertain(case, 'evora-1-page-txt', text, clicked)
+        run_dir, release = self.uncertain(case, 'acme-1-page-txt', text, clicked)
         clean(run_dir, 2, '07')
         (run_dir / 'transcripts' / '07-transcript-page.txt').write_text(shown)
         self.assertCode('message_in_page_evidence', lambda: release(clean(run_dir, 6, '09')))
@@ -925,14 +925,14 @@ class CaseServiceTests(unittest.TestCase):
         body = {'caseId': '21912345678', 'contacts': [{'message': text.replace('\n\n', '<br><br>').replace('\n', '<br>'), 'isAmazon': False}]}
         for name, step in (('timed after the click', {'schema_version': 1, 'id': '008', 'command': 'viewcase-raw', 'result': {'status': 'ok', 'finished_at': (clicked + dt.timedelta(minutes=3)).isoformat()}}), ('untimed', None)):
             with self.subTest(viewcase=name):
-                run_dir, release = self.uncertain(case, f'evora-1-viewcase-{name.split()[0]}', text, clicked)
+                run_dir, release = self.uncertain(case, f'acme-1-viewcase-{name.split()[0]}', text, clicked)
                 (run_dir / 'viewcase').mkdir()
                 self.evidence(f'runs/{run_dir.name}/viewcase/21912345678-08.json', body)
                 if step:
                     self.evidence(f'runs/{run_dir.name}/steps/08-viewcase-raw.json', step)
                 self.assertCode('message_in_page_evidence', lambda: release(clean(run_dir, 6, '09')))
         # The same ViewCase body read before the click is not evidence of this send.
-        run_dir, release = self.uncertain(case, 'evora-1-viewcase-before', text, clicked)
+        run_dir, release = self.uncertain(case, 'acme-1-viewcase-before', text, clicked)
         (run_dir / 'viewcase').mkdir()
         self.evidence(f'runs/{run_dir.name}/viewcase/21912345678-05.json', body)
         self.evidence(f'runs/{run_dir.name}/steps/05-viewcase-raw.json', {'schema_version': 1, 'id': '005', 'command': 'viewcase-raw', 'result': {'status': 'ok', 'finished_at': (clicked - dt.timedelta(minutes=1)).isoformat()}})
@@ -943,7 +943,7 @@ class CaseServiceTests(unittest.TestCase):
         case = self.created()
         self.now += dt.timedelta(days=1)
         clicked = self.now - dt.timedelta(minutes=20)
-        run_dir, release = self.uncertain(case, 'evora-1-cut', 'Here is the invoice for shipment FBA15ABCDEF.\n\nDanica\nEcom Wizards', clicked)
+        run_dir, release = self.uncertain(case, 'acme-1-cut', 'Here is the invoice for shipment FBA15ABCDEF.\n\nDanica\nEcom Wizards', clicked)
         minute = iter(range(2, 20))
         page = lambda **kw: self.transcript(run_dir, clicked + dt.timedelta(minutes=next(minute)), self.URL, self.CHAT, self.CHAT, self.CHAT, self.BEFORE, **kw)  # noqa: E731
         for name, kwargs in (('cut', {'truncated': True}), ('frame not read', {'deep_failed': ['F2']}), ('no mark', {'truncated': None})):
@@ -956,16 +956,16 @@ class CaseServiceTests(unittest.TestCase):
         self.now += dt.timedelta(days=1)
         clicked = self.now - dt.timedelta(minutes=10)
         run_dir, messages = self.driver_run(case, {'P3': 'Here is the invoice.\n\nDanica\nEcom Wizards', 'followup': 'Also attached: the packing list.\n\nDanica\nEcom Wizards'},
-                                            statuses={'P3': 'uncertain', 'followup': 'sent'}, run_id='evora-1-mixed', at=clicked)
+                                            statuses={'P3': 'uncertain', 'followup': 'sent'}, run_id='acme-1-mixed', at=clicked)
         url = 'https://sellercentral.amazon.com/cu/case-dashboard/view-case?caseID=21912345678'
         (run_dir / 'steps').mkdir()
         for queue_id in ('000', '001'):
-            self.evidence(f'runs/evora-1-mixed/steps/{queue_id[1:]}-submit.json', {'schema_version': 1, 'id': queue_id, 'command': 'submit', 'url': url})
+            self.evidence(f'runs/acme-1-mixed/steps/{queue_id[1:]}-submit.json', {'schema_version': 1, 'id': queue_id, 'command': 'submit', 'url': url})
         page = self.transcript(run_dir, clicked + dt.timedelta(minutes=2), url, 'Hello.', 'Hello.', 'Hello.')
-        request = {'registry_id': case['registry_id'], 'run_id': 'evora-1-mixed', 'run_dir': str(run_dir), 'authorization': self.attended('It was not sent, release the run'), 'operator_statement': 'Neither message went out',
+        request = {'registry_id': case['registry_id'], 'run_id': 'acme-1-mixed', 'run_dir': str(run_dir), 'authorization': self.attended('It was not sent, release the run'), 'operator_statement': 'Neither message went out',
                    'evidence': {'readback_path': str(self.case_log(case, [])), 'summary': 'Case log shows no seller message', 'page_evidence_path': str(page), 'text_paths': [m['text_path'] for m in messages]}}
         self.assertCode('run_sent', lambda: self.service.release(request))
-        self.assertEqual(['evora-1-mixed'], self.service._open_claims(self.current(case)))
+        self.assertEqual(['acme-1-mixed'], self.service._open_claims(self.current(case)))
 
     def test_claim_checks_the_chat_name_against_the_case_owner(self):
         case = self.created()
@@ -1005,7 +1005,7 @@ class CaseServiceTests(unittest.TestCase):
         self.assertIn('seller-reply', result['case']['contact_ids'])
         # A run that stopped without a result line verifies through the chat transcript.
         later = 'One more question about the invoice.'
-        run_dir, messages = self.driver_run(case, {'followup': later}, statuses={'followup': None}, run_id='evora-1-r2')
+        run_dir, messages = self.driver_run(case, {'followup': later}, statuses={'followup': None}, run_id='acme-1-r2')
         transcript = self.evidence('transcript.json', {'schema_version': 1, 'captured_at': self.now.isoformat(), 'text': 'Me\n' + later + '\nAssociate\nThanks, checking.', 'messages': []})
         self.assertCode('readback_not_case_log', lambda: self.record_attended(case, run_dir, messages, readback_path=str(transcript)))
         self.assertEqual('chat_transcript', self.record_attended(case, run_dir, messages, transcript_path=str(transcript))['verified_by'])
@@ -1022,7 +1022,7 @@ class CaseServiceTests(unittest.TestCase):
         self.assertEqual(hashlib.sha256(logged.read_bytes()).hexdigest(), recorded['readback_sha256'])
         # A transcript that shows the opening message lifts it to chat_transcript.
         self.now += dt.timedelta(hours=1)
-        run_dir, messages = self.driver_run(case, {'P1': 'Hello again about case 21912345678.'}, run_id='evora-1-r2')
+        run_dir, messages = self.driver_run(case, {'P1': 'Hello again about case 21912345678.'}, run_id='acme-1-r2')
         transcript = self.evidence('transcript-r2.json', {'schema_version': 1, 'captured_at': self.now.isoformat(), 'text': 'Me\nHello again about case 21912345678.', 'messages': []})
         second = self.record_attended(case, run_dir, messages, transcript_path=str(transcript))
         self.assertEqual('chat_transcript', second['verified_by'])
@@ -1042,7 +1042,7 @@ class CaseServiceTests(unittest.TestCase):
         result = self.record_attended(case, run_dir, labelled)
         self.assertEqual('recorded', result['status'])
         self.assertEqual(['routine', 'admission'], [m['label'] for m in result['case']['actions'][-1]['attended']['messages']])
-        self.assertEqual(2, len(result['case']['attended_claims']['evora-1-r1']['authorizations']))
+        self.assertEqual(2, len(result['case']['attended_claims']['acme-1-r1']['authorizations']))
 
     def test_backfilled_receipt_marks_its_own_day_and_leaves_today_to_grimoire(self):
         case = self.created()
