@@ -13,6 +13,7 @@ import { switchAccount, readIdentity } from '../report-fetcher/sc-account.mjs';
 import { acquireTaskPage, releaseTaskPage, taskIdFor } from '../browserctl/task-tabs.mjs';
 import { acquireSessionLock } from '../browserctl/session-lock.mjs';
 import * as ui from './browser-ui.mjs';
+import { assertSession } from './seller-assistant.mjs';
 
 const HERE=dirname(fileURLToPath(import.meta.url));
 export const caseBrowserAccount=account=>({...account,marketplace:account.marketplace==='AUS'?'AU':account.marketplace});
@@ -161,9 +162,9 @@ async function listCases(page,account,homeIdentity,query) {
   fail('case_search_too_large','Scoped case search exceeds 1000 results; narrow the issue reference');
 }
 
-async function observeOnPage(input,page,homeIdentity) {
+async function observeOnPage(input,page,homeIdentity,session='grimoire') {
   const account=input.account,origin=caseOrigin(account);
-  const common={schema_version:1,status:'collected',account,plan_hash:input.plan_hash,source_id:'amazon-case-correspondence',login_identity:{session:'grimoire',seller_id:homeIdentity.merchantId,marketplace_id:account.marketplace_id,login_name:null}};
+  const common={schema_version:1,status:'collected',account,plan_hash:input.plan_hash,source_id:'amazon-case-correspondence',login_identity:{session,seller_id:homeIdentity.merchantId,marketplace_id:account.marketplace_id,login_name:null}};
   const id=input.case_id||input.targets?.[0]?.case_id;
   if(id){await navigate(page,caseUrl(origin,id));const data=await fetchCase(page,account,id,homeIdentity);return{...common,...data,observed_at:new Date().toISOString()};}
   const query=input.inputs?.duplicate_query||input.inputs?.baseline?.duplicate_query||duplicateQuery(input.inputs?.subject,input.targets?.[0]?.issue_key);
@@ -275,8 +276,18 @@ export async function claimAdapter(path,planHash) {
   try{await handle.writeFile(JSON.stringify({plan_hash:planHash,claimed_at:new Date().toISOString()}));await handle.sync();}finally{await handle.close();}
 }
 
+/** Browser session for one case run. Read-only observe may use the attended
+ * operator session on 9222 (never from Grimoire's environment); execute stays on
+ * Grimoire's 9223. Only 9223 takes the port-wide session lock. */
+export function caseSession(mode,env=process.env,cgroup=undefined){
+  const binding=assertSession(env,cgroup);
+  ui.check(mode==='observe'||binding.session==='grimoire','Cases require the Grimoire session on 9223');
+  return binding;
+}
+
 export async function run(input){
   ui.check(input.schema_version===1&&['observe','execute'].includes(input.mode),'Case mode must be observe or execute');
+  const binding=caseSession(input.mode);
   if(input.mode==='execute'){
     await ui.verifyEnvelope(input);
     ui.check(/^[A-Za-z0-9][A-Za-z0-9_.-]{0,99}$/.test(input.plan.operation_id),'Invalid case operation ID');
@@ -287,9 +298,8 @@ export async function run(input){
   }
   const plan=input.plan,account=plan?.account||input.account,operation=plan?.operation||input.operation;
   ui.check(['case.create','case.reply'].includes(operation),'Unsupported case operation');
-  ui.check(Number(process.env.CDP_PORT||9223)===9223&&(!process.env.AMAZON_BROWSER_SESSION||process.env.AMAZON_BROWSER_SESSION==='grimoire'),'Cases require the Grimoire session on 9223');
   const origin=caseOrigin(account);ui.check(origin,'Unsupported marketplace');
-  const unlock=acquireSessionLock(9223,'amazon-cases');let page,outcome='error',executionEntered=false,claimPath=null;
+  const unlock=binding.lockPort?acquireSessionLock(binding.lockPort,'amazon-cases'):()=>{};let page,outcome='error',executionEntered=false,claimPath=null;
   const onSigterm=async()=>{
     if(page?._released)return;
     try{if(page)await releaseTaskPage(page,{outcome:'error',closeTarget:input.close_tab_after===true});}
@@ -304,7 +314,7 @@ export async function run(input){
     await context(page,account,homeIdentity);
     if(input.mode==='execute'){claimPath=join(dirname(input.plan_path),'case-adapter-claim.json');await claimAdapter(claimPath,input.plan_hash);}
     executionEntered=input.mode==='execute';
-    const answer=input.mode==='observe'?await observeOnPage(input,page,homeIdentity):await submitPrepared(input,page,homeIdentity);
+    const answer=input.mode==='observe'?await observeOnPage(input,page,homeIdentity,binding.session):await submitPrepared(input,page,homeIdentity);
     if(answer.status==='collected'||answer.status==='processing')outcome='success';
     if(claimPath&&answer.attempted===false){await unlink(claimPath);claimPath=null;}
     return answer;

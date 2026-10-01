@@ -29,7 +29,7 @@ async function runDir() {
 }
 async function approvalFile(dir, overrides = {}, name = 'approval.json') {
   const path = join(dir, name);
-  await writeFile(path, JSON.stringify({ schema_version: 1, plan_item: 'P1', sha256: P1_SHA, approved_at: '2026-09-29T10:15:00+02:00', approval_text: 'Approved, send P1 as drafted.', run_id: RUN_ID, seller_id: SELLER, ...overrides }));
+  await writeFile(path, JSON.stringify({ schema_version: 1, plan_item: 'P1', sha256: P1_SHA, approved_at: '2026-09-29T10:15:00+02:00', approval_text: 'Approved, send P1 as drafted.', run_id: RUN_ID, seller_id: SELLER, label: 'routine', ...overrides }));
   return path;
 }
 function baseState(overrides = {}) {
@@ -191,7 +191,7 @@ test('navigation allowlist refuses unlisted labels and tour labels without a vis
 });
 
 test('approval files: missing, malformed, wrong hash, wrong item or bad timestamp are refused', async () => {
-  const good = { schema_version: 1, plan_item: 'P1', sha256: P1_SHA, approved_at: '2026-09-29T08:15:00Z', approval_text: 'Go.', run_id: RUN_ID, seller_id: SELLER };
+  const good = { schema_version: 1, plan_item: 'P1', sha256: P1_SHA, approved_at: '2026-09-29T08:15:00Z', approval_text: 'Go.', run_id: RUN_ID, seller_id: SELLER, label: 'routine' };
   const ctx = { runId: RUN_ID, sellerId: SELLER, now: T0 };
   assert.equal(validateApproval(good, P1_SHA, undefined, ctx).ok, true);
   assert.equal(validateApproval({ ...good, sha256: 'a'.repeat(64) }, P1_SHA, undefined, ctx).reason, 'approval_sha_mismatch');
@@ -754,7 +754,7 @@ function runPage(body, op, arg) {
   body.parentNode = doc;
   const saved = { document: globalThis.document, location: globalThis.location };
   Object.assign(globalThis, { document: doc, location: { href: ASSISTANT } });
-  try { return pageAgent(op, arg, { collapse, matchLabel, detectTour, composerSubmitCheck }); }
+  try { return pageAgent(op, arg, { collapse, matchLabel, detectTour, composerSubmitCheck, submitLabels: SA.SUBMIT_LABELS, uploadLabels: SA.UPLOAD_LABELS }); }
   finally { Object.assign(globalThis, saved); }
 }
 const pageCode = fn => { try { fn(); return 'ok'; } catch (error) { return /EW:([a-z_]+):/.exec(error.message)?.[1] ?? error.message; } };
@@ -963,7 +963,7 @@ test('send reports uncertain, not cancelled, when serve died while running its c
 });
 
 test('approvals are bound to the run, the seller and a real past time', async () => {
-  const good = { schema_version: 1, plan_item: 'P1', sha256: P1_SHA, approved_at: '2026-09-29T11:59:00Z', approval_text: 'Go.', run_id: RUN_ID, seller_id: SELLER };
+  const good = { schema_version: 1, plan_item: 'P1', sha256: P1_SHA, approved_at: '2026-09-29T11:59:00Z', approval_text: 'Go.', run_id: RUN_ID, seller_id: SELLER, label: 'routine' };
   const ctx = { runId: RUN_ID, sellerId: SELLER, now: T0 };
   assert.equal(validateApproval(good, P1_SHA, undefined, ctx).ok, true);
   assert.equal(validateApproval({ ...good, run_id: 'sa-old' }, P1_SHA, undefined, ctx).reason, 'approval_run_mismatch');
@@ -1163,4 +1163,379 @@ test('an attached name is used up by the submit that carried it', async () => {
     assert.equal(again.status, 'refused'); assert.equal(again.reason, 'attachment_not_approved');
     assert.equal(flow.sent.length, 1);
   } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
+// ------------------------------------------------ attended case replies (9222)
+
+const CASE_ID = '22354454371';
+const CASE_URL = `${SC}/cu/case-dashboard/view-case?caseID=${CASE_ID}`;
+// Shape of the 2026-10-01 Evora chat window URL.
+const CHAT_URL = `${SC}/hill/website/chat?formType=reply&originalHttpRequestId=RVB41GNAWCS48T6AZPXD&caseID=${CASE_ID}&contactRequestId=${CASE_ID}%3ACRQ%2Fabc`;
+const P3 = 'Dear Amazon Support,\n\nPlease escalate the catalog issue for ASIN B0TEST0001.\n\nVictor Uhl\nEcom Wizards';
+const P3_SHA = sha256(P3);
+const ATTENDED = { kind: 'attended', requester_id: 'U01', source: { session_id: 'session-1', instruction: 'Approved, send P1 as drafted.' } };
+
+function caseState(overrides = {}) {
+  const state = baseState({ url: CASE_URL, frames: [{ frame_id: 'main', url: CASE_URL, origin: SC, same_origin: true, reachable: true, composer_count: 1 }],
+    controls: [{ frame_id: 'main', label: 'Reply', disabled: false }, { frame_id: 'main', label: 'Cancel', disabled: false }, { frame_id: 'main', label: 'Chat now', disabled: false }],
+    name_field: { count: 1, value: 'Thermoslim LLC', disabled: false }, ...overrides });
+  Object.assign(state.composer, { label: '', submit_controls: [], submit_by_label: { Submit: [], Send: [], 'Chat now': [{ disabled: false, in_region: true }] } });
+  return state;
+}
+/** A runtime on the case page plus the chat window Chat now opens. */
+function chatRuntime(dir, { popups = null, adopt = null, claim = null, config = {} } = {}) {
+  const chatState = baseState({ url: CHAT_URL, frames: [{ frame_id: 'main', url: CHAT_URL, origin: SC, same_origin: true, reachable: true, composer_count: 1 }],
+    controls: [{ frame_id: 'main', label: 'Send', disabled: false }, { frame_id: 'main', label: 'Attach', disabled: false }, { frame_id: 'main', label: 'End chat', disabled: false }] });
+  Object.assign(chatState.composer, { label: 'Write here and press Enter', submit_controls: [], submit_by_label: { Submit: [], Send: [{ disabled: false, in_region: true }], 'Chat now': [] } });
+  let chat = null, opened = false;
+  chat = fakeRuntime(dir, { state: chatState, onDispatch: label => {
+    if (label === 'Send') { chat.sent.push(chat.current.composer.value); chat.current.composer.value = ''; chat.current.message_count += 1; }
+  } });
+  const counted = chat.rt.browser.occurrences;
+  chat.rt.browser.occurrences = async (frame, text) => text === SA.CHAT_OPENING_LINE ? { full: 1, prefix: 1, composer_value: chat.current.composer.value, message_count: chat.current.message_count } : counted(frame, text);
+  const main = fakeRuntime(dir, { state: caseState(), onDispatch: label => { if (label === 'Chat now') opened = true; } });
+  const infos = () => [{ targetId: 'task', type: 'page', url: CASE_URL, openerId: null },
+    ...(opened ? (popups ?? [{ targetId: 'chat-1', type: 'page', url: CHAT_URL, openerId: 'task' }]) : [])];
+  Object.assign(main.rt.browser, {
+    targets: async () => infos().map(t => t.targetId), targetInfos: async () => infos(),
+    fillName: async (_frame, text) => { main.events.push('fill-name'); main.current.name_field.value = text; },
+  });
+  Object.assign(main.rt, { caseId: CASE_ID, taskTargetId: 'task', chat: null, config: { ...main.rt.config, signature_name: 'Victor', ...config } });
+  main.rt.deps.adoptChat = adopt || (async target => { main.events.push(`adopt:${target.targetId}`); return { targetId: target.targetId, browser: chat.rt.browser, release: async () => {} }; });
+  if (claim) main.rt.deps.claimAttended = claim;
+  return { ...main, chat };
+}
+const readLog = async dir => existsSync(join(dir, 'approvals.jsonl')) ? (await readFile(join(dir, 'approvals.jsonl'), 'utf8')).trim().split('\n').map(JSON.parse) : [];
+
+test('session: operator on 9222 for attended runs, never from Grimoire, Grimoire on 9223', () => {
+  const human = '0::/user.slice/user-1000.slice/user@1000.service/app.slice/app-com.t3tools.T3Code-1.scope\n';
+  assert.deepEqual(SA.assertSession({}, human), { session: 'grimoire', port: 9223, lockPort: 9223 });
+  assert.deepEqual(SA.assertSession({ CDP_PORT: '9223', AMAZON_BROWSER_SESSION: 'grimoire' }, human), { session: 'grimoire', port: 9223, lockPort: 9223 });
+  assert.deepEqual(SA.assertSession({ CDP_PORT: '9222' }, human), { session: 'operator', port: 9222, lockPort: null });
+  assert.deepEqual(SA.assertSession({ AMAZON_BROWSER_SESSION: 'operator' }, human), { session: 'operator', port: 9222, lockPort: null });
+  const code = (env, cgroup = human) => { try { SA.assertSession(env, cgroup); return 'ok'; } catch (error) { return error.code; } };
+  assert.equal(code({ AMAZON_BROWSER_SESSION: 'operator', CDP_PORT: '9223' }), 'session_invalid');
+  assert.equal(code({ AMAZON_BROWSER_SESSION: 'grimoire', CDP_PORT: '9222' }), 'session_invalid');
+  assert.equal(code({ AMAZON_BROWSER_SESSION: 'other' }), 'session_invalid');
+  assert.equal(code({ CDP_PORT: '9555' }), 'session_invalid');
+  assert.equal(code({ AMAZON_BROWSER_SESSION: 'operator', CDP_PORT: '9222', WIZARDS_AI_MODE: '1' }), 'attended_context_required');
+  assert.equal(code({ CDP_PORT: '9222', WIZARDS_AI_MODE: '' }), 'attended_context_required', 'set but empty still counts');
+  assert.equal(code({ CDP_PORT: '9222' }, '0::/user.slice/user-1000.slice/user@1000.service/app.slice/wizards-ai-case-daily.service\n'), 'attended_context_required');
+  assert.equal(code({ CDP_PORT: '9222' }, '12:pids:/system.slice/wizards-ai-transport.service\n'), 'attended_context_required');
+  assert.equal(code({ CDP_PORT: '9223', WIZARDS_AI_MODE: '1' }, '0::/system.slice/wizards-ai-case-daily.service\n'), 'ok', 'Grimoire keeps its own session');
+  assert.equal(SA.unattendedContext({}, human), false);
+  assert.equal(SA.unattendedContext({}, ''), false);
+});
+
+test('serve takes the session lock only when bound to 9223', () => {
+  const calls = [];
+  const lock = { acquireSessionLock: (port, owner) => { calls.push([port, owner]); return () => calls.push(['released', port]); } };
+  const grimoire = SA.acquireServeLock({ session: 'grimoire', port: 9223, lockPort: 9223 }, lock);
+  assert.deepEqual(calls, [[9223, 'seller-assistant']]);
+  grimoire();
+  assert.deepEqual(calls.at(-1), ['released', 9223]);
+  calls.length = 0;
+  const operator = SA.acquireServeLock({ session: 'operator', port: 9222, lockPort: null }, lock);
+  assert.equal(typeof operator, 'function'); operator();
+  assert.deepEqual(calls, [], 'no lock call at all on 9222');
+});
+
+test('open --case opens the case page; Reply is a navigation target only there', async () => {
+  assert.deepEqual(parseArgs(['send', '--run', '/tmp/x', 'open', '--case', CASE_ID]).args, { case: CASE_ID });
+  assert.equal(SA.validateCommandArgs('open', { case: '12ab5' }).ok, false);
+  assert.equal(SA.validateCommandArgs('open', { case: '1234' }).ok, false);
+  const dir = await runDir();
+  try {
+    const opened = fakeRuntime(dir, { state: caseState() });
+    const result = await executeCommand(opened.rt, command('001', 'open', { case: CASE_ID }));
+    assert.equal(result.status, 'ok'); assert.equal(result.case_id, CASE_ID); assert.equal(result.reply_present, true);
+    assert.deepEqual(opened.events.filter(e => e.startsWith('navigate:')), [`navigate:${CASE_URL}`], 'straight to the case, not the lobby');
+    assert.equal(opened.rt.caseId, CASE_ID);
+    assert.ok(!opened.events.includes('dispatch'));
+    const both = fakeRuntime(dir, { state: caseState() });
+    assert.equal((await executeCommand(both.rt, command('002', 'open', { case: CASE_ID, 'via-lobby': true }))).reason, 'case_with_other_target');
+    assert.ok(!both.events.some(e => e.startsWith('navigate:')));
+    const elsewhere = fakeRuntime(dir);
+    const missed = await executeCommand(elsewhere.rt, command('003', 'open', { case: CASE_ID }));
+    assert.equal(missed.status, 'blocked'); assert.equal(missed.reason, 'case_page_not_reached'); assert.equal(elsewhere.rt.caseId ?? null, null);
+    // Reply: allowed on the opened case page only; it clicks Reply and sends nothing.
+    assert.deepEqual(isNavigationAllowed('Reply', { url: CASE_URL }), { ok: true, kind: 'reply' });
+    assert.equal(isNavigationAllowed('Reply', { url: ASSISTANT }).reason, 'reply_not_on_case_page');
+    assert.equal(isNavigationAllowed('Reply', { url: CASE_URL }, { caseId: '99999999' }).reason, 'reply_not_on_case_page');
+    assert.equal(isNavigationAllowed('Reply', { url: CASE_URL.replace(SC, 'https://sellercentral.amazon.de') }, { origin: SC }).reason, 'reply_not_on_case_page');
+    const reply = await executeCommand(opened.rt, command('004', 'navigate', { label: 'Reply' }));
+    assert.equal(reply.status, 'ok'); assert.equal(reply.kind, 'reply');
+    assert.ok(opened.events.includes('prepare:Reply') && opened.events.includes('dispatch'));
+    const onAssistant = fakeRuntime(dir, { state: baseState({ controls: [...baseState().controls, { frame_id: 'main', label: 'Reply', disabled: false }] }) });
+    assert.equal((await executeCommand(onAssistant.rt, command('005', 'navigate', { label: 'Reply' }))).reason, 'reply_not_on_case_page');
+    const notOpened = fakeRuntime(dir, { state: caseState() });
+    assert.equal((await executeCommand(notOpened.rt, command('006', 'navigate', { label: 'Reply' }))).reason, 'case_not_opened');
+    assert.ok(!onAssistant.events.includes('dispatch') && !notOpened.events.includes('dispatch'));
+    assert.ok(!existsSync(join(dir, 'approvals.jsonl')), 'opening a case and its reply form logs no send');
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
+test('submit --label takes Submit, Send or Chat now and clicks only that composer control', async () => {
+  assert.equal(parseArgs(['send', '--run', 'r', 'submit', '--expect-sha256', P1_SHA, '--approval-file', 'a.json']).args.label, undefined, 'Submit by default');
+  assert.equal(parseArgs(['send', '--run', 'r', 'submit', '--expect-sha256', P1_SHA, '--approval-file', 'a.json', '--label', 'Chat now']).args.label, 'Chat now');
+  assert.throws(() => parseArgs(['send', '--run', 'r', 'submit', '--expect-sha256', P1_SHA, '--approval-file', 'a.json', '--label', 'Reply']), /invalid_flag:label/);
+  assert.equal(SA.validateCommandArgs('submit', { 'expect-sha256': P1_SHA, 'approval-file': '/a.json', label: 'Send ' }).ok, false);
+  const dir = await runDir();
+  try {
+    const approval = await approvalFile(dir);
+    const sendState = () => {
+      const s = baseState({ controls: [{ frame_id: 'main', label: 'Send', disabled: false }, { frame_id: 'main', label: 'Attach', disabled: false }] });
+      Object.assign(s.composer, { value: P1, submit_controls: [], submit_by_label: { Submit: [], Send: [{ disabled: false, in_region: true }], 'Chat now': [] } });
+      return s;
+    };
+    const asSubmit = fakeRuntime(dir, { state: sendState() });
+    assert.equal((await executeCommand(asSubmit.rt, command('001', 'submit', { 'expect-sha256': P1_SHA, 'approval-file': approval }))).reason, 'control_not_found', 'the default label is Submit');
+    const unscoped = sendState(); unscoped.composer.submit_by_label = null;
+    const blind = fakeRuntime(dir, { state: unscoped });
+    assert.equal((await executeCommand(blind.rt, command('002', 'submit', { 'expect-sha256': P1_SHA, 'approval-file': approval, label: 'Send' }))).reason, 'submit_scope_unknown');
+    assert.ok(!asSubmit.events.includes('dispatch') && !blind.events.includes('dispatch'));
+    const send = fakeRuntime(dir, { state: sendState(), onDispatch: label => { if (label === 'Send') { send.sent.push(send.current.composer.value); send.current.composer.value = ''; } } });
+    const sent = await executeCommand(send.rt, command('003', 'submit', { 'expect-sha256': P1_SHA, 'approval-file': approval, label: 'Send' }));
+    assert.equal(sent.status, 'sent'); assert.equal(sent.submit_label, 'Send');
+    assert.ok(send.events.includes('prepare:Send') && send.events.includes('composer-scope'));
+    const log = await readLog(dir);
+    assert.deepEqual(log.map(x => [x.phase, x.command, x.submit_label ?? null]), [['attempt', 'submit', 'Send'], ['result', 'submit', null]]);
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
+test('page: Send and Chat now are scoped to the composer region; Attach anchors it', () => {
+  const footer = el('div', {}, [el('textarea', { placeholder: 'Write here and press Enter' }), el('button', {}, [], 'Attach'), el('button', {}, [], 'Send')]);
+  const body = el('body', {}, [el('main', {}, [el('div', {}, [el('button', {}, [], 'End chat')]), footer])]);
+  const scan = runPage(body, 'scan');
+  assert.deepEqual(scan.region.submit_by_label.Send, [{ disabled: false, in_region: true }]);
+  assert.deepEqual(scan.region.submit_by_label.Submit, []);
+  assert.equal(runPage(body, 'control', { label: 'Send', composerSubmit: true }).text, 'Send');
+  assert.equal(pageCode(() => runPage(body, 'control', { label: 'Reply', composerSubmit: true })), 'composer_submit_label');
+  // The reply form: "Your name" input with its label, the message, Chat now.
+  const form = (extraName = false) => el('body', {}, [el('div', { class: 'reply-form' }, [
+    el('div', { 'data-test-tag': 'input-name' }, [el('label', { for: 'input-2' }, [], 'Your name'), el('input', { id: 'input-2', type: 'text', value: 'Thermoslim LLC' })]),
+    ...(extraName ? [el('input', { type: 'text', 'aria-label': 'Your name', value: '' })] : []),
+    el('textarea', {}), el('button', {}, [], 'Cancel'), el('button', {}, [], 'Chat now')])]);
+  const reply = runPage(form(), 'scan');
+  assert.deepEqual(reply.name_field, { count: 1, value: 'Thermoslim LLC', disabled: false });
+  assert.deepEqual(reply.region.submit_by_label['Chat now'], [{ disabled: false, in_region: true }]);
+  assert.equal(runPage(form(), 'name-input').getAttribute('id'), 'input-2');
+  assert.equal(pageCode(() => runPage(form(true), 'name-input')), 'name_field_count', 'two name fields fail closed');
+  const search = el('body', {}, [el('input', { type: 'search', 'aria-label': 'Search' }), el('input', { type: 'text', placeholder: 'Search for anything' })]);
+  assert.equal(runPage(search, 'scan').name_field.count, 0, 'search inputs are not the name field');
+});
+
+test('Chat now fills the name and opening line, then adopts exactly the case chat window', async () => {
+  const dir = await runDir();
+  try {
+    const approval = await approvalFile(dir, { plan_item: 'P3', sha256: P3_SHA });
+    const run = chatRuntime(dir);
+    const result = await executeCommand(run.rt, command('001', 'submit', { 'expect-sha256': P3_SHA, 'approval-file': approval, label: 'Chat now' }));
+    assert.equal(result.status, 'sent'); assert.equal(result.submit_label, 'Chat now');
+    assert.deepEqual(result.chat, { target_id: 'chat-1', url: CHAT_URL, slot: SA.CHAT_SLOT });
+    assert.equal(run.rt.lockout, null, 'the expected window does not halt the run');
+    assert.equal(run.rt.browser, run.chat.rt.browser, 'later commands drive the chat window');
+    const order = ['fill-name', 'insert', 'prepare:Chat now', 'dispatch', 'adopt:chat-1'].map(e => run.events.indexOf(e));
+    assert.ok(order.every((v, i) => v >= 0 && (i === 0 || v > order[i - 1])), `order: ${run.events.join(',')}`);
+    assert.equal(run.current.name_field.value, 'Victor'); assert.equal(run.current.composer.value, SA.CHAT_OPENING_LINE);
+    let log = await readLog(dir);
+    assert.deepEqual(log.map(x => [x.phase, x.command, x.status ?? null]), [['attempt', 'chat_now', null], ['result', 'chat_now', 'sent']]);
+    assert.equal(log[0].label, 'routine'); assert.equal(log[0].name, 'Victor'); assert.equal(log[0].opening_line_sha256, sha256(SA.CHAT_OPENING_LINE));
+    // The approved message then goes out through the chat window's Send.
+    run.chat.current.composer.value = P3;
+    const sent = await executeCommand(run.rt, command('002', 'submit', { 'expect-sha256': P3_SHA, 'approval-file': approval, label: 'Send' }));
+    assert.equal(sent.status, 'sent');
+    assert.deepEqual(run.chat.sent, [P3]);
+    assert.ok(run.chat.events.includes('prepare:Send'));
+    log = await readLog(dir);
+    assert.deepEqual(log.filter(x => x.phase === 'attempt' && x.command === 'submit').map(x => x.sha256), [P3_SHA], 'the receipt sees one submit: the message');
+    assert.equal((await executeCommand(run.rt, command('003', 'submit', { 'expect-sha256': P3_SHA, 'approval-file': approval, label: 'Chat now' }))).reason, 'send_limit_reached');
+    assert.equal((await executeCommand(run.rt, command('004', 'open', { case: CASE_ID }))).reason, 'case_chat_open');
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
+test('Chat now: any other new window still halts the run and nothing is adopted', async () => {
+  const other = `${SC}/hill/website/chat?formType=reply&caseID=99999999`;
+  const cases = [
+    ['chat_case_mismatch', [{ targetId: 'chat-1', type: 'page', url: other, openerId: 'task' }]],
+    ['chat_opener_mismatch', [{ targetId: 'chat-1', type: 'page', url: CHAT_URL, openerId: null }]],
+    ['chat_form_type_mismatch', [{ targetId: 'chat-1', type: 'page', url: CHAT_URL.replace('formType=reply', 'formType=create'), openerId: 'task' }]],
+    ['chat_origin_mismatch', [{ targetId: 'chat-1', type: 'page', url: CHAT_URL.replace(SC, 'https://evil.example'), openerId: 'task' }]],
+    ['multiple_new_targets', [{ targetId: 'chat-1', type: 'page', url: CHAT_URL, openerId: 'task' }, { targetId: 'ad-1', type: 'page', url: 'https://ads.example/', openerId: 'task' }]],
+  ];
+  for (const [reason, popups] of cases) {
+    const dir = await runDir();
+    try {
+      const approval = await approvalFile(dir, { plan_item: 'P3', sha256: P3_SHA });
+      const run = chatRuntime(dir, { popups });
+      const result = await executeCommand(run.rt, command('001', 'submit', { 'expect-sha256': P3_SHA, 'approval-file': approval, label: 'Chat now' }));
+      assert.equal(result.status, 'uncertain', reason); assert.equal(result.reason, reason);
+      assert.equal(run.rt.lockout.reason, 'new_target'); assert.equal(result.lockout.check, reason);
+      assert.ok(!run.events.some(e => e.startsWith('adopt:')), `${reason}: nothing adopted`);
+      assert.notEqual(run.rt.browser, run.chat.rt.browser);
+      const log = await readLog(dir);
+      assert.deepEqual(log.map(x => [x.phase, x.status ?? null]), [['attempt', null], ['result', 'uncertain']]);
+    } finally { await rm(dir, { recursive: true, force: true }); }
+  }
+  const dir = await runDir();
+  try {
+    const run = chatRuntime(dir, { popups: [] });
+    const result = await executeCommand(run.rt, command('001', 'submit', { 'expect-sha256': P3_SHA, 'approval-file': await approvalFile(dir, { plan_item: 'P3', sha256: P3_SHA }), label: 'Chat now' }));
+    assert.equal(result.reason, 'chat_window_missing'); assert.equal(run.rt.lockout.reason, 'chat_window_missing');
+    assert.deepEqual(SA.isCaseChatTarget({ type: 'page', url: CHAT_URL, openerId: 'task' }, { origin: SC, caseId: CASE_ID, openerId: 'task' }), { ok: true });
+    assert.equal(SA.isCaseChatTarget({ type: 'page', url: `${SC}/assistant?caseID=${CASE_ID}&formType=reply`, openerId: 'task' }, { origin: SC, caseId: CASE_ID, openerId: 'task' }).reason, 'chat_path_mismatch');
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
+test('Chat now refuses before any click without a signature name, an opened case or a clean form', async () => {
+  const dir = await runDir();
+  try {
+    const approval = await approvalFile(dir, { plan_item: 'P3', sha256: P3_SHA });
+    const args = { 'expect-sha256': P3_SHA, 'approval-file': approval, label: 'Chat now' };
+    const noName = chatRuntime(dir, { config: { signature_name: undefined } });
+    assert.equal((await executeCommand(noName.rt, command('001', 'submit', args))).reason, 'signature_name_missing');
+    const noCase = chatRuntime(dir); noCase.rt.caseId = null;
+    assert.equal((await executeCommand(noCase.rt, command('002', 'submit', args))).reason, 'case_not_opened');
+    const drafted = chatRuntime(dir); drafted.current.composer.value = 'Something else';
+    assert.equal((await executeCommand(drafted.rt, command('003', 'submit', args))).reason, 'composer_not_empty');
+    const twoNames = chatRuntime(dir); twoNames.current.name_field = { count: 2, value: null, disabled: null };
+    assert.equal((await executeCommand(twoNames.rt, command('004', 'submit', args))).reason, 'name_field_count');
+    const files = chatRuntime(dir);
+    assert.equal((await executeCommand(files.rt, command('005', 'submit', { ...args, 'expect-attachment': ['a.pdf'] }))).reason, 'chat_now_takes_no_attachment');
+    for (const r of [noName, noCase, drafted, twoNames, files]) assert.ok(!r.events.includes('dispatch'));
+    assert.deepEqual(await readLog(dir), []);
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
+test('every text approval needs a label, and the label is logged with the attempt', async () => {
+  const good = { schema_version: 1, plan_item: 'P3', sha256: P3_SHA, approved_at: '2026-09-29T11:59:00Z', approval_text: 'Go.', run_id: RUN_ID, seller_id: SELLER, label: 'appeal' };
+  const ctx = { runId: RUN_ID, sellerId: SELLER, now: T0 };
+  assert.equal(validateApproval(good, P3_SHA, undefined, ctx).ok, true);
+  const { label, ...unlabelled } = good;
+  for (const item of ['P1', 'P2', 'P3', 'followup']) assert.equal(validateApproval({ ...unlabelled, plan_item: item }, P3_SHA, undefined, ctx).reason, 'approval_label_missing', item);
+  assert.equal(validateApproval({ ...good, label: 'urgent' }, P3_SHA, undefined, ctx).reason, 'approval_label_invalid');
+  assert.equal(validateApproval({ ...good, label: 'Routine' }, P3_SHA, undefined, ctx).reason, 'approval_label_invalid');
+  for (const value of SA.APPROVAL_LABELS) assert.equal(validateApproval({ ...good, label: value }, P3_SHA, undefined, ctx).ok, true, value);
+  assert.equal(validateApproval({ ...unlabelled, plan_item: 'approve' }, P3_SHA, undefined, ctx).ok, true, 'terms and file approvals carry no label');
+  assert.equal(validateApproval({ ...unlabelled, plan_item: 'attachment' }, P3_SHA, undefined, ctx).ok, true);
+  const dir = await runDir();
+  try {
+    const { rt, events, current } = fakeRuntime(dir); current.composer.value = P1;
+    const missing = await approvalFile(dir, { label: undefined }, 'unlabelled.json');
+    assert.equal((await executeCommand(rt, command('001', 'submit', { 'expect-sha256': P1_SHA, 'approval-file': missing }))).reason, 'approval_label_missing');
+    assert.ok(!events.includes('dispatch')); assert.deepEqual(await readLog(dir), []);
+    const appeal = await approvalFile(dir, { label: 'appeal' }, 'appeal.json');
+    assert.equal((await executeCommand(rt, command('002', 'submit', { 'expect-sha256': P1_SHA, 'approval-file': appeal }))).status, 'sent');
+    const log = await readLog(dir);
+    assert.equal(log[0].label, 'appeal'); assert.equal(log[0].approval.label, 'appeal');
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
+test('a registered case: claim-attended runs before each outbound action and a refusal stops it with no attempt line', async () => {
+  const config = { schema_version: 1, run_id: RUN_ID, account: { seller_id: SELLER, marketplace_id: 'ATVPDKIKX0DER' }, registry_id: 'b8b31850', baseline: { last_sent_at: '2026-09-30T14:02:11+00:00' }, authorization: ATTENDED };
+  const dir = await runDir();
+  try {
+    const requests = [];
+    const refuse = async request => { requests.push(request); return { ok: false, reason: 'daily_sent', message: 'Grimoire already sent on this case today' }; };
+    const s = fakeRuntime(dir); s.current.composer.value = P1; Object.assign(s.rt, { config }); s.rt.deps.claimAttended = refuse;
+    const refused = await executeCommand(s.rt, command('001', 'submit', { 'expect-sha256': P1_SHA, 'approval-file': await approvalFile(dir) }));
+    assert.equal(refused.status, 'refused'); assert.equal(refused.reason, 'claim_refused'); assert.equal(refused.claim_reason, 'daily_sent'); assert.equal(refused.stage, 'pre_click');
+    assert.ok(!s.events.includes('dispatch'));
+    assert.deepEqual(requests[0], { registry_id: 'b8b31850', run_id: RUN_ID, account: { seller_id: SELLER, marketplace_id: 'ATVPDKIKX0DER' }, baseline: { last_sent_at: '2026-09-30T14:02:11+00:00' }, authorization: ATTENDED });
+    // Approve and attach stop the same way.
+    const terms = 'Connect with an associate\nApprove';
+    const a = fakeRuntime(dir, { state: baseState({ controls: [...baseState().controls, { frame_id: 'main', label: 'Approve', disabled: false }], handoff: { approve_count: 1, terms_text: terms } }) });
+    Object.assign(a.rt, { config }); a.rt.deps.claimAttended = refuse;
+    assert.equal((await executeCommand(a.rt, command('002', 'approve', { 'expect-terms-sha256': termsHash(terms), 'approval-file': await approvalFile(dir, { plan_item: 'approve', sha256: termsHash(terms) }, 'ap.json') }))).reason, 'claim_refused');
+    const file = join(dir, 'invoice.pdf'); await writeFile(file, 'pdf bytes');
+    const f = fakeRuntime(dir); Object.assign(f.rt, { config }); f.rt.deps.claimAttended = refuse;
+    assert.equal((await executeCommand(f.rt, command('003', 'attach', { file, sha256: sha256('pdf bytes'), 'approval-file': await approvalFile(dir, { plan_item: 'attachment', sha256: sha256('pdf bytes') }, 'at.json') }))).reason, 'claim_refused');
+    assert.ok(!a.events.includes('dispatch') && !f.events.includes('set-file'));
+    // Chat now as well, before its click.
+    const chat = chatRuntime(dir, { claim: refuse, config });
+    assert.equal((await executeCommand(chat.rt, command('004', 'submit', { 'expect-sha256': P3_SHA, 'approval-file': await approvalFile(dir, { plan_item: 'P3', sha256: P3_SHA }, 'p3.json'), label: 'Chat now' }))).reason, 'claim_refused');
+    assert.ok(!chat.events.includes('dispatch'));
+    assert.deepEqual(await readLog(dir), [], 'no attempt line from any refused claim');
+    // A thrown claim is a refusal too.
+    const t = fakeRuntime(dir); t.current.composer.value = P1; Object.assign(t.rt, { config }); t.rt.deps.claimAttended = async () => { throw new Error('python3 missing'); };
+    const thrown = await executeCommand(t.rt, command('005', 'submit', { 'expect-sha256': P1_SHA, 'approval-file': await approvalFile(dir) }));
+    assert.equal(thrown.claim_reason, 'claim_unavailable'); assert.ok(!t.events.includes('dispatch'));
+    // The approval sentence must be the authorization's, or the send could not be recorded.
+    const other = fakeRuntime(dir); other.current.composer.value = P1; Object.assign(other.rt, { config }); other.rt.deps.claimAttended = async () => ({ ok: true });
+    assert.equal((await executeCommand(other.rt, command('006', 'submit', { 'expect-sha256': P1_SHA, 'approval-file': await approvalFile(dir, { approval_text: 'yes' }, 'yes.json') }))).reason, 'approval_instruction_mismatch');
+    // A claim that passes lets the click go ahead, once per outbound action.
+    let claims = 0;
+    const ok = fakeRuntime(dir); ok.current.composer.value = P1; Object.assign(ok.rt, { config }); ok.rt.deps.claimAttended = async () => { claims++; ok.events.push('claim'); return { ok: true, status: 'claimed' }; };
+    assert.equal((await executeCommand(ok.rt, command('007', 'submit', { 'expect-sha256': P1_SHA, 'approval-file': await approvalFile(dir) }))).status, 'sent');
+    assert.equal(claims, 1); assert.ok(ok.events.indexOf('claim') < ok.events.indexOf('dispatch'));
+    assert.deepEqual((await readLog(dir)).map(x => x.phase), ['attempt', 'result']);
+    // Without registry_id (a case not registered yet) no claim is made.
+    const fresh = fakeRuntime(dir); fresh.current.composer.value = 'Please connect me with a Seller Support associate.';
+    fresh.rt.deps.claimAttended = async () => { throw new Error('must not be called'); };
+    const p2 = sha256(fresh.current.composer.value);
+    assert.equal((await executeCommand(fresh.rt, command('008', 'submit', { 'expect-sha256': p2, 'approval-file': await approvalFile(dir, { plan_item: 'P2', sha256: p2 }, 'p2.json') }))).status, 'sent');
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
+test('claim-attended runs the case service and only exit 0 with claimed passes', async () => {
+  const calls = [];
+  const exec = answer => (cmd, args, options, done) => { calls.push([cmd, args, options.timeout]); answer(done); };
+  const ok = await SA.runClaimAttended('/tmp/run/claim-attended.json', exec(done => done(null, '{"authorization_revision":7,"operation_id":"attended-3f1c","status":"claimed"}\n')));
+  assert.equal(ok.ok, true); assert.equal(ok.operation_id, 'attended-3f1c');
+  assert.equal(calls[0][0], 'python3');
+  assert.match(calls[0][1][0], /tools\/amazon-operations\/case_service\.py$/);
+  assert.deepEqual(calls[0][1].slice(1), ['claim-attended', '--request', '/tmp/run/claim-attended.json']);
+  assert.equal(calls[0][2], 30000);
+  const blocked = await SA.runClaimAttended('/x.json', exec(done => done(Object.assign(new Error('exit 2'), { code: 2 }), '{"message":"A message was sent after this draft","reason":"baseline_changed","status":"blocked"}\n')));
+  assert.deepEqual([blocked.ok, blocked.reason], [false, 'baseline_changed']);
+  const missing = await SA.runClaimAttended('/x.json', exec(done => done(Object.assign(new Error('spawn python3 ENOENT'), { code: 'ENOENT' }), '')));
+  assert.deepEqual([missing.ok, missing.reason], [false, 'claim_unavailable']);
+  const odd = await SA.runClaimAttended('/x.json', exec(done => done(null, '{"status":"blocked","reason":"run_recorded"}')));
+  assert.deepEqual([odd.ok, odd.reason], [false, 'run_recorded'], 'exit 0 without claimed is still a refusal');
+});
+
+test('run.json keeps the case binding and the signature name, strictly', () => {
+  const account = { profile_key: 'acme-us', client_slug: 'acme', marketplace: 'US', seller_id: 'S', marketplace_id: 'M', seller_central_name: 'Acme', marketplace_label: 'United States', parent_account_name: 'Acme' };
+  const base = { schema_version: 1, run_id: 'r1', account };
+  const bound = validateRunConfig({ ...base, registry_id: 'b8b3', baseline: { last_sent_at: null }, authorization: ATTENDED, signature_name: 'Victor Uhl' });
+  assert.deepEqual([bound.registry_id, bound.baseline, bound.authorization, bound.signature_name], ['b8b3', { last_sent_at: null }, ATTENDED, 'Victor Uhl']);
+  assert.equal(validateRunConfig({ ...base, registry_id: 'b8b3', baseline: { last_sent_at: '2026-10-01T14:40:22.371000+00:00' }, authorization: ATTENDED }).baseline.last_sent_at, '2026-10-01T14:40:22.371000+00:00');
+  assert.equal(validateRunConfig(base).registry_id, undefined);
+  assert.throws(() => validateRunConfig({ ...base, registry_id: 'b8b3', authorization: ATTENDED }), /baseline/);
+  assert.throws(() => validateRunConfig({ ...base, registry_id: 'b8b3', baseline: { last_sent_at: 'yesterday' }, authorization: ATTENDED }), /baseline/);
+  assert.throws(() => validateRunConfig({ ...base, registry_id: 'b8b3', baseline: { last_sent_at: null } }), /authorization/);
+  assert.throws(() => validateRunConfig({ ...base, registry_id: 'b8b3', baseline: { last_sent_at: null }, authorization: { ...ATTENDED, kind: 'slack' } }), /authorization/);
+  assert.throws(() => validateRunConfig({ ...base, registry_id: '' }), /registry_id/);
+  assert.throws(() => validateRunConfig({ ...base, signature_name: 'Victor\nUhl' }), /signature_name/);
+  assert.throws(() => validateRunConfig({ ...base, signature_name: 'x'.repeat(101) }), /signature_name/);
+});
+
+test('the chat window is bound as a named slot of the run task and released by outcome', async () => {
+  const calls = [];
+  let guard = null, closed = false;
+  const registry = {
+    reserveTaskTab: async spec => { calls.push(['reserve', spec.taskId, spec.slot, spec.workflow]); return { kind: 'create', controlToken: 'ctl', reservationToken: 'res' }; },
+    bindReservedTaskTab: async spec => { calls.push(['bind', spec.slot, spec.targetId, spec.reservationToken, spec.controlToken]); },
+    assertTaskTabControl: async spec => { calls.push(['assert', spec.slot, spec.targetId, spec.controlToken]); return {}; },
+    touchTaskTabControl: async () => ({}),
+    releaseTaskTabControl: async spec => { calls.push(['release', spec.slot, spec.outcome]); return {}; },
+    abandonTaskTabReservation: async spec => { calls.push(['abandon', spec.slot]); },
+  };
+  const session = { setTaskControlGuard: (fn, options) => { guard = fn; calls.push(['guard', options.initialUrl]); }, assertTaskControl: async () => guard(), close: () => { closed = true; }, invalidateTaskControl: () => {} };
+  const cdp = { listPages: async () => [{ id: 'chat-1', url: CHAT_URL, webSocketDebuggerUrl: 'ws://127.0.0.1:9222/devtools/page/chat-1' }], Session: { open: async url => { calls.push(['open', url]); return session; } } };
+  const policy = { cleanup: { heartbeat_interval_ms: 60000 } };
+  const spec = { registry, cdp, policy, port: 9222, taskId: 'amazon-communications:abc', owner: 'seller-assistant:1', origin: SC, target: { targetId: 'chat-1', url: CHAT_URL } };
+  const chat = await SA.adoptChatTarget(spec);
+  assert.deepEqual(calls.slice(0, 5), [['reserve', 'amazon-communications:abc', 'case-chat', 'amazon-communications'], ['bind', 'case-chat', 'chat-1', 'res', 'ctl'],
+    ['open', 'ws://127.0.0.1:9222/devtools/page/chat-1'], ['guard', CHAT_URL], ['assert', 'case-chat', 'chat-1', 'ctl']]);
+  assert.equal(chat.session, session); assert.equal(chat.slot, 'case-chat');
+  await chat.release('handoff'); await chat.release('error');
+  assert.deepEqual(calls.filter(c => c[0] === 'release'), [['release', 'case-chat', 'handoff']], 'released once');
+  assert.equal(closed, true);
+  calls.length = 0;
+  const busy = { ...registry, reserveTaskTab: async () => ({ kind: 'busy', reason: 'task-tab-reservation-busy', controlToken: null }) };
+  await assert.rejects(SA.adoptChatTarget({ ...spec, registry: busy }), error => error.code === 'chat_slot_unavailable');
+  const gone = { ...cdp, listPages: async () => [] };
+  await assert.rejects(SA.adoptChatTarget({ ...spec, cdp: gone }), error => error.code === 'chat_target_unavailable');
+  assert.deepEqual(calls.filter(c => c[0] === 'release'), [['release', 'case-chat', 'error']], 'a bound slot that cannot be driven is released as error');
 });

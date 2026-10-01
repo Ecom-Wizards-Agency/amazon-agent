@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { capability, normalizeCase, verifyDraft, submitPrepared, decodeMessageEntities, caseListSummary, duplicateQuery, mergeSearchPage, caseBrowserAccount, claimAdapter, waitForCaseContext } from '../cases.mjs';
+import { capability, normalizeCase, verifyDraft, submitPrepared, decodeMessageEntities, caseListSummary, duplicateQuery, mergeSearchPage, caseBrowserAccount, claimAdapter, waitForCaseContext, caseSession, run } from '../cases.mjs';
 
 const account={marketplace:'US'};
 const body={signed_body:'Please confirm the fee.\n\nBest,\nDanica',subject:'Shipment defect',attachments:[],baseline:{contact_ids:['old'],case_ids:['12345678']},owner:{member_id:'D',signature_name:'Danica',revision:1},case_binding:{owner_revision:1}};
@@ -117,4 +117,26 @@ test('header wait never accepts another account or a lost browser claim',async()
  let sampled=false;
  await assert.rejects(()=>waitForCaseContext(async()=>{sampled=true;return{};},async()=>{throw Object.assign(new Error('claim lost'),{code:'TASK_TAB_CONTROL_LOST'});},account,{},1),/claim lost/);
  assert.equal(sampled,false);
+});
+
+test('observe may run under the operator session; execute stays Grimoire on 9223',()=>{
+ const human='0::/user.slice/user-1000.slice/user@1000.service/app.slice/app-com.t3tools.T3Code-1.scope\n';
+ const operator={AMAZON_BROWSER_SESSION:'operator',CDP_PORT:'9222'};
+ assert.deepEqual(caseSession('observe',operator,human),{session:'operator',port:9222,lockPort:null});
+ assert.throws(()=>caseSession('execute',operator,human),/Grimoire session on 9223/);
+ assert.deepEqual(caseSession('execute',{AMAZON_BROWSER_SESSION:'grimoire',CDP_PORT:'9223'},human),{session:'grimoire',port:9223,lockPort:9223});
+ assert.deepEqual(caseSession('observe',{},human),{session:'grimoire',port:9223,lockPort:9223});
+ assert.throws(()=>caseSession('observe',{...operator,WIZARDS_AI_MODE:'1'},human),error=>error.code==='attended_context_required');
+ assert.throws(()=>caseSession('observe',operator,'0::/system.slice/wizards-ai-case-daily.service\n'),error=>error.code==='attended_context_required');
+ assert.throws(()=>caseSession('observe',{AMAZON_BROWSER_SESSION:'operator',CDP_PORT:'9223'},human),error=>error.code==='session_invalid');
+});
+test('execute under the operator session is refused before any journal or browser access',async()=>{
+ const saved={session:process.env.AMAZON_BROWSER_SESSION,port:process.env.CDP_PORT};
+ Object.assign(process.env,{AMAZON_BROWSER_SESSION:'operator',CDP_PORT:'9222'});
+ try{
+  // plan_path points nowhere: reaching the journal check would fail differently.
+  await assert.rejects(run({schema_version:1,mode:'execute',plan_path:'/nonexistent/plan.json',plan:{operation_id:'case-x',operation:'case.reply',account}}),/Grimoire session on 9223|wizards-ai unit/);
+ }finally{
+  for(const [key,value] of [['AMAZON_BROWSER_SESSION',saved.session],['CDP_PORT',saved.port]]){if(value===undefined)delete process.env[key];else process.env[key]=value;}
+ }
 });
