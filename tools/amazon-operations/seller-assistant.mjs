@@ -15,8 +15,8 @@
  * before each outbound click. A run bound to a case registry row also asks the
  * case service (claim-attended) before each outbound action.
  *
- * Attended use only. Grimoire never runs this driver; the operator session is
- * refused under WIZARDS_AI_MODE or inside a wizards-ai-* unit.
+ * Attended use only. Grimoire never runs this driver: `serve` is refused under
+ * WIZARDS_AI_MODE or inside a wizards-ai-* unit, on either session.
  */
 import { mkdir, readFile, readdir, rename, writeFile, open, appendFile, unlink, copyFile } from 'node:fs/promises';
 import { unlinkSync, existsSync, readFileSync, constants as fsConstants } from 'node:fs';
@@ -123,6 +123,13 @@ export function assertSession(env = process.env, cgroup = undefined) {
     throw codeError('attended_context_required', 'The operator session is refused under WIZARDS_AI_MODE or inside a wizards-ai unit');
   }
   return { session, port: expected, lockPort: expected === 9223 ? 9223 : null };
+}
+
+/** `serve` is attended only: Grimoire's environment (WIZARDS_AI_MODE or a
+ * wizards-ai-* unit) is refused whichever session it names. cases.mjs uses
+ * assertSession alone, because its execute path stays Grimoire's on 9223. */
+export function assertAttended(env = process.env, cgroup = readCgroup()) {
+  if (unattendedContext(env, cgroup)) throw codeError('attended_context_required', 'Seller Assistant is attended only; refused under WIZARDS_AI_MODE or inside a wizards-ai unit');
 }
 
 /** Grimoire's 9223 lock is held for the whole chat. The operator browser has no
@@ -2064,6 +2071,8 @@ export function abortHandler(ctl, name, finish) {
 }
 
 export async function serve({ run, maxMinutes = 90, idleMinutes = 20 }) {
+  // Grimoire never drives this route (PR #76 review F3), on either session.
+  assertAttended(process.env);
   const runDir = resolve(run);
   const config = await readRunConfig(runDir);
   // Same session check as cases.mjs run(), before any browser module loads.

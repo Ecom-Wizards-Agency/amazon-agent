@@ -1763,3 +1763,97 @@ test('approve and Request changes with two summaries are bound to the last summa
     assert.ok(!unread.events.includes('dispatch'));
   } finally { await rm(dir, { recursive: true, force: true }); }
 });
+
+// ------------------------------- merge of the PR #76 fixes into attended replies
+
+// PR #76 review finding F1 on PR 1's labels: Send and Chat now are looked up
+// with the same click-time composer re-check as Submit.
+test('page: the Send and Chat now lookups re-check the composer text like Submit', () => {
+  const window = value => {
+    const send = el('button', {}, [], 'Send');
+    const footer = el('div', {}, [el('textarea', { placeholder: 'Write here and press Enter', value }), el('button', {}, [], 'Attach'), send]);
+    return { body: el('body', {}, [el('main', {}, [el('div', {}, [el('button', {}, [], 'End chat')]), footer])]), send };
+  };
+  const chat = window(`${P3}\r\n`);
+  assert.equal(runPage(chat.body, 'control', { label: 'Send', composerSubmit: true, expectedComposerText: P3 }), chat.send);
+  assert.equal(pageCode(() => runPage(window(`${P3} Also please refund us.`).body, 'control', { label: 'Send', composerSubmit: true, expectedComposerText: P3 })), 'composer_changed');
+  assert.equal(pageCode(() => runPage(chat.body, 'control', { label: 'Send', composerSubmit: true })), 'composer_changed', 'no expected text fails closed');
+  const form = value => {
+    const chatNow = el('button', {}, [], 'Chat now');
+    const body = el('body', {}, [el('div', { class: 'reply-form' }, [
+      el('div', { 'data-test-tag': 'input-name' }, [el('label', { for: 'input-2' }, [], 'Your name'), el('input', { id: 'input-2', type: 'text', value: 'Victor' })]),
+      el('textarea', { value }), el('button', {}, [], 'Cancel'), chatNow])]);
+    return { body, chatNow };
+  };
+  const reply = form(SA.CHAT_OPENING_LINE);
+  assert.equal(runPage(reply.body, 'control', { label: 'Chat now', composerSubmit: true, expectedComposerText: SA.CHAT_OPENING_LINE }), reply.chatNow);
+  assert.equal(pageCode(() => runPage(form(`${SA.CHAT_OPENING_LINE} Please refund us.`).body, 'control', { label: 'Chat now', composerSubmit: true, expectedComposerText: SA.CHAT_OPENING_LINE })), 'composer_changed');
+});
+
+const composerChanged = () => Object.assign(new Error('EW:composer_changed:'), { code: 'composer_changed' });
+
+test('Chat now binds its lookup to the opening line and clicks nothing when the page says it changed', async () => {
+  const dir = await runDir();
+  try {
+    const approval = await approvalFile(dir, { plan_item: 'P3', sha256: P3_SHA });
+    const args = { 'expect-sha256': P3_SHA, 'approval-file': approval, label: 'Chat now' };
+    const ok = chatRuntime(dir);
+    assert.equal((await executeCommand(ok.rt, command('001', 'submit', args))).status, 'sent');
+    assert.ok(ok.events.includes(`composer-text:${sha256(SA.CHAT_OPENING_LINE)}`), 'the case page lookup gets the opening line');
+    await rm(join(dir, 'approvals.jsonl'));
+    const changed = chatRuntime(dir);
+    const prepare = changed.rt.browser.prepareClick;
+    changed.rt.browser.prepareClick = async (...a) => { await prepare(...a); throw composerChanged(); };
+    const result = await executeCommand(changed.rt, command('002', 'submit', args));
+    assert.equal(result.status, 'blocked'); assert.equal(result.reason, 'composer_changed'); assert.equal(result.clicked, false);
+    assert.ok(!changed.events.includes('dispatch') && !changed.events.some(e => e.startsWith('adopt:')), 'nothing clicked, no window adopted');
+    assert.deepEqual(await readLog(dir), [], 'no attempt line');
+    assert.equal(changed.rt.counts.get(`chat_now:${P3_SHA}`) ?? 0, 0);
+    assert.equal(changed.rt.chat, null);
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
+test('a Send in the adopted chat window binds its lookup to the approved text in that window', async () => {
+  const dir = await runDir();
+  try {
+    const approval = await approvalFile(dir, { plan_item: 'P3', sha256: P3_SHA });
+    const run = chatRuntime(dir);
+    assert.equal((await executeCommand(run.rt, command('001', 'submit', { 'expect-sha256': P3_SHA, 'approval-file': approval, label: 'Chat now' }))).status, 'sent');
+    assert.equal(run.rt.browser, run.chat.rt.browser);
+    run.chat.current.composer.value = P3;
+    const prepare = run.chat.rt.browser.prepareClick;
+    let changeNext = true;
+    run.chat.rt.browser.prepareClick = async (...a) => { const point = await prepare(...a); if (changeNext) { changeNext = false; throw composerChanged(); } return point; };
+    const blocked = await executeCommand(run.rt, command('002', 'submit', { 'expect-sha256': P3_SHA, 'approval-file': approval, label: 'Send' }));
+    assert.equal(blocked.status, 'blocked'); assert.equal(blocked.reason, 'composer_changed'); assert.equal(blocked.clicked, false);
+    assert.ok(run.chat.events.includes('prepare:Send') && run.chat.events.includes(`composer-text:${P3_SHA}`), 'the chat window lookup gets the approved text');
+    assert.ok(!run.chat.events.includes('dispatch')); assert.deepEqual(run.chat.sent, []);
+    assert.deepEqual((await readLog(dir)).filter(x => x.command === 'submit'), [], 'no submit attempt line');
+    assert.equal(run.rt.counts.get(`submit:${P3_SHA}`) ?? 0, 0);
+    const sent = await executeCommand(run.rt, command('003', 'submit', { 'expect-sha256': P3_SHA, 'approval-file': approval, label: 'Send' }));
+    assert.equal(sent.status, 'sent'); assert.deepEqual(run.chat.sent, [P3]);
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
+// PR #76 review finding F3: Grimoire never drives this route, so serve refuses
+// WIZARDS_AI_MODE and wizards-ai-* units on either session, before it reads the
+// run directory or loads a browser module. cases.mjs keeps Grimoire on 9223.
+test('F3: serve refuses under WIZARDS_AI_MODE or in a wizards-ai unit, on 9222 and on 9223', async () => {
+  const human = '0::/user.slice/user-1000.slice/user@1000.service/app.slice/app-com.t3tools.T3Code-1.scope\n';
+  const code = (env, cgroup = human) => { try { SA.assertAttended(env, cgroup); return 'ok'; } catch (error) { return error.code; } };
+  assert.equal(code({ AMAZON_BROWSER_SESSION: 'grimoire', CDP_PORT: '9223', WIZARDS_AI_MODE: '1' }), 'attended_context_required');
+  assert.equal(code({ WIZARDS_AI_MODE: '1' }), 'attended_context_required', 'the default session is Grimoire');
+  assert.equal(code({ AMAZON_BROWSER_SESSION: 'operator', CDP_PORT: '9222', WIZARDS_AI_MODE: '1' }), 'attended_context_required');
+  assert.equal(code({ WIZARDS_AI_MODE: '' }), 'attended_context_required', 'set but empty still counts');
+  assert.equal(code({ CDP_PORT: '9223' }, '0::/system.slice/wizards-ai-case-daily.service\n'), 'attended_context_required');
+  assert.equal(code({ CDP_PORT: '9223' }), 'ok', 'an attended run may still use the Grimoire session');
+  assert.equal(code({ CDP_PORT: '9222' }), 'ok');
+  // serve itself: the refusal comes first, so a missing run directory is never read.
+  const saved = process.env.WIZARDS_AI_MODE;
+  process.env.WIZARDS_AI_MODE = '1';
+  try {
+    const missing = join(tmpdir(), `seller-assistant-f3-${process.pid}-absent`);
+    await assert.rejects(SA.serve({ run: missing }), error => error.code === 'attended_context_required');
+    assert.equal(existsSync(missing), false, 'no run directory was created');
+  } finally { if (saved === undefined) delete process.env.WIZARDS_AI_MODE; else process.env.WIZARDS_AI_MODE = saved; }
+});

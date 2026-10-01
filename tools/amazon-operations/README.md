@@ -622,9 +622,10 @@ every command), `approvals.jsonl` (the approval and outcome of every outbound
 attempt, with its `queue_id`), `uploads/`, `transcripts/`, `screenshots/`,
 `viewcase/`, `serve.pid` and `serve.json`.
 
-`serve` runs in the operator session on 9222, which is refused under
-`WIZARDS_AI_MODE` or inside a `wizards-ai-*` unit, or in the Grimoire session on
-9223. It acquires one task tab (`amazon-communications`, exclusive Seller Central
+`serve` runs in the operator session on 9222 or in the Grimoire session on
+9223, and only attended: under `WIZARDS_AI_MODE` or inside a `wizards-ai-*` unit
+it refuses with `attended_context_required` on either session, before it reads
+the run directory. It acquires one task tab (`amazon-communications`, exclusive Seller Central
 context) and switches to the account. On 9223 it keeps the 9223 lock until it
 exits, so scheduled Grimoire browser jobs defer for that time; on 9222 there is no
 port lock, only the task tab's region claim. `stop` releases the tab as `success`. An exception or
