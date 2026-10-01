@@ -304,6 +304,109 @@ journal and independent saved-correspondence evidence. A visible button alone
 is insufficient. The create/reply form selectors still need live validation in
 an account with confirmed access before production release.
 
+### Attended case sends
+
+Attended sends never pass `prepare-send` or `validate-binding`, so the readiness
+switch, canary, 09:00 rule, daily observation and routine-scope gates stay on
+Grimoire's path unchanged. Four commands serve attended sends. Each refuses with
+`attended_context_required` when `WIZARDS_AI_MODE` is set or `/proc/self/cgroup`
+names a `wizards-ai-*` unit. All except `sign` require an attended
+authorization: `kind: attended`, the policy's `attended_operator_id`, and
+`source.session_id` plus `source.instruction`. A Slack authorization returns
+`attended_required`. Grimoire's re-validation of a persisted attended mandate is
+unchanged. `observe` now counts `last_sent_at` as the latest seller message when
+it is newer than the case log's last seller contact, so a chat reply missing from
+the case log still answers older Amazon messages.
+
+`sign` is read-only and returns the exact final text and its SHA-256. It keeps a
+body that already ends in the owner's exact policy signature. It refuses
+`signature_conflict` when one of the last three lines carries another sign-off:
+the owner's name in another form, or any approved member's name or signature
+line. Otherwise it appends the owner's signature, exactly as before. `prepare-send`
+uses the same rule. A case without an owner, or a request without `registry_id`,
+signs as the attended operator (`owner_source: attended_operator`). Write
+`signed_body` to the text file without a trailing newline. `baseline.last_sent_at`
+is the draft baseline for `claim-attended`.
+
+```json
+{"registry_id":"b8b3…","body":"Dear Amazon Support,\n\nThe invoice is attached."}
+{"status":"signed","registry_id":"b8b3…","owner_member_id":"U01…","owner_source":"case_owner","signed_body":"Dear Amazon Support,\n\nThe invoice is attached.\n\nVictor Uhl\nEcom Wizards","sha256":"75b8…","baseline":{"last_sent_at":"2026-09-30T14:02:11+00:00"}}
+```
+
+`claim-attended` is the driver's check before each outbound click of one run.
+It refuses `account_mismatch`, `run_recorded` (this run already has a receipt),
+`reconciliation_required` (an unapplied action that is not invalidated, or an
+uncertain one), `daily_sent` (a non-attended operation sent on this case today)
+and `baseline_changed` (`last_sent_at` is newer than the draft baseline). Each
+success bumps `authorization_revision`, so any binding Grimoire computed earlier
+is stale. Repeated calls for the same `run_id` are safe; the driver can write the
+request once per run and pass it before every click.
+
+```json
+{"registry_id":"b8b3…","run_id":"acme-12345678901-r1","account":{"seller_id":"A2RB…","marketplace_id":"ATVPDKIKX0DER"},"baseline":{"last_sent_at":"2026-09-30T14:02:11+00:00"},"authorization":{"kind":"attended","requester_id":"U01…","source":{"session_id":"…","request_id":"acme-12345678901-send","instruction":"this is perfect, send it"}}}
+{"status":"claimed","operation_id":"attended-3f1c…","authorization_revision":7}
+```
+
+`record-receipt` with `attended_receipt` records a reply or chaser that the driver
+or a person sent. New cases still register through `start` and `adopt`.
+`authorization.source.instruction` is the operator's approval sentence, verbatim.
+`label` is one of `routine`, `appeal`, `dispute`, `refund_request`, `commitment`
+or `admission`. Kind `driver_run` reads `<run_dir>/run.json` and
+`approvals.jsonl`:
+
+- the run's `seller_id` and `marketplace_id` (and `registry_id` when present)
+  must equal the case's;
+- `messages` must list exactly the hashes the run submitted, ignoring attempts
+  whose result is `blocked`;
+- every attempt's approval must carry the run ID, the case seller, the same
+  approval sentence and the same `label`;
+- each hash needs a `sent` result, or a fresh `readback_path` that shows the exact
+  text. An `uncertain` result or an attempt without a result never passes on its own.
+
+A readback is a case-log observation (`observe` output or a `case-readback-*.json`),
+or a driver transcript record. A transcript needs the message's `text_path` (the
+file the driver typed) or a transcript message with the same hash.
+`verified_by` is `case_log` when the case log shows an exact seller contact; its ID
+is merged into `contact_ids`. Otherwise it is `chat_transcript`.
+
+```json
+{"registry_id":"b8b3…","attended_receipt":{"schema_version":1,"kind":"driver_run","run_dir":"<run-dir>","purpose":"reply","label":"routine","channel":"case_chat","messages":[{"plan_item":"P1","sha256":"…"},{"plan_item":"P3","sha256":"…","text_path":"<run-dir>/P3.txt"}],"readback_path":"<run-dir>/observe-after.json","authorization":{"kind":"attended","requester_id":"U01…","source":{"session_id":"…","request_id":"acme-12345678901-send","instruction":"this is perfect, send it"}}}}
+{"status":"recorded","operation_id":"attended-3f1c…","verified_by":"case_log","case":{"…":"…"}}
+```
+
+Kind `manual_receipt` records a send made by hand, or a backfill. It takes
+`sent_at`, `signed_body_sha256`, an optional `text_path` and `evidence_path`.
+The evidence must show the exact message. It can be a case-log readback (pass one
+whenever Amazon shows the message there), or a verified send receipt with
+`seller_id`, `marketplace_id`, `case_id`, `message_sha256` and `status: verified`.
+A bare transcript names no account and is refused. The evidence file's SHA-256 is
+stored.
+
+```json
+{"registry_id":"b8b3…","attended_receipt":{"schema_version":1,"kind":"manual_receipt","purpose":"reply","label":"routine","channel":"case_chat","sent_at":"2026-10-01T14:40:22Z","signed_body_sha256":"…","evidence_path":"<case-dir>/send-chat-receipt.json","authorization":{"kind":"attended","requester_id":"U01…","source":{"session_id":"…","instruction":"Record the reply I sent in chat"}}}}
+{"status":"recorded","operation_id":"attended-9a07…","verified_by":"chat_transcript","case":{"…":"…"}}
+```
+
+Both kinds add an applied `attended-*` action with the keys every reader indexes
+(`binding`, `signed_body_hash: null`, `scope_hash: null`, `purpose`, `daily_key`,
+`request_hash`). They move `last_sent_at` and `next_due_at` forward, set
+`awaiting_amazon` unless the case is resolved, set today's sent marker if unset,
+invalidate unapplied actions that are not uncertain and bump
+`authorization_revision`. The same receipt again returns `already_recorded`; a
+different receipt for the same run returns `receipt_conflict`.
+
+`release` is the only way to free an action whose operations journal is already
+`stalled`. The readback must post-date the attempt, match the account with
+complete history and not show the signed message (`message_observed` means
+reconcile and record it instead). A released action no longer blocks `adopt`,
+`prepare-send` or `claim-attended`. It blocks again if its journal leaves
+`stalled`.
+
+```json
+{"registry_id":"4b93…","operation_id":"case-9187…","authorization":{"kind":"attended","requester_id":"U01…","source":{"session_id":"…","instruction":"Nothing was created; release it"}},"evidence":{"readback_path":"<operations-dir>/case-9187…/case-readback-fde7….json","summary":"Seller Assistant refused; no case was created"}}
+{"status":"released","operation_id":"case-9187…","case":{"…":"…"}}
+```
+
 ## Seller Assistant step driver
 
 Amazon routes new Seller Support requests through Seller Assistant, a chat that
