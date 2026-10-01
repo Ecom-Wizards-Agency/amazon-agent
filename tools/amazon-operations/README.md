@@ -464,7 +464,7 @@ node tools/amazon-operations/seller-assistant.mjs send --run <dir> <command> [ar
 | `open [--via-lobby \| --conversation <path>]` | Record the `/cu/case-lobby` controls, then open `/assistant?client=sellerSupport-meldFullPage`, click `Get help with a new issue` with `--via-lobby`, or reopen an existing conversation path (`/assistant/amzn1.cyrano.conversation.cid.v2.<digits>?client=sellerSupport-meldFullPage`) after a restart |
 | `open --case <digits>` | Open `/cu/case-dashboard/view-case?caseID=<digits>` and report whether `Reply` is present; refused once a case chat window is open |
 | `state` | Read URL, frames, composer label, value and counter, visible controls, status texts, tour, access denial, and the handoff terms with their SHA-256 |
-| `navigate --label <label>` | Click `Get help with a new issue`, `Show more` or `Show less`; tour labels (`Skip`, `Skip tour`, `Got it`, `Done`, `Next`, `Finish`, `Close`, `Dismiss`) only on a control inside the tour container; `Request changes` only while exactly one `Approve` control is visible (an email-case Issue summary); `Reply` only on the case page opened with `open --case` |
+| `navigate --label <label>` | Click `Get help with a new issue`, `Show more` or `Show less`; tour labels (`Skip`, `Skip tour`, `Got it`, `Done`, `Next`, `Finish`, `Close`, `Dismiss`) only on a control inside the tour container; `Request changes` while one or more email-case Issue summaries show `Approve`: the click goes to the last summary's `Request changes`, only after the page re-reads the exact terms text that `state` reported, and only when every `Approve` has its own `Request changes`; `Reply` only on the case page opened with `open --case` |
 | `type --text-file <f> --sha256 <h>` | Insert the text into the empty composer and read it back; never submits. Multi-line text only into a `TEXTAREA` composer |
 | `submit --expect-sha256 <h> --approval-file <f> [--expect-attachment <name>]... [--label Submit\|Send\|"Chat now"]` | Click the composer's `Submit` (default), `Send` or `Chat now` when the composer, the expected hash and the approval agree |
 | `approve --expect-terms-sha256 <h> --approval-file <f>` | Click the handoff `Approve` when the terms hash matches |
@@ -536,9 +536,14 @@ Safety model:
   `attach`. It
   waits up to 30 seconds for a busy assistant (`Working on it` or a progress
   indicator) to finish, and checks the composer, chips, upload state and
-  `Submit` again after the identity read, right before the click. It then waits up to 60 seconds for the composer to clear and the text to appear
+  `Submit` again after the identity read, right before the click. The page
+  lookup that returns `Submit`, `Send` or `Chat now` compares the composer text
+  with the approved text (for `Chat now`, the opening line `Hello.`) once more
+  and fails with `composer_changed` when they differ. It then waits up to 60 seconds for the composer to clear and the text to appear
   once more in the conversation, and reports `sent` or `uncertain`. An uncertain
-  send is never retried. Each approved hash is sent once per run; P2 twice.
+  send is never retried. Each approved hash is sent once per run. A P2 approval
+  may be sent twice, and only when its text is exactly "Please connect me with a
+  Seller Support associate."; a P2 approval of any other text is sent once.
 - `approve` waits for a busy assistant like `submit`, and reports `approved`
   only when, after the click, the `Approve` control is gone or disabled or the
   composer label changed, on two consecutive scans with a valid frame selection

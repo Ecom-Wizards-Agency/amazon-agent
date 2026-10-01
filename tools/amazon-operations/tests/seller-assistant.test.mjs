@@ -44,7 +44,7 @@ function baseState(overrides = {}) {
     message_count: 2, ...overrides,
   };
 }
-function fakeRuntime(dir, { state = baseState(), identity = null, newTargetOnClick = false, dispatchError = null, approveEffect = 'label', onDispatch = null, afterClick = null } = {}) {
+function fakeRuntime(dir, { state = baseState(), identity = null, newTargetOnClick = false, dispatchError = null, approveEffect = 'label', onDispatch = null, afterClick = null, prepareError = null } = {}) {
   let clock = T0, clicked = false;
   const sent = [];
   const events = [];
@@ -60,7 +60,14 @@ function fakeRuntime(dir, { state = baseState(), identity = null, newTargetOnCli
       return copy;
     },
     targets: async () => { if (clicked && afterClick?.targets) throw afterClick.targets; return newTargetOnClick && clicked ? ['target-1', 'target-2'] : ['target-1']; },
-    prepareClick: async (_frame, label, opts = {}) => { events.push(`prepare:${label}${opts.tour ? ':tour' : ''}`); if (opts.composerSubmit) events.push('composer-scope'); return { x: 10, y: 10 }; },
+    prepareClick: async (_frame, label, opts = {}) => {
+      events.push(`prepare:${label}${opts.tour ? ':tour' : ''}`);
+      if (opts.composerSubmit) events.push('composer-scope');
+      if (typeof opts.expectedComposerText === 'string') events.push(`composer-text:${sha256(opts.expectedComposerText)}`);
+      if (typeof opts.expectedTermsText === 'string') events.push(`terms-text:${termsHash(opts.expectedTermsText)}`);
+      if (prepareError) throw prepareError;
+      return { x: 10, y: 10 };
+    },
     dispatchClick: async () => {
       events.push('dispatch');
       attemptsAtDispatch.push(attempts());
@@ -735,11 +742,18 @@ class FakeEl {
   hasAttribute(n) { return n in this.attrs; }
   getBoundingClientRect() { return { width: 10, height: 10 }; }
   get textContent() { return this.text + this.children.map(c => c.textContent).join(''); }
+  // The element's own text is one text node ahead of its children.
+  get childNodes() {
+    if (this.text && !this.textNode) this.textNode = { nodeType: 3, textContent: this.text, nodeValue: this.text, parentNode: this, parentElement: this };
+    return [...(this.text ? [this.textNode] : []), ...this.children];
+  }
+  closest(selector) { for (let n = this; n && n.nodeType === 1; n = n.parentNode) if (n.matches(selector)) return n; return null; }
   get innerText() { return this.textContent; }
   querySelectorAll() { const out = []; const walk = n => { for (const c of n.children) { out.push(c); walk(c); } }; walk(this); return out; }
   matches(selector) {
     return selector.split(',').map(s => s.trim()).some(s => {
       if (/^[a-z-]+$/.test(s)) return this.tagName === s.toUpperCase();
+      if (/^\.[\w-]+$/.test(s)) return String(this.attrs.class || '').split(/\s+/).includes(s.slice(1));
       let m = /^\[([\w-]+)="([^"]*)"\]$/.exec(s);
       if (m) return this.getAttribute(m[1]) === m[2];
       m = /^\[([\w-]+)\*="([^"]*)" i\]$/.exec(s);
@@ -750,24 +764,32 @@ class FakeEl {
 }
 const el = (tag, attrs, children = [], text = '') => new FakeEl(tag, attrs, children, text);
 function runPage(body, op, arg) {
-  const doc = { body, nodeType: 9, readyState: 'complete', title: 't', querySelectorAll: () => [body, ...body.querySelectorAll()] };
+  // createTreeWalker yields the text nodes under a node in document order.
+  const createTreeWalker = root => {
+    const texts = [];
+    const walk = n => { for (const c of n.childNodes || []) { if (c.nodeType === 3) texts.push(c); else walk(c); } };
+    walk(root);
+    let i = 0;
+    return { nextNode: () => texts[i++] ?? null };
+  };
+  const doc = { body, nodeType: 9, readyState: 'complete', title: 't', querySelectorAll: () => [body, ...body.querySelectorAll()], createTreeWalker };
   body.parentNode = doc;
-  const saved = { document: globalThis.document, location: globalThis.location };
-  Object.assign(globalThis, { document: doc, location: { href: ASSISTANT } });
-  try { return pageAgent(op, arg, { collapse, matchLabel, detectTour, composerSubmitCheck, submitLabels: SA.SUBMIT_LABELS, uploadLabels: SA.UPLOAD_LABELS }); }
+  const saved = { document: globalThis.document, location: globalThis.location, NodeFilter: globalThis.NodeFilter };
+  Object.assign(globalThis, { document: doc, location: { href: ASSISTANT }, NodeFilter: { SHOW_TEXT: 4 } });
+  try { return pageAgent(op, arg, { collapse, matchLabel, detectTour, composerSubmitCheck, submitLabels: SA.SUBMIT_LABELS, uploadLabels: SA.UPLOAD_LABELS, normalizeComposer: SA.normalizeComposer }); }
   finally { Object.assign(globalThis, saved); }
 }
 const pageCode = fn => { try { fn(); return 'ok'; } catch (error) { return /EW:([a-z_]+):/.exec(error.message)?.[1] ?? error.message; } };
 
 test('page: Submit is clicked only as the composer\'s own enabled control', () => {
-  const chat = ({ ownDisabled = false, composerDisabled = false, rating = false, ownSubmit = true } = {}) => {
+  const chat = ({ ownDisabled = false, composerDisabled = false, rating = false, ownSubmit = true, value = P1 } = {}) => {
     const own = el('button', ownDisabled ? { disabled: '' } : {}, [], 'Submit');
-    const footer = el('div', {}, [el('textarea', composerDisabled ? { disabled: '', placeholder: 'Message Seller Assistant...' } : { placeholder: 'Message Seller Assistant...' }), ...(ownSubmit ? [own] : []), el('button', {}, [], 'Upload file')]);
+    const footer = el('div', {}, [el('textarea', composerDisabled ? { disabled: '', placeholder: 'Message Seller Assistant...', value } : { placeholder: 'Message Seller Assistant...', value }), ...(ownSubmit ? [own] : []), el('button', {}, [], 'Upload file')]);
     const survey = el('form', {}, [el('span', {}, [], 'Rate this chat'), el('button', {}, [], 'Submit')]);
     return { body: el('body', {}, [el('main', {}, [...(rating ? [survey] : []), footer])]), own };
   };
   const clean = chat();
-  assert.equal(runPage(clean.body, 'control', { label: 'Submit', composerSubmit: true }), clean.own);
+  assert.equal(runPage(clean.body, 'control', { label: 'Submit', composerSubmit: true, expectedComposerText: P1 }), clean.own);
   assert.deepEqual(runPage(chat().body, 'scan').region.submit, [{ disabled: false, in_region: true }]);
   assert.equal(pageCode(() => runPage(chat({ ownDisabled: true, rating: true }).body, 'control', { label: 'Submit', composerSubmit: true })), 'submit_not_unique');
   assert.equal(pageCode(() => runPage(chat({ rating: true }).body, 'control', { label: 'Submit', composerSubmit: true })), 'submit_not_unique');
@@ -1318,12 +1340,12 @@ test('submit --label takes Submit, Send or Chat now and clicks only that compose
 });
 
 test('page: Send and Chat now are scoped to the composer region; Attach anchors it', () => {
-  const footer = el('div', {}, [el('textarea', { placeholder: 'Write here and press Enter' }), el('button', {}, [], 'Attach'), el('button', {}, [], 'Send')]);
+  const footer = el('div', {}, [el('textarea', { placeholder: 'Write here and press Enter', value: P3 }), el('button', {}, [], 'Attach'), el('button', {}, [], 'Send')]);
   const body = el('body', {}, [el('main', {}, [el('div', {}, [el('button', {}, [], 'End chat')]), footer])]);
   const scan = runPage(body, 'scan');
   assert.deepEqual(scan.region.submit_by_label.Send, [{ disabled: false, in_region: true }]);
   assert.deepEqual(scan.region.submit_by_label.Submit, []);
-  assert.equal(runPage(body, 'control', { label: 'Send', composerSubmit: true }).text, 'Send');
+  assert.equal(runPage(body, 'control', { label: 'Send', composerSubmit: true, expectedComposerText: P3 }).text, 'Send');
   assert.equal(pageCode(() => runPage(body, 'control', { label: 'Reply', composerSubmit: true })), 'composer_submit_label');
   // The reply form: "Your name" input with its label, the message, Chat now.
   const form = (extraName = false) => el('body', {}, [el('div', { class: 'reply-form' }, [
@@ -1591,4 +1613,153 @@ test('the chat window is bound as a named slot of the run task and released by o
   const gone = { ...cdp, listPages: async () => [] };
   await assert.rejects(SA.adoptChatTarget({ ...spec, cdp: gone }), error => error.code === 'chat_target_unavailable');
   assert.deepEqual(calls.filter(c => c[0] === 'release'), [['release', 'case-chat', 'error']], 'a bound slot that cannot be driven is released as error');
+});
+
+// ------------------------------------------------- third review regressions
+
+test('page: Submit is not returned once the composer text differs from the approved text', () => {
+  const chat = value => {
+    const own = el('button', {}, [], 'Submit');
+    const footer = el('div', {}, [el('textarea', { placeholder: 'Message Seller Assistant...', value }), own, el('button', {}, [], 'Upload file')]);
+    return { body: el('body', {}, [el('main', {}, [footer])]), own };
+  };
+  const lookup = (value, extra = { expectedComposerText: P1 }) => runPage(chat(value).body, 'control', { label: 'Submit', composerSubmit: true, ...extra });
+  assert.equal(pageCode(() => lookup(`${P1} Also please refund us.`)), 'composer_changed');
+  assert.equal(pageCode(() => lookup('')), 'composer_changed');
+  assert.equal(pageCode(() => lookup(P1, {})), 'composer_changed', 'no expected text fails closed');
+  // Same normalization as the hash check: CRLF, outer newlines and no-break spaces.
+  const ok = chat(`\r\n${P1.replace('ASIN B0TEST0001', 'ASIN B0TEST0001')}\r\n`);
+  assert.equal(runPage(ok.body, 'control', { label: 'Submit', composerSubmit: true, expectedComposerText: P1 }), ok.own);
+});
+
+test('submit binds the Submit lookup to the approved text and clicks nothing when the page says it changed', async () => {
+  const dir = await runDir();
+  try {
+    const approval = await approvalFile(dir);
+    const ok = fakeRuntime(dir); ok.current.composer.value = P1;
+    assert.equal((await executeCommand(ok.rt, command('001', 'submit', { 'expect-sha256': P1_SHA, 'approval-file': approval }))).status, 'sent');
+    assert.ok(ok.events.includes(`composer-text:${P1_SHA}`), 'the page lookup gets the approved text');
+    await rm(join(dir, 'approvals.jsonl'));
+    const changed = fakeRuntime(dir, { prepareError: Object.assign(new Error('composer_changed'), { code: 'composer_changed' }) });
+    changed.current.composer.value = P1;
+    const result = await executeCommand(changed.rt, command('002', 'submit', { 'expect-sha256': P1_SHA, 'approval-file': approval }));
+    assert.equal(result.status, 'blocked'); assert.equal(result.reason, 'composer_changed'); assert.equal(result.clicked, false);
+    assert.ok(!changed.events.includes('dispatch'));
+    assert.ok(!existsSync(join(dir, 'approvals.jsonl')) || !readFileSync(join(dir, 'approvals.jsonl'), 'utf8').includes('"phase":"attempt"'), 'no attempt line');
+    assert.equal(changed.rt.counts.get(`submit:${P1_SHA}`) ?? 0, 0);
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
+test('the Submit click expression carries the approved text and the composer normalization', async () => {
+  const expressions = [];
+  const send = async (method, params) => {
+    if (method === 'Page.createIsolatedWorld') return { executionContextId: 5 };
+    if (method === 'Runtime.evaluate') { expressions.push(params.expression); return { result: { objectId: 'button-1' } }; }
+    if (method === 'DOM.getContentQuads') return { quads: [[0, 0, 20, 0, 20, 10, 0, 10]] };
+    if (method === 'DOM.getNodeForLocation') return { backendNodeId: 7 };
+    if (method === 'DOM.resolveNode') return { object: { objectId: 'button-inner' } };
+    if (method === 'Runtime.callFunctionOn') return { result: { value: true } };
+    return {};
+  };
+  await makeBrowser({ send }, SC).prepareClick('m', 'Submit', { composerSubmit: true, expectedComposerText: P1 });
+  assert.ok(expressions[0].includes(JSON.stringify(P1)));
+  assert.match(expressions[0], /const normalizeComposer = /);
+});
+
+test('a P2 approval of any other text is sent once', async () => {
+  const dir = await runDir();
+  try {
+    assert.equal(SA.P2_TEXT, 'Please connect me with a Seller Support associate.');
+    const approval = await approvalFile(dir, { plan_item: 'P2', sha256: P1_SHA });
+    const { rt, current } = fakeRuntime(dir);
+    const statuses = [];
+    for (const id of ['001', '002']) { current.composer.value = P1; statuses.push(await executeCommand(rt, command(id, 'submit', { 'expect-sha256': P1_SHA, 'approval-file': approval }))); }
+    assert.deepEqual(statuses.map(r => r.status), ['sent', 'refused']);
+    assert.equal(statuses[1].reason, 'send_limit_reached'); assert.equal(statuses[1].limit, 1);
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
+// Two email Issue summaries: the assistant re-issued the summary after Request
+// changes. Each card holds its fields, then an inner action card with Approve.
+function twoSummaries({ secondChanges = true } = {}) {
+  const card = (subject, changes) => {
+    const approve = el('button', {}, [], 'Approve');
+    const change = changes ? el('button', {}, [], 'Request changes') : null;
+    const node = el('div', { class: 'summary-card' }, [
+      el('h3', {}, [], 'Issue summary'), el('p', {}, [], `Subject: ${subject}`), el('p', {}, [], 'Attachments'), el('p', {}, [], 'None'),
+      el('div', { class: 'actions-card' }, [el('span', {}, [], 'Option valid for 1 hour'), approve, ...(change ? [change] : [])]),
+    ]);
+    return { node, approve, change };
+  };
+  const first = card('First wording', true), second = card('Exact subject', secondChanges);
+  const footer = el('div', {}, [el('textarea', { placeholder: 'Select an option above to proceed.' }), el('button', {}, [], 'Upload file')]);
+  return { body: el('body', {}, [el('main', {}, [first.node, second.node, footer])]), first, second };
+}
+
+test('page: with two Issue summaries the terms and both controls come from the last one', () => {
+  const page = twoSummaries();
+  const terms = runPage(page.body, 'terms');
+  assert.equal(terms.basis, 'card');
+  assert.match(terms.text, /Subject: Exact subject/); assert.doesNotMatch(terms.text, /First wording/);
+  assert.match(terms.text, /Issue summary/); assert.match(terms.text, /Attachments/);
+  assert.equal(runPage(page.body, 'control', { label: 'Approve', expectedTermsText: terms.text }), page.second.approve);
+  assert.equal(runPage(page.body, 'control', { label: 'Request changes', expectedTermsText: terms.text }), page.second.change);
+  const firstText = terms.text.replace('Exact subject', 'First wording');
+  assert.equal(pageCode(() => runPage(page.body, 'control', { label: 'Approve', expectedTermsText: firstText })), 'terms_changed');
+  assert.equal(pageCode(() => runPage(page.body, 'control', { label: 'Request changes', expectedTermsText: firstText })), 'terms_changed');
+  const uneven = twoSummaries({ secondChanges: false });
+  const unevenTerms = runPage(uneven.body, 'terms').text;
+  assert.equal(pageCode(() => runPage(uneven.body, 'control', { label: 'Request changes', expectedTermsText: unevenTerms })), 'request_changes_count');
+  // Without the summary fields no card qualifies once there are two Approves.
+  const bare = el('body', {}, [el('main', {}, [
+    el('div', { class: 'actions-card' }, [el('span', {}, [], 'Pick one'), el('button', {}, [], 'Approve')]),
+    el('div', { class: 'actions-card' }, [el('span', {}, [], 'Pick one'), el('button', {}, [], 'Approve')]),
+    el('div', {}, [el('textarea', {}), el('button', {}, [], 'Upload file')]),
+  ])]);
+  assert.equal(pageCode(() => runPage(bare, 'terms')), 'terms_container_not_found');
+});
+
+test('page: staged upload cards count as chips until an upload refusal empties the list', () => {
+  const page = ({ placeholder = 'Click send to upload', refused = false, regionChip = null, regionError = false } = {}) => {
+    const staged = el('div', { class: 'upload-card' }, [el('span', { class: 'file-name' }, [], 'invoice.pdf'), ...(refused ? [el('span', {}, [], 'Unsupported file was attached')] : [])]);
+    const footer = el('div', {}, [
+      ...(regionChip ? [el('span', {}, [], regionChip)] : []), ...(regionError ? [el('span', {}, [], 'Upload failed')] : []),
+      el('textarea', { placeholder }), el('button', {}, [], 'Submit'), el('button', {}, [], 'Upload file'),
+    ]);
+    return el('body', {}, [el('main', {}, [staged, footer])]);
+  };
+  assert.deepEqual(runPage(page(), 'scan').region.chips, ['invoice.pdf']);
+  assert.deepEqual(runPage(page({ placeholder: 'Message Seller Assistant...' }), 'scan').region.chips, [], 'staged cards count only while the composer says click send to upload');
+  assert.deepEqual(runPage(page({ refused: true }), 'scan').region.chips, [], 'a refused staged card is not a chip');
+  assert.deepEqual(runPage(page({ placeholder: 'Message Seller Assistant...', regionChip: 'report.csv' }), 'scan').region.chips, ['report.csv']);
+  assert.deepEqual(runPage(page({ regionChip: 'report.csv', regionError: true }), 'scan').region.chips, [], 'an upload error empties every chip');
+});
+
+test('approve and Request changes with two summaries are bound to the last summary\'s terms', async () => {
+  const dir = await runDir();
+  try {
+    const first = 'Issue summary Subject: First wording Attachments None Approve Request changes';
+    const second = 'Issue summary Subject: Exact subject Attachments None Approve Request changes';
+    const state = (handoff = {}) => baseState({
+      controls: [...baseState().controls, ...['Approve', 'Request changes', 'Approve', 'Request changes'].map(label => ({ frame_id: 'main', label, disabled: false }))],
+      handoff: { approve_count: 2, frame_id: 'main', terms_text: second, terms_sha256: termsHash(second), ...handoff },
+    });
+    const stale = fakeRuntime(dir, { state: state() });
+    const staleApproval = await approvalFile(dir, { plan_item: 'approve', sha256: termsHash(first) }, 'first.json');
+    const r1 = await executeCommand(stale.rt, command('001', 'approve', { 'expect-terms-sha256': termsHash(first), 'approval-file': staleApproval }));
+    assert.equal(r1.status, 'blocked'); assert.equal(r1.reason, 'control_summary_not_verified');
+    assert.ok(!stale.events.includes('dispatch') && !stale.events.some(e => e.startsWith('prepare:')));
+    const ok = fakeRuntime(dir, { state: state() });
+    const approval = await approvalFile(dir, { plan_item: 'approve', sha256: termsHash(second) }, 'second.json');
+    const r2 = await executeCommand(ok.rt, command('002', 'approve', { 'expect-terms-sha256': termsHash(second), 'approval-file': approval }));
+    assert.equal(r2.status, 'approved');
+    assert.ok(ok.events.includes(`terms-text:${termsHash(second)}`), 'the page lookup re-reads the approved terms');
+    const nav = fakeRuntime(dir, { state: state() });
+    assert.equal((await executeCommand(nav.rt, command('003', 'navigate', { label: 'Request changes' }))).status, 'ok');
+    assert.ok(nav.events.includes('prepare:Request changes') && nav.events.includes(`terms-text:${termsHash(second)}`));
+    const unread = fakeRuntime(dir, { state: state({ terms_text: null, terms_sha256: null, terms_error: 'terms_container_not_found' }) });
+    const r4 = await executeCommand(unread.rt, command('004', 'navigate', { label: 'Request changes' }));
+    assert.equal(r4.status, 'blocked'); assert.equal(r4.reason, 'control_summary_not_verified');
+    assert.ok(!unread.events.includes('dispatch'));
+  } finally { await rm(dir, { recursive: true, force: true }); }
 });
