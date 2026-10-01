@@ -303,3 +303,334 @@ Case readiness is recorded per exact seller/marketplace and separately for
 journal and independent saved-correspondence evidence. A visible button alone
 is insufficient. The create/reply form selectors still need live validation in
 an account with confirmed access before production release.
+
+### Attended case sends
+
+Attended sends never pass `prepare-send` or `validate-binding`, so the readiness
+switch, canary, 09:00 rule, daily observation and routine-scope gates stay on
+Grimoire's path unchanged. Four commands serve attended sends. Each refuses with
+`attended_context_required` when `WIZARDS_AI_MODE` is set or `/proc/self/cgroup`
+names a `wizards-ai-*` unit. All except `sign` require an attended
+authorization: `kind: attended`, the policy's `attended_operator_id`, and
+`source.session_id` plus `source.instruction`. A Slack authorization returns
+`attended_required`. Grimoire's re-validation of a persisted attended mandate is
+unchanged. `observe` now counts `last_sent_at` as the latest seller message when
+it is newer than the case log's last seller contact, so a chat reply missing from
+the case log still answers older Amazon messages.
+
+`sign` is read-only and returns the exact final text and its SHA-256. It keeps a
+body that already ends in the owner's exact policy signature. It refuses
+`signature_conflict` when one of the last three lines is a sign-off: a whole line
+equal to an approved member's name or signature line, or a closing that ends in a
+member's name after a comma or dash (`Best regards, Danica`). A name inside a word
+or a sentence (`Davenport`) is body text. Otherwise it appends the owner's
+signature, exactly as before. `prepare-send` uses the same rule. A case without an
+owner, or a request without `registry_id`, signs as the attended operator
+(`owner_source: attended_operator`). Write `signed_body` to the text file without
+a trailing newline. `baseline.last_sent_at` is the draft baseline for
+`claim-attended`, and `signature_name` is the only name the chat form's "Your
+name" field may carry.
+
+```json
+{"registry_id":"b8b3…","body":"Dear Amazon Support,\n\nThe invoice is attached."}
+{"status":"signed","registry_id":"b8b3…","owner_member_id":"U01…","owner_source":"case_owner","signature_name":"Victor Uhl","signed_body":"Dear Amazon Support,\n\nThe invoice is attached.\n\nVictor Uhl\nEcom Wizards","sha256":"75b8…","baseline":{"last_sent_at":"2026-09-30T14:02:11+00:00"}}
+```
+
+`claim-attended` is the driver's check before each outbound click of one reply
+run. It refuses `account_mismatch`, `case_not_created` (only a reply in a created
+case is claimed), `case_mismatch` (`case_id` is not the registered Amazon case),
+`signature_name_mismatch` (a `signature_name` other than the one `sign` returns
+for the case), `run_recorded` (this run already has a receipt), `claim_released`,
+`reconciliation_required` (an unapplied action that is not invalidated, or an
+uncertain one), `daily_sent` (a non-attended operation sent on this case today)
+and `baseline_changed` (`last_sent_at` is newer than the draft baseline). Each
+success bumps `authorization_revision`, so any binding Grimoire computed earlier
+is stale, and adds a new `authorization` to the claim's list. Repeated calls for
+the same `run_id` are safe.
+
+A claim stays open until its run is recorded with `record-receipt` or released.
+While it is open, `prepare-send` refuses `reconciliation_required` and `observe`
+sets `next_action` to `human`, so Grimoire cannot answer over an attended send
+that may be out but is not recorded yet.
+
+```json
+{"registry_id":"b8b3…","run_id":"acme-12345678901-r1","account":{"seller_id":"A2RB…","marketplace_id":"ATVPDKIKX0DER"},"case_id":"12345678901","signature_name":"Victor Uhl","baseline":{"last_sent_at":"2026-09-30T14:02:11+00:00"},"authorization":{"kind":"attended","requester_id":"U01…","source":{"session_id":"…","request_id":"acme-12345678901-send","instruction":"this is perfect, send it"}}}
+{"status":"claimed","operation_id":"attended-3f1c…","authorization_revision":7}
+```
+
+`record-receipt` with `attended_receipt` records a reply or chaser that the driver
+or a person sent. New cases still register through `start` and `adopt`.
+`authorization.source.instruction` is the operator's approval sentence, verbatim.
+`label` is one of `routine`, `appeal`, `dispute`, `refund_request`, `commitment`
+or `admission`. Kind `driver_run` reads `<run_dir>/run.json` and
+`approvals.jsonl`:
+
+- the run's `seller_id` and `marketplace_id` must equal the case's, and run.json
+  must name this case's `registry_id` (`registry_binding_required`);
+- the run must have claimed the case before its first click (`claim_missing`,
+  `claim_after_click`);
+- `messages` must list exactly the hashes the run submitted, ignoring attempts
+  whose result is `blocked`;
+- every attempt's approval must carry the run ID, the case seller, an approval
+  sentence that is the receipt's or one the run claimed with, and the message's
+  `label` (a message may name its own; it defaults to the receipt's);
+- `readback_path` is required and is the case log read after the run
+  (`missing_readback`, `readback_not_case_log`); `transcript_path` may name a
+  driver transcript record;
+- each hash needs a `sent` result, or a readback or transcript that shows the
+  exact text. An `uncertain` result or an attempt without a result never passes on
+  its own.
+
+A case-log readback is `observe` output or a `case-readback-*.json`. A transcript
+needs the message's `text_path` (the file the driver typed) or a transcript
+message with the same hash. Each recorded message says what showed it:
+`case_log` (an exact seller contact, whose ID is merged into `contact_ids`),
+`chat_transcript`, or `driver_result` when only the driver's own read of the chat
+after the click did. The record's `verified_by` is the weakest of its messages.
+
+```json
+{"registry_id":"b8b3…","attended_receipt":{"schema_version":1,"kind":"driver_run","run_dir":"<run-dir>","purpose":"reply","label":"routine","channel":"case_chat","messages":[{"plan_item":"P3","sha256":"…","text_path":"<run-dir>/P3.txt"},{"plan_item":"followup","sha256":"…","text_path":"<run-dir>/followup-1.txt","label":"admission"}],"readback_path":"<run-dir>/observe-after.json","transcript_path":"<run-dir>/transcripts/09-transcript.json","authorization":{"kind":"attended","requester_id":"U01…","source":{"session_id":"…","request_id":"acme-12345678901-send","instruction":"this is perfect, send it"}}}}
+{"status":"recorded","operation_id":"attended-3f1c…","verified_by":"chat_transcript","case":{"…":"…"}}
+```
+
+Kind `manual_receipt` records a send made by hand, or a backfill. It takes
+`sent_at`, `signed_body_sha256`, an optional `text_path` and `evidence_path`.
+The evidence must show the exact message. It can be a case-log readback (pass one
+whenever Amazon shows the message there), or a verified send receipt with
+`seller_id`, `marketplace_id`, `case_id`, `message_sha256` and `status: verified`.
+A bare transcript names no account and is refused. The evidence file's SHA-256 is
+stored.
+
+```json
+{"registry_id":"b8b3…","attended_receipt":{"schema_version":1,"kind":"manual_receipt","purpose":"reply","label":"routine","channel":"case_chat","sent_at":"2026-10-01T14:40:22Z","signed_body_sha256":"…","evidence_path":"<case-dir>/send-chat-receipt.json","authorization":{"kind":"attended","requester_id":"U01…","source":{"session_id":"…","instruction":"Record the reply I sent in chat"}}}}
+{"status":"recorded","operation_id":"attended-9a07…","verified_by":"chat_transcript","case":{"…":"…"}}
+```
+
+Both kinds add an applied `attended-*` action with the keys every reader indexes
+(`binding`, `signed_body_hash: null`, `scope_hash: null`, `purpose`, `daily_key`,
+`request_hash`). They move `last_sent_at` and `next_due_at` forward, set
+`awaiting_amazon` unless the case is resolved, set the sent marker of the send's
+Asia/Bangkok day if unset (so a backfill never blocks today's reply),
+invalidate unapplied actions that are not uncertain and bump
+`authorization_revision`. A `driver_run` receipt closes its run's claim. The same
+receipt again returns `already_recorded`; a different receipt for the same run
+returns `receipt_conflict`.
+
+`release` is the only way to free an action whose operations journal is already
+`stalled`. The readback must post-date the attempt, match the account with
+complete history and not show the signed message (`message_observed` means
+reconcile and record it instead). A released action no longer blocks `adopt`,
+`prepare-send` or `claim-attended`. It blocks again if its journal leaves
+`stalled`.
+
+```json
+{"registry_id":"4b93…","operation_id":"case-9187…","authorization":{"kind":"attended","requester_id":"U01…","source":{"session_id":"…","instruction":"Nothing was created; release it"}},"evidence":{"readback_path":"<operations-dir>/case-9187…/case-readback-fde7….json","summary":"Seller Assistant refused; no case was created"}}
+{"status":"released","operation_id":"case-9187…","case":{"…":"…"}}
+```
+
+With `run_id` instead of `operation_id`, `release` closes an open claim whose run
+sent nothing, for example a chat that ended before Send. The case-log readback
+must post-date the run's last claim, hold this case's complete history and show no
+seller contact since the first claim; a seller contact without a time counts unless
+an earlier observation already knew its ID (`message_observed` means record it
+instead). A released run cannot claim again.
+
+```json
+{"registry_id":"b8b3…","run_id":"acme-12345678901-r1","authorization":{"kind":"attended","requester_id":"U01…","source":{"session_id":"…","instruction":"The chat closed before Send; release it"}},"evidence":{"readback_path":"<run-dir>/observe-after.json","summary":"Case log shows no seller message since 10:02"}}
+{"status":"released","run_id":"acme-12345678901-r1","case":{"…":"…"}}
+```
+
+## Seller Assistant step driver
+
+Amazon routes new Seller Support requests through Seller Assistant, a chat that
+hands over to a human associate. `seller-assistant.mjs` drives that chat one
+approved step at a time. It is for attended sessions only; Grimoire never runs
+it, and a case mandate does not replace the operator's approval of the exact texts.
+It also sends attended replies in an existing case, through the case page's reply
+form or its `Chat now` window. The
+route, the approval model and case registration are described in
+[the Seller Assistant route](../../skills/amazon-communications/references/seller-assistant-route.md).
+
+One controller process holds the browser for the whole chat. Client calls queue
+one command each and wait for its result; they never touch the browser.
+
+```sh
+node tools/browserctl/browserctl.mjs run --session operator -- node tools/amazon-operations/seller-assistant.mjs serve --run <dir> [--max-minutes 90] [--idle-minutes 20]
+node tools/amazon-operations/seller-assistant.mjs send --run <dir> <command> [args]
+```
+
+| Command | Effect |
+|---|---|
+| `open [--via-lobby \| --conversation <path>]` | Record the `/cu/case-lobby` controls, then open `/assistant?client=sellerSupport-meldFullPage`, click `Get help with a new issue` with `--via-lobby`, or reopen an existing conversation path (`/assistant/amzn1.cyrano.conversation.cid.v2.<digits>?client=sellerSupport-meldFullPage`) after a restart |
+| `open --case <digits>` | Open `/cu/case-dashboard/view-case?caseID=<digits>` and report whether `Reply` is present; refused once a case chat window is open |
+| `state` | Read URL, frames, composer label, value and counter, visible controls, status texts, tour, access denial, and the handoff terms with their SHA-256 |
+| `navigate --label <label>` | Click `Get help with a new issue`, `Show more` or `Show less`; tour labels (`Skip`, `Skip tour`, `Got it`, `Done`, `Next`, `Finish`, `Close`, `Dismiss`) only on a control inside the tour container; `Request changes` while one or more email-case Issue summaries show `Approve`: the click goes to the last summary's `Request changes`, only after the page re-reads the exact terms text that `state` reported, and only when every `Approve` has its own `Request changes`; `Reply` only on the case page opened with `open --case` |
+| `type --text-file <f> --sha256 <h>` | Insert the text into the empty composer and read it back; never submits. Multi-line text only into a `TEXTAREA` composer |
+| `submit --expect-sha256 <h> --approval-file <f> [--expect-attachment <name>]... [--label Submit\|Send\|"Chat now"]` | Click the composer's `Submit` (default), `Send` or `Chat now` when the composer, the expected hash and the approval agree |
+| `approve --expect-terms-sha256 <h> --approval-file <f>` | Click the handoff `Approve` when the terms hash matches |
+| `attach --file <path> --sha256 <h> --approval-file <f>` | Set one file on the chat's file input and wait for its chip; never submits |
+| `transcript [--wait-new <n>] [--timeout <s>]` | Save and print the conversation text and a structural outline, plus `page_text` (`transcripts/NN-transcript-page.txt`) and a shadow-piercing `deep_text` of every frame (`transcripts/NN-transcript-deep.txt`); denial detection reads all three |
+| `screenshot [--name <label>]` | Identity-verified screenshot with its receipt |
+| `viewcase-raw --case-id <digits>` | Save the raw ViewCase JSON; print a summary without emails or senders |
+| `stop` | Release the task tab and exit |
+
+`send` exits 0 for `ok`, `sent`, `approved` and `attached`, 1 for any other
+result status (`refused`, `blocked`, `uncertain`, `timeout`, `expired`, `error`,
+`sent_identity_unverified`, `approved_identity_unverified`,
+`attached_identity_unverified`), and 2 when no result arrived. The three
+`*_identity_unverified` statuses mean the action happened but the identity check
+after it failed, so the controller halted. Every queued command carries
+`expires_at`; one without it is refused as `command_malformed`.
+
+Before it runs a command, `serve` writes `results/NNN.running`, and every
+`approvals.jsonl` line carries the command's `queue_id`. When `send` gives up
+(`serve_exited` or `client_timeout`) it checks both. If `serve` had started the
+command, the answer is `uncertain` and nothing is cancelled; with `serve` gone
+it also writes that `uncertain` result. Only a command that never started gets
+a `cancelled` result, which a later `serve` skips. On startup, `serve` marks
+every command with a leftover marker, or with an attempt line and no result
+line, as `uncertain` (`interrupted`) and never runs it again. SIGTERM, SIGINT,
+an uncaught exception or an unhandled rejection marks the command in flight the
+same way before the tab is released as `error`. The handler first sets an
+aborting flag, before any wait, so no click, insert or upload starts after the
+interrupt, and no new command starts. The client then reads `uncertain`
+(`interrupted`) or `blocked` (`aborting`) for the stopped action. Nothing was
+clicked in either case.
+
+Safety model:
+
+- Only `Submit`, `Send`, `Chat now`, `Approve`, `Reply` and the navigation labels
+  above can be clicked. The driver never presses Enter, never opens `Open the tool`
+  and never drives a new tab, except the one case chat window `Chat now` opens.
+- `submit --label "Chat now"` takes the approval of the message the chat will
+  deliver and no attachment. It needs `open --case` first and `signature_name` in
+  `run.json` (the one `sign` returned; claim-attended refuses another). It fills "Your name" with that name and the composer with the
+  constant opening line `Hello.`, clicks once, and adopts exactly one new
+  same-origin `/hill/website/chat` window with `formType=reply`, this case ID and
+  the task tab as opener, bound as the `case-chat` slot of the same task. Later
+  commands drive that window; any other new tab halts the run. It is logged as
+  `command: chat_now`, so a receipt does not count it as a message, and runs once
+  per run. A click that opens a new page target halts `serve`. For `submit` and
+  `approve` the status still reports the delivery (`sent`, `approved` or
+  `uncertain`) with reason `new_target`, so a sent message never reads as unsent.
+- A tour label is clicked only when a dialog, tooltip or popover holding the
+  `Step N/M` text is found outside the conversation and the composer, and the
+  label matches exactly one control inside that container. `Step N/M` text in a
+  chat message is not a tour.
+- `type` refuses text containing a line break unless the composer is a
+  `TEXTAREA`: `Input.insertText` commits each line break as an edit that a
+  rich-text chat editor may treat as Enter. The first live run records how the
+  composer handles it.
+- `submit` clicks only when the SHA-256 of the composer text equals
+  `--expect-sha256` and the approval file's `sha256`. The composer must be
+  enabled, and its `Submit` (or the `--label` control) must be the only visible
+  one in the frame (enabled or disabled), enabled, and inside the composer's region, the nearest
+  ancestor that also holds `Submit` or `Upload file`. A region that spans the
+  conversation does not count. The page repeats this check when it looks up the
+  control for the click. Attachments are bound to this run: every file shown as
+  a chip or held by the file input, and every `--expect-attachment` name, must
+  be a file this run's `attach` logged as `attached`, and the expected names must
+  equal the files present (none when omitted). A file in the input with no
+  detected chip is refused. A `submit` that carried a file uses it up once it is
+  sent or uncertain; a chip with the same name then needs a new approved
+  `attach`. It
+  waits up to 30 seconds for a busy assistant (`Working on it` or a progress
+  indicator) to finish, and checks the composer, chips, upload state and
+  `Submit` again after the identity read, right before the click. The page
+  lookup that returns `Submit`, `Send` or `Chat now` compares the composer text
+  with the approved text (for `Chat now`, the opening line `Hello.`) once more
+  and fails with `composer_changed` when they differ. It then waits up to 60 seconds for the composer to clear and the text to appear
+  once more in the conversation, and reports `sent` or `uncertain`. An uncertain
+  send is never retried. Each approved hash is sent once per run. A P2 approval
+  may be sent twice, and only when its text is exactly "Please connect me with a
+  Seller Support associate."; a P2 approval of any other text is sent once.
+- `approve` waits for a busy assistant like `submit`, and reports `approved`
+  only when, after the click, the `Approve` control is gone or disabled or the
+  composer label changed, on two consecutive scans with a valid frame selection
+  and the `Approve` frame still reachable. A new message alone, or one empty
+  scan during a re-render, gives `uncertain`.
+- After a Submit or Approve click or a file upload, any failure, including a
+  replaced frame or a failed log write, is reported as `uncertain` with
+  `clicked: true` or `attached: true` and a result line in `approvals.jsonl`,
+  never as a plain `error`.
+- `approve` hashes the text of the container around the unique `Approve`
+  control: the nearest dialog, card or message ancestor with text outside any
+  button (basis `card`), else the smallest ancestor with such text (basis
+  `smallest_text`), never one holding the composer or the whole conversation.
+  `state` shows that text, hash and basis; screenshot the terms before asking
+  for approval. The hash normalizes line endings, collapses spaces within a line and
+  drops blank lines.
+- `attach` first copies the file to `uploads/NN/<name>` in the run directory,
+  hashes the copy, and uploads the copy, so a later change to the source file
+  cannot reach Amazon. The approval hash, `--sha256` and the copy's hash must
+  match, with an enabled `Upload file` control and exactly one file input.
+- Seller and marketplace are verified before and after every command and again
+  right before each outbound click. The check reads the live header and the
+  GetUserContext IDs. A live seller or marketplace ID that differs from
+  `run.json` stops at once. When a page lacks one or both live IDs, the IDs read
+  on `/home` at startup fill only the missing ones, together with the exact
+  header, as the case adapter does. Read errors during a re-render are retried
+  for 15 seconds. A mismatch halts `serve`, which releases the tab as `error`.
+- The driver works in the one same-origin frame, main frame included, that
+  holds exactly one visible composer. It evaluates each frame in an isolated
+  world, reused until the frame loads a new document. Zero or several
+  composers, or a cross-origin frame whose URL looks like the chat, block with
+  details. Other cross-origin frames (ads, metrics) are ignored rather than
+  stopping the run, because Seller Central pages carry them routinely.
+- It never reads cookies, storage or tokens.
+
+Text for `type` and approved texts must already be normalized: UTF-8 without a
+byte order mark, LF line endings, no leading or trailing newline, at most 2,500
+characters (JavaScript string length). Then `sha256sum <file>` equals the hash
+that `type`, `submit` and the approval use.
+
+Approval files are JSON:
+`{"schema_version":1,"plan_item":"P1|P2|P3|approve|attachment|followup","sha256":"<hex>","run_id":"<run.json run_id>","seller_id":"<run.json account.seller_id>","approved_at":"<ISO time with timezone>","approval_text":"<operator's verbatim approval>","label":"routine"}`.
+Text items (P1, P2, P3, followup) need `label`: `routine`, `appeal`, `dispute`,
+`refund_request`, `commitment` or `admission` (`approval_label_missing`,
+`approval_label_invalid`). It is written to `approvals.jsonl`. On a run with
+`registry_id`, their `approval_text` must equal `authorization.source.instruction`
+(`approval_instruction_mismatch`), unless the approval carries its own attended
+`authorization` whose `source.instruction` is its `approval_text` and which has a
+`source.session_id`: a text the operator approved later in the same chat. A
+malformed one returns `approval_authorization_invalid`. The claim before the click
+passes the approval's own authorization, and the receipt accepts it.
+`run_id` and `seller_id` must equal `run.json`, so an approval never carries
+over to another run or account. `approved_at` must be a real calendar time with
+a timezone and not later than the controller clock plus five minutes.
+`submit` accepts P1, P2, P3 and followup, `approve` accepts approve, and
+`attach` accepts attachment.
+
+The run directory holds `run.json`:
+`{"schema_version":1,"run_id":"<slug>","account":{"profile_key","client_slug","marketplace","seller_id","marketplace_id","seller_central_name","marketplace_label","parent_account_name","context_binding"}}`
+with every account value a non-empty string. `context_binding` is optional and
+copied from the case policy when the profile has one:
+`{"seller_id","marketplace_id","unique_label_mapping":true}` with the account's
+own IDs; anything else is refused. A reply run adds `registry_id`, `baseline`
+(`{"last_sent_at": <sign result>}`) and an attended `authorization` with
+`source.instruction`, all three together; the driver then writes
+`claim-attended.json` and runs `case_service.py claim-attended` before every
+`submit`, `Chat now`, `approve` and `attach`, with the opened `case_id` and, when
+set, `signature_name`; any refusal returns `refused` (`claim_refused`, with
+`claim_reason`) before the attempt line. Without `registry_id`, `open --case`,
+`Chat now` and any `submit` on a case page or its chat window refuse
+`registry_binding_required`. `signature_name` is the one-line name for the chat
+form, at most 100 characters. The driver writes `queue/NNN.json`,
+`results/NNN.json`, `results/NNN.running` while a command runs,
+`steps/NN-<command>.json` (URL, frames, controls, composer state and result for
+every command), `approvals.jsonl` (the approval and outcome of every outbound
+attempt, with its `queue_id`), `uploads/`, `transcripts/`, `screenshots/`,
+`viewcase/`, `serve.pid` and `serve.json`.
+
+`serve` runs in the operator session on 9222 or in the Grimoire session on
+9223, and only attended: under `WIZARDS_AI_MODE` or inside a `wizards-ai-*` unit
+it refuses with `attended_context_required` on either session, before it reads
+the run directory. It acquires one task tab (`amazon-communications`, exclusive Seller Central
+context) and switches to the account. On 9223 it keeps the 9223 lock until it
+exits, so scheduled Grimoire browser jobs defer for that time; on 9222 there is no
+port lock, only the task tab's region claim. `stop` releases the tab as `success`. An exception or
+SIGTERM releases it as `error`; so do a halt, `--max-minutes` and
+`--idle-minutes`, which keeps the chat tab in a two-hour inspection lease. A
+`transcript` wait never runs past the `--max-minutes` budget. The conversation-area
+and attachment-chip detection is a heuristic until the first live run records
+the real page structure.

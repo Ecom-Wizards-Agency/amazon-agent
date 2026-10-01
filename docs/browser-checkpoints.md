@@ -95,10 +95,13 @@ approved that exact action in the current chat or a matching scoped permission e
 - Changing account settings, users, permissions, payment, tax, or legal entity details.
 - Acknowledging account health or policy actions.
 
-Approval authorizes only the reviewed action and payload. Immediately before acting,
-re-verify the account, marketplace, object identifiers, quantities, prices, fees, and
-selected options. If the final screen introduces or changes a material term, stop for a
-new approval. After acting, capture the resulting status or identifier and report it.
+Approval authorizes only the reviewed action and payload. A Seller Support text
+approved as shown with its signature is the reviewed payload; Amazon's rendering of
+it, such as curly quotes, drawn list numbers or joined lines, is not a material
+change. Immediately before acting, re-verify the account, marketplace, object
+identifiers, quantities, prices, fees, and selected options. If the final screen
+introduces or changes a material term, stop for a new approval. After acting,
+capture the resulting status or identifier and report it.
 
 ## Cybersecurity-Safe Handling
 
