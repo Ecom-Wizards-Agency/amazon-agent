@@ -24,7 +24,7 @@ The company writing standard lives in `company-ai-skills/docs/writing-style.md`;
 
 ## Browser Standard
 
-Grimoire's Slack and scheduled runs use the named `grimoire` session on CDP 9223, with the persistent `~/.amazon-agent/wizards-ai-chrome` profile. The `operator` session on 9222 is separate, backed by `~/.amazon-agent/chrome-debug`. Attended direct chat uses the machine's attended default, a machine-local setting: `grimoire` unless the setup-owned browser policy sets `routing.default_cdp_port` to 9222. Evo X1 sets 9222, so attended work there runs on `operator` with the operator's own Seller Central login. Browser identity does not authorize a write.
+Grimoire's Slack and scheduled runs use the named `grimoire` session on CDP 9223, with the persistent `~/.amazon-agent/wizards-ai-chrome` profile. The `operator` session on 9222 is separate, backed by `~/.amazon-agent/chrome-debug`. Attended direct chat uses the machine's attended default, a machine-local setting: `grimoire` unless the setup-owned browser policy sets `routing.attended_cdp_port` to 9222. Evo X1 sets 9222, so attended work there runs on `operator` with the operator's own Seller Central login. Browser identity does not authorize a write.
 
 Launch browser-dependent commands in attended chat through `node tools/browserctl/browserctl.mjs run -- <command>`. This resolves the session before imports in the order `--session`, `AMAZON_BROWSER_SESSION`, `CDP_PORT`, then the machine default, and propagates it to child tools. On `grimoire` it holds the same 9223 lock as scheduled workers; 9222 has no port-wide lock, and Seller Central work there relies on its regional or global task claim. Grimoire-side and scheduled instructions keep `--session grimoire`. `WIZARDS_AI_MODE=1`, set by every Grimoire unit, resolves to `grimoire` and refuses `operator` or port 9222 however it is selected. Pin `--session grimoire` for work that must stay on 9223, such as DataDive web work and the retired-form case adapter (`operations.py` `case.create` / `case.reply` execute through `cases.mjs`, which executes only on `grimoire`). Attended Seller Support sends do not use that adapter: they run `seller-assistant.mjs` on `operator` (see Safety Rules). Conflicting endpoint/profile overrides fail. Direct-chat results return in that chat; using the shared browser does not send anything to Slack.
 
@@ -108,7 +108,7 @@ low-level guard needs a separate browserctl change.
 
 Managed Chrome CDP on port 9223 is the default browser for Amazon workflows.
 Port 9222 is the separate operator browser, selected explicitly or by the
-machine-local attended default. That default lives in `routing.default_cdp_port`
+machine-local attended default. That default lives in `routing.attended_cdp_port`
 of the setup-owned browser policy and only affects attended sessions. Evo X1
 sets 9222; other machines keep 9223, and Grimoire always stays on 9223.
 The T3 Code in-app browser is not a first-choice browser and is never a silent fallback from

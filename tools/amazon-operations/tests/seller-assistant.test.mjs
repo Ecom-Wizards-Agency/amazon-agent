@@ -99,11 +99,14 @@ function fakeRuntime(dir, { state = baseState(), identity = null, newTargetOnCli
       verifyIdentity: identity || (async () => { events.push('identity'); return { merchant_id: 'A1TEST', marketplace_id: 'ATVPDKIKX0DER', source: 'live' }; }),
       screenshot: async () => ({}), evaluateMain: async () => ({ status: 200, body: '{}' }), readFile,
       now: () => clock, sleep: async ms => { clock += ms; },
+      clientCgroup: () => ATTENDED_CGROUP,
     },
   };
   return { rt, events, current, sent, attemptsAtDispatch, uploads };
 }
-const command = (id, name, args = {}) => ({ schema_version: 1, id, command: name, args, expires_at: '2099-01-01T00:00:00Z' });
+// The send client's cgroup: an attended terminal, so serve runs its commands.
+const ATTENDED_CGROUP = '0::/user.slice/user-1000.slice/user@1000.service/app.slice/app-com.t3tools.T3Code-1.scope\n';
+const command = (id, name, args = {}) => ({ schema_version: 1, id, command: name, args, expires_at: '2099-01-01T00:00:00Z', client_pid: 4242 });
 
 test('frame selection: one composer frame, none, several, cross-origin chat frame', () => {
   const main = { frame_id: 'm', url: ASSISTANT, origin: SC, same_origin: true, reachable: true };
@@ -1857,4 +1860,44 @@ test('F3: serve refuses under WIZARDS_AI_MODE or in a wizards-ai unit, on 9222 a
     await assert.rejects(SA.serve({ run: missing }), error => error.code === 'attended_context_required');
     assert.equal(existsSync(missing), false, 'no run directory was created');
   } finally { if (saved === undefined) delete process.env.WIZARDS_AI_MODE; else process.env.WIZARDS_AI_MODE = saved; }
+});
+
+// Review F2: `send` drives the attended browser through a running serve, so
+// Grimoire may not queue a command either. The client refuses itself, and serve
+// refuses a command whose client is gone or sits in a wizards-ai unit.
+test('F2: send refuses under WIZARDS_AI_MODE and serve runs only commands from a live attended client', { timeout: 20000 }, async () => {
+  const dir = await runDir();
+  const saved = process.env.WIZARDS_AI_MODE;
+  try {
+    const account = { profile_key: 'acme-us', client_slug: 'acme', marketplace: 'US', seller_id: 'A1TEST', marketplace_id: 'ATVPDKIKX0DER', seller_central_name: 'Acme', marketplace_label: 'United States', parent_account_name: 'Acme Group' };
+    await writeFile(join(dir, 'run.json'), JSON.stringify({ schema_version: 1, run_id: 'sa-test', account }));
+    await writeFile(join(dir, 'serve.pid'), JSON.stringify({ pid: process.pid }));
+    process.env.WIZARDS_AI_MODE = '1';
+    await assert.rejects(sendCommand({ run: dir, command: 'state', args: {} }, { pollMs: 10, out: () => {} }), error => error.code === 'attended_context_required');
+    assert.deepEqual(await readdir(join(dir, 'queue')), [], 'nothing was queued');
+    if (saved === undefined) delete process.env.WIZARDS_AI_MODE; else process.env.WIZARDS_AI_MODE = saved;
+
+    const { rt, events } = fakeRuntime(dir);
+    const grimoire = '0::/user.slice/user-1000.slice/user@1000.service/app.slice/wizards-ai-slack.service\n';
+    const cases = [['001', () => grimoire, 'attended_context_required'], ['002', () => null, 'client_gone']];
+    for (const [id, cgroup, reason] of cases) {
+      rt.deps.clientCgroup = cgroup;
+      await writeFile(join(dir, 'queue', `${id}.json`), JSON.stringify(command(id, 'state')));
+      const result = await processNext(rt);
+      assert.deepEqual([result.id, result.status, result.reason], [id, 'refused', reason]);
+    }
+    const { client_pid: _pid, ...unstamped } = command('003', 'state');
+    await writeFile(join(dir, 'queue', '003.json'), JSON.stringify(unstamped));
+    assert.equal((await processNext(rt)).reason, 'command_malformed', 'a command without its client pid never runs');
+    assert.deepEqual(events, [], 'no refused command reached the browser or the identity check');
+    rt.deps.clientCgroup = () => ATTENDED_CGROUP;
+    await writeFile(join(dir, 'queue', '004.json'), JSON.stringify(command('004', 'state')));
+    assert.equal((await processNext(rt)).status, 'ok');
+    // The default reader: a live process has a readable cgroup, a finished one has none.
+    assert.equal(typeof SA.readClientCgroup(process.pid), 'string');
+    if (existsSync('/proc/self/cgroup')) assert.equal(SA.readClientCgroup(2 ** 30), null);
+  } finally {
+    if (saved === undefined) delete process.env.WIZARDS_AI_MODE; else process.env.WIZARDS_AI_MODE = saved;
+    await rm(dir, { recursive: true, force: true });
+  }
 });

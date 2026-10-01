@@ -169,7 +169,7 @@ test("callers learn whether this attempt submitted a code, even when the submit 
   assert.equal(calls, 1);
 });
 
-test("a code form that returns after a submitted code ends the call without a second code", async () => {
+test("with the code options, a code form that returns after a submitted code ends the call without a second code", async () => {
   const ERROR = { otp: true, path: "/ap/mfa", invalid: false };
   for (const options of [{}, { otpFetchedAt: Date.now() }]) {
     let calls = 0;
@@ -181,11 +181,13 @@ test("a code form that returns after a submitted code ends the call without a se
     assert.equal(page.submits, 1);
     assert.equal(calls, 1);
   }
+  // Review F3: without the code options (Grimoire's 9223 login) the code is
+  // loaded and submitted again, as on main.
   const plain = await login([PASSWORD, CODE, CODE, APP], "123456");
-  assert.equal(plain.result.status, "totp_rejected");
+  assert.equal(plain.result.status, "authenticated");
   assert.deepEqual(Object.keys(plain.result).sort(), PUBLIC_KEYS);
-  assert.deepEqual(plain.page.typed, ["user@example.test", "password-secret", "123456"]);
-  assert.equal(plain.page.submits, 2);
+  assert.deepEqual(plain.page.typed, ["user@example.test", "password-secret", "123456", "123456"]);
+  assert.equal(plain.page.submits, 3);
 });
 
 test("with the code options, a code form that does not advance is not submitted a second way", async () => {

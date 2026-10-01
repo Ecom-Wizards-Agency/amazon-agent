@@ -679,8 +679,14 @@ class CaseServiceTests(unittest.TestCase):
         self.assertEqual([], self.service.daily_due()['cases'])
         self.assertCode('reconciliation_required', lambda: self.prepare(observed['case'], 'chaser', daily_key=observed['daily_key']))
         self.now += dt.timedelta(minutes=20)
-        release = lambda path, run_id='evora-1-r1': self.service.release({'registry_id': case['registry_id'], 'run_id': run_id, 'authorization': self.attended('Nothing went out; release it'), 'evidence': {'readback_path': str(path), 'summary': 'Chat closed before Send'}})  # noqa: E731
-        self.assertCode('unknown_claim', lambda: release(self.case_log(case, []), run_id='evora-9'))
+        # The chat closed before any outbound click: run.json only, no approvals.jsonl.
+        run_dir, _ = self.driver_run(case, {}, claim=False)
+        (run_dir / 'approvals.jsonl').unlink()
+        release = lambda path, run_id='evora-1-r1', **extra: self.service.release({'registry_id': case['registry_id'], 'run_id': run_id, 'run_dir': str(run_dir), 'authorization': self.attended('Nothing went out; release it'), 'evidence': {'readback_path': str(path), 'summary': 'Chat closed before Send'}, **extra})  # noqa: E731
+        self.assertCode('missing_run_dir', lambda: release(self.case_log(case, []), run_dir=None))
+        self.assertCode('run_mismatch', lambda: release(self.case_log(case, []), run_id='evora-9'))
+        ghost, _ = self.driver_run(case, {}, run_id='evora-9', claim=False)
+        self.assertCode('unknown_claim', lambda: release(self.case_log(case, []), run_id='evora-9', run_dir=str(ghost)))
         self.assertCode('stale_readback', lambda: release(self.case_log(case, [], observed=claimed_at - dt.timedelta(minutes=1))))
         other_case = self.evidence('other-case.json', {'account': self.account, 'history_complete': True, 'observed_at': self.now.isoformat(), 'cases': [{'case_id': '1', 'contacts': []}]})
         self.assertCode('readback_mismatch', lambda: release(other_case))
@@ -704,7 +710,38 @@ class CaseServiceTests(unittest.TestCase):
         run_dir, messages = self.driver_run(case, {'P3': 'Here is the invoice.\n\nDanica\nEcom Wizards'})
         self.record_attended(case, run_dir, messages)
         self.assertEqual([], self.service._open_claims(self.current(case)))
-        self.assertCode('run_recorded', lambda: self.service.release({'registry_id': case['registry_id'], 'run_id': 'evora-1-r1', 'authorization': self.attended(), 'evidence': {'readback_path': str(self.case_log(case, [])), 'summary': 'x'}}))
+        self.assertCode('run_recorded', lambda: self.service.release({'registry_id': case['registry_id'], 'run_id': 'evora-1-r1', 'run_dir': str(run_dir), 'authorization': self.attended(), 'evidence': {'readback_path': str(self.case_log(case, [])), 'summary': 'x'}}))
+
+    def test_release_refuses_a_run_whose_driver_log_shows_a_submit(self):
+        # Review F1: a chat reply can be missing from the case log, so a clean case log cannot release a run
+        # whose own log says it submitted. Otherwise Grimoire answers the same Amazon message again that day.
+        case = self.created()
+        self.now += dt.timedelta(days=1)
+        observed = self.observe(case, [{'id': 'amazon-1', 'is_amazon': True}])
+        self.assertEqual('reply', observed['next_action'])
+        self.now += dt.timedelta(minutes=30)
+        text = 'Here is the invoice.\n\nDanica\nEcom Wizards'
+        release = lambda run_dir, run_id: self.service.release({'registry_id': case['registry_id'], 'run_id': run_id, 'run_dir': str(run_dir), 'authorization': self.attended('Nothing went out; release it'), 'evidence': {'readback_path': str(self.case_log(case, [])), 'summary': 'Case log shows no seller message'}})  # noqa: E731
+        for status in ('sent', 'uncertain', None):
+            with self.subTest(status=status):
+                run_id = f'evora-1-{status}'
+                run_dir, _ = self.driver_run(case, {'P3': text}, statuses={'P3': status}, run_id=run_id)
+                self.assertCode('run_sent', lambda: release(run_dir, run_id))
+        current = self.current(case)
+        self.assertEqual(3, len(self.service._open_claims(current)))
+        self.assertCode('reconciliation_required', lambda: self.prepare(current, 'reply', daily_key=observed['daily_key']))
+        # The sent run is recorded instead; a run whose only submit was blocked before dispatch is released.
+        sent_dir = self.root / 'runs' / 'evora-1-sent'
+        messages = [{'plan_item': 'P3', 'sha256': hashlib.sha256(text.encode()).hexdigest(), 'text_path': str(sent_dir / 'P3.txt')}]
+        self.assertEqual('recorded', self.record_attended(case, sent_dir, messages)['status'])
+        blocked, _ = self.driver_run(case, {'P3': text}, statuses={'P3': 'blocked'}, run_id='evora-1-blocked')
+        self.assertEqual('released', release(blocked, 'evora-1-blocked')['status'])
+        # run.json must name this run, account and case.
+        other, _ = self.driver_run(case, {}, run_id='evora-1-other', account={'seller_id': 'OTHER'})
+        self.assertCode('account_mismatch', lambda: release(other, 'evora-1-other'))
+        unbound, _ = self.driver_run(case, {}, run_id='evora-1-unbound', registry=False)
+        self.assertCode('registry_binding_required', lambda: release(unbound, 'evora-1-unbound'))
+        self.assertCode('run_mismatch', lambda: release(blocked, 'evora-1-unbound'))
 
     def test_claim_checks_the_chat_name_against_the_case_owner(self):
         case = self.created()

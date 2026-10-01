@@ -141,8 +141,9 @@ async function drive(name, policyFile, pages, otp) {
 }
 
 const POLICIES = [
-  ["without routing.default_cdp_port", {}],
-  ["with routing.default_cdp_port 9222", { routing: { default_cdp_port: 9222 } }],
+  ["without a routing key", {}],
+  ["with the legacy routing.default_cdp_port 9222", { routing: { default_cdp_port: 9222 } }],
+  ["with routing.attended_cdp_port 9222", { routing: { attended_cdp_port: 9222 } }],
 ];
 function policyFiles() {
   return POLICIES.map(([label, extra], index) => {
@@ -173,6 +174,9 @@ test("without the code options every submit runs exactly as on main", {
     "code loaded with surrounding whitespace": [[CODE, APP], " 123456\n"],
     "already signed in": [[APP], "123456"],
     "human challenge": [[{ captcha: true }], "123456"],
+    // Review F3: main loads and submits the code again when the code form returns.
+    "code form returns after the code": [[CODE, CODE, APP], "123456"],
+    "code form returns after a clicked code": [[{ ...CODE, advance: "click" }, { ...CODE, advance: "click" }, APP], "123456"],
   };
   for (const [label, file] of policyFiles()) {
     for (const [scenario, [pages, otp]] of Object.entries(scenarios)) {
@@ -188,17 +192,14 @@ test("without the code options every submit runs exactly as on main", {
   }
 });
 
-// The two protections kept for every caller only stop earlier: the branch's
+// The one protection kept for every caller only stops earlier: the branch's
 // calls are a prefix of main's, with nothing added before the session closes.
-test("without the code options the empty-code and rejected-code refusals only stop earlier", {
+test("without the code options the empty-code refusal only stops earlier", {
   skip: !baselineAvailable && `baseline commit ${BASELINE} is not in this clone`,
 }, async () => {
   const scenarios = {
     "no code supplied": [[CODE, APP], undefined, "totp_unavailable"],
     "empty code supplied": [[PASSWORD, CODE, APP], "  ", "totp_unavailable"],
-    "code form returns after the code": [[CODE, CODE, APP], "123456", "totp_rejected"],
-    "code form returns after a clicked code": [
-      [{ ...CODE, advance: "click" }, { ...CODE, advance: "click" }, APP], "123456", "totp_rejected"],
   };
   for (const [label, file] of policyFiles()) {
     for (const [scenario, [pages, otp, status]] of Object.entries(scenarios)) {

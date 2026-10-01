@@ -119,10 +119,13 @@ export function loadBrowserPolicy(path = POLICY_PATH) {
   if (typeof adoptUnregisteredTabs !== "boolean") {
     throw new Error("BROWSER_POLICY_INVALID: cleanup.adopt_unregistered_tabs must be boolean");
   }
+  const defaultPort = 9223;
   // The attended default is machine-local (Evo X1 sets 9222); Grimoire stays on 9223.
-  const defaultPort = Number(raw.routing?.default_cdp_port ?? 9223);
-  if (defaultPort !== 9222 && defaultPort !== 9223) {
-    throw new Error("BROWSER_POLICY_INVALID: routing.default_cdp_port must be 9222 or 9223");
+  // It has its own key: bootstrap once rendered routing.default_cdp_port as 9222
+  // while nothing read it, so that key stays ignored and an old policy keeps 9223.
+  const attendedPort = Number(raw.routing?.attended_cdp_port ?? 9223);
+  if (attendedPort !== 9222 && attendedPort !== 9223) {
+    throw new Error("BROWSER_POLICY_INVALID: routing.attended_cdp_port must be 9222 or 9223");
   }
   const wizardsPort = Number(raw.routing?.wizards_ai_cdp_port ?? 9223);
   const inAppPriority = raw.routing?.in_app_browser_priority || "explicit-only";
@@ -147,6 +150,7 @@ export function loadBrowserPolicy(path = POLICY_PATH) {
     },
     routing: {
       default_cdp_port: defaultPort,
+      attended_cdp_port: attendedPort,
       wizards_ai_cdp_port: wizardsPort,
       in_app_browser_priority: inAppPriority,
       allow_silent_in_app_fallback: false,

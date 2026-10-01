@@ -15,8 +15,9 @@
  * before each outbound click. A run bound to a case registry row also asks the
  * case service (claim-attended) before each outbound action.
  *
- * Attended use only. Grimoire never runs this driver: `serve` is refused under
- * WIZARDS_AI_MODE or inside a wizards-ai-* unit, on either session.
+ * Attended use only. Grimoire never runs this driver: `serve` and `send` are
+ * refused under WIZARDS_AI_MODE or inside a wizards-ai-* unit, on either session,
+ * and serve runs a queued command only for a live client outside those units.
  */
 import { mkdir, readFile, readdir, rename, writeFile, open, appendFile, unlink, copyFile } from 'node:fs/promises';
 import { unlinkSync, existsSync, readFileSync, constants as fsConstants } from 'node:fs';
@@ -130,6 +131,15 @@ export function assertSession(env = process.env, cgroup = undefined) {
  * assertSession alone, because its execute path stays Grimoire's on 9223. */
 export function assertAttended(env = process.env, cgroup = readCgroup()) {
   if (unattendedContext(env, cgroup)) throw codeError('attended_context_required', 'Seller Assistant is attended only; refused under WIZARDS_AI_MODE or inside a wizards-ai unit');
+}
+
+/** The cgroup of the `send` client that queued a command; it waits for the result,
+ * so it is alive while serve checks it. '' where the platform has no cgroups, null
+ * when the client is gone. Its environment is not read: it can hold secrets, and
+ * the client checks WIZARDS_AI_MODE itself before queueing. */
+export function readClientCgroup(pid) {
+  if (!existsSync('/proc/self/cgroup')) return '';
+  try { return readFileSync(`/proc/${pid}/cgroup`, 'utf8'); } catch { return null; }
 }
 
 /** Grimoire's 9223 lock is held for the whole chat. The operator browser has no
@@ -1878,8 +1888,17 @@ export async function processNext(rt) {
   try { cmd = JSON.parse(await readFile(join(rt.runDir, 'queue', name), 'utf8')); } catch { cmd = null; }
   // expires_at is required: a queued command nobody waits for must not run later.
   const expiresOk = cmd && typeof cmd.expires_at === 'string' && ISO_TZ.test(cmd.expires_at) && !Number.isNaN(Date.parse(cmd.expires_at));
-  if (!cmd || cmd.schema_version !== 1 || cmd.id !== id || !COMMANDS.includes(cmd.command) || !expiresOk) {
+  if (!cmd || cmd.schema_version !== 1 || cmd.id !== id || !COMMANDS.includes(cmd.command) || !expiresOk || !Number.isSafeInteger(cmd.client_pid) || cmd.client_pid <= 0) {
     const refused = { schema_version: 1, id, command: cmd?.command ?? null, status: 'refused', reason: 'command_malformed', finished_at: iso(rt.deps.now()) };
+    await atomicWrite(join(resultsDir, name), JSON.stringify(refused, null, 2));
+    return refused;
+  }
+  // Only an attended client may drive this browser: a command queued from a
+  // wizards-ai unit, or by a client that is gone, never runs.
+  const cgroup = (rt.deps.clientCgroup || readClientCgroup)(cmd.client_pid);
+  const clientRefusal = cgroup === null ? 'client_gone' : unattendedContext({}, cgroup) ? 'attended_context_required' : null;
+  if (clientRefusal) {
+    const refused = { schema_version: 1, id, command: cmd.command, status: 'refused', reason: clientRefusal, finished_at: iso(rt.deps.now()) };
     await atomicWrite(join(resultsDir, name), JSON.stringify(refused, null, 2));
     return refused;
   }
@@ -2192,6 +2211,8 @@ export async function allocateQueueEntry(runDir) {
 }
 
 export async function sendCommand({ run, command, args }, { pollMs = 500, out = console.log } = {}) {
+  // Review F2: a queued command drives the attended browser, so Grimoire may not queue one either.
+  assertAttended(process.env);
   const runDir = resolve(run);
   await readRunConfig(runDir);
   let owner = null;
@@ -2200,7 +2221,7 @@ export async function sendCommand({ run, command, args }, { pollMs = 500, out = 
   const timeoutSeconds = command === 'transcript' ? Math.max(600, (args.timeout || 180) + 120) : 600;
   const id = await allocateQueueEntry(runDir);
   const created = Date.now();
-  const entry = { schema_version: 1, id, command, args, created_at: iso(created), expires_at: iso(created + timeoutSeconds * 1000) };
+  const entry = { schema_version: 1, id, command, args, created_at: iso(created), expires_at: iso(created + timeoutSeconds * 1000), client_pid: process.pid };
   await atomicWrite(join(runDir, 'queue', `${id}.json`), JSON.stringify(entry, null, 2));
   const resultPath = join(runDir, 'results', `${id}.json`);
   const printResult = async () => {
@@ -2259,6 +2280,7 @@ export async function cancelQueued(resultPath, id, reason) {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   try {
+    assertAttended(process.env);
     const parsed = parseArgs(process.argv.slice(2));
     const code = parsed.mode === 'serve' ? await serve(parsed) : await sendCommand(parsed);
     process.exit(code);

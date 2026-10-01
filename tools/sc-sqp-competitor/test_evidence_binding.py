@@ -13,7 +13,7 @@ os.environ.update({"AMAZON_BROWSER_RUNTIME_DIR": _runtime.name,
                    "AMAZON_BROWSER_LOCK_DIR": str(Path(_runtime.name) / "locks")})
 for _key in ("AMAZON_BROWSER_SESSION", "CDP_PORT", "CDP_PROFILE", "CDP_HOST", "WIZARDS_AI_MODE"):
     os.environ.pop(_key, None)
-Path(os.environ["AMAZON_BROWSER_POLICY"]).write_text(json.dumps({"schema_version": 1, "routing": {"default_cdp_port": 9222},
+Path(os.environ["AMAZON_BROWSER_POLICY"]).write_text(json.dumps({"schema_version": 1, "routing": {"attended_cdp_port": 9222},
     "ports": {"9222": {"profile": str(Path(_runtime.name) / "operator")}, "9223": {"profile": str(Path(_runtime.name) / "grimoire")}}}))
 
 spec = importlib.util.spec_from_file_location("sqp_cdp", Path(__file__).with_name("cdp.py"))

@@ -11,7 +11,9 @@ const fixturePolicy=(name,routing)=>{const path=join(dir,name);writeFileSync(pat
  ports:{9222:{profile:join(dir,'operator-profile')},9223:{profile:join(dir,'grimoire-profile')}}}));return path;};
 process.env.AMAZON_BROWSER_RUNTIME_DIR=join(dir,'runtime');
 process.env.AMAZON_BROWSER_POLICY=fixturePolicy('policy.json');
-const operatorPolicyPath=fixturePolicy('policy-9222.json',{default_cdp_port:9222});
+const operatorPolicyPath=fixturePolicy('policy-9222.json',{attended_cdp_port:9222});
+// Bootstrap once rendered default_cdp_port 9222 while main ignored it; such a policy keeps grimoire.
+const legacyPolicyPath=fixturePolicy('policy-legacy.json',{default_cdp_port:9222});
 const {sessionEnvironment,sessionForPort,wizardsAiMode}=await import('../session.mjs');
 const {loadBrowserPolicy}=await import('../policy.mjs');
 const {acquireSessionLock,acquireSessionLockWithWait,assertSessionLock}=await import('../session-lock.mjs');
@@ -26,12 +28,29 @@ test('Amazon defaults to grimoire; mismatched overrides fail',()=>{
  for(const overrides of [{CDP_PORT:'9222'},{CDP_PROFILE:'/tmp/wrong-profile'},{AMAZON_BROWSER_SESSION:'operator'}])
   assert.throws(()=>sessionEnvironment('grimoire',overrides),/CONFLICT/);
 });
-test('policy default port is 9223 without the key, honours 9222 and rejects anything else',()=>{
- assert.equal(loadBrowserPolicy().routing.default_cdp_port,9223);
- assert.equal(loadBrowserPolicy(operatorPolicyPath).routing.default_cdp_port,9222);
- assert.equal(loadBrowserPolicy(operatorPolicyPath).routing.wizards_ai_cdp_port,9223);
+test('attended port is 9223 without its key, honours 9222 and rejects anything else',()=>{
+ assert.equal(loadBrowserPolicy().routing.attended_cdp_port,9223);
+ assert.equal(loadBrowserPolicy(operatorPolicyPath).routing.attended_cdp_port,9222);
+ for(const path of [undefined,operatorPolicyPath,legacyPolicyPath]){
+  assert.equal(loadBrowserPolicy(path).routing.default_cdp_port,9223);
+  assert.equal(loadBrowserPolicy(path).routing.wizards_ai_cdp_port,9223);
+ }
  for(const value of [9224,'operator',0])
-  assert.throws(()=>loadBrowserPolicy(fixturePolicy('policy-bad.json',{default_cdp_port:value})),/default_cdp_port must be 9222 or 9223/);
+  assert.throws(()=>loadBrowserPolicy(fixturePolicy('policy-bad.json',{attended_cdp_port:value})),/attended_cdp_port must be 9222 or 9223/);
+});
+test('review F4: a legacy policy with default_cdp_port 9222 still resolves to grimoire',()=>{
+ const legacy=loadBrowserPolicy(legacyPolicyPath);
+ assert.equal(legacy.routing.attended_cdp_port,9223);
+ assert.equal(sessionEnvironment(undefined,{},legacy).AMAZON_BROWSER_SESSION,'grimoire');
+ assert.equal(sessionEnvironment(undefined,{},legacy).CDP_PORT,'9223');
+ // main ignored the key whatever its value; so does the branch.
+ assert.equal(loadBrowserPolicy(fixturePolicy('policy-legacy-odd.json',{default_cdp_port:'operator'})).routing.attended_cdp_port,9223);
+ const legacyEnv={...env,AMAZON_BROWSER_POLICY:legacyPolicyPath};
+ const cli=spawnSync(process.execPath,[controller,'session'],{env:legacyEnv,encoding:'utf8'});
+ assert.equal(JSON.parse(cli.stdout).AMAZON_BROWSER_SESSION,'grimoire',cli.stderr);
+ const python=spawnSync('python3',['-c',`import json,sys;sys.path.insert(0,${JSON.stringify(new URL('..',import.meta.url).pathname)});import browser_session as b;print(json.dumps(b.session_environment()))`],
+  {env:legacyEnv,encoding:'utf8'});
+ assert.equal(JSON.parse(python.stdout).AMAZON_BROWSER_SESSION,'grimoire',python.stderr);
 });
 test('resolution order is --session, AMAZON_BROWSER_SESSION, CDP_PORT, then the policy default',()=>{
  const operatorDefault=loadBrowserPolicy(operatorPolicyPath),grimoireDefault=loadBrowserPolicy();

@@ -1,3 +1,5 @@
+// First: task-evidence.mjs imports report-fetcher/cdp.mjs, which binds the session from the policy at import.
+import '../../report-fetcher/test/helpers/isolated-runtime.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {captureTaskEvidence,verifyEvidenceIdentity} from '../task-evidence.mjs';

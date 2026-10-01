@@ -433,14 +433,20 @@ reconcile and record it instead). A released action no longer blocks `adopt`,
 ```
 
 With `run_id` instead of `operation_id`, `release` closes an open claim whose run
-sent nothing, for example a chat that ended before Send. The case-log readback
-must post-date the run's last claim, hold this case's complete history and show no
-seller contact since the first claim; a seller contact without a time counts unless
-an earlier observation already knew its ID (`message_observed` means record it
-instead). A released run cannot claim again.
+sent nothing, for example a chat that ended before Send. It also needs `run_dir`
+(`missing_run_dir`). Its `run.json` must name the same run, account and
+`registry_id` (`run_mismatch`, `account_mismatch`, `registry_binding_required`).
+Every `submit` attempt in its `approvals.jsonl` must have a `blocked` result. A
+`sent` or `uncertain` result, or an attempt without a result, returns `run_sent`:
+record that run with `record-receipt` instead, because a chat reply can be
+missing from the case log. A missing `approvals.jsonl` means no outbound attempt.
+The case-log readback must post-date the run's last claim, hold this case's
+complete history and show no seller contact since the first claim; a seller
+contact without a time counts unless an earlier observation already knew its ID
+(`message_observed` means record it instead). A released run cannot claim again.
 
 ```json
-{"registry_id":"b8b3…","run_id":"acme-12345678901-r1","authorization":{"kind":"attended","requester_id":"U01…","source":{"session_id":"…","instruction":"The chat closed before Send; release it"}},"evidence":{"readback_path":"<run-dir>/observe-after.json","summary":"Case log shows no seller message since 10:02"}}
+{"registry_id":"b8b3…","run_id":"acme-12345678901-r1","run_dir":"<run-dir>","authorization":{"kind":"attended","requester_id":"U01…","source":{"session_id":"…","instruction":"The chat closed before Send; release it"}},"evidence":{"readback_path":"<run-dir>/observe-after.json","summary":"Case log shows no seller message since 10:02"}}
 {"status":"released","run_id":"acme-12345678901-r1","case":{"…":"…"}}
 ```
 
@@ -484,7 +490,12 @@ result status (`refused`, `blocked`, `uncertain`, `timeout`, `expired`, `error`,
 `attached_identity_unverified`), and 2 when no result arrived. The three
 `*_identity_unverified` statuses mean the action happened but the identity check
 after it failed, so the controller halted. Every queued command carries
-`expires_at`; one without it is refused as `command_malformed`.
+`expires_at` and the `send` client's `client_pid`; one without either is refused
+as `command_malformed`. `send` itself refuses with `attended_context_required`
+under `WIZARDS_AI_MODE` or inside a `wizards-ai-*` unit, before it queues
+anything. `serve` reads the client's `/proc/<pid>/cgroup` (never its environment)
+and refuses a command from a `wizards-ai-*` unit (`attended_context_required`) or
+from a client that has exited (`client_gone`).
 
 Before it runs a command, `serve` writes `results/NNN.running`, and every
 `approvals.jsonl` line carries the command's `queue_id`. When `send` gives up

@@ -180,8 +180,10 @@ health. Tracker restoration, observed interaction, probe-failure records and
 background heartbeat transitions still run and persist their evidence.
 
 Machine routing uses the shared `grimoire` session on port 9223 for Grimoire's
-Slack and scheduled work. Attended direct chat uses `routing.default_cdp_port`
-from the machine policy: 9223 unless set to 9222, as on Evo X1. Port 9222 is
+Slack and scheduled work. Attended direct chat uses `routing.attended_cdp_port`
+from the machine policy: 9223 unless set to 9222, as on Evo X1. The older
+`routing.default_cdp_port` key is ignored, so a policy rendered with it as 9222
+still keeps attended work on 9223. Port 9222 is
 otherwise explicit operator work. T3 Code's in-app browser is explicit-only and is not
 a silent fallback from a failed managed CDP session.
 
@@ -226,7 +228,7 @@ remain audit-only.
 
 ## Shared Amazon session
 
-Slack and scheduled Grimoire work use `grimoire` (9223) and keep `--session grimoire`. Attended direct chat uses the machine's attended default, which is machine-local: `routing.default_cdp_port` in the setup-owned policy, 9223 when absent. Evo X1 sets 9222, so attended work there runs on `operator` with the operator's own login. Run an attended browser command with:
+Slack and scheduled Grimoire work use `grimoire` (9223) and keep `--session grimoire`. Attended direct chat uses the machine's attended default, which is machine-local: `routing.attended_cdp_port` in the setup-owned policy, 9223 when absent. Evo X1 sets 9222, so attended work there runs on `operator` with the operator's own login. Run an attended browser command with:
 
 ```sh
 node tools/browserctl/browserctl.mjs run -- node tools/opportunity-explorer/run-poe.mjs doctor --origin https://sellercentral.amazon.com
@@ -301,15 +303,15 @@ state file or DevToolsActivePort file cannot establish profile identity. Linux
 uses socket ownership from `/proc`; other Unix hosts use `lsof`. Unavailable
 process evidence fails verification; Windows verification is not implemented.
 
-Two refusals apply to every `authenticateTarget()` caller. It never types an
+One refusal applies to every `authenticateTarget()` caller. It never types an
 empty one-time code: when the page asks for a code and none was supplied, it
-returns `totp_unavailable` with nothing submitted. One call types at most one
-code: if the code form returns after a submitted code, the result is
-`totp_rejected` and nothing is typed again.
+returns `totp_unavailable` with nothing submitted.
 
 The code options, `otpFetchedAt` (the code's fetch time in epoch milliseconds)
-and `onOtpSubmitted`, change three more things, and only for the caller that
+and `onOtpSubmitted`, change four more things, and only for the caller that
 passes them. The credential transport passes both for `require_totp` routes.
+One call types at most one code: if the code form returns after a submitted
+code, the result is `totp_rejected` and nothing is typed again.
 With `otpFetchedAt`, if the code's 30-second period has ended when the code
 field appears, the result is `totp_expired` and nothing is typed. The result carries
 `otp_submitted`, and `onOtpSubmitted()` runs once, just before the code form is
@@ -320,7 +322,8 @@ seconds, the call throws instead of clicking or resubmitting.
 A caller that passes neither option, as Grimoire's 9223 login does, keeps the
 existing result fields and the existing submit sequence: Enter, then a click on
 the submit button, then `requestSubmit`, each followed by up to 10 seconds of
-waiting for the form to advance.
+waiting for the form to advance. When the code form returns after a code, it
+loads and submits the code again.
 `test/auth-broker-parity.test.mjs` runs the same scripted pages through the
 broker at commit `26c5d90` and the current one and compares every call.
 

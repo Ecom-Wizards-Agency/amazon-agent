@@ -618,10 +618,26 @@ class CaseService:
             return {'status': 'released', 'operation_id': operation_id, 'case': case}
 
     def _release_claim(self, request, authorization):
-        """Close a claim whose run sent nothing: the case log, read after its last click, shows no new seller message."""
+        """Close a claim whose run sent nothing: its driver log has no submit that may have gone out, and the
+        case log, read after its last click, shows no new seller message. Chat replies can be missing from the
+        case log, so the case log alone never proves that nothing was sent."""
         run_id, evidence = request.get('run_id'), request.get('evidence')
         require(isinstance(run_id, str) and run_id.strip(), 'invalid_run_id', 'The driver run ID is required')
         require(isinstance(evidence, dict) and isinstance(evidence.get('summary'), str) and evidence['summary'].strip() and evidence.get('readback_path'), 'missing_release_evidence', 'Release requires a fresh readback path and a summary of what it shows')
+        require(request.get('run_dir'), 'missing_run_dir', 'Release of a run needs its run_dir, so its driver log can show that nothing was submitted')
+        run_dir = Path(str(request['run_dir'])).expanduser().resolve()
+        try:
+            run = json.loads((run_dir / 'run.json').read_text())
+        except (OSError, ValueError) as exc:
+            raise CaseError('receipt_unavailable', 'Driver run.json is required') from exc
+        try:
+            log = (run_dir / 'approvals.jsonl').read_text()
+        except FileNotFoundError:
+            log = ''  # The driver writes it at the run's first outbound attempt.
+        except OSError as exc:
+            raise CaseError('receipt_unavailable', 'Driver approvals.jsonl is unreadable') from exc
+        require(isinstance(run, dict) and run.get('run_id') == run_id, 'run_mismatch', 'run.json belongs to another run')
+        attempts, outcome = self._submits(log)
         readback, readback_sha = self._evidence_file(evidence['readback_path'])
         with self._transaction() as db:
             case = self._load(db, request.get('registry_id'))
@@ -630,6 +646,11 @@ class CaseService:
             require(all(a['operation_id'] != claim['operation_id'] for a in case['actions']), 'run_recorded', 'A recorded send cannot be released')
             if claim.get('released'):
                 return {'status': 'already_released', 'run_id': run_id, 'case': case}
+            account = run.get('account') if isinstance(run.get('account'), dict) else {}
+            require(all(account.get(k) == case['account'][k] for k in ('seller_id', 'marketplace_id')), 'account_mismatch', 'Driver run belongs to another account')
+            require(run.get('registry_id') == case['registry_id'], 'registry_binding_required', 'Only a driver run bound to this case by run.json registry_id can be released')
+            # sent, uncertain or no result line: the text may be out, so it is recorded, never released.
+            require(all(outcome(a) == 'blocked' for a in attempts), 'run_sent', 'The driver log shows a submit that may have gone out; record it with record-receipt instead')
             require(timestamp(claim['last_at']) <= timestamp(readback.get('observed_at')) <= self._now() + SKEW, 'stale_readback', 'Release readback must be collected after the run\'s last claimed click')
             require(readback.get('account') == case['account'] and readback.get('history_complete') is True, 'readback_mismatch', 'Release readback must verify the exact account and complete history')
             items = [item for item in readback.get('cases', [readback]) if item.get('case_id') == case['case_id']]
@@ -638,7 +659,7 @@ class CaseService:
             since = timestamp(claim['first_at']).replace(microsecond=0)
             shown = [c for c in items[0]['contacts'] if c.get('is_amazon') is False and (timestamp(c['timestamp']) >= since if c.get('timestamp') else c.get('id') not in case['contact_ids'])]
             require(not shown, 'message_observed', 'The case log shows a seller message since the claim; record it instead')
-            claim['released'] = {'at': self._now().isoformat(), 'authorization': authorization, 'evidence': {**evidence, 'readback_sha256': readback_sha}}
+            claim['released'] = {'at': self._now().isoformat(), 'authorization': authorization, 'run_dir': str(run_dir), 'evidence': {**evidence, 'readback_sha256': readback_sha}}
             case['authorization_revision'] += 1
             self._save(db, case)
             return {'status': 'released', 'run_id': run_id, 'case': case}
@@ -779,6 +800,17 @@ class CaseService:
         shown = (text is not None and normalize_body(text) in normalize_body(data['text'])) or any(message_sha(normalize_body(m.get('text', ''))) == sha for m in data.get('messages') or [] if isinstance(m, dict))
         return ('chat_transcript', None) if shown else None
 
+    @staticmethod
+    def _submits(log):
+        """Submit attempt lines of a driver approvals.jsonl, and each one's outcome from its result line."""
+        entries = []
+        for line in log.splitlines():
+            with contextlib.suppress(ValueError):
+                entries.append(json.loads(line))  # The driver ignores a torn last line the same way.
+        results = {e.get('queue_id'): e for e in entries if isinstance(e, dict) and e.get('phase') == 'result'}
+        attempts = [e for e in entries if isinstance(e, dict) and e.get('phase') == 'attempt' and e.get('command') == 'submit']
+        return attempts, lambda a: (results.get(a.get('queue_id')) or {}).get('status', 'uncertain')
+
     def _driver_run(self, case, receipt, authorization):
         run_dir = Path(str(receipt.get('run_dir') or '')).expanduser().resolve()
         try:
@@ -794,13 +826,7 @@ class CaseService:
         # The receipt's approval sentence and every one the service validated when this run claimed a click.
         instructions = {str(a['source']['instruction']).strip() for a in [authorization, *claim.get('authorizations', [])]}
         require(receipt.get('readback_path'), 'missing_readback', 'Record a driver run with the case readback taken after it')
-        entries = []
-        for line in log.splitlines():
-            with contextlib.suppress(ValueError):
-                entries.append(json.loads(line))  # The driver ignores a torn last line the same way.
-        results = {e.get('queue_id'): e for e in entries if isinstance(e, dict) and e.get('phase') == 'result'}
-        attempts = [e for e in entries if isinstance(e, dict) and e.get('phase') == 'attempt' and e.get('command') == 'submit']
-        outcome = lambda a: (results.get(a.get('queue_id')) or {}).get('status', 'uncertain')  # noqa: E731
+        attempts, outcome = self._submits(log)
         require(all(timestamp(a.get('at')) >= timestamp(claim['first_at']) - SKEW for a in attempts), 'claim_after_click', 'A click in this run came before its first claim-attended')
         messages = receipt.get('messages')
         require(isinstance(messages, list) and messages and all(isinstance(m, dict) and m.get('plan_item') and SHA.fullmatch(str(m.get('sha256'))) for m in messages) and len({m['sha256'] for m in messages}) == len(messages), 'invalid_receipt', 'List each approved message once with its plan item and SHA-256')

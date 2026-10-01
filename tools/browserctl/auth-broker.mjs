@@ -285,8 +285,8 @@ export async function authenticateTarget({
     const initial = await cdp.evaluate(session, `({origin:location.origin})`, 10000);
     const route = auth.assertAuthPolicy(config, { port, origin: initial.origin });
     // The code options (otpFetchedAt, onOtpSubmitted) switch on otp_submitted,
-    // totp_expired and the Enter-only code submit. A caller without them keeps
-    // the existing status fields and submit sequence.
+    // totp_expired, totp_rejected and the Enter-only code submit. A caller without
+    // them keeps the existing status fields and submit sequence.
     let otpSubmitted = false;
     const codeOptions = otpFetchedAt != null || typeof onOtpSubmitted === "function";
     const output = (status, origin = initial.origin, retryAt = null) => ({
@@ -331,9 +331,10 @@ export async function authenticateTarget({
       }
       const currentLogin = getLogin();
       let otp = null;
-      if (state.status === "totp_required" && otpSubmitted) {
+      if (state.status === "totp_required" && otpSubmitted && codeOptions) {
         // The code form came back after a submitted code: rejected or stalled.
-        // One call submits at most one code.
+        // With the code options one call submits at most one code; without them
+        // the code is loaded and submitted again, as before.
         await releaseLease({ port, targetId, outcome: "totp_rejected", policy });
         return output("totp_rejected", state.facts.origin);
       }

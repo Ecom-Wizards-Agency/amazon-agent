@@ -45,7 +45,7 @@ export function sessionEnvironment(name, env = process.env, policy = loadBrowser
     throw new Error(REFUSED);
   }
   const binding = resolveSession(name || env.AMAZON_BROWSER_SESSION || portSession
-    || (wizardsAiMode(env) ? "grimoire" : sessionForPort(policy.routing.default_cdp_port, env)), policy);
+    || (wizardsAiMode(env) ? "grimoire" : sessionForPort(policy.routing.attended_cdp_port, env)), policy);
   for (const [key, expected] of Object.entries({ AMAZON_BROWSER_SESSION: binding.name,
     CDP_HOST: binding.host, CDP_PORT: String(binding.port), CDP_PROFILE: binding.profile })) {
     if (!env[key]) continue;

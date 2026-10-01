@@ -7,7 +7,7 @@ Routing is by **session**, not by agent. CDP is not limited to scripted fetches:
 Port 9223 is the shared Grimoire browser for Slack and scheduled Amazon work.
 Attended direct chat runs `browserctl run -- <command>` and gets the machine's
 attended default: 9223 unless the machine-local browser policy sets
-`routing.default_cdp_port` to 9222. Evo X1 sets 9222, so attended work there uses
+`routing.attended_cdp_port` to 9222. Evo X1 sets 9222, so attended work there uses
 the `operator` session with the operator's own login. Otherwise port 9222 is
 reserved for explicitly selected operator work. Grimoire-side and scheduled
 instructions keep `--session grimoire`, and DataDive web work pins it everywhere.
