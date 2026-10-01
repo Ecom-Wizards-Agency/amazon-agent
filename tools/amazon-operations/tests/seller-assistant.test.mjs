@@ -645,6 +645,42 @@ test('transcript saves the whole frame text and finds a denial there', async () 
   } finally { await rm(dir, { recursive: true, force: true }); }
 });
 
+test('a transcript record marks text cut at a driver limit and frames whose deep text failed', async () => {
+  // 2026-10-02 review F4: case_service refuses such a record as release evidence.
+  const dir = await runDir();
+  try {
+    const { rt, current } = fakeRuntime(dir);
+    current.frames.push({ frame_id: 'f2', url: `${SC}/other`, origin: SC, same_origin: true, reachable: true, composer_count: 0 });
+    const record = async id => JSON.parse(await readFile((await executeCommand(rt, command(id, 'transcript', {}))).path, 'utf8'));
+    rt.browser.deepText = async frameId => { if (frameId === 'f2') throw new Error('frame detached'); return { text: 'Hello.', truncated: false }; };
+    const failed = await record('001');
+    assert.equal(failed.truncated, false); assert.deepEqual(failed.deep_failed, ['f2']);
+    rt.browser.deepText = async () => ({ text: 'Hello.', truncated: true });
+    const cut = await record('002');
+    assert.equal(cut.truncated, true); assert.deepEqual(cut.deep_failed, []);
+    rt.browser.deepText = async () => ({ text: 'Hello.', truncated: false });
+    rt.browser.conversation = async () => ({ text: 'Hello.', message_count: 2, messages: [], busy: false, status: [], message_detection: 'structural', truncated: true });
+    assert.equal((await record('003')).truncated, true);
+    rt.browser.conversation = async () => ({ text: 'Hello.', message_count: 2, messages: [], busy: false, status: [], message_detection: 'structural', truncated: false });
+    assert.equal((await record('004')).truncated, false);
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
+test('a submit attempt line keeps the conversation as it stood before the click', async () => {
+  // 2026-10-02 review F1: case_service compares a later transcript with this snapshot.
+  const dir = await runDir();
+  try {
+    const { rt, current } = fakeRuntime(dir);
+    current.composer.value = P1;
+    const counted = rt.browser.occurrences;
+    rt.browser.occurrences = async (frame, text) => ({ ...(await counted(frame, text)), message_detection: 'structural', last_message: 'Hello.' });
+    const result = await executeCommand(rt, command('001', 'submit', { 'expect-sha256': P1_SHA, 'approval-file': await approvalFile(dir) }));
+    assert.equal(result.status, 'sent');
+    const attempt = (await SA.readApprovalLog(dir)).find(e => e.phase === 'attempt');
+    assert.deepEqual(attempt.conversation, { frame_id: 'main', message_count: 2, message_detection: 'structural', last_message: 'Hello.' });
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
 test('open accepts only a Seller Assistant conversation path', () => {
   const good = '/assistant/amzn1.cyrano.conversation.cid.v2.10021790765749518386464?client=sellerSupport-meldFullPage';
   assert.equal(SA.validateCommandArgs('open', { conversation: good }).ok, true);
@@ -801,6 +837,33 @@ test('page: Submit is clicked only as the composer\'s own enabled control', () =
   assert.equal(pageCode(() => runPage(chat({ ownDisabled: true }).body, 'control', { label: 'Submit', composerSubmit: true })), 'submit_disabled');
   assert.equal(pageCode(() => runPage(chat({ composerDisabled: true }).body, 'control', { label: 'Submit', composerSubmit: true })), 'composer_disabled');
   assert.deepEqual(runPage(chat({ ownDisabled: true, rating: true }).body, 'scan').region.submit, [{ disabled: false, in_region: false }, { disabled: true, in_region: true }]);
+});
+
+test('page: occurrences reports the detection and the last message as the transcript cuts it', () => {
+  const chat = last => el('body', {}, [
+    el('div', { role: 'log' }, [el('div', { role: 'listitem' }, [], 'Thanks, what else can I help with?'), el('div', { role: 'listitem' }, [], last)]),
+    el('div', {}, [el('textarea', { placeholder: 'Message Seller Assistant...', value: '' }), el('button', {}, [], 'Submit')]),
+  ]);
+  const seen = runPage(chat('Hello.'), 'occurrences', { text: 'Hello.' });
+  assert.deepEqual([seen.message_count, seen.message_detection, seen.last_message], [2, 'structural', 'Hello.']);
+  assert.equal(runPage(chat('y'.repeat(5000)), 'occurrences', { text: 'Hello.' }).last_message, 'y'.repeat(4000));
+  const big = el('body', {}, [el('div', { role: 'log' }, [el('div', { role: 'listitem' }, [], 'z'.repeat(200001))])]);
+  assert.equal(runPage(big, 'conversation').truncated, true);
+  assert.equal(runPage(chat('Hello.'), 'conversation').truncated, false);
+});
+
+test('page: deep text reports a cut at either driver limit', () => {
+  const saved = globalThis.getComputedStyle;
+  globalThis.getComputedStyle = () => ({ display: 'block', visibility: 'visible' });
+  try {
+    const small = runPage(el('body', {}, [el('div', {}, [], 'Hello.')]), 'deep_text');
+    assert.equal(small.truncated, false); assert.match(small.text, /Hello\./);
+    const long = runPage(el('body', {}, [el('div', {}, [], 'x'.repeat(200001))]), 'deep_text');
+    assert.equal(long.truncated, true); assert.equal(long.text.length, 200000);
+    // 60000 text segments stop the walk well below 200000 characters.
+    const many = runPage(el('body', {}, Array.from({ length: 31000 }, () => el('div', {}, [], 'a'))), 'deep_text');
+    assert.equal(many.truncated, true); assert.ok(many.text.length < 200000);
+  } finally { globalThis.getComputedStyle = saved; }
 });
 
 test('submit refuses another Submit in the frame, a Submit outside the composer region and a disabled composer', async () => {

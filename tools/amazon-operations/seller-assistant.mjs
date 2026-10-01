@@ -823,10 +823,13 @@ export function pageAgent(op, arg, lib) {
     // Read-only text of the whole frame, including open shadow roots, which
     // innerText skips. The 2026-09-30 email Issue summary rendered its fields
     // where neither the conversation area nor body.innerText reached them.
+    // Either limit drops the end of the frame, where the newest messages are, so
+    // hitting one is reported as `truncated` (2026-10-02 review F4).
     const out = [];
+    let cut = false;
     const BLOCK = /^(?:DIV|P|LI|UL|OL|H[1-6]|TR|TD|TH|SECTION|ARTICLE|HEADER|FOOTER|DT|DD|LABEL|BUTTON)$/;
     const walk = n => {
-      if (out.length > 60000) return;
+      if (out.length > 60000) { cut = true; return; }
       if (n.nodeType === 3) { const t = n.textContent.replace(/\s+/g, ' '); if (t.trim()) out.push(t); return; }
       if (n.nodeType !== 1 && n.nodeType !== 11) return;
       if (n.nodeType === 1) {
@@ -840,31 +843,37 @@ export function pageAgent(op, arg, lib) {
       if (n.nodeType === 1 && BLOCK.test(n.tagName)) out.push('\n');
     };
     walk(document.body || document.documentElement);
-    return { text: out.join('').replace(/[ \t]+\n/g, '\n').replace(/\n[ \t]+/g, '\n').replace(/\n{3,}/g, '\n\n').slice(0, 200000) };
+    const text = out.join('').replace(/[ \t]+\n/g, '\n').replace(/\n[ \t]+/g, '\n').replace(/\n{3,}/g, '\n\n');
+    return { text: text.slice(0, 200000), truncated: cut || text.length > 200000 };
   }
   if (op === 'conversation') {
     const c = conv();
     const depthOf = el => { let d = 0; for (let n = el; n && n !== c.area; n = parentOf(n)) d++; return d; };
     const outline = els.filter(el => el !== c.area && within(c.area, el) && (el.getAttribute('role') || el.getAttribute('aria-label') || el.getAttribute('data-testid')))
       .slice(0, 400).map(el => ({ depth: depthOf(el), tag: el.tagName, role: el.getAttribute('role'), aria_label: (el.getAttribute('aria-label') || '').slice(0, 120) || null, testid: el.getAttribute('data-testid') }));
+    const body = document.body?.innerText || '';
     return {
       basis: c.basis, text: c.text.slice(0, 200000), message_count: c.message_count, message_detection: c.message_detection,
+      truncated: c.text.length > 200000 || body.length > 200000,
       messages: c.msgs.slice(-300).map(m => ({ text: m.text.slice(0, 4000), role: m.el.getAttribute('role'), aria_label: m.el.getAttribute('aria-label'), testid: m.el.getAttribute('data-testid') })),
       outline, busy: busy(), status: statusTexts(),
       // The whole frame text as read-only backup: on the 2026-09-30 full page the
       // chosen area held only the seller's own message, not the assistant reply.
-      page_text: (document.body?.innerText || '').slice(0, 200000),
+      page_text: body.slice(0, 200000),
     };
   }
   if (op === 'occurrences') {
     // Whitespace-collapsed occurrence count in the conversation area. A
-    // contenteditable composer inside that area is subtracted.
+    // contenteditable composer inside that area is subtracted. The detection and
+    // the last message, cut as the transcript cuts it, let a later transcript be
+    // compared with the conversation as it stood before a click.
     const c = conv();
     const needle = collapse(arg.text), prefix = needle.slice(0, 120);
     const count = (hay, n) => { if (!n) return 0; let k = 0, i = 0; while ((i = hay.indexOf(n, i)) !== -1) { k++; i += n.length; } return k; };
     const hay = collapse(c.text);
     const own = comp && comp.tagName !== 'TEXTAREA' && within(c.area, comp) ? collapse(valueOf(comp)) : '';
-    return { full: count(hay, needle) - count(own, needle), prefix: count(hay, prefix) - count(own, prefix), composer_value: comp ? valueOf(comp) : null, message_count: c.message_count };
+    return { full: count(hay, needle) - count(own, needle), prefix: count(hay, prefix) - count(own, prefix), composer_value: comp ? valueOf(comp) : null, message_count: c.message_count,
+      message_detection: c.message_detection, last_message: c.msgs.length ? c.msgs[c.msgs.length - 1].text.slice(0, 4000) : null };
   }
   fail('unknown_op', op);
 }
@@ -1502,7 +1511,10 @@ export const handlers = {
     let click;
     try {
       click = await guardedClick(rt, frameId, label, async () => {
+        // The conversation as it stood before the click: case_service releases an
+        // uncertain submit only while a later transcript still shows exactly this.
         await logAttempt(rt, { command: 'submit', sha256: expected, plan_item: approval.plan_item, label: approval.label ?? null, submit_label: label, approval_file: args['approval-file'], approval, identity,
+          conversation: { frame_id: frameId, message_count: last.message_count ?? null, message_detection: last.message_detection ?? null, last_message: last.last_message ?? null },
           ...(expectedFiles.length ? { attachments: expectedFiles } : {}) });
         bumpUsage(rt, key);
         markDispatched(rt, 'submit', expected, 'clicked');
@@ -1654,15 +1666,18 @@ export const handlers = {
     const pagePath = join(rt.runDir, 'transcripts', `${stem}-page.txt`);
     await atomicWrite(pagePath, conversation.page_text || '');
     // Shadow-piercing text of every reachable frame, saved for reading only.
-    const deep = [];
+    const deep = [], deepFailed = [];
     if (typeof rt.browser.deepText === 'function') {
       for (const f of first.frames || []) {
-        try { const d = await rt.browser.deepText(f.frame_id); if (d?.text) deep.push({ frame_id: f.frame_id, url: f.url || null, text: d.text }); }
-        catch (error) { if (isFatal(error)) throw error; }
+        try { const d = await rt.browser.deepText(f.frame_id); if (d?.text) deep.push({ frame_id: f.frame_id, url: f.url || null, text: d.text, truncated: d.truncated === true }); }
+        catch (error) { if (isFatal(error)) throw error; deepFailed.push(f.frame_id); }
       }
     }
     const deepPath = join(rt.runDir, 'transcripts', `${stem}-deep.txt`);
     const deepText = deep.map(d => `=== frame ${d.frame_id} ${d.url || ''}\n${d.text}`).join('\n\n');
+    // Whether any text this record or its -deep.txt holds was cut at a driver limit,
+    // and the frames whose deep text could not be read.
+    Object.assign(record, { truncated: conversation.truncated === true || deep.some(d => d.truncated), deep_failed: deepFailed });
     await atomicWrite(deepPath, deepText);
     await atomicWrite(jsonPath, JSON.stringify(record, null, 2));
     rt.baseline = conversation.message_count;

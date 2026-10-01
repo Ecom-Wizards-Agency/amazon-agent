@@ -454,10 +454,11 @@ class CaseServiceTests(unittest.TestCase):
     def current(self, case):
         return next(c for c in self.service.list()['cases'] if c['registry_id'] == case['registry_id'])
 
-    def driver_run(self, case, texts, statuses=None, run_id='evora-1-r1', label='routine', account=None, at=None, approvals=None, claim=True, registry=True):
+    def driver_run(self, case, texts, statuses=None, run_id='evora-1-r1', label='routine', account=None, at=None, approvals=None, claim=True, registry=True, conversation=None):
         """A Seller Assistant run directory: run.json plus approvals.jsonl attempt and result lines.
 
-        The run claims the case first, a second before its first click, as the driver does."""
+        The run claims the case first, a second before its first click, as the driver does. `conversation` is the
+        pre-click snapshot the driver writes into each submit attempt line."""
         at = at or self.now - dt.timedelta(minutes=10)
         if claim:
             saved, self.now = self.now, min(self.now, at - dt.timedelta(seconds=1))
@@ -476,7 +477,7 @@ class CaseServiceTests(unittest.TestCase):
             path.write_text(text)
             stamp = (at + dt.timedelta(seconds=index)).isoformat()
             approval = {'schema_version': 1, 'plan_item': item, 'sha256': sha, 'run_id': run_id, 'seller_id': acct['seller_id'], 'approved_at': at.isoformat(), 'approval_text': 'this is perfect, send it', 'label': label, **(approvals or {}).get(item, {})}
-            lines.append({'at': stamp, 'queue_id': f'00{index}', 'phase': 'attempt', 'command': 'submit', 'sha256': sha, 'plan_item': item, 'approval': approval})
+            lines.append({'at': stamp, 'queue_id': f'00{index}', 'phase': 'attempt', 'command': 'submit', 'sha256': sha, 'plan_item': item, 'approval': approval, **({'conversation': conversation} if conversation else {})})
             status = (statuses or {}).get(item, 'sent')
             if status:
                 lines.append({'at': stamp, 'queue_id': f'00{index}', 'phase': 'result', 'command': 'submit', 'sha256': sha, 'status': status, 'delivery': status})
@@ -744,13 +745,32 @@ class CaseServiceTests(unittest.TestCase):
         self.assertCode('registry_binding_required', lambda: release(unbound, 'evora-1-unbound'))
         self.assertCode('run_mismatch', lambda: release(blocked, 'evora-1-unbound'))
 
-    def transcript(self, run_dir, captured, url, text='', page_text='', deep='', messages=(), step='07'):
-        """The driver's transcript command output: transcripts/NN-transcript.json with its -deep.txt."""
+    # The conversation the driver saw before the click in the uncertain-release tests: two messages, the last "Hello.".
+    SNAPSHOT = {'frame_id': 'F1', 'message_count': 2, 'message_detection': 'structural', 'last_message': 'Hello.'}
+    URL = 'https://sellercentral.amazon.com/cu/case-dashboard/view-case?caseID=21912345678'
+    CHAT = 'Amazon: Thanks, what else can I help with?\n\nYou: Hello.'
+    BEFORE = ('Thanks, what else can I help with?', 'Hello.')
+
+    def transcript(self, run_dir, captured, url, text='', page_text='', deep='', messages=(), step='07', frame='F1', deep_frame=None, detection='structural', truncated=False, deep_failed=()):
+        """The driver's transcript command output: transcripts/NN-transcript.json with its -deep.txt, whose frame
+        starts with the driver's '=== frame <id> <url>' line. truncated=None leaves out the mark, as an older driver did."""
         (run_dir / 'transcripts').mkdir(exist_ok=True)
-        (run_dir / 'transcripts' / f'{step}-transcript-deep.txt').write_text(deep)
-        record = {'schema_version': 1, 'captured_at': captured.isoformat(), 'url': url, 'conversation_url': None, 'frame_id': 'F1', 'composer_label': 'Type your message', 'text_sha256': hashlib.sha256(text.encode()).hexdigest(),
-                  'basis': 'container', 'text': text, 'message_count': len(messages), 'message_detection': 'structural', 'messages': [{'text': m, 'role': 'listitem'} for m in messages], 'page_text': page_text}
+        (run_dir / 'transcripts' / f'{step}-transcript-deep.txt').write_text(f'=== frame {deep_frame or frame} {url}\n{deep}')
+        record = {'schema_version': 1, 'captured_at': captured.isoformat(), 'url': url, 'conversation_url': None, 'frame_id': frame, 'composer_label': 'Type your message', 'text_sha256': hashlib.sha256(text.encode()).hexdigest(),
+                  'basis': 'container', 'text': text, 'message_count': len(messages), 'message_detection': detection, 'messages': [{'text': m, 'role': 'listitem'} for m in messages], 'page_text': page_text,
+                  **({} if truncated is None else {'truncated': truncated}), 'deep_failed': list(deep_failed)}
         return self.evidence(f'runs/{run_dir.name}/transcripts/{step}-transcript.json', record)
+
+    def uncertain(self, case, run_id, text, clicked, snapshot=SNAPSHOT):
+        """A run with one uncertain submit of `text` on the case page, and its release by the given transcript."""
+        run_dir, messages = self.driver_run(case, {'P3': text}, statuses={'P3': 'uncertain'}, run_id=run_id, at=clicked, conversation=snapshot)
+        (run_dir / 'steps').mkdir()
+        self.evidence(f'runs/{run_id}/steps/00-submit.json', {'schema_version': 1, 'id': '000', 'command': 'submit', 'result': {'status': 'uncertain'}, 'url': self.URL})
+
+        def release(page):
+            return self.service.release({'registry_id': case['registry_id'], 'run_id': run_id, 'run_dir': str(run_dir), 'authorization': self.attended('It was not sent, release the run'), 'operator_statement': 'It did not go out',
+                                         'evidence': {'readback_path': str(self.case_log(case, [])), 'summary': 'Case log shows no seller message', 'page_evidence_path': str(page), 'text_paths': [messages[0]['text_path']]}})
+        return run_dir, release
 
     def test_release_frees_an_uncertain_run_only_with_statement_transcript_and_readback(self):
         # stackFix open item: an uncertain submit that in truth sent nothing can be neither recorded nor released.
@@ -760,12 +780,12 @@ class CaseServiceTests(unittest.TestCase):
         self.now += dt.timedelta(minutes=30)
         text = 'Here is the invoice for shipment FBA15ABCDEF. It lists the units we sent on 12 September and the carrier receipt for the same pallet count.\n\nDanica\nEcom Wizards'
         clicked = self.now - dt.timedelta(minutes=10)
-        run_dir, messages = self.driver_run(case, {'P3': text}, statuses={'P3': 'uncertain'}, run_id='evora-1-u', at=clicked)
-        url = 'https://sellercentral.amazon.com/cu/case-dashboard/view-case?caseID=21912345678'
+        run_dir, messages = self.driver_run(case, {'P3': text}, statuses={'P3': 'uncertain'}, run_id='evora-1-u', at=clicked, conversation=self.SNAPSHOT)
+        url = self.URL
         (run_dir / 'steps').mkdir()
         self.evidence('runs/evora-1-u/steps/00-submit.json', {'schema_version': 1, 'id': '000', 'command': 'submit', 'result': {'status': 'uncertain'}, 'url': url})
-        chat = 'Amazon: Thanks, what else can I help with?\n\nYou: Hello.'
-        page = self.transcript(run_dir, clicked + dt.timedelta(minutes=2), url, chat, chat + '\nType your message', chat, ['Thanks, what else can I help with?', 'Hello.'])
+        chat = self.CHAT
+        page = self.transcript(run_dir, clicked + dt.timedelta(minutes=2), url, chat, chat + '\nType your message', chat, self.BEFORE)
         statement = 'The invoice message did not go out, the composer was empty and nothing new is in the chat'
         current = self.current(case)
         self.assertCode('reconciliation_required', lambda: self.prepare(current, 'reply', daily_key=observed['daily_key']))
@@ -790,10 +810,11 @@ class CaseServiceTests(unittest.TestCase):
         os.environ.pop('WIZARDS_AI_MODE')
         # Evidence older than the attempt: a readback after the claim but before the click, a transcript before it.
         self.assertCode('stale_readback', lambda: release(self.case_log(case, [], observed=clicked - dt.timedelta(milliseconds=500))))
-        early = self.transcript(run_dir, clicked - dt.timedelta(seconds=30), url, chat, chat, chat, step='06')
+        # This one also holds the text in a contenteditable composer; taken before the click, the capture check ignores it.
+        early = self.transcript(run_dir, clicked - dt.timedelta(seconds=30), url, chat, chat + '\n' + text, chat, self.BEFORE, step='06')
         self.assertCode('stale_page_evidence', lambda: release(evidence={'page_evidence_path': str(early)}))
         # A transcript of another page, or one outside the run, cannot speak for the submit.
-        elsewhere = self.transcript(run_dir, clicked + dt.timedelta(minutes=3), url + '&chat=1', chat, chat, chat, step='08')
+        elsewhere = self.transcript(run_dir, clicked + dt.timedelta(minutes=3), url + '&chat=1', chat, chat, chat, self.BEFORE, step='08')
         self.assertCode('page_evidence_mismatch', lambda: release(evidence={'page_evidence_path': str(elsewhere)}))
         outside = self.evidence('07-transcript.json', json.loads(page.read_text()))
         self.assertCode('page_evidence_mismatch', lambda: release(evidence={'page_evidence_path': str(outside)}))
@@ -807,6 +828,12 @@ class CaseServiceTests(unittest.TestCase):
                 self.assertCode('message_in_page_evidence', lambda: release(evidence={'page_evidence_path': str(shown)}))
         capped = self.transcript(run_dir, clicked + dt.timedelta(minutes=4), url, chat, 'x' * 200000, chat, step='10')
         self.assertCode('page_evidence_truncated', lambda: release(evidence={'page_evidence_path': str(capped)}))
+        # 07 is not the latest transcript while 08 to 10 exist, and 09 shows the text, so this run stays open.
+        self.assertCode('page_evidence_mismatch', lambda: release())
+        # The run as if 08 to 10 had never been taken: 07 is its latest transcript.
+        for step in ('08', '09', '10'):
+            for suffix in ('.json', '-deep.txt'):
+                (run_dir / 'transcripts' / f'{step}-transcript{suffix}').unlink()
         # All four pieces release the run; the record keeps the evidence, its hashes, the statement and the time.
         readback = self.case_log(case, [], name='observe-after-u.json')
         released = release(readback)
@@ -814,7 +841,7 @@ class CaseServiceTests(unittest.TestCase):
         record = released['case']['attended_claims']['evora-1-u']['released']
         self.assertEqual((statement, self.now.isoformat()), (record['operator_statement'], record['at']))
         self.assertEqual((str(page.resolve()), hashlib.sha256(page.read_bytes()).hexdigest()), (record['page_evidence']['path'], record['page_evidence']['sha256']))
-        self.assertEqual(hashlib.sha256(chat.encode()).hexdigest(), record['page_evidence']['deep_text_sha256'])
+        self.assertEqual(hashlib.sha256((run_dir / 'transcripts' / '07-transcript-deep.txt').read_bytes()).hexdigest(), record['page_evidence']['deep_text_sha256'])
         self.assertEqual([{'path': messages[0]['text_path'], 'sha256': messages[0]['sha256']}], record['texts'])
         self.assertEqual(hashlib.sha256(readback.read_bytes()).hexdigest(), record['evidence']['readback_sha256'])
         self.assertEqual(['000'], [s['queue_id'] for s in record['uncertain_submits']])
@@ -823,6 +850,106 @@ class CaseServiceTests(unittest.TestCase):
         self.assertEqual([], self.service._open_claims(self.current(case)))
         self.assertEqual('ready', self.prepare(self.current(case), 'reply', daily_key=observed['daily_key'])['status'])
         self.assertCode('claim_released', lambda: self.claim(case, self.current(case)['last_sent_at'], run_id='evora-1-u'))
+
+    def test_release_needs_a_transcript_that_shows_the_conversation_as_before_the_click(self):
+        # 2026-10-02 review F1 and F2(a): a transcript that shows nothing, another frame, or one more message.
+        case = self.created()
+        self.now += dt.timedelta(days=1)
+        clicked = self.now - dt.timedelta(minutes=20)
+        text = 'Here is the invoice for shipment FBA15ABCDEF.\n\nDanica\nEcom Wizards'
+        run_dir, release = self.uncertain(case, 'evora-1-f1', text, clicked)
+        minute = iter(range(2, 20))
+        page = lambda **kw: self.transcript(run_dir, clicked + dt.timedelta(minutes=next(minute)), self.URL, **{'text': self.CHAT, 'page_text': self.CHAT, 'deep': self.CHAT, 'messages': self.BEFORE, **kw})  # noqa: E731
+        for name, kwargs, code in (
+                ('empty', {'text': '', 'page_text': '', 'deep': '', 'messages': ()}, 'page_evidence_mismatch'),
+                ('no messages', {'messages': ()}, 'page_evidence_mismatch'),
+                ('deep text of another frame', {'deep_frame': 'F2'}, 'page_evidence_mismatch'),
+                ('another frame', {'frame': 'F2'}, 'page_evidence_mismatch'),
+                ('text blocks', {'detection': 'text_blocks'}, 'page_evidence_mismatch'),
+                # A sent message the text check cannot recognise, for example shown as its attachment only.
+                ('one more message', {'messages': (*self.BEFORE, '[Attachment] invoice.pdf')}, 'conversation_changed'),
+                ('another last message', {'messages': (self.BEFORE[0], 'Chat ended')}, 'conversation_changed')):
+            with self.subTest(name):
+                self.assertCode(code, lambda: release(page(**kwargs)))
+        # The same conversation as before the click releases the run.
+        self.assertEqual('released', release(page())['status'])
+        # An attempt line without the snapshot, from a driver that did not write one, never releases.
+        older, release_older = self.uncertain(case, 'evora-1-f1-old', text, clicked, snapshot=None)
+        latest = self.transcript(older, clicked + dt.timedelta(minutes=2), self.URL, self.CHAT, self.CHAT, self.CHAT, self.BEFORE)
+        self.assertCode('page_evidence_mismatch', lambda: release_older(latest))
+
+    def test_release_refuses_a_page_that_shows_the_text_in_another_rendering(self):
+        # 2026-10-02 review F2(b): each rendering defeats the driver's exact and 120-character match.
+        case = self.created()
+        self.now += dt.timedelta(days=1)
+        clicked = self.now - dt.timedelta(minutes=20)
+        link = 'https://sellercentral.amazon.com/gp/help/external/G200141500'
+        for name, text, rendered in (
+                ('markdown', '**Invoice FBA15ABCDEF** is attached for the 120 units we sent on 12 September.\n\nDanica\nEcom Wizards', lambda t: t.replace('**', '')),
+                ('smart quote', "We've attached the invoice for shipment FBA15ABCDEF and the carrier receipt.\n\nDanica\nEcom Wizards", lambda t: t.replace("'", '’')),
+                ('bullets', 'Attached for shipment FBA15ABCDEF:\n- invoice for the 120 units\n- carrier receipt for the pallets\n\nDanica\nEcom Wizards', lambda t: t.replace('- ', '• ')),
+                ('link', f'The invoice is at {link} and lists the 120 units for shipment FBA15ABCDEF.\n\nDanica\nEcom Wizards', lambda t: t.replace(link, 'this link')),
+                ('zero-width space', 'Here is the invoice for shipment FBA15ABCDEF with the 120 units we sent.\n\nDanica\nEcom Wizards', lambda t: t[:10] + '​' + t[10:])):
+            with self.subTest(name):
+                shown = rendered(text)
+                self.assertNotIn(' '.join(text.split())[:120], ' '.join(shown.split()))
+                run_dir, release = self.uncertain(case, f'evora-1-{name.replace(" ", "-")}', text, clicked)
+                chat = self.CHAT + '\n\nYou: ' + shown
+                page = self.transcript(run_dir, clicked + dt.timedelta(minutes=2), self.URL, chat, chat, chat, (*self.BEFORE, shown))
+                self.assertCode('message_in_page_evidence', lambda: release(page))
+
+    def test_release_reads_every_capture_the_run_took_after_the_click(self):
+        # 2026-10-02 review F3: an early transcript named while a later capture shows the text.
+        case = self.created()
+        self.now += dt.timedelta(days=1)
+        clicked = self.now - dt.timedelta(minutes=20)
+        text = 'Here is the invoice for shipment FBA15ABCDEF. It lists the 120 units we sent.\n\nDanica\nEcom Wizards'
+        shown = self.CHAT + '\n\nYou: ' + text
+        clean = lambda run_dir, minutes, step: self.transcript(run_dir, clicked + dt.timedelta(minutes=minutes), self.URL, self.CHAT, self.CHAT, self.CHAT, self.BEFORE, step=step)  # noqa: E731
+        # Transcript 07 at click + 70 s, before the message rendered; 09 at click + 5 min shows it.
+        run_dir, release = self.uncertain(case, 'evora-1-late', text, clicked)
+        early = self.transcript(run_dir, clicked + dt.timedelta(seconds=70), self.URL, self.CHAT, self.CHAT, self.CHAT, self.BEFORE, step='07')
+        later = self.transcript(run_dir, clicked + dt.timedelta(minutes=5), self.URL, shown, shown, shown, (*self.BEFORE, text), step='09')
+        self.assertCode('page_evidence_mismatch', lambda: release(early))
+        self.assertCode('message_in_page_evidence', lambda: release(later))
+        # The latest transcript is clean, an earlier one after the click shows the text.
+        run_dir, release = self.uncertain(case, 'evora-1-earlier', text, clicked)
+        self.transcript(run_dir, clicked + dt.timedelta(minutes=2), self.URL, shown, shown, shown, (*self.BEFORE, text), step='07')
+        self.assertCode('message_in_page_evidence', lambda: release(clean(run_dir, 6, '09')))
+        # Only the -page.txt the driver wrote next to an earlier transcript shows it.
+        run_dir, release = self.uncertain(case, 'evora-1-page-txt', text, clicked)
+        clean(run_dir, 2, '07')
+        (run_dir / 'transcripts' / '07-transcript-page.txt').write_text(shown)
+        self.assertCode('message_in_page_evidence', lambda: release(clean(run_dir, 6, '09')))
+        # A ViewCase body read after the click shows it, as markup in JSON.
+        body = {'caseId': '21912345678', 'contacts': [{'message': text.replace('\n\n', '<br><br>').replace('\n', '<br>'), 'isAmazon': False}]}
+        for name, step in (('timed after the click', {'schema_version': 1, 'id': '008', 'command': 'viewcase-raw', 'result': {'status': 'ok', 'finished_at': (clicked + dt.timedelta(minutes=3)).isoformat()}}), ('untimed', None)):
+            with self.subTest(viewcase=name):
+                run_dir, release = self.uncertain(case, f'evora-1-viewcase-{name.split()[0]}', text, clicked)
+                (run_dir / 'viewcase').mkdir()
+                self.evidence(f'runs/{run_dir.name}/viewcase/21912345678-08.json', body)
+                if step:
+                    self.evidence(f'runs/{run_dir.name}/steps/08-viewcase-raw.json', step)
+                self.assertCode('message_in_page_evidence', lambda: release(clean(run_dir, 6, '09')))
+        # The same ViewCase body read before the click is not evidence of this send.
+        run_dir, release = self.uncertain(case, 'evora-1-viewcase-before', text, clicked)
+        (run_dir / 'viewcase').mkdir()
+        self.evidence(f'runs/{run_dir.name}/viewcase/21912345678-05.json', body)
+        self.evidence(f'runs/{run_dir.name}/steps/05-viewcase-raw.json', {'schema_version': 1, 'id': '005', 'command': 'viewcase-raw', 'result': {'status': 'ok', 'finished_at': (clicked - dt.timedelta(minutes=1)).isoformat()}})
+        self.assertEqual('released', release(clean(run_dir, 6, '09'))['status'])
+
+    def test_release_refuses_a_transcript_the_driver_cut_or_could_not_read(self):
+        # 2026-10-02 review F4: the driver's mark, not the text length, says the deep text is incomplete.
+        case = self.created()
+        self.now += dt.timedelta(days=1)
+        clicked = self.now - dt.timedelta(minutes=20)
+        run_dir, release = self.uncertain(case, 'evora-1-cut', 'Here is the invoice for shipment FBA15ABCDEF.\n\nDanica\nEcom Wizards', clicked)
+        minute = iter(range(2, 20))
+        page = lambda **kw: self.transcript(run_dir, clicked + dt.timedelta(minutes=next(minute)), self.URL, self.CHAT, self.CHAT, self.CHAT, self.BEFORE, **kw)  # noqa: E731
+        for name, kwargs in (('cut', {'truncated': True}), ('frame not read', {'deep_failed': ['F2']}), ('no mark', {'truncated': None})):
+            with self.subTest(name):
+                self.assertCode('page_evidence_truncated', lambda: release(page(**kwargs)))
+        self.assertEqual('released', release(page())['status'])
 
     def test_release_refuses_a_run_with_a_sent_and_an_uncertain_submit(self):
         case = self.created()

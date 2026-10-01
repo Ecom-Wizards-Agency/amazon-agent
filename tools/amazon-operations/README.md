@@ -456,24 +456,42 @@ only with three more pieces, and only by an attended operator as above:
 
 - `operator_statement`: the operator's verbatim sentence from chat that the
   message was not sent (`missing_operator_statement`);
-- `evidence.page_evidence_path`: the run's own `transcripts/NN-transcript.json`,
+- `evidence.page_evidence_path`: the run's latest `transcripts/NN-transcript.json`,
   captured after the last uncertain submit (`missing_page_evidence`,
-  `stale_page_evidence`). Its `url` must equal the `url` in each uncertain
-  submit's `steps/NN-submit.json`, and its `-deep.txt` must lie next to it
-  (`page_evidence_mismatch`, `evidence_unavailable`). A transcript that reached
-  the driver's 200000-character limit is refused (`page_evidence_truncated`);
+  `stale_page_evidence`; a later transcript gives `page_evidence_mismatch`). Its
+  `url` must equal the `url` in each uncertain submit's `steps/NN-submit.json`,
+  and its `-deep.txt` must lie next to it (`page_evidence_mismatch`,
+  `evidence_unavailable`). The driver marks a record whose text or deep text hit
+  one of its limits (`truncated`) or whose frame it could not read
+  (`deep_failed`); such a record, or one without the marks, is refused
+  (`page_evidence_truncated`);
 - `evidence.text_paths`: the approved text file of every uncertain submit,
   matched by SHA-256 (`missing_approved_text`).
 
-The transcript's text, page text, deep text and messages must not contain the
-approved text, normalized as the driver normalizes it before hashing, or its
-first 120 characters after whitespace collapsing, which is what the driver's own
-sent check looks for (`message_in_page_evidence`: record the send instead). The
-case-log readback must also post-date the last uncertain submit
-(`stale_readback`). A text still standing in a contenteditable composer counts as
-shown, so the run stays open until a later transcript shows the composer empty.
-The release record keeps
-the statement, each evidence path with its SHA-256, the uncertain submits and the
+The transcript must show the conversation as the driver saw it right before each
+click, which the driver writes into the submit's attempt line as `conversation`:
+the same frame, messages found structurally, the same message count and the same
+last message. An empty transcript, another frame, a `-deep.txt` without that
+frame, or an attempt line without the snapshot gives `page_evidence_mismatch`; a
+different count or last message gives `conversation_changed`, because a sent
+message the text check cannot recognise still adds a message.
+
+Every capture the run took after a click must not show that click's text: each
+transcript with its `.txt`, `-page.txt` and `-deep.txt`, and each `viewcase/`
+body, counted as after the click unless its step file says it ran before. A
+capture shows the text when it contains the text normalized as the driver
+normalizes it before hashing, its first 120 characters after whitespace
+collapsing (the driver's own sent check), or any 40-character run of the text
+folded to letters and digits after NFKC and case folding, which sees through
+Markdown, smart quotes, bullets, link text and invisible characters
+(`message_in_page_evidence`: record the send instead). The fold may also match a
+sentence the conversation already held, such as a repeated closing line; that
+refuses too. The case-log readback must also post-date the last uncertain submit
+(`stale_readback`). A transcript taken after the click while a contenteditable
+composer still held the text counts as showing it and keeps the run open: when
+the submit result says `composer_cleared: false`, the operator clears the
+composer by hand before the first transcript. The release record keeps the
+statement, each evidence path with its SHA-256, the uncertain submits and the
 time.
 
 ```json

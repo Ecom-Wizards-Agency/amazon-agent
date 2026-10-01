@@ -13,12 +13,14 @@ import argparse
 import contextlib
 import datetime as dt
 import hashlib
+import html
 import json
 import os
 from pathlib import Path
 import re
 import sqlite3
 import sys
+import unicodedata
 from zoneinfo import ZoneInfo
 
 DEFAULT_STATE = Path.home() / '.amazon-agent/cases'
@@ -70,6 +72,50 @@ def normalize_body(value):
 def collapse(value):
     # The driver's collapse: whitespace runs (JavaScript \s, which includes U+FEFF) become one space.
     return re.sub(r'[\s﻿]+', ' ', str(value)).strip()
+
+
+def fold(value):
+    # Letters and digits only, after NFKC and case folding: what a text keeps through Markdown, smart quotes,
+    # bullets, link text and invisible characters, which the driver's sent check does not see through.
+    return ''.join(ch for ch in unicodedata.normalize('NFKC', str(value)).casefold() if ch.isalnum())
+
+
+def folded_page(values):
+    """A capture's texts folded, one form per line: as saved, HTML-unescaped, and without short markup tags.
+    Each extra form can only find more of a text, never hide it."""
+    forms = set()
+    for value in values:
+        unescaped = html.unescape(str(value))
+        forms.update(fold(form) for form in (value, unescaped, re.sub(r'<[^<>]{0,200}>', ' ', unescaped)))
+    return '\n'.join(sorted(forms))
+
+
+def shows(text, page, width=40):
+    """Whether a folded page holds any `width`-character run of the folded text, or all of it when shorter.
+    A text with no letters or digits cannot be shown absent, so it counts as shown."""
+    folded = fold(text)
+    if not folded:
+        return True
+    width = min(width, len(folded))
+    runs = {folded[i:i + width] for i in range(len(folded) - width + 1)}
+    return any(page[i:i + width] in runs for i in range(len(page) - width + 1))
+
+
+def json_strings(value):
+    if isinstance(value, str):
+        yield value
+    elif isinstance(value, dict):
+        for item in value.values():
+            yield from json_strings(item)
+    elif isinstance(value, list):
+        for item in value:
+            yield from json_strings(item)
+
+
+def optional_time(value):
+    with contextlib.suppress(CaseError):
+        return timestamp(value)
+    return None
 
 
 def message_sha(text):
@@ -676,9 +722,9 @@ class CaseService:
 
     def _unsent_page(self, request, run_dir, tried, result):
         """Proof that a run's uncertain submits sent nothing: the operator's verbatim chat sentence and the
-        driver's own transcript of the page each submit was clicked on, captured after the last one, that shows
-        no approved text. The driver's sent check matches the whitespace-collapsed text or its first 120
-        characters, so the same match here refuses. Returns the time the evidence must post-date, and the record."""
+        driver's own latest transcript of the page each submit was clicked on, captured after the last one. It
+        must show the conversation exactly as the driver saw it before the first click, and no capture the run
+        took after a click may show that click's text. Returns the time the evidence must post-date, and the record."""
         statement, evidence = request.get('operator_statement'), request['evidence']
         require(isinstance(statement, str) and statement.strip(), 'missing_operator_statement', 'An uncertain submit is released only with the operator\'s verbatim sentence from chat that it was not sent')
         require(evidence.get('page_evidence_path'), 'missing_page_evidence', 'An uncertain submit needs the driver transcript taken after it (transcripts/NN-transcript.json of this run)')
@@ -694,11 +740,19 @@ class CaseService:
             raise CaseError('evidence_unavailable', 'The transcript\'s -deep.txt, which the driver writes with it, is required') from exc
         fields = [page.get('text'), page.get('page_text'), deep.decode(errors='replace')]
         require(page.get('schema_version') == 1 and page.get('url') and all(isinstance(f, str) for f in fields) and isinstance(page.get('messages'), list), 'page_evidence_mismatch', 'Page evidence must be a driver transcript record')
-        # The driver keeps the first 200000 characters; a newer message past the cap would not show.
-        require(all(len(f) < 200000 for f in fields), 'page_evidence_truncated', 'The transcript reached the driver\'s text limit, so it cannot show that the text is absent')
-        fields += [str(m.get('text', '')) for m in page['messages'] if isinstance(m, dict)]
+        # The driver marks a record whose text or deep text hit one of its limits, or whose frame it could not
+        # read; a record without the mark predates it. A newer message past a limit would not show.
+        require(page.get('truncated') is False and page.get('deep_failed') == [] and all(len(f) < 200000 for f in fields), 'page_evidence_truncated', 'The transcript is cut at a driver limit or misses a frame, so it cannot show that the text is absent')
         last = max(max(timestamp(a.get('at')), timestamp(result(a).get('at'))) for a in tried)
-        require(last <= timestamp(page.get('captured_at')) <= self._now() + SKEW, 'stale_page_evidence', 'The transcript must be captured after the last uncertain submit')
+        captured = timestamp(page.get('captured_at'))
+        require(last <= captured <= self._now() + SKEW, 'stale_page_evidence', 'The transcript must be captured after the last uncertain submit')
+        captures = self._page_captures(run_dir)
+        later = [p.name for p, when, _ in captures if p.parent.name == 'transcripts' and p != path and (when is None or when >= captured)]
+        require(not later, 'page_evidence_mismatch', 'Page evidence must be the run\'s latest transcript; a later one may show what it does not')
+        # A transcript taken while the chat reloaded, after it ended, or of another frame shows no conversation.
+        frame = page.get('frame_id')
+        shown_any = [m for m in page['messages'] if isinstance(m, dict) and collapse(m.get('text', ''))]
+        require(collapse(page['text']) and collapse(page['page_text']) and shown_any and f'=== frame {frame} ' in fields[2], 'page_evidence_mismatch', 'The transcript shows no conversation, or its -deep.txt lacks the conversation frame')
         for attempt in tried:
             queue_id = str(attempt.get('queue_id') or '')
             require(queue_id.isdigit(), 'page_evidence_mismatch', 'An uncertain submit without a queue ID has no page to compare')
@@ -713,12 +767,62 @@ class CaseService:
             approved[hashlib.sha256(raw).hexdigest()] = (str(Path(str(text_path)).expanduser()), raw.decode())
         shas = sorted({str(a.get('sha256')) for a in tried})
         require(set(shas) <= set(approved), 'missing_approved_text', 'text_paths must hold the approved text of every uncertain submit')
-        for sha in shas:
-            text = normalize_body(approved[sha][1])
-            shown = any(text in normalize_body(f) or collapse(text)[:120] in collapse(f) for f in fields)
-            require(not shown, 'message_in_page_evidence', 'The transcript shows the approved text or its first 120 characters; record the send instead')
+        # Every capture taken after a click, not only the named one: the driver's own match (the exact text or
+        # its first 120 collapsed characters), then any 40-letter run of the folded text.
+        folded = {}
+        for attempt in tried:
+            text, at = normalize_body(approved[str(attempt.get('sha256'))][1]), timestamp(attempt.get('at'))
+            for capture, when, values in captures:
+                if when is not None and when < at:
+                    continue  # Taken before this click; its composer may hold the text.
+                if capture not in folded:
+                    folded[capture] = folded_page(values)
+                exact = any(text in normalize_body(v) or collapse(text)[:120] in collapse(v) for v in values)
+                require(not exact and not shows(text, folded[capture]), 'message_in_page_evidence', f'{capture.parent.name}/{capture.name}, taken after the click, shows the approved text or a run of it; record the send instead')
+        # The conversation must stand as the driver saw it right before each click: the same frame, the same
+        # number of structurally found messages, the same last message. A sent message rendered past what the
+        # text check recognises still adds a message.
+        newest = page['messages'][-1] if isinstance(page['messages'][-1], dict) else {}
+        for attempt in tried:
+            before = attempt.get('conversation') if isinstance(attempt.get('conversation'), dict) else {}
+            require(isinstance(frame, str) and frame and before.get('frame_id') == frame and before.get('message_detection') == page.get('message_detection') == 'structural'
+                    and isinstance(before.get('message_count'), int) and isinstance(before.get('last_message'), str), 'page_evidence_mismatch',
+                    'The submit\'s attempt line and the transcript must both hold a structurally detected conversation of the same frame')
+            require(page.get('message_count') == before['message_count'] and collapse(newest.get('text', '')) == collapse(before['last_message']), 'conversation_changed',
+                    'The conversation changed after the click: a new or different last message may be the send. Record it, or leave the run open')
         return last, {'operator_statement': statement, 'page_evidence': {'path': str(path), 'sha256': page_sha, 'captured_at': page['captured_at'], 'url': page['url'], 'deep_text_path': str(deep_path), 'deep_text_sha256': hashlib.sha256(deep).hexdigest()},
                       'texts': [{'path': approved[sha][0], 'sha256': sha} for sha in shas], 'uncertain_submits': [{'queue_id': a.get('queue_id'), 'sha256': a.get('sha256'), 'at': a.get('at')} for a in tried]}
+
+    def _page_captures(self, run_dir):
+        """Every transcript and ViewCase capture in a driver run: its path, when it was taken (None when no record
+        says, which counts as after every click) and its texts."""
+        captures = []
+        try:
+            for path in sorted((run_dir / 'transcripts').glob('*-transcript.json')):
+                if not re.fullmatch(r'\d{2,}-transcript\.json', path.name):
+                    continue
+                record, _ = self._evidence_file(path)
+                messages = record.get('messages') if isinstance(record.get('messages'), list) else []
+                values = [record.get('text'), record.get('page_text'), *(m.get('text') for m in messages if isinstance(m, dict))]
+                for suffix in ('.txt', '-page.txt', '-deep.txt'):
+                    with contextlib.suppress(FileNotFoundError):
+                        values.append(path.with_name(path.name[:-len('.json')] + suffix).read_bytes().decode(errors='replace'))
+                captures.append((path, optional_time(record.get('captured_at')), [v for v in values if isinstance(v, str)]))
+            # viewcase/<case>-NN.json holds the raw ViewCase body; steps/NN-viewcase-raw.json says when it ran.
+            for path in sorted((run_dir / 'viewcase').glob('*.json')):
+                raw = path.read_bytes().decode(errors='replace')
+                values, when = [raw], None
+                with contextlib.suppress(ValueError):
+                    values += list(json_strings(json.loads(raw)))
+                number = re.search(r'-(\d+)\.json$', path.name)
+                with contextlib.suppress(OSError, ValueError):
+                    step = json.loads((run_dir / 'steps' / f'{number[1]}-viewcase-raw.json').read_text()) if number else None
+                    ran = step.get('result') if isinstance(step, dict) else None
+                    when = optional_time(ran.get('finished_at')) if isinstance(ran, dict) else None
+                captures.append((path, when, values))
+        except OSError as exc:
+            raise CaseError('evidence_unavailable', 'A capture in the run directory is unreadable') from exc
+        return captures
 
     def daily_due(self):
         current = self._now().astimezone(ZONE)
