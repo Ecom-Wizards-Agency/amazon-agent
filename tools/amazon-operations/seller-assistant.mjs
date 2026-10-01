@@ -184,7 +184,7 @@ export function isNavigationAllowed(label, state = {}) {
     return state?.tour?.visible === true ? { ok: true, kind: 'tour' } : { ok: false, reason: 'tour_not_visible' };
   }
   if (SUMMARY_LABELS.includes(wanted)) {
-    return state?.handoff?.approve_count === 1 ? { ok: true, kind: 'summary' } : { ok: false, reason: 'summary_not_visible' };
+    return state?.handoff?.approve_count >= 1 ? { ok: true, kind: 'summary' } : { ok: false, reason: 'summary_not_visible' };
   }
   return { ok: false, reason: 'label_not_allowed' };
 }
@@ -442,10 +442,25 @@ export function pageAgent(op, arg, lib) {
   const regionFacts = (el, c) => {
     const r = region(el);
     const texts = leaves(r).filter(x => !within(el, x)).map(x => collapse(x.textContent)).filter(Boolean);
+    // File names can be direct text in a chip that also contains an icon or a
+    // remove button, so the chip itself is not a leaf element.
+    const directTexts = els.filter(x => within(r, x) && visible(x) && !within(el, x))
+      .flatMap(x => [...(x.childNodes || [])].filter(n => n.nodeType === 3).map(n => collapse(n.textContent)))
+      .filter(Boolean);
+    const fileTexts = [...texts, ...directTexts].map(t => t.replace(/[\uE000-\uF8FF]/g, '').trim());
+    const uploadError = [...texts, ...directTexts].some(t => /unsupported file was attached|upload failed|failed to upload/i.test(t));
+    // Seller Assistant puts pending upload cards outside the smallest composer
+    // region. Its composer placeholder changes while those cards are staged.
+    const stagedFiles = /click send to upload/i.test(composerLabel(el))
+      ? els.filter(x => visible(x) && x.matches('.file-name'))
+        .filter(x => ![x, parentOf(x), parentOf(parentOf(x))].filter(Boolean)
+          .some(n => /unsupported file was attached|upload failed|failed to upload/i.test(collapse(n.textContent))))
+        .map(x => collapse(x.textContent)).filter(t => FILE.test(t))
+      : [];
     const uploading = els.some(x => within(r, x) && visible(x) && (x.getAttribute('role') === 'progressbar' || x.getAttribute('aria-busy') === 'true')) ||
       texts.some(t => /^(?:uploading|upload failed|failed to upload)/i.test(t));
     const submit = submitsOf(el, c).map(x => ({ disabled: x.disabled, in_region: x.in_region }));
-    return { chips: [...new Set(texts.filter(t => FILE.test(t)))], counters: texts.filter(t => COUNTER.test(t)), uploading, submit };
+    return { chips: uploadError ? [] : [...new Set([...fileTexts.filter(t => FILE.test(t)), ...stagedFiles])], counters: texts.filter(t => COUNTER.test(t)), uploading, submit };
   };
   const busy = () => els.some(el => visible(el) && (el.getAttribute('role') === 'progressbar' || el.getAttribute('aria-busy') === 'true')) ||
     leaves(null).some(el => /^working on it\b/i.test(collapse(el.textContent)));
@@ -536,6 +551,19 @@ export function pageAgent(op, arg, lib) {
       if (!v.ok) fail(v.reason, String(v.count ?? ''));
       return list[0].el;
     }
+    if (arg.label === 'Approve' && arg.expectedTermsText) {
+      const terms = pageAgent('terms', null, lib);
+      if (terms.text !== arg.expectedTermsText) fail('terms_changed');
+      const approvals = all.filter(x => x.label === 'Approve');
+      return approvals[approvals.length - 1].el;
+    }
+    if (arg.label === 'Request changes' && arg.expectedTermsText) {
+      const terms = pageAgent('terms', null, lib);
+      if (terms.text !== arg.expectedTermsText) fail('terms_changed');
+      const changes = all.filter(x => x.label === 'Request changes');
+      if (changes.length !== all.filter(x => x.label === 'Approve').length) fail('request_changes_count', String(changes.length));
+      return changes[changes.length - 1].el;
+    }
     // Tour labels are matched only among the controls inside the tour container,
     // so the element returned here is the one the tour check approved.
     let pool = all;
@@ -557,7 +585,7 @@ export function pageAgent(op, arg, lib) {
     // the smallest ancestor with such text (basis "smallest_text"). Its innerText
     // is the terms text (it includes the button labels, which is stable).
     const approve = all.filter(c => c.label === 'Approve');
-    if (approve.length !== 1) fail('approve_count', String(approve.length));
+    if (!approve.length) fail('approve_count', '0');
     const CARD = '[role="dialog"],[role="alertdialog"],[aria-modal="true"],[role="article"],[role="listitem"],[role="group"],[role="region"],[data-testid*="card" i],[class*="card" i]';
     const c = conv();
     const ownText = n => {
@@ -572,16 +600,31 @@ export function pageAgent(op, arg, lib) {
       }
       return collapse(own);
     };
-    const pack = (n, basis) => ({ text: (n.innerText || n.textContent || '').slice(0, 20000), tag: n.tagName, role: n.getAttribute('role'), testid: n.getAttribute('data-testid'), basis });
+    const deepText = n => {
+      const out = [];
+      const walk = x => {
+        if (x.nodeType === 3) { out.push(x.textContent || ''); return; }
+        if (x.nodeType !== 1 && x.nodeType !== 11) return;
+        if (x.nodeType === 1 && /^(?:SCRIPT|STYLE|NOSCRIPT|TEMPLATE)$/.test(x.tagName)) return;
+        if (x.nodeType === 1 && x.shadowRoot) walk(x.shadowRoot);
+        for (const child of x.childNodes || []) walk(child);
+      };
+      walk(n);
+      return collapse(out.join(' ')).slice(0, 20000);
+    };
+    const pack = (n, basis) => ({ text: approve.length > 1 ? deepText(n) : (n.innerText || n.textContent || '').slice(0, 20000), tag: n.tagName, role: n.getAttribute('role'), testid: n.getAttribute('data-testid'), basis });
     let smallest = null;
-    for (let n = parentOf(approve[0].el); n && n.nodeType === 1; n = parentOf(n)) {
+    for (let n = parentOf(approve[approve.length - 1].el); n && n.nodeType === 1; n = parentOf(n)) {
       const tooBroad = (comp && within(n, comp)) || (c.basis === 'container' && within(n, c.area));
       if (tooBroad || n === document.body) break;
       if (!ownText(n)) continue;
       if (!smallest) smallest = n;
-      if (n.matches(CARD)) return pack(n, 'card');
+      if (n.matches(CARD)) {
+        const result = pack(n, 'card');
+        if (approve.length === 1 || (result.text.includes('Issue summary') && result.text.includes('Attachments'))) return result;
+      }
     }
-    if (smallest) return pack(smallest, 'smallest_text');
+    if (smallest && approve.length === 1) return pack(smallest, 'smallest_text');
     fail('terms_container_not_found');
   }
   if (op === 'deep_text') {
@@ -800,8 +843,9 @@ export function makeBrowser({ send, listPageTargets = async () => [], sleep = ms
         catch (error) { if (isFatal(error)) throw error; f.error = String(error.message).slice(0, 200); }
       }
       const state = assembleState(list, data);
-      if (state.handoff.approve_count === 1) {
-        const frameId = state.controls.find(c => collapse(c.label) === 'Approve').frame_id;
+      const approveFrames = [...new Set(state.controls.filter(c => collapse(c.label) === 'Approve').map(c => c.frame_id))];
+      if (approveFrames.length === 1) {
+        const frameId = approveFrames[0];
         try {
           const terms = await run(frameId, 'terms');
           Object.assign(state.handoff, { frame_id: frameId, terms_text: terms.text, terms_sha256: termsHash(terms.text), terms_container: { tag: terms.tag, role: terms.role, testid: terms.testid, basis: terms.basis } });
@@ -810,7 +854,7 @@ export function makeBrowser({ send, listPageTargets = async () => [], sleep = ms
       return state;
     },
     async terms(frameId) { const t = await run(frameId, 'terms'); return { ...t, sha256: termsHash(t.text) }; },
-    async prepareClick(frameId, label, { tour = false, composerSubmit = false } = {}) { return locate(await run(frameId, 'control', { label, tour, composerSubmit }, { byValue: false })); },
+    async prepareClick(frameId, label, { tour = false, composerSubmit = false, expectedTermsText = null } = {}) { return locate(await run(frameId, 'control', { label, tour, composerSubmit, expectedTermsText }, { byValue: false })); },
     dispatchClick: dispatch,
     async insertText(frameId, text) {
       const { objectId } = await run(frameId, 'composer', null, { byValue: false });
@@ -913,9 +957,9 @@ async function dispatchedFailure(rt, error) {
  * errors during or after dispatch carry `dispatched: true`. `beforeDispatch`
  * runs after the control is located and hit-tested, right before the mouse
  * events. */
-async function guardedClick(rt, frameId, label, beforeDispatch = null, { tour = false, composerSubmit = false } = {}) {
+async function guardedClick(rt, frameId, label, beforeDispatch = null, { tour = false, composerSubmit = false, expectedTermsText = null } = {}) {
   const before = new Set(await rt.browser.targets());
-  const point = await rt.browser.prepareClick(frameId, label, { tour, composerSubmit });
+  const point = await rt.browser.prepareClick(frameId, label, { tour, composerSubmit, expectedTermsText });
   // Without beforeDispatch this check runs in the same tick as the dispatch.
   assertNotAborting(rt);
   if (beforeDispatch) await beforeDispatch();
@@ -1034,11 +1078,14 @@ export const handlers = {
     // A tour label must match exactly one control inside the tour container of
     // the one frame that shows the tour; the page re-checks this before the click.
     const tour = allowed.kind === 'tour';
-    const match = tour
+    const summary = allowed.kind === 'summary';
+    const match = summary
+      ? { ok: Boolean(state.handoff.frame_id && state.handoff.terms_text), control: { frame_id: state.handoff.frame_id }, reason: 'summary_not_verified' }
+      : tour
       ? matchLabel(state.controls.filter(c => c.frame_id === state.tour.frame_id && c.in_tour === true), args.label)
       : allControlsMatch(state, args.label);
     if (!match.ok) return { status: 'blocked', reason: `control_${match.reason}${tour ? '_in_tour' : ''}`, count: match.count };
-    const click = await guardedClick(rt, match.control.frame_id, collapse(args.label), null, { tour });
+    const click = await guardedClick(rt, match.control.frame_id, collapse(args.label), null, { tour, expectedTermsText: summary ? state.handoff.terms_text : null });
     if (click.new_targets.length) return { status: 'blocked', reason: 'new_target', new_targets: click.new_targets };
     return { status: 'ok', kind: allowed.kind, label: collapse(args.label) };
   },
@@ -1128,7 +1175,10 @@ export const handlers = {
     const idle = await waitUntil(rt, () => rt.browser.scan(), s => !s.busy, 30000);
     if (!idle.satisfied) return { status: 'blocked', reason: 'assistant_busy' };
     const state = idle.value;
-    const match = allControlsMatch(state, 'Approve');
+    const multiSummary = state.handoff.approve_count > 1;
+    const match = multiSummary
+      ? { ok: Boolean(state.handoff.frame_id && state.handoff.terms_sha256 === expected), control: { frame_id: state.handoff.frame_id }, reason: 'summary_not_verified' }
+      : allControlsMatch(state, 'Approve');
     if (!match.ok) return { status: 'blocked', reason: `control_${match.reason}` };
     const frameId = match.control.frame_id;
     const terms = await rt.browser.terms(frameId);
@@ -1138,7 +1188,9 @@ export const handlers = {
     if (recheck.sha256 !== expected) return { status: 'refused', reason: 'terms_sha_mismatch', stage: 'pre_click', terms_sha256: recheck.sha256 };
     const pre = await rt.browser.scan();
     if (pre.busy) return { status: 'blocked', reason: 'assistant_busy', stage: 'pre_click' };
-    const preMatch = allControlsMatch(pre, 'Approve');
+    const preMatch = multiSummary
+      ? { ok: pre.handoff.frame_id === frameId && pre.handoff.terms_sha256 === expected, control: { frame_id: pre.handoff.frame_id }, reason: 'summary_not_verified' }
+      : allControlsMatch(pre, 'Approve');
     if (!preMatch.ok || preMatch.control.frame_id !== frameId) return { status: 'blocked', reason: preMatch.ok ? 'approve_frame_changed' : `control_${preMatch.reason}`, stage: 'pre_click' };
     let click;
     try {
@@ -1146,7 +1198,7 @@ export const handlers = {
         await logAttempt(rt, { command: 'approve', sha256: expected, plan_item: loaded.approval.plan_item, approval_file: args['approval-file'], approval: loaded.approval, identity });
         bumpUsage(rt, key);
         markDispatched(rt, 'approve', expected, 'clicked');
-      });
+      }, { expectedTermsText: terms.text });
     } catch (error) { return clickFailure(rt, error); }
     try {
       const labelBefore = pre.composer?.label ?? null;
