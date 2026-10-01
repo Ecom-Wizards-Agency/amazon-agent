@@ -281,7 +281,7 @@ export async function claimAdapter(path,planHash) {
  * Grimoire's 9223. Only 9223 takes the port-wide session lock. */
 export function caseSession(mode,env=process.env,cgroup=undefined){
   const binding=assertSession(env,cgroup);
-  ui.check(mode==='observe'||binding.session==='grimoire','Cases require the Grimoire session on 9223');
+  ui.check(mode==='observe'||binding.session==='grimoire','Case execute runs only in the Grimoire session on 9223; attended Seller Support sends use seller-assistant.mjs on the operator session');
   return binding;
 }
 

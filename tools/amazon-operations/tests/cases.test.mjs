@@ -124,7 +124,7 @@ test('observe may run under the operator session; execute stays Grimoire on 9223
  const human='0::/user.slice/user-1000.slice/user@1000.service/app.slice/app-com.t3tools.T3Code-1.scope\n';
  const operator={AMAZON_BROWSER_SESSION:'operator',CDP_PORT:'9222'};
  assert.deepEqual(caseSession('observe',operator,human),{session:'operator',port:9222,lockPort:null});
- assert.throws(()=>caseSession('execute',operator,human),/Grimoire session on 9223/);
+ assert.throws(()=>caseSession('execute',operator,human),/Grimoire session on 9223; attended Seller Support sends use seller-assistant\.mjs/);
  assert.deepEqual(caseSession('execute',{AMAZON_BROWSER_SESSION:'grimoire',CDP_PORT:'9223'},human),{session:'grimoire',port:9223,lockPort:9223});
  assert.deepEqual(caseSession('observe',{},human),{session:'grimoire',port:9223,lockPort:9223});
  assert.throws(()=>caseSession('observe',{...operator,WIZARDS_AI_MODE:'1'},human),error=>error.code==='attended_context_required');

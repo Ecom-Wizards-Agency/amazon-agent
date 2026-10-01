@@ -19,6 +19,10 @@ managed task tabs and an exclusive account context in the shared `grimoire`
 session on port 9223. Resolve it before imports with `browserctl run --session
 grimoire -- …`. There is no fallback to another profile or arbitrary commands
 supplied in a request. Registered executors also require verified access on 9223.
+Read-only case `observe` may also run in the attended operator session. Case
+`execute` refuses every session except `grimoire` with `case_adapter_grimoire_only`,
+before the journal records an attempt; attended Seller Support sends use
+`seller-assistant.mjs` instead (see Attended case sends).
 
 The FlatFilePro import screen observed on 2026-09-13 uses `/import`, the `SKU`
 identifier radio, `UPLOAD EXCEL FILE`, and `IMPORT` to parse the uploaded workbook.

@@ -1,3 +1,4 @@
+import '../../report-fetcher/test/helpers/isolated-runtime.mjs';
 import { mkdtemp, mkdir, readFile, writeFile, rm, readdir, chmod, appendFile } from 'node:fs/promises';
 import { existsSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';

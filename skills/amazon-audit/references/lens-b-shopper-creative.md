@@ -22,7 +22,7 @@ been pulled, keep the section as a clear next step that names the reads and the 
 
 ### Live creative capture
 
-Read-only over the debug Chrome on port 9223, for the client **and the top two competitors**:
+Read-only over the debug Chrome of the resolved session, for the client **and the top two competitors**. Launch each command with `node tools/browserctl/browserctl.mjs run -- <command>`, which uses the machine's attended default in direct chat:
 
 ```
 node tools/listing-capture/capture-cdp.mjs <ASIN,ASIN,ASIN> <out.json> [tld] [lang]

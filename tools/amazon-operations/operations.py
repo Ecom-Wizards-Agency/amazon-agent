@@ -570,6 +570,20 @@ class Operations:
     def case_journal_boundary(self):
         require(self.root == self.case_root / 'operations', 'case_journal_mismatch', 'Case operations must use the canonical shared case journal directory')
 
+    def case_adapter_session(self):
+        # The retired-form adapter (cases.mjs execute) stays in Grimoire's session on
+        # 9223. Refuse any other session before the journal records an attempt, and
+        # point an attended caller at the Seller Assistant driver.
+        try:
+            env = session_environment(os.environ.get('AMAZON_BROWSER_SESSION'), inherit=True)
+        except RuntimeError as exc:
+            raise OperationError('browser_session', str(exc)) from exc
+        require(env.get('AMAZON_BROWSER_SESSION', 'grimoire') == 'grimoire' and str(env.get('CDP_PORT')) == '9223', 'case_adapter_grimoire_only',
+                'case.create and case.reply execute only in the Grimoire session on 9223. Attended Seller Support sends use the '
+                'Seller Assistant driver on the operator session (browserctl run --session operator -- node '
+                'tools/amazon-operations/seller-assistant.mjs serve) after the operator approves the exact labelled text, and are '
+                'recorded with case_service.py record-receipt; see skills/amazon-communications/references/seller-assistant-route.md')
+
     def directory(self, operation_id):
         require(isinstance(operation_id, str) and re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]{0,99}', operation_id), 'invalid_id', 'operation_id must be a simple 1..100 character identifier')
         path = self.root / operation_id
@@ -657,6 +671,7 @@ class Operations:
             case_operation = plan['operation'].startswith('case.')
             if case_operation:
                 self.case_journal_boundary()
+                self.case_adapter_session()
             target_match = grant.get('targets') == plan['targets'] if case_operation else set(x.get('sku') if isinstance(x, dict) else x for x in grant.get('targets', [])) == set(plan['targets'])
             require(grant.get('execute') is True and grant.get('account') == plan['account'] and grant.get('operation') == plan['operation'] and grant.get('plan_hash') == state['plan_hash'] and target_match, 'grant_mismatch', 'Execution grant must bind exact account, operation, targets and plan hash')
             if plan['body'].get('image_policy') == 'secondary_slots_only' and not state.get('effects_started'):
