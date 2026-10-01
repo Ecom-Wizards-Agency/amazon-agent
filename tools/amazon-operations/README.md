@@ -436,10 +436,11 @@ With `run_id` instead of `operation_id`, `release` closes an open claim whose ru
 sent nothing, for example a chat that ended before Send. It also needs `run_dir`
 (`missing_run_dir`). Its `run.json` must name the same run, account and
 `registry_id` (`run_mismatch`, `account_mismatch`, `registry_binding_required`).
-Every `submit` attempt in its `approvals.jsonl` must have a `blocked` result. A
-`sent` or `uncertain` result, or an attempt without a result, returns `run_sent`:
-record that run with `record-receipt` instead, because a chat reply can be
-missing from the case log. A missing `approvals.jsonl` means no outbound attempt.
+A `submit` attempt in its `approvals.jsonl` with a `sent` result, or without a
+result line, returns `run_sent`: record that run with `record-receipt` instead,
+because a chat reply can be missing from the case log. Attempts with a `blocked`
+result are ignored; `uncertain` ones need the evidence below. A missing
+`approvals.jsonl` means no outbound attempt.
 The case-log readback must post-date the run's last claim, hold this case's
 complete history and show no seller contact since the first claim; a seller
 contact without a time counts unless an earlier observation already knew its ID
@@ -447,6 +448,36 @@ contact without a time counts unless an earlier observation already knew its ID
 
 ```json
 {"registry_id":"b8b3…","run_id":"acme-12345678901-r1","run_dir":"<run-dir>","authorization":{"kind":"attended","requester_id":"U01…","source":{"session_id":"…","instruction":"The chat closed before Send; release it"}},"evidence":{"readback_path":"<run-dir>/observe-after.json","summary":"Case log shows no seller message since 10:02"}}
+{"status":"released","run_id":"acme-12345678901-r1","case":{"…":"…"}}
+```
+
+A run whose submits, apart from `blocked` ones, are all `uncertain` is released
+only with three more pieces, and only by an attended operator as above:
+
+- `operator_statement`: the operator's verbatim sentence from chat that the
+  message was not sent (`missing_operator_statement`);
+- `evidence.page_evidence_path`: the run's own `transcripts/NN-transcript.json`,
+  captured after the last uncertain submit (`missing_page_evidence`,
+  `stale_page_evidence`). Its `url` must equal the `url` in each uncertain
+  submit's `steps/NN-submit.json`, and its `-deep.txt` must lie next to it
+  (`page_evidence_mismatch`, `evidence_unavailable`). A transcript that reached
+  the driver's 200000-character limit is refused (`page_evidence_truncated`);
+- `evidence.text_paths`: the approved text file of every uncertain submit,
+  matched by SHA-256 (`missing_approved_text`).
+
+The transcript's text, page text, deep text and messages must not contain the
+approved text, normalized as the driver normalizes it before hashing, or its
+first 120 characters after whitespace collapsing, which is what the driver's own
+sent check looks for (`message_in_page_evidence`: record the send instead). The
+case-log readback must also post-date the last uncertain submit
+(`stale_readback`). A text still standing in a contenteditable composer counts as
+shown, so the run stays open until a later transcript shows the composer empty.
+The release record keeps
+the statement, each evidence path with its SHA-256, the uncertain submits and the
+time.
+
+```json
+{"registry_id":"b8b3…","run_id":"acme-12345678901-r1","run_dir":"<run-dir>","authorization":{"kind":"attended","requester_id":"U01…","source":{"session_id":"…","instruction":"It did not go out, release the run"}},"operator_statement":"The invoice message did not go out, the chat shows nothing after Hello.","evidence":{"readback_path":"<run-dir>/observe-after.json","summary":"Case log and transcript show no seller message since 10:02","page_evidence_path":"<run-dir>/transcripts/09-transcript.json","text_paths":["<run-dir>/P3.txt"]}}
 {"status":"released","run_id":"acme-12345678901-r1","case":{"…":"…"}}
 ```
 

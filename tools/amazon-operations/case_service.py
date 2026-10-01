@@ -67,6 +67,11 @@ def normalize_body(value):
     return str(value).replace('\r\n', '\n').replace('\r', '\n').strip('\n')
 
 
+def collapse(value):
+    # The driver's collapse: whitespace runs (JavaScript \s, which includes U+FEFF) become one space.
+    return re.sub(r'[\s﻿]+', ' ', str(value)).strip()
+
+
 def message_sha(text):
     return hashlib.sha256(text.encode()).hexdigest()
 
@@ -618,9 +623,9 @@ class CaseService:
             return {'status': 'released', 'operation_id': operation_id, 'case': case}
 
     def _release_claim(self, request, authorization):
-        """Close a claim whose run sent nothing: its driver log has no submit that may have gone out, and the
-        case log, read after its last click, shows no new seller message. Chat replies can be missing from the
-        case log, so the case log alone never proves that nothing was sent."""
+        """Close a claim whose run sent nothing: its driver log has no sent submit, and the case log, read after
+        its last click, shows no new seller message. Chat replies can be missing from the case log, so the case
+        log alone never proves that nothing was sent: an uncertain submit also needs _unsent_page."""
         run_id, evidence = request.get('run_id'), request.get('evidence')
         require(isinstance(run_id, str) and run_id.strip(), 'invalid_run_id', 'The driver run ID is required')
         require(isinstance(evidence, dict) and isinstance(evidence.get('summary'), str) and evidence['summary'].strip() and evidence.get('readback_path'), 'missing_release_evidence', 'Release requires a fresh readback path and a summary of what it shows')
@@ -637,7 +642,7 @@ class CaseService:
         except OSError as exc:
             raise CaseError('receipt_unavailable', 'Driver approvals.jsonl is unreadable') from exc
         require(isinstance(run, dict) and run.get('run_id') == run_id, 'run_mismatch', 'run.json belongs to another run')
-        attempts, outcome = self._submits(log)
+        attempts, outcome, result = self._submits(log)
         readback, readback_sha = self._evidence_file(evidence['readback_path'])
         with self._transaction() as db:
             case = self._load(db, request.get('registry_id'))
@@ -649,9 +654,14 @@ class CaseService:
             account = run.get('account') if isinstance(run.get('account'), dict) else {}
             require(all(account.get(k) == case['account'][k] for k in ('seller_id', 'marketplace_id')), 'account_mismatch', 'Driver run belongs to another account')
             require(run.get('registry_id') == case['registry_id'], 'registry_binding_required', 'Only a driver run bound to this case by run.json registry_id can be released')
-            # sent, uncertain or no result line: the text may be out, so it is recorded, never released.
-            require(all(outcome(a) == 'blocked' for a in attempts), 'run_sent', 'The driver log shows a submit that may have gone out; record it with record-receipt instead')
-            require(timestamp(claim['last_at']) <= timestamp(readback.get('observed_at')) <= self._now() + SKEW, 'stale_readback', 'Release readback must be collected after the run\'s last claimed click')
+            # sent or no result line: the text may be out, so it is recorded, never released.
+            tried = [a for a in attempts if outcome(a) != 'blocked']
+            require(all(outcome(a) == 'uncertain' and result(a) for a in tried), 'run_sent', 'The driver log shows a sent submit or one without a result line; record it with record-receipt instead')
+            after, unsent = timestamp(claim['last_at']), {}
+            if tried:
+                last, unsent = self._unsent_page(request, run_dir, tried, result)
+                after = max(after, last)
+            require(after <= timestamp(readback.get('observed_at')) <= self._now() + SKEW, 'stale_readback', 'Release readback must be collected after the run\'s last claimed click and last uncertain submit')
             require(readback.get('account') == case['account'] and readback.get('history_complete') is True, 'readback_mismatch', 'Release readback must verify the exact account and complete history')
             items = [item for item in readback.get('cases', [readback]) if item.get('case_id') == case['case_id']]
             require(len(items) == 1 and isinstance(items[0].get('contacts'), list), 'readback_mismatch', 'Release readback must hold this case\'s complete case log')
@@ -659,10 +669,56 @@ class CaseService:
             since = timestamp(claim['first_at']).replace(microsecond=0)
             shown = [c for c in items[0]['contacts'] if c.get('is_amazon') is False and (timestamp(c['timestamp']) >= since if c.get('timestamp') else c.get('id') not in case['contact_ids'])]
             require(not shown, 'message_observed', 'The case log shows a seller message since the claim; record it instead')
-            claim['released'] = {'at': self._now().isoformat(), 'authorization': authorization, 'run_dir': str(run_dir), 'evidence': {**evidence, 'readback_sha256': readback_sha}}
+            claim['released'] = {'at': self._now().isoformat(), 'authorization': authorization, 'run_dir': str(run_dir), 'evidence': {**evidence, 'readback_sha256': readback_sha}, **unsent}
             case['authorization_revision'] += 1
             self._save(db, case)
             return {'status': 'released', 'run_id': run_id, 'case': case}
+
+    def _unsent_page(self, request, run_dir, tried, result):
+        """Proof that a run's uncertain submits sent nothing: the operator's verbatim chat sentence and the
+        driver's own transcript of the page each submit was clicked on, captured after the last one, that shows
+        no approved text. The driver's sent check matches the whitespace-collapsed text or its first 120
+        characters, so the same match here refuses. Returns the time the evidence must post-date, and the record."""
+        statement, evidence = request.get('operator_statement'), request['evidence']
+        require(isinstance(statement, str) and statement.strip(), 'missing_operator_statement', 'An uncertain submit is released only with the operator\'s verbatim sentence from chat that it was not sent')
+        require(evidence.get('page_evidence_path'), 'missing_page_evidence', 'An uncertain submit needs the driver transcript taken after it (transcripts/NN-transcript.json of this run)')
+        texts = evidence.get('text_paths')
+        require(isinstance(texts, list) and texts, 'missing_approved_text', 'Pass text_paths with the approved text file of every uncertain submit')
+        path = Path(str(evidence['page_evidence_path'])).expanduser().resolve()
+        require(path.parent == run_dir / 'transcripts' and re.fullmatch(r'\d{2,}-transcript\.json', path.name), 'page_evidence_mismatch', 'Page evidence must be a transcripts/NN-transcript.json of this run')
+        page, page_sha = self._evidence_file(path)
+        deep_path = path.with_name(path.name[:-len('.json')] + '-deep.txt')
+        try:
+            deep = deep_path.read_bytes()
+        except OSError as exc:
+            raise CaseError('evidence_unavailable', 'The transcript\'s -deep.txt, which the driver writes with it, is required') from exc
+        fields = [page.get('text'), page.get('page_text'), deep.decode(errors='replace')]
+        require(page.get('schema_version') == 1 and page.get('url') and all(isinstance(f, str) for f in fields) and isinstance(page.get('messages'), list), 'page_evidence_mismatch', 'Page evidence must be a driver transcript record')
+        # The driver keeps the first 200000 characters; a newer message past the cap would not show.
+        require(all(len(f) < 200000 for f in fields), 'page_evidence_truncated', 'The transcript reached the driver\'s text limit, so it cannot show that the text is absent')
+        fields += [str(m.get('text', '')) for m in page['messages'] if isinstance(m, dict)]
+        last = max(max(timestamp(a.get('at')), timestamp(result(a).get('at'))) for a in tried)
+        require(last <= timestamp(page.get('captured_at')) <= self._now() + SKEW, 'stale_page_evidence', 'The transcript must be captured after the last uncertain submit')
+        for attempt in tried:
+            queue_id = str(attempt.get('queue_id') or '')
+            require(queue_id.isdigit(), 'page_evidence_mismatch', 'An uncertain submit without a queue ID has no page to compare')
+            step, _ = self._evidence_file(run_dir / 'steps' / f'{int(queue_id):02d}-submit.json')
+            require(step.get('url') and step['url'] == page['url'], 'page_evidence_mismatch', 'The transcript must show the page the uncertain submit was clicked on')
+        approved = {}
+        for text_path in texts:
+            try:
+                raw = Path(str(text_path)).expanduser().read_bytes()
+            except OSError as exc:
+                raise CaseError('evidence_unavailable', 'Approved text file is unavailable') from exc
+            approved[hashlib.sha256(raw).hexdigest()] = (str(Path(str(text_path)).expanduser()), raw.decode())
+        shas = sorted({str(a.get('sha256')) for a in tried})
+        require(set(shas) <= set(approved), 'missing_approved_text', 'text_paths must hold the approved text of every uncertain submit')
+        for sha in shas:
+            text = normalize_body(approved[sha][1])
+            shown = any(text in normalize_body(f) or collapse(text)[:120] in collapse(f) for f in fields)
+            require(not shown, 'message_in_page_evidence', 'The transcript shows the approved text or its first 120 characters; record the send instead')
+        return last, {'operator_statement': statement, 'page_evidence': {'path': str(path), 'sha256': page_sha, 'captured_at': page['captured_at'], 'url': page['url'], 'deep_text_path': str(deep_path), 'deep_text_sha256': hashlib.sha256(deep).hexdigest()},
+                      'texts': [{'path': approved[sha][0], 'sha256': sha} for sha in shas], 'uncertain_submits': [{'queue_id': a.get('queue_id'), 'sha256': a.get('sha256'), 'at': a.get('at')} for a in tried]}
 
     def daily_due(self):
         current = self._now().astimezone(ZONE)
@@ -802,14 +858,14 @@ class CaseService:
 
     @staticmethod
     def _submits(log):
-        """Submit attempt lines of a driver approvals.jsonl, and each one's outcome from its result line."""
+        """Submit attempt lines of a driver approvals.jsonl, each one's outcome from its result line, and that line."""
         entries = []
         for line in log.splitlines():
             with contextlib.suppress(ValueError):
                 entries.append(json.loads(line))  # The driver ignores a torn last line the same way.
         results = {e.get('queue_id'): e for e in entries if isinstance(e, dict) and e.get('phase') == 'result'}
         attempts = [e for e in entries if isinstance(e, dict) and e.get('phase') == 'attempt' and e.get('command') == 'submit']
-        return attempts, lambda a: (results.get(a.get('queue_id')) or {}).get('status', 'uncertain')
+        return attempts, lambda a: (results.get(a.get('queue_id')) or {}).get('status', 'uncertain'), lambda a: results.get(a.get('queue_id'))
 
     def _driver_run(self, case, receipt, authorization):
         run_dir = Path(str(receipt.get('run_dir') or '')).expanduser().resolve()
@@ -826,7 +882,7 @@ class CaseService:
         # The receipt's approval sentence and every one the service validated when this run claimed a click.
         instructions = {str(a['source']['instruction']).strip() for a in [authorization, *claim.get('authorizations', [])]}
         require(receipt.get('readback_path'), 'missing_readback', 'Record a driver run with the case readback taken after it')
-        attempts, outcome = self._submits(log)
+        attempts, outcome, _ = self._submits(log)
         require(all(timestamp(a.get('at')) >= timestamp(claim['first_at']) - SKEW for a in attempts), 'claim_after_click', 'A click in this run came before its first claim-attended')
         messages = receipt.get('messages')
         require(isinstance(messages, list) and messages and all(isinstance(m, dict) and m.get('plan_item') and SHA.fullmatch(str(m.get('sha256'))) for m in messages) and len({m['sha256'] for m in messages}) == len(messages), 'invalid_receipt', 'List each approved message once with its plan item and SHA-256')

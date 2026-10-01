@@ -722,11 +722,12 @@ class CaseServiceTests(unittest.TestCase):
         self.now += dt.timedelta(minutes=30)
         text = 'Here is the invoice.\n\nDanica\nEcom Wizards'
         release = lambda run_dir, run_id: self.service.release({'registry_id': case['registry_id'], 'run_id': run_id, 'run_dir': str(run_dir), 'authorization': self.attended('Nothing went out; release it'), 'evidence': {'readback_path': str(self.case_log(case, [])), 'summary': 'Case log shows no seller message'}})  # noqa: E731
-        for status in ('sent', 'uncertain', None):
+        # An uncertain submit needs the operator's statement and the driver's transcript as well.
+        for status, code in (('sent', 'run_sent'), ('uncertain', 'missing_operator_statement'), (None, 'run_sent')):
             with self.subTest(status=status):
                 run_id = f'evora-1-{status}'
                 run_dir, _ = self.driver_run(case, {'P3': text}, statuses={'P3': status}, run_id=run_id)
-                self.assertCode('run_sent', lambda: release(run_dir, run_id))
+                self.assertCode(code, lambda: release(run_dir, run_id))
         current = self.current(case)
         self.assertEqual(3, len(self.service._open_claims(current)))
         self.assertCode('reconciliation_required', lambda: self.prepare(current, 'reply', daily_key=observed['daily_key']))
@@ -742,6 +743,102 @@ class CaseServiceTests(unittest.TestCase):
         unbound, _ = self.driver_run(case, {}, run_id='evora-1-unbound', registry=False)
         self.assertCode('registry_binding_required', lambda: release(unbound, 'evora-1-unbound'))
         self.assertCode('run_mismatch', lambda: release(blocked, 'evora-1-unbound'))
+
+    def transcript(self, run_dir, captured, url, text='', page_text='', deep='', messages=(), step='07'):
+        """The driver's transcript command output: transcripts/NN-transcript.json with its -deep.txt."""
+        (run_dir / 'transcripts').mkdir(exist_ok=True)
+        (run_dir / 'transcripts' / f'{step}-transcript-deep.txt').write_text(deep)
+        record = {'schema_version': 1, 'captured_at': captured.isoformat(), 'url': url, 'conversation_url': None, 'frame_id': 'F1', 'composer_label': 'Type your message', 'text_sha256': hashlib.sha256(text.encode()).hexdigest(),
+                  'basis': 'container', 'text': text, 'message_count': len(messages), 'message_detection': 'structural', 'messages': [{'text': m, 'role': 'listitem'} for m in messages], 'page_text': page_text}
+        return self.evidence(f'runs/{run_dir.name}/transcripts/{step}-transcript.json', record)
+
+    def test_release_frees_an_uncertain_run_only_with_statement_transcript_and_readback(self):
+        # stackFix open item: an uncertain submit that in truth sent nothing can be neither recorded nor released.
+        case = self.created()
+        self.now += dt.timedelta(days=1)
+        observed = self.observe(case, [{'id': 'amazon-1', 'is_amazon': True}])
+        self.now += dt.timedelta(minutes=30)
+        text = 'Here is the invoice for shipment FBA15ABCDEF. It lists the units we sent on 12 September and the carrier receipt for the same pallet count.\n\nDanica\nEcom Wizards'
+        clicked = self.now - dt.timedelta(minutes=10)
+        run_dir, messages = self.driver_run(case, {'P3': text}, statuses={'P3': 'uncertain'}, run_id='evora-1-u', at=clicked)
+        url = 'https://sellercentral.amazon.com/cu/case-dashboard/view-case?caseID=21912345678'
+        (run_dir / 'steps').mkdir()
+        self.evidence('runs/evora-1-u/steps/00-submit.json', {'schema_version': 1, 'id': '000', 'command': 'submit', 'result': {'status': 'uncertain'}, 'url': url})
+        chat = 'Amazon: Thanks, what else can I help with?\n\nYou: Hello.'
+        page = self.transcript(run_dir, clicked + dt.timedelta(minutes=2), url, chat, chat + '\nType your message', chat, ['Thanks, what else can I help with?', 'Hello.'])
+        statement = 'The invoice message did not go out, the composer was empty and nothing new is in the chat'
+        current = self.current(case)
+        self.assertCode('reconciliation_required', lambda: self.prepare(current, 'reply', daily_key=observed['daily_key']))
+
+        def release(readback=None, **extra):
+            evidence = {'readback_path': str(readback or self.case_log(case, [])), 'summary': 'Case log and transcript show no seller message', 'page_evidence_path': str(page), 'text_paths': [messages[0]['text_path']], **extra.pop('evidence', {})}
+            request = {'registry_id': case['registry_id'], 'run_id': 'evora-1-u', 'run_dir': str(run_dir), 'authorization': self.attended('It was not sent, release the run'), 'operator_statement': statement, 'evidence': evidence, **extra}
+            return self.service.release({k: v for k, v in request.items() if v is not None})
+
+        # Each of the four pieces is required.
+        for name, extra, code in (('statement', {'operator_statement': None}, 'missing_operator_statement'), ('blank statement', {'operator_statement': '  '}, 'missing_operator_statement'),
+                                  ('page evidence', {'evidence': {'page_evidence_path': None}}, 'missing_page_evidence'), ('text', {'evidence': {'text_paths': []}}, 'missing_approved_text'),
+                                  ('readback', {'evidence': {'readback_path': None}}, 'missing_release_evidence'), ('authorization', {'authorization': None}, 'attended_required'),
+                                  ('slack', {'authorization': self.auth('UVICTOR', '300.2')}, 'attended_required')):
+            with self.subTest(missing=name):
+                self.assertCode(code, lambda: release(**extra))
+        other_text = self.root / 'other.txt'
+        other_text.write_text('Another approved text')
+        self.assertCode('missing_approved_text', lambda: release(evidence={'text_paths': [str(other_text)]}))
+        os.environ['WIZARDS_AI_MODE'] = '1'
+        self.assertCode('attended_context_required', lambda: release())
+        os.environ.pop('WIZARDS_AI_MODE')
+        # Evidence older than the attempt: a readback after the claim but before the click, a transcript before it.
+        self.assertCode('stale_readback', lambda: release(self.case_log(case, [], observed=clicked - dt.timedelta(milliseconds=500))))
+        early = self.transcript(run_dir, clicked - dt.timedelta(seconds=30), url, chat, chat, chat, step='06')
+        self.assertCode('stale_page_evidence', lambda: release(evidence={'page_evidence_path': str(early)}))
+        # A transcript of another page, or one outside the run, cannot speak for the submit.
+        elsewhere = self.transcript(run_dir, clicked + dt.timedelta(minutes=3), url + '&chat=1', chat, chat, chat, step='08')
+        self.assertCode('page_evidence_mismatch', lambda: release(evidence={'page_evidence_path': str(elsewhere)}))
+        outside = self.evidence('07-transcript.json', json.loads(page.read_text()))
+        self.assertCode('page_evidence_mismatch', lambda: release(evidence={'page_evidence_path': str(outside)}))
+        # The approved text in any part of the transcript refuses: exact, whitespace-collapsed, or its first 120 characters.
+        collapsed = ' '.join(text.split())
+        for name, kwargs in (('text', {'text': chat + '\n\n' + text}), ('page_text', {'page_text': chat + '\n' + text}), ('deep', {'deep': collapsed}),
+                             ('message', {'messages': ['Hello.', text]}), ('prefix', {'text': chat + '\n' + collapsed[:125]})):
+            with self.subTest(shown=name):
+                fields = {'text': chat, 'page_text': chat, 'deep': chat, 'messages': ['Hello.'], **kwargs}
+                shown = self.transcript(run_dir, clicked + dt.timedelta(minutes=4), url, step='09', **fields)
+                self.assertCode('message_in_page_evidence', lambda: release(evidence={'page_evidence_path': str(shown)}))
+        capped = self.transcript(run_dir, clicked + dt.timedelta(minutes=4), url, chat, 'x' * 200000, chat, step='10')
+        self.assertCode('page_evidence_truncated', lambda: release(evidence={'page_evidence_path': str(capped)}))
+        # All four pieces release the run; the record keeps the evidence, its hashes, the statement and the time.
+        readback = self.case_log(case, [], name='observe-after-u.json')
+        released = release(readback)
+        self.assertEqual('released', released['status'])
+        record = released['case']['attended_claims']['evora-1-u']['released']
+        self.assertEqual((statement, self.now.isoformat()), (record['operator_statement'], record['at']))
+        self.assertEqual((str(page.resolve()), hashlib.sha256(page.read_bytes()).hexdigest()), (record['page_evidence']['path'], record['page_evidence']['sha256']))
+        self.assertEqual(hashlib.sha256(chat.encode()).hexdigest(), record['page_evidence']['deep_text_sha256'])
+        self.assertEqual([{'path': messages[0]['text_path'], 'sha256': messages[0]['sha256']}], record['texts'])
+        self.assertEqual(hashlib.sha256(readback.read_bytes()).hexdigest(), record['evidence']['readback_sha256'])
+        self.assertEqual(['000'], [s['queue_id'] for s in record['uncertain_submits']])
+        self.assertEqual('already_released', release(readback)['status'])
+        # The case is sendable again, and the released run cannot click again.
+        self.assertEqual([], self.service._open_claims(self.current(case)))
+        self.assertEqual('ready', self.prepare(self.current(case), 'reply', daily_key=observed['daily_key'])['status'])
+        self.assertCode('claim_released', lambda: self.claim(case, self.current(case)['last_sent_at'], run_id='evora-1-u'))
+
+    def test_release_refuses_a_run_with_a_sent_and_an_uncertain_submit(self):
+        case = self.created()
+        self.now += dt.timedelta(days=1)
+        clicked = self.now - dt.timedelta(minutes=10)
+        run_dir, messages = self.driver_run(case, {'P3': 'Here is the invoice.\n\nDanica\nEcom Wizards', 'followup': 'Also attached: the packing list.\n\nDanica\nEcom Wizards'},
+                                            statuses={'P3': 'uncertain', 'followup': 'sent'}, run_id='evora-1-mixed', at=clicked)
+        url = 'https://sellercentral.amazon.com/cu/case-dashboard/view-case?caseID=21912345678'
+        (run_dir / 'steps').mkdir()
+        for queue_id in ('000', '001'):
+            self.evidence(f'runs/evora-1-mixed/steps/{queue_id[1:]}-submit.json', {'schema_version': 1, 'id': queue_id, 'command': 'submit', 'url': url})
+        page = self.transcript(run_dir, clicked + dt.timedelta(minutes=2), url, 'Hello.', 'Hello.', 'Hello.')
+        request = {'registry_id': case['registry_id'], 'run_id': 'evora-1-mixed', 'run_dir': str(run_dir), 'authorization': self.attended('It was not sent, release the run'), 'operator_statement': 'Neither message went out',
+                   'evidence': {'readback_path': str(self.case_log(case, [])), 'summary': 'Case log shows no seller message', 'page_evidence_path': str(page), 'text_paths': [m['text_path'] for m in messages]}}
+        self.assertCode('run_sent', lambda: self.service.release(request))
+        self.assertEqual(['evora-1-mixed'], self.service._open_claims(self.current(case)))
 
     def test_claim_checks_the_chat_name_against_the_case_owner(self):
         case = self.created()
