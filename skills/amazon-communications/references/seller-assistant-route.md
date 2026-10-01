@@ -90,7 +90,7 @@ Every step is then one client call, which queues a command and waits for its res
 | --- | --- |
 | `open [--via-lobby \| --conversation <path>]` | Record the case lobby controls, then open a new Seller Assistant chat, or reopen an existing `/assistant/amzn1.cyrano.conversation.cid.v2.<id>?client=sellerSupport-meldFullPage` conversation after a controller restart |
 | `state` | Read URL, frames, composer label, value and counter, controls, status texts, tour text, denial text, and the handoff terms with their hash |
-| `navigate --label <label>` | Clicks that send nothing, from a fixed list: `Get help with a new issue`, `Show more`, `Show less`, tour-dismiss labels while a tour step is visible, and `Request changes` while an email Issue summary shows one `Approve` |
+| `navigate --label <label>` | Clicks that send nothing, from a fixed list: `Get help with a new issue`, `Show more`, `Show less`, tour-dismiss labels while a tour step is visible, and `Request changes` while one or more email Issue summaries show `Approve`. That click goes to the last summary's `Request changes`, only after the page re-reads the exact terms text that `state` reported, and only when every `Approve` has its own `Request changes` |
 | `type --text-file <f> --sha256 <h>` | Put an approved draft into the empty composer and verify it; never submits |
 | `submit --expect-sha256 <h> --approval-file <f> [--expect-attachment <name>]...` | Click the composer's own `Submit` only when the composer text, the expected hash and the approval hash agree, and the files present are exactly the named files this run attached |
 | `approve --expect-terms-sha256 <h> --approval-file <f>` | Click the handoff `Approve` only when the terms hash matches |

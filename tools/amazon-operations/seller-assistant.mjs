@@ -24,14 +24,17 @@ export const MAX_COMPOSER_CHARS = 2500;
 export const NAVIGATION_LABELS = Object.freeze(['Get help with a new issue', 'Show more', 'Show less']);
 export const TOUR_LABELS = Object.freeze(['Skip', 'Skip tour', 'Got it', 'Done', 'Next', 'Finish', 'Close', 'Dismiss']);
 // Request changes reopens an email-case Issue summary for editing and sends
-// nothing. It is allowed only while exactly one Approve control is visible.
+// nothing. It is allowed while one or more Issue summaries show Approve; the
+// click goes to the last summary's Request changes after the page re-reads the
+// terms text that `state` reported.
 export const SUMMARY_LABELS = Object.freeze(['Request changes']);
 export const PLAN_ITEMS = Object.freeze(['P1', 'P2', 'P3', 'approve', 'attachment', 'followup']);
 const COMMAND_PLAN_ITEMS = { submit: ['P1', 'P2', 'P3', 'followup'], approve: ['approve'], attach: ['attachment'] };
-// P2 ("Please connect me with a Seller Support associate.") may be sent twice.
-// Every other approved hash is sent at most once per run; an uncertain send is
-// never retried automatically.
-const SEND_LIMITS = { P2: 2 };
+// P2 may be sent twice, and only as the fixed sentence the route reserves for
+// it. Every other approved hash, including a P2 approval of any other text, is
+// sent at most once per run; an uncertain send is never retried automatically.
+export const P2_TEXT = 'Please connect me with a Seller Support associate.';
+const SEND_LIMITS = { P2: { sha256: createHash('sha256').update(P2_TEXT).digest('hex'), limit: 2 } };
 const ASSISTANT_PATH = '/assistant?client=sellerSupport-meldFullPage';
 // An existing Seller Assistant conversation, reopened after a controller restart.
 export const CONVERSATION_PATH = /^\/assistant\/amzn1\.cyrano\.conversation\.cid\.v2\.\d{10,40}\?client=sellerSupport-meldFullPage$/;
@@ -391,7 +394,7 @@ export function parseArgs(argv) {
  * it is serialized with Function.prototype.toString; `collapse` and `matchLabel`
  * are injected so the page and the tests share one matching rule. */
 export function pageAgent(op, arg, lib) {
-  const { collapse, matchLabel, detectTour, composerSubmitCheck } = lib;
+  const { collapse, matchLabel, detectTour, composerSubmitCheck, normalizeComposer } = lib;
   const fail = (code, detail = '') => { throw new Error(`EW:${code}:${detail}`); };
   const roots = [document], els = [];
   for (let i = 0; i < roots.length; i++) for (const el of roots[i].querySelectorAll('*')) { els.push(el); if (el.shadowRoot) roots.push(el.shadowRoot); }
@@ -542,13 +545,15 @@ export function pageAgent(op, arg, lib) {
   }
   if (op === 'control') {
     // Submit is looked up only as the composer's own control, with the same rule
-    // the controller applied to the scan.
+    // the controller applied to the scan. The composer must still hold the
+    // approved text, normalized as the controller normalizes it before hashing.
     if (arg.composerSubmit) {
       if (arg.label !== 'Submit') fail('composer_submit_label', arg.label);
       if (!comp) fail('composer_count', String(comps.length));
       const list = submitsOf(comp, conv());
       const v = composerSubmitCheck({ disabled: disabledOf(comp) || comp.readOnly === true }, list.map(x => ({ disabled: x.disabled, in_region: x.in_region })));
       if (!v.ok) fail(v.reason, String(v.count ?? ''));
+      if (typeof arg.expectedComposerText !== 'string' || normalizeComposer(valueOf(comp)) !== arg.expectedComposerText) fail('composer_changed');
       return list[0].el;
     }
     if (arg.label === 'Approve' && arg.expectedTermsText) {
@@ -678,7 +683,7 @@ export function pageAgent(op, arg, lib) {
 }
 
 export function pageExpression(op, arg = null) {
-  return `/*ew-sa:${op}*/(() => { const collapse = ${collapse}; const matchLabel = ${matchLabel}; const detectTour = ${detectTour}; const composerSubmitCheck = ${composerSubmitCheck}; return (${pageAgent})(${JSON.stringify(op)}, ${JSON.stringify(arg)}, { collapse, matchLabel, detectTour, composerSubmitCheck }); })()`;
+  return `/*ew-sa:${op}*/(() => { const collapse = ${collapse}; const matchLabel = ${matchLabel}; const detectTour = ${detectTour}; const composerSubmitCheck = ${composerSubmitCheck}; const normalizeText = ${normalizeText}; const normalizeComposer = ${normalizeComposer}; return (${pageAgent})(${JSON.stringify(op)}, ${JSON.stringify(arg)}, { collapse, matchLabel, detectTour, composerSubmitCheck, normalizeComposer }); })()`;
 }
 
 const HIT_TEST_FN = 'function(hit){for(let n=hit;n;n=(n.parentNode&&n.parentNode.nodeType===11)?n.parentNode.host:n.parentNode){if(n===this)return true;}return false;}';
@@ -854,7 +859,7 @@ export function makeBrowser({ send, listPageTargets = async () => [], sleep = ms
       return state;
     },
     async terms(frameId) { const t = await run(frameId, 'terms'); return { ...t, sha256: termsHash(t.text) }; },
-    async prepareClick(frameId, label, { tour = false, composerSubmit = false, expectedTermsText = null } = {}) { return locate(await run(frameId, 'control', { label, tour, composerSubmit, expectedTermsText }, { byValue: false })); },
+    async prepareClick(frameId, label, { tour = false, composerSubmit = false, expectedTermsText = null, expectedComposerText = null } = {}) { return locate(await run(frameId, 'control', { label, tour, composerSubmit, expectedTermsText, expectedComposerText }, { byValue: false })); },
     dispatchClick: dispatch,
     async insertText(frameId, text) {
       const { objectId } = await run(frameId, 'composer', null, { byValue: false });
@@ -957,9 +962,9 @@ async function dispatchedFailure(rt, error) {
  * errors during or after dispatch carry `dispatched: true`. `beforeDispatch`
  * runs after the control is located and hit-tested, right before the mouse
  * events. */
-async function guardedClick(rt, frameId, label, beforeDispatch = null, { tour = false, composerSubmit = false, expectedTermsText = null } = {}) {
+async function guardedClick(rt, frameId, label, beforeDispatch = null, { tour = false, composerSubmit = false, expectedTermsText = null, expectedComposerText = null } = {}) {
   const before = new Set(await rt.browser.targets());
-  const point = await rt.browser.prepareClick(frameId, label, { tour, composerSubmit, expectedTermsText });
+  const point = await rt.browser.prepareClick(frameId, label, { tour, composerSubmit, expectedTermsText, expectedComposerText });
   // Without beforeDispatch this check runs in the same tick as the dispatch.
   assertNotAborting(rt);
   if (beforeDispatch) await beforeDispatch();
@@ -1120,7 +1125,8 @@ export const handlers = {
     const loaded = await loadApproval(args['approval-file'], expected, COMMAND_PLAN_ITEMS.submit, rt.deps.readFile, approvalContext(rt));
     if (!loaded.ok) return { status: 'refused', reason: loaded.reason };
     const approval = loaded.approval;
-    const key = `submit:${expected}`, limit = SEND_LIMITS[approval.plan_item] || 1;
+    const special = SEND_LIMITS[approval.plan_item];
+    const key = `submit:${expected}`, limit = special && special.sha256 === expected ? special.limit : 1;
     if (usageCount(rt, key) >= limit) return { status: 'refused', reason: 'send_limit_reached', limit };
     const expectedFiles = args['expect-attachment'] || [];
     // Wait out a running assistant reply before judging the page.
@@ -1144,7 +1150,7 @@ export const handlers = {
           ...(expectedFiles.length ? { attachments: expectedFiles } : {}) });
         bumpUsage(rt, key);
         markDispatched(rt, 'submit', expected, 'clicked');
-      }, { composerSubmit: true });
+      }, { composerSubmit: true, expectedComposerText: recheck.text });
     } catch (error) { return clickFailure(rt, error); }
     try {
       const wait = await waitUntil(rt, () => rt.browser.occurrences(frameId, composer.text),
