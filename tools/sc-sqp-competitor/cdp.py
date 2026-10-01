@@ -3,9 +3,9 @@ from pathlib import Path
 
 import websocket
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "browserctl"))
-from browser_session import session_environment, assert_session_lock
+from browser_session import managed_port, session_environment, assert_session_lock
 # Account switching here takes no task claim; only the grimoire (9223) lock guards it.
-if (os.environ.get("AMAZON_BROWSER_SESSION") or "grimoire") != "grimoire" or os.environ.get("CDP_PORT") == "9222":
+if (os.environ.get("AMAZON_BROWSER_SESSION") or "grimoire") != "grimoire" or managed_port(os.environ.get("CDP_PORT")) == 9222:
     raise RuntimeError("SQP_COMPETITOR_GRIMOIRE_ONLY: this tool switches Seller Central accounts without a task claim "
                        "and runs only on grimoire (CDP 9223); start it with browserctl run --session grimoire --")
 os.environ.update(session_environment("grimoire", inherit=True))

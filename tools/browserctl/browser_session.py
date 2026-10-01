@@ -45,8 +45,17 @@ def session_environment(name=None, overrides=None, *, inherit=False):
     return json.loads(result.stdout)
 
 
+def managed_port(value):
+    # CDP_PORT names a managed session by number, so "09222" is still the operator port.
+    try:
+        port = int(str(value).strip())
+    except ValueError:
+        return None
+    return port if port in {9222, 9223} else None
+
+
 def bind_process_session():
-    if os.environ.get("CDP_PORT", "9223") not in {"9222", "9223"} and not os.environ.get("AMAZON_BROWSER_SESSION"):
+    if not managed_port(os.environ.get("CDP_PORT", "9223")) and not os.environ.get("AMAZON_BROWSER_SESSION"):
         return
     os.environ.update(session_environment(os.environ.get("AMAZON_BROWSER_SESSION"), inherit=True))
 

@@ -308,8 +308,11 @@ milliseconds). If that code's 30-second period has ended when the code field
 appears, the result is `totp_expired` and nothing is typed. When a caller passes
 `otpFetchedAt` or `onOtpSubmitted`, the result also carries `otp_submitted`, and
 `onOtpSubmitted()` runs once, just before the code form is submitted, so a retry
-after a thrown error can refuse to submit a second code. Without these options
-the result keeps its existing fields.
+after a thrown error can refuse to submit a second code. One call submits at
+most one code, with Enter only: if the code form returns after it, the result
+is `totp_rejected`, and a code form that does not advance within 30 seconds
+throws instead of being clicked or resubmitted. Without these options the
+result keeps its existing fields.
 
 ## GNOME autostart installation
 

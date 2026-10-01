@@ -1,3 +1,4 @@
+import '../../report-fetcher/test/helpers/isolated-runtime.mjs';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';

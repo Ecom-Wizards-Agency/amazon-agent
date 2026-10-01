@@ -85,6 +85,31 @@ test('browserctl session and the Python adapter follow the same order and refusa
   assert.notEqual(refused.status,0);assert.match(refused.stderr,/BROWSER_SESSION_REFUSED/);
  }
 });
+test('WIZARDS_AI_MODE refuses port 9222 however CDP_PORT spells it',()=>{
+ const operatorEnv={...env,AMAZON_BROWSER_POLICY:operatorPolicyPath,WIZARDS_AI_MODE:'1'};
+ const spellings=['09222',' 9222','9222.0','0x2406'];
+ for(const CDP_PORT of spellings){
+  assert.throws(()=>sessionEnvironment(undefined,{WIZARDS_AI_MODE:'1',CDP_PORT},loadBrowserPolicy(operatorPolicyPath)),/BROWSER_SESSION_REFUSED/);
+  // Outside Grimoire a non-canonical spelling still never binds silently.
+  assert.throws(()=>sessionEnvironment(undefined,{CDP_PORT},loadBrowserPolicy(operatorPolicyPath)),/BROWSER_SESSION_CONFLICT/);
+  const imported=spawnSync(process.execPath,['--input-type=module','-e',`import ${JSON.stringify(new URL('../../report-fetcher/cdp.mjs',import.meta.url).href)};`],
+   {env:{...operatorEnv,CDP_PORT,CDP_AUTOSTART:'0'},encoding:'utf8'});
+  assert.notEqual(imported.status,0);assert.match(imported.stderr,/BROWSER_SESSION_REFUSED/);
+ }
+ for(const CDP_PORT of ['09222',' 9222 ']){
+  const python=spawnSync('python3',['-c',`import sys;sys.path.insert(0,${JSON.stringify(new URL('..',import.meta.url).pathname)});import browser_session as b;b.bind_process_session()`],
+   {env:{...operatorEnv,CDP_PORT},encoding:'utf8'});
+  assert.notEqual(python.status,0);assert.match(python.stderr,/BROWSER_SESSION_REFUSED/);
+  // --help would exit before any launch, so a missed refusal cannot start Chrome.
+  const launcher=spawnSync('python3',[new URL('../../report-fetcher/launch-chrome-debug.py',import.meta.url).pathname,'--help'],
+   {env:{...operatorEnv,CDP_PORT,AMAZON_BROWSER_LOCK_DIR:dir},encoding:'utf8'});
+  assert.notEqual(launcher.status,0);assert.match(launcher.stderr,/BROWSER_SESSION_REFUSED/);
+ }
+ // Fixture ports that are not managed sessions stay unbound, as before.
+ const fixture=spawnSync(process.execPath,['--input-type=module','-e',`import ${JSON.stringify(new URL('../../report-fetcher/cdp.mjs',import.meta.url).href)};console.log(process.env.CDP_PORT+' '+(process.env.AMAZON_BROWSER_SESSION||'none'))`],
+  {env:{...operatorEnv,CDP_PORT:'19222',CDP_AUTOSTART:'0'},encoding:'utf8'});
+ assert.equal(fixture.stdout.trim(),'19222 none',fixture.stderr);
+});
 test('launcher grandchildren inherit the session before CDP import',()=>{
  const inner=`import ${JSON.stringify(new URL('../../report-fetcher/cdp.mjs',import.meta.url).href)};
  console.log(JSON.stringify({session:process.env.AMAZON_BROWSER_SESSION,port:process.env.CDP_PORT,locked:Boolean(process.env.AMAZON_BROWSER_LOCK_TOKEN)}));`;

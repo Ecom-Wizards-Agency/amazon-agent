@@ -1,6 +1,6 @@
 # Brand Store audits and scoped corrections
 
-Browser: CDP (Grimoire, port 9223; use the shared browserctl task and evidence helpers).
+Browser: CDP (the machine's attended session in direct chat, Grimoire on port 9223 from Slack; use the shared browserctl task and evidence helpers).
 
 Use this reference for product-grid audits, wrong or missing image destinations,
 approved artwork replacements and Store builds. The team vault's

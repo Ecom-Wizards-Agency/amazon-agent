@@ -18,6 +18,9 @@ export function wizardsAiMode(env = process.env) {
 const REFUSED = "BROWSER_SESSION_REFUSED: WIZARDS_AI_MODE runs only on grimoire (CDP 9223); "
   + "operator (CDP 9222) is the attended browser";
 
+// CDP_PORT names a managed session by number, so "09222" is still the operator port.
+const managedSession = (port) => ({ 9222: "operator", 9223: "grimoire" })[Number(String(port ?? "").trim())];
+
 export function sessionForPort(port, env = process.env) {
   const name = Number(port) === 9223 ? "grimoire" : "operator";
   if (name !== "grimoire" && wizardsAiMode(env)) throw new Error(REFUSED);
@@ -37,7 +40,7 @@ export function resolveSession(name = "grimoire", policy = loadBrowserPolicy()) 
 export function sessionEnvironment(name, env = process.env, policy = loadBrowserPolicy()) {
   // Order: --session, AMAZON_BROWSER_SESSION, CDP_PORT, then the machine policy's
   // attended default. WIZARDS_AI_MODE defaults to grimoire and refuses operator.
-  const portSession = { 9222: "operator", 9223: "grimoire" }[env.CDP_PORT];
+  const portSession = managedSession(env.CDP_PORT);
   if (wizardsAiMode(env) && [name, env.AMAZON_BROWSER_SESSION, portSession].includes("operator")) {
     throw new Error(REFUSED);
   }
@@ -57,6 +60,6 @@ export function sessionEnvironment(name, env = process.env, policy = loadBrowser
 export function bindProcessSession() {
   // Isolated CDP fixtures use ephemeral ports, never a managed session name.
   if (!process.env.AMAZON_BROWSER_SESSION && process.env.CDP_PORT &&
-      !["9222", "9223"].includes(process.env.CDP_PORT)) return;
+      !managedSession(process.env.CDP_PORT)) return;
   Object.assign(process.env, sessionEnvironment(undefined));
 }

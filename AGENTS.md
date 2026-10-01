@@ -26,7 +26,7 @@ The company writing standard lives in `company-ai-skills/docs/writing-style.md`;
 
 Grimoire's Slack and scheduled runs use the named `grimoire` session on CDP 9223, with the persistent `~/.amazon-agent/wizards-ai-chrome` profile. The `operator` session on 9222 is separate, backed by `~/.amazon-agent/chrome-debug`. Attended direct chat uses the machine's attended default, a machine-local setting: `grimoire` unless the setup-owned browser policy sets `routing.default_cdp_port` to 9222. Evo X1 sets 9222, so attended work there runs on `operator` with the operator's own Seller Central login. Browser identity does not authorize a write.
 
-Launch browser-dependent commands in attended chat through `node tools/browserctl/browserctl.mjs run -- <command>`. This resolves the session before imports in the order `--session`, `AMAZON_BROWSER_SESSION`, `CDP_PORT`, then the machine default, and propagates it to child tools. On `grimoire` it holds the same 9223 lock as scheduled workers; 9222 has no port-wide lock, and Seller Central work there relies on its regional or global task claim. Grimoire-side and scheduled instructions keep `--session grimoire`. `WIZARDS_AI_MODE=1`, set by every Grimoire unit, resolves to `grimoire` and refuses `operator` or port 9222 however it is selected. Pin `--session grimoire` for work that must stay on 9223, such as DataDive web work. Conflicting endpoint/profile overrides fail. Direct-chat results return in that chat; using the shared browser does not send anything to Slack.
+Launch browser-dependent commands in attended chat through `node tools/browserctl/browserctl.mjs run -- <command>`. This resolves the session before imports in the order `--session`, `AMAZON_BROWSER_SESSION`, `CDP_PORT`, then the machine default, and propagates it to child tools. On `grimoire` it holds the same 9223 lock as scheduled workers; 9222 has no port-wide lock, and Seller Central work there relies on its regional or global task claim. Grimoire-side and scheduled instructions keep `--session grimoire`. `WIZARDS_AI_MODE=1`, set by every Grimoire unit, resolves to `grimoire` and refuses `operator` or port 9222 however it is selected. Pin `--session grimoire` for work that must stay on 9223, such as DataDive web work and managed case operations (`cases.mjs` runs only on `grimoire`). Conflicting endpoint/profile overrides fail. Direct-chat results return in that chat; using the shared browser does not send anything to Slack.
 
 CDP runners start or reuse this dedicated profile lazily through the shared
 `ensureChrome()` helper. `assertChrome()` is the read-only probe for setup and
@@ -746,7 +746,9 @@ owner's approved signature even when another teammate asks for the next reply;
 reassignment must be explicit. Missing ownership needs one clarification, never
 a fallback to the host operator's name. Review correspondence once daily under
 the configured schedule. The operator browser remains an explicit selection;
-missing Reply in Grimoire requires an access/closure/UI diagnosis.
+missing Reply in Grimoire requires an access/closure/UI diagnosis. Run case
+operations under `browserctl run --session grimoire --`, also in attended chat,
+because `cases.mjs` refuses every other session.
 The full workflow and rollout requirements are in `docs/team-owned-cases.md`.
 
 For flat-file and template work:

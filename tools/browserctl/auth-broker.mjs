@@ -177,13 +177,15 @@ async function replaceInput(cdp, session, selector, value, description) {
   await session.send("Input.insertText", { text: value }, { timeoutMs: 10000 });
 }
 
-async function submitForm(cdp, session) {
+// A one-time code is submitted once: Enter only, then a longer wait. The click
+// and requestSubmit fallbacks could send the same code a second time.
+async function submitForm(cdp, session, { once = false } = {}) {
   const before = await cdp.evaluate(session, `JSON.stringify({url:location.href,
     email:${visible('input[type="email"],input[name="email"],input[autocomplete="username"],#ap_email,#ap_email_login')},
     password:${visible('input[type="password"],input[name="password"]')},
     otp:${visible('input[name="otpCode"],input[name="code"],input[autocomplete="one-time-code"]')}})`);
-  const changed = async () => {
-    for (let attempt = 0; attempt < 40; attempt++) {
+  const changed = async (attempts = 40) => {
+    for (let attempt = 0; attempt < attempts; attempt++) {
       try {
         const current = await cdp.evaluate(session, `JSON.stringify({url:location.href,
           email:${visible('input[type="email"],input[name="email"],input[autocomplete="username"],#ap_email,#ap_email_login')},
@@ -201,6 +203,10 @@ async function submitForm(cdp, session) {
     await session.send("Input.dispatchKeyEvent", {
       type, key: "Enter", code: "Enter", windowsVirtualKeyCode: 13, nativeVirtualKeyCode: 13,
     }, { timeoutMs: 10000 });
+  }
+  if (once) {
+    if (await changed(120)) return;
+    throw new Error("AUTH_FORM_UNAVAILABLE: code form did not advance; the code is not submitted again");
   }
   if (await changed()) return;
   await trustedClick(cdp, session,
@@ -233,7 +239,7 @@ async function fillStep(cdp, session, state, login, getOtp, beforeOtpSubmit = ()
       otp, "one-time password");
     beforeOtpSubmit();
   } else return false;
-  await submitForm(cdp, session);
+  await submitForm(cdp, session, { once: state.status === "totp_required" });
   return true;
 }
 
@@ -323,6 +329,12 @@ export async function authenticateTarget({
       }
       const currentLogin = getLogin();
       let otp = null;
+      if (state.status === "totp_required" && otpSubmitted) {
+        // The code form came back after a submitted code: rejected or stalled.
+        // One call submits at most one code.
+        await releaseLease({ port, targetId, outcome: "totp_rejected", policy });
+        return output("totp_rejected", state.facts.origin);
+      }
       if (state.status === "totp_required") {
         // Nothing is typed without a code, or once the code's period has ended.
         otp = String(auth.loadRouteLogin(config, route, { includeOtp: true }).otp ?? "").trim();

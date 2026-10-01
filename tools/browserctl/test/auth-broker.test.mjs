@@ -169,6 +169,57 @@ test("callers learn whether this attempt submitted a code, even when the submit 
   assert.equal(calls, 1);
 });
 
+test("a code form that returns after a submitted code ends the call without a second code", async () => {
+  const ERROR = { otp: true, path: "/ap/mfa", invalid: false };
+  for (const options of [{}, { otpFetchedAt: Date.now() }]) {
+    let calls = 0;
+    const { result, page } = await login([CODE, ERROR, ERROR, APP], "123456",
+      { ...options, onOtpSubmitted: () => { calls++; } });
+    assert.equal(result.status, "totp_rejected");
+    assert.equal(result.otp_submitted, true);
+    assert.deepEqual(page.typed, ["123456"]);
+    assert.equal(page.submits, 1);
+    assert.equal(calls, 1);
+  }
+  const plain = await login([PASSWORD, CODE, CODE, APP], "123456");
+  assert.equal(plain.result.status, "totp_rejected");
+  assert.deepEqual(Object.keys(plain.result).sort(), PUBLIC_KEYS);
+  assert.deepEqual(plain.page.typed, ["user@example.test", "password-secret", "123456"]);
+  assert.equal(plain.page.submits, 2);
+});
+
+test("a code form that does not advance is not submitted a second way", async () => {
+  const page = fakeLogin([CODE, APP]);
+  page.targetId = `T${++targetCount}`;
+  const evaluate = page.cdp.evaluate;
+  const methods = [];
+  page.cdp.evaluate = async (session, expression, ...rest) => {
+    if (expression.includes("requestSubmit")) methods.push("requestSubmit");
+    if (expression.startsWith("JSON.stringify({url:location.href")) return JSON.stringify({ index: 0 });
+    return evaluate(session, expression, ...rest);
+  };
+  const send = page.cdp.Session.open;
+  page.cdp.Session.open = async () => {
+    const session = await send();
+    return { ...session, async send(method, params) {
+      if (method === "Input.dispatchMouseEvent") methods.push("click");
+      return session.send(method, params);
+    } };
+  };
+  // The broker's 250 ms polls run immediately so the full wait takes no real time.
+  const realTimeout = globalThis.setTimeout;
+  globalThis.setTimeout = (callback, _ms, ...args) => realTimeout(callback, 0, ...args);
+  try {
+    await assert.rejects(authenticateTarget({
+      port: 9223, targetId: page.targetId, policy: loadBrowserPolicy(), cdp: page.cdp,
+      config: { authentication: { mode: "interactive" } }, authProvider: provider("123456"),
+    }), /code form did not advance/);
+  } finally { globalThis.setTimeout = realTimeout; }
+  assert.deepEqual(page.typed, ["123456"]);
+  assert.equal(page.submits, 1);
+  assert.deepEqual(methods, []);
+});
+
 test("without the code options the public status keeps its existing shape", async () => {
   const { result, page } = await login([PASSWORD, CODE, APP], "123456");
   assert.equal(result.status, "authenticated");
