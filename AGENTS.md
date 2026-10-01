@@ -24,9 +24,9 @@ The company writing standard lives in `company-ai-skills/docs/writing-style.md`;
 
 ## Browser Standard
 
-Amazon workflows from direct chat and Slack share the named `grimoire` session on CDP 9223, using the persistent `~/.amazon-agent/wizards-ai-chrome` profile. The `operator` session on 9222 remains separate, backed by `~/.amazon-agent/chrome-debug`. Browser identity does not authorize a write.
+Grimoire's Slack and scheduled runs use the named `grimoire` session on CDP 9223, with the persistent `~/.amazon-agent/wizards-ai-chrome` profile. The `operator` session on 9222 is separate, backed by `~/.amazon-agent/chrome-debug`. Attended direct chat uses the machine's attended default, a machine-local setting: `grimoire` unless the setup-owned browser policy sets `routing.attended_cdp_port` to 9222. Evo X1 sets 9222, so attended work there runs on `operator` with the operator's own Seller Central login. Browser identity does not authorize a write.
 
-Launch browser-dependent commands through `node tools/browserctl/browserctl.mjs run --session grimoire -- <command>`. This resolves the session before imports, propagates it to child tools, and holds the same 9223 lock as scheduled workers. Use `--session operator` only for explicitly requested separate operator work. Conflicting endpoint/profile overrides fail. Direct-chat results return in that chat; using the shared browser does not send anything to Slack.
+Launch browser-dependent commands in attended chat through `node tools/browserctl/browserctl.mjs run -- <command>`. This resolves the session before imports in the order `--session`, `AMAZON_BROWSER_SESSION`, `CDP_PORT`, then the machine default, and propagates it to child tools. On `grimoire` it holds the same 9223 lock as scheduled workers; 9222 has no port-wide lock, and Seller Central work there relies on its regional or global task claim. Grimoire-side and scheduled instructions keep `--session grimoire`. `WIZARDS_AI_MODE=1`, set by every Grimoire unit, resolves to `grimoire` and refuses `operator` or port 9222 however it is selected. Pin `--session grimoire` for work that must stay on 9223, such as DataDive web work and the retired-form case adapter (`operations.py` `case.create` / `case.reply` execute through `cases.mjs`, which executes only on `grimoire`). Attended Seller Support sends do not use that adapter: they run `seller-assistant.mjs` on `operator` (see Safety Rules). Conflicting endpoint/profile overrides fail. Direct-chat results return in that chat; using the shared browser does not send anything to Slack.
 
 CDP runners start or reuse this dedicated profile lazily through the shared
 `ensureChrome()` helper. `assertChrome()` is the read-only probe for setup and
@@ -107,7 +107,10 @@ interactive lease. Callers must use `interaction` for retention updates; the
 low-level guard needs a separate browserctl change.
 
 Managed Chrome CDP on port 9223 is the default browser for Amazon workflows.
-Port 9222 is the separate operator browser, selected explicitly.
+Port 9222 is the separate operator browser, selected explicitly or by the
+machine-local attended default. That default lives in `routing.attended_cdp_port`
+of the setup-owned browser policy and only affects attended sessions. Evo X1
+sets 9222; other machines keep 9223, and Grimoire always stays on 9223.
 The T3 Code in-app browser is not a first-choice browser and is never a silent fallback from
 either CDP port: it does not share the managed Chrome profile, cannot use the
 exact-port authentication broker, and is not the supported local file upload
@@ -130,7 +133,8 @@ and eligibility date; only unclassified or blocked artifacts need approval.
 Interactive UI work (FlatFilePro mapping, Creator Connections inbox, visual checks, anything without a script path) runs over the same CDP debug Chrome. CDP is not limited to scripted fetches: it dispatches real mouse and key events, captures screenshots as evidence, polls for late-loading elements, attaches local files to file inputs (`DOM.setFileInputFiles`), and captures downloads to a chosen folder (`Browser.setDownloadBehavior`). Verified 31.07.2026, including a live Seller Central account switch driven entirely from the terminal.
 
 DataDive web app navigation, read-only endpoint fetches, downloads, and
-screenshots use the shared Grimoire session on port 9223. DataDive MCP remains
+screenshots use the shared Grimoire session on port 9223, pinned with
+`--session grimoire` even where the attended default is 9222. DataDive MCP remains
 first for supported data. Verify the browser niche against the MCP inputs.
 A missing or expired login pauses that workflow for login in 9223; never copy
 cookies or fall back to the operator profile. Extension-dependent actions must
@@ -155,8 +159,10 @@ only. CAPTCHA, device approval, account recovery, identity verification, and
 invalid-credential states remain human-only. The agent must not inspect passwords,
 one-time codes, cookies, local storage, session stores, or browser profile data.
 
-Grimoire scheduled/Slack runs and attended Amazon Agent sessions share the
-delegated Seller Central login **Grimoire** on port 9223.
+Grimoire scheduled/Slack runs use the delegated Seller Central login
+**Grimoire** on port 9223. Attended Amazon Agent sessions share that login on
+machines whose attended default is 9223. On Evo X1 they use `operator` on 9222
+with the operator's own Seller Central login.
 Authentication availability never broadens action rights. Actor-specific gates,
 executor availability and grant evidence are defined in
 [the capability matrix](docs/rights/README.md); local standing permissions may
@@ -731,19 +737,25 @@ For creator, buyer, or support communication:
 
 - Draft the message first.
 - Confirm the exact thread/person/case.
-- Stop before clicking `Send` unless the operator explicitly confirms the exact send action or the configured team-owned case service verifies a matching request-bound mandate. That case-only mandate authorizes the initial submission and routine continuation of the same issue; it does not authorize buyer/creator messages, appeals, admissions, financial commitments, or account changes. It does not authorize a Seller Assistant chat either: creating a case there is attended only and needs the operator's approval of the exact send plan.
+- Stop before clicking `Send` unless the operator explicitly confirms the exact send action or the configured team-owned case service verifies a matching request-bound mandate. That case-only mandate authorizes the initial submission and routine continuation of the same issue; it does not authorize buyer/creator messages, appeals, admissions, financial commitments, or account changes. It does not authorize a Seller Assistant chat either: creating a case there is attended only. In attended chat, the operator's approval of the exact signed, labelled Seller Support text is the confirmation, also for a text labelled appeal, dispute, refund request, commitment or admission; the lead session then sends, verifies and records it without asking again, and a subagent never sends.
 
-For managed Seller Support cases, use `tools/amazon-operations/case_service.py`
-and the `case.create` / `case.reply` operations. Both direct chat and Grimoire
+For managed Seller Support cases, use `tools/amazon-operations/case_service.py`;
+Grimoire sends through the `case.create` / `case.reply` operations. Both direct chat and Grimoire
 share the case owner, authorization, and delivery journal. Preserve the original
 owner's approved signature even when another teammate asks for the next reply;
 reassignment must be explicit. Missing ownership needs one clarification, never
 a fallback to the host operator's name. Review correspondence once daily under
-the configured schedule. The operator browser remains an explicit selection;
-missing Reply in Grimoire requires an access/closure/UI diagnosis.
-Seller Assistant case creation is attended only until the `case.create` adapter
-supports it: the operator approves the exact send plan in chat, even under a case
-mandate, and Grimoire never drives it. The route is
+the configured schedule. Missing Reply in Grimoire requires an access/closure/UI
+diagnosis. Attended case sends run on the operator session (9222,
+`browserctl run --session operator --`) through `seller-assistant.mjs`; replies are
+recorded with `case_service.py record-receipt`. The retired-form adapter
+(`operations.py` `case.create` / `case.reply` execute through `cases.mjs`) runs
+only under `browserctl run --session grimoire --` on 9223 and is not the attended
+send path; `cases.mjs` observe may also run on the operator session. Grimoire,
+Slack requests and scheduled jobs keep `--session grimoire` with every
+case-service gate. Seller Assistant case creation is attended only until the
+`case.create` adapter supports it: the operator approves the exact texts once in
+chat, even under a case mandate, and Grimoire never drives it. The route is
 `skills/amazon-communications/references/seller-assistant-route.md`.
 The full workflow and rollout requirements are in `docs/team-owned-cases.md`.
 

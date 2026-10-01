@@ -36,8 +36,9 @@ Captured-vs-visible verification: `references/poe-gap-matrix.md`.
 ### Path B: terminal/CDP (any agent with shell access)
 
 ```bash
-node tools/browserctl/browserctl.mjs ensure --port 9223
-# If needed: node tools/browserctl/browserctl.mjs auth --port 9222 --target <target-id>
+node tools/browserctl/browserctl.mjs session   # CDP_PORT: this machine's attended port (9222 on Evo X1)
+node tools/browserctl/browserctl.mjs ensure --port <CDP_PORT>
+# If needed: node tools/browserctl/browserctl.mjs auth --port <CDP_PORT> --target <target-id>
 node tools/opportunity-explorer/run-poe.mjs doctor
 
 # find the niche (keyword search; also produces the related-niches files)

@@ -570,6 +570,20 @@ class Operations:
     def case_journal_boundary(self):
         require(self.root == self.case_root / 'operations', 'case_journal_mismatch', 'Case operations must use the canonical shared case journal directory')
 
+    def case_adapter_session(self):
+        # The retired-form adapter (cases.mjs execute) stays in Grimoire's session on
+        # 9223. Refuse any other session before the journal records an attempt, and
+        # point an attended caller at the Seller Assistant driver.
+        try:
+            env = session_environment(os.environ.get('AMAZON_BROWSER_SESSION'), inherit=True)
+        except RuntimeError as exc:
+            raise OperationError('browser_session', str(exc)) from exc
+        require(env.get('AMAZON_BROWSER_SESSION', 'grimoire') == 'grimoire' and str(env.get('CDP_PORT')) == '9223', 'case_adapter_grimoire_only',
+                'case.create and case.reply execute only in the Grimoire session on 9223. Attended Seller Support sends use the '
+                'Seller Assistant driver on the operator session (browserctl run --session operator -- node '
+                'tools/amazon-operations/seller-assistant.mjs serve) after the operator approves the exact labelled text, and are '
+                'recorded with case_service.py record-receipt; see skills/amazon-communications/references/seller-assistant-route.md')
+
     def directory(self, operation_id):
         require(isinstance(operation_id, str) and re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]{0,99}', operation_id), 'invalid_id', 'operation_id must be a simple 1..100 character identifier')
         path = self.root / operation_id
@@ -657,6 +671,7 @@ class Operations:
             case_operation = plan['operation'].startswith('case.')
             if case_operation:
                 self.case_journal_boundary()
+                self.case_adapter_session()
             target_match = grant.get('targets') == plan['targets'] if case_operation else set(x.get('sku') if isinstance(x, dict) else x for x in grant.get('targets', [])) == set(plan['targets'])
             require(grant.get('execute') is True and grant.get('account') == plan['account'] and grant.get('operation') == plan['operation'] and grant.get('plan_hash') == state['plan_hash'] and target_match, 'grant_mismatch', 'Execution grant must bind exact account, operation, targets and plan hash')
             if plan['body'].get('image_policy') == 'secondary_slots_only' and not state.get('effects_started'):
@@ -720,7 +735,7 @@ class Operations:
                 envelope['allow_validated_image_adapter'] = grant.get('allow_validated_adapter') is True
             atomic_json(directory / 'adapter-input.json', envelope)
             try:
-                result = subprocess.run(['node', str(ROOT / 'tools/amazon-operations' / adapter_script), '--request', str(directory / 'adapter-input.json')], capture_output=True, text=True, timeout=1800, check=False, env={**os.environ, **session_environment(os.environ.get('AMAZON_BROWSER_SESSION', 'grimoire'), inherit=True)})
+                result = subprocess.run(['node', str(ROOT / 'tools/amazon-operations' / adapter_script), '--request', str(directory / 'adapter-input.json')], capture_output=True, text=True, timeout=1800, check=False, env={**os.environ, **session_environment(os.environ.get('AMAZON_BROWSER_SESSION'), inherit=True)})
                 response = json.loads(result.stdout)
                 require(response.get('plan_hash') == state['plan_hash'], 'adapter_identity', 'Adapter result is not bound to this plan')
                 status = response.get('status')
@@ -1129,7 +1144,7 @@ class Operations:
         input_path = directory / (script.replace('.mjs', '') + '-input.json')
         atomic_json(input_path, request)
         try:
-            process = subprocess.Popen(['node', str(ROOT / 'tools/amazon-operations' / script), '--request', str(input_path)], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env={**os.environ, **session_environment(os.environ.get('AMAZON_BROWSER_SESSION', 'grimoire'), inherit=True)})
+            process = subprocess.Popen(['node', str(ROOT / 'tools/amazon-operations' / script), '--request', str(input_path)], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env={**os.environ, **session_environment(os.environ.get('AMAZON_BROWSER_SESSION'), inherit=True)})
             try:
                 stdout, _ = process.communicate(timeout=timeout)
             except subprocess.TimeoutExpired:
@@ -1373,7 +1388,7 @@ class Operations:
             return None
         output = directory / ('live-listings-' + str(len(state.get('events', []))) + '.json')
         try:
-            result = subprocess.run(['node', str(ROOT / 'tools/listing-capture/capture-cdp.mjs'), ','.join(sorted(set(mapping[sku] for sku in expected))), str(output), *market], capture_output=True, text=True, timeout=300, check=False, env={**os.environ, **session_environment(os.environ.get('AMAZON_BROWSER_SESSION', 'grimoire'), inherit=True)})
+            result = subprocess.run(['node', str(ROOT / 'tools/listing-capture/capture-cdp.mjs'), ','.join(sorted(set(mapping[sku] for sku in expected))), str(output), *market], capture_output=True, text=True, timeout=300, check=False, env={**os.environ, **session_environment(os.environ.get('AMAZON_BROWSER_SESSION'), inherit=True)})
             if result.returncode or not output.is_file():
                 return None
             captured = json.loads(output.read_text())
@@ -1404,7 +1419,7 @@ class Operations:
             # Match taskIdFor('amazon-operations', task_key || operation_id).
             key = state.get('task_key') or plan['operation_id']
             task_id = 'amazon-operations:' + hashlib.sha256(str(key).encode()).hexdigest()[:20]
-            env = {**os.environ, **session_environment(os.environ.get('AMAZON_BROWSER_SESSION', 'grimoire'), inherit=True)}
+            env = {**os.environ, **session_environment(os.environ.get('AMAZON_BROWSER_SESSION'), inherit=True)}
             subprocess.run(['node', str(ROOT / 'tools/browserctl/browserctl.mjs'), 'task', 'complete',
                             '--port', env['CDP_PORT'], '--task-id', task_id],
                            capture_output=True, text=True, timeout=30, check=True, env=env)

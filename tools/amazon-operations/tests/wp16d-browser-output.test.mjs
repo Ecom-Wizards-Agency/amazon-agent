@@ -1,3 +1,4 @@
+import '../../report-fetcher/test/helpers/isolated-runtime.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {registerHooks,syncBuiltinESMExports} from 'node:module';
@@ -10,15 +11,23 @@ import {spawn} from 'node:child_process';
 import {acquireSessionLockWithWait} from '../../browserctl/session-lock.mjs';
 import {releaseTaskPage} from '../../browserctl/task-tabs.mjs';
 
+// Each case runs under `browserctl run --` twice: with the default policy (grimoire
+// on 9223, which holds the launcher lock) and with the attended default set to
+// 9222 (operator, no port lock), as on Evo X1.
+const ATTENDED={grimoire:null,operator:9222};
 function outputTest(name,run){
  if(process.env.WP16G_OUTPUT_CASE){
   if(process.env.WP16G_OUTPUT_CASE===name)test(name,run);
   return;
  }
- test(name,{timeout:30000},async t=>{
+ for(const [session,attended] of Object.entries(ATTENDED))test(`${name} [${session}]`,{timeout:30000},async t=>{
   const directory=await mkdtemp(join(tmpdir(),'wp16g-output-launcher-'));
   t.after(()=>rm(directory,{recursive:true,force:true}));
   const env={...process.env,WP16G_OUTPUT_CASE:name,AMAZON_BROWSER_LOCK_DIR:directory};
+  // Each variant writes its own policy, so the suite's ambient routing never decides the session.
+  const {routing:_ambient,...base}=JSON.parse(fs.readFileSync(process.env.AMAZON_BROWSER_POLICY,'utf8'));
+  env.AMAZON_BROWSER_POLICY=join(directory,'policy.json');
+  fs.writeFileSync(env.AMAZON_BROWSER_POLICY,JSON.stringify({...base,...(attended?{routing:{attended_cdp_port:attended}}:{})}));
   for(const key of ['CDP_PORT','CDP_PROFILE','CDP_HOST','AMAZON_BROWSER_SESSION','AMAZON_BROWSER_LOCK_TOKEN','AMAZON_BROWSER_LOCK_CHAIN','AMAZON_BROWSER_LAUNCHER_PID','AMAZON_BROWSER_LAUNCHER_CONTROL','AMAZON_BROWSER_LOCK_WAIT_MS','NODE_TEST_CONTEXT'])delete env[key];
   const child=spawn(process.execPath,[new URL('../../browserctl/browserctl.mjs',import.meta.url).pathname,'run','--',process.execPath,new URL(import.meta.url).pathname],{env});
   let stdout='',stderr='';child.stdout.on('data',data=>{stdout+=data;});child.stderr.on('data',data=>{stderr+=data;});
@@ -26,26 +35,32 @@ function outputTest(name,run){
   const code=await new Promise((resolve,reject)=>{child.once('error',reject);child.once('exit',resolve);});
   assert.equal(code,0,stdout+stderr);
   assert.equal(await readFile(join(directory,'output-tests-exit'),'utf8'),'0');
+  assert.equal(await readFile(join(directory,'output-tests-session'),'utf8'),session);
   assert.equal(fs.existsSync(join(directory,'cdp-9223.lock')),false);
  });
 }
-if(process.env.WP16G_OUTPUT_CASE)process.once('exit',code=>fs.writeFileSync(join(process.env.AMAZON_BROWSER_LOCK_DIR,'output-tests-exit'),String(code)));
+if(process.env.WP16G_OUTPUT_CASE)process.once('exit',code=>{
+ fs.writeFileSync(join(process.env.AMAZON_BROWSER_LOCK_DIR,'output-tests-exit'),String(code));
+ fs.writeFileSync(join(process.env.AMAZON_BROWSER_LOCK_DIR,'output-tests-session'),String(process.env.AMAZON_BROWSER_SESSION));
+});
 
 // Run the real entrypoints and output code with browser-only boundaries replaced.
 const state=globalThis.__wp16dOutput={held:false,events:[],evaluate:null,shot:null};
-state.acquireLock=()=>acquireSessionLockWithWait(9223,'output-test');
+// The port `browserctl run` bound; only 9223 has a lock, so on 9222 this is a no-op.
+const PORT=Number(process.env.CDP_PORT||9223);
+state.acquireLock=()=>acquireSessionLockWithWait(PORT,'output-test');
 state.releasePage=releaseTaskPage;
 state.assertUnlocked=()=>assert.equal(fs.existsSync(join(process.env.AMAZON_BROWSER_LOCK_DIR,'cdp-9223.lock')),false,'launcher lock must be absent during output');
 const sources={
  'node:child_process':`export const execFileSync=(...args)=>globalThis.__wp16dOutput.exec(...args);`,
  'task-tabs.mjs':`export const taskIdFor=(...v)=>v.join(':');
- export async function acquireTaskPage(spec){const s=globalThis.__wp16dOutput;s.beforeAcquire?.();const unlock=await s.acquireLock();s.held=true;s.events.push('acquire');return {port:9223,taskId:spec.taskId,targetId:'target',_unlockSession:unlock,_registry:{releaseTaskTabControl:async()=>{}},session:{close(){},send:async()=>{},assertTaskControl:async()=>{}}};}
+ export async function acquireTaskPage(spec){const s=globalThis.__wp16dOutput;s.beforeAcquire?.();const unlock=await s.acquireLock();s.held=true;s.events.push('acquire');return {port:${PORT},taskId:spec.taskId,targetId:'target',_unlockSession:unlock,_registry:{releaseTaskTabControl:async()=>{}},session:{close(){},send:async()=>{},assertTaskControl:async()=>{}}};}
  export const closeReleasedTaskPage=async()=>false;export const completeBrowserTask=async()=>{};
  export async function releaseTaskPage(page,options){const s=globalThis.__wp16dOutput;await s.releasePage(page,options);s.assertUnlocked();s.held=false;s.events.push('release:'+options.outcome);}`,
  'cdp.mjs':`export const ensureChrome=async()=>({});export const listPages=async()=>[];
  export const evaluate=(...args)=>globalThis.__wp16dOutput.evaluate(...args);`,
  'task-evidence.mjs':`export const captureTaskEvidence=async()=>globalThis.__wp16dOutput.shot;`,
- 'lease-registry.mjs':`export const listTaskTabs=async()=>[{port:9223,taskId:'audit',targetId:'target',slot:'primary',workflow:'audit'}];`,
+ 'lease-registry.mjs':`export const listTaskTabs=async()=>[{port:${PORT},taskId:'audit',targetId:'target',slot:'primary',workflow:'audit'}];`,
  'marketplace-postcode.mjs':`export const ensureDeliveryPostcode=async()=>({ok:true});`,
  'sc-account.mjs':`export const inspectPage=async()=>({pageKind:'app',authState:'authenticated',facts:{url:'https://sellercentral.amazon.com/home'}});
  export const readIdentity=async()=>({displayName:'Seller',merchantId:'SELLER',marketplace:'US'});
@@ -177,7 +192,7 @@ outputTest('S23 label hashing and all PDF subprocesses run after both claims rel
  const browser=new StaBrowser({receipt_path:join(directory,'receipt.json')});
  const unlock=await state.acquireLock();state.held=true;
  browser.session={close(){},assertTaskControl:async()=>{},send:async()=>{}};
- browser.page={port:9223,session:browser.session,_unlockSession:unlock,_registry:{releaseTaskTabControl:async()=>{},acquireTaskDownloads:async()=>({}),releaseTaskDownloads:async()=>state.events.push('download-release')}};
+ browser.page={port:PORT,session:browser.session,_unlockSession:unlock,_registry:{releaseTaskTabControl:async()=>{},acquireTaskDownloads:async()=>({}),releaseTaskDownloads:async()=>state.events.push('download-release')}};
  browser.release=async page=>{await state.releasePage(page);state.assertUnlocked();state.held=false;state.events.push('page-release');};
  browser.assertIdentity=async()=>assert.equal(state.held,true);
  browser.ev=async()=>'PackageLabel_Thermal_NonPCP';browser.clickAt=async()=>{};

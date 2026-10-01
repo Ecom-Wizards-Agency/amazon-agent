@@ -1,27 +1,51 @@
 #!/usr/bin/env node
-/** Seller Assistant step driver for attended Seller Support chats.
+/** Seller Assistant step driver for attended Seller Support chats and case replies.
  *
  * `serve` is the only process that touches the browser. It holds one managed task
- * tab in the Grimoire session on 9223 for the whole chat and executes queued
- * commands one at a time. `send` writes one command into the run directory and
- * waits for its result; it never imports a browser module.
+ * tab for the whole chat, in the operator session on 9222 (attended runs) or the
+ * Grimoire session on 9223, and executes queued commands one at a time. `send`
+ * writes one command into the run directory and waits for its result; it never
+ * imports a browser module.
  *
- * Safety model: outbound actions (Submit, Approve, file attach) run only when the
- * live composer text, handoff terms or file hash equals an operator-approved
- * SHA-256 recorded in an approval file. Navigation clicks use a fixed allowlist.
- * Enter is never pressed. Identity (seller and marketplace) is verified before and
- * after every command and again immediately before each outbound click.
+ * Safety model: outbound actions (Submit, Send, Chat now, Approve, file attach)
+ * run only when the live composer text, handoff terms or file hash equals an
+ * operator-approved SHA-256 recorded in an approval file. Navigation clicks use a
+ * fixed allowlist. Enter is never pressed. Identity (seller and marketplace) is
+ * verified on the task tab before and after every command and again immediately
+ * before each outbound click. A run bound to a case registry row also asks the
+ * case service (claim-attended) before each outbound action.
  *
- * Attended use only. Grimoire never runs this driver.
+ * Attended use only. Grimoire never runs this driver: `serve` and `send` are
+ * refused under WIZARDS_AI_MODE or inside a wizards-ai-* unit, on either session,
+ * and serve runs a queued command only for a live client outside those units.
  */
 import { mkdir, readFile, readdir, rename, writeFile, open, appendFile, unlink, copyFile } from 'node:fs/promises';
-import { unlinkSync, existsSync, constants as fsConstants } from 'node:fs';
+import { unlinkSync, existsSync, readFileSync, constants as fsConstants } from 'node:fs';
 import { createHash } from 'node:crypto';
-import { basename, isAbsolute, join, resolve } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { execFile } from 'node:child_process';
+import { basename, dirname, isAbsolute, join, resolve } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 export const MAX_COMPOSER_CHARS = 2500;
 export const NAVIGATION_LABELS = Object.freeze(['Get help with a new issue', 'Show more', 'Show less']);
+// Reply opens the reply form of a case and sends nothing. It is allowed only on
+// the case view page.
+export const REPLY_LABEL = 'Reply';
+export const SUBMIT_LABELS = Object.freeze(['Submit', 'Send', 'Chat now']);
+export const UPLOAD_LABELS = Object.freeze(['Upload file', 'Attach']);
+// The case reply form's Chat now button opens Amazon's case chat in a new window.
+// Its opening line and the "Your name" value (the case owner's signature_name
+// from run.json) are code constants shown in the operator's draft, so they are
+// covered by the approval of the message the chat delivers.
+export const CHAT_OPENING_LINE = 'Hello.';
+export const CHAT_SLOT = 'case-chat';
+export const CASE_VIEW_PATH = '/cu/case-dashboard/view-case';
+export const CASE_CHAT_PATH = '/hill/website/chat';
+// Labels an attended text approval must carry (case_service.py LABELS).
+export const APPROVAL_LABELS = Object.freeze(['routine', 'appeal', 'dispute', 'refund_request', 'commitment', 'admission']);
+const TEXT_ITEMS = new Set(['P1', 'P2', 'P3', 'followup']);
+const SESSION_PORTS = Object.freeze({ grimoire: 9223, operator: 9222 });
+const CASE_SERVICE = join(dirname(fileURLToPath(import.meta.url)), 'case_service.py');
 export const TOUR_LABELS = Object.freeze(['Skip', 'Skip tour', 'Got it', 'Done', 'Next', 'Finish', 'Close', 'Dismiss']);
 // Request changes reopens an email-case Issue summary for editing and sends
 // nothing. It is allowed while one or more Issue summaries show Approve; the
@@ -71,6 +95,59 @@ function codeError(code, message = code, extra = {}) {
 const isFatal = error => /^(?:TASK_|BROWSER_SESSION)/.test(String(error?.code || '')) ||
   /TASK_TAB_CONTROL_LOST|BROWSER_SESSION_LOCK_LOST/.test(String(error?.message || ''));
 
+// ------------------------------------------------------------------- session
+
+const readCgroup = () => { try { return readFileSync('/proc/self/cgroup', 'utf8'); } catch { return ''; } };
+
+/** Grimoire sets WIZARDS_AI_MODE and runs in wizards-ai-* units; either one marks
+ * an unattended process. Same rule as case_service.py unattended_context. */
+export function unattendedContext(env = process.env, cgroup = readCgroup()) {
+  if (env.WIZARDS_AI_MODE !== undefined) return true;
+  return String(cgroup ?? '').split('\n').some(line => {
+    const fields = line.split(':');
+    return (fields.length > 2 ? fields.slice(2).join(':') : fields.at(-1)).split('/').some(part => part.startsWith('wizards-ai-'));
+  });
+}
+
+/** The browser session a case or Seller Assistant run may use: the operator
+ * session on 9222 (never from Grimoire's environment) or Grimoire on 9223. The
+ * same resolution as browserctl session.mjs: a named session fixes its port, else
+ * CDP_PORT 9222 means operator. Only 9223 carries the port-wide session lock. */
+export function assertSession(env = process.env, cgroup = undefined) {
+  const port = env.CDP_PORT ? Number(env.CDP_PORT) : null;
+  const session = env.AMAZON_BROWSER_SESSION || (port === 9222 ? 'operator' : 'grimoire');
+  const expected = SESSION_PORTS[session];
+  if (!expected || (port !== null && port !== expected)) {
+    throw codeError('session_invalid', 'Seller Support runs need the operator session on 9222 or the Grimoire session on 9223');
+  }
+  if (session === 'operator' && unattendedContext(env, cgroup === undefined ? readCgroup() : cgroup)) {
+    throw codeError('attended_context_required', 'The operator session is refused under WIZARDS_AI_MODE or inside a wizards-ai unit');
+  }
+  return { session, port: expected, lockPort: expected === 9223 ? 9223 : null };
+}
+
+/** `serve` is attended only: Grimoire's environment (WIZARDS_AI_MODE or a
+ * wizards-ai-* unit) is refused whichever session it names. cases.mjs uses
+ * assertSession alone, because its execute path stays Grimoire's on 9223. */
+export function assertAttended(env = process.env, cgroup = readCgroup()) {
+  if (unattendedContext(env, cgroup)) throw codeError('attended_context_required', 'Seller Assistant is attended only; refused under WIZARDS_AI_MODE or inside a wizards-ai unit');
+}
+
+/** The cgroup of the `send` client that queued a command; it waits for the result,
+ * so it is alive while serve checks it. '' where the platform has no cgroups, null
+ * when the client is gone. Its environment is not read: it can hold secrets, and
+ * the client checks WIZARDS_AI_MODE itself before queueing. */
+export function readClientCgroup(pid) {
+  if (!existsSync('/proc/self/cgroup')) return '';
+  try { return readFileSync(`/proc/${pid}/cgroup`, 'utf8'); } catch { return null; }
+}
+
+/** Grimoire's 9223 lock is held for the whole chat. The operator browser has no
+ * port lock; its Seller Central work serializes on the task tab's region claim. */
+export function acquireServeLock(binding, lock) {
+  return binding?.lockPort === 9223 ? lock.acquireSessionLock(9223, 'seller-assistant') : () => {};
+}
+
 // ---------------------------------------------------------------- pure checks
 
 export function validateRunConfig(config) {
@@ -93,7 +170,78 @@ export function validateRunConfig(config) {
     if (b.unique_label_mapping !== true) throw codeError('run_config_invalid', 'run.json account.context_binding.unique_label_mapping must be true');
     kept.context_binding = { seller_id: b.seller_id, marketplace_id: b.marketplace_id, unique_label_mapping: true };
   }
-  return { schema_version: 1, run_id: config.run_id, account: kept };
+  const run = { schema_version: 1, run_id: config.run_id, account: kept };
+  // A reply run is bound to its case registry row: it passes the draft baseline
+  // (from case_service.py sign) and the attended authorization to claim-attended
+  // before every outbound action. `open --case` refuses without registry_id; a new
+  // case in Seller Assistant is not bound (it registers through start and adopt).
+  if (config.registry_id !== undefined) {
+    if (typeof config.registry_id !== 'string' || !config.registry_id.trim()) throw codeError('run_config_invalid', 'run.json registry_id must be a non-empty string');
+    const baseline = config.baseline;
+    if (!baseline || typeof baseline !== 'object' || Array.isArray(baseline) || !('last_sent_at' in baseline) || !(baseline.last_sent_at === null || isIsoTime(baseline.last_sent_at))) {
+      throw codeError('run_config_invalid', 'run.json baseline.last_sent_at must be the sign result: a timestamp or null');
+    }
+    const auth = config.authorization;
+    if (!auth || typeof auth !== 'object' || Array.isArray(auth) || auth.kind !== 'attended' || typeof auth.source?.instruction !== 'string' || !auth.source.instruction.trim()) {
+      throw codeError('run_config_invalid', 'run.json authorization must be an attended authorization with source.instruction');
+    }
+    Object.assign(run, { registry_id: config.registry_id, baseline: { last_sent_at: baseline.last_sent_at }, authorization: auth });
+  }
+  // The case chat's "Your name" field (maxlength 100 on the 2026-10-01 form).
+  if (config.signature_name !== undefined) {
+    if (typeof config.signature_name !== 'string' || !config.signature_name.trim() || config.signature_name.length > 100 || /[\r\n]/.test(config.signature_name)) {
+      throw codeError('run_config_invalid', 'run.json signature_name must be one line of at most 100 characters');
+    }
+    run.signature_name = config.signature_name;
+  }
+  return run;
+}
+
+/** The claim-attended request for this run (case_service.py README contract):
+ * the case the run opened, the chat name it types (the service refuses one that
+ * is not the case owner's), and the authorization of the approval about to be
+ * used, which is run.json's unless the approval carries its own. */
+export function claimRequest(config, { caseId = null, authorization = null } = {}) {
+  return { registry_id: config.registry_id, run_id: config.run_id, account: { seller_id: config.account.seller_id, marketplace_id: config.account.marketplace_id },
+    case_id: caseId, baseline: config.baseline, authorization: authorization || config.authorization,
+    ...(config.signature_name !== undefined ? { signature_name: config.signature_name } : {}) };
+}
+
+/** Ask the case service whether this attended run may click. Anything but exit 0
+ * with status `claimed` is a refusal. */
+export function runClaimAttended(requestPath, exec = execFile) {
+  return new Promise(done => {
+    exec('python3', [CASE_SERVICE, 'claim-attended', '--request', requestPath], { encoding: 'utf8', timeout: 30000 }, (error, stdout) => {
+      let answer = null;
+      try { answer = JSON.parse(String(stdout || '').trim().split('\n').at(-1)); } catch { /* reported below */ }
+      if (!error && answer?.status === 'claimed') return done({ ok: true, ...answer });
+      done({ ok: false, reason: answer?.reason || (typeof error?.code === 'string' ? 'claim_unavailable' : 'claim_unreadable'),
+        message: String(answer?.message || error?.message || 'claim-attended gave no answer').slice(0, 300) });
+    });
+  });
+}
+
+/** Case page and case chat window checks, by URL. */
+export function isCaseViewPage(url, caseId = null) {
+  let parsed;
+  try { parsed = new URL(url); } catch { return false; }
+  return parsed.pathname === CASE_VIEW_PATH && (caseId === null || parsed.searchParams.get('caseID') === caseId);
+}
+
+/** The Chat now window Amazon opens for a case reply: same origin, the chat
+ * path, this case and reply form type (observed 2026-10-01:
+ * /hill/website/chat?formType=reply&...&caseID=<id>&contactRequestId=...), opened
+ * by the task tab. Anything else is an unexpected tab. */
+export function isCaseChatTarget(info, { origin, caseId, openerId }) {
+  if (!info || info.type !== 'page') return { ok: false, reason: 'chat_target_not_page' };
+  let url;
+  try { url = new URL(info.url); } catch { return { ok: false, reason: 'chat_url_invalid' }; }
+  if (url.origin !== origin) return { ok: false, reason: 'chat_origin_mismatch' };
+  if (url.pathname !== CASE_CHAT_PATH) return { ok: false, reason: 'chat_path_mismatch' };
+  if (!caseId || url.searchParams.get('caseID') !== caseId) return { ok: false, reason: 'chat_case_mismatch' };
+  if (url.searchParams.get('formType') !== 'reply') return { ok: false, reason: 'chat_form_type_mismatch' };
+  if (!openerId || info.openerId !== openerId) return { ok: false, reason: 'chat_opener_mismatch' };
+  return { ok: true };
 }
 
 /** A timestamp with a timezone whose calendar fields are real (no 31 February). */
@@ -180,9 +328,13 @@ export function selectComposerFrame(frames) {
   return { ok: false, reason: 'no_composer', details: { frames: frames.map(brief) } };
 }
 
-export function isNavigationAllowed(label, state = {}) {
+export function isNavigationAllowed(label, state = {}, { origin = null, caseId = null } = {}) {
   const wanted = collapse(label);
   if (NAVIGATION_LABELS.includes(wanted)) return { ok: true, kind: 'navigation' };
+  if (wanted === REPLY_LABEL) {
+    const onCase = isCaseViewPage(state?.url, caseId) && (!origin || originOf(state.url) === origin);
+    return onCase ? { ok: true, kind: 'reply' } : { ok: false, reason: 'reply_not_on_case_page' };
+  }
   if (TOUR_LABELS.includes(wanted)) {
     return state?.tour?.visible === true ? { ok: true, kind: 'tour' } : { ok: false, reason: 'tour_not_visible' };
   }
@@ -237,7 +389,19 @@ export function checkComposer(value, expectedSha) {
   return { ...facts, ok: true, text };
 }
 
-/** `context` binds the approval to this run: { runId, sellerId, now }. */
+/** A text approved later in the same chat, such as the answer to an associate's
+ * question, carries its own attended `authorization` whose instruction is that
+ * approval sentence; claim-attended validates it before the click and the
+ * receipt accepts it. */
+export function ownAuthorization(approval) {
+  const own = approval?.authorization;
+  return Boolean(own && typeof own === 'object' && !Array.isArray(own) && own.kind === 'attended' && typeof own.source?.session_id === 'string' && own.source.session_id
+    && typeof own.source.instruction === 'string' && typeof approval.approval_text === 'string' && own.source.instruction.trim() === approval.approval_text.trim());
+}
+
+/** `context` binds the approval to this run: { runId, sellerId, now }, plus
+ * `instruction` (run.json's attended approval sentence) on a run bound to a case
+ * registry row: a text approval carries that sentence or its own authorization. */
 export function validateApproval(approval, expectedSha, allowedItems = PLAN_ITEMS, context = {}) {
   const fail = reason => ({ ok: false, reason });
   if (!approval || typeof approval !== 'object' || Array.isArray(approval)) return fail('approval_malformed');
@@ -249,11 +413,19 @@ export function validateApproval(approval, expectedSha, allowedItems = PLAN_ITEM
   if (approval.sha256 !== expectedSha) return fail('approval_sha_mismatch');
   if (!isIsoTime(approval.approved_at)) return fail('approval_time_invalid');
   if (typeof approval.approval_text !== 'string' || !approval.approval_text.trim()) return fail('approval_text_missing');
+  // Every text approval names what the operator approved: routine, or one of the
+  // sensitive types the draft was labelled with.
+  if (TEXT_ITEMS.has(approval.plan_item)) {
+    if (approval.label === undefined || approval.label === null || approval.label === '') return fail('approval_label_missing');
+    if (!APPROVAL_LABELS.includes(approval.label)) return fail('approval_label_invalid');
+  }
   if (typeof approval.run_id !== 'string' || !approval.run_id) return fail('approval_run_id_missing');
   if (typeof approval.seller_id !== 'string' || !approval.seller_id) return fail('approval_seller_id_missing');
   if (!context.runId || !context.sellerId || typeof context.now !== 'number') return fail('approval_context_missing');
   if (approval.run_id !== context.runId) return fail('approval_run_mismatch');
   if (approval.seller_id !== context.sellerId) return fail('approval_seller_mismatch');
+  if (approval.authorization !== undefined && !ownAuthorization(approval)) return fail('approval_authorization_invalid');
+  if (TEXT_ITEMS.has(approval.plan_item) && context.instruction !== undefined && approval.approval_text.trim() !== String(context.instruction).trim() && !ownAuthorization(approval)) return fail('approval_instruction_mismatch');
   if (Date.parse(approval.approved_at) > context.now + APPROVAL_CLOCK_SKEW_MS) return fail('approval_time_in_future');
   return { ok: true };
 }
@@ -294,11 +466,11 @@ export function summarizeViewCase(payload) {
 // ------------------------------------------------------------------ arguments
 
 const FLAG_TYPES = {
-  open: { 'via-lobby': 'bool', conversation: 'conversation' },
+  open: { 'via-lobby': 'bool', conversation: 'conversation', case: 'caseid' },
   state: {},
   navigate: { label: 'label' },
   type: { 'text-file': 'path', sha256: 'sha' },
-  submit: { 'expect-sha256': 'sha', 'approval-file': 'path', 'expect-attachment': 'list' },
+  submit: { 'expect-sha256': 'sha', 'approval-file': 'path', 'expect-attachment': 'list', label: 'submitlabel' },
   approve: { 'expect-terms-sha256': 'sha', 'approval-file': 'path' },
   attach: { file: 'path', sha256: 'sha', 'approval-file': 'path' },
   transcript: { 'wait-new': 'int', timeout: 'int' },
@@ -328,6 +500,7 @@ export function validateCommandArgs(command, args, { absolutePaths = true } = {}
     if (type === 'sha' && !(typeof value === 'string' && SHA.test(value))) return bad();
     if (type === 'path' && !(typeof value === 'string' && value && (!absolutePaths || isAbsolute(value)))) return bad();
     if (type === 'label' && !(typeof value === 'string' && collapse(value) && value.length <= 100)) return bad();
+    if (type === 'submitlabel' && !SUBMIT_LABELS.includes(value)) return bad();
     if (type === 'name' && !(typeof value === 'string' && /^[A-Za-z0-9][A-Za-z0-9_.-]{0,39}$/.test(value))) return bad();
     if (type === 'caseid' && !(typeof value === 'string' && /^\d{5,30}$/.test(value))) return bad();
     if (type === 'conversation' && !(typeof value === 'string' && CONVERSATION_PATH.test(value))) return bad();
@@ -394,7 +567,7 @@ export function parseArgs(argv) {
  * it is serialized with Function.prototype.toString; `collapse` and `matchLabel`
  * are injected so the page and the tests share one matching rule. */
 export function pageAgent(op, arg, lib) {
-  const { collapse, matchLabel, detectTour, composerSubmitCheck, normalizeComposer } = lib;
+  const { collapse, matchLabel, detectTour, composerSubmitCheck, submitLabels, uploadLabels, normalizeComposer } = lib;
   const fail = (code, detail = '') => { throw new Error(`EW:${code}:${detail}`); };
   const roots = [document], els = [];
   for (let i = 0; i < roots.length; i++) for (const el of roots[i].querySelectorAll('*')) { els.push(el); if (el.shadowRoot) roots.push(el.shadowRoot); }
@@ -428,20 +601,31 @@ export function pageAgent(op, arg, lib) {
   const all = controls();
   const comps = composersOf();
   const comp = comps.length === 1 ? comps[0] : null;
-  // Composer region: the smallest ancestor that also holds Submit or Upload file.
-  const region = el => {
-    const anchors = all.filter(c => c.label === 'Submit' || c.label === 'Upload file').map(c => c.el);
+  // Composer region: the smallest ancestor that also holds the send control in
+  // question (Submit by default) or an upload control (Upload file, Attach).
+  const region = (el, label = 'Submit') => {
+    const anchors = all.filter(c => c.label === label || uploadLabels.includes(c.label)).map(c => c.el);
     for (let n = parentOf(el), d = 0; n && d < 12; n = parentOf(n), d++) if (anchors.some(a => within(n, a))) return n;
     return parentOf(parentOf(el)) || el;
   };
-  // Every visible Submit in this frame, each marked whether it sits in the
-  // composer's region. A region that spans the conversation or a message is too
-  // broad to vouch for any control (a rating or survey form lives there).
-  const submitsOf = (el, c) => {
-    const r = region(el);
+  // Every visible control with this send label in this frame, each marked whether
+  // it sits in the composer's region. A region that spans the conversation or a
+  // message is too broad to vouch for any control (a rating or survey form lives there).
+  const submitsOf = (el, c, label = 'Submit') => {
+    const r = region(el, label);
     const broad = (c.basis === 'container' && within(r, c.area)) || c.msgs.some(m => within(r, m.el));
-    return all.filter(x => x.label === 'Submit').map(x => ({ el: x.el, disabled: x.disabled, in_region: !broad && within(r, x.el) }));
+    return all.filter(x => x.label === label).map(x => ({ el: x.el, disabled: x.disabled, in_region: !broad && within(r, x.el) }));
   };
+  // The case chat form's "Your name" input: its aria-label, a label element bound
+  // to its id, or the form's input-name container (2026-10-01 reply form:
+  // div[data-test-tag="input-name"] > kat-label + kat-input, the input in its shadow root).
+  const nameFields = () => els.filter(el => el.tagName === 'INPUT' && (el.getAttribute('type') || 'text').toLowerCase() === 'text' && visible(el)).filter(el => {
+    if (collapse(el.getAttribute('aria-label')) === 'Your name') return true;
+    const id = el.getAttribute('id');
+    if (id && els.some(l => l.tagName === 'LABEL' && l.getAttribute('for') === id && collapse(l.textContent) === 'Your name')) return true;
+    for (let n = parentOf(el), d = 0; n && n.nodeType === 1 && d < 6; n = parentOf(n), d++) if (n.getAttribute('data-test-tag') === 'input-name') return true;
+    return false;
+  });
   const regionFacts = (el, c) => {
     const r = region(el);
     const texts = leaves(r).filter(x => !within(el, x)).map(x => collapse(x.textContent)).filter(Boolean);
@@ -463,7 +647,8 @@ export function pageAgent(op, arg, lib) {
     const uploading = els.some(x => within(r, x) && visible(x) && (x.getAttribute('role') === 'progressbar' || x.getAttribute('aria-busy') === 'true')) ||
       texts.some(t => /^(?:uploading|upload failed|failed to upload)/i.test(t));
     const submit = submitsOf(el, c).map(x => ({ disabled: x.disabled, in_region: x.in_region }));
-    return { chips: uploadError ? [] : [...new Set([...fileTexts.filter(t => FILE.test(t)), ...stagedFiles])], counters: texts.filter(t => COUNTER.test(t)), uploading, submit };
+    const submitByLabel = Object.fromEntries(submitLabels.map(label => [label, submitsOf(el, c, label).map(x => ({ disabled: x.disabled, in_region: x.in_region }))]));
+    return { chips: uploadError ? [] : [...new Set([...fileTexts.filter(t => FILE.test(t)), ...stagedFiles])], counters: texts.filter(t => COUNTER.test(t)), uploading, submit, submit_by_label: submitByLabel };
   };
   const busy = () => els.some(el => visible(el) && (el.getAttribute('role') === 'progressbar' || el.getAttribute('aria-busy') === 'true')) ||
     leaves(null).some(el => /^working on it\b/i.test(collapse(el.textContent)));
@@ -538,8 +723,9 @@ export function pageAgent(op, arg, lib) {
       tour: { visible: tour.visible, text: tour.text, reason: tour.reason, ...(tour.container ? { container: tour.container } : {}) },
       counters: leaves(null).map(el => collapse(el.textContent)).filter(t => COUNTER.test(t)).slice(0, 10),
       status: statusTexts(), busy: busy(),
-      region: comp ? regionFacts(comp, c) : { chips: [], counters: [], uploading: false, submit: null },
+      region: comp ? regionFacts(comp, c) : { chips: [], counters: [], uploading: false, submit: null, submit_by_label: null },
       file_inputs: { count: files.length, names: files.flatMap(el => [...(el.files || [])].map(f => f.name)) },
+      name_field: (names => ({ count: names.length, value: names.length === 1 ? String(names[0].value ?? '') : null, disabled: names.length === 1 ? disabledOf(names[0]) || names[0].readOnly === true : null }))(nameFields()),
       conversation: { basis: c.basis, message_count: c.message_count, message_detection: c.message_detection },
     };
   }
@@ -548,9 +734,9 @@ export function pageAgent(op, arg, lib) {
     // the controller applied to the scan. The composer must still hold the
     // approved text, normalized as the controller normalizes it before hashing.
     if (arg.composerSubmit) {
-      if (arg.label !== 'Submit') fail('composer_submit_label', arg.label);
+      if (!submitLabels.includes(arg.label)) fail('composer_submit_label', arg.label);
       if (!comp) fail('composer_count', String(comps.length));
-      const list = submitsOf(comp, conv());
+      const list = submitsOf(comp, conv(), arg.label);
       const v = composerSubmitCheck({ disabled: disabledOf(comp) || comp.readOnly === true }, list.map(x => ({ disabled: x.disabled, in_region: x.in_region })));
       if (!v.ok) fail(v.reason, String(v.count ?? ''));
       if (typeof arg.expectedComposerText !== 'string' || normalizeComposer(valueOf(comp)) !== arg.expectedComposerText) fail('composer_changed');
@@ -582,6 +768,7 @@ export function pageAgent(op, arg, lib) {
     return pool[m.index].el;
   }
   if (op === 'composer') { if (!comp) fail('composer_count', String(comps.length)); return comp; }
+  if (op === 'name-input') { const n = nameFields(); if (n.length !== 1) fail('name_field_count', String(n.length)); return n[0]; }
   if (op === 'file-input') { const f = fileInputs(); if (f.length !== 1) fail('file_input_count', String(f.length)); return f[0]; }
   if (op === 'terms') {
     // Terms heuristic: walk up from the unique Approve control. Prefer the nearest
@@ -636,10 +823,13 @@ export function pageAgent(op, arg, lib) {
     // Read-only text of the whole frame, including open shadow roots, which
     // innerText skips. The 2026-09-30 email Issue summary rendered its fields
     // where neither the conversation area nor body.innerText reached them.
+    // Either limit drops the end of the frame, where the newest messages are, so
+    // hitting one is reported as `truncated` (2026-10-02 review F4).
     const out = [];
+    let cut = false;
     const BLOCK = /^(?:DIV|P|LI|UL|OL|H[1-6]|TR|TD|TH|SECTION|ARTICLE|HEADER|FOOTER|DT|DD|LABEL|BUTTON)$/;
     const walk = n => {
-      if (out.length > 60000) return;
+      if (out.length > 60000) { cut = true; return; }
       if (n.nodeType === 3) { const t = n.textContent.replace(/\s+/g, ' '); if (t.trim()) out.push(t); return; }
       if (n.nodeType !== 1 && n.nodeType !== 11) return;
       if (n.nodeType === 1) {
@@ -653,43 +843,60 @@ export function pageAgent(op, arg, lib) {
       if (n.nodeType === 1 && BLOCK.test(n.tagName)) out.push('\n');
     };
     walk(document.body || document.documentElement);
-    return { text: out.join('').replace(/[ \t]+\n/g, '\n').replace(/\n[ \t]+/g, '\n').replace(/\n{3,}/g, '\n\n').slice(0, 200000) };
+    const text = out.join('').replace(/[ \t]+\n/g, '\n').replace(/\n[ \t]+/g, '\n').replace(/\n{3,}/g, '\n\n');
+    return { text: text.slice(0, 200000), truncated: cut || text.length > 200000 };
   }
   if (op === 'conversation') {
     const c = conv();
     const depthOf = el => { let d = 0; for (let n = el; n && n !== c.area; n = parentOf(n)) d++; return d; };
     const outline = els.filter(el => el !== c.area && within(c.area, el) && (el.getAttribute('role') || el.getAttribute('aria-label') || el.getAttribute('data-testid')))
       .slice(0, 400).map(el => ({ depth: depthOf(el), tag: el.tagName, role: el.getAttribute('role'), aria_label: (el.getAttribute('aria-label') || '').slice(0, 120) || null, testid: el.getAttribute('data-testid') }));
+    const body = document.body?.innerText || '';
     return {
       basis: c.basis, text: c.text.slice(0, 200000), message_count: c.message_count, message_detection: c.message_detection,
+      truncated: c.text.length > 200000 || body.length > 200000,
       messages: c.msgs.slice(-300).map(m => ({ text: m.text.slice(0, 4000), role: m.el.getAttribute('role'), aria_label: m.el.getAttribute('aria-label'), testid: m.el.getAttribute('data-testid') })),
       outline, busy: busy(), status: statusTexts(),
       // The whole frame text as read-only backup: on the 2026-09-30 full page the
       // chosen area held only the seller's own message, not the assistant reply.
-      page_text: (document.body?.innerText || '').slice(0, 200000),
+      page_text: body.slice(0, 200000),
     };
   }
   if (op === 'occurrences') {
     // Whitespace-collapsed occurrence count in the conversation area. A
-    // contenteditable composer inside that area is subtracted.
+    // contenteditable composer inside that area is subtracted. The detection and
+    // the last message, cut as the transcript cuts it, let a later transcript be
+    // compared with the conversation as it stood before a click.
     const c = conv();
     const needle = collapse(arg.text), prefix = needle.slice(0, 120);
     const count = (hay, n) => { if (!n) return 0; let k = 0, i = 0; while ((i = hay.indexOf(n, i)) !== -1) { k++; i += n.length; } return k; };
     const hay = collapse(c.text);
     const own = comp && comp.tagName !== 'TEXTAREA' && within(c.area, comp) ? collapse(valueOf(comp)) : '';
-    return { full: count(hay, needle) - count(own, needle), prefix: count(hay, prefix) - count(own, prefix), composer_value: comp ? valueOf(comp) : null, message_count: c.message_count };
+    return { full: count(hay, needle) - count(own, needle), prefix: count(hay, prefix) - count(own, prefix), composer_value: comp ? valueOf(comp) : null, message_count: c.message_count,
+      message_detection: c.message_detection, last_message: c.msgs.length ? c.msgs[c.msgs.length - 1].text.slice(0, 4000) : null };
   }
   fail('unknown_op', op);
 }
 
 export function pageExpression(op, arg = null) {
-  return `/*ew-sa:${op}*/(() => { const collapse = ${collapse}; const matchLabel = ${matchLabel}; const detectTour = ${detectTour}; const composerSubmitCheck = ${composerSubmitCheck}; const normalizeText = ${normalizeText}; const normalizeComposer = ${normalizeComposer}; return (${pageAgent})(${JSON.stringify(op)}, ${JSON.stringify(arg)}, { collapse, matchLabel, detectTour, composerSubmitCheck, normalizeComposer }); })()`;
+  return `/*ew-sa:${op}*/(() => { const collapse = ${collapse}; const matchLabel = ${matchLabel}; const detectTour = ${detectTour}; const composerSubmitCheck = ${composerSubmitCheck}; const normalizeText = ${normalizeText}; const normalizeComposer = ${normalizeComposer}; return (${pageAgent})(${JSON.stringify(op)}, ${JSON.stringify(arg)}, { collapse, matchLabel, detectTour, composerSubmitCheck, submitLabels: ${JSON.stringify(SUBMIT_LABELS)}, uploadLabels: ${JSON.stringify(UPLOAD_LABELS)}, normalizeComposer }); })()`;
 }
 
 const HIT_TEST_FN = 'function(hit){for(let n=hit;n;n=(n.parentNode&&n.parentNode.nodeType===11)?n.parentNode.host:n.parentNode){if(n===this)return true;}return false;}';
 const FOCUS_FN = 'function(){this.focus();let a=this.ownerDocument.activeElement;while(a&&a.shadowRoot&&a.shadowRoot.activeElement)a=a.shadowRoot.activeElement;return{focused:a===this,has_focus:this.ownerDocument.hasFocus()};}';
+// Focus and select the whole value, so the inserted text replaces Amazon's prefill.
+const FOCUS_SELECT_FN = 'function(){this.focus();if(typeof this.select==="function")this.select();let a=this.ownerDocument.activeElement;while(a&&a.shadowRoot&&a.shadowRoot.activeElement)a=a.shadowRoot.activeElement;const n=String(this.value??"").length;return{focused:a===this,selected:n===0||(this.selectionStart===0&&this.selectionEnd===n)};}';
 
 const originOf = url => { try { return new URL(url).origin; } catch { return 'null'; } };
+
+/** The one upload control of a frame: Upload file (Seller Assistant) or Attach
+ * (case chat window). Both present is ambiguous. */
+export function uploadControl(controls) {
+  const found = UPLOAD_LABELS.map(label => matchLabel(controls, label));
+  const ok = found.filter(m => m.ok);
+  if (ok.length === 1) return ok[0];
+  return ok.length ? { ok: false, reason: 'ambiguous', count: ok.length } : found[0];
+}
 
 /** Combine per-frame scan data into one state object. Pure; tested directly. */
 export function assembleState(frames, data) {
@@ -718,7 +925,9 @@ export function assembleState(frames, data) {
     frames: list.map(f => ({ frame_id: f.frame_id, parent_id: f.parent_id ?? null, url: f.url, origin: f.origin, same_origin: f.same_origin, reachable: f.reachable, composer_count: f.composer_count, ...(f.error ? { error: f.error } : {}) })),
     selection,
     composer: raw ? { frame_id: selection.frame_id, tag: raw.tag, label: raw.label, value: raw.value, length: normalized.length, sha256: sha256(normalized), disabled: raw.disabled === true,
-      counter_text: selected.region?.counters?.[0] ?? selected.counters?.[0] ?? null, submit_controls: Array.isArray(selected.region?.submit) ? selected.region.submit : null } : null,
+      counter_text: selected.region?.counters?.[0] ?? selected.counters?.[0] ?? null, submit_controls: Array.isArray(selected.region?.submit) ? selected.region.submit : null,
+      submit_by_label: selected.region?.submit_by_label ?? null } : null,
+    name_field: selected?.name_field ?? null,
     controls: controls.slice(0, 300),
     status_texts: [...new Set(list.flatMap(f => data[f.frame_id]?.status || []))],
     busy: list.some(f => data[f.frame_id]?.busy === true),
@@ -726,7 +935,7 @@ export function assembleState(frames, data) {
     denial: detectDenial(texts),
     handoff: { approve_count: approve.length, approve_enabled: matchLabel(controls, 'Approve').ok, terms_text: null, terms_sha256: null },
     attachments: {
-      upload_present: frameControls.some(c => collapse(c.label) === 'Upload file'), upload_enabled: matchLabel(frameControls, 'Upload file').ok,
+      upload_present: frameControls.some(c => UPLOAD_LABELS.includes(collapse(c.label))), upload_enabled: uploadControl(frameControls).ok,
       submit_enabled: matchLabel(frameControls, 'Submit').ok, chips: selected?.region?.chips || [], uploading: selected?.region?.uploading === true,
       file_input_count: selected?.file_inputs?.count ?? 0, input_files: selected?.file_inputs?.names || [],
     },
@@ -869,6 +1078,13 @@ export function makeBrowser({ send, listPageTargets = async () => [], sleep = ms
       await send('Input.insertText', { text });
       return focus.result.value;
     },
+    async fillName(frameId, text) {
+      const { objectId } = await run(frameId, 'name-input', null, { byValue: false });
+      await send('Page.bringToFront', {});
+      const focus = await send('Runtime.callFunctionOn', { objectId, functionDeclaration: FOCUS_SELECT_FN, returnByValue: true });
+      if (focus.result?.value?.focused !== true || focus.result?.value?.selected !== true) throw codeError('name_focus_failed', 'name field did not take focus with its value selected');
+      await send('Input.insertText', { text });
+    },
     prepareFileInput: frameId => run(frameId, 'file-input', null, { byValue: false }),
     async setFile({ objectId }, path) { await send('DOM.setFileInputFiles', { files: [path], objectId }); },
     occurrences: (frameId, text) => run(frameId, 'occurrences', { text }),
@@ -896,6 +1112,17 @@ export function makeBrowser({ send, listPageTargets = async () => [], sleep = ms
       } catch (error) {
         if (isFatal(error)) throw error;
         return (await listPageTargets()).map(p => p.id);
+      }
+    },
+    // Page targets with their URL and opener. The /json/list fallback has no
+    // opener, so a popup found that way never passes the opener check.
+    async targetInfos() {
+      try {
+        const { targetInfos } = await send('Target.getTargets', {});
+        return targetInfos.filter(t => t.type === 'page').map(t => ({ targetId: t.targetId, type: t.type, url: t.url, openerId: t.openerId ?? null }));
+      } catch (error) {
+        if (isFatal(error)) throw error;
+        return (await listPageTargets()).map(p => ({ targetId: p.id, type: p.type || 'page', url: p.url, openerId: null }));
       }
     },
     async release() { await send('Runtime.releaseObjectGroup', { objectGroup: GROUP }).catch(() => {}); },
@@ -961,8 +1188,10 @@ async function dispatchedFailure(rt, error) {
 /** Click one exact label. Errors before dispatch mean nothing was clicked;
  * errors during or after dispatch carry `dispatched: true`. `beforeDispatch`
  * runs after the control is located and hit-tested, right before the mouse
- * events. */
-async function guardedClick(rt, frameId, label, beforeDispatch = null, { tour = false, composerSubmit = false, expectedTermsText = null, expectedComposerText = null } = {}) {
+ * events. With `popup` (a check over one target's info) the click is expected to
+ * open exactly one new window that passes the check; it is returned as `popup`
+ * instead of halting the run. Any other new target halts the run as always. */
+async function guardedClick(rt, frameId, label, beforeDispatch = null, { tour = false, composerSubmit = false, expectedTermsText = null, expectedComposerText = null, popup = null } = {}) {
   const before = new Set(await rt.browser.targets());
   const point = await rt.browser.prepareClick(frameId, label, { tour, composerSubmit, expectedTermsText, expectedComposerText });
   // Without beforeDispatch this check runs in the same tick as the dispatch.
@@ -971,6 +1200,16 @@ async function guardedClick(rt, frameId, label, beforeDispatch = null, { tour = 
   try {
     await rt.browser.dispatchClick(point);
     await rt.deps.sleep(1000);
+    if (popup) {
+      // A new window may report about:blank until its first navigation commits.
+      const seen = await waitUntil(rt, async () => (await rt.browser.targetInfos()).filter(t => !before.has(t.targetId)),
+        list => list.length > 0 && list.every(t => t.url && t.url !== 'about:blank'), 15000, 500);
+      const created = seen.value;
+      const verdict = created.length === 1 ? popup(created[0]) : { ok: false, reason: created.length ? 'multiple_new_targets' : 'chat_window_missing' };
+      if (verdict.ok) return { point, new_targets: [], popup: created[0] };
+      rt.lockout = created.length ? { reason: 'new_target', targets: created.map(t => t.targetId), check: verdict.reason } : { reason: 'chat_window_missing' };
+      return { point, new_targets: created.map(t => t.targetId), popup: null, popup_reason: verdict.reason };
+    }
     const created = (await rt.browser.targets()).filter(id => !before.has(id));
     if (created.length) rt.lockout = { reason: 'new_target', targets: created };
     return { point, new_targets: created };
@@ -994,10 +1233,10 @@ function sameSet(a, b) {
   return x.length === y.length && x.every((v, i) => v === y[i]);
 }
 
-/** Everything that must hold before Submit is clicked. Returns { blocked } or
- * the frame and composer facts. `approvedNames` are the files this run logged
- * as attached. */
-function submitBlocker(state, expected, expectedFiles, approvedNames, frameId = null) {
+/** Everything that must hold before Submit (or Send, or Chat now: `label`) is
+ * clicked. Returns { blocked } or the frame and composer facts. `approvedNames`
+ * are the files this run logged as attached. */
+function submitBlocker(state, expected, expectedFiles, approvedNames, frameId = null, label = 'Submit') {
   if (!state.selection.ok) return { blocked: { status: 'blocked', reason: state.selection.reason, details: state.selection.details } };
   if (frameId && state.selection.frame_id !== frameId) return { blocked: { status: 'blocked', reason: 'composer_frame_changed' } };
   if (state.busy) return { blocked: { status: 'blocked', reason: 'assistant_busy' } };
@@ -1008,14 +1247,29 @@ function submitBlocker(state, expected, expectedFiles, approvedNames, frameId = 
   if (!files.ok) return { blocked: { status: 'refused', ...files, chips: state.attachments.chips, input_files: state.attachments.input_files, expected: expectedFiles } };
   if (state.attachments.uploading) return { blocked: { status: 'blocked', reason: 'upload_in_progress' } };
   const frame = state.selection.frame_id;
-  const submit = matchLabel(state.controls.filter(c => c.frame_id === frame), 'Submit');
+  const submit = matchLabel(state.controls.filter(c => c.frame_id === frame), label);
   if (!submit.ok) return { blocked: { status: 'blocked', reason: `control_${submit.reason}` } };
-  const scope = composerSubmitCheck(state.composer, state.composer.submit_controls);
+  const scoped = label === 'Submit' ? state.composer.submit_controls : (state.composer.submit_by_label?.[label] ?? null);
+  const scope = composerSubmitCheck(state.composer, scoped);
   if (!scope.ok) return { blocked: { status: 'blocked', reason: scope.reason, ...(scope.count !== undefined ? { count: scope.count } : {}) } };
   return { frameId: frame, composer };
 }
 
-const approvalContext = rt => ({ runId: rt.config?.run_id, sellerId: rt.config?.account?.seller_id, now: rt.deps.now() });
+const approvalContext = rt => ({ runId: rt.config?.run_id, sellerId: rt.config?.account?.seller_id, now: rt.deps.now(),
+  ...(rt.config?.registry_id ? { instruction: rt.config.authorization.source.instruction } : {}) });
+
+/** A run bound to a case registry row asks the case service before every
+ * outbound action, with the authorization of the approval it is about to use;
+ * any refusal stops it before its attempt line is written. Returns null when the
+ * action may go ahead. */
+async function claimBeforeClick(rt, approval = null) {
+  if (!rt.config?.registry_id) return null;
+  let verdict;
+  try { verdict = await rt.deps.claimAttended(claimRequest(rt.config, { caseId: rt.caseId ?? null, authorization: ownAuthorization(approval) ? approval.authorization : null })); }
+  catch (error) { verdict = { ok: false, reason: 'claim_unavailable', message: String(error?.message || error).slice(0, 300) }; }
+  if (verdict?.ok === true) return null;
+  return { status: 'refused', reason: 'claim_refused', claim_reason: verdict?.reason || 'claim_refused', ...(verdict?.message ? { message: verdict.message } : {}), stage: 'pre_click' };
+}
 
 function usageCount(rt, key) { return rt.counts.get(key) || 0; }
 function bumpUsage(rt, key) { rt.counts.set(key, usageCount(rt, key) + 1); }
@@ -1041,10 +1295,114 @@ async function clickFailure(rt, error) {
   return dispatchedFailure(rt, error);
 }
 
+/** Chat now on a case reply form. The driver fills "Your name" with the run's
+ * signature_name and the composer with CHAT_OPENING_LINE, both shown in the
+ * operator's draft; the approval file is the one for the message this chat
+ * delivers. After the click it adopts the one case chat window Amazon opens,
+ * drives that window from then on and confirms the opening line there. */
+async function chatNow(rt, args, approval) {
+  const expected = args['expect-sha256'], key = `chat_now:${expected}`;
+  if (usageCount(rt, key) >= 1) return { status: 'refused', reason: 'send_limit_reached', limit: 1 };
+  if (rt.chat) return { status: 'refused', reason: 'case_chat_open' };
+  if ((args['expect-attachment'] || []).length) return { status: 'refused', reason: 'chat_now_takes_no_attachment' };
+  const name = rt.config?.signature_name;
+  if (!name) return { status: 'refused', reason: 'signature_name_missing' };
+  if (!rt.caseId) return { status: 'refused', reason: 'case_not_opened' };
+  const opening = sha256(CHAT_OPENING_LINE);
+  const onCase = s => isCaseViewPage(s.url, rt.caseId) && originOf(s.url) === rt.origin;
+  const nameCount = s => (s.name_field?.count === 1 ? null : { status: 'blocked', reason: 'name_field_count', count: s.name_field?.count ?? 0 });
+  const idle = await waitUntil(rt, () => rt.browser.scan(), s => !s.busy, 30000);
+  if (!idle.satisfied) return { status: 'blocked', reason: 'assistant_busy' };
+  const state = idle.value;
+  if (!onCase(state)) return { status: 'refused', reason: 'not_on_case_page' };
+  if (!state.selection.ok) return { status: 'blocked', reason: state.selection.reason, details: state.selection.details };
+  const frameId = state.selection.frame_id;
+  const count = nameCount(state);
+  if (count) return count;
+  if (state.name_field.disabled) return { status: 'blocked', reason: 'name_field_disabled' };
+  if (state.composer.disabled) return { status: 'blocked', reason: 'composer_disabled' };
+  const typed = normalizeComposer(state.composer.value);
+  if (typed !== '' && typed !== CHAT_OPENING_LINE) return { status: 'refused', reason: 'composer_not_empty', composer_sha256: state.composer.sha256 };
+  // Typing sends nothing; each field is written only when it is not already exact.
+  if (state.name_field.value !== name) { assertNotAborting(rt); await rt.browser.fillName(frameId, name); }
+  if (typed === '') { assertNotAborting(rt); await rt.browser.insertText(frameId, CHAT_OPENING_LINE); }
+  const filled = await waitUntil(rt, () => rt.browser.scan(),
+    s => s.name_field?.value === name && s.composer && normalizeComposer(s.composer.value) === CHAT_OPENING_LINE, 5000, 500);
+  if (!filled.satisfied) return { status: 'error', reason: 'chat_form_readback_mismatch', name_matches: filled.value.name_field?.value === name, composer_sha256: filled.value.composer?.sha256 ?? null };
+  const formBlocker = s => {
+    if (!onCase(s)) return { status: 'refused', reason: 'not_on_case_page' };
+    const n = nameCount(s);
+    if (n) return n;
+    if (s.name_field.value !== name) return { status: 'refused', reason: 'name_field_changed' };
+    return submitBlocker(s, opening, [], [], frameId, 'Chat now').blocked || null;
+  };
+  const first = formBlocker(filled.value);
+  if (first) return first;
+  const identity = await reverify(rt);
+  // Everything checked above is checked again after the identity read.
+  const again = formBlocker(await rt.browser.scan());
+  if (again) return { ...again, stage: 'pre_click' };
+  const claim = await claimBeforeClick(rt, approval);
+  if (claim) return claim;
+  let click;
+  try {
+    click = await guardedClick(rt, frameId, 'Chat now', async () => {
+      await logAttempt(rt, { command: 'chat_now', sha256: expected, plan_item: approval.plan_item, label: approval.label ?? null, submit_label: 'Chat now', approval_file: args['approval-file'], approval, identity,
+        case_id: rt.caseId, opening_line: CHAT_OPENING_LINE, opening_line_sha256: opening, name });
+      bumpUsage(rt, key);
+      markDispatched(rt, 'chat_now', expected, 'clicked');
+    }, { composerSubmit: true, expectedComposerText: CHAT_OPENING_LINE, popup: info => isCaseChatTarget(info, { origin: rt.origin, caseId: rt.caseId, openerId: rt.taskTargetId }) });
+  } catch (error) { return clickFailure(rt, error); }
+  try {
+    let result;
+    if (!click.popup) {
+      // guardedClick has set the lockout: the run halts after this result.
+      result = { status: 'uncertain', clicked: true, reason: click.popup_reason || 'chat_window_missing', new_targets: click.new_targets };
+    } else {
+      const chat = await rt.deps.adoptChat(click.popup);
+      Object.assign(rt, { chat, browser: chat.browser, baseline: null });
+      // The chat shows the opening line as the issue ("Issue: Hello." on 2026-10-01).
+      const shown = await waitUntil(rt, async () => {
+        const s = await rt.browser.scan();
+        const frame = s.selection.ok ? s.selection.frame_id : s.frames[0]?.frame_id;
+        return frame ? rt.browser.occurrences(frame, CHAT_OPENING_LINE) : { full: 0 };
+      }, o => o.full >= 1, 30000);
+      result = { status: shown.satisfied ? 'sent' : 'uncertain', clicked: true, ...(shown.satisfied ? {} : { reason: 'opening_line_not_confirmed' }),
+        chat: { target_id: click.popup.targetId, url: click.popup.url, slot: CHAT_SLOT } };
+    }
+    Object.assign(result, { sha256: expected, plan_item: approval.plan_item, submit_label: 'Chat now', case_id: rt.caseId, opening_line_sha256: opening });
+    await logApproval(rt, { phase: 'result', command: 'chat_now', sha256: expected, status: result.status, delivery: result.status, reason: result.reason ?? null });
+    return result;
+  } catch (error) {
+    if (!rt.chat) rt.lockout ??= { reason: 'chat_adoption_failed' };
+    return dispatchedFailure(rt, error);
+  }
+}
+
 export const handlers = {
   async state(rt) { return { status: 'ok', state: await rt.browser.scan() }; },
 
   async open(rt, args) {
+    // After Chat now the controller drives the chat window; navigating it away
+    // would leave the case chat.
+    if (rt.chat) return { status: 'refused', reason: 'case_chat_open' };
+    if (args.case) {
+      if (args['via-lobby'] || args.conversation) return { status: 'refused', reason: 'case_with_other_target' };
+      // A reply is recorded only for a run bound to its registry row, whose claim runs before every click.
+      if (!rt.config?.registry_id) return { status: 'refused', reason: 'registry_binding_required' };
+      assertNotAborting(rt);
+      rt.caseId = null;
+      const url = `${rt.origin}${CASE_VIEW_PATH}?caseID=${encodeURIComponent(args.case)}`;
+      await rt.browser.navigate(url);
+      const reply = s => s.controls.some(c => collapse(c.label) === REPLY_LABEL);
+      const ready = await waitUntil(rt, () => rt.browser.scan(), s => isCaseViewPage(s.url, args.case) && reply(s), 20000);
+      const state = ready.value;
+      const onCase = isCaseViewPage(state.url, args.case) && originOf(state.url) === rt.origin;
+      if (!onCase) return { status: 'blocked', reason: 'case_page_not_reached', via: 'case', state };
+      rt.caseId = args.case;
+      return { status: 'ok', via: 'case', case_id: args.case, reply_present: reply(state), state };
+    }
+    rt.caseId = null;
     assertNotAborting(rt);
     await rt.browser.navigate(rt.origin + LOBBY_PATH);
     const lobbyWait = await waitUntil(rt, () => rt.browser.scan(),
@@ -1078,8 +1436,9 @@ export const handlers = {
 
   async navigate(rt, args) {
     const state = await rt.browser.scan();
-    const allowed = isNavigationAllowed(args.label, state);
+    const allowed = isNavigationAllowed(args.label, state, { origin: rt.origin, caseId: rt.caseId ?? null });
     if (!allowed.ok) return { status: 'refused', reason: allowed.reason, label: args.label };
+    if (allowed.kind === 'reply' && !rt.caseId) return { status: 'refused', reason: 'case_not_opened', label: args.label };
     // A tour label must match exactly one control inside the tour container of
     // the one frame that shows the tour; the page re-checks this before the click.
     const tour = allowed.kind === 'tour';
@@ -1122,9 +1481,13 @@ export const handlers = {
 
   async submit(rt, args) {
     const expected = args['expect-sha256'];
+    const label = args.label || 'Submit';
+    // On a case page or in its chat window the pre-click claim cannot be skipped.
+    if ((label === 'Chat now' || rt.caseId || rt.chat) && !rt.config?.registry_id) return { status: 'refused', reason: 'registry_binding_required' };
     const loaded = await loadApproval(args['approval-file'], expected, COMMAND_PLAN_ITEMS.submit, rt.deps.readFile, approvalContext(rt));
     if (!loaded.ok) return { status: 'refused', reason: loaded.reason };
     const approval = loaded.approval;
+    if (label === 'Chat now') return chatNow(rt, args, approval);
     const special = SEND_LIMITS[approval.plan_item];
     const key = `submit:${expected}`, limit = special && special.sha256 === expected ? special.limit : 1;
     if (usageCount(rt, key) >= limit) return { status: 'refused', reason: 'send_limit_reached', limit };
@@ -1133,20 +1496,25 @@ export const handlers = {
     const idle = await waitUntil(rt, () => rt.browser.scan(), s => !s.busy, 30000);
     if (!idle.satisfied) return { status: 'blocked', reason: 'assistant_busy' };
     const approvedNames = approvedAttachmentNames(await readApprovalLog(rt.runDir));
-    const first = submitBlocker(idle.value, expected, expectedFiles, approvedNames);
+    const first = submitBlocker(idle.value, expected, expectedFiles, approvedNames, null, label);
     if (first.blocked) return first.blocked;
     const { frameId, composer } = first;
     const identity = await reverify(rt);
     // Everything checked above is checked again after the identity read.
-    const again = submitBlocker(await rt.browser.scan(), expected, expectedFiles, approvedNames, frameId);
+    const again = submitBlocker(await rt.browser.scan(), expected, expectedFiles, approvedNames, frameId, label);
     if (again.blocked) return { ...again.blocked, stage: 'pre_click' };
     const last = await rt.browser.occurrences(frameId, composer.text);
     const recheck = checkComposer(last.composer_value, expected);
     if (!recheck.ok) return { status: 'refused', reason: recheck.reason, stage: 'pre_click' };
+    const claim = await claimBeforeClick(rt, approval);
+    if (claim) return claim;
     let click;
     try {
-      click = await guardedClick(rt, frameId, 'Submit', async () => {
-        await logAttempt(rt, { command: 'submit', sha256: expected, plan_item: approval.plan_item, approval_file: args['approval-file'], approval, identity,
+      click = await guardedClick(rt, frameId, label, async () => {
+        // The conversation as it stood before the click: case_service releases an
+        // uncertain submit only while a later transcript still shows exactly this.
+        await logAttempt(rt, { command: 'submit', sha256: expected, plan_item: approval.plan_item, label: approval.label ?? null, submit_label: label, approval_file: args['approval-file'], approval, identity,
+          conversation: { frame_id: frameId, message_count: last.message_count ?? null, message_detection: last.message_detection ?? null, last_message: last.last_message ?? null },
           ...(expectedFiles.length ? { attachments: expectedFiles } : {}) });
         bumpUsage(rt, key);
         markDispatched(rt, 'submit', expected, 'clicked');
@@ -1163,7 +1531,7 @@ export const handlers = {
       const result = click.new_targets.length
         ? { status: delivery, reason: 'new_target', delivery, clicked: true, new_targets: click.new_targets, ...(reason ? { confirmation_reason: reason } : {}) }
         : { status: delivery, clicked: true, ...(reason ? { reason } : {}) };
-      Object.assign(result, { sha256: expected, plan_item: approval.plan_item, occurrences: { before: last.full, after: wait.value.full, prefix_before: last.prefix, prefix_after: wait.value.prefix },
+      Object.assign(result, { sha256: expected, plan_item: approval.plan_item, submit_label: label, occurrences: { before: last.full, after: wait.value.full, prefix_before: last.prefix, prefix_after: wait.value.prefix },
         composer_cleared: normalizeComposer(wait.value.composer_value) === '' });
       await logApproval(rt, { phase: 'result', command: 'submit', sha256: expected, status: result.status, delivery, reason: result.reason ?? null });
       return result;
@@ -1198,6 +1566,8 @@ export const handlers = {
       ? { ok: pre.handoff.frame_id === frameId && pre.handoff.terms_sha256 === expected, control: { frame_id: pre.handoff.frame_id }, reason: 'summary_not_verified' }
       : allControlsMatch(pre, 'Approve');
     if (!preMatch.ok || preMatch.control.frame_id !== frameId) return { status: 'blocked', reason: preMatch.ok ? 'approve_frame_changed' : `control_${preMatch.reason}`, stage: 'pre_click' };
+    const claim = await claimBeforeClick(rt, loaded.approval);
+    if (claim) return claim;
     let click;
     try {
       click = await guardedClick(rt, frameId, 'Approve', async () => {
@@ -1252,12 +1622,14 @@ export const handlers = {
     const state = await rt.browser.scan();
     if (!state.selection.ok) return { status: 'blocked', reason: state.selection.reason, details: state.selection.details };
     const frameId = state.selection.frame_id;
-    const upload = matchLabel(state.controls.filter(c => c.frame_id === frameId), 'Upload file');
+    const upload = uploadControl(state.controls.filter(c => c.frame_id === frameId));
     if (!upload.ok) return { status: 'blocked', reason: `upload_${upload.reason}` };
     if (state.attachments.file_input_count !== 1) return { status: 'blocked', reason: 'file_input_count', count: state.attachments.file_input_count };
     if (state.attachments.input_files.length) return { status: 'blocked', reason: 'file_input_not_empty' };
     const input = await rt.browser.prepareFileInput(frameId);
     const identity = await reverify(rt);
+    const claim = await claimBeforeClick(rt, loaded.approval);
+    if (claim) return claim;
     // logAttempt refuses once serve is aborting; everything from its return to
     // the setFile call below runs in one tick.
     await logAttempt(rt, { command: 'attach', sha256: args.sha256, plan_item: loaded.approval.plan_item, approval_file: args['approval-file'], approval: loaded.approval, file: args.file, upload_copy: copy, name, identity });
@@ -1294,15 +1666,18 @@ export const handlers = {
     const pagePath = join(rt.runDir, 'transcripts', `${stem}-page.txt`);
     await atomicWrite(pagePath, conversation.page_text || '');
     // Shadow-piercing text of every reachable frame, saved for reading only.
-    const deep = [];
+    const deep = [], deepFailed = [];
     if (typeof rt.browser.deepText === 'function') {
       for (const f of first.frames || []) {
-        try { const d = await rt.browser.deepText(f.frame_id); if (d?.text) deep.push({ frame_id: f.frame_id, url: f.url || null, text: d.text }); }
-        catch (error) { if (isFatal(error)) throw error; }
+        try { const d = await rt.browser.deepText(f.frame_id); if (d?.text) deep.push({ frame_id: f.frame_id, url: f.url || null, text: d.text, truncated: d.truncated === true }); }
+        catch (error) { if (isFatal(error)) throw error; deepFailed.push(f.frame_id); }
       }
     }
     const deepPath = join(rt.runDir, 'transcripts', `${stem}-deep.txt`);
     const deepText = deep.map(d => `=== frame ${d.frame_id} ${d.url || ''}\n${d.text}`).join('\n\n');
+    // Whether any text this record or its -deep.txt holds was cut at a driver limit,
+    // and the frames whose deep text could not be read.
+    Object.assign(record, { truncated: conversation.truncated === true || deep.some(d => d.truncated), deep_failed: deepFailed });
     await atomicWrite(deepPath, deepText);
     await atomicWrite(jsonPath, JSON.stringify(record, null, 2));
     rt.baseline = conversation.message_count;
@@ -1528,8 +1903,17 @@ export async function processNext(rt) {
   try { cmd = JSON.parse(await readFile(join(rt.runDir, 'queue', name), 'utf8')); } catch { cmd = null; }
   // expires_at is required: a queued command nobody waits for must not run later.
   const expiresOk = cmd && typeof cmd.expires_at === 'string' && ISO_TZ.test(cmd.expires_at) && !Number.isNaN(Date.parse(cmd.expires_at));
-  if (!cmd || cmd.schema_version !== 1 || cmd.id !== id || !COMMANDS.includes(cmd.command) || !expiresOk) {
+  if (!cmd || cmd.schema_version !== 1 || cmd.id !== id || !COMMANDS.includes(cmd.command) || !expiresOk || !Number.isSafeInteger(cmd.client_pid) || cmd.client_pid <= 0) {
     const refused = { schema_version: 1, id, command: cmd?.command ?? null, status: 'refused', reason: 'command_malformed', finished_at: iso(rt.deps.now()) };
+    await atomicWrite(join(resultsDir, name), JSON.stringify(refused, null, 2));
+    return refused;
+  }
+  // Only an attended client may drive this browser: a command queued from a
+  // wizards-ai unit, or by a client that is gone, never runs.
+  const cgroup = (rt.deps.clientCgroup || readClientCgroup)(cmd.client_pid);
+  const clientRefusal = cgroup === null ? 'client_gone' : unattendedContext({}, cgroup) ? 'attended_context_required' : null;
+  if (clientRefusal) {
+    const refused = { schema_version: 1, id, command: cmd.command, status: 'refused', reason: clientRefusal, finished_at: iso(rt.deps.now()) };
     await atomicWrite(join(resultsDir, name), JSON.stringify(refused, null, 2));
     return refused;
   }
@@ -1589,10 +1973,62 @@ async function claimServe(runDir) {
 }
 
 async function loadBrowserDeps() {
-  const [cdp, sc, tabs, lock, ui, cases] = await Promise.all([
+  const [cdp, sc, tabs, lock, ui, cases, registry, policy] = await Promise.all([
     import('../report-fetcher/cdp.mjs'), import('../report-fetcher/sc-account.mjs'), import('../browserctl/task-tabs.mjs'),
-    import('../browserctl/session-lock.mjs'), import('./browser-ui.mjs'), import('./cases.mjs')]);
-  return { cdp, sc, tabs, lock, ui, cases };
+    import('../browserctl/session-lock.mjs'), import('./browser-ui.mjs'), import('./cases.mjs'),
+    import('../browserctl/lease-registry.mjs'), import('../browserctl/policy.mjs')]);
+  return { cdp, sc, tabs, lock, ui, cases, registry, policy };
+}
+
+/** Bind the case chat window to a named additional slot of this run's task, the
+ * way task-tabs binds a page it created: reserve the slot, bind the existing
+ * target, guard its session with the slot's control token and renew it on the
+ * policy heartbeat. Cleanup then treats the window as task-controlled and
+ * neither adopts nor closes it. `release(outcome)` ends the binding. */
+export async function adoptChatTarget({ registry, cdp, policy, port, taskId, owner, origin, target }) {
+  const spec = { port, taskId, slot: CHAT_SLOT };
+  const reservation = await registry.reserveTaskTab({ ...spec, workflow: 'amazon-communications', owner, origin, policy });
+  if (reservation.kind !== 'create') {
+    if (reservation.controlToken) await registry.abandonTaskTabReservation({ ...spec, controlToken: reservation.controlToken }).catch(() => {});
+    throw codeError('chat_slot_unavailable', `${taskId}/${CHAT_SLOT} is ${reservation.kind}${reservation.reason ? `: ${reservation.reason}` : ''}`);
+  }
+  const { controlToken, reservationToken } = reservation;
+  let bound = false, session = null, listed = null;
+  try {
+    await registry.bindReservedTaskTab({ ...spec, targetId: target.targetId, reservationToken, controlToken, owner, origin, policy });
+    bound = true;
+    listed = (await cdp.listPages()).find(p => p.id === target.targetId);
+    if (!listed?.webSocketDebuggerUrl) throw codeError('chat_target_unavailable', `chat window ${target.targetId} has no connection endpoint`);
+    session = await cdp.Session.open(listed.webSocketDebuggerUrl);
+    session.setTaskControlGuard(() => registry.assertTaskTabControl({ ...spec, controlToken, targetId: target.targetId }), { initialUrl: listed.url });
+    await session.assertTaskControl();
+  } catch (error) {
+    session?.close();
+    await (bound ? registry.releaseTaskTabControl({ ...spec, controlToken, outcome: 'error', policy })
+      : registry.abandonTaskTabReservation({ ...spec, controlToken })).catch(() => {});
+    throw error;
+  }
+  let renewing = false;
+  const heartbeat = setInterval(async () => {
+    if (renewing) return;
+    renewing = true;
+    try {
+      const renewed = await registry.touchTaskTabControl({ ...spec, controlToken, targetId: target.targetId, policy });
+      if (!renewed) throw codeError('TASK_TAB_CONTROL_LOST', 'chat slot renewal did not confirm ownership');
+    } catch (error) { session.invalidateTaskControl(error); } finally { renewing = false; }
+  }, policy.cleanup.heartbeat_interval_ms);
+  heartbeat.unref?.();
+  let released = false;
+  return {
+    ...spec, targetId: target.targetId, url: listed.url, session,
+    async release(outcome) {
+      if (released) return null;
+      released = true;
+      clearInterval(heartbeat);
+      session.close();
+      return registry.releaseTaskTabControl({ ...spec, controlToken, outcome, policy });
+    },
+  };
 }
 
 /** Identity check used before and after every command. It samples the live
@@ -1669,12 +2105,12 @@ export function abortHandler(ctl, name, finish) {
 }
 
 export async function serve({ run, maxMinutes = 90, idleMinutes = 20 }) {
+  // Grimoire never drives this route (PR #76 review F3), on either session.
+  assertAttended(process.env);
   const runDir = resolve(run);
   const config = await readRunConfig(runDir);
-  // Same session check as cases.mjs run().
-  if (!(Number(process.env.CDP_PORT || 9223) === 9223 && (!process.env.AMAZON_BROWSER_SESSION || process.env.AMAZON_BROWSER_SESSION === 'grimoire'))) {
-    throw codeError('session_invalid', 'Seller Assistant requires the Grimoire session on 9223');
-  }
+  // Same session check as cases.mjs run(), before any browser module loads.
+  const binding = assertSession(process.env);
   await ensureRunDirs(runDir);
   const releasePid = await claimServe(runDir);
   // Commands a previous serve started but never finished are marked uncertain
@@ -1693,13 +2129,21 @@ export async function serve({ run, maxMinutes = 90, idleMinutes = 20 }) {
   // the whole chat: releaseTaskPage then does not ask the launcher to drop the
   // root lock early, so no Grimoire job can take 9223 between commands. The task
   // heartbeat is started by acquireTaskPage (30 s interval, token-checked) and
-  // keeps running while this loop sleeps; no extra heartbeat is needed.
-  const unlock = B.lock.acquireSessionLock(9223, 'seller-assistant');
+  // keeps running while this loop sleeps; no extra heartbeat is needed. The
+  // operator session on 9222 takes no port lock (acquireServeLock).
+  const unlock = acquireServeLock(binding, B.lock);
   let page = null, outcome = 'error', exitCode = 1, rt = null;
   const statusPath = join(runDir, 'serve.json');
   const ctl = { exiting: false, rt: null };
+  // The case chat window stays an interactive (handoff) lease after a clean stop,
+  // because the chat with Amazon may still be open; otherwise an inspection lease.
+  const releaseChat = async result => {
+    try { await rt?.chat?.release?.(result === 'success' ? 'handoff' : 'error'); }
+    catch (e) { console.error('chat window release failed:', e.message); }
+  };
   const abort = (name, code) => abortHandler(ctl, name, async () => {
     try { await markInFlight(rt, name); } catch (e) { console.error(`${name} could not mark the command in flight:`, e.message); }
+    await releaseChat('error');
     try { if (page) await B.tabs.releaseTaskPage(page, { outcome: 'error' }); }
     catch (e) { console.error(`${name} browser release failed:`, e.message); }
     finally { process.exit(code); }
@@ -1717,18 +2161,29 @@ export async function serve({ run, maxMinutes = 90, idleMinutes = 20 }) {
       marketplace: account.marketplace, parentAccountName: account.parent_account_name }, { returnTo: '/home' });
     const homeIdentity = await B.sc.readIdentity(page.session);
     const session = page.session;
+    const policy = B.policy.loadBrowserPolicy();
     ctl.rt = rt = {
       runDir, config, account, origin, lockout: null, fatal: false, aborting: ctl.exiting, baseline: null, counts: await loadUsageCounts(runDir), deadline: started + maxMinutes * 60000,
+      taskTargetId: page.targetId, caseId: null, chat: null,
       browser: makeBrowser({ send: (m, p, o) => session.send(m, p, o), listPageTargets: () => B.cdp.listPages() }, origin),
       deps: {
         verifyIdentity: identityVerifier(B, page, account, homeIdentity),
         screenshot: path => B.ui.screenshot(page, path, account, 'sc'),
         evaluateMain: (expression, timeoutMs) => B.cdp.evaluate(session, expression, timeoutMs),
+        claimAttended: async request => {
+          const path = join(runDir, 'claim-attended.json');
+          await atomicWrite(path, JSON.stringify(request, null, 2));
+          return runClaimAttended(path);
+        },
+        adoptChat: async target => {
+          const chat = await adoptChatTarget({ registry: B.registry, cdp: B.cdp, policy, port: page.port, taskId, owner: `seller-assistant:${process.pid}`, origin, target });
+          return { ...chat, browser: makeBrowser({ send: (m, p, o) => chat.session.send(m, p, o), listPageTargets: () => B.cdp.listPages() }, origin) };
+        },
         readFile, now: Date.now, sleep: ms => new Promise(r => setTimeout(r, ms)),
       },
     };
     const identity = await rt.deps.verifyIdentity();
-    const serving = { status: 'serving', run_id: config.run_id, pid: process.pid, task_id: taskId, target_id: page.targetId, started_at: iso(started), identity: identitySummary(identity), recovered_interrupted: recovered };
+    const serving = { status: 'serving', run_id: config.run_id, pid: process.pid, session: binding.session, port: binding.port, task_id: taskId, target_id: page.targetId, started_at: iso(started), identity: identitySummary(identity), recovered_interrupted: recovered };
     await atomicWrite(statusPath, JSON.stringify(serving, null, 2));
     console.log(JSON.stringify(serving));
     const loop = await serveLoop(rt, { started, maxMs: maxMinutes * 60000, idleMs: idleMinutes * 60000 });
@@ -1745,6 +2200,7 @@ export async function serve({ run, maxMinutes = 90, idleMinutes = 20 }) {
   } finally {
     process.removeListener('SIGTERM', onTerm); process.removeListener('SIGINT', onInt);
     process.removeListener('uncaughtException', onCrash); process.removeListener('unhandledRejection', onRejection);
+    await releaseChat(outcome);
     let release = null;
     try { if (page) release = await B.tabs.releaseTaskPage(page, { outcome }); } catch (error) { release = { error: error.message }; }
     if (rt?.stopRequested) {
@@ -1770,6 +2226,8 @@ export async function allocateQueueEntry(runDir) {
 }
 
 export async function sendCommand({ run, command, args }, { pollMs = 500, out = console.log } = {}) {
+  // Review F2: a queued command drives the attended browser, so Grimoire may not queue one either.
+  assertAttended(process.env);
   const runDir = resolve(run);
   await readRunConfig(runDir);
   let owner = null;
@@ -1778,7 +2236,7 @@ export async function sendCommand({ run, command, args }, { pollMs = 500, out = 
   const timeoutSeconds = command === 'transcript' ? Math.max(600, (args.timeout || 180) + 120) : 600;
   const id = await allocateQueueEntry(runDir);
   const created = Date.now();
-  const entry = { schema_version: 1, id, command, args, created_at: iso(created), expires_at: iso(created + timeoutSeconds * 1000) };
+  const entry = { schema_version: 1, id, command, args, created_at: iso(created), expires_at: iso(created + timeoutSeconds * 1000), client_pid: process.pid };
   await atomicWrite(join(runDir, 'queue', `${id}.json`), JSON.stringify(entry, null, 2));
   const resultPath = join(runDir, 'results', `${id}.json`);
   const printResult = async () => {
@@ -1837,6 +2295,7 @@ export async function cancelQueued(resultPath, id, reason) {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   try {
+    assertAttended(process.env);
     const parsed = parseArgs(process.argv.slice(2));
     const code = parsed.mode === 'serve' ? await serve(parsed) : await sendCommand(parsed);
     process.exit(code);

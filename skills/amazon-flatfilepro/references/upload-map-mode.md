@@ -32,7 +32,7 @@ Before asking for repeated account or mapping details, check `_local/flatfilepro
 
 ## Workflow
 
-1. Resolve `grimoire` with `browserctl run --session grimoire -- …` before imports. Use a task-owned tab and the shared session lock; verify the FlatFilePro seller and marketplace before acting.
+1. Resolve the machine's attended default with `browserctl run -- …` before imports; Grimoire keeps `--session grimoire`. Use a task-owned tab with its exclusive context claim, plus the shared session lock on 9223; verify the FlatFilePro seller and marketplace before acting.
 2. Start an `artifactctl` run for this attended workflow before creating,
    copying, or downloading a local file.
 3. Check the visible FlatFilePro `Seller & Marketplace` whenever possible.

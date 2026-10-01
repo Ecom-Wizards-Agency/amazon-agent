@@ -4,6 +4,7 @@ process.env.CDP_ENABLE_TEST_LEASES = "1";
  * whose target stops answering must reject within its budget, never hang the
  * process. See the incident notes in the PR that introduced this file.
  */
+import "./helpers/isolated-runtime.mjs";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawn } from "node:child_process";

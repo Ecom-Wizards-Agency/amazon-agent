@@ -1,3 +1,4 @@
+import "./helpers/isolated-runtime.mjs";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { accountProfileMatches, waitForMarketplaceSelection } from "../account-selection.mjs";

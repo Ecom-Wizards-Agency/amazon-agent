@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_on": "2026-09-29",
+  "updated_on": "2026-10-01",
   "rows": [
     {
       "id": "seller-central.read",
@@ -12,7 +12,7 @@
       },
       "amazon_agent": {
         "state": "allowed",
-        "how": "Use the same delegated login and identity checks in attended chat."
+        "how": "Use the same identity checks in the attended default session: operator on 9222 with the operator's own login on Evo X1, otherwise the delegated login on 9223."
       },
       "identity": "Grimoire delegated Seller Central login (shared Grimoire session)",
       "port": 9223,
@@ -159,7 +159,7 @@
       },
       "amazon_agent": {
         "state": "approval-gated",
-        "how": "Use the same case service, saved owner and issue-bound mandate. Seller Assistant creation also needs operator approval of the exact send plan in chat until the case.create adapter supports it."
+        "how": "Use the same case service and saved owner. In attended chat the operator's approval of the exact signed, labelled text authorizes the send; the lead session sends it with seller-assistant.mjs on the operator session (9222), verifies it, records it with record-receipt and does not ask again. Seller Assistant creation is attended only until the case.create adapter supports it."
       },
       "identity": "Grimoire delegated Seller Central login (shared Grimoire session)",
       "port": 9223,
@@ -1622,7 +1622,7 @@
       },
       "amazon_agent": {
         "state": "approval-gated",
-        "how": "Use shared 9223 for the same executors; 9222 is explicit separate operator work."
+        "how": "Use shared 9223 with --session grimoire for the same executors; other attended work follows the machine default, which is operator on 9222 on Evo X1."
       },
       "identity": "Grimoire delegated Seller Central login (shared Grimoire session)",
       "port": 9223,

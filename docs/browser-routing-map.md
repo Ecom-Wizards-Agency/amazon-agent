@@ -4,8 +4,14 @@ One-page answer to "which browser path does this workflow use". The rule behind 
 
 Routing is by **session**, not by agent. CDP is not limited to scripted fetches: it dispatches real mouse and key events, screenshots, polls for late elements, uploads files and captures downloads. That was verified on 31.07.2026 (team vault run note `Runs/2026-07-31-runtime-consolidation-test.md`), which is why the old "interactive work belongs to a second agent" split is gone.
 
-Port 9223 is the shared Grimoire browser for Amazon work from direct chat and
-Slack. Port 9222 is reserved for explicitly selected operator work. The T3 Code in-app browser is explicit-only, never a
+Port 9223 is the shared Grimoire browser for Slack and scheduled Amazon work.
+Attended direct chat runs `browserctl run -- <command>` and gets the machine's
+attended default: 9223 unless the machine-local browser policy sets
+`routing.attended_cdp_port` to 9222. Evo X1 sets 9222, so attended work there uses
+the `operator` session with the operator's own login. Otherwise port 9222 is
+reserved for explicitly selected operator work. Grimoire-side and scheduled
+instructions keep `--session grimoire`, and DataDive web work pins it everywhere.
+The T3 Code in-app browser is explicit-only, never a
 silent fallback, and is unsuitable when a task depends on the managed profile,
 brokered login, or local upload/download handling.
 
@@ -17,7 +23,7 @@ Actor authority is defined by [the capability matrix](rights/README.md), includi
 
 | Path | What it is | When |
 |---|---|---|
-| **CDP debug Chrome** | Port 9222 uses `~/.amazon-agent/chrome-debug`; port 9223 uses the separate Wizards AI profile. Both are localhost-only and controlled by `browserctl`. The standard preset is headless; Evo X1 keeps both headed. | Port 9223 is the Amazon workflow default. Port 9222 is explicit operator work. Mode changes require an explicit `browserctl restart` reason. |
+| **CDP debug Chrome** | Port 9222 uses `~/.amazon-agent/chrome-debug`; port 9223 uses the separate Wizards AI profile. Both are localhost-only and controlled by `browserctl`. The standard preset is headless; Evo X1 keeps both headed. | Port 9223 is the Amazon workflow default for Grimoire and for attended chat on most machines. Port 9222 is explicit operator work, or the attended default where the machine policy sets it (Evo X1). Mode changes require an explicit `browserctl restart` reason. |
 | **Chrome extension** | Drives the operator's *normal* Chrome with their existing logins and extensions. | Only when the required action depends on extension transport, the operator explicitly requests it; a missing Grimoire login pauses for recovery in that profile. A Data Dive extension action injected into an Amazon retail page is the standing case; DataDive web app work on Evo X1 is not. |
 | **No browser (MCP)** | DataDive MCP, AdLabs MCP, Notion MCP. | Data that has an API. Always preferred over any browser when it covers the need. |
 | **No browser (local)** | Builders and formatters in `tools/`. | File-in/file-out work. |
@@ -46,14 +52,14 @@ On machines with separate profiles, the two hold independent sessions and do not
 | Daily/weekly Amazon Ads performance brief | `amazon-ads-performance-briefs` | No browser (MCP) | `tools/amazon-ads-monitor/` (SP Ads API v3), Notion + Slack MCP | Read-only; never changes campaigns. Falls back to `--source mock` (PREVIEW) with no credentials. |
 | Ad/sales audit | `amazon-audit` (`/amazon-audit`) | Mixed | First-time prospect: SQP + Business Report + ads bulk over CDP, never AdLabs. Monthly/actions: AdLabs + DataDive MCP only. Live creative capture uses CDP on both paths. | Read-only. Actions hand preview/apply work to `amazon-ppc-weekly-management`; workbook + narrative build is local. |
 | 90-day Amazon launch strategy | `amazon-launch-strategy` | Mixed | Local deterministic 13-week model and branded builders; narrow Drive, Notion, Slack, DataDive, or CDP reads only when fresh launch inputs require them | Read-only. Historical diagnosis routes to `amazon-audit`; campaign, PPC, catalog, shipment, and communication execution remain separate. |
-| Amazon client onboarding | `amazon-client-onboarding` | Mixed | Seller Central and Ads over CDP on port 9223 through the task-tab controller; Notion through its connector; manifest validation local | Access preflight and assessment are read-only. Account changes require the current fingerprinted approval; independent inventory verification gates signoff. |
+| Amazon client onboarding | `amazon-client-onboarding` | Mixed | Seller Central and Ads over CDP in the resolved session (the attended default in direct chat, 9223 from Slack) through the task-tab controller; Notion through its connector; manifest validation local | Access preflight and assessment are read-only. Account changes require the current fingerprinted approval; independent inventory verification gates signoff. |
 | Amazon client offboarding handover | `amazon-client-offboarding` | Mixed | Read-only evidence from Amazon reports/UI, AdLabs/DataDive and client systems; local branded Doc/workbook builder; native Drive conversion | No account mutation, folder creation, message, or campaign upload. Unsupported areas are disclosed and omitted. |
 | FlatFilePro `.xlsx` preparation | `amazon-flatfilepro` (`/flatfilepro-prepare`) | Local | `prepare_flatfilepro_upload.py` | Label/package evidence comes from the operator. |
 | FlatFilePro upload + column mapping | `amazon-flatfilepro` (`/flatfilepro-upload`) | CDP | logged-in FlatFilePro session | Update Listings requires exact attended in-chat approval; unattended submission is disabled. Matrix row `flatfilepro.submit`. |
 | Creator Connections (inbox, tracker, replies, campaigns) | `amazon-creator-connections` (`/creator-connections`) | CDP | Campaign Manager → Brand content → Creator connections | No MCP exists. Must drain the infinite-scroll thread list. Stop before any send/publish. |
 | Account health check | `amazon-account-health-check` | CDP | SC Account Health | Needs `Review details` clicks + screenshot evidence. |
 | Weekly/monthly operational checks | `amazon-operational-checks` (`/operational-checks`) | Mixed | Seller Central; Google Drive, Slack, and task connectors. Fee, dimension and weight findings come from the precomputed Keepa market-signals state file, with no browser | Dormant until explicit setup and activation; shipment checks are exception-only and never submit reconciliation. |
-| Support cases, buyer messages, refunds | `amazon-communications` | CDP | SC case log / messaging; new issues through Seller Assistant (`/assistant`) on 9223 | Managed cases use the saved case mandate and owner. Seller Assistant chats are attended only, with an operator-approved send plan; other sends require their existing authorization. |
+| Support cases, buyer messages, refunds | `amazon-communications` | CDP | SC case log / messaging; attended new issues and replies through Seller Assistant (`/assistant`) or the case page on the operator session (9222) | Managed cases use the saved case mandate and owner. Seller Assistant chats are attended only: the operator approves the exact labelled text once, and replies are recorded with `record-receipt`. Grimoire's `case.create` / `case.reply` adapter stays on 9223 with every gate. Other sends require their existing authorization. |
 | Shipments, removals, AWD | `amazon-logistics` | CDP | Send to Amazon flows | Exact approval is required before creating/confirming shipments. |
 | Inventory planning inputs | `amazon-fba-inventory-planning` | Mixed | fresh SC reports via CDP fetcher where covered; other UI exports over CDP | Same-day reports rule applies. |
 | Catalog / parentage flat files | `amazon-catalog` | Mixed | template downloads + uploads over CDP; file builds local | Exact approval is required before upload. |
@@ -65,7 +71,7 @@ On machines with separate profiles, the two hold independent sessions and do not
 
 - Account/marketplace verification before task work applies to every path, including the CDP profile.
 - Browser mode comes from the machine policy. Evo X1 keeps ports 9222 and 9223 headed; `ensureChrome()` never changes a running mode.
-- Browser priority is port 9223 for Amazon workflows from either entry point, port 9222 for explicit operator work, and T3 Code in-app only by explicit choice.
+- Browser priority is port 9223 for Grimoire and for attended work on machines whose attended default is 9223, port 9222 for explicit operator work and for attended work where the machine policy sets 9222 (Evo X1), and T3 Code in-app only by explicit choice.
 - One permanent US/NA, DE/EU and AUS/AU region anchor per port serves Seller
   Central primary work through `seller-central-region`. Success parks at home;
   explicit handoff keeps the anchor in place; all other releases detach into
@@ -81,7 +87,7 @@ On machines with separate profiles, the two hold independent sessions and do not
 - The low-level `touchLease(kind: "activity")` still extends existing inspection
   leases. Cleanup uses `interaction`; the remaining API gap is recorded in
   matrix row `browser.retention`.
-- Seller Central and FlatFilePro logins may use the exact-origin 1Password broker on ports 9222 and 9223. Human challenges remain operator-only, and no credential enters agent output.
+- Seller Central and FlatFilePro logins may use the exact-origin 1Password broker on ports 9222 and 9223. Human challenges remain operator-only, and no credential enters agent output. A requested one-time code that is missing or past its 30-second period stops the login with nothing typed (`totp_unavailable`, `totp_expired`).
 - One login per Seller Central region; switch marketplaces via the in-app switcher, never by changing the domain.
 - Stop-before-risk gates are path-independent: a send/upload/publish needs explicit approval no matter which browser executed the steps.
 - New local downloads and intermediate files are registered by exact path. The handoff lists their disposition and eligibility date; only unclassified or blocked files need approval.

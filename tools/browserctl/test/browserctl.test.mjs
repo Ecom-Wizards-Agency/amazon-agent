@@ -755,6 +755,36 @@ async function runCli(args, dependencies) {
   }
 }
 
+test("WIZARDS_AI_MODE keeps cleanup on 9223 and refuses every direct 9222 selection", { concurrency: false }, async () => {
+  const previous = process.env.WIZARDS_AI_MODE;
+  try {
+    for (const [mode, expected] of [[undefined, [9222, 9223]], ["1", [9223]]]) {
+      if (mode === undefined) delete process.env.WIZARDS_AI_MODE;
+      else process.env.WIZARDS_AI_MODE = mode;
+      const ports = [];
+      const result = await runCli(["cleanup", "--audit-only"], { cleanup: async (port) => {
+        ports.push(port);
+        return { port, reachable: true, complete: true, actions: [] };
+      } });
+      assert.equal(result.exitCode, 0);
+      assert.deepEqual(ports, expected);
+    }
+    process.env.WIZARDS_AI_MODE = "1";
+    for (const args of [["cleanup", "--port", "9222"], ["status", "--port", "9222"], ["ensure", "--port", "9222"],
+      ["auth", "--port", "9222", "--target", "T"], ["region", "state", "--port", "9222"]]) {
+      await assert.rejects(runCli(args, {
+        cleanup: async () => assert.fail("must not clean 9222"), fetch: async () => assert.fail("must not read 9222"),
+      }), /BROWSER_SESSION_REFUSED/);
+    }
+    await assert.rejects(controller.ensureAnchors(9222, { policy }), /BROWSER_SESSION_REFUSED/);
+    await assert.rejects(controller.acquireTargetLease({ port: 9222, targetId: "T", leaseClass: "interactive",
+      owner: "test", policy }), /BROWSER_SESSION_REFUSED/);
+  } finally {
+    if (previous === undefined) delete process.env.WIZARDS_AI_MODE;
+    else process.env.WIZARDS_AI_MODE = previous;
+  }
+});
+
 test("cleanup CLI defers a busy lock at the deadline with exit zero and preserves audit mode", async () => {
   let now = 1000;
   const sleeps = [];

@@ -54,10 +54,10 @@ def read_port_policy(port: str) -> dict:
 
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "browserctl"))
-from browser_session import session_environment
-if os.environ.get("CDP_PORT", "9223") in {"9222", "9223"}:
+from browser_session import managed_port, session_environment
+if managed_port(os.environ.get("CDP_PORT", "9223")):
     os.environ.update(session_environment(os.environ.get("AMAZON_BROWSER_SESSION") or
-        ("operator" if os.environ.get("CDP_PORT") == "9222" else "grimoire"), inherit=True))
+        ("operator" if managed_port(os.environ.get("CDP_PORT", "9223")) == 9222 else "grimoire"), inherit=True))
 PORT = os.environ.get("CDP_PORT", "9223")
 PORT_POLICY = read_port_policy(PORT)
 DEFAULT_PROFILE = (Path.home() / ".amazon-agent" /

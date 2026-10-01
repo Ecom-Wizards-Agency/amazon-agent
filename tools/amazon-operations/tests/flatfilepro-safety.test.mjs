@@ -1,3 +1,4 @@
+import '../../report-fetcher/test/helpers/isolated-runtime.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtemp, writeFile, rm } from 'node:fs/promises';

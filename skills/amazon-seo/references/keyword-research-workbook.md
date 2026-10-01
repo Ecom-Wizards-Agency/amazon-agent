@@ -1,6 +1,6 @@
 # Keyword Research Workbook
 
-Run browser-dependent tools through `node tools/browserctl/browserctl.mjs run --session grimoire -- <command>` from either direct chat or Slack. Screenshots inherit the owning task and verified niche.
+In direct chat, run browser-dependent tools through `node tools/browserctl/browserctl.mjs run -- <command>`, which resolves the machine's attended default. Slack and scheduled runs keep `node tools/browserctl/browserctl.mjs run --session grimoire -- <command>`. DataDive web work pins `--session grimoire` in both (below). Screenshots inherit the owning task and verified niche.
 
 Mode browser: Mixed (build is local; DataDive uses MCP first; DataDive web work and the full keyword pool use managed Chrome CDP in the shared Grimoire session on port 9223).
 

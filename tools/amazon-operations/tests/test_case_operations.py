@@ -93,6 +93,18 @@ class CaseOperationsTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'stale owner'):self.service.execute(self.execute_request(result))
             runner.assert_not_called()
 
+    def test_operator_session_is_sent_to_the_seller_assistant_driver(self):
+        for session in ({'AMAZON_BROWSER_SESSION':'operator','CDP_PORT':'9222'},{'CDP_PORT':'9222'}):
+            with self.subTest(session=session):
+                result=self.prepare();before=self.service.view(self.service.directory(result['operation_id']))
+                with patch.object(op,'session_environment',return_value=session),patch.object(self.cases,'case_service',return_value=Mock()) as registry,patch.object(op.subprocess,'run') as runner:
+                    with self.assertRaises(op.OperationError) as raised:self.service.execute(self.execute_request(result))
+                    runner.assert_not_called();registry.assert_not_called()
+                self.assertEqual(raised.exception.code,'case_adapter_grimoire_only')
+                self.assertRegex(str(raised.exception),'Seller Assistant driver.*seller-assistant\\.mjs serve.*record-receipt')
+                self.assertNotEqual(str(raised.exception),'Cases require the Grimoire session on 9223')
+                self.assertEqual(self.service.view(self.service.directory(result['operation_id'])),before)
+
     def test_unknown_submission_is_never_retried(self):
         result=self.prepare()
         with patch.object(self.cases,'case_service',return_value=Mock()),patch.object(op.subprocess,'run',side_effect=op.subprocess.TimeoutExpired('node',1)) as runner:
