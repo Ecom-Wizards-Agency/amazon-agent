@@ -313,7 +313,7 @@ test('denial and tour text are detected', () => {
   assert.match(denial.text, /permission to create support cases/);
   assert.equal(detectDenial("You don't currently have permission to create support cases on this account.").detected, true);
   assert.equal(detectDenial('You do not currently have permission to view this page.').detected, true);
-  // Wording observed live on 2026-09-30 (Blissta US).
+  // Wording observed live on 2026-09-30 (one scoped US account).
   const variant = detectDenial('Here\'s what I found\nIt looks like you don’t currently have permission to create a support case on this account. The primary account holder may be able to grant you this permission via User Permissions in Seller Central.');
   assert.equal(variant.detected, true);
   assert.match(variant.text, /create a support case on this account/);
@@ -642,11 +642,11 @@ test('transcript saves the whole frame text and finds a denial there', async () 
 });
 
 test('open accepts only a Seller Assistant conversation path', () => {
-  const good = '/assistant/amzn1.cyrano.conversation.cid.v2.10021790765749518386464?client=sellerSupport-meldFullPage';
+  const good = '/assistant/amzn1.cyrano.conversation.cid.v2.10000000000000000000001?client=sellerSupport-meldFullPage';
   assert.equal(SA.validateCommandArgs('open', { conversation: good }).ok, true);
-  for (const bad of ['https://evil.example/assistant/amzn1.cyrano.conversation.cid.v2.1002179076574951?client=sellerSupport-meldFullPage',
+  for (const bad of ['https://evil.example/assistant/amzn1.cyrano.conversation.cid.v2.1000000000000001?client=sellerSupport-meldFullPage',
     '/assistant?client=sellerSupport-meldFullPage', '/assistant/amzn1.cyrano.conversation.cid.v2.123/../../x?client=sellerSupport-meldFullPage',
-    '//evil.example/assistant/amzn1.cyrano.conversation.cid.v2.10021790765749518386464?client=sellerSupport-meldFullPage']) {
+    '//evil.example/assistant/amzn1.cyrano.conversation.cid.v2.10000000000000000000001?client=sellerSupport-meldFullPage']) {
     assert.equal(SA.validateCommandArgs('open', { conversation: bad }).ok, false, bad);
   }
   assert.deepEqual(parseArgs(['send', '--run', '/tmp/x', 'open', '--conversation', good]).args, { conversation: good });

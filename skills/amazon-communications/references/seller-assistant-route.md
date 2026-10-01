@@ -118,7 +118,7 @@ The controller re-checks seller and marketplace before and after every command, 
 
 ## Access findings
 
-On 2026-09-30 the Grimoire login was first refused on Blissta US although the operator had confirmed `Manage Your Cases` at Edit that morning; SwissKlip US was refused on 2026-09-25. After the operator corrected the Grimoire user's permission, the retry on 9223 created case 22352352471 the same evening. A refusal means the grant for that exact delegated user is still wrong or not yet active; fix it and retry in a new chat, never by resending in the refused one.
+On 2026-09-30 the Grimoire login was first refused on one scoped US account although the operator had confirmed `Manage Your Cases` at Edit that morning; another scoped US account was refused on 2026-09-25. After the operator corrected the Grimoire user's permission, the retry on 9223 created a case the same evening. A refusal means the grant for that exact delegated user is still wrong or not yet active; fix it and retry in a new chat, never by resending in the refused one.
 
 After `submit`, a Markdown-rendered bubble can make the driver report `uncertain` with `only_prefix_visible` even though the whole message went out. Read `transcript` before deciding anything, and never resend on that result alone.
 
