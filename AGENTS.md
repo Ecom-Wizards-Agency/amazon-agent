@@ -731,7 +731,7 @@ For creator, buyer, or support communication:
 
 - Draft the message first.
 - Confirm the exact thread/person/case.
-- Stop before clicking `Send` unless the operator explicitly confirms the exact send action or the configured team-owned case service verifies a matching request-bound mandate. That case-only mandate authorizes the initial submission and routine continuation of the same issue; it does not authorize buyer/creator messages, appeals, admissions, financial commitments, or account changes. It does not authorize a Seller Assistant chat either: creating a case there is attended only and needs the operator's approval of the exact send plan.
+- Stop before clicking `Send` unless the operator explicitly confirms the exact send action or the configured team-owned case service verifies a matching request-bound mandate. That case-only mandate authorizes the initial submission and routine continuation of the same issue; it does not authorize buyer/creator messages, appeals, admissions, financial commitments, or account changes. It does not authorize a Seller Assistant chat either: creating a case there is attended only. In attended chat, the operator's approval of the exact signed, labelled Seller Support text is the confirmation, also for a text labelled appeal, dispute, refund request, commitment or admission; the lead session then sends, verifies and records it without asking again, and a subagent never sends.
 
 For managed Seller Support cases, use `tools/amazon-operations/case_service.py`
 and the `case.create` / `case.reply` operations. Both direct chat and Grimoire
@@ -739,11 +739,13 @@ share the case owner, authorization, and delivery journal. Preserve the original
 owner's approved signature even when another teammate asks for the next reply;
 reassignment must be explicit. Missing ownership needs one clarification, never
 a fallback to the host operator's name. Review correspondence once daily under
-the configured schedule. The operator browser remains an explicit selection;
-missing Reply in Grimoire requires an access/closure/UI diagnosis.
-Seller Assistant case creation is attended only until the `case.create` adapter
-supports it: the operator approves the exact send plan in chat, even under a case
-mandate, and Grimoire never drives it. The route is
+the configured schedule. Missing Reply in Grimoire requires an access/closure/UI
+diagnosis. Attended case sends run on the operator session (9222,
+`browserctl run --session operator --`) through `seller-assistant.mjs`; replies are
+recorded with `case_service.py record-receipt`; Grimoire stays on 9223 with every
+case-service gate. Seller Assistant case creation is attended only until the
+`case.create` adapter supports it: the operator approves the exact texts once in
+chat, even under a case mandate, and Grimoire never drives it. The route is
 `skills/amazon-communications/references/seller-assistant-route.md`.
 The full workflow and rollout requirements are in `docs/team-owned-cases.md`.
 

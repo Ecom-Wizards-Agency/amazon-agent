@@ -412,7 +412,9 @@ reconcile and record it instead). A released action no longer blocks `adopt`,
 Amazon routes new Seller Support requests through Seller Assistant, a chat that
 hands over to a human associate. `seller-assistant.mjs` drives that chat one
 approved step at a time. It is for attended sessions only; Grimoire never runs
-it, and a case mandate does not replace the operator's send-plan approval. The
+it, and a case mandate does not replace the operator's approval of the exact texts.
+It also sends attended replies in an existing case, through the case page's reply
+form or its `Chat now` window. The
 route, the approval model and case registration are described in
 [the Seller Assistant route](../../skills/amazon-communications/references/seller-assistant-route.md).
 
@@ -420,17 +422,18 @@ One controller process holds the browser for the whole chat. Client calls queue
 one command each and wait for its result; they never touch the browser.
 
 ```sh
-node tools/browserctl/browserctl.mjs run --session grimoire -- node tools/amazon-operations/seller-assistant.mjs serve --run <dir> [--max-minutes 90] [--idle-minutes 20]
+node tools/browserctl/browserctl.mjs run --session operator -- node tools/amazon-operations/seller-assistant.mjs serve --run <dir> [--max-minutes 90] [--idle-minutes 20]
 node tools/amazon-operations/seller-assistant.mjs send --run <dir> <command> [args]
 ```
 
 | Command | Effect |
 |---|---|
 | `open [--via-lobby \| --conversation <path>]` | Record the `/cu/case-lobby` controls, then open `/assistant?client=sellerSupport-meldFullPage`, click `Get help with a new issue` with `--via-lobby`, or reopen an existing conversation path (`/assistant/amzn1.cyrano.conversation.cid.v2.<digits>?client=sellerSupport-meldFullPage`) after a restart |
+| `open --case <digits>` | Open `/cu/case-dashboard/view-case?caseID=<digits>` and report whether `Reply` is present; refused once a case chat window is open |
 | `state` | Read URL, frames, composer label, value and counter, visible controls, status texts, tour, access denial, and the handoff terms with their SHA-256 |
-| `navigate --label <label>` | Click `Get help with a new issue`, `Show more` or `Show less`; tour labels (`Skip`, `Skip tour`, `Got it`, `Done`, `Next`, `Finish`, `Close`, `Dismiss`) only on a control inside the tour container; `Request changes` only while exactly one `Approve` control is visible (an email-case Issue summary) |
+| `navigate --label <label>` | Click `Get help with a new issue`, `Show more` or `Show less`; tour labels (`Skip`, `Skip tour`, `Got it`, `Done`, `Next`, `Finish`, `Close`, `Dismiss`) only on a control inside the tour container; `Request changes` only while exactly one `Approve` control is visible (an email-case Issue summary); `Reply` only on the case page opened with `open --case` |
 | `type --text-file <f> --sha256 <h>` | Insert the text into the empty composer and read it back; never submits. Multi-line text only into a `TEXTAREA` composer |
-| `submit --expect-sha256 <h> --approval-file <f> [--expect-attachment <name>]...` | Click `Submit` when the composer, the expected hash and the approval agree |
+| `submit --expect-sha256 <h> --approval-file <f> [--expect-attachment <name>]... [--label Submit\|Send\|"Chat now"]` | Click the composer's `Submit` (default), `Send` or `Chat now` when the composer, the expected hash and the approval agree |
 | `approve --expect-terms-sha256 <h> --approval-file <f>` | Click the handoff `Approve` when the terms hash matches |
 | `attach --file <path> --sha256 <h> --approval-file <f>` | Set one file on the chat's file input and wait for its chip; never submits |
 | `transcript [--wait-new <n>] [--timeout <s>]` | Save and print the conversation text and a structural outline, plus `page_text` (`transcripts/NN-transcript-page.txt`) and a shadow-piercing `deep_text` of every frame (`transcripts/NN-transcript-deep.txt`); denial detection reads all three |
@@ -463,9 +466,18 @@ clicked in either case.
 
 Safety model:
 
-- Only `Submit`, `Approve` and the navigation labels above can be clicked. The
-  driver never presses Enter, never opens `Open the tool` and never drives a new
-  tab. A click that opens a new page target halts `serve`. For `submit` and
+- Only `Submit`, `Send`, `Chat now`, `Approve`, `Reply` and the navigation labels
+  above can be clicked. The driver never presses Enter, never opens `Open the tool`
+  and never drives a new tab, except the one case chat window `Chat now` opens.
+- `submit --label "Chat now"` takes the approval of the message the chat will
+  deliver and no attachment. It needs `open --case` first and `signature_name` in
+  `run.json`. It fills "Your name" with that name and the composer with the
+  constant opening line `Hello.`, clicks once, and adopts exactly one new
+  same-origin `/hill/website/chat` window with `formType=reply`, this case ID and
+  the task tab as opener, bound as the `case-chat` slot of the same task. Later
+  commands drive that window; any other new tab halts the run. It is logged as
+  `command: chat_now`, so a receipt does not count it as a message, and runs once
+  per run. A click that opens a new page target halts `serve`. For `submit` and
   `approve` the status still reports the delivery (`sent`, `approved` or
   `uncertain`) with reason `new_target`, so a sent message never reads as unsent.
 - A tour label is clicked only when a dialog, tooltip or popover holding the
@@ -478,8 +490,8 @@ Safety model:
   composer handles it.
 - `submit` clicks only when the SHA-256 of the composer text equals
   `--expect-sha256` and the approval file's `sha256`. The composer must be
-  enabled, and its `Submit` must be the only visible `Submit` in the frame
-  (enabled or disabled), enabled, and inside the composer's region, the nearest
+  enabled, and its `Submit` (or the `--label` control) must be the only visible
+  one in the frame (enabled or disabled), enabled, and inside the composer's region, the nearest
   ancestor that also holds `Submit` or `Upload file`. A region that spans the
   conversation does not count. The page repeats this check when it looks up the
   control for the click. Attachments are bound to this run: every file shown as
@@ -535,7 +547,12 @@ characters (JavaScript string length). Then `sha256sum <file>` equals the hash
 that `type`, `submit` and the approval use.
 
 Approval files are JSON:
-`{"schema_version":1,"plan_item":"P1|P2|P3|approve|attachment|followup","sha256":"<hex>","run_id":"<run.json run_id>","seller_id":"<run.json account.seller_id>","approved_at":"<ISO time with timezone>","approval_text":"<operator's verbatim approval>"}`.
+`{"schema_version":1,"plan_item":"P1|P2|P3|approve|attachment|followup","sha256":"<hex>","run_id":"<run.json run_id>","seller_id":"<run.json account.seller_id>","approved_at":"<ISO time with timezone>","approval_text":"<operator's verbatim approval>","label":"routine"}`.
+Text items (P1, P2, P3, followup) need `label`: `routine`, `appeal`, `dispute`,
+`refund_request`, `commitment` or `admission` (`approval_label_missing`,
+`approval_label_invalid`). It is written to `approvals.jsonl`. On a run with
+`registry_id`, their `approval_text` must equal `authorization.source.instruction`
+(`approval_instruction_mismatch`).
 `run_id` and `seller_id` must equal `run.json`, so an approval never carries
 over to another run or account. `approved_at` must be a real calendar time with
 a timezone and not later than the controller clock plus five minutes.
@@ -547,17 +564,25 @@ The run directory holds `run.json`:
 with every account value a non-empty string. `context_binding` is optional and
 copied from the case policy when the profile has one:
 `{"seller_id","marketplace_id","unique_label_mapping":true}` with the account's
-own IDs; anything else is refused. The driver writes `queue/NNN.json`,
+own IDs; anything else is refused. A reply run adds `registry_id`, `baseline`
+(`{"last_sent_at": <sign result>}`) and an attended `authorization` with
+`source.instruction`, all three together; the driver then writes
+`claim-attended.json` and runs `case_service.py claim-attended` before every
+`submit`, `Chat now`, `approve` and `attach`, and any refusal returns `refused`
+(`claim_refused`, with `claim_reason`) before the attempt line. `signature_name`
+is the one-line name for the chat form, at most 100 characters. The driver writes `queue/NNN.json`,
 `results/NNN.json`, `results/NNN.running` while a command runs,
 `steps/NN-<command>.json` (URL, frames, controls, composer state and result for
 every command), `approvals.jsonl` (the approval and outcome of every outbound
 attempt, with its `queue_id`), `uploads/`, `transcripts/`, `screenshots/`,
 `viewcase/`, `serve.pid` and `serve.json`.
 
-`serve` runs only in the Grimoire session on 9223. It acquires one task tab
-(`amazon-communications`, exclusive Seller Central context), switches to the
-account and keeps the 9223 lock until it exits, so scheduled Grimoire browser
-jobs defer for that time. `stop` releases the tab as `success`. An exception or
+`serve` runs in the operator session on 9222, which is refused under
+`WIZARDS_AI_MODE` or inside a `wizards-ai-*` unit, or in the Grimoire session on
+9223. It acquires one task tab (`amazon-communications`, exclusive Seller Central
+context) and switches to the account. On 9223 it keeps the 9223 lock until it
+exits, so scheduled Grimoire browser jobs defer for that time; on 9222 there is no
+port lock, only the task tab's region claim. `stop` releases the tab as `success`. An exception or
 SIGTERM releases it as `error`; so do a halt, `--max-minutes` and
 `--idle-minutes`, which keeps the chat tab in a two-hour inspection lease. A
 `transcript` wait never runs past the `--max-minutes` budget. The conversation-area

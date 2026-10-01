@@ -159,7 +159,7 @@
       },
       "amazon_agent": {
         "state": "approval-gated",
-        "how": "Use the same case service, saved owner and issue-bound mandate. Seller Assistant creation also needs operator approval of the exact send plan in chat until the case.create adapter supports it."
+        "how": "Use the same case service and saved owner. In attended chat the operator's approval of the exact signed, labelled text authorizes the send; the lead session sends it with seller-assistant.mjs on the operator session (9222), verifies it, records it with record-receipt and does not ask again. Seller Assistant creation is attended only until the case.create adapter supports it."
       },
       "identity": "Grimoire delegated Seller Central login (shared Grimoire session)",
       "port": 9223,
