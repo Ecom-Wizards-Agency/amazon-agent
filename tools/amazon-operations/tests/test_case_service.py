@@ -451,20 +451,31 @@ class CaseServiceTests(unittest.TestCase):
     def attended(self, instruction='this is perfect, send it', member='UVICTOR'):
         return {'kind': 'attended', 'requester_id': member, 'source': {'session_id': 's-chat', 'request_id': 'send-1', 'instruction': instruction}}
 
-    def driver_run(self, case, texts, statuses=None, run_id='evora-1-r1', label='routine', account=None, at=None):
-        """A Seller Assistant run directory: run.json plus approvals.jsonl attempt and result lines."""
+    def current(self, case):
+        return next(c for c in self.service.list()['cases'] if c['registry_id'] == case['registry_id'])
+
+    def driver_run(self, case, texts, statuses=None, run_id='evora-1-r1', label='routine', account=None, at=None, approvals=None, claim=True, registry=True):
+        """A Seller Assistant run directory: run.json plus approvals.jsonl attempt and result lines.
+
+        The run claims the case first, a second before its first click, as the driver does."""
+        at = at or self.now - dt.timedelta(minutes=10)
+        if claim:
+            saved, self.now = self.now, min(self.now, at - dt.timedelta(seconds=1))
+            try:
+                self.claim(case, self.current(case)['last_sent_at'], run_id=run_id)
+            finally:
+                self.now = saved
         run_dir = self.root / 'runs' / run_id
         run_dir.mkdir(parents=True, exist_ok=True)
         acct = {**self.account, 'seller_central_name': 'Brand', 'marketplace_label': 'United States', 'parent_account_name': 'Brand', **(account or {})}
-        (run_dir / 'run.json').write_text(json.dumps({'schema_version': 1, 'run_id': run_id, 'account': acct, 'registry_id': case['registry_id']}))
-        at = at or self.now - dt.timedelta(minutes=10)
+        (run_dir / 'run.json').write_text(json.dumps({'schema_version': 1, 'run_id': run_id, 'account': acct, **({'registry_id': case['registry_id']} if registry else {})}))
         lines, messages = [], []
         for index, (item, text) in enumerate(texts.items()):
             sha = hashlib.sha256(text.encode()).hexdigest()
             path = run_dir / f'{item}.txt'
             path.write_text(text)
             stamp = (at + dt.timedelta(seconds=index)).isoformat()
-            approval = {'schema_version': 1, 'plan_item': item, 'sha256': sha, 'run_id': run_id, 'seller_id': acct['seller_id'], 'approved_at': at.isoformat(), 'approval_text': 'this is perfect, send it', 'label': label}
+            approval = {'schema_version': 1, 'plan_item': item, 'sha256': sha, 'run_id': run_id, 'seller_id': acct['seller_id'], 'approved_at': at.isoformat(), 'approval_text': 'this is perfect, send it', 'label': label, **(approvals or {}).get(item, {})}
             lines.append({'at': stamp, 'queue_id': f'00{index}', 'phase': 'attempt', 'command': 'submit', 'sha256': sha, 'plan_item': item, 'approval': approval})
             status = (statuses or {}).get(item, 'sent')
             if status:
@@ -474,6 +485,9 @@ class CaseServiceTests(unittest.TestCase):
         return run_dir, messages
 
     def record_attended(self, case, run_dir, messages, **extra):
+        """By default the readback is a fresh case log that does not show the message, as for a chat reply."""
+        if 'readback_path' not in extra:
+            extra['readback_path'] = str(self.case_log(case, [], name=f'observe-after-{run_dir.name}.json'))
         receipt = {'schema_version': 1, 'kind': 'driver_run', 'run_dir': str(run_dir), 'purpose': 'reply', 'label': 'routine', 'channel': 'case_chat', 'authorization': self.attended(), 'messages': messages, **extra}
         return self.service.record_receipt({'registry_id': case['registry_id'], 'attended_receipt': receipt})
 
@@ -490,7 +504,7 @@ class CaseServiceTests(unittest.TestCase):
         return self.evidence(name, {'schema_version': 1, 'status': 'collected', 'account': self.account, 'case_id': case['case_id'], 'history_complete': True, 'contacts': contacts, 'observed_at': (observed or self.now).isoformat()})
 
     def claim(self, case, last, run_id='evora-1-r1', **extra):
-        return self.service.claim_attended({'registry_id': case['registry_id'], 'run_id': run_id, 'account': {'seller_id': 'SELLER', 'marketplace_id': 'ATVPDKIKX0DER'}, 'baseline': {'last_sent_at': last}, 'authorization': self.attended(), **extra})
+        return self.service.claim_attended({'registry_id': case['registry_id'], 'run_id': run_id, 'account': {'seller_id': 'SELLER', 'marketplace_id': 'ATVPDKIKX0DER'}, 'case_id': case['case_id'], 'baseline': {'last_sent_at': last}, 'authorization': self.attended(), **extra})
 
     def test_sign_keeps_owner_signature_refuses_other_signoffs_and_appends(self):
         case = self.start()
@@ -498,10 +512,10 @@ class CaseServiceTests(unittest.TestCase):
         first = sign('Please confirm the review.')
         self.assertEqual('Please confirm the review.\n\nDanica\nEcom Wizards', first['signed_body'])
         self.assertEqual(hashlib.sha256(first['signed_body'].encode()).hexdigest(), first['sha256'])
-        self.assertEqual(('UDANICA', 'case_owner'), (first['owner_member_id'], first['owner_source']))
+        self.assertEqual(('UDANICA', 'case_owner', 'Danica'), (first['owner_member_id'], first['owner_source'], first['signature_name']))
         self.assertEqual(case['last_sent_at'], first['baseline']['last_sent_at'])
         self.assertEqual(first['signed_body'], sign(first['signed_body'].replace('\n', '\r\n') + '\n')['signed_body'])
-        for body in ['Please confirm.\n\nVictor Uhl\nEcom Wizards', 'Please confirm.\n\nBest,\nDanica', 'Please confirm.\n\nThanks,\nVictor Uhl', 'Please confirm.\n\nEcom Wizards']:
+        for body in ['Please confirm.\n\nVictor Uhl\nEcom Wizards', 'Please confirm.\n\nBest,\nDanica', 'Please confirm.\n\nThanks,\nVictor Uhl', 'Please confirm.\n\nEcom Wizards', 'Please confirm.\n\nBest regards, Danica', 'Please confirm.\n\nThanks - Victor Uhl.']:
             with self.subTest(body=body):
                 self.assertCode('signature_conflict', lambda: sign(body))
         self.assertCode('missing_body', lambda: sign('Danica\nEcom Wizards'))
@@ -510,6 +524,15 @@ class CaseServiceTests(unittest.TestCase):
         self.assertTrue(unregistered['signed_body'].endswith('\n\nVictor Uhl\nEcom Wizards'))
         imported = self.service.adopt({'account': self.account, 'issue_key': 'legacy', 'subject': 'Legacy case', 'case_id': '10001'})['case']
         self.assertEqual('attended_operator', self.service.sign({'registry_id': imported['registry_id'], 'body': 'Status?'})['owner_source'])
+
+    def test_sign_treats_a_name_inside_a_word_as_body_text_on_both_paths(self):
+        self.policy_value['members']['UDAVE'] = {'signature_name': 'Dave', 'signature': 'Dave\nEcom Wizards', 'approved': True}
+        self.policy.write_text(json.dumps(self.policy_value))
+        case = self.start('UDAVE', '100.5', 'dave')
+        body = 'Please check the Davenport warehouse shipment FBA123.'
+        self.assertEqual(body + '\n\nDave\nEcom Wizards', self.service.sign({'registry_id': case['registry_id'], 'body': body})['signed_body'])
+        self.assertEqual(body + '\n\nDave\nEcom Wizards', self.prepare(case, body=body)['operation_request']['inputs']['signed_body'])
+        self.assertCode('signature_conflict', lambda: self.service.sign({'registry_id': case['registry_id'], 'body': 'Please check it.\n\nThanks, Dave'}))
 
     def test_prepare_send_signs_once_and_keeps_unsigned_bodies_unchanged(self):
         plain = self.prepare(self.start())['operation_request']['inputs']['signed_body']
@@ -525,21 +548,24 @@ class CaseServiceTests(unittest.TestCase):
         case = self.created()
         self.now += dt.timedelta(days=1)
         observed = self.observe(case, [{'id': 'amazon-1', 'is_amazon': True}])
-        grimoire = self.prepare(observed['case'], 'reply', daily_key=observed['daily_key'])['operation_request']['inputs']
+        self.assertEqual('reply', observed['next_action'])
         before = self.service.list()['cases'][0]
+        grimoire = self.service._binding(before)
         self.now += dt.timedelta(minutes=30)
         run_dir, messages = self.driver_run(case, {'P1': 'Hello, I need help with case 21912345678.', 'P3': 'Here is the invoice.\n\nDanica\nEcom Wizards'})
         result = self.record_attended(case, run_dir, messages)
-        self.assertEqual(('recorded', 'chat_transcript'), (result['status'], result['verified_by']))
+        self.assertEqual(('recorded', 'driver_result'), (result['status'], result['verified_by']))
         recorded, action = result['case'], result['case']['actions'][-1]
         self.assertLessEqual({'operation_id', 'request_hash', 'purpose', 'daily_key', 'binding', 'signed_body_hash', 'scope_hash', 'applied', 'receipt_path'}, set(action))
-        self.assertEqual((True, None, 'routine', 'chat_transcript'), (action['applied'], action['scope_hash'], action['attended']['label'], action['attended']['verified_by']))
+        self.assertEqual((True, None, 'routine', 'driver_result'), (action['applied'], action['scope_hash'], action['attended']['label'], action['attended']['verified_by']))
         self.assertEqual('this is perfect, send it', action['attended']['approval_text'])
-        self.assertEqual(before['authorization_revision'] + 1, recorded['authorization_revision'])
+        self.assertEqual(before['authorization_revision'] + 2, recorded['authorization_revision'], 'one bump for the claim, one for the record')
         self.assertEqual(action['operation_id'], recorded['daily'][self.now.date().isoformat()]['sent_operation_id'])
         self.assertEqual((self.now - dt.timedelta(minutes=10, seconds=-1)).isoformat(), recorded['last_sent_at'])
-        self.assertEqual(('awaiting_amazon', True), (recorded['lifecycle'], recorded['actions'][-2]['invalidated']))
-        self.assertCode('stale_case_binding', lambda: self.service.validate_binding(grimoire['case_binding'], grimoire))
+        self.assertEqual('awaiting_amazon', recorded['lifecycle'])
+        self.assertCode('stale_case_binding', lambda: self.service.validate_binding(grimoire))
+        # The recorded claim no longer holds Grimoire back; today's sent marker does.
+        self.assertCode('daily_action_blocked', lambda: self.prepare(recorded, 'reply', daily_key=observed['daily_key']))
         self.assertEqual([], self.service.daily_due()['cases'])
         self.assertCode('run_recorded', lambda: self.claim(case, recorded['last_sent_at']))
         # Next day, Grimoire's daily path reads every action, the attended one included.
@@ -628,15 +654,66 @@ class CaseServiceTests(unittest.TestCase):
         self.assertEqual((first['operation_id'], first['authorization_revision'] + 1), (again['operation_id'], again['authorization_revision']))
         self.assertEqual(2, self.service.list()['cases'][0]['attended_claims']['evora-1-r1']['count'])
         self.assertCode('account_mismatch', lambda: self.claim(case, baseline, account={'seller_id': 'OTHER', 'marketplace_id': 'ATVPDKIKX0DER'}))
+        self.assertCode('case_mismatch', lambda: self.claim(case, baseline, case_id='99999999'))
+        self.assertCode('case_mismatch', lambda: self.claim(case, baseline, case_id=None))
         self.assertCode('baseline_changed', lambda: self.claim(case, (core.timestamp(baseline) - dt.timedelta(hours=1)).isoformat()))
         self.assertCode('baseline_changed', lambda: self.claim(case, None))
-        # A Grimoire reply prepared after the claim blocks the next click.
-        observed = self.observe(current, [{'id': 'amazon-1', 'is_amazon': True}])
+        self.assertCode('case_not_created', lambda: self.claim(self.start(message='100.4', issue='pending'), None))
+        # A Grimoire reply prepared before the claim blocks the click; once it is recorded, today's marker does.
+        other = self.start(message='100.6', issue='other')
+        other = self.receipt(other, self.prepare(other), remote_id='21900000002')['case']
+        observed = self.observe(other, [{'id': 'amazon-9', 'is_amazon': True}])
         prepared = self.prepare(observed['case'], 'reply', daily_key=observed['daily_key'])
-        self.assertCode('reconciliation_required', lambda: self.claim(case, baseline))
-        # Once Grimoire's reply is recorded, today's marker refuses even an up-to-date draft.
-        latest = self.receipt(case, prepared)['case']['last_sent_at']
-        self.assertCode('daily_sent', lambda: self.claim(case, latest, run_id='evora-1-r2'))
+        self.assertCode('reconciliation_required', lambda: self.claim(other, other['last_sent_at'], run_id='other-r1'))
+        latest = self.receipt(other, prepared, remote_id='21900000002')['case']['last_sent_at']
+        self.assertCode('daily_sent', lambda: self.claim(self.current(other), latest, run_id='other-r1'))
+
+    def test_open_claim_holds_grimoire_back_until_recorded_or_released(self):
+        case = self.created()
+        self.now += dt.timedelta(days=1)
+        claimed_at = self.now
+        self.claim(case, self.current(case)['last_sent_at'])
+        # Amazon's answer arrives while the attended chat may already have replied: Grimoire hands it to a human.
+        observed = self.observe(self.current(case), [{'id': 'amazon-1', 'is_amazon': True}])
+        self.assertEqual('human', observed['next_action'])
+        self.assertEqual([], self.service.daily_due()['cases'])
+        self.assertCode('reconciliation_required', lambda: self.prepare(observed['case'], 'chaser', daily_key=observed['daily_key']))
+        self.now += dt.timedelta(minutes=20)
+        release = lambda path, run_id='evora-1-r1': self.service.release({'registry_id': case['registry_id'], 'run_id': run_id, 'authorization': self.attended('Nothing went out; release it'), 'evidence': {'readback_path': str(path), 'summary': 'Chat closed before Send'}})  # noqa: E731
+        self.assertCode('unknown_claim', lambda: release(self.case_log(case, []), run_id='evora-9'))
+        self.assertCode('stale_readback', lambda: release(self.case_log(case, [], observed=claimed_at - dt.timedelta(minutes=1))))
+        other_case = self.evidence('other-case.json', {'account': self.account, 'history_complete': True, 'observed_at': self.now.isoformat(), 'cases': [{'case_id': '1', 'contacts': []}]})
+        self.assertCode('readback_mismatch', lambda: release(other_case))
+        sent = {'id': 'seller-chat', 'is_amazon': False, 'message': 'Here is the invoice.', 'timestamp': (claimed_at + dt.timedelta(minutes=2)).isoformat()}
+        self.assertCode('message_observed', lambda: release(self.case_log(case, [sent])))
+        self.assertCode('message_observed', lambda: release(self.case_log(case, [{'id': 'seller-new', 'is_amazon': False, 'message': 'x'}])))
+        earlier = {'id': 'seller-original', 'is_amazon': False, 'message': 'Please review.', 'timestamp': (claimed_at - dt.timedelta(days=1)).isoformat()}
+        released = release(self.case_log(case, [earlier, {'id': 'amazon-1', 'is_amazon': True}]))
+        self.assertEqual('released', released['status'])
+        self.assertEqual('already_released', release(self.case_log(case, []))['status'])
+        self.assertCode('claim_released', lambda: self.claim(case, self.current(case)['last_sent_at']))
+        # Next day Grimoire answers as usual.
+        self.now += dt.timedelta(days=1)
+        observed = self.observe(self.current(case), [{'id': 'amazon-2', 'is_amazon': True}])
+        self.assertEqual('reply', observed['next_action'])
+        self.assertEqual('ready', self.prepare(observed['case'], 'reply', daily_key=observed['daily_key'])['status'])
+
+    def test_recorded_claim_cannot_be_released(self):
+        case = self.created()
+        self.now += dt.timedelta(days=1)
+        run_dir, messages = self.driver_run(case, {'P3': 'Here is the invoice.\n\nDanica\nEcom Wizards'})
+        self.record_attended(case, run_dir, messages)
+        self.assertEqual([], self.service._open_claims(self.current(case)))
+        self.assertCode('run_recorded', lambda: self.service.release({'registry_id': case['registry_id'], 'run_id': 'evora-1-r1', 'authorization': self.attended(), 'evidence': {'readback_path': str(self.case_log(case, [])), 'summary': 'x'}}))
+
+    def test_claim_checks_the_chat_name_against_the_case_owner(self):
+        case = self.created()
+        last = case['last_sent_at']
+        name = self.service.sign({'registry_id': case['registry_id'], 'body': 'Status?'})['signature_name']
+        self.assertEqual('Danica', name)
+        self.assertCode('signature_name_mismatch', lambda: self.claim(case, last, signature_name='Victor Uhl'))
+        self.assertEqual('claimed', self.claim(case, last, signature_name=name)['status'])
+        self.assertEqual('claimed', self.claim(case, last)['status'], 'a run without the chat form passes no name')
 
     def test_next_day_observe_waits_after_attended_reply_missing_from_case_log(self):
         case = self.created()
@@ -654,6 +731,7 @@ class CaseServiceTests(unittest.TestCase):
         self.now += dt.timedelta(days=1)
         text ='Please confirm the review.\n\nDanica\nEcom Wizards'
         run_dir, messages = self.driver_run(case, {'P3': text}, statuses={'P3': 'uncertain'})
+        self.assertCode('missing_readback', lambda: self.record_attended(case, run_dir, messages, readback_path=None))
         self.assertCode('unverified_send', lambda: self.record_attended(case, run_dir, messages))
         empty = self.case_log(case, [], name='empty.json')
         self.assertCode('unverified_send', lambda: self.record_attended(case, run_dir, messages, readback_path=str(empty)))
@@ -668,7 +746,60 @@ class CaseServiceTests(unittest.TestCase):
         later = 'One more question about the invoice.'
         run_dir, messages = self.driver_run(case, {'followup': later}, statuses={'followup': None}, run_id='evora-1-r2')
         transcript = self.evidence('transcript.json', {'schema_version': 1, 'captured_at': self.now.isoformat(), 'text': 'Me\n' + later + '\nAssociate\nThanks, checking.', 'messages': []})
-        self.assertEqual('chat_transcript', self.record_attended(case, run_dir, messages, readback_path=str(transcript))['verified_by'])
+        self.assertCode('readback_not_case_log', lambda: self.record_attended(case, run_dir, messages, readback_path=str(transcript)))
+        self.assertEqual('chat_transcript', self.record_attended(case, run_dir, messages, transcript_path=str(transcript))['verified_by'])
+
+    def test_driver_run_record_names_the_evidence_that_shows_each_message(self):
+        case = self.created()
+        self.now += dt.timedelta(days=1)
+        texts = {'P1': 'Hello, I need help with case 21912345678.', 'P3': 'Here is the invoice.\n\nDanica\nEcom Wizards'}
+        run_dir, messages = self.driver_run(case, texts)
+        logged = self.case_log(case, [{'id': 'seller-p3', 'is_amazon': False, 'message': texts['P3'], 'timestamp': (self.now - dt.timedelta(minutes=9)).isoformat()}], name='after.json')
+        result = self.record_attended(case, run_dir, messages, readback_path=str(logged))
+        recorded = result['case']['actions'][-1]['attended']
+        self.assertEqual(('driver_result', ['driver_result', 'case_log']), (result['verified_by'], [m['verified_by'] for m in recorded['messages']]), 'the record names the weakest evidence')
+        self.assertEqual(hashlib.sha256(logged.read_bytes()).hexdigest(), recorded['readback_sha256'])
+        # A transcript that shows the opening message lifts it to chat_transcript.
+        self.now += dt.timedelta(hours=1)
+        run_dir, messages = self.driver_run(case, {'P1': 'Hello again about case 21912345678.'}, run_id='evora-1-r2')
+        transcript = self.evidence('transcript-r2.json', {'schema_version': 1, 'captured_at': self.now.isoformat(), 'text': 'Me\nHello again about case 21912345678.', 'messages': []})
+        second = self.record_attended(case, run_dir, messages, transcript_path=str(transcript))
+        self.assertEqual('chat_transcript', second['verified_by'])
+        self.assertEqual(hashlib.sha256(transcript.read_bytes()).hexdigest(), second['case']['actions'][-1]['attended']['transcript_sha256'])
+
+    def test_driver_run_records_a_second_text_approved_later_in_the_same_chat(self):
+        case = self.created()
+        self.now += dt.timedelta(days=1)
+        later = self.attended('Yes, send the order ID')
+        texts = {'P3': 'Here is the invoice.\n\nDanica\nEcom Wizards', 'followup': 'The order ID is 111-1234567-1234567.\n\nDanica\nEcom Wizards'}
+        run_dir, messages = self.driver_run(case, texts, approvals={'followup': {'approval_text': later['source']['instruction'], 'label': 'admission', 'authorization': later}})
+        labelled = [messages[0], {**messages[1], 'label': 'admission'}]
+        # Unclaimed, the second sentence is not an approval this run may record.
+        self.assertCode('approval_mismatch', lambda: self.record_attended(case, run_dir, labelled))
+        self.claim(case, self.current(case)['last_sent_at'], authorization=later)
+        self.assertCode('label_mismatch', lambda: self.record_attended(case, run_dir, messages))
+        result = self.record_attended(case, run_dir, labelled)
+        self.assertEqual('recorded', result['status'])
+        self.assertEqual(['routine', 'admission'], [m['label'] for m in result['case']['actions'][-1]['attended']['messages']])
+        self.assertEqual(2, len(result['case']['attended_claims']['evora-1-r1']['authorizations']))
+
+    def test_backfilled_receipt_marks_its_own_day_and_leaves_today_to_grimoire(self):
+        case = self.created()
+        self.now += dt.timedelta(days=1, hours=4)
+        sent = self.now
+        text = 'Thanks, the invoice is attached.\n\nDanica\nEcom Wizards'
+        sha = hashlib.sha256(text.encode()).hexdigest()
+        # Amazon answers the next morning; the hand-sent reply is recorded only after the daily observation.
+        self.now += dt.timedelta(days=1, hours=-4)
+        observed = self.observe(self.current(case), [{'id': 'amazon-1', 'is_amazon': True}])
+        self.assertEqual('reply', observed['next_action'])
+        receipt = {'case_id': case['case_id'], 'seller_id': 'SELLER', 'marketplace_id': 'ATVPDKIKX0DER', 'message_sha256': sha, 'status': 'verified', 'verified_at': (sent + dt.timedelta(minutes=3)).isoformat()}
+        result = self.manual(case, sha, sent, self.evidence('backfill.json', receipt))
+        action = result['case']['actions'][-1]
+        sent_day = sent.astimezone(core.ZONE).date().isoformat()
+        self.assertEqual((f'{sent_day}:{case["registry_id"]}', action['operation_id']), (action['daily_key'], result['case']['daily'][sent_day]['sent_operation_id']))
+        self.assertNotIn('sent_operation_id', result['case']['daily'][self.now.date().isoformat()])
+        self.assertEqual('ready', self.prepare(self.current(case), 'reply', daily_key=observed['daily_key'])['status'])
 
     def test_attended_receipt_refuses_account_mismatch_and_unlisted_or_unapproved_sends(self):
         case = self.created()
@@ -677,8 +808,16 @@ class CaseServiceTests(unittest.TestCase):
         run_dir, messages = self.driver_run(case, {'P1': 'Hello.', 'P3': 'Please confirm.'}, run_id='partial')
         self.assertCode('receipt_incomplete', lambda: self.record_attended(case, run_dir, messages[1:]))
         self.assertCode('label_mismatch', lambda: self.record_attended(case, run_dir, messages, label='appeal'))
-        self.assertCode('approval_mismatch', lambda: self.record_attended(case, run_dir, messages, authorization=self.attended('send something else')))
         self.assertCode('invalid_label', lambda: self.record_attended(case, run_dir, messages, label='complaint'))
+        unapproved, listed = self.driver_run(case, {'P3': 'Please confirm.'}, run_id='unapproved', approvals={'P3': {'approval_text': 'yes'}})
+        self.assertCode('approval_mismatch', lambda: self.record_attended(case, unapproved, listed))
+        # The pre-click claim cannot be skipped: an unbound run, a run that never claimed, or claimed only after clicking.
+        unbound, listed = self.driver_run(case, {'P3': 'Please confirm.'}, run_id='unbound', registry=False)
+        self.assertCode('registry_binding_required', lambda: self.record_attended(case, unbound, listed))
+        unclaimed, listed = self.driver_run(case, {'P3': 'Please confirm.'}, run_id='unclaimed', claim=False)
+        self.assertCode('claim_missing', lambda: self.record_attended(case, unclaimed, listed))
+        self.claim(case, self.current(case)['last_sent_at'], run_id='unclaimed')
+        self.assertCode('claim_after_click', lambda: self.record_attended(case, unclaimed, listed))
         pending = self.start(message='100.7', issue='pending')
         self.assertCode('case_not_created', lambda: self.record_attended(pending, run_dir, messages))
 

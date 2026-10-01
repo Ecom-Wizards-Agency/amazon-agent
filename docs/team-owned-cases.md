@@ -57,7 +57,9 @@ lead session sends it with the driver on 9222, verifies it, records it with
 `case_service.py record-receipt` (`attended_receipt`), and does not ask again. A
 subagent never sends. Attended sends never pass `prepare-send` or
 `validate-binding`. Before each click the driver calls `claim-attended`, which
-refuses when Grimoire sent or prepared something on the case since the draft. A
+refuses when Grimoire sent or prepared something on the case since the draft. In
+the other direction, an open claim stops Grimoire's `prepare-send` and turns its
+daily decision to `human` until the attended run is recorded or released. A
 recorded send moves `last_sent_at`, so the daily review waits for Amazon's answer.
 
 An attended case enters the registry in two steps. `start` records the issue,

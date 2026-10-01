@@ -1174,6 +1174,9 @@ const CHAT_URL = `${SC}/hill/website/chat?formType=reply&originalHttpRequestId=R
 const P3 = 'Dear Amazon Support,\n\nPlease escalate the catalog issue for ASIN B0TEST0001.\n\nVictor Uhl\nEcom Wizards';
 const P3_SHA = sha256(P3);
 const ATTENDED = { kind: 'attended', requester_id: 'U01', source: { session_id: 'session-1', instruction: 'Approved, send P1 as drafted.' } };
+// A reply run is bound to its registry row (open --case refuses otherwise).
+const BOUND = { registry_id: 'b8b31850', baseline: { last_sent_at: '2026-09-30T14:02:11+00:00' }, authorization: ATTENDED };
+const claimed = async () => ({ ok: true, status: 'claimed' });
 
 function caseState(overrides = {}) {
   const state = baseState({ url: CASE_URL, frames: [{ frame_id: 'main', url: CASE_URL, origin: SC, same_origin: true, reachable: true, composer_count: 1 }],
@@ -1200,10 +1203,17 @@ function chatRuntime(dir, { popups = null, adopt = null, claim = null, config = 
     targets: async () => infos().map(t => t.targetId), targetInfos: async () => infos(),
     fillName: async (_frame, text) => { main.events.push('fill-name'); main.current.name_field.value = text; },
   });
-  Object.assign(main.rt, { caseId: CASE_ID, taskTargetId: 'task', chat: null, config: { ...main.rt.config, signature_name: 'Victor', ...config } });
+  Object.assign(main.rt, { caseId: CASE_ID, taskTargetId: 'task', chat: null, config: { ...main.rt.config, ...BOUND, signature_name: 'Victor', ...config } });
   main.rt.deps.adoptChat = adopt || (async target => { main.events.push(`adopt:${target.targetId}`); return { targetId: target.targetId, browser: chat.rt.browser, release: async () => {} }; });
-  if (claim) main.rt.deps.claimAttended = claim;
+  main.rt.deps.claimAttended = claim || claimed;
   return { ...main, chat };
+}
+/** A runtime bound to a case registry row, on the case page state by default. */
+function boundRuntime(dir, options = { state: caseState() }) {
+  const run = fakeRuntime(dir, options);
+  Object.assign(run.rt.config, BOUND);
+  run.rt.deps.claimAttended = claimed;
+  return run;
 }
 const readLog = async dir => existsSync(join(dir, 'approvals.jsonl')) ? (await readFile(join(dir, 'approvals.jsonl'), 'utf8')).trim().split('\n').map(JSON.parse) : [];
 
@@ -1246,16 +1256,16 @@ test('open --case opens the case page; Reply is a navigation target only there',
   assert.equal(SA.validateCommandArgs('open', { case: '1234' }).ok, false);
   const dir = await runDir();
   try {
-    const opened = fakeRuntime(dir, { state: caseState() });
+    const opened = boundRuntime(dir);
     const result = await executeCommand(opened.rt, command('001', 'open', { case: CASE_ID }));
     assert.equal(result.status, 'ok'); assert.equal(result.case_id, CASE_ID); assert.equal(result.reply_present, true);
     assert.deepEqual(opened.events.filter(e => e.startsWith('navigate:')), [`navigate:${CASE_URL}`], 'straight to the case, not the lobby');
     assert.equal(opened.rt.caseId, CASE_ID);
     assert.ok(!opened.events.includes('dispatch'));
-    const both = fakeRuntime(dir, { state: caseState() });
+    const both = boundRuntime(dir);
     assert.equal((await executeCommand(both.rt, command('002', 'open', { case: CASE_ID, 'via-lobby': true }))).reason, 'case_with_other_target');
     assert.ok(!both.events.some(e => e.startsWith('navigate:')));
-    const elsewhere = fakeRuntime(dir);
+    const elsewhere = boundRuntime(dir, {});
     const missed = await executeCommand(elsewhere.rt, command('003', 'open', { case: CASE_ID }));
     assert.equal(missed.status, 'blocked'); assert.equal(missed.reason, 'case_page_not_reached'); assert.equal(elsewhere.rt.caseId ?? null, null);
     // Reply: allowed on the opened case page only; it clicks Reply and sends nothing.
@@ -1271,6 +1281,10 @@ test('open --case opens the case page; Reply is a navigation target only there',
     const notOpened = fakeRuntime(dir, { state: caseState() });
     assert.equal((await executeCommand(notOpened.rt, command('006', 'navigate', { label: 'Reply' }))).reason, 'case_not_opened');
     assert.ok(!onAssistant.events.includes('dispatch') && !notOpened.events.includes('dispatch'));
+    // A run that is not bound to the case's registry row never reaches the case page.
+    const unbound = fakeRuntime(dir, { state: caseState() });
+    assert.equal((await executeCommand(unbound.rt, command('007', 'open', { case: CASE_ID }))).reason, 'registry_binding_required');
+    assert.ok(!unbound.events.some(e => e.startsWith('navigate:')));
     assert.ok(!existsSync(join(dir, 'approvals.jsonl')), 'opening a case and its reply form logs no send');
   } finally { await rm(dir, { recursive: true, force: true }); }
 });
@@ -1402,7 +1416,12 @@ test('Chat now refuses before any click without a signature name, an opened case
     assert.equal((await executeCommand(twoNames.rt, command('004', 'submit', args))).reason, 'name_field_count');
     const files = chatRuntime(dir);
     assert.equal((await executeCommand(files.rt, command('005', 'submit', { ...args, 'expect-attachment': ['a.pdf'] }))).reason, 'chat_now_takes_no_attachment');
-    for (const r of [noName, noCase, drafted, twoNames, files]) assert.ok(!r.events.includes('dispatch'));
+    // Without registry_id neither Chat now nor a Send on the case page can skip the claim.
+    const unbound = chatRuntime(dir, { config: { registry_id: undefined } });
+    assert.equal((await executeCommand(unbound.rt, command('006', 'submit', args))).reason, 'registry_binding_required');
+    unbound.current.composer.value = P3;
+    assert.equal((await executeCommand(unbound.rt, command('007', 'submit', { ...args, label: 'Send' }))).reason, 'registry_binding_required');
+    for (const r of [noName, noCase, drafted, twoNames, files, unbound]) assert.ok(!r.events.includes('dispatch'));
     assert.deepEqual(await readLog(dir), []);
   } finally { await rm(dir, { recursive: true, force: true }); }
 });
@@ -1441,7 +1460,7 @@ test('a registered case: claim-attended runs before each outbound action and a r
     const refused = await executeCommand(s.rt, command('001', 'submit', { 'expect-sha256': P1_SHA, 'approval-file': await approvalFile(dir) }));
     assert.equal(refused.status, 'refused'); assert.equal(refused.reason, 'claim_refused'); assert.equal(refused.claim_reason, 'daily_sent'); assert.equal(refused.stage, 'pre_click');
     assert.ok(!s.events.includes('dispatch'));
-    assert.deepEqual(requests[0], { registry_id: 'b8b31850', run_id: RUN_ID, account: { seller_id: SELLER, marketplace_id: 'ATVPDKIKX0DER' }, baseline: { last_sent_at: '2026-09-30T14:02:11+00:00' }, authorization: ATTENDED });
+    assert.deepEqual(requests[0], { registry_id: 'b8b31850', run_id: RUN_ID, account: { seller_id: SELLER, marketplace_id: 'ATVPDKIKX0DER' }, case_id: null, baseline: { last_sent_at: '2026-09-30T14:02:11+00:00' }, authorization: ATTENDED });
     // Approve and attach stop the same way.
     const terms = 'Connect with an associate\nApprove';
     const a = fakeRuntime(dir, { state: baseState({ controls: [...baseState().controls, { frame_id: 'main', label: 'Approve', disabled: false }], handoff: { approve_count: 1, terms_text: terms } }) });
@@ -1474,6 +1493,40 @@ test('a registered case: claim-attended runs before each outbound action and a r
     fresh.rt.deps.claimAttended = async () => { throw new Error('must not be called'); };
     const p2 = sha256(fresh.current.composer.value);
     assert.equal((await executeCommand(fresh.rt, command('008', 'submit', { 'expect-sha256': p2, 'approval-file': await approvalFile(dir, { plan_item: 'P2', sha256: p2 }, 'p2.json') }))).status, 'sent');
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
+test('a text approved later in the chat carries its own authorization, and the claim before its click uses it', async () => {
+  const later = { kind: 'attended', requester_id: 'U01', source: { session_id: 'session-1', request_id: 'followup-1', instruction: 'Yes, send the order ID' } };
+  const ctx = { runId: RUN_ID, sellerId: SELLER, now: T0, instruction: ATTENDED.source.instruction };
+  const good = { schema_version: 1, plan_item: 'followup', sha256: P1_SHA, approved_at: '2026-09-29T11:59:00Z', approval_text: later.source.instruction, run_id: RUN_ID, seller_id: SELLER, label: 'admission' };
+  assert.equal(validateApproval(good, P1_SHA, undefined, ctx).reason, 'approval_instruction_mismatch');
+  assert.equal(validateApproval({ ...good, authorization: later }, P1_SHA, undefined, ctx).ok, true);
+  assert.equal(validateApproval({ ...good, authorization: { ...later, kind: 'slack' } }, P1_SHA, undefined, ctx).reason, 'approval_authorization_invalid');
+  assert.equal(validateApproval({ ...good, authorization: { ...later, source: { ...later.source, instruction: 'Send it' } } }, P1_SHA, undefined, ctx).reason, 'approval_authorization_invalid');
+  assert.equal(validateApproval({ ...good, authorization: { ...later, source: { instruction: later.source.instruction } } }, P1_SHA, undefined, ctx).reason, 'approval_authorization_invalid', 'the session is required');
+  const dir = await runDir();
+  try {
+    const requests = [];
+    const run = fakeRuntime(dir); run.current.composer.value = P1;
+    Object.assign(run.rt.config, BOUND);
+    run.rt.deps.claimAttended = async request => { requests.push(request); return { ok: true, status: 'claimed' }; };
+    const file = await approvalFile(dir, { plan_item: 'followup', approval_text: later.source.instruction, label: 'admission', authorization: later }, 'followup.json');
+    assert.equal((await executeCommand(run.rt, command('001', 'submit', { 'expect-sha256': P1_SHA, 'approval-file': file }))).status, 'sent');
+    assert.deepEqual(requests.map(r => r.authorization), [later]);
+    assert.deepEqual((await readLog(dir))[0].approval.authorization, later, 'the receipt finds it with the attempt');
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
+test('the claim before Chat now names the opened case and the chat name for the service to check', async () => {
+  const dir = await runDir();
+  try {
+    const requests = [];
+    const run = chatRuntime(dir, { claim: async request => { requests.push(request); return { ok: true, status: 'claimed' }; } });
+    const result = await executeCommand(run.rt, command('001', 'submit', { 'expect-sha256': P3_SHA, 'approval-file': await approvalFile(dir, { plan_item: 'P3', sha256: P3_SHA }), label: 'Chat now' }));
+    assert.equal(result.status, 'sent');
+    assert.deepEqual([requests[0].case_id, requests[0].signature_name, requests[0].authorization], [CASE_ID, 'Victor', ATTENDED]);
+    assert.equal('signature_name' in SA.claimRequest({ run_id: 'r', registry_id: 'x', account: { seller_id: 'S', marketplace_id: 'M' }, baseline: {}, authorization: ATTENDED }), false, 'no name without the chat form');
   } finally { await rm(dir, { recursive: true, force: true }); }
 });
 

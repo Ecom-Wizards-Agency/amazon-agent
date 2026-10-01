@@ -29,6 +29,9 @@ LABELS = frozenset({'routine', 'appeal', 'dispute', 'refund_request', 'commitmen
 SHA = re.compile(r'[a-f0-9]{64}')
 CGROUP = Path('/proc/self/cgroup')
 SKEW = dt.timedelta(minutes=5)
+# Evidence for an attended driver send, weakest first: the driver's own post-click read,
+# a saved chat transcript, a seller contact in the case log.
+VERIFIED = ('driver_result', 'chat_transcript', 'case_log')
 
 
 class CaseError(ValueError):
@@ -376,11 +379,23 @@ class CaseService:
             return text.strip('\n')
         members = [m for m in self._policy()['members'].values() if m.get('approved') is True and m.get('signature_name') and m.get('signature')]
         signoffs = {line.strip().casefold() for m in members for line in [m['signature_name'], *m['signature'].splitlines()] if line.strip()}
-        tail = [line.strip() for line in text.split('\n') if line.strip()][-3:]
-        conflict = any(owner['signature_name'].casefold() in line.casefold() or line.casefold() in signoffs for line in tail)
+        # A sign-off is a whole line of a member's name or signature, or a closing that ends in a member's
+        # name after a comma or dash ("Best regards, Danica"). A name inside a word ("Davenport") is not.
+        names = {m['signature_name'].strip().casefold() for m in members} | {owner['signature_name'].strip().casefold()}
+        closing = re.compile(r'[,\-\u2013\u2014]\s*(?:' + '|'.join(re.escape(n) for n in sorted(names) if n) + r')[.!]?$')
+        tail = [line.strip().casefold() for line in text.split('\n') if line.strip()][-3:]
+        conflict = any(line in signoffs or closing.search(line) for line in tail)
         require(not conflict, 'signature_conflict', 'Body ends in a different or another member\'s sign-off; remove it and let the service sign')
         # Unchanged from the original append, so unsigned bodies are sent exactly as before.
         return (body.rstrip() + '\n\n' + owner['signature']).replace('\r\n', '\n').replace('\r', '\n').strip('\n')
+
+    def _signer(self, case):
+        """Whose signature and chat name an attended text carries: the case owner, else the attended operator."""
+        if case and case.get('owner'):
+            member = self._member(case['owner']['member_id'])
+            require(all(case['owner'][key] == member[key] for key in member), 'signature_changed', 'Approved signature changed; explicitly refresh case ownership')
+            return case['owner'], 'case_owner'
+        return self._member(self._policy().get('attended_operator_id')), 'attended_operator'
 
     def sign(self, request):
         """Read-only: the exact final text an attended operator approves and the driver types."""
@@ -389,19 +404,22 @@ class CaseService:
         if request.get('registry_id') is not None:
             with self._transaction() as db:
                 case = self._load(db, request['registry_id'])
-        if case and case.get('owner'):
-            member = self._member(case['owner']['member_id'])
-            require(all(case['owner'][key] == member[key] for key in member), 'signature_changed', 'Approved signature changed; explicitly refresh case ownership')
-            owner, source = case['owner'], 'case_owner'
-        else:
-            owner, source = self._member(self._policy().get('attended_operator_id')), 'attended_operator'
+        owner, source = self._signer(case)
         signed = self._sign(request.get('body'), owner)
-        return {'status': 'signed', 'registry_id': case['registry_id'] if case else None, 'owner_member_id': owner['member_id'], 'owner_source': source, 'signed_body': signed, 'sha256': message_sha(signed), 'baseline': {'last_sent_at': case.get('last_sent_at') if case else None}}
+        # signature_name is the chat form's "Your name"; claim-attended refuses any other.
+        return {'status': 'signed', 'registry_id': case['registry_id'] if case else None, 'owner_member_id': owner['member_id'], 'owner_source': source, 'signature_name': owner['signature_name'], 'signed_body': signed, 'sha256': message_sha(signed), 'baseline': {'last_sent_at': case.get('last_sent_at') if case else None}}
+
+    def _open_claims(self, case):
+        """Attended runs that asked to click and have neither a recorded receipt nor a release."""
+        recorded = {a['operation_id'] for a in case['actions']}
+        return [run_id for run_id, claim in (case.get('attended_claims') or {}).items() if not claim.get('released') and claim['operation_id'] not in recorded]
 
     def prepare_send(self, request):
         with self._transaction() as db:
             case = self._load(db, request.get('registry_id'))
             self._active(case)
+            # An attended click may have sent a message the case log does not show yet.
+            require(not self._open_claims(case), 'reconciliation_required', 'An attended send is claimed but not recorded; record or release it before preparing another send')
             purpose = request.get('purpose')
             require(purpose in case['mandate']['permitted_actions'], 'outside_mandate', 'Requested correspondence is outside the case mandate')
             if purpose == 'create':
@@ -475,7 +493,9 @@ class CaseService:
         return 'attended-' + digest([case['registry_id'], kind, key])[:48]
 
     def claim_attended(self, request):
-        """Pre-click check for one attended driver run; repeated calls for the same run are safe."""
+        """Pre-click check for one attended reply run; repeated calls for the same run are safe.
+
+        An open claim (no receipt, no release) holds Grimoire's prepare_send and daily reply back."""
         authorization, _ = self._attended(request.get('authorization'))
         run_id, account, baseline = request.get('run_id'), request.get('account'), request.get('baseline')
         require(isinstance(run_id, str) and run_id.strip(), 'invalid_run_id', 'The driver run ID is required')
@@ -484,8 +504,14 @@ class CaseService:
         with self._transaction() as db:
             case = self._load(db, request.get('registry_id'))
             require(isinstance(account, dict) and all(account.get(k) == case['account'][k] for k in ('seller_id', 'marketplace_id')), 'account_mismatch', 'Driver account differs from the registered case')
+            # Only a reply in a created case can be recorded, so only the run on that case page may claim.
+            require(case.get('case_id'), 'case_not_created', 'Attended runs claim replies in a created case; a new case registers through start and adopt')
+            require(request.get('case_id') == case['case_id'], 'case_mismatch', 'The driver opened a different Amazon case')
+            if 'signature_name' in request:
+                require(request['signature_name'] == self._signer(case)[0]['signature_name'], 'signature_name_mismatch', 'The chat name must be the signature_name that sign returned for this case')
             operation_id = self._attended_id(case, 'driver_run', run_id)
             require(all(a['operation_id'] != operation_id for a in case['actions']), 'run_recorded', 'This run is already recorded; start a new run for another send')
+            require(not (case.get('attended_claims') or {}).get(run_id, {}).get('released'), 'claim_released', 'This run was released; start a new run')
             unresolved = [a for a in case['actions'] if not a.get('applied') and (not a.get('invalidated') or self._uncertain_action(a))]
             require(not unresolved, 'reconciliation_required', 'Another case operation is prepared or unresolved')
             sent = case['daily'].get(self._now().astimezone(ZONE).date().isoformat(), {}).get('sent_operation_id')
@@ -493,7 +519,10 @@ class CaseService:
             require(not case.get('last_sent_at') or (drafted and timestamp(case['last_sent_at']) <= drafted), 'baseline_changed', 'A message was sent after this draft; redraft from the current case')
             # The revision bump makes any binding Grimoire computed before this click stale.
             case['authorization_revision'] += 1
-            claim = case.setdefault('attended_claims', {}).setdefault(run_id, {'operation_id': operation_id, 'first_at': self._now().isoformat(), 'authorization': authorization, 'count': 0})
+            claim = case.setdefault('attended_claims', {}).setdefault(run_id, {'operation_id': operation_id, 'first_at': self._now().isoformat(), 'authorizations': [], 'count': 0})
+            # A text approved later in the same chat claims with its own authorization; the receipt accepts each one.
+            if authorization not in claim['authorizations']:
+                claim['authorizations'].append(authorization)
             claim.update(last_at=self._now().isoformat(), count=claim['count'] + 1)
             self._save(db, case)
             return {'status': 'claimed', 'operation_id': operation_id, 'authorization_revision': case['authorization_revision']}
@@ -554,8 +583,11 @@ class CaseService:
             return {'status': 'resolved', 'case': case}
 
     def release(self, request):
-        """The only way to free a stalled action: an attended operator plus a fresh readback without the message."""
+        """The only way to free a stalled action or an abandoned attended claim (with run_id): an attended
+        operator plus a fresh readback without the message."""
         authorization, _ = self._attended(request.get('authorization'))
+        if 'run_id' in request:
+            return self._release_claim(request, authorization)
         operation_id, evidence = request.get('operation_id'), request.get('evidence')
         require(isinstance(operation_id, str) and operation_id.startswith('case-') and '/' not in operation_id and '..' not in operation_id, 'invalid_operation_id', 'Expected a canonical case operation ID')
         require(isinstance(evidence, dict) and isinstance(evidence.get('summary'), str) and evidence['summary'].strip() and evidence.get('readback_path'), 'missing_release_evidence', 'Release requires a fresh readback path and a summary of what it shows')
@@ -584,6 +616,32 @@ class CaseService:
             case['authorization_revision'] += 1
             self._save(db, case)
             return {'status': 'released', 'operation_id': operation_id, 'case': case}
+
+    def _release_claim(self, request, authorization):
+        """Close a claim whose run sent nothing: the case log, read after its last click, shows no new seller message."""
+        run_id, evidence = request.get('run_id'), request.get('evidence')
+        require(isinstance(run_id, str) and run_id.strip(), 'invalid_run_id', 'The driver run ID is required')
+        require(isinstance(evidence, dict) and isinstance(evidence.get('summary'), str) and evidence['summary'].strip() and evidence.get('readback_path'), 'missing_release_evidence', 'Release requires a fresh readback path and a summary of what it shows')
+        readback, readback_sha = self._evidence_file(evidence['readback_path'])
+        with self._transaction() as db:
+            case = self._load(db, request.get('registry_id'))
+            claim = (case.get('attended_claims') or {}).get(run_id)
+            require(claim, 'unknown_claim', 'This run never claimed the case')
+            require(all(a['operation_id'] != claim['operation_id'] for a in case['actions']), 'run_recorded', 'A recorded send cannot be released')
+            if claim.get('released'):
+                return {'status': 'already_released', 'run_id': run_id, 'case': case}
+            require(timestamp(claim['last_at']) <= timestamp(readback.get('observed_at')) <= self._now() + SKEW, 'stale_readback', 'Release readback must be collected after the run\'s last claimed click')
+            require(readback.get('account') == case['account'] and readback.get('history_complete') is True, 'readback_mismatch', 'Release readback must verify the exact account and complete history')
+            items = [item for item in readback.get('cases', [readback]) if item.get('case_id') == case['case_id']]
+            require(len(items) == 1 and isinstance(items[0].get('contacts'), list), 'readback_mismatch', 'Release readback must hold this case\'s complete case log')
+            # A seller contact without a time counts unless an earlier observation already knew it.
+            since = timestamp(claim['first_at']).replace(microsecond=0)
+            shown = [c for c in items[0]['contacts'] if c.get('is_amazon') is False and (timestamp(c['timestamp']) >= since if c.get('timestamp') else c.get('id') not in case['contact_ids'])]
+            require(not shown, 'message_observed', 'The case log shows a seller message since the claim; record it instead')
+            claim['released'] = {'at': self._now().isoformat(), 'authorization': authorization, 'evidence': {**evidence, 'readback_sha256': readback_sha}}
+            case['authorization_revision'] += 1
+            self._save(db, case)
+            return {'status': 'released', 'run_id': run_id, 'case': case}
 
     def daily_due(self):
         current = self._now().astimezone(ZONE)
@@ -666,6 +724,8 @@ class CaseService:
             if str(remote_status or '').lower() in {'resolved', 'closed', 'completed'}:
                 case['lifecycle'] = 'awaiting_resolution_review'
                 action = 'human'
+            elif self._open_claims(case):
+                action = 'human'  # An attended send may be out and unrecorded; the attended session records or releases it.
             elif not case['owner'] or not case['mandate'] or case['mandate'].get('revoked_at'):
                 action = 'human'
             elif observation.get('can_edit') is False:
@@ -719,7 +779,7 @@ class CaseService:
         shown = (text is not None and normalize_body(text) in normalize_body(data['text'])) or any(message_sha(normalize_body(m.get('text', ''))) == sha for m in data.get('messages') or [] if isinstance(m, dict))
         return ('chat_transcript', None) if shown else None
 
-    def _driver_run(self, case, receipt, approval_text):
+    def _driver_run(self, case, receipt, authorization):
         run_dir = Path(str(receipt.get('run_dir') or '')).expanduser().resolve()
         try:
             run = json.loads((run_dir / 'run.json').read_text())
@@ -727,7 +787,13 @@ class CaseService:
         except (OSError, ValueError) as exc:
             raise CaseError('receipt_unavailable', 'Driver run.json and approvals.jsonl are required') from exc
         account = run.get('account') if isinstance(run.get('account'), dict) else {}
-        require(all(account.get(k) == case['account'][k] for k in ('seller_id', 'marketplace_id')) and run.get('registry_id', case['registry_id']) == case['registry_id'], 'account_mismatch', 'Driver run belongs to another account or case')
+        require(all(account.get(k) == case['account'][k] for k in ('seller_id', 'marketplace_id')), 'account_mismatch', 'Driver run belongs to another account')
+        require(run.get('registry_id') == case['registry_id'], 'registry_binding_required', 'Only a driver run bound to this case by run.json registry_id can be recorded')
+        claim = (case.get('attended_claims') or {}).get(run.get('run_id'))
+        require(claim and claim['operation_id'] == self._attended_id(case, 'driver_run', run.get('run_id')), 'claim_missing', 'This run never passed claim-attended before a click')
+        # The receipt's approval sentence and every one the service validated when this run claimed a click.
+        instructions = {str(a['source']['instruction']).strip() for a in [authorization, *claim.get('authorizations', [])]}
+        require(receipt.get('readback_path'), 'missing_readback', 'Record a driver run with the case readback taken after it')
         entries = []
         for line in log.splitlines():
             with contextlib.suppress(ValueError):
@@ -735,28 +801,36 @@ class CaseService:
         results = {e.get('queue_id'): e for e in entries if isinstance(e, dict) and e.get('phase') == 'result'}
         attempts = [e for e in entries if isinstance(e, dict) and e.get('phase') == 'attempt' and e.get('command') == 'submit']
         outcome = lambda a: (results.get(a.get('queue_id')) or {}).get('status', 'uncertain')  # noqa: E731
+        require(all(timestamp(a.get('at')) >= timestamp(claim['first_at']) - SKEW for a in attempts), 'claim_after_click', 'A click in this run came before its first claim-attended')
         messages = receipt.get('messages')
         require(isinstance(messages, list) and messages and all(isinstance(m, dict) and m.get('plan_item') and SHA.fullmatch(str(m.get('sha256'))) for m in messages) and len({m['sha256'] for m in messages}) == len(messages), 'invalid_receipt', 'List each approved message once with its plan item and SHA-256')
         require({a.get('sha256') for a in attempts if outcome(a) != 'blocked'} == {m['sha256'] for m in messages}, 'receipt_incomplete', 'The receipt must list exactly the texts this run submitted')
-        readback, readback_sha = self._evidence_file(receipt['readback_path']) if receipt.get('readback_path') else (None, None)
+        readback, readback_sha = self._evidence_file(receipt['readback_path'])
+        require('contacts' in readback or 'cases' in readback, 'readback_not_case_log', 'readback_path is the case log read after the run (observe output); pass a chat transcript as transcript_path')
+        transcript, transcript_sha = self._evidence_file(receipt['transcript_path']) if receipt.get('transcript_path') else (None, None)
         recorded, times, contacts = [], [], []
         for message in messages:
+            label = message.get('label', receipt['label'])  # A separately approved text may carry its own label.
+            require(label in LABELS, 'invalid_label', 'Label must be routine, appeal, dispute, refund_request, commitment or admission')
             mine = [a for a in attempts if a.get('sha256') == message['sha256'] and outcome(a) != 'blocked']
             for attempt in mine:
                 approval = attempt.get('approval') if isinstance(attempt.get('approval'), dict) else {}
-                require(attempt.get('plan_item') == message['plan_item'] and approval.get('sha256') == message['sha256'] and approval.get('run_id') == run.get('run_id') and approval.get('seller_id') == case['account']['seller_id'] and str(approval.get('approval_text', '')).strip() == approval_text.strip(), 'approval_mismatch', 'Driver approval differs from this run, account or attended approval sentence')
-                require(approval.get('label') == receipt['label'], 'label_mismatch', 'Driver approval carries a different label')
+                require(attempt.get('plan_item') == message['plan_item'] and approval.get('sha256') == message['sha256'] and approval.get('run_id') == run.get('run_id') and approval.get('seller_id') == case['account']['seller_id'] and str(approval.get('approval_text', '')).strip() in instructions, 'approval_mismatch', 'Driver approval differs from this run, account or any attended approval sentence claimed for it')
+                require(approval.get('label') == label, 'label_mismatch', 'Driver approval carries a different label')
             text = self._approved_text(message['text_path'], message['sha256']) if message.get('text_path') else None
             first = min(timestamp(a.get('at')) for a in mine)
             delivered = [timestamp(a.get('at')) for a in mine if outcome(a) == 'sent']
-            shown = self._shows(case, readback, message['sha256'], text, first, bound=True) if readback else None
-            require(delivered or shown, 'unverified_send', 'An uncertain send needs a fresh readback showing the exact text')
-            contact = shown[1] if shown and shown[0] == 'case_log' else None
+            shown = [s for s in (self._shows(case, data, message['sha256'], text, first, bound=True) for data in (readback, transcript) if data is not None) if s]
+            contact = next((s[1] for s in shown if s[0] == 'case_log'), None)
+            # Without a readback that shows the text, only the driver's own read after the click vouches for it.
+            verified = 'case_log' if contact else 'chat_transcript' if shown else 'driver_result' if delivered else None
+            require(verified, 'unverified_send', 'An uncertain send needs a fresh readback showing the exact text')
             if contact:
                 contacts.append(contact['id'])
             times.append(timestamp(contact['timestamp']) if contact else max(delivered or [first]))
-            recorded.append({'plan_item': message['plan_item'], 'sha256': message['sha256'], 'outcome': 'sent' if delivered else 'uncertain', 'verified_by': 'case_log' if contact else 'chat_transcript', 'contact_id': contact['id'] if contact else None})
-        return {'run_id': run.get('run_id'), 'run_dir': str(run_dir), 'messages': recorded, 'readback_sha256': readback_sha, 'verified_by': 'case_log' if contacts else 'chat_transcript', 'contact_ids': contacts, 'sent_at': max(times).isoformat(), 'receipt_path': str(run_dir / 'approvals.jsonl')}
+            recorded.append({'plan_item': message['plan_item'], 'sha256': message['sha256'], 'label': label, 'outcome': 'sent' if delivered else 'uncertain', 'verified_by': verified, 'contact_id': contact['id'] if contact else None})
+        weakest = min((m['verified_by'] for m in recorded), key=VERIFIED.index)
+        return {'run_id': run.get('run_id'), 'run_dir': str(run_dir), 'messages': recorded, 'readback_sha256': readback_sha, 'transcript_sha256': transcript_sha, 'verified_by': weakest, 'contact_ids': contacts, 'sent_at': max(times).isoformat(), 'receipt_path': str(run_dir / 'approvals.jsonl')}
 
     def _manual_receipt(self, case, receipt):
         sha = str(receipt.get('signed_body_sha256'))
@@ -796,8 +870,9 @@ class CaseService:
                 require(previous['request_hash'] == digest(receipt), 'receipt_conflict', 'A different receipt was already recorded for this send')
                 return {'status': 'already_recorded', 'operation_id': operation_id, 'case': case}
             approval_text = authorization['source']['instruction']
-            evidence = self._driver_run(case, receipt, approval_text) if receipt['kind'] == 'driver_run' else self._manual_receipt(case, receipt)
-            day = self._now().astimezone(ZONE).date().isoformat()
+            evidence = self._driver_run(case, receipt, authorization) if receipt['kind'] == 'driver_run' else self._manual_receipt(case, receipt)
+            # The daily marker belongs to the day of the send, so a backfill never blocks today's reply.
+            day = timestamp(evidence['sent_at']).astimezone(ZONE).date().isoformat()
             owner, mandate = case.get('owner') or {}, case.get('mandate') or {}
             binding = {'registry_id': case['registry_id'], 'owner_revision': owner.get('revision'), 'mandate_id': mandate.get('id'), 'mandate_revision': mandate.get('revision'), 'authorization_revision': case['authorization_revision']}
             # Every key other readers index directly; scope_hash None never matches a prepared message.

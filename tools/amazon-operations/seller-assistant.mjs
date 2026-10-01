@@ -151,9 +151,10 @@ export function validateRunConfig(config) {
     kept.context_binding = { seller_id: b.seller_id, marketplace_id: b.marketplace_id, unique_label_mapping: true };
   }
   const run = { schema_version: 1, run_id: config.run_id, account: kept };
-  // A run bound to a case registry row passes the draft baseline (from
-  // case_service.py sign) and the attended authorization to claim-attended before
-  // every outbound action. Without registry_id the case is not registered yet.
+  // A reply run is bound to its case registry row: it passes the draft baseline
+  // (from case_service.py sign) and the attended authorization to claim-attended
+  // before every outbound action. `open --case` refuses without registry_id; a new
+  // case in Seller Assistant is not bound (it registers through start and adopt).
   if (config.registry_id !== undefined) {
     if (typeof config.registry_id !== 'string' || !config.registry_id.trim()) throw codeError('run_config_invalid', 'run.json registry_id must be a non-empty string');
     const baseline = config.baseline;
@@ -176,10 +177,14 @@ export function validateRunConfig(config) {
   return run;
 }
 
-/** The claim-attended request for this run (case_service.py README contract). */
-export function claimRequest(config) {
+/** The claim-attended request for this run (case_service.py README contract):
+ * the case the run opened, the chat name it types (the service refuses one that
+ * is not the case owner's), and the authorization of the approval about to be
+ * used, which is run.json's unless the approval carries its own. */
+export function claimRequest(config, { caseId = null, authorization = null } = {}) {
   return { registry_id: config.registry_id, run_id: config.run_id, account: { seller_id: config.account.seller_id, marketplace_id: config.account.marketplace_id },
-    baseline: config.baseline, authorization: config.authorization };
+    case_id: caseId, baseline: config.baseline, authorization: authorization || config.authorization,
+    ...(config.signature_name !== undefined ? { signature_name: config.signature_name } : {}) };
 }
 
 /** Ask the case service whether this attended run may click. Anything but exit 0
@@ -364,9 +369,19 @@ export function checkComposer(value, expectedSha) {
   return { ...facts, ok: true, text };
 }
 
+/** A text approved later in the same chat, such as the answer to an associate's
+ * question, carries its own attended `authorization` whose instruction is that
+ * approval sentence; claim-attended validates it before the click and the
+ * receipt accepts it. */
+export function ownAuthorization(approval) {
+  const own = approval?.authorization;
+  return Boolean(own && typeof own === 'object' && !Array.isArray(own) && own.kind === 'attended' && typeof own.source?.session_id === 'string' && own.source.session_id
+    && typeof own.source.instruction === 'string' && typeof approval.approval_text === 'string' && own.source.instruction.trim() === approval.approval_text.trim());
+}
+
 /** `context` binds the approval to this run: { runId, sellerId, now }, plus
- * `instruction` (the attended authorization's approval sentence) on a run bound to
- * a case registry row, whose receipt requires the same sentence on every text. */
+ * `instruction` (run.json's attended approval sentence) on a run bound to a case
+ * registry row: a text approval carries that sentence or its own authorization. */
 export function validateApproval(approval, expectedSha, allowedItems = PLAN_ITEMS, context = {}) {
   const fail = reason => ({ ok: false, reason });
   if (!approval || typeof approval !== 'object' || Array.isArray(approval)) return fail('approval_malformed');
@@ -389,7 +404,8 @@ export function validateApproval(approval, expectedSha, allowedItems = PLAN_ITEM
   if (!context.runId || !context.sellerId || typeof context.now !== 'number') return fail('approval_context_missing');
   if (approval.run_id !== context.runId) return fail('approval_run_mismatch');
   if (approval.seller_id !== context.sellerId) return fail('approval_seller_mismatch');
-  if (TEXT_ITEMS.has(approval.plan_item) && context.instruction !== undefined && approval.approval_text.trim() !== String(context.instruction).trim()) return fail('approval_instruction_mismatch');
+  if (approval.authorization !== undefined && !ownAuthorization(approval)) return fail('approval_authorization_invalid');
+  if (TEXT_ITEMS.has(approval.plan_item) && context.instruction !== undefined && approval.approval_text.trim() !== String(context.instruction).trim() && !ownAuthorization(approval)) return fail('approval_instruction_mismatch');
   if (Date.parse(approval.approved_at) > context.now + APPROVAL_CLOCK_SKEW_MS) return fail('approval_time_in_future');
   return { ok: true };
 }
@@ -1212,12 +1228,13 @@ const approvalContext = rt => ({ runId: rt.config?.run_id, sellerId: rt.config?.
   ...(rt.config?.registry_id ? { instruction: rt.config.authorization.source.instruction } : {}) });
 
 /** A run bound to a case registry row asks the case service before every
- * outbound action; any refusal stops it before its attempt line is written.
- * Returns null when the action may go ahead. */
-async function claimBeforeClick(rt) {
+ * outbound action, with the authorization of the approval it is about to use;
+ * any refusal stops it before its attempt line is written. Returns null when the
+ * action may go ahead. */
+async function claimBeforeClick(rt, approval = null) {
   if (!rt.config?.registry_id) return null;
   let verdict;
-  try { verdict = await rt.deps.claimAttended(claimRequest(rt.config)); }
+  try { verdict = await rt.deps.claimAttended(claimRequest(rt.config, { caseId: rt.caseId ?? null, authorization: ownAuthorization(approval) ? approval.authorization : null })); }
   catch (error) { verdict = { ok: false, reason: 'claim_unavailable', message: String(error?.message || error).slice(0, 300) }; }
   if (verdict?.ok === true) return null;
   return { status: 'refused', reason: 'claim_refused', claim_reason: verdict?.reason || 'claim_refused', ...(verdict?.message ? { message: verdict.message } : {}), stage: 'pre_click' };
@@ -1294,7 +1311,7 @@ async function chatNow(rt, args, approval) {
   // Everything checked above is checked again after the identity read.
   const again = formBlocker(await rt.browser.scan());
   if (again) return { ...again, stage: 'pre_click' };
-  const claim = await claimBeforeClick(rt);
+  const claim = await claimBeforeClick(rt, approval);
   if (claim) return claim;
   let click;
   try {
@@ -1340,6 +1357,8 @@ export const handlers = {
     if (rt.chat) return { status: 'refused', reason: 'case_chat_open' };
     if (args.case) {
       if (args['via-lobby'] || args.conversation) return { status: 'refused', reason: 'case_with_other_target' };
+      // A reply is recorded only for a run bound to its registry row, whose claim runs before every click.
+      if (!rt.config?.registry_id) return { status: 'refused', reason: 'registry_binding_required' };
       assertNotAborting(rt);
       rt.caseId = null;
       const url = `${rt.origin}${CASE_VIEW_PATH}?caseID=${encodeURIComponent(args.case)}`;
@@ -1432,6 +1451,8 @@ export const handlers = {
   async submit(rt, args) {
     const expected = args['expect-sha256'];
     const label = args.label || 'Submit';
+    // On a case page or in its chat window the pre-click claim cannot be skipped.
+    if ((label === 'Chat now' || rt.caseId || rt.chat) && !rt.config?.registry_id) return { status: 'refused', reason: 'registry_binding_required' };
     const loaded = await loadApproval(args['approval-file'], expected, COMMAND_PLAN_ITEMS.submit, rt.deps.readFile, approvalContext(rt));
     if (!loaded.ok) return { status: 'refused', reason: loaded.reason };
     const approval = loaded.approval;
@@ -1453,7 +1474,7 @@ export const handlers = {
     const last = await rt.browser.occurrences(frameId, composer.text);
     const recheck = checkComposer(last.composer_value, expected);
     if (!recheck.ok) return { status: 'refused', reason: recheck.reason, stage: 'pre_click' };
-    const claim = await claimBeforeClick(rt);
+    const claim = await claimBeforeClick(rt, approval);
     if (claim) return claim;
     let click;
     try {
@@ -1510,7 +1531,7 @@ export const handlers = {
       ? { ok: pre.handoff.frame_id === frameId && pre.handoff.terms_sha256 === expected, control: { frame_id: pre.handoff.frame_id }, reason: 'summary_not_verified' }
       : allControlsMatch(pre, 'Approve');
     if (!preMatch.ok || preMatch.control.frame_id !== frameId) return { status: 'blocked', reason: preMatch.ok ? 'approve_frame_changed' : `control_${preMatch.reason}`, stage: 'pre_click' };
-    const claim = await claimBeforeClick(rt);
+    const claim = await claimBeforeClick(rt, loaded.approval);
     if (claim) return claim;
     let click;
     try {
@@ -1572,7 +1593,7 @@ export const handlers = {
     if (state.attachments.input_files.length) return { status: 'blocked', reason: 'file_input_not_empty' };
     const input = await rt.browser.prepareFileInput(frameId);
     const identity = await reverify(rt);
-    const claim = await claimBeforeClick(rt);
+    const claim = await claimBeforeClick(rt, loaded.approval);
     if (claim) return claim;
     // logAttempt refuses once serve is aborting; everything from its return to
     // the setFile call below runs in one tick.
