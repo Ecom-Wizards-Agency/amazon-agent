@@ -1,4 +1,5 @@
 import importlib.util
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -19,6 +20,15 @@ class EvidenceBindingTests(unittest.TestCase):
                 with self.assertRaisesRegex(RuntimeError, "EVIDENCE_TASK_REQUIRED"):
                     tab.screenshot(Path(tmp) / "capture.png", evidence_spec=evidence)
             run.assert_not_called()
+
+    def test_operator_session_is_refused_before_resolution(self):
+        for env in [{"AMAZON_BROWSER_SESSION": "operator"}, {"CDP_PORT": "9222"}]:
+            module = importlib.util.module_from_spec(spec)
+            with self.subTest(env=env), patch.dict(os.environ, env), \
+                    patch("subprocess.run") as run:
+                with self.assertRaisesRegex(RuntimeError, "SQP_COMPETITOR_GRIMOIRE_ONLY"):
+                    spec.loader.exec_module(module)
+                run.assert_not_called()
 
 
 if __name__ == "__main__":

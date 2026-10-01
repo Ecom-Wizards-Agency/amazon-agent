@@ -20,8 +20,10 @@ def _assert_pid_exists(pid):
         pass
 
 
-def session_environment(name="grimoire", overrides=None, *, inherit=False):
-    allowed = {"HOME", "PATH", "LANG", "LC_ALL", "TMPDIR", "AMAZON_BROWSER_POLICY",
+def session_environment(name=None, overrides=None, *, inherit=False):
+    # No name resolves like browserctl: AMAZON_BROWSER_SESSION, CDP_PORT, then the
+    # policy default; WIZARDS_AI_MODE keeps Grimoire on grimoire and refuses operator.
+    allowed = {"HOME", "PATH", "LANG", "LC_ALL", "TMPDIR", "AMAZON_BROWSER_POLICY", "WIZARDS_AI_MODE",
                "AMAZON_BROWSER_RUNTIME_DIR", "AMAZON_BROWSER_SESSION", "CDP_PORT", "CDP_PROFILE", "CDP_HOST"}
     env = {key: value for key, value in os.environ.items() if key in allowed}
     # A worker's selected session is explicit, never the caller's operator route.
@@ -36,7 +38,7 @@ def session_environment(name="grimoire", overrides=None, *, inherit=False):
             if comparable(prior) != comparable(value):
                 raise RuntimeError(f"BROWSER_SESSION_CONFLICT: inherited {key} disagrees with workflow configuration")
         env[key] = value
-    result = subprocess.run([NODE, str(CONTROLLER), "session", "--session", name],
+    result = subprocess.run([NODE, str(CONTROLLER), "session", *(["--session", name] if name else [])],
                             env=env, capture_output=True, text=True, timeout=15, check=False)
     if result.returncode:
         raise RuntimeError(result.stdout.strip() or "browser session resolution failed")
@@ -46,8 +48,7 @@ def session_environment(name="grimoire", overrides=None, *, inherit=False):
 def bind_process_session():
     if os.environ.get("CDP_PORT", "9223") not in {"9222", "9223"} and not os.environ.get("AMAZON_BROWSER_SESSION"):
         return
-    name = os.environ.get("AMAZON_BROWSER_SESSION") or ("operator" if os.environ.get("CDP_PORT") == "9222" else "grimoire")
-    os.environ.update(session_environment(name, inherit=True))
+    os.environ.update(session_environment(os.environ.get("AMAZON_BROWSER_SESSION"), inherit=True))
 
 
 def assert_session_lock(port):

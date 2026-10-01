@@ -7,6 +7,7 @@ import {
   authAttemptStatus, recordAuthAttempt, releaseLease, touchLease,
 } from "./lease-registry.mjs";
 import { loadBrowserPolicy, policyForPort } from "./policy.mjs";
+import { sessionForPort } from "./session.mjs";
 import { acquireSessionLock, assertSessionLock } from "./session-lock.mjs";
 
 const AMAZON_AGENT = resolve(import.meta.dirname, "../..");
@@ -76,9 +77,10 @@ async function authenticateThroughTransport(port, targetId) {
 }
 
 async function cdpForPort(port, policy) {
+  const session = sessionForPort(port);
   const config = policyForPort(port, policy);
   process.env.CDP_PORT = String(port);
-  process.env.AMAZON_BROWSER_SESSION = Number(port) === 9223 ? "grimoire" : "operator";
+  process.env.AMAZON_BROWSER_SESSION = session;
   process.env.CDP_PROFILE = config.profile;
   process.env.CDP_START_URL = config.start_url;
   process.env.CDP_BROWSER_MODE = config.mode;
@@ -211,7 +213,7 @@ async function submitForm(cdp, session) {
   if (!requested || !await changed()) throw new Error("AUTH_FORM_UNAVAILABLE: form did not advance");
 }
 
-async function fillStep(cdp, session, state, login, getOtp) {
+async function fillStep(cdp, session, state, login, getOtp, beforeOtpSubmit = () => {}) {
   if (state.status === "password_required") {
     if (state.facts.email) {
       await replaceInput(cdp, session,
@@ -229,15 +231,26 @@ async function fillStep(cdp, session, state, login, getOtp) {
     await replaceInput(cdp, session,
       'input[name="otpCode"],input[name="code"],input[autocomplete="one-time-code"]',
       otp, "one-time password");
+    beforeOtpSubmit();
   } else return false;
   await submitForm(cdp, session);
   return true;
 }
 
+// A TOTP code belongs to one 30-second period counted from the Unix epoch.
+export function totpPeriodEnd(fetchedAt) {
+  return (Math.floor(Number(fetchedAt) / 30_000) + 1) * 30_000;
+}
+
 export async function authenticateTarget({
   port, targetId, policy = loadBrowserPolicy(), configPath = CONFIG_PATH,
-  config: suppliedConfig = null, authProvider = null,
+  config: suppliedConfig = null, authProvider = null, cdp: suppliedCdp = null,
+  otpFetchedAt = null, onOtpSubmitted = null, clock = Date.now,
 } = {}) {
+  sessionForPort(port);
+  if (otpFetchedAt != null && !(Number.isFinite(Number(otpFetchedAt)) && Number(otpFetchedAt) > 0)) {
+    throw new Error("AUTH_OTP_FETCHED_AT_INVALID: pass the code's fetch time in epoch milliseconds");
+  }
   const config = suppliedConfig || JSON.parse(readFileSync(configPath, "utf8"));
   const transportOnly = requiresCredentialTransport(config);
   if (!authProvider && (transportOnly || existsSync(TRANSPORT_SOCKET) || TRANSPORT_REQUIRED)) {
@@ -252,7 +265,7 @@ export async function authenticateTarget({
       return result;
     } finally { unlock(); }
   }
-  const cdp = await cdpForPort(port, policy);
+  const cdp = suppliedCdp || await cdpForPort(port, policy);
   await cdp.assertChrome();
   const page = (await cdp.listPages()).find((candidate) => candidate.id === targetId);
   if (!page) throw new Error("AUTH_TARGET_UNAVAILABLE: target does not exist");
@@ -264,8 +277,14 @@ export async function authenticateTarget({
     await session.send("Runtime.enable", {}, { timeoutMs: 10000 });
     const initial = await cdp.evaluate(session, `({origin:location.origin})`, 10000);
     const route = auth.assertAuthPolicy(config, { port, origin: initial.origin });
-    const output = (status, origin = initial.origin, retryAt = null) =>
-      publicAuthenticationStatus({ status, route, port, targetId, origin, retryAt });
+    // otp_submitted is reported only to callers that use the code options, so
+    // the existing transport's status allowlist keeps passing unchanged.
+    let otpSubmitted = false;
+    const reportOtp = otpFetchedAt != null || typeof onOtpSubmitted === "function";
+    const output = (status, origin = initial.origin, retryAt = null) => ({
+      ...publicAuthenticationStatus({ status, route, port, targetId, origin, retryAt }),
+      ...(reportOtp ? { otp_submitted: otpSubmitted } : {}),
+    });
     let state = await inspectPage(cdp, session, route.adapter);
     if (state.status === "authenticated") {
       await touchLease({ port, targetId, kind: "activity", policy });
@@ -303,8 +322,21 @@ export async function authenticateTarget({
         return output(state.status, state.facts.origin);
       }
       const currentLogin = getLogin();
-      const advanced = await fillStep(cdp, session, state, currentLogin,
-        () => auth.loadRouteLogin(config, route, { includeOtp: true }).otp);
+      let otp = null;
+      if (state.status === "totp_required") {
+        // Nothing is typed without a code, or once the code's period has ended.
+        otp = String(auth.loadRouteLogin(config, route, { includeOtp: true }).otp ?? "").trim();
+        const status = !otp ? "totp_unavailable"
+          : otpFetchedAt != null && clock() >= totpPeriodEnd(otpFetchedAt) ? "totp_expired" : null;
+        if (status) {
+          await releaseLease({ port, targetId, outcome: status, policy });
+          return output(status, state.facts.origin);
+        }
+      }
+      const advanced = await fillStep(cdp, session, state, currentLogin, () => otp, () => {
+        otpSubmitted = true;
+        onOtpSubmitted?.();
+      });
       if (!advanced) break;
       await sleep(250);
     }

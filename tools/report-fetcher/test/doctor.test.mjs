@@ -3,6 +3,7 @@
  * probe path, scripted target failure modes. Exit-code contract: 0 signed in,
  * 1 conclusively signed out / no tab, 2 indeterminate (retry).
  */
+import "./helpers/isolated-runtime.mjs";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_on": "2026-09-16",
+  "updated_on": "2026-10-01",
   "rows": [
     {
       "id": "seller-central.read",
@@ -12,7 +12,7 @@
       },
       "amazon_agent": {
         "state": "allowed",
-        "how": "Use the same delegated login and identity checks in attended chat."
+        "how": "Use the same identity checks in the attended default session: operator on 9222 with the operator's own login on Evo X1, otherwise the delegated login on 9223."
       },
       "identity": "Grimoire delegated Seller Central login (shared Grimoire session)",
       "port": 9223,
@@ -1617,7 +1617,7 @@
       },
       "amazon_agent": {
         "state": "approval-gated",
-        "how": "Use shared 9223 for the same executors; 9222 is explicit separate operator work."
+        "how": "Use shared 9223 with --session grimoire for the same executors; other attended work follows the machine default, which is operator on 9222 on Evo X1."
       },
       "identity": "Grimoire delegated Seller Central login (shared Grimoire session)",
       "port": 9223,

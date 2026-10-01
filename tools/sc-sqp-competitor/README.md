@@ -21,7 +21,9 @@ Account preselect (skips picker): append &mons_sel_dir_mcid=<merchant id>
 
 ## Modules
 - cdp.py: minimal CDP client (port 9223; suppress_origin=True is REQUIRED,
-  Chrome 403s the default Origin header).
+  Chrome 403s the default Origin header). It refuses the operator session and
+  port 9222: account switching here takes no task claim, so only the grimoire
+  lock serializes it.
 - sc_navigator.py: new-UI navigation. Account label = top-left header leaf.
   Account picker marketplace rows + "Konto auswählen" confirm live in SHADOW
   DOM and need TRUSTED clicks (Input.dispatchMouseEvent); synthetic JS clicks

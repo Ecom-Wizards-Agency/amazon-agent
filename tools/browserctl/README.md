@@ -179,8 +179,10 @@ actions. Unregistered tabs are still probed and report `would-adopt` with probe
 health. Tracker restoration, observed interaction, probe-failure records and
 background heartbeat transitions still run and persist their evidence.
 
-Machine routing uses the shared `grimoire` session on port 9223 for Amazon work
-from direct chat and Slack. Port 9222 is explicit operator work. T3 Code's in-app browser is explicit-only and is not
+Machine routing uses the shared `grimoire` session on port 9223 for Grimoire's
+Slack and scheduled work. Attended direct chat uses `routing.default_cdp_port`
+from the machine policy: 9223 unless set to 9222, as on Evo X1. Port 9222 is
+otherwise explicit operator work. T3 Code's in-app browser is explicit-only and is not
 a silent fallback from a failed managed CDP session.
 
 ## Synthesis decision
@@ -224,11 +226,13 @@ remain audit-only.
 
 ## Shared Amazon session
 
-Direct chat and Slack both use `grimoire` (9223). `operator` (9222) is explicit separate work. Run a browser command with:
+Slack and scheduled Grimoire work use `grimoire` (9223) and keep `--session grimoire`. Attended direct chat uses the machine's attended default, which is machine-local: `routing.default_cdp_port` in the setup-owned policy, 9223 when absent. Evo X1 sets 9222, so attended work there runs on `operator` with the operator's own login. Run an attended browser command with:
 
 ```sh
-node tools/browserctl/browserctl.mjs run --session grimoire -- node tools/opportunity-explorer/run-poe.mjs doctor --origin https://sellercentral.amazon.com
+node tools/browserctl/browserctl.mjs run -- node tools/opportunity-explorer/run-poe.mjs doctor --origin https://sellercentral.amazon.com
 ```
+
+The session resolves in this order: `--session`, `AMAZON_BROWSER_SESSION`, `CDP_PORT` (9222 or 9223), then the policy default. A disagreeing pair fails with `BROWSER_SESSION_CONFLICT`. With `WIZARDS_AI_MODE=1`, which every Grimoire unit sets, the default is `grimoire` and any selection of `operator` or port 9222 fails with `BROWSER_SESSION_REFUSED`. The refusal also covers every `--port 9222` command, the CDP and launcher paths behind them and `auth-broker.mjs`; `cleanup` without `--port` then covers only 9223. Only 9223 has a session lock. Seller Central work on 9222 relies on its regional or global task claim, and `tools/sc-sqp-competitor`, which switches accounts without one, refuses 9222.
 
 `run --lock-wait-ms <milliseconds>` waits up to 120000 milliseconds by default
 for the shared session lock, retrying every two seconds within that deadline.
@@ -267,7 +271,7 @@ session-lock reference. FlatFilePro does this before staging the workbook;
 shipments do it before probing PDF tools. Their first page acquisition then
 uses the same independent lock and wait path as later reacquisitions.
 
-`browserctl session --session grimoire` returns only the resolved non-secret environment. Python workers use `browser_session.py` as an adapter to that same resolver. The session is immutable within a process; conflicting ports or profiles fail before connection. Child workers inherit the route and a scoped lock chain. Sibling workers contend for the next link instead of bypassing serialization. Browser-independent MCP/API work needs no browser lock.
+`browserctl session [--session grimoire|operator]` returns only the resolved non-secret environment. Python workers use `browser_session.py` as an adapter to that same resolver. The session is immutable within a process; conflicting ports or profiles fail before connection. Child workers inherit the route and a scoped lock chain. Sibling workers contend for the next link instead of bypassing serialization. Browser-independent MCP/API work needs no browser lock.
 
 The existing task controller still owns workflow IDs, regional claims, stable targets, heartbeat and cleanup. Screenshots call `captureTaskEvidence(handle, {expected})` in the owning worker. Standalone audit captures require the retained `taskId`, `workflow`, `targetId`, and expected identity; they cannot search for a matching tab or replace a missing target. Supported identities are Seller Central seller/marketplace, DataDive niche/hero keyword, and Amazon retail marketplace plus ASIN or search query. Capture receipts retain actual verified identity separately from report association.
 
@@ -296,6 +300,16 @@ valid. `status --port N` includes `profile_verified` and `devtools_active_port`
 state file or DevToolsActivePort file cannot establish profile identity. Linux
 uses socket ownership from `/proc`; other Unix hosts use `lsof`. Unavailable
 process evidence fails verification; Windows verification is not implemented.
+
+`authenticateTarget()` never types an empty one-time code: when the page asks
+for a code and none was supplied, it returns `totp_unavailable` with nothing
+submitted. A caller that fetched the code earlier passes `otpFetchedAt` (epoch
+milliseconds). If that code's 30-second period has ended when the code field
+appears, the result is `totp_expired` and nothing is typed. When a caller passes
+`otpFetchedAt` or `onOtpSubmitted`, the result also carries `otp_submitted`, and
+`onOtpSubmitted()` runs once, just before the code form is submitted, so a retry
+after a thrown error can refuse to submit a second code. Without these options
+the result keeps its existing fields.
 
 ## GNOME autostart installation
 

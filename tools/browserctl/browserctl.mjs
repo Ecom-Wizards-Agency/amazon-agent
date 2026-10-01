@@ -10,7 +10,7 @@ import {
   transitionMissedHeartbeat, listTaskTabs, completeTaskTabs, detachTaskTab, regionTabState, surplusAnchorLeases,
 } from "./lease-registry.mjs";
 import { anchorAuthState, anchorMatchesUrl, loadBrowserPolicy, policyForPort } from "./policy.mjs";
-import { sessionEnvironment } from "./session.mjs";
+import { sessionEnvironment, sessionForPort, wizardsAiMode } from "./session.mjs";
 import { acquireSessionLock, acquireSessionLockWithWait, sessionLockHasChildren } from "./session-lock.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -39,6 +39,7 @@ function required(options, key) {
 function portNumber(value) {
   const port = Number(value);
   if (![9222, 9223].includes(port)) throw new Error(`UNSUPPORTED_CDP_PORT: ${value}`);
+  sessionForPort(port);
   return port;
 }
 
@@ -50,7 +51,7 @@ function launcherEnv(port, policy) {
   const config = policyForPort(port, policy);
   return {
     ...process.env,
-    AMAZON_BROWSER_SESSION: port === 9223 ? "grimoire" : "operator",
+    AMAZON_BROWSER_SESSION: sessionForPort(port),
     CDP_PORT: String(port),
     CDP_PROFILE: config.profile,
     CDP_START_URL: config.start_url,
@@ -84,9 +85,10 @@ function launcherStatus(port, policy) {
 }
 
 async function cdpForPort(port, policy) {
+  const session = sessionForPort(port);
   const config = policyForPort(port, policy);
   process.env.CDP_PORT = String(port);
-  process.env.AMAZON_BROWSER_SESSION = port === 9223 ? "grimoire" : "operator";
+  process.env.AMAZON_BROWSER_SESSION = session;
   process.env.CDP_PROFILE = config.profile;
   process.env.CDP_START_URL = config.start_url;
   process.env.CDP_BROWSER_MODE = config.mode;
@@ -585,7 +587,7 @@ export async function main(raw = process.argv.slice(2), { cleanup = cleanupPortW
       return;
     }
     const command = separator < 0 ? [] : raw.slice(separator + 1);
-    if (!command.length) throw new Error("USAGE: browserctl run --session grimoire -- command [args]");
+    if (!command.length) throw new Error("USAGE: browserctl run [--session grimoire|operator] -- command [args]");
     const lockWaitMs = options["lock-wait-ms"] === undefined ? 120_000 : Number(options["lock-wait-ms"]);
     if (options["lock-wait-ms"] === true) throw new Error("INVALID_LOCK_WAIT_MS");
     let unlock = await acquireSessionLockWithWait(Number(env.CDP_PORT), "browserctl:run", { lockWaitMs });
@@ -699,7 +701,8 @@ export async function main(raw = process.argv.slice(2), { cleanup = cleanupPortW
     return;
   }
   if (command === "cleanup") {
-    const ports = options.port ? [portNumber(options.port)] : [9222, 9223];
+    // Grimoire's health pass cleans its own port; the cleanup timer covers both.
+    const ports = options.port ? [portNumber(options.port)] : wizardsAiMode() ? [9223] : [9222, 9223];
     const results = [];
     const lockWaitMs = options["lock-wait-ms"] === undefined ? 120_000 : Number(options["lock-wait-ms"]);
     if (options["lock-wait-ms"] === true || !Number.isSafeInteger(lockWaitMs) || lockWaitMs < 0) throw new Error("INVALID_LOCK_WAIT_MS");

@@ -720,7 +720,7 @@ class Operations:
                 envelope['allow_validated_image_adapter'] = grant.get('allow_validated_adapter') is True
             atomic_json(directory / 'adapter-input.json', envelope)
             try:
-                result = subprocess.run(['node', str(ROOT / 'tools/amazon-operations' / adapter_script), '--request', str(directory / 'adapter-input.json')], capture_output=True, text=True, timeout=1800, check=False, env={**os.environ, **session_environment(os.environ.get('AMAZON_BROWSER_SESSION', 'grimoire'), inherit=True)})
+                result = subprocess.run(['node', str(ROOT / 'tools/amazon-operations' / adapter_script), '--request', str(directory / 'adapter-input.json')], capture_output=True, text=True, timeout=1800, check=False, env={**os.environ, **session_environment(os.environ.get('AMAZON_BROWSER_SESSION'), inherit=True)})
                 response = json.loads(result.stdout)
                 require(response.get('plan_hash') == state['plan_hash'], 'adapter_identity', 'Adapter result is not bound to this plan')
                 status = response.get('status')
@@ -1129,7 +1129,7 @@ class Operations:
         input_path = directory / (script.replace('.mjs', '') + '-input.json')
         atomic_json(input_path, request)
         try:
-            process = subprocess.Popen(['node', str(ROOT / 'tools/amazon-operations' / script), '--request', str(input_path)], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env={**os.environ, **session_environment(os.environ.get('AMAZON_BROWSER_SESSION', 'grimoire'), inherit=True)})
+            process = subprocess.Popen(['node', str(ROOT / 'tools/amazon-operations' / script), '--request', str(input_path)], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env={**os.environ, **session_environment(os.environ.get('AMAZON_BROWSER_SESSION'), inherit=True)})
             try:
                 stdout, _ = process.communicate(timeout=timeout)
             except subprocess.TimeoutExpired:
@@ -1373,7 +1373,7 @@ class Operations:
             return None
         output = directory / ('live-listings-' + str(len(state.get('events', []))) + '.json')
         try:
-            result = subprocess.run(['node', str(ROOT / 'tools/listing-capture/capture-cdp.mjs'), ','.join(sorted(set(mapping[sku] for sku in expected))), str(output), *market], capture_output=True, text=True, timeout=300, check=False, env={**os.environ, **session_environment(os.environ.get('AMAZON_BROWSER_SESSION', 'grimoire'), inherit=True)})
+            result = subprocess.run(['node', str(ROOT / 'tools/listing-capture/capture-cdp.mjs'), ','.join(sorted(set(mapping[sku] for sku in expected))), str(output), *market], capture_output=True, text=True, timeout=300, check=False, env={**os.environ, **session_environment(os.environ.get('AMAZON_BROWSER_SESSION'), inherit=True)})
             if result.returncode or not output.is_file():
                 return None
             captured = json.loads(output.read_text())
@@ -1404,7 +1404,7 @@ class Operations:
             # Match taskIdFor('amazon-operations', task_key || operation_id).
             key = state.get('task_key') or plan['operation_id']
             task_id = 'amazon-operations:' + hashlib.sha256(str(key).encode()).hexdigest()[:20]
-            env = {**os.environ, **session_environment(os.environ.get('AMAZON_BROWSER_SESSION', 'grimoire'), inherit=True)}
+            env = {**os.environ, **session_environment(os.environ.get('AMAZON_BROWSER_SESSION'), inherit=True)}
             subprocess.run(['node', str(ROOT / 'tools/browserctl/browserctl.mjs'), 'task', 'complete',
                             '--port', env['CDP_PORT'], '--task-id', task_id],
                            capture_output=True, text=True, timeout=30, check=True, env=env)
