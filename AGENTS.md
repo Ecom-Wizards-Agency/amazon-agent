@@ -259,7 +259,7 @@ Default routing:
 - `amazon-listing-capture`: capture live listing copy (title/bullets/link) for anchor + competitors via the connected-browser extractor; feeds the keyword-workbook ASINs tab; replaces the legacy ZeroWork scrape.
 - `amazon-sop-maintenance`: `/create-sop`, `/fix-sop`, verified SOP corrections, new SOP drafts, and SOP-vs-skill routing.
 - `amazon-logistics`: Send to Amazon, FBA shipments, removals, AWD, inventory operations.
-- `amazon-communications`: support cases, buyer messages, courtesy-refund follow-ups (creator replies inside Creator Connections → `amazon-creator-connections`).
+- `amazon-communications`: support cases, including attended Seller Assistant case creation, buyer messages, courtesy-refund follow-ups (creator replies inside Creator Connections → `amazon-creator-connections`).
 - `amazon-flatfilepro`: prepare narrow `.xlsx` files, then upload and map the exact workbook. General Update Listings submissions require exact in-chat approval. The existing secondary-image bulk pipeline accepts authenticated team requests for current managed-ready clients; see `listing.images.bulk` and `flatfilepro.submit` in `docs/rights/README.md`.
 - `amazon-forecasting-sources`: per-client source precedence, historical evidence, assumptions, and caveats for forecasting questions. The skill is the structure; the filled-in pack lives outside this repo under `_local/forecasting-context/<client>/`. It is a context layer, not an audit or launch-plan builder.
 
@@ -731,7 +731,7 @@ For creator, buyer, or support communication:
 
 - Draft the message first.
 - Confirm the exact thread/person/case.
-- Stop before clicking `Send` unless the operator explicitly confirms the exact send action or the configured team-owned case service verifies a matching request-bound mandate. That case-only mandate authorizes the initial submission and routine continuation of the same issue; it does not authorize buyer/creator messages, appeals, admissions, financial commitments, or account changes.
+- Stop before clicking `Send` unless the operator explicitly confirms the exact send action or the configured team-owned case service verifies a matching request-bound mandate. That case-only mandate authorizes the initial submission and routine continuation of the same issue; it does not authorize buyer/creator messages, appeals, admissions, financial commitments, or account changes. It does not authorize a Seller Assistant chat either: creating a case there is attended only and needs the operator's approval of the exact send plan.
 
 For managed Seller Support cases, use `tools/amazon-operations/case_service.py`
 and the `case.create` / `case.reply` operations. Both direct chat and Grimoire
@@ -741,6 +741,10 @@ reassignment must be explicit. Missing ownership needs one clarification, never
 a fallback to the host operator's name. Review correspondence once daily under
 the configured schedule. The operator browser remains an explicit selection;
 missing Reply in Grimoire requires an access/closure/UI diagnosis.
+Seller Assistant case creation is attended only until the `case.create` adapter
+supports it: the operator approves the exact send plan in chat, even under a case
+mandate, and Grimoire never drives it. The route is
+`skills/amazon-communications/references/seller-assistant-route.md`.
 The full workflow and rollout requirements are in `docs/team-owned-cases.md`.
 
 For flat-file and template work:

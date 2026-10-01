@@ -36,6 +36,25 @@ mandates. The existing operations interface supplies `case.create` and
 `case.reply`, using immutable preparation, execution and reconciliation. Cases
 have issue/case targets; existing SKU operations retain their target rules.
 
+The `case.create` adapter supports only the retired case form: one unique create
+control, Subject and Message fields, and a Send or Submit control. Seller Central
+now opens new issues in Seller Assistant, which the adapter cannot drive. Until
+the adapter is rebuilt, Seller Assistant creation is attended only. The agent
+drives the chat on port 9223 with `tools/amazon-operations/seller-assistant.mjs`,
+and the operator approves one exact send plan in chat before the first message;
+anything outside the plan is approved on its own. A case mandate does not replace
+that approval. Grimoire never drives this route. The procedure is
+`skills/amazon-communications/references/seller-assistant-route.md`.
+
+An attended case enters the registry in two steps. `start` records the issue,
+owner and mandate before the first message. After the chat, the operations
+`observe` command reads the complete transcript of a visible numeric case ID, and
+`adopt` registers that ID with seller-signature owner evidence, or without an
+owner followed by an operator-confirmed `reassign`. Adoption narrows the mandate
+to replies and chasers, and the daily review follows the case from then on. Until
+a case ID is found the issue stays pending; do not open a replacement chat or
+case without the operator's decision.
+
 Both entrypoints use the same case registry and delivery journal. Grimoire owns
 Slack source verification, scheduling and reporting. Amazon Agent never imports
 the private Grimoire implementation. Its attended caller uses the configured
@@ -66,9 +85,12 @@ Importing historical monitoring never creates sending authority.
 
 ## Access and rollout
 
-The shared account has provisioned `Manage Your Cases` create/reply access on
-case-enabled accounts. Verify the current seller and marketplace controls before
-submission. [Matrix row `cases.create-reply`](rights/README.md#cases.create-reply)
+The delegated login needs `Manage Your Cases` at `Edit` for case creation and
+replies on the target seller and marketplace. The 2026-09-15 portal audit found
+`View` saved across the scoped accounts; do not infer create access from case-log
+reads. Verify the current grant and live case controls before submission. If
+Seller Assistant denies case creation, preserve the response and stop without
+claiming a case ID. [Matrix row `cases.create-reply`](rights/README.md#cases.create-reply)
 defines the request-bound mandate; monitoring alone grants no sending authority.
 
 Classify missing Reply as login required, explicit access denial, confirmed
@@ -81,3 +103,5 @@ Enable live sends only after a scoped authorized canary and independent readback
 A successful read or visible button does not release a send adapter. Failed
 access is an account-specific blocker. Future automatic initiation requires a
 separately enabled policy using the same ownership, mandate and journal checks.
+An attended Seller Assistant case has no operation journal, so it cannot serve
+as the `case.create` canary.

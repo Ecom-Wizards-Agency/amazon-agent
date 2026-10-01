@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_on": "2026-09-16",
+  "updated_on": "2026-09-29",
   "rows": [
     {
       "id": "seller-central.read",
@@ -155,11 +155,11 @@
       "capability": "Manage Your Cases create/reply",
       "grimoire": {
         "state": "approval-gated",
-        "how": "Verified team case requests authorize guarded case operations through amazon_cases.py under the request-bound mandate."
+        "how": "Verified team case requests authorize guarded case operations through amazon_cases.py under the request-bound mandate. Seller Assistant chats are attended-only and outside this authority."
       },
       "amazon_agent": {
         "state": "approval-gated",
-        "how": "Use the same case service, saved owner and issue-bound mandate."
+        "how": "Use the same case service, saved owner and issue-bound mandate. Seller Assistant creation also needs operator approval of the exact send plan in chat until the case.create adapter supports it."
       },
       "identity": "Grimoire delegated Seller Central login (shared Grimoire session)",
       "port": 9223,
@@ -187,13 +187,18 @@
           "note": "Request-bound case mandate and rollout checks."
         },
         {
+          "repo": "amazon-agent",
+          "path": "skills/amazon-communications/references/seller-assistant-route.md",
+          "note": "Attended Seller Assistant route, send-plan approval, outcome states and registry steps."
+        },
+        {
           "repo": "vault",
           "path": "agency/SOPs/wizards-ai-amazon-rights.md",
           "note": "Per-account grant evidence; SOP change-log correction recorded 15.09.2026. Unversioned team vault, ~/os/agency."
         }
       ],
-      "verified_on": "2026-09-15",
-      "notes": "Create/reply is provisioned on case-enabled accounts. Routine continuation stays within the same issue; monitoring grants no send authority.",
+      "verified_on": "2026-09-25",
+      "notes": "The Seller Central User Permissions row is Manage Your Cases. Edit is the target level for creating and replying to cases; View supports inspection only. The 2026-09-15 live audit found View saved on all 17 scoped country combinations, so create/reply access must be verified per target before sending. On 2026-09-25 Seller Assistant reported that the delegated login could not create a case on one scoped US account; the exact current portal grant was not reopened. A primary account user must grant the needed access, then saved-state and live case access must be rechecked. The case-service create canary is a separate gate. The case.create adapter supports only the retired case form; an attended Seller Assistant case is registered through start and adopt and is not a create canary. Routine continuation stays within the same issue; monitoring grants no send authority.",
       "modes": [
         "case-pass",
         "mention-pass"
