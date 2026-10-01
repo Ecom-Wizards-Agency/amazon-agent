@@ -188,7 +188,7 @@ test("a code form that returns after a submitted code ends the call without a se
   assert.equal(plain.page.submits, 2);
 });
 
-test("a code form that does not advance is not submitted a second way", async () => {
+test("with the code options, a code form that does not advance is not submitted a second way", async () => {
   const page = fakeLogin([CODE, APP]);
   page.targetId = `T${++targetCount}`;
   const evaluate = page.cdp.evaluate;
@@ -213,6 +213,7 @@ test("a code form that does not advance is not submitted a second way", async ()
     await assert.rejects(authenticateTarget({
       port: 9223, targetId: page.targetId, policy: loadBrowserPolicy(), cdp: page.cdp,
       config: { authentication: { mode: "interactive" } }, authProvider: provider("123456"),
+      otpFetchedAt: 1_000_000_005_000, clock: () => 1_000_000_005_000,
     }), /code form did not advance/);
   } finally { globalThis.setTimeout = realTimeout; }
   assert.deepEqual(page.typed, ["123456"]);

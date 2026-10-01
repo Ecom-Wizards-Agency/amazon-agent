@@ -177,8 +177,9 @@ async function replaceInput(cdp, session, selector, value, description) {
   await session.send("Input.insertText", { text: value }, { timeoutMs: 10000 });
 }
 
-// A one-time code is submitted once: Enter only, then a longer wait. The click
-// and requestSubmit fallbacks could send the same code a second time.
+// With the code options, a one-time code is submitted once: Enter only, then a
+// longer wait. The click and requestSubmit fallbacks could send the same code a
+// second time. Without them the sequence is unchanged for every form.
 async function submitForm(cdp, session, { once = false } = {}) {
   const before = await cdp.evaluate(session, `JSON.stringify({url:location.href,
     email:${visible('input[type="email"],input[name="email"],input[autocomplete="username"],#ap_email,#ap_email_login')},
@@ -219,7 +220,7 @@ async function submitForm(cdp, session, { once = false } = {}) {
   if (!requested || !await changed()) throw new Error("AUTH_FORM_UNAVAILABLE: form did not advance");
 }
 
-async function fillStep(cdp, session, state, login, getOtp, beforeOtpSubmit = () => {}) {
+async function fillStep(cdp, session, state, login, getOtp, beforeOtpSubmit = () => {}, codeOptions = false) {
   if (state.status === "password_required") {
     if (state.facts.email) {
       await replaceInput(cdp, session,
@@ -239,7 +240,7 @@ async function fillStep(cdp, session, state, login, getOtp, beforeOtpSubmit = ()
       otp, "one-time password");
     beforeOtpSubmit();
   } else return false;
-  await submitForm(cdp, session, { once: state.status === "totp_required" });
+  await submitForm(cdp, session, { once: codeOptions && state.status === "totp_required" });
   return true;
 }
 
@@ -283,13 +284,14 @@ export async function authenticateTarget({
     await session.send("Runtime.enable", {}, { timeoutMs: 10000 });
     const initial = await cdp.evaluate(session, `({origin:location.origin})`, 10000);
     const route = auth.assertAuthPolicy(config, { port, origin: initial.origin });
-    // otp_submitted is reported only to callers that use the code options, so
-    // the existing transport's status allowlist keeps passing unchanged.
+    // The code options (otpFetchedAt, onOtpSubmitted) switch on otp_submitted,
+    // totp_expired and the Enter-only code submit. A caller without them keeps
+    // the existing status fields and submit sequence.
     let otpSubmitted = false;
-    const reportOtp = otpFetchedAt != null || typeof onOtpSubmitted === "function";
+    const codeOptions = otpFetchedAt != null || typeof onOtpSubmitted === "function";
     const output = (status, origin = initial.origin, retryAt = null) => ({
       ...publicAuthenticationStatus({ status, route, port, targetId, origin, retryAt }),
-      ...(reportOtp ? { otp_submitted: otpSubmitted } : {}),
+      ...(codeOptions ? { otp_submitted: otpSubmitted } : {}),
     });
     let state = await inspectPage(cdp, session, route.adapter);
     if (state.status === "authenticated") {
@@ -337,8 +339,10 @@ export async function authenticateTarget({
       }
       if (state.status === "totp_required") {
         // Nothing is typed without a code, or once the code's period has ended.
-        otp = String(auth.loadRouteLogin(config, route, { includeOtp: true }).otp ?? "").trim();
-        const status = !otp ? "totp_unavailable"
+        // Without the code options the code is typed as loaded, as before.
+        const loaded = auth.loadRouteLogin(config, route, { includeOtp: true }).otp;
+        otp = codeOptions ? String(loaded ?? "").trim() : loaded;
+        const status = !String(loaded ?? "").trim() ? "totp_unavailable"
           : otpFetchedAt != null && clock() >= totpPeriodEnd(otpFetchedAt) ? "totp_expired" : null;
         if (status) {
           await releaseLease({ port, targetId, outcome: status, policy });
@@ -348,7 +352,7 @@ export async function authenticateTarget({
       const advanced = await fillStep(cdp, session, state, currentLogin, () => otp, () => {
         otpSubmitted = true;
         onOtpSubmitted?.();
-      });
+      }, codeOptions);
       if (!advanced) break;
       await sleep(250);
     }

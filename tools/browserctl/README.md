@@ -301,18 +301,28 @@ state file or DevToolsActivePort file cannot establish profile identity. Linux
 uses socket ownership from `/proc`; other Unix hosts use `lsof`. Unavailable
 process evidence fails verification; Windows verification is not implemented.
 
-`authenticateTarget()` never types an empty one-time code: when the page asks
-for a code and none was supplied, it returns `totp_unavailable` with nothing
-submitted. A caller that fetched the code earlier passes `otpFetchedAt` (epoch
-milliseconds). If that code's 30-second period has ended when the code field
-appears, the result is `totp_expired` and nothing is typed. When a caller passes
-`otpFetchedAt` or `onOtpSubmitted`, the result also carries `otp_submitted`, and
-`onOtpSubmitted()` runs once, just before the code form is submitted, so a retry
-after a thrown error can refuse to submit a second code. One call submits at
-most one code, with Enter only: if the code form returns after it, the result
-is `totp_rejected`, and a code form that does not advance within 30 seconds
-throws instead of being clicked or resubmitted. Without these options the
-result keeps its existing fields.
+Two refusals apply to every `authenticateTarget()` caller. It never types an
+empty one-time code: when the page asks for a code and none was supplied, it
+returns `totp_unavailable` with nothing submitted. One call types at most one
+code: if the code form returns after a submitted code, the result is
+`totp_rejected` and nothing is typed again.
+
+The code options, `otpFetchedAt` (the code's fetch time in epoch milliseconds)
+and `onOtpSubmitted`, change three more things, and only for the caller that
+passes them. The credential transport passes both for `require_totp` routes.
+With `otpFetchedAt`, if the code's 30-second period has ended when the code
+field appears, the result is `totp_expired` and nothing is typed. The result carries
+`otp_submitted`, and `onOtpSubmitted()` runs once, just before the code form is
+submitted, so a retry after a thrown error can refuse to submit a second code.
+The code form is submitted with Enter only: if it does not advance within 30
+seconds, the call throws instead of clicking or resubmitting.
+
+A caller that passes neither option, as Grimoire's 9223 login does, keeps the
+existing result fields and the existing submit sequence: Enter, then a click on
+the submit button, then `requestSubmit`, each followed by up to 10 seconds of
+waiting for the form to advance.
+`test/auth-broker-parity.test.mjs` runs the same scripted pages through the
+broker at commit `26c5d90` and the current one and compares every call.
 
 ## GNOME autostart installation
 
