@@ -69,7 +69,9 @@ const PUBLIC_KEYS = ["adapter", "origin", "port", "route_id", "status", "targetI
 
 // A minimal DOM for the code form's submit-control query: one form holding the
 // code input and the given controls. Selectors are tag, #id and [attr="value"]
-// parts joined by commas; a control's x position identifies it in a click.
+// parts joined by commas; a control's x position identifies it in a click. A
+// control marked outside sits outside the form; formAttr also ties it to the
+// form through a form="..." attribute.
 function fakeDocument(controls) {
   const form = {};
   const matches = (element, selector) => selector.split(",").some((part) => {
@@ -78,20 +80,25 @@ function fakeDocument(controls) {
       && (!name || element.attrs[name] === value);
   });
   const elements = [{ tag: "input", name: "code" }, ...controls].map((attrs) => {
+    const inside = !attrs.outside;
     const element = {
-      tag: attrs.tag, id: attrs.id || "", attrs, disabled: false, form: attrs.outside ? null : form,
+      tag: attrs.tag, id: attrs.id || "", attrs, disabled: false,
+      form: inside || attrs.formAttr ? form : null, inside,
       type: attrs.type ?? (attrs.tag === "button" ? "submit" : "text"),
+      name: attrs.name, value: attrs.value, innerText: attrs.text,
+      getAttribute: (attribute) => attrs[attribute] ?? null,
       getClientRects: () => (attrs.hidden ? [] : [{}]),
       getBoundingClientRect: () => ({ x: attrs.x ?? 0, y: 0, width: attrs.hidden ? 0 : 20, height: 10 }),
       scrollIntoView() {},
-      closest: (selector) => (selector === "form" && !attrs.outside ? form : null),
+      closest: (selector) => (selector === "form" && inside ? form : null),
       matches: (selector) => matches(element, selector),
     };
     return element;
   });
   const query = (scope) => (selector) => elements.filter((e) => scope(e) && matches(e, selector));
-  form.querySelectorAll = query((e) => e.form === form);
+  form.querySelectorAll = query((e) => e.inside);
   form.querySelector = (selector) => form.querySelectorAll(selector)[0] || null;
+  form.contains = (element) => element.inside;
   return { querySelectorAll: query(() => true) };
 }
 
@@ -104,9 +111,14 @@ const LIVE_CONTROLS = [
 
 // One scripted login page. A page advances on Enter or a click (advance "any",
 // the default), only on "enter", only on "click", or "never". Every Enter and
-// click is recorded with the page index it was sent on.
-function fakeLogin(pages, { failSubmit = false, controls = LIVE_CONTROLS } = {}) {
-  const page = { index: 0, typed: [], submits: 0, events: [], clicked: [] };
+// click is recorded with the page index it was sent on. failSubmit (true or a
+// message) throws before an Enter or click lands; releaseError throws from the
+// mouse release after the click landed; snapshotErrors makes that many change
+// snapshots after the first click throw a destroyed-context error.
+function fakeLogin(pages, {
+  failSubmit = false, releaseError = null, snapshotErrors = 0, controls = LIVE_CONTROLS,
+} = {}) {
+  const page = { index: 0, typed: [], submits: 0, events: [], clicked: [], snapshotFailures: 0 };
   const advanceOn = (method) => {
     const advance = pages[page.index].advance || "any";
     if (advance === method || advance === "any") {
@@ -119,11 +131,14 @@ function fakeLogin(pages, { failSubmit = false, controls = LIVE_CONTROLS } = {})
       const enter = method === "Input.dispatchKeyEvent" && params.type === "rawKeyDown";
       const click = method === "Input.dispatchMouseEvent" && params.type === "mousePressed";
       if (enter || click) {
-        if (failSubmit) throw new Error("Inspected target navigated or closed");
+        if (failSubmit) throw new Error(failSubmit === true ? "Inspected target navigated or closed" : failSubmit);
         page.submits++;
         page.events.push([page.index, enter ? "enter" : "click"]);
         if (click) page.clicked.push(params.x);
         advanceOn(enter ? "enter" : "click");
+      }
+      if (releaseError && method === "Input.dispatchMouseEvent" && params.type === "mouseReleased") {
+        throw new Error(releaseError);
       }
       return {};
     },
@@ -136,11 +151,15 @@ function fakeLogin(pages, { failSubmit = false, controls = LIVE_CONTROLS } = {})
     evaluate: async (_session, expression) => {
       if (expression === "({origin:location.origin})") return { origin: ORIGIN };
       if (expression.includes("e.focus()")) return { focused: true, start: 0, end: 0, length: 0 };
-      if (expression.includes("auth-signin-button")) {
+      if (expression.includes("candidates:")) {
         return runInNewContext(expression, { document: fakeDocument(controls) });
       }
       if (expression.includes("scrollIntoView")) return { x: 10, y: 20 };
       if (expression.startsWith("JSON.stringify({url:location.href")) {
+        if (page.clicked.length && page.snapshotFailures < snapshotErrors) {
+          page.snapshotFailures++;
+          throw new Error("Execution context was destroyed.");
+        }
         const current = pages[page.index];
         return JSON.stringify({ index: current.snapshotAs ?? page.index,
           ...(expression.includes(",alert:") ? { alert: current.alert || "" } : {}) });
@@ -158,8 +177,8 @@ async function withFastPolls(run) {
   try { return await run(); } finally { globalThis.setTimeout = realTimeout; }
 }
 
-function provider(otp) {
-  const route = { id: "seller-central", adapter: "amazon", origins: [ORIGIN] };
+function provider(otp, adapter = "amazon") {
+  const route = { id: "seller-central", adapter, origins: [ORIGIN] };
   return {
     assertAuthPolicy: () => route,
     loadRouteLogin: (_config, _route, { includeOtp = false } = {}) => ({
@@ -174,7 +193,7 @@ async function login(pages, otp, options = {}, fixture = {}) {
   page.targetId = `T${++targetCount}`;
   const result = await authenticateTarget({
     port: 9223, targetId: page.targetId, policy: loadBrowserPolicy(), cdp: page.cdp,
-    config: { authentication: { mode: "interactive" } }, authProvider: provider(otp), ...options,
+    config: { authentication: { mode: "interactive" } }, authProvider: provider(otp, fixture.adapter), ...options,
   });
   return { result, page };
 }
@@ -182,6 +201,8 @@ async function login(pages, otp, options = {}, fixture = {}) {
 const PASSWORD = { email: true, password: true };
 const CODE = { otp: true };
 const APP = { amazonApp: true };
+const FETCHED = { otpFetchedAt: 1_000_000_005_000, clock: () => 1_000_000_005_000 };
+const codeStep = (page, index) => page.events.filter(([at]) => at === index).map(([, kind]) => kind);
 
 test("a code request without a supplied code returns totp_unavailable and submits nothing", async () => {
   for (const otp of [undefined, "", "   "]) {
@@ -226,10 +247,45 @@ test("callers learn whether this attempt submitted a code, even when the submit 
   const none = await login([PASSWORD, APP], "123456", { otpFetchedAt: Date.now() });
   assert.equal(none.result.status, "authenticated");
   assert.equal(none.result.otp_submitted, false);
+  // A click whose send fails with a navigation error is waited out; any other
+  // send error propagates. Either way the code counts as submitted.
   calls = 0;
-  await assert.rejects(login([CODE, APP], "123456", { onOtpSubmitted: () => { calls++; } }, { failSubmit: true }),
-    /navigated or closed/);
+  await withFastPolls(() => assert.rejects(
+    login([CODE, APP], "123456", { onOtpSubmitted: () => { calls++; } }, { failSubmit: true }),
+    /^Error: AUTH_CODE_FORM_STALLED/));
   assert.equal(calls, 1);
+  calls = 0;
+  await assert.rejects(login([CODE, APP], "123456", { onOtpSubmitted: () => { calls++; } },
+    { failSubmit: "CDP Input.dispatchMouseEvent timed out after 10000 ms" }), /dispatchMouseEvent timed out/);
+  assert.equal(calls, 1);
+});
+
+test("with the code options, a navigation error from the click's release reads the landed page", async () => {
+  const REJECTED = { ...CODE, alert: "The code you entered is not valid.", errorVisible: true };
+  for (const [landed, status] of [[APP, "authenticated"], [REJECTED, "totp_rejected"]]) {
+    let calls = 0;
+    const { result, page } = await login([{ ...CODE, advance: "click" }, landed], "123456",
+      { ...FETCHED, onOtpSubmitted: () => { calls++; } },
+      { releaseError: "Inspected target navigated or closed" });
+    assert.equal(result.status, status);
+    assert.equal(result.otp_submitted, true);
+    assert.deepEqual(page.events, [[0, "click"]]);
+    assert.equal(calls, 1);
+  }
+});
+
+test("with the code options, a destroyed context while waiting after the click sends nothing more", async () => {
+  const REJECTED = { ...CODE, alert: "The code you entered is not valid.", errorVisible: true };
+  for (const [landed, status] of [[APP, "authenticated"], [REJECTED, "totp_rejected"]]) {
+    let calls = 0;
+    const { result, page } = await login([{ ...CODE, advance: "click" }, landed], "123456",
+      { ...FETCHED, onOtpSubmitted: () => { calls++; } }, { snapshotErrors: 2 });
+    assert.equal(page.snapshotFailures, 2);
+    assert.equal(result.status, status);
+    assert.deepEqual(page.events, [[0, "click"]]);
+    assert.deepEqual(page.typed, ["123456"]);
+    assert.equal(calls, 1);
+  }
 });
 
 test("with the code options, a code form that returns after a submitted code ends the call without a second code", async () => {
@@ -252,9 +308,6 @@ test("with the code options, a code form that returns after a submitted code end
   assert.deepEqual(plain.page.typed, ["user@example.test", "password-secret", "123456", "123456"]);
   assert.equal(plain.page.submits, 3);
 });
-
-const FETCHED = { otpFetchedAt: 1_000_000_005_000, clock: () => 1_000_000_005_000 };
-const codeStep = (page, index) => page.events.filter(([at]) => at === index).map(([, kind]) => kind);
 
 test("with the code options, the code is submitted by one click on #auth-signin-button and no Enter", async () => {
   let calls = 0;
@@ -294,30 +347,66 @@ test("with the code options, a code form that does not advance after its click s
   assert.equal(calls, 1);
 });
 
-test("with the code options, ambiguous submit controls fail closed with nothing dispatched", async () => {
-  const twoUnnamed = [{ tag: "button", type: "submit", x: 100 }, { tag: "input", type: "submit", x: 200 }];
-  // A button without a type attribute is a submit control too.
-  const untyped = [{ tag: "button", type: "submit", x: 100 }, { tag: "button", x: 200 }];
-  const hiddenPreferred = [{ tag: "input", type: "submit", id: "auth-signin-button", hidden: true, x: 100 },
-    { tag: "button", type: "submit", x: 200 }];
-  for (const [controls, count] of [[twoUnnamed, 2], [untyped, 2], [[], 0], [hiddenPreferred, 0]]) {
-    let calls = 0;
-    const page = fakeLogin([CODE, APP], { controls });
-    page.targetId = `T${++targetCount}`;
-    await assert.rejects(authenticateTarget({
-      port: 9223, targetId: page.targetId, policy: loadBrowserPolicy(), cdp: page.cdp,
-      config: { authentication: { mode: "interactive" } }, authProvider: provider("123456"),
-      ...FETCHED, onOtpSubmitted: () => { calls++; },
-    }), new RegExp(`^Error: AUTH_CODE_SUBMIT_AMBIGUOUS: the code form has ${count} eligible`));
-    assert.deepEqual(page.typed, ["123456"]);
-    assert.deepEqual(page.events, []);
-    assert.equal(calls, 0);
+const twoUnnamed = [{ tag: "button", type: "submit", x: 100 }, { tag: "input", type: "submit", x: 200 }];
+// A button without a type attribute is a submit control too.
+const untyped = [{ tag: "button", type: "submit", x: 100 }, { tag: "button", x: 200 }];
+const hiddenPreferred = [{ tag: "input", type: "submit", id: "auth-signin-button", hidden: true, x: 100 },
+  { tag: "button", type: "submit", x: 200 }];
+const loneResend = [{ tag: "button", text: "Resend code", x: 200 }];
+// Review F1: the real submit sits outside the form subtree, tied to it by a
+// form="..." attribute, and the form holds only an untyped resend button.
+const preferredByAttribute = [
+  { tag: "input", type: "submit", id: "auth-signin-button", outside: true, formAttr: true, x: 100 },
+  { tag: "button", text: "Didn't receive the code?", x: 200 },
+];
+const preferredUnattached = [
+  { tag: "input", type: "submit", id: "auth-signin-button", outside: true, x: 100 },
+  { tag: "button", text: "Resend code", x: 200 },
+];
+
+async function ambiguous(controls, count, adapter) {
+  let calls = 0;
+  const page = fakeLogin([CODE, APP], { controls });
+  page.targetId = `T${++targetCount}`;
+  await assert.rejects(authenticateTarget({
+    port: 9223, targetId: page.targetId, policy: loadBrowserPolicy(), cdp: page.cdp,
+    config: { authentication: { mode: "interactive" } }, authProvider: provider("123456", adapter),
+    ...FETCHED, onOtpSubmitted: () => { calls++; },
+  }), new RegExp(`^Error: AUTH_CODE_SUBMIT_AMBIGUOUS: the code form has ${count} eligible`));
+  assert.deepEqual(page.typed, ["123456"]);
+  assert.deepEqual(page.events, []);
+  assert.equal(calls, 0);
+}
+
+test("with the code options, the amazon adapter clicks only the form's #auth-signin-button", async () => {
+  for (const controls of [twoUnnamed, untyped, [], hiddenPreferred, loneResend, preferredUnattached]) {
+    await ambiguous(controls, 0, "amazon");
   }
-  // One submit control in the form, another outside it: the form's own is clicked.
-  const outside = [{ tag: "button", type: "submit", outside: true, x: 100 }, { tag: "button", type: "submit", x: 200 }];
-  const { result, page } = await login([{ ...CODE, advance: "click" }, APP], "123456", FETCHED, { controls: outside });
+  // Tied to the form by form="...": that control is clicked, never the resend.
+  const { result, page } = await login([{ ...CODE, advance: "click" }, APP], "123456", FETCHED,
+    { controls: preferredByAttribute });
   assert.equal(result.status, "authenticated");
-  assert.deepEqual(page.clicked, [210]);
+  assert.deepEqual(page.clicked, [110]);
+});
+
+test("with the code options, other adapters click the form's only submit control that is not a resend", async () => {
+  for (const [controls, count] of [[twoUnnamed, 2], [untyped, 2], [[], 0], [loneResend, 0]]) {
+    await ambiguous(controls, count, "flatfilepro");
+  }
+  const cases = [
+    // One submit control in the form, another outside it: the form's own is clicked.
+    [[{ tag: "button", type: "submit", outside: true, x: 100 }, { tag: "button", type: "submit", x: 200 }], 210],
+    // A control tied by form="..." belongs to the form; the resend is never a candidate.
+    [preferredByAttribute, 110],
+    [[{ tag: "button", value: "Send a new code", x: 100 }, { tag: "button", type: "submit", x: 200 }], 210],
+    [[{ tag: "button", "aria-label": "Cancel", x: 100 }, { tag: "input", type: "submit", x: 200 }], 210],
+  ];
+  for (const [controls, x] of cases) {
+    const { result, page } = await login([{ ...CODE, advance: "click" }, { path: "/imports" }], "123456", FETCHED,
+      { controls, adapter: "flatfilepro" });
+    assert.equal(result.status, "authenticated");
+    assert.deepEqual(page.clicked, [x]);
+  }
 });
 
 test("with the code options, an alert after the click ends through the classification, not as a stall", async () => {

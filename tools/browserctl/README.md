@@ -319,11 +319,15 @@ code form's submit control is dispatched, so a retry after a thrown error can
 refuse to submit a second code.
 The code form is submitted by exactly one trusted click and nothing else: no
 Enter, no `requestSubmit`, no second click. Amazon's Two-Step Verification form
-does not submit on Enter. The control is the submit control inside the form of
-the visible code input; when that form holds `#auth-signin-button`, that control
-is used. If that rule does not leave exactly one visible control, nothing is
-clicked, `otp_submitted` stays false and the call throws
-`AUTH_CODE_SUBMIT_AMBIGUOUS`. After the click the broker waits up to 30 seconds
+does not submit on Enter. A control belongs to the form of the visible code input
+when it sits inside that form or names it with `form="..."`. For the amazon
+adapter the control is that form's `#auth-signin-button` and nothing else. Other
+adapters use the form's submit control, skipping any whose text, value, name or
+`aria-label` reads as resend, send a new code, didn't receive, different account,
+another way or cancel. If that rule does not leave exactly one visible control,
+nothing is clicked, `otp_submitted` stays false and the call throws
+`AUTH_CODE_SUBMIT_AMBIGUOUS`. A navigation error from the click's own dispatch
+does not end the call. After the click the broker waits up to 30 seconds
 for the URL, the visible fields or the visible alert text to change. A new alert
 ends through the usual classification as `totp_rejected` or
 `authentication_failed`. A page that does not change throws
