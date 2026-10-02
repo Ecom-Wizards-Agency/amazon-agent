@@ -695,7 +695,11 @@ exits, so scheduled Grimoire browser jobs defer for that time; on 9222 there is 
 port lock, only the task tab's region claim. When another controller holds that
 region on 9222 (`TASK_TAB_BUSY` with a blocking scope), `serve` retries every 2
 seconds for up to `--region-wait-minutes` (0 to 240, default 3, capped by
-`--max-minutes`). It prints one `waiting_for_region` line and keeps `serve.json` at
+`--max-minutes`) and takes the region only if it is free at a retry, so a gap
+shorter than 2 seconds between the holder's steps can be missed. Once `serve`
+holds the region, the other session's steps fail with `TASK_TAB_BUSY` until `serve`
+exits; no tool retries them. The `--max-minutes` budget starts once the region is
+held, so the wait does not shorten the chat. It prints one `waiting_for_region` line and keeps `serve.json` at
 that status with the port, `region_scope` and the holder's `owner`, `workflow`,
 `task_id` and `heartbeat_age_s` (never its control token); `send` answers
 `waiting_for_region` meanwhile and queues nothing, and cancels a command it queued

@@ -220,6 +220,70 @@ test('on 9223 nothing changes: a busy region fails at once under the session loc
   } finally { await rm(dir, { recursive: true, force: true }); }
 });
 
+test('the --max-minutes budget starts once the region is acquired, so the wait does not shorten the chat', async () => {
+  const dir = await runDir();
+  let freedAt = null;
+  const { B } = fakeBrowser(() => freedAt === null, dir);
+  const lines = [];
+  const maxMinutes = 0.03; // 1.8 s, which also caps the wait
+  try {
+    await withEnv(OPERATOR, () => captureLog(lines, async () => {
+      const served = SA.serve({ run: dir, maxMinutes, idleMinutes: 1, regionWaitMinutes: maxMinutes }, { loadDeps: async () => B, regionPollMs: 20 });
+      await until(async () => (await readJson(join(dir, 'serve.json')))?.status === 'waiting_for_region');
+      // The region frees late in the wait.
+      await delay(1200);
+      freedAt = Date.now();
+      assert.equal(await served, 0);
+    }));
+    const serving = lines.map(line => JSON.parse(line)).find(line => line.status === 'serving');
+    assert.ok(Date.parse(serving.started_at) >= freedAt, 'started_at is when the controller got the region');
+    const final = await readJson(join(dir, 'serve.json'));
+    assert.deepEqual([final.status, final.reason], ['stopped', 'max_minutes']);
+    const served = Date.parse(final.stopped_at) - freedAt;
+    assert.ok(served >= maxMinutes * 60000, `the chat had its whole budget after the wait (${served} ms)`);
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
+for (const reused of [false, true]) {
+  test(`SIGINT while an acquire attempt is in flight releases the ${reused ? 'reused' : 'new'} tab it got, ${reused ? 'keeping' : 'closing'} it, and exits 130`, async () => {
+    const dir = await runDir();
+    const before = process.listeners('SIGINT');
+    const { B, calls } = fakeBrowser(() => true, dir);
+    const page = { port: 9222, targetId: 'SA-TARGET', reused, session: { assertTaskControl: async () => {}, send: async () => ({}) } };
+    let attempts = 0, entered, settle;
+    const inFlight = new Promise(resolve => { entered = resolve; });
+    B.tabs.acquireTaskPage = async spec => {
+      calls.push(['acquire', spec.taskId]);
+      if (++attempts === 1) throw busyError();
+      entered();
+      return new Promise(resolve => { settle = () => resolve(page); });
+    };
+    B.tabs.releaseTaskPage = async (handle, options) => { calls.push(['release', handle.targetId, options]); return {}; };
+    const lines = [];
+    try {
+      const code = await withEnv(OPERATOR, () => captureLog(lines, async () => {
+        const served = SA.serve({ run: dir, regionWaitMinutes: 1 }, { loadDeps: async () => B, regionPollMs: 20 });
+        await inFlight;
+        const handlers = process.listeners('SIGINT').filter(listener => !before.includes(listener));
+        assert.equal(handlers.length, 1);
+        await handlers[0]();
+        // The attempt that was in flight when the signal arrived now succeeds.
+        settle();
+        return served;
+      }));
+      assert.equal(code, 130);
+      // A tab this attempt created never reached the workflow and is closed; a
+      // reused one keeps the lease it already had.
+      assert.deepEqual(calls.filter(([name]) => name !== 'acquire'), [['release', 'SA-TARGET', { outcome: 'error', closeTarget: !reused }]], 'one release, no switch');
+      assert.deepEqual(lines.map(line => JSON.parse(line).status), ['waiting_for_region']);
+      const status = await readJson(join(dir, 'serve.json'));
+      assert.deepEqual([status.status, status.reason], ['stopped', 'SIGINT']);
+      assert.equal(existsSync(join(dir, 'serve.pid')), false);
+      assert.deepEqual(process.listeners('SIGINT'), before);
+    } finally { await rm(dir, { recursive: true, force: true }); }
+  });
+}
+
 // The entry point itself, in a child process, against the real lease registry
 // of the isolated runtime with the US region held by another controller.
 // fake-cdp-hooks.mjs replaces cdp.mjs, so nothing reaches a browser.

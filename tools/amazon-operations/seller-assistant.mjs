@@ -2215,7 +2215,6 @@ export async function serve({ run, maxMinutes = 90, idleMinutes = 20, regionWait
   const onCrash = abort('uncaughtException', 1), onRejection = abort('unhandledRejection', 1);
   process.once('SIGTERM', onTerm); process.once('SIGINT', onInt);
   process.on('uncaughtException', onCrash); process.on('unhandledRejection', onRejection);
-  const started = Date.now();
   let exitReason = 'unknown';
   try {
     const spec = { taskId, workflow: 'amazon-communications', initialUrl: `${origin}/home`, exclusiveContext: true,
@@ -2232,7 +2231,9 @@ export async function serve({ run, maxMinutes = 90, idleMinutes = 20, regionWait
         page = await acquireWhenRegionFree(() => B.tabs.acquireTaskPage(spec), {
           waitMs: Math.min(regionWaitMinutes, maxMinutes) * 60000, pollMs: regionPollMs, signal: waitAbort.signal,
           holder: error => regionHolder(B.registry, error),
-          release: handle => B.tabs.releaseTaskPage(handle, { outcome: 'error' }),
+          // The page never reached the workflow: close a tab this attempt created;
+          // a reused one keeps the lease it already had.
+          release: handle => B.tabs.releaseTaskPage(handle, { outcome: 'error', closeTarget: handle.reused !== true }),
           onWaiting: async ({ first, holder, since, until }) => {
             const waiting = { status: 'waiting_for_region', run_id: config.run_id, pid: process.pid, session: binding.session, port: binding.port, task_id: taskId,
               region_scope: regionScope, holder, waiting_since: iso(since), wait_until: iso(until), updated_at: iso(Date.now()) };
@@ -2246,6 +2247,9 @@ export async function serve({ run, maxMinutes = 90, idleMinutes = 20, regionWait
       // any startup, so a client queues its command instead of being refused.
       if (waited) await unlink(statusPath).catch(() => {});
     }
+    // The --max-minutes budget, the transcript deadline and started_at count
+    // from here, once the region is held: a region wait does not shorten the chat.
+    const started = Date.now();
     await B.sc.switchAccount(page.session, origin, { accountName: account.seller_central_name, marketplaceLabel: account.marketplace_label,
       marketplace: account.marketplace, parentAccountName: account.parent_account_name }, { returnTo: '/home' });
     const homeIdentity = await B.sc.readIdentity(page.session);
