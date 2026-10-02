@@ -314,10 +314,26 @@ One call types at most one code: if the code form returns after a submitted
 code, the result is `totp_rejected` and nothing is typed again.
 With `otpFetchedAt`, if the code's 30-second period has ended when the code
 field appears, the result is `totp_expired` and nothing is typed. The result carries
-`otp_submitted`, and `onOtpSubmitted()` runs once, just before the code form is
-submitted, so a retry after a thrown error can refuse to submit a second code.
-The code form is submitted with Enter only: if it does not advance within 30
-seconds, the call throws instead of clicking or resubmitting.
+`otp_submitted`, and `onOtpSubmitted()` runs once, just before the click on the
+code form's submit control is dispatched, so a retry after a thrown error can
+refuse to submit a second code.
+The code form is submitted by exactly one trusted click and nothing else: no
+Enter, no `requestSubmit`, no second click. Amazon's Two-Step Verification form
+does not submit on Enter. A control belongs to the form of the visible code input
+when it sits inside that form or names it with `form="..."`. For the amazon
+adapter the control is that form's `#auth-signin-button` and nothing else. Other
+adapters use the form's submit control, skipping any whose text, value, name or
+`aria-label` reads as resend, send a new code, didn't receive, different account,
+another way or cancel. If that rule does not leave exactly one visible control,
+nothing is clicked, `otp_submitted` stays false and the call throws
+`AUTH_CODE_SUBMIT_AMBIGUOUS`. A navigation error from the click's own dispatch
+does not end the call. After the click the broker waits up to 30 seconds
+for the URL, the visible fields or the visible alert text to change. A new alert
+ends through the usual classification as `totp_rejected` or
+`authentication_failed`. A page that does not change throws
+`AUTH_CODE_FORM_STALLED`: the code was submitted once and is not submitted again.
+Email and password forms keep the full sequence below with or without the code
+options.
 
 A caller that passes neither option, as Grimoire's 9223 login does, keeps the
 existing result fields and the existing submit sequence: Enter, then a click on
