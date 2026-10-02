@@ -156,6 +156,10 @@ async function trustedClick(cdp, session, selector, description) {
   if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y)) {
     throw new Error(`AUTH_FORM_UNAVAILABLE: ${description}`);
   }
+  await dispatchClick(session, point);
+}
+
+async function dispatchClick(session, point) {
   for (const type of ["mousePressed", "mouseReleased"]) {
     await session.send("Input.dispatchMouseEvent", {
       type, x: point.x, y: point.y, button: "left", clickCount: 1,
@@ -177,21 +181,41 @@ async function replaceInput(cdp, session, selector, value, description) {
   await session.send("Input.insertText", { text: value }, { timeoutMs: 10000 });
 }
 
-// With the code options, a one-time code is submitted once: Enter only, then a
-// longer wait. The click and requestSubmit fallbacks could send the same code a
-// second time. Without them the sequence is unchanged for every form.
-async function submitForm(cdp, session, { once = false } = {}) {
+// The visible alert text joins the change snapshot of a code submit, so a
+// rejected code that keeps the URL and fields ends through the classification.
+const ALERT_SNAPSHOT = `,alert:([...document.querySelectorAll('#auth-error-message-box,.a-alert-error,[role="alert"],.error,.MuiAlert-message')]
+  .find(e=>e.getClientRects().length>0&&e.getBoundingClientRect().width>0&&(e.innerText||'').trim())?.innerText||'').trim()`;
+
+// The code form's own submit control: the visible code input's form, its
+// #auth-signin-button when the form holds one, otherwise its only visible submit
+// control. Any other count returns no point.
+const CODE_SUBMIT_CONTROL = `(()=>{const visible=e=>!e.disabled&&e.getClientRects().length>0&&e.getBoundingClientRect().width>0;
+  const input=[...document.querySelectorAll('input[name="otpCode"],input[name="code"],input[autocomplete="one-time-code"]')].find(visible);
+  const form=input?.form||input?.closest('form');if(!form)return{candidates:0};
+  const submit='button[type="submit"],input[type="submit"],#signInSubmit,#continue';
+  const preferred=form.querySelector('#auth-signin-button');
+  const candidates=(preferred?[preferred]:[...form.querySelectorAll(submit+',button')]
+    .filter(e=>e.matches(submit)||e.type==='submit')).filter(visible);
+  if(candidates.length!==1)return{candidates:candidates.length};
+  const e=candidates[0];e.scrollIntoView({block:'center'});const r=e.getBoundingClientRect();
+  return{candidates:1,x:r.x+r.width/2,y:r.y+r.height/2}})()`;
+
+// With the code options, a one-time code is submitted by exactly one trusted
+// click on the code form's own submit control, then a 30-second wait. Enter does
+// not submit Amazon's code form, and a second action could send the same code
+// twice. Without them the sequence is unchanged for every form.
+async function submitForm(cdp, session, { once = false, onDispatch = () => {} } = {}) {
   const before = await cdp.evaluate(session, `JSON.stringify({url:location.href,
     email:${visible('input[type="email"],input[name="email"],input[autocomplete="username"],#ap_email,#ap_email_login')},
     password:${visible('input[type="password"],input[name="password"]')},
-    otp:${visible('input[name="otpCode"],input[name="code"],input[autocomplete="one-time-code"]')}})`);
+    otp:${visible('input[name="otpCode"],input[name="code"],input[autocomplete="one-time-code"]')}${once ? ALERT_SNAPSHOT : ""}})`);
   const changed = async (attempts = 40) => {
     for (let attempt = 0; attempt < attempts; attempt++) {
       try {
         const current = await cdp.evaluate(session, `JSON.stringify({url:location.href,
           email:${visible('input[type="email"],input[name="email"],input[autocomplete="username"],#ap_email,#ap_email_login')},
           password:${visible('input[type="password"],input[name="password"]')},
-          otp:${visible('input[name="otpCode"],input[name="code"],input[autocomplete="one-time-code"]')}})`);
+          otp:${visible('input[name="otpCode"],input[name="code"],input[autocomplete="one-time-code"]')}${once ? ALERT_SNAPSHOT : ""}})`);
         if (current !== before) return true;
       } catch (error) {
         if (!/context|navigation|target|session/i.test(error.message)) throw error;
@@ -200,14 +224,23 @@ async function submitForm(cdp, session, { once = false } = {}) {
     }
     return false;
   };
+  if (once) {
+    const control = await cdp.evaluate(session, CODE_SUBMIT_CONTROL, 10000);
+    if (control?.candidates !== 1 || !Number.isFinite(control.x) || !Number.isFinite(control.y)) {
+      throw new Error(`AUTH_CODE_SUBMIT_AMBIGUOUS: the code form has ${Number(control?.candidates) || 0} `
+        + "eligible submit controls; nothing was clicked and the code was not submitted");
+    }
+    // From here the code counts as submitted, also when the click itself throws.
+    onDispatch();
+    await dispatchClick(session, control);
+    if (await changed(120)) return;
+    throw new Error("AUTH_CODE_FORM_STALLED: the code was submitted once by one click and the page "
+      + "did not advance within 30 seconds; the code is not submitted again");
+  }
   for (const type of ["rawKeyDown", "keyUp"]) {
     await session.send("Input.dispatchKeyEvent", {
       type, key: "Enter", code: "Enter", windowsVirtualKeyCode: 13, nativeVirtualKeyCode: 13,
     }, { timeoutMs: 10000 });
-  }
-  if (once) {
-    if (await changed(120)) return;
-    throw new Error("AUTH_FORM_UNAVAILABLE: code form did not advance; the code is not submitted again");
   }
   if (await changed()) return;
   await trustedClick(cdp, session,
@@ -238,9 +271,11 @@ async function fillStep(cdp, session, state, login, getOtp, beforeOtpSubmit = ()
     await replaceInput(cdp, session,
       'input[name="otpCode"],input[name="code"],input[autocomplete="one-time-code"]',
       otp, "one-time password");
-    beforeOtpSubmit();
+    // With the code options the submit marks the code submitted at its click.
+    if (!codeOptions) beforeOtpSubmit();
   } else return false;
-  await submitForm(cdp, session, { once: codeOptions && state.status === "totp_required" });
+  const once = codeOptions && state.status === "totp_required";
+  await submitForm(cdp, session, { once, ...(once ? { onDispatch: beforeOtpSubmit } : {}) });
   return true;
 }
 
@@ -285,7 +320,7 @@ export async function authenticateTarget({
     const initial = await cdp.evaluate(session, `({origin:location.origin})`, 10000);
     const route = auth.assertAuthPolicy(config, { port, origin: initial.origin });
     // The code options (otpFetchedAt, onOtpSubmitted) switch on otp_submitted,
-    // totp_expired, totp_rejected and the Enter-only code submit. A caller without
+    // totp_expired, totp_rejected and the single-click code submit. A caller without
     // them keeps the existing status fields and submit sequence.
     let otpSubmitted = false;
     const codeOptions = otpFetchedAt != null || typeof onOtpSubmitted === "function";

@@ -3,6 +3,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
+import { runInNewContext } from "node:vm";
 
 const runtime = mkdtempSync(join(tmpdir(), "auth-broker-"));
 process.env.AMAZON_BROWSER_RUNTIME_DIR = runtime;
@@ -66,16 +67,63 @@ test("1Password service-account mode fails closed onto the credential transport"
 const ORIGIN = "https://sellercentral.amazon.com";
 const PUBLIC_KEYS = ["adapter", "origin", "port", "route_id", "status", "targetId"];
 
-// One scripted login page: each submitted form advances to the next state.
-function fakeLogin(pages, { failSubmit = false } = {}) {
-  const page = { index: 0, typed: [], submits: 0 };
+// A minimal DOM for the code form's submit-control query: one form holding the
+// code input and the given controls. Selectors are tag, #id and [attr="value"]
+// parts joined by commas; a control's x position identifies it in a click.
+function fakeDocument(controls) {
+  const form = {};
+  const matches = (element, selector) => selector.split(",").some((part) => {
+    const [, tag, id, name, value] = part.trim().match(/^([a-z]*)(?:#([\w-]+))?(?:\[([\w-]+)="([^"]*)"\])?$/);
+    return (!tag || element.tag === tag) && (!id || element.id === id)
+      && (!name || element.attrs[name] === value);
+  });
+  const elements = [{ tag: "input", name: "code" }, ...controls].map((attrs) => {
+    const element = {
+      tag: attrs.tag, id: attrs.id || "", attrs, disabled: false, form: attrs.outside ? null : form,
+      type: attrs.type ?? (attrs.tag === "button" ? "submit" : "text"),
+      getClientRects: () => (attrs.hidden ? [] : [{}]),
+      getBoundingClientRect: () => ({ x: attrs.x ?? 0, y: 0, width: attrs.hidden ? 0 : 20, height: 10 }),
+      scrollIntoView() {},
+      closest: (selector) => (selector === "form" && !attrs.outside ? form : null),
+      matches: (selector) => matches(element, selector),
+    };
+    return element;
+  });
+  const query = (scope) => (selector) => elements.filter((e) => scope(e) && matches(e, selector));
+  form.querySelectorAll = query((e) => e.form === form);
+  form.querySelector = (selector) => form.querySelectorAll(selector)[0] || null;
+  return { querySelectorAll: query(() => true) };
+}
+
+// The live Two-Step Verification page: #auth-signin-button and a second,
+// unnamed submit control in the code form.
+const LIVE_CONTROLS = [
+  { tag: "input", type: "submit", id: "auth-signin-button", x: 100 },
+  { tag: "button", type: "submit", x: 200 },
+];
+
+// One scripted login page. A page advances on Enter or a click (advance "any",
+// the default), only on "enter", only on "click", or "never". Every Enter and
+// click is recorded with the page index it was sent on.
+function fakeLogin(pages, { failSubmit = false, controls = LIVE_CONTROLS } = {}) {
+  const page = { index: 0, typed: [], submits: 0, events: [], clicked: [] };
+  const advanceOn = (method) => {
+    const advance = pages[page.index].advance || "any";
+    if (advance === method || advance === "any") {
+      page.index = Math.min(page.index + 1, pages.length - 1);
+    }
+  };
   const session = {
     async send(method, params) {
       if (method === "Input.insertText") page.typed.push(params.text);
-      if (method === "Input.dispatchKeyEvent" && params.type === "rawKeyDown") {
+      const enter = method === "Input.dispatchKeyEvent" && params.type === "rawKeyDown";
+      const click = method === "Input.dispatchMouseEvent" && params.type === "mousePressed";
+      if (enter || click) {
         if (failSubmit) throw new Error("Inspected target navigated or closed");
         page.submits++;
-        page.index = Math.min(page.index + 1, pages.length - 1);
+        page.events.push([page.index, enter ? "enter" : "click"]);
+        if (click) page.clicked.push(params.x);
+        advanceOn(enter ? "enter" : "click");
       }
       return {};
     },
@@ -88,11 +136,26 @@ function fakeLogin(pages, { failSubmit = false } = {}) {
     evaluate: async (_session, expression) => {
       if (expression === "({origin:location.origin})") return { origin: ORIGIN };
       if (expression.includes("e.focus()")) return { focused: true, start: 0, end: 0, length: 0 };
-      if (expression.startsWith("JSON.stringify({url:location.href")) return JSON.stringify({ index: page.index });
+      if (expression.includes("auth-signin-button")) {
+        return runInNewContext(expression, { document: fakeDocument(controls) });
+      }
+      if (expression.includes("scrollIntoView")) return { x: 10, y: 20 };
+      if (expression.startsWith("JSON.stringify({url:location.href")) {
+        const current = pages[page.index];
+        return JSON.stringify({ index: current.snapshotAs ?? page.index,
+          ...(expression.includes(",alert:") ? { alert: current.alert || "" } : {}) });
+      }
       return { ...base, origin: ORIGIN, path: "/ap/signin", url: `${ORIGIN}/ap/signin`, ...pages[page.index] };
     },
   };
   return page;
+}
+
+// The broker's 250 ms polls run immediately so a full wait takes no real time.
+async function withFastPolls(run) {
+  const realTimeout = globalThis.setTimeout;
+  globalThis.setTimeout = (callback, _ms, ...args) => realTimeout(callback, 0, ...args);
+  try { return await run(); } finally { globalThis.setTimeout = realTimeout; }
 }
 
 function provider(otp) {
@@ -190,37 +253,82 @@ test("with the code options, a code form that returns after a submitted code end
   assert.equal(plain.page.submits, 3);
 });
 
-test("with the code options, a code form that does not advance is not submitted a second way", async () => {
-  const page = fakeLogin([CODE, APP]);
+const FETCHED = { otpFetchedAt: 1_000_000_005_000, clock: () => 1_000_000_005_000 };
+const codeStep = (page, index) => page.events.filter(([at]) => at === index).map(([, kind]) => kind);
+
+test("with the code options, the code is submitted by one click on #auth-signin-button and no Enter", async () => {
+  let calls = 0;
+  const { result, page } = await login([PASSWORD, { ...CODE, advance: "click" }, APP], "123456",
+    { ...FETCHED, onOtpSubmitted: () => { calls++; } });
+  assert.equal(result.status, "authenticated");
+  assert.equal(result.otp_submitted, true);
+  assert.equal(calls, 1);
+  assert.deepEqual(page.typed, ["user@example.test", "password-secret", "123456"]);
+  // The password step keeps Enter; the code step gets exactly one click on the
+  // live page's #auth-signin-button (x 100 to 120), not the second control.
+  assert.deepEqual(codeStep(page, 0), ["enter"]);
+  assert.deepEqual(codeStep(page, 1), ["click"]);
+  assert.deepEqual(page.clicked, [110]);
+});
+
+test("with the code options, email and password steps keep the full submit sequence", async () => {
+  const { result, page } = await withFastPolls(() => login(
+    [{ ...PASSWORD, advance: "click" }, { ...CODE, advance: "click" }, APP], "123456", FETCHED));
+  assert.equal(result.status, "authenticated");
+  // Enter first, then the click fallback, as without the code options.
+  assert.deepEqual(codeStep(page, 0), ["enter", "click"]);
+  assert.deepEqual(codeStep(page, 1), ["click"]);
+});
+
+test("with the code options, a code form that does not advance after its click stalls without a second action", async () => {
+  let calls = 0;
+  const page = fakeLogin([{ ...CODE, advance: "never" }, APP]);
   page.targetId = `T${++targetCount}`;
-  const evaluate = page.cdp.evaluate;
-  const methods = [];
-  page.cdp.evaluate = async (session, expression, ...rest) => {
-    if (expression.includes("requestSubmit")) methods.push("requestSubmit");
-    if (expression.startsWith("JSON.stringify({url:location.href")) return JSON.stringify({ index: 0 });
-    return evaluate(session, expression, ...rest);
-  };
-  const send = page.cdp.Session.open;
-  page.cdp.Session.open = async () => {
-    const session = await send();
-    return { ...session, async send(method, params) {
-      if (method === "Input.dispatchMouseEvent") methods.push("click");
-      return session.send(method, params);
-    } };
-  };
-  // The broker's 250 ms polls run immediately so the full wait takes no real time.
-  const realTimeout = globalThis.setTimeout;
-  globalThis.setTimeout = (callback, _ms, ...args) => realTimeout(callback, 0, ...args);
-  try {
+  await withFastPolls(() => assert.rejects(authenticateTarget({
+    port: 9223, targetId: page.targetId, policy: loadBrowserPolicy(), cdp: page.cdp,
+    config: { authentication: { mode: "interactive" } }, authProvider: provider("123456"),
+    ...FETCHED, onOtpSubmitted: () => { calls++; },
+  }), /^Error: AUTH_CODE_FORM_STALLED: the code was submitted once by one click .*not submitted again$/));
+  assert.deepEqual(page.typed, ["123456"]);
+  assert.deepEqual(page.events, [[0, "click"]]);
+  assert.equal(calls, 1);
+});
+
+test("with the code options, ambiguous submit controls fail closed with nothing dispatched", async () => {
+  const twoUnnamed = [{ tag: "button", type: "submit", x: 100 }, { tag: "input", type: "submit", x: 200 }];
+  // A button without a type attribute is a submit control too.
+  const untyped = [{ tag: "button", type: "submit", x: 100 }, { tag: "button", x: 200 }];
+  const hiddenPreferred = [{ tag: "input", type: "submit", id: "auth-signin-button", hidden: true, x: 100 },
+    { tag: "button", type: "submit", x: 200 }];
+  for (const [controls, count] of [[twoUnnamed, 2], [untyped, 2], [[], 0], [hiddenPreferred, 0]]) {
+    let calls = 0;
+    const page = fakeLogin([CODE, APP], { controls });
+    page.targetId = `T${++targetCount}`;
     await assert.rejects(authenticateTarget({
       port: 9223, targetId: page.targetId, policy: loadBrowserPolicy(), cdp: page.cdp,
       config: { authentication: { mode: "interactive" } }, authProvider: provider("123456"),
-      otpFetchedAt: 1_000_000_005_000, clock: () => 1_000_000_005_000,
-    }), /code form did not advance/);
-  } finally { globalThis.setTimeout = realTimeout; }
-  assert.deepEqual(page.typed, ["123456"]);
-  assert.equal(page.submits, 1);
-  assert.deepEqual(methods, []);
+      ...FETCHED, onOtpSubmitted: () => { calls++; },
+    }), new RegExp(`^Error: AUTH_CODE_SUBMIT_AMBIGUOUS: the code form has ${count} eligible`));
+    assert.deepEqual(page.typed, ["123456"]);
+    assert.deepEqual(page.events, []);
+    assert.equal(calls, 0);
+  }
+  // One submit control in the form, another outside it: the form's own is clicked.
+  const outside = [{ tag: "button", type: "submit", outside: true, x: 100 }, { tag: "button", type: "submit", x: 200 }];
+  const { result, page } = await login([{ ...CODE, advance: "click" }, APP], "123456", FETCHED, { controls: outside });
+  assert.equal(result.status, "authenticated");
+  assert.deepEqual(page.clicked, [210]);
+});
+
+test("with the code options, an alert after the click ends through the classification, not as a stall", async () => {
+  for (const [invalid, status] of [[false, "totp_rejected"], [true, "authentication_failed"]]) {
+    // The URL and fields stay the same; only the alert text changes.
+    const rejected = { ...CODE, snapshotAs: 0, alert: "The code you entered is not valid.", errorVisible: true, invalid };
+    const { result, page } = await withFastPolls(() => login([{ ...CODE, advance: "click" }, rejected], "123456", FETCHED));
+    assert.equal(result.status, status);
+    assert.equal(result.otp_submitted, true);
+    assert.deepEqual(page.events, [[0, "click"]]);
+  }
 });
 
 test("without the code options the public status keeps its existing shape", async () => {
