@@ -25,6 +25,7 @@ import { createHash } from 'node:crypto';
 import { execFile } from 'node:child_process';
 import { basename, dirname, isAbsolute, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { setTimeout as delay } from 'node:timers/promises';
 
 export const MAX_COMPOSER_CHARS = 2500;
 export const NAVIGATION_LABELS = Object.freeze(['Get help with a new issue', 'Show more', 'Show less']);
@@ -512,14 +513,19 @@ export function validateCommandArgs(command, args, { absolutePaths = true } = {}
 
 export function parseArgs(argv) {
   const [mode, ...rest] = argv;
-  const usage = message => codeError('usage', `${message}. Usage: seller-assistant.mjs serve --run <dir> [--max-minutes N] [--idle-minutes N] | send --run <dir> <command> [args]`);
+  const usage = message => codeError('usage', `${message}. Usage: seller-assistant.mjs serve --run <dir> [--max-minutes N] [--idle-minutes N] [--region-wait-minutes N] | send --run <dir> <command> [args]`);
   if (!['serve', 'send'].includes(mode)) throw usage('First argument must be serve or send');
   if (mode === 'serve') {
-    const options = { mode, run: null, maxMinutes: 90, idleMinutes: 20 };
+    const options = { mode, run: null, maxMinutes: 90, idleMinutes: 20, regionWaitMinutes: 3 };
     for (let i = 0; i < rest.length; i += 2) {
       const key = rest[i], value = rest[i + 1];
       if (value === undefined) throw usage(`${key} needs a value`);
       if (key === '--run') { options.run = value; continue; }
+      if (key === '--region-wait-minutes') {
+        if (!/^\d+(\.\d+)?$/.test(value) || Number(value) > 240) throw usage(`${key} must be a number from 0 to 240`);
+        options.regionWaitMinutes = Number(value);
+        continue;
+      }
       if (!['--max-minutes', '--idle-minutes'].includes(key)) throw usage(`Unknown serve argument ${key}`);
       const minutes = Number(value);
       if (!/^\d+$/.test(value) || minutes < 1 || minutes > 240) throw usage(`${key} must be an integer from 1 to 240`);
@@ -1973,11 +1979,11 @@ async function claimServe(runDir) {
 }
 
 async function loadBrowserDeps() {
-  const [cdp, sc, tabs, lock, ui, cases, registry, policy] = await Promise.all([
+  const [cdp, sc, tabs, lock, ui, cases, registry, policy, scopes] = await Promise.all([
     import('../report-fetcher/cdp.mjs'), import('../report-fetcher/sc-account.mjs'), import('../browserctl/task-tabs.mjs'),
     import('../browserctl/session-lock.mjs'), import('./browser-ui.mjs'), import('./cases.mjs'),
-    import('../browserctl/lease-registry.mjs'), import('../browserctl/policy.mjs')]);
-  return { cdp, sc, tabs, lock, ui, cases, registry, policy };
+    import('../browserctl/lease-registry.mjs'), import('../browserctl/policy.mjs'), import('../browserctl/context-scopes.mjs')]);
+  return { cdp, sc, tabs, lock, ui, cases, registry, policy, scopes };
 }
 
 /** Bind the case chat window to a named additional slot of this run's task, the
@@ -2104,7 +2110,59 @@ export function abortHandler(ctl, name, finish) {
   };
 }
 
-export async function serve({ run, maxMinutes = 90, idleMinutes = 20 }) {
+const REGION_POLL_MS = 2000;
+
+/** The busy answer for a Seller Central context another controller holds:
+ * reserveTaskTab returns browser-context-busy with the blocking scope, which
+ * acquireTaskPage throws as TASK_TAB_BUSY. Other busy answers still fail at once. */
+export function regionBusy(error) {
+  return error?.code === 'TASK_TAB_BUSY' && typeof error.blockingScope === 'string' && error.blockingScope !== '';
+}
+
+/** Non-secret facts about the holder, from the task record the registry lists
+ * for the blocking claim. The control token is never copied. */
+export async function regionHolder(registry, error, now = Date.now()) {
+  const facts = { blocking_scope: error.blockingScope, owner: null, workflow: null, task_id: null, heartbeat_age_s: null };
+  let record = null;
+  if (error.blockingTask) {
+    try { record = (await registry.listTaskTabs()).find(entry => entry.key === error.blockingTask) || null; } catch { /* facts stay unknown */ }
+  }
+  if (!record) return facts;
+  const heartbeatAt = Number(record.controller?.heartbeatAt);
+  return { ...facts, owner: record.controller?.owner ?? null, workflow: record.workflow ?? null, task_id: record.taskId ?? null,
+    heartbeat_age_s: Number.isFinite(heartbeatAt) ? Math.max(0, Math.round((now - heartbeatAt) / 1000)) : null };
+}
+
+/** Acquire through `acquire`, retrying while the region is busy, for at most
+ * `waitMs`. Nothing is held between attempts: a busy reservation creates no
+ * task record and no claim. The pause is a ref'd timer, so the process stays
+ * alive by design while it waits. `onWaiting` runs after every busy answer
+ * (`first` on the first). An aborted `signal` ends the wait; a page acquired
+ * just before it is released through `release`. */
+export async function acquireWhenRegionFree(acquire, { waitMs, pollMs = REGION_POLL_MS, holder, onWaiting = async () => {}, release = async () => {}, signal, now = Date.now }) {
+  const since = now();
+  const stopped = () => codeError('region_wait_stopped', 'the region wait was stopped');
+  for (let first = true; ; first = false) {
+    if (signal?.aborted) throw stopped();
+    let busy = null, page = null;
+    try { page = await acquire(); } catch (error) { if (!regionBusy(error)) throw error; busy = error; }
+    if (!busy) {
+      if (signal?.aborted) { await release(page); throw stopped(); }
+      return page;
+    }
+    const facts = await holder(busy);
+    const left = since + waitMs - now();
+    if (left <= 0) {
+      const waitedMs = now() - since;
+      throw codeError('region_busy', `Seller Central ${facts.blocking_scope} is held by ${facts.owner || 'another controller'}${facts.workflow ? ` (${facts.workflow})` : ''}; waited ${Math.round(waitedMs / 1000)} s`, { holder: facts, waitedMs });
+    }
+    if (signal?.aborted) throw stopped();
+    await onWaiting({ first, holder: facts, since, until: since + waitMs });
+    try { await delay(Math.min(pollMs, left), undefined, { signal }); } catch { throw stopped(); }
+  }
+}
+
+export async function serve({ run, maxMinutes = 90, idleMinutes = 20, regionWaitMinutes = 3 }, { loadDeps = loadBrowserDeps, regionPollMs = REGION_POLL_MS } = {}) {
   // Grimoire never drives this route (PR #76 review F3), on either session.
   assertAttended(process.env);
   const runDir = resolve(run);
@@ -2116,7 +2174,7 @@ export async function serve({ run, maxMinutes = 90, idleMinutes = 20 }) {
   // Commands a previous serve started but never finished are marked uncertain
   // (outbound) or interrupted and are never executed again.
   const recovered = await recoverInterrupted(runDir);
-  const B = await loadBrowserDeps();
+  const B = await loadDeps();
   const account = B.cases.caseBrowserAccount(config.account);
   const origin = B.ui.origins[account.marketplace];
   if (!origin) { releasePid(); throw codeError('marketplace_unsupported', `No Seller Central origin for ${account.marketplace}`); }
@@ -2134,7 +2192,9 @@ export async function serve({ run, maxMinutes = 90, idleMinutes = 20 }) {
   const unlock = acquireServeLock(binding, B.lock);
   let page = null, outcome = 'error', exitCode = 1, rt = null;
   const statusPath = join(runDir, 'serve.json');
-  const ctl = { exiting: false, rt: null };
+  const ctl = { exiting: false, rt: null, regionWait: null };
+  const waitAbort = new AbortController();
+  let regionScope = null, waitSignal = null;
   // The case chat window stays an interactive (handoff) lease after a clean stop,
   // because the chat with Amazon may still be open; otherwise an inspection lease.
   const releaseChat = async result => {
@@ -2142,6 +2202,9 @@ export async function serve({ run, maxMinutes = 90, idleMinutes = 20 }) {
     catch (e) { console.error('chat window release failed:', e.message); }
   };
   const abort = (name, code) => abortHandler(ctl, name, async () => {
+    // During the region wait nothing is held: end the wait and let serve unwind.
+    // An attempt in flight settles first and a page it got is released.
+    if (ctl.regionWait) { ctl.regionWait.signal = { name, code }; waitAbort.abort(); return; }
     try { await markInFlight(rt, name); } catch (e) { console.error(`${name} could not mark the command in flight:`, e.message); }
     await releaseChat('error');
     try { if (page) await B.tabs.releaseTaskPage(page, { outcome: 'error' }); }
@@ -2155,8 +2218,34 @@ export async function serve({ run, maxMinutes = 90, idleMinutes = 20 }) {
   const started = Date.now();
   let exitReason = 'unknown';
   try {
-    page = await B.tabs.acquireTaskPage({ taskId, workflow: 'amazon-communications', initialUrl: `${origin}/home`, exclusiveContext: true,
-      sellerCentral: { marketplace: account.marketplace, origin }, closeOnFailure: false });
+    const spec = { taskId, workflow: 'amazon-communications', initialUrl: `${origin}/home`, exclusiveContext: true,
+      sellerCentral: { marketplace: account.marketplace, origin }, closeOnFailure: false };
+    // On 9223 the port lock already excludes other browser work and a busy
+    // region fails at once, as before. On 9222 another attended session may hold
+    // this region between its steps: wait for it, bounded and visibly.
+    if (binding.lockPort === 9223) page = await B.tabs.acquireTaskPage(spec);
+    else {
+      regionScope = B.scopes.resolveContextScope({ exclusiveContext: true, sellerCentral: spec.sellerCentral });
+      ctl.regionWait = { signal: null };
+      let waited = false;
+      try {
+        page = await acquireWhenRegionFree(() => B.tabs.acquireTaskPage(spec), {
+          waitMs: Math.min(regionWaitMinutes, maxMinutes) * 60000, pollMs: regionPollMs, signal: waitAbort.signal,
+          holder: error => regionHolder(B.registry, error),
+          release: handle => B.tabs.releaseTaskPage(handle, { outcome: 'error' }),
+          onWaiting: async ({ first, holder, since, until }) => {
+            const waiting = { status: 'waiting_for_region', run_id: config.run_id, pid: process.pid, session: binding.session, port: binding.port, task_id: taskId,
+              region_scope: regionScope, holder, waiting_since: iso(since), wait_until: iso(until), updated_at: iso(Date.now()) };
+            await atomicWrite(statusPath, JSON.stringify(waiting, null, 2));
+            waited = true;
+            if (first) console.log(JSON.stringify(waiting));
+          },
+        });
+      } finally { waitSignal = ctl.regionWait.signal; ctl.regionWait = null; }
+      // The wait is over: until `serving` is written, serve.json is absent as on
+      // any startup, so a client queues its command instead of being refused.
+      if (waited) await unlink(statusPath).catch(() => {});
+    }
     await B.sc.switchAccount(page.session, origin, { accountName: account.seller_central_name, marketplaceLabel: account.marketplace_label,
       marketplace: account.marketplace, parentAccountName: account.parent_account_name }, { returnTo: '/home' });
     const homeIdentity = await B.sc.readIdentity(page.session);
@@ -2192,11 +2281,17 @@ export async function serve({ run, maxMinutes = 90, idleMinutes = 20 }) {
     // lease instead of the ten-minute success grace.
     exitCode = outcome === 'success' ? 0 : ['max_minutes', 'idle_minutes'].includes(exitReason) ? 0 : 1;
   } catch (error) {
-    exitReason = error.code || 'startup_failed';
-    const failure = { status: 'error', run_id: config.run_id, reason: exitReason, message: String(error.message).slice(0, 500) };
-    await atomicWrite(statusPath, JSON.stringify(failure, null, 2)).catch(() => {});
-    console.log(JSON.stringify(failure));
-    exitCode = 1;
+    if (waitSignal) {
+      // A signal during the region wait: no error status, the run is stopped.
+      exitReason = waitSignal.name; exitCode = waitSignal.code;
+    } else {
+      exitReason = error.code || 'startup_failed';
+      const failure = { status: 'error', run_id: config.run_id, reason: exitReason, message: String(error.message).slice(0, 500),
+        ...(exitReason === 'region_busy' ? { port: binding.port, task_id: taskId, region_scope: regionScope, holder: error.holder, waited_s: Math.round(error.waitedMs / 1000) } : {}) };
+      await atomicWrite(statusPath, JSON.stringify(failure, null, 2)).catch(() => {});
+      console.log(JSON.stringify(failure));
+      exitCode = 1;
+    }
   } finally {
     process.removeListener('SIGTERM', onTerm); process.removeListener('SIGINT', onInt);
     process.removeListener('uncaughtException', onCrash); process.removeListener('unhandledRejection', onRejection);
@@ -2208,7 +2303,8 @@ export async function serve({ run, maxMinutes = 90, idleMinutes = 20 }) {
       await atomicWrite(join(runDir, 'results', `${id}.json`), JSON.stringify({ ...result, released: !release?.error, release_outcome: outcome, ...(release?.error ? { release_error: release.error } : {}) }, null, 2)).catch(() => {});
       await unlink(join(runDir, 'results', `${id}.running`)).catch(() => {});
     }
-    await atomicWrite(statusPath, JSON.stringify({ status: 'stopped', run_id: config.run_id, reason: exitReason, release_outcome: outcome, stopped_at: iso(Date.now()) }, null, 2)).catch(() => {});
+    // region_busy keeps its error status with the holder facts: nothing was acquired.
+    if (exitReason !== 'region_busy') await atomicWrite(statusPath, JSON.stringify({ status: 'stopped', run_id: config.run_id, reason: exitReason, release_outcome: outcome, stopped_at: iso(Date.now()) }, null, 2)).catch(() => {});
     unlock();
     releasePid();
   }
@@ -2233,6 +2329,18 @@ export async function sendCommand({ run, command, args }, { pollMs = 500, out = 
   let owner = null;
   try { owner = JSON.parse(await readFile(join(runDir, 'serve.pid'), 'utf8')); } catch { /* checked below */ }
   if (!owner || !alive(owner.pid)) { out(JSON.stringify({ status: 'error', reason: 'serve_not_running', run_dir: runDir })); return 2; }
+  // A controller still waiting for its Seller Central region answers at once;
+  // nothing is queued, so nothing runs later unasked.
+  const regionWait = async () => {
+    let status = null;
+    try { status = JSON.parse(await readFile(join(runDir, 'serve.json'), 'utf8')); } catch { /* not written yet */ }
+    return status?.status === 'waiting_for_region' && status.pid === owner.pid ? status : null;
+  };
+  const waiting = await regionWait();
+  if (waiting) {
+    out(JSON.stringify({ status: 'error', reason: 'waiting_for_region', run_dir: runDir, port: waiting.port, region_scope: waiting.region_scope, holder: waiting.holder, wait_until: waiting.wait_until }));
+    return 2;
+  }
   const timeoutSeconds = command === 'transcript' ? Math.max(600, (args.timeout || 180) + 120) : 600;
   const id = await allocateQueueEntry(runDir);
   const created = Date.now();
@@ -2269,6 +2377,9 @@ export async function sendCommand({ run, command, args }, { pollMs = 500, out = 
       try { const code = await printResult(); if (code !== null) return code; } catch { /* no result */ }
       return giveUp('serve_exited', true);
     }
+    // Queued just before serve began waiting for its region: serve reads no
+    // command while it waits, so the command is cancelled, never run later.
+    if (await regionWait()) return giveUp('waiting_for_region', false);
     await new Promise(r => setTimeout(r, pollMs));
   }
   return giveUp('client_timeout', !alive(owner.pid));
@@ -2294,13 +2405,16 @@ export async function cancelQueued(resultPath, id, reason) {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  try {
+  // No top-level await here: cases.mjs imports this module and serve loads
+  // cases.mjs dynamically. While a top-level await keeps this entry module
+  // evaluating, that import can never finish; the event loop empties and Node
+  // exits 13 ("unsettled top-level await") before serve.json is written.
+  (async () => {
     assertAttended(process.env);
     const parsed = parseArgs(process.argv.slice(2));
-    const code = parsed.mode === 'serve' ? await serve(parsed) : await sendCommand(parsed);
-    process.exit(code);
-  } catch (error) {
+    return parsed.mode === 'serve' ? serve(parsed) : sendCommand(parsed);
+  })().then(code => process.exit(code), error => {
     console.log(JSON.stringify({ status: 'error', reason: error.code || 'usage', message: error.message }));
     process.exit(2);
-  }
+  });
 }

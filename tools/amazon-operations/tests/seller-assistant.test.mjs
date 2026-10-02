@@ -395,7 +395,7 @@ test('argument parsing and run configuration are strict', () => {
   const parsed = parseArgs(['send', '--run', 'runs/x', 'submit', '--expect-sha256', P1_SHA, '--approval-file', 'a.json', '--expect-attachment', 'one.pdf', '--expect-attachment', 'two.png']);
   assert.equal(parsed.command, 'submit'); assert.ok(parsed.args['approval-file'].startsWith('/'));
   assert.deepEqual(parsed.args['expect-attachment'], ['one.pdf', 'two.png']);
-  assert.deepEqual(parseArgs(['serve', '--run', 'r']), { mode: 'serve', run: 'r', maxMinutes: 90, idleMinutes: 20 });
+  assert.deepEqual(parseArgs(['serve', '--run', 'r']), { mode: 'serve', run: 'r', maxMinutes: 90, idleMinutes: 20, regionWaitMinutes: 3 });
   assert.equal(parseArgs(['serve', '--run', 'r', '--max-minutes', '30', '--idle-minutes', '5']).maxMinutes, 30);
   assert.throws(() => parseArgs(['send', '--run', 'r', 'click', '--label', 'Submit']), /Unknown command/);
   assert.throws(() => parseArgs(['send', '--run', 'r', 'navigate', '--label', 'x', '--force']), /Unknown flag/);
