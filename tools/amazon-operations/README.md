@@ -514,7 +514,7 @@ One controller process holds the browser for the whole chat. Client calls queue
 one command each and wait for its result; they never touch the browser.
 
 ```sh
-node tools/browserctl/browserctl.mjs run --session operator -- node tools/amazon-operations/seller-assistant.mjs serve --run <dir> [--max-minutes 90] [--idle-minutes 20]
+node tools/browserctl/browserctl.mjs run --session operator -- node tools/amazon-operations/seller-assistant.mjs serve --run <dir> [--max-minutes 90] [--idle-minutes 20] [--region-wait-minutes 3]
 node tools/amazon-operations/seller-assistant.mjs send --run <dir> <command> [args]
 ```
 
@@ -692,7 +692,21 @@ it refuses with `attended_context_required` on either session, before it reads
 the run directory. It acquires one task tab (`amazon-communications`, exclusive Seller Central
 context) and switches to the account. On 9223 it keeps the 9223 lock until it
 exits, so scheduled Grimoire browser jobs defer for that time; on 9222 there is no
-port lock, only the task tab's region claim. `stop` releases the tab as `success`. An exception or
+port lock, only the task tab's region claim. When another controller holds that
+region on 9222 (`TASK_TAB_BUSY` with a blocking scope), `serve` retries every 2
+seconds for up to `--region-wait-minutes` (0 to 240, default 3, capped by
+`--max-minutes`) and takes the region only if it is free at a retry, so a gap
+shorter than 2 seconds between the holder's steps can be missed. Once `serve`
+holds the region, the other session's steps fail with `TASK_TAB_BUSY` until `serve`
+exits; no tool retries them. The `--max-minutes` budget starts once the region is
+held, so the wait does not shorten the chat. It prints one `waiting_for_region` line and keeps `serve.json` at
+that status with the port, `region_scope` and the holder's `owner`, `workflow`,
+`task_id` and `heartbeat_age_s` (never its control token); `send` answers
+`waiting_for_region` meanwhile and queues nothing, and cancels a command it queued
+just before the wait began. A region still held at the end exits 1 with status
+`error`, reason `region_busy` and the same facts, holding no task tab or claim.
+SIGTERM or SIGINT during the wait ends it with status `stopped` and exit 143 or
+130. On 9223 a busy region still fails at once. `stop` releases the tab as `success`. An exception or
 SIGTERM releases it as `error`; so do a halt, `--max-minutes` and
 `--idle-minutes`, which keeps the chat tab in a two-hour inspection lease. A
 `transcript` wait never runs past the `--max-minutes` budget. The conversation-area
