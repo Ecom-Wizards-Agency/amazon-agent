@@ -164,7 +164,8 @@ export class StaBrowser {
     const tasks = await import("../browserctl/task-tabs.mjs");
     this.evaluate = cdp.evaluate; this.readIdentity = account.readIdentity;
     this.clickAt = account.trustedClick; this.release = tasks.releaseTaskPage;
-    this.acquire = tasks.acquireTaskPage;
+    // Open and the reacquisition after a receipt write wait for a busy region on 9222.
+    this.acquire = tasks.acquireTaskPageWithRegionWait;
     this.taskSpec = { port: Number(process.env.CDP_PORT || 9223),
       taskId: `amazon-operation:${context.plan.operation_id}`, slot: "primary", workflow: "amazon-logistics",
       initialUrl: this.origin + "/home", exclusiveContext: true,

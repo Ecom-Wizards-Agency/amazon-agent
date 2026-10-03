@@ -36,7 +36,7 @@ import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { ensureChrome, listPages, evaluate } from "./cdp.mjs";
-import { acquireTaskPage, releaseTaskPage, taskIdFor } from "../browserctl/task-tabs.mjs";
+import { acquireTaskPageWithRegionWait, releaseTaskPage, taskIdFor } from "../browserctl/task-tabs.mjs";
 import { sellerCentralScope, scopeForOrigin } from "../browserctl/context-scopes.mjs";
 import { probeTab, doctorVerdict, readIdentity, inspectPage, switchAccount, accountMatches, accountParamsFrom, reportAccountParams, identityFieldsConsistent } from "./sc-account.mjs";
 import { format } from "./format-seller-reports.mjs";
@@ -454,7 +454,8 @@ async function main() {
   sellerCentralScope(sellerCentral); // Reject contradictory caller routing before acquisition.
   console.log(`Region: ${new URL(origin).host} for --marketplace ${mp}`);
   const collected = [];
-  const taskPage = await acquireTaskPage({
+  // On 9222 another attended session may hold this region: wait for it, bounded.
+  const taskPage = await acquireTaskPageWithRegionWait({
     taskId: browserTaskId, workflow: "amazon-reporting",
     initialUrl: "about:blank", exclusiveContext: true, sellerCentral,
   });

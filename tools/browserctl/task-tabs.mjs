@@ -5,7 +5,9 @@ import * as registryDefault from "./lease-registry.mjs";
 import { loadBrowserPolicy } from "./policy.mjs";
 import { resolveContextScope, scopeForOrigin, assertContextCovers, isRegionalScope,
   REGION_WORKFLOW, REGION_ANCHOR_KEYS } from "./context-scopes.mjs";
-import { acquireSessionLockWithWait, releaseLauncherSessionLock } from "./session-lock.mjs";
+import { acquireSessionLockWithWait, releaseLauncherSessionLock, portHasSessionLock } from "./session-lock.mjs";
+import { wizardsAiMode } from "./session.mjs";
+import { regionBusy, regionHolder, describeRegionHolder } from "./region-holder.mjs";
 
 const configuredPort = () => Number(process.env.CDP_PORT || 9223);
 const markerUrl = (token) => `about:blank#ew-task-tab=${encodeURIComponent(token)}`;
@@ -317,6 +319,68 @@ export async function acquireTaskPage(spec = {}, dependencies = {}) {
     handle._unlockSession = unlock;
     return handle;
   } catch (error) { unlock(); await releaseLauncherSessionLock(port); throw error; }
+}
+
+export const REGION_WAIT_DEFAULT_MS = 120_000;
+const REGION_WAIT_POLL_MS = 2000;
+
+/** The region-wait bound: AMAZON_BROWSER_REGION_WAIT_MS, else 120 s. */
+export function regionWaitMs(env = process.env) {
+  const raw = env.AMAZON_BROWSER_REGION_WAIT_MS;
+  if (raw === undefined || String(raw).trim() === "") return REGION_WAIT_DEFAULT_MS;
+  const value = Number(raw);
+  if (!Number.isSafeInteger(value) || value < 0) {
+    throw taskError("TASK_TAB_WAIT_INVALID", "AMAZON_BROWSER_REGION_WAIT_MS must be whole milliseconds, 0 or more");
+  }
+  return value;
+}
+
+const heartbeatText = (holder) => (holder.heartbeat_age_s == null ? "" : `, heartbeat ${holder.heartbeat_age_s} s ago`);
+
+/** The default `onWaiting`: one stderr line when the wait starts. */
+export function logRegionWait({ holder, waitMs }) {
+  console.error(`${describeRegionHolder(holder)}${heartbeatText(holder)}; waiting up to ${Math.round(waitMs / 1000)} s for it`);
+}
+
+/**
+ * acquireTaskPage that takes turns on a busy Seller Central context. On a port
+ * without a session lock (9222), another attended session may hold the regional
+ * or global claim between its steps: retry every `pollMs` on a ref'd timer for
+ * at most `waitMs` (default regionWaitMs(), capped by `maxWaitMs` when given),
+ * call `onWaiting` once with the holder's non-secret facts,
+ * and rethrow TASK_TAB_BUSY with `holder` and `waitedMs` when the bound passes.
+ * A busy answer holds no claim or task record between attempts. Other errors,
+ * including other busy reasons, fail at once. Ports with a session lock (9223)
+ * and WIZARDS_AI_MODE make the single acquireTaskPage attempt, unchanged.
+ */
+export async function acquireTaskPageWithRegionWait(spec = {}, {
+  waitMs, maxWaitMs, pollMs = REGION_WAIT_POLL_MS, onWaiting = logRegionWait,
+} = {}, dependencies = {}) {
+  const port = spec.port ?? configuredPort();
+  if (portHasSessionLock(port) || wizardsAiMode()) return acquireTaskPage(spec, dependencies);
+  waitMs ??= regionWaitMs();
+  if (maxWaitMs !== undefined) waitMs = Math.min(waitMs, maxWaitMs);
+  if (!Number.isSafeInteger(waitMs) || waitMs < 0) throw taskError("TASK_TAB_WAIT_INVALID", "waitMs must be whole milliseconds, 0 or more");
+  if (!Number.isSafeInteger(pollMs) || pollMs <= 0) throw taskError("TASK_TAB_WAIT_INVALID", "pollMs must be whole milliseconds above 0");
+  const registry = dependencies.registry || registryDefault;
+  const since = Date.now();
+  for (let first = true; ; first = false) {
+    let busy;
+    try { return await acquireTaskPage(spec, dependencies); } catch (error) {
+      if (!regionBusy(error)) throw error;
+      busy = error;
+    }
+    const left = since + waitMs - Date.now();
+    if (left <= 0) {
+      const holder = await regionHolder(registry, busy);
+      const waitedMs = Date.now() - since;
+      throw taskError("TASK_TAB_BUSY",
+        `${busy.message.replace(/^TASK_TAB_BUSY: /, "")}; ${describeRegionHolder(holder)}${heartbeatText(holder)}; waited ${Math.round(waitedMs / 1000)} s`,
+        { retryAt: busy.retryAt ?? null, blockingScope: busy.blockingScope, blockingTask: busy.blockingTask ?? null, holder, waitedMs });
+    }
+    if (first) await onWaiting({ holder: await regionHolder(registry, busy), waitMs, since, until: since + waitMs });
+    await new Promise((resolve) => setTimeout(resolve, Math.min(pollMs, left)));
+  }
 }
 
 /**

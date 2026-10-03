@@ -14,6 +14,7 @@ const boundary=globalThis.__collectorLifecycle={};
 const sources={
  'task-tabs.mjs':`export const taskIdFor=globalThis.__collectorLifecycle.taskIdFor;
  export const acquireTaskPage=(...args)=>globalThis.__collectorLifecycle.acquire(...args);
+ export const acquireTaskPageWithRegionWait=(...args)=>globalThis.__collectorLifecycle.acquire(...args);
  export const releaseTaskPage=(...args)=>globalThis.__collectorLifecycle.release(...args);
  export const closeReleasedTaskPage=(...args)=>globalThis.__collectorLifecycle.closeReleased(...args);
  export const completeBrowserTask=(...args)=>globalThis.__collectorLifecycle.complete(...args);`,
@@ -223,6 +224,19 @@ test('catalog pending report polls release as success and genuine failures relea
  boundary.evaluate=async()=>{throw Error('Report status unavailable');};
  assert.equal((await catalog.collect(f.input)).status,'blocked');
  assert.deepEqual(f.events,[...Array.from({length:3},()=>['release','success']),['release','error']]);
+});
+
+test('catalog acquisitions share one region-wait budget below the 180 s collector cap',async t=>{
+ const f=await fixture(t),acquire=boundary.acquire,budgets=[];
+ boundary.acquire=async(spec,options)=>{budgets.push(options.maxWaitMs);await new Promise(resolve=>setTimeout(resolve,25));return acquire(spec);};
+ boundary.ui.snapshot=async()=>({url:'https://sellercentral.amazon.com/listing/reports',text:'Reports'});
+ boundary.ui.click=async()=>{};
+ boundary.evaluate=async(_session,source)=>source.includes('data.statuses')?[]:{report_value:'catalog',report_label:'Category Listings Report'};
+ assert.equal((await catalog.collect(f.input)).status,'processing');
+ assert.ok(catalog.COLLECTOR_REGION_WAIT_MS<180000);
+ assert.equal(budgets.length,3,'first acquisition and both receipt reacquisitions');
+ assert.equal(budgets[0],catalog.COLLECTOR_REGION_WAIT_MS);
+ assert.ok(budgets[1]<=budgets[0]-25&&budgets[2]<=budgets[1]-25,`each acquisition spends the shared budget: ${budgets}`);
 });
 
 for(const name of ['catalog','cases']){

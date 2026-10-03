@@ -4,7 +4,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { capability, normalizeCase, verifyDraft, submitPrepared, decodeMessageEntities, caseListSummary, duplicateQuery, mergeSearchPage, caseBrowserAccount, claimAdapter, waitForCaseContext, caseSession, run } from '../cases.mjs';
+import { capability, normalizeCase, verifyDraft, submitPrepared, decodeMessageEntities, caseListSummary, duplicateQuery, mergeSearchPage, caseBrowserAccount, claimAdapter, waitForCaseContext, caseSession, run, OBSERVE_REGION_WAIT_MS } from '../cases.mjs';
+import { acquireTaskPageWithRegionWait } from '../../browserctl/task-tabs.mjs';
 
 const account={marketplace:'US'};
 const body={signed_body:'Please confirm the fee.\n\nBest,\nDanica',subject:'Shipment defect',attachments:[],baseline:{contact_ids:['old'],case_ids:['12345678']},owner:{member_id:'D',signature_name:'Danica',revision:1},case_binding:{owner_revision:1}};
@@ -139,5 +140,31 @@ test('execute under the operator session is refused before any journal or browse
   await assert.rejects(run({schema_version:1,mode:'execute',plan_path:'/nonexistent/plan.json',plan:{operation_id:'case-x',operation:'case.reply',account}}),/Grimoire session on 9223|wizards-ai unit/);
  }finally{
   for(const [key,value] of [['AMAZON_BROWSER_SESSION',saved.session],['CDP_PORT',saved.port]]){if(value===undefined)delete process.env[key];else process.env[key]=value;}
+ }
+});
+test('attended observe waits for a busy region below the collector cap, then answers blocked and busy',async()=>{
+ const saved={session:process.env.AMAZON_BROWSER_SESSION,port:process.env.CDP_PORT,wait:process.env.AMAZON_BROWSER_REGION_WAIT_MS};
+ Object.assign(process.env,{AMAZON_BROWSER_SESSION:'operator',CDP_PORT:'9222',AMAZON_BROWSER_REGION_WAIT_MS:'600000'});
+ const token='00000000-0000-4000-8000-00000000c0de',key='9222:held:primary';
+ // Another attended session holds sc:na: every reservation answers browser-context-busy.
+ const registry={reserveTaskTab:async()=>({kind:'busy',reason:'browser-context-busy',blockingScope:'sc:na',blockingTask:key,retryAt:null}),
+  listTaskTabs:async()=>[{key,taskId:'held',workflow:'seller-central-region',controller:{token,owner:'region-step.mjs:4242',heartbeatAt:Date.now()-4000,expiresAt:Date.now()+60000}}]};
+ const calls=[],waits=[];
+ try{
+  const result=await run({schema_version:1,mode:'observe',operation:'case.reply',operation_id:'case-x',account,plan_hash:'b'.repeat(64),targets:[{case_id:'12345678'}]},{acquireObserve:(spec,options)=>{
+   calls.push(options);
+   // The real helper and its cap, shortened for the test; fake browser and registry.
+   return acquireTaskPageWithRegionWait(spec,{maxWaitMs:Math.min(options.maxWaitMs,60),pollMs:10,onWaiting:event=>waits.push(event)},{registry,cdp:{ensureChrome:async()=>({})},policy:{cleanup:{}}});
+  }});
+  assert.deepEqual(calls,[{maxWaitMs:OBSERVE_REGION_WAIT_MS}]);
+  assert.ok(OBSERVE_REGION_WAIT_MS<180000,'the wait ends before operations.py stops the collector at 180 s');
+  assert.equal(waits.length,1);
+  assert.equal(result.status,'blocked');
+  assert.equal(result.attempted,false);
+  assert.equal(result.reason,'TASK_TAB_BUSY');
+  assert.match(result.message,/^TASK_TAB_BUSY: browser-context-busy: sc:na on port 9222; Seller Central sc:na is held by region-step\.mjs:4242 \(seller-central-region\), heartbeat \d+ s ago; waited \d+ s$/);
+  assert.equal(JSON.stringify(result).includes(token),false);
+ }finally{
+  for(const [key,value] of [['AMAZON_BROWSER_SESSION',saved.session],['CDP_PORT',saved.port],['AMAZON_BROWSER_REGION_WAIT_MS',saved.wait]]){if(value===undefined)delete process.env[key];else process.env[key]=value;}
  }
 });

@@ -698,7 +698,8 @@ seconds for up to `--region-wait-minutes` (0 to 240, default 3, capped by
 `--max-minutes`) and takes the region only if it is free at a retry, so a gap
 shorter than 2 seconds between the holder's steps can be missed. Once `serve`
 holds the region, the other session's steps fail with `TASK_TAB_BUSY` until `serve`
-exits; no tool retries them. The `--max-minutes` budget starts once the region is
+exits, in the tools that take turns after a wait of up to
+`AMAZON_BROWSER_REGION_WAIT_MS` (default 120000 ms; see `tools/browserctl/README.md`). The `--max-minutes` budget starts once the region is
 held, so the wait does not shorten the chat. It prints one `waiting_for_region` line and keeps `serve.json` at
 that status with the port, `region_scope` and the holder's `owner`, `workflow`,
 `task_id` and `heartbeat_age_s` (never its control token); `send` answers

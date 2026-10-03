@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -280,4 +280,37 @@ test("a wrong marketplace after picker completion blocks POE and publication", a
   assert.equal(result.code, 1, result.output);
   assert.match(result.output, /POST-SWITCH ACCOUNT CHECK FAILED/);
   assert.equal(result.publications.length, 0);
+});
+
+test("POE on a port without a session lock waits for a held region once, then reports it busy", async (t) => {
+  const root = mkdtempSync(join(tmpdir(), "poe-region-wait-test-"));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const runtime = join(root, "browser-runtime");
+  const fake = await startFakeCdp({ targets: [{ id: "SC_HOME", url: "https://sellercentral.amazon.com/home" }] });
+  t.after(() => fake.close());
+  const env = { ...process.env, CDP_HOST: "127.0.0.1", CDP_PORT: String(fake.port), CDP_AUTOSTART: "0",
+    CDP_ENABLE_TEST_LEASES: "1", AMAZON_BROWSER_RUNTIME_DIR: runtime, AMAZON_BROWSER_POLICY: join(runtime, "policy.json"),
+    AMAZON_BROWSER_REGION_WAIT_MS: "300", WIZARDS_AI_MODE: "" };
+  // Another attended session holds sc:na on this port.
+  const registryUrl = new URL("../../browserctl/lease-registry.mjs", import.meta.url).href;
+  const seeded = spawnSync(process.execPath, ["--input-type=module", "-e", `const r = await import(${JSON.stringify(registryUrl)});
+    const held = await r.reserveTaskTab({ port: ${fake.port}, taskId: "holder", workflow: "amazon-catalog", owner: "region-step.mjs:4242",
+      exclusiveContext: true, sellerCentral: { marketplace: "us" } });
+    process.stdout.write(held.kind);`], { env, encoding: "utf8" });
+  assert.equal(seeded.stdout, "create", seeded.stderr);
+  const started = Date.now();
+  const result = await new Promise((resolve, reject) => {
+    const child = spawn(process.execPath, [RUN, "doctor", "--origin", "https://sellercentral.amazon.com"], { cwd: root, timeout: 10000, env });
+    let stdout = "", stderr = "";
+    child.stdout.on("data", (chunk) => { stdout += chunk; });
+    child.stderr.on("data", (chunk) => { stderr += chunk; });
+    child.on("error", reject);
+    child.on("close", (code, signal) => resolve({ code, signal, stdout, stderr }));
+  });
+  assert.equal(result.signal, null, result.stdout + result.stderr);
+  assert.ok(Date.now() - started >= 300);
+  // Exactly one stderr line, when the wait starts.
+  assert.match(result.stderr, /^Seller Central sc:na is held by region-step\.mjs:4242 \(amazon-catalog\), heartbeat \d+ s ago; waiting up to 0 s for it\n$/);
+  assert.match(result.stdout, /could not resolve: Error: TASK_TAB_BUSY: browser-context-busy: sc:na on port \d+; Seller Central sc:na is held/);
+  assert.equal(fake.sent.some((command) => command.method === "Target.createTarget"), false, "no POE page was created");
 });
