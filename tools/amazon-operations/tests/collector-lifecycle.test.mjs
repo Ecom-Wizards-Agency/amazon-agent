@@ -226,17 +226,19 @@ test('catalog pending report polls release as success and genuine failures relea
  assert.deepEqual(f.events,[...Array.from({length:3},()=>['release','success']),['release','error']]);
 });
 
-test('catalog acquisitions share one region-wait budget below the 180 s collector cap',async t=>{
- const f=await fixture(t),acquire=boundary.acquire,budgets=[];
- boundary.acquire=async(spec,options)=>{budgets.push(options.maxWaitMs);await new Promise(resolve=>setTimeout(resolve,25));return acquire(spec);};
+test('catalog acquisitions share one work deadline 60 s after start, inside the 180 s collector timeout',async t=>{
+ const f=await fixture(t),acquire=boundary.acquire,options=[];
+ boundary.acquire=async(spec,option)=>{options.push(option);await new Promise(resolve=>setTimeout(resolve,25));return acquire(spec);};
  boundary.ui.snapshot=async()=>({url:'https://sellercentral.amazon.com/listing/reports',text:'Reports'});
  boundary.ui.click=async()=>{};
  boundary.evaluate=async(_session,source)=>source.includes('data.statuses')?[]:{report_value:'catalog',report_label:'Category Listings Report'};
+ const before=Date.now();
  assert.equal((await catalog.collect(f.input)).status,'processing');
- assert.ok(catalog.COLLECTOR_REGION_WAIT_MS<180000);
- assert.equal(budgets.length,3,'first acquisition and both receipt reacquisitions');
- assert.equal(budgets[0],catalog.COLLECTOR_REGION_WAIT_MS);
- assert.ok(budgets[1]<=budgets[0]-25&&budgets[2]<=budgets[1]-25,`each acquisition spends the shared budget: ${budgets}`);
+ assert.equal(catalog.COLLECTOR_TIMEOUT_MS-catalog.COLLECTOR_WORK_RESERVE_MS,60000,'120 s of the 180 s collector timeout stay for the report work');
+ assert.equal(options.length,3,'first acquisition and both receipt reacquisitions');
+ assert.deepEqual(options.map(option=>Object.keys(option)),[['workBy'],['workBy'],['workBy']]);
+ assert.equal(new Set(options.map(option=>option.workBy)).size,1,'one deadline for every acquisition');
+ assert.ok(options[0].workBy>=before+60000&&options[0].workBy<=Date.now()+60000,`deadline ${options[0].workBy-before} ms after start`);
 });
 
 for(const name of ['catalog','cases']){

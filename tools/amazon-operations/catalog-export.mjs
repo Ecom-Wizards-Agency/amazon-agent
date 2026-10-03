@@ -13,9 +13,12 @@ import * as ui from './browser-ui.mjs';
 import { reserveSubmission } from './flatfilepro-contracts.mjs';
 
 export const MARKER_EXPIRY_MS=24*60*60*1000;
-// operations.py stops this collector after 180 s. On 9222 its acquisitions share
-// one region-wait budget, so a busy region cannot use up the report's time.
-export const COLLECTOR_REGION_WAIT_MS=120000;
+// operations.py stops this collector after 180 s (run_collector). On 9222 every
+// acquisition waits for a busy region only until 60 s after start, keeping 120 s
+// for the report work (its download alone may take 60 s); a region that comes
+// free later answers TASK_TAB_BUSY instead of starting work that cannot finish.
+export const COLLECTOR_TIMEOUT_MS=180000;
+export const COLLECTOR_WORK_RESERVE_MS=120000;
 
 export function matchingCompletedReports(statuses, marker, minimumAfter) {
   const minimum=Math.max(Date.parse(marker.requested_at),Date.parse(minimumAfter));
@@ -54,8 +57,9 @@ export async function collect(input) {
   const directory=input.output_dir;await mkdir(directory,{recursive:true});
   const markerPath=join(directory,'report-request.json');
   const taskSpec={closeOnFailure:input.close_tab_after===true,taskId:taskIdFor('amazon-operations',input.task_key || input.operation_id),slot:'verification',workflow:'amazon-reporting',initialUrl:origin+'/listing/reports/ref=xx_invreport_favb_xx',exclusiveContext:true,sellerCentral:{marketplace:input.account.marketplace,origin}};
-  let page,releasedPage,outcome='error',regionWaitLeft=COLLECTOR_REGION_WAIT_MS;
-  const acquire=async spec=>{const started=Date.now();try{return await acquireTaskPageWithRegionWait(spec,{maxWaitMs:regionWaitLeft});}finally{regionWaitLeft=Math.max(0,regionWaitLeft-(Date.now()-started));}};
+  let page,releasedPage,outcome='error';
+  const workBy=Date.now()+COLLECTOR_TIMEOUT_MS-COLLECTOR_WORK_RESERVE_MS;
+  const acquire=spec=>acquireTaskPageWithRegionWait(spec,{workBy});
   const persistRequest=async(marker,reserve=false)=>{
     const targetId=page.targetId;
     releasedPage=page;

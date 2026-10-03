@@ -288,7 +288,11 @@ test("POE on a port without a session lock waits for a held region once, then re
   const runtime = join(root, "browser-runtime");
   const fake = await startFakeCdp({ targets: [{ id: "SC_HOME", url: "https://sellercentral.amazon.com/home" }] });
   t.after(() => fake.close());
+  // The launcher's managed-status probe, so the child never reads the HOME profile.
+  const launcher = join(root, "launcher.mjs");
+  writeFileSync(launcher, 'process.stdout.write(JSON.stringify({managed:true,mode:"headless"}));\n');
   const env = { ...process.env, CDP_HOST: "127.0.0.1", CDP_PORT: String(fake.port), CDP_AUTOSTART: "0",
+    CDP_PYTHON: process.execPath, CDP_LAUNCHER: launcher,
     CDP_ENABLE_TEST_LEASES: "1", AMAZON_BROWSER_RUNTIME_DIR: runtime, AMAZON_BROWSER_POLICY: join(runtime, "policy.json"),
     AMAZON_BROWSER_REGION_WAIT_MS: "300", WIZARDS_AI_MODE: "" };
   // Another attended session holds sc:na on this port.

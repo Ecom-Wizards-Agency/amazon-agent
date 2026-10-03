@@ -4,8 +4,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { capability, normalizeCase, verifyDraft, submitPrepared, decodeMessageEntities, caseListSummary, duplicateQuery, mergeSearchPage, caseBrowserAccount, claimAdapter, waitForCaseContext, caseSession, run, OBSERVE_REGION_WAIT_MS } from '../cases.mjs';
-import { acquireTaskPageWithRegionWait } from '../../browserctl/task-tabs.mjs';
+import { capability, normalizeCase, verifyDraft, submitPrepared, decodeMessageEntities, caseListSummary, duplicateQuery, mergeSearchPage, caseBrowserAccount, claimAdapter, waitForCaseContext, caseSession, run, COLLECTOR_TIMEOUT_MS, OBSERVE_WORK_RESERVE_MS } from '../cases.mjs';
+import { acquireTaskPage, acquireTaskPageWithRegionWait, releaseTaskPage } from '../../browserctl/task-tabs.mjs';
 
 const account={marketplace:'US'};
 const body={signed_body:'Please confirm the fee.\n\nBest,\nDanica',subject:'Shipment defect',attachments:[],baseline:{contact_ids:['old'],case_ids:['12345678']},owner:{member_id:'D',signature_name:'Danica',revision:1},case_binding:{owner_revision:1}};
@@ -142,29 +142,56 @@ test('execute under the operator session is refused before any journal or browse
   for(const [key,value] of [['AMAZON_BROWSER_SESSION',saved.session],['CDP_PORT',saved.port]]){if(value===undefined)delete process.env[key];else process.env[key]=value;}
  }
 });
-test('attended observe waits for a busy region below the collector cap, then answers blocked and busy',async()=>{
+const observeRequest={schema_version:1,mode:'observe',operation:'case.reply',operation_id:'case-x',account,plan_hash:'b'.repeat(64),targets:[{case_id:'12345678'}]};
+async function withOperatorEnv(fn){
  const saved={session:process.env.AMAZON_BROWSER_SESSION,port:process.env.CDP_PORT,wait:process.env.AMAZON_BROWSER_REGION_WAIT_MS};
- Object.assign(process.env,{AMAZON_BROWSER_SESSION:'operator',CDP_PORT:'9222',AMAZON_BROWSER_REGION_WAIT_MS:'600000'});
+ Object.assign(process.env,{AMAZON_BROWSER_SESSION:'operator',CDP_PORT:'9222',AMAZON_BROWSER_REGION_WAIT_MS:'300000'});
+ try{return await fn();}finally{
+  for(const [key,value] of [['AMAZON_BROWSER_SESSION',saved.session],['CDP_PORT',saved.port],['AMAZON_BROWSER_REGION_WAIT_MS',saved.wait]]){if(value===undefined)delete process.env[key];else process.env[key]=value;}
+ }
+}
+test('attended observe waits for a busy region until its work deadline, then answers blocked and busy',{timeout:15000},async()=>withOperatorEnv(async()=>{
  const token='00000000-0000-4000-8000-00000000c0de',key='9222:held:primary';
  // Another attended session holds sc:na: every reservation answers browser-context-busy.
  const registry={reserveTaskTab:async()=>({kind:'busy',reason:'browser-context-busy',blockingScope:'sc:na',blockingTask:key,retryAt:null}),
   listTaskTabs:async()=>[{key,taskId:'held',workflow:'seller-central-region',controller:{token,owner:'region-step.mjs:4242',heartbeatAt:Date.now()-4000,expiresAt:Date.now()+60000}}]};
- const calls=[],waits=[];
+ const calls=[],waits=[],before=Date.now();
+ const result=await run(observeRequest,{acquireObserve:(spec,options)=>{
+  calls.push(options);
+  // The real helper and its deadline, shortened for the test; fake browser and registry.
+  return acquireTaskPageWithRegionWait(spec,{workBy:Math.min(options.workBy,Date.now()+60),pollMs:10,onWaiting:event=>waits.push(event)},{registry,cdp:{ensureChrome:async()=>({})},policy:{cleanup:{}}});
+ }});
+ assert.equal(calls.length,1);
+ assert.deepEqual(Object.keys(calls[0]),['workBy']);
+ assert.equal(COLLECTOR_TIMEOUT_MS-OBSERVE_WORK_RESERVE_MS,60000,'the wait ends 60 s after start, leaving 120 s of the 180 s collector timeout for the work');
+ assert.ok(calls[0].workBy>=before+60000&&calls[0].workBy<=Date.now()+60000,`work deadline ${calls[0].workBy-before} ms after start`);
+ assert.equal(waits.length,1);
+ assert.equal(result.status,'blocked');
+ assert.equal(result.attempted,false);
+ assert.equal(result.reason,'TASK_TAB_BUSY');
+ assert.match(result.message,/^TASK_TAB_BUSY: browser-context-busy: sc:na on port 9222; Seller Central sc:na is held by region-step\.mjs:4242 \(seller-central-region\), heartbeat \d+ s ago; waited \d+ s$/);
+ assert.equal(JSON.stringify(result).includes(token),false);
+}));
+test('a region that comes free after the work deadline answers blocked before any account switch',{timeout:15000},async()=>withOperatorEnv(async()=>{
+ // Real lease registry in the isolated runtime; fake CDP whose sessions record every command.
+ const sent=[],pages=[];let created=0;
+ const sessionFor=targetId=>({targetId,setTaskControlGuard(guard){this.guard=guard;},async assertTaskControl(options){return this.guard(options);},
+  invalidateTaskControl(){this.close();},async send(method,params){sent.push([targetId,method,params?.url]);if(method!=='Page.navigate')throw new Error(`unexpected ${method}`);return {};},close(){if(this._taskHeartbeat)clearInterval(this._taskHeartbeat);}});
+ const cdp={ensureChrome:async()=>({}),listPages:async()=>pages.map(entry=>({...entry})),Session:{open:async url=>sessionFor(url.split('/').pop())},
+  setDesktopViewport:async()=>{},installLeaseActivityTracker:async()=>{},readLeaseInteraction:async()=>({ok:true,version:1,startedAt:1,lastInteractionAt:0}),closePageImmediately:async()=>{},
+  createPage:async url=>{const targetId=`case-${++created}`;pages.push({id:targetId,type:'page',url,webSocketDebuggerUrl:`ws://test/devtools/page/${targetId}`});return {targetId,session:sessionFor(targetId)};}};
+ const policy={schema_version:1,cleanup:{mode:'audit',adopt_unregistered_tabs:false,background_grace_ms:600000,interactive_idle_ms:7200000,heartbeat_interval_ms:30000,heartbeat_stale_ms:90000,auth_retry_cooldown_ms:300000},ports:{'9222':{mode:'headed',profile:'/tmp/test',anchors:[]}}};
+ const holder=await acquireTaskPage({port:9222,taskId:'case-holder',slot:'primary',workflow:'test',owner:'region-step.mjs:4242',initialUrl:'https://sellercentral.amazon.com/work',exclusiveContext:true,sellerCentral:{marketplace:'us'}},{cdp,policy});
  try{
-  const result=await run({schema_version:1,mode:'observe',operation:'case.reply',operation_id:'case-x',account,plan_hash:'b'.repeat(64),targets:[{case_id:'12345678'}]},{acquireObserve:(spec,options)=>{
-   calls.push(options);
-   // The real helper and its cap, shortened for the test; fake browser and registry.
-   return acquireTaskPageWithRegionWait(spec,{maxWaitMs:Math.min(options.maxWaitMs,60),pollMs:10,onWaiting:event=>waits.push(event)},{registry,cdp:{ensureChrome:async()=>({})},policy:{cleanup:{}}});
-  }});
-  assert.deepEqual(calls,[{maxWaitMs:OBSERVE_REGION_WAIT_MS}]);
-  assert.ok(OBSERVE_REGION_WAIT_MS<180000,'the wait ends before operations.py stops the collector at 180 s');
-  assert.equal(waits.length,1);
+  const result=await run(observeRequest,{acquireObserve:(spec,options)=>acquireTaskPageWithRegionWait(spec,{workBy:Math.min(options.workBy,Date.now()+60),pollMs:10,
+   onWaiting:()=>setTimeout(()=>releaseTaskPage(holder,{outcome:'success'}),30)},
+   // The holder lets go before the deadline; the slow acquisition lands after it.
+   {cdp:{...cdp,setDesktopViewport:()=>new Promise(resolve=>setTimeout(resolve,100))},policy})});
   assert.equal(result.status,'blocked');
   assert.equal(result.attempted,false);
   assert.equal(result.reason,'TASK_TAB_BUSY');
-  assert.match(result.message,/^TASK_TAB_BUSY: browser-context-busy: sc:na on port 9222; Seller Central sc:na is held by region-step\.mjs:4242 \(seller-central-region\), heartbeat \d+ s ago; waited \d+ s$/);
-  assert.equal(JSON.stringify(result).includes(token),false);
- }finally{
-  for(const [key,value] of [['AMAZON_BROWSER_SESSION',saved.session],['CDP_PORT',saved.port],['AMAZON_BROWSER_REGION_WAIT_MS',saved.wait]]){if(value===undefined)delete process.env[key];else process.env[key]=value;}
- }
-});
+  assert.match(result.message,/too late to start the work$/);
+  const waiter=sent.filter(([targetId])=>targetId!==holder.targetId).map(([,method,url])=>[method,url]);
+  assert.deepEqual(waiter,[['Page.navigate','https://sellercentral.amazon.com/home']],'only the acquisition navigated; no account switch or case page');
+ }finally{await releaseTaskPage(holder,{outcome:'success'}).catch(()=>{});}
+}));

@@ -189,18 +189,57 @@ test("other busy answers fail at once on 9222", { concurrency: false }, async ()
   }
 });
 
+test("a region that comes free after workBy is released with success and answers TASK_TAB_BUSY", { concurrency: false }, async () => {
+  const cdp = fakeCdp();
+  const holder = await taskTabs.acquireTaskPage(spec("holder-late", { owner: HOLDER_OWNER }), { registry, cdp, policy });
+  const waits = [];
+  try {
+    const started = Date.now();
+    // The bound itself is long; workBy ends the wait and refuses a late acquisition.
+    const error = await taskTabs.acquireTaskPageWithRegionWait(spec("waiter-late"), {
+      waitMs: 10_000, workBy: started + 60, pollMs: 10,
+      onWaiting: (event) => {
+        waits.push(event);
+        // The holder lets go just before workBy; the slow acquisition lands after it.
+        setTimeout(() => taskTabs.releaseTaskPage(holder, { outcome: "success" }), 30);
+      },
+    }, { registry, cdp: { ...cdp, setDesktopViewport: () => new Promise((resolve) => setTimeout(resolve, 100)) }, policy })
+      .then(() => assert.fail("handed a late acquisition to the work"), (caught) => caught);
+    assert.equal(waits.length, 1);
+    assert.ok(waits[0].waitMs <= 60, `workBy bounds the wait (${waits[0].waitMs} ms)`);
+    assert.equal(error.code, "TASK_TAB_BUSY");
+    assert.equal(error.late, true);
+    assert.equal(error.holder.owner, HOLDER_OWNER);
+    assert.match(error.message, /^TASK_TAB_BUSY: browser-context-busy: sc:na on port 9222; Seller Central sc:na is held by region-step\.mjs:4242 \(test\), heartbeat \d+ s ago; free after 0 s, too late to start the work$/);
+    const record = (await registry.listTaskTabs()).find((entry) => entry.taskId === "waiter-late");
+    assert.ok(!record?.controller, "the late acquisition holds no claim");
+  } finally {
+    await taskTabs.releaseTaskPage(holder, { outcome: "success" }).catch(() => {});
+  }
+});
+
+test("workBy never refuses an acquisition that did not wait", { concurrency: false }, async () => {
+  const page = await taskTabs.acquireTaskPageWithRegionWait(spec("free-late"), {
+    workBy: Date.now() - 1_000, onWaiting: () => assert.fail("no wait"),
+  }, { registry, cdp: fakeCdp(), policy });
+  assert.equal(page.contextScope, "sc:na");
+  await taskTabs.releaseTaskPage(page, { outcome: "success" });
+});
+
 test("the wait bound comes from AMAZON_BROWSER_REGION_WAIT_MS, else 120 s, and rejects nonsense", () => {
   assert.equal(taskTabs.regionWaitMs({}), 120_000);
   assert.equal(taskTabs.regionWaitMs({ AMAZON_BROWSER_REGION_WAIT_MS: "" }), 120_000);
   assert.equal(taskTabs.regionWaitMs({ AMAZON_BROWSER_REGION_WAIT_MS: "0" }), 0);
   assert.equal(taskTabs.regionWaitMs({ AMAZON_BROWSER_REGION_WAIT_MS: "45000" }), 45_000);
-  for (const bad of ["-1", "1.5", "abc", "1e400"]) {
+  assert.equal(taskTabs.regionWaitMs({ AMAZON_BROWSER_REGION_WAIT_MS: "300000" }), taskTabs.REGION_WAIT_MAX_MS);
+  assert.ok(taskTabs.REGION_WAIT_MAX_MS < policy.cleanup.background_grace_ms, "a reacquisition by target returns before the success grace ends");
+  for (const bad of ["-1", "1.5", "abc", "1e400", "300001", "900000"]) {
     assert.throws(() => taskTabs.regionWaitMs({ AMAZON_BROWSER_REGION_WAIT_MS: bad }), { code: "TASK_TAB_WAIT_INVALID" }, bad);
   }
 });
 
 test("maxWaitMs caps the configured bound", { concurrency: false }, async () => {
-  await withEnv({ AMAZON_BROWSER_REGION_WAIT_MS: "600000" }, async () => {
+  await withEnv({ AMAZON_BROWSER_REGION_WAIT_MS: "300000" }, async () => {
     const fake = { reserveTaskTab: async () => ({ kind: "busy", reason: "browser-context-busy", blockingScope: "sc:eu", blockingTask: null }), listTaskTabs: async () => [] };
     const waits = [];
     const error = await taskTabs.acquireTaskPageWithRegionWait(spec("capped", { sellerCentral: { marketplace: "de" }, initialUrl: "https://sellercentral.amazon.de/home" }), {

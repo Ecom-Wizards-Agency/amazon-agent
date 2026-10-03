@@ -269,11 +269,13 @@ launcher-control environment keep their existing lock ownership.
 
 On 9222 there is no session lock to wait for, so attended tools take turns on the
 Seller Central claim instead. `acquireTaskPageWithRegionWait(spec, { waitMs,
-maxWaitMs, pollMs, onWaiting }, dependencies)` retries `acquireTaskPage` while it
+maxWaitMs, workBy, pollMs, onWaiting }, dependencies)` retries `acquireTaskPage` while it
 answers `TASK_TAB_BUSY` with a `blockingScope`, meaning another controller holds
 the regional or global claim. It polls every two seconds on a ref'd timer for at
-most `waitMs`: `AMAZON_BROWSER_REGION_WAIT_MS` when set (whole milliseconds, `0`
-fails at the first busy answer), else 120000, capped by `maxWaitMs`. `onWaiting`
+most `waitMs`: `AMAZON_BROWSER_REGION_WAIT_MS` when set (whole milliseconds from
+`0`, which fails at the first busy answer, to 300000, half the default success
+grace, so a tab reacquired by `expectedTargetId` returns before cleanup may close
+it), else 120000, capped by `maxWaitMs`. `onWaiting`
 runs once with the holder's facts from the registry (`blocking_scope`, `owner`,
 `workflow`, `task_id`, `heartbeat_age_s`, never the control token); the default
 writes one stderr line. When the bound passes it throws `TASK_TAB_BUSY` with
@@ -282,10 +284,15 @@ claim or task record between attempts. Other errors, and busy answers without a
 blocking scope (the same task in another process, input on the task's own tab),
 fail at once. On 9223, which has the session lock, and under `WIZARDS_AI_MODE`
 it makes the single `acquireTaskPage` attempt. The report fetcher, endpoint
-capture, POE runner, catalog upload and export, shipments, audit evidence and
-attended case observation use it. Case observation and the catalog export cap the
-wait at 120 seconds because `operations.py` stops collectors after 180, and the
-export shares that budget across its reacquisitions. `seller-assistant.mjs serve`
+capture, POE runner and endpoint discovery, catalog upload and export, shipments,
+audit evidence and attended case observation use it. `workBy` (epoch milliseconds) serves callers
+with their own hard timeout: it also bounds the wait, and an acquisition that
+lands after it, having waited, is released with success and throws
+`TASK_TAB_BUSY` (`late: true`) instead of starting work that cannot finish. An
+acquisition that never saw a busy answer is not refused for lateness.
+`operations.py` stops collectors after 180 seconds, so case observation and every
+catalog-export acquisition use a `workBy` 60 seconds after start, which keeps 120
+seconds for their work. `seller-assistant.mjs serve`
 keeps its own `--region-wait-minutes` wait; both use the holder facts in
 `tools/browserctl/region-holder.mjs`.
 

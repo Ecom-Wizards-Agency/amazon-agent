@@ -24,6 +24,9 @@ const registry = await import("../../browserctl/lease-registry.mjs");
 const RUN = fileURLToPath(new URL("../run.mjs", import.meta.url));
 const ARTIFACT_STUB = join(ROOT, "artifactctl-test.mjs");
 writeFileSync(ARTIFACT_STUB, '#!/usr/bin/env node\nprocess.stdout.write(JSON.stringify({id:"test-artifact-run"}));\n', { mode: 0o700 });
+// The launcher's managed-status probe, so the child never reads the HOME profile.
+const LAUNCHER_STUB = join(ROOT, "launcher.mjs");
+writeFileSync(LAUNCHER_STUB, 'process.stdout.write(JSON.stringify({managed:true,mode:"headless"}));\n');
 const HOLDER_OWNER = "region-step.mjs:4242";
 const ARGS = ["business", "--start", "2026-06-01", "--end", "2026-06-30", "--out", join(ROOT, "br.csv"), "--marketplace", "us"];
 
@@ -58,6 +61,7 @@ function runCli(port, waitMs, onStderr = () => {}) {
       env: {
         ...process.env, CDP_HOST: "127.0.0.1", CDP_PORT: String(port), CDP_AUTOSTART: "0",
         REPORT_FETCHER_SETTLE_MS: "100", AMAZON_ARTIFACTCTL: ARTIFACT_STUB,
+        CDP_PYTHON: process.execPath, CDP_LAUNCHER: LAUNCHER_STUB,
         AMAZON_BROWSER_REGION_WAIT_MS: String(waitMs),
       },
     });
