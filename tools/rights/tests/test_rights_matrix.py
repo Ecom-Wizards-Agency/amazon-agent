@@ -58,6 +58,46 @@ class RightsMatrixTests(unittest.TestCase):
         self.matrix["rows"].append(self.matrix["rows"][0])
         self.assertIn("duplicate id", " ".join(rights.validate(self.matrix)))
 
+    def test_actor_identity_and_port_overrides(self):
+        for actor in rights.ACTORS:
+            for value in ({"identity": ""}, {"identity": []}, {"port": 9333}, {"port": "9222"},
+                          {"port": True}, {"port": 9222.0}, {"port": "attended default"}):
+                matrix = copy.deepcopy(self.matrix)
+                matrix["rows"][0][actor].update(value)
+                with self.subTest(actor=actor, value=value):
+                    self.assertIn(actor, " ".join(rights.validate(matrix)))
+            for value in ({"identity": "Example login"}, {"port": None}, {"port": 9222}, {"port": "attended-default"}):
+                matrix = copy.deepcopy(self.matrix)
+                matrix["rows"][0][actor].update(value)
+                with self.subTest(actor=actor, value=value):
+                    self.assertEqual(rights.validate(matrix), [])
+        self.matrix["rows"][0]["port"] = "attended-default"
+        self.assertIn("port must be null, 9222 or 9223", " ".join(rights.validate(self.matrix)))
+
+    def test_actor_identity_defaults_to_row(self):
+        row = {"identity": "Row login", "port": 9223, "grimoire": {"state": "allowed", "how": "x"},
+               "amazon_agent": {"state": "allowed", "how": "x", "identity": "Own login", "port": "attended-default"}}
+        self.assertEqual(rights.actor_identity(row, "grimoire"), ("Row login", 9223))
+        self.assertEqual(rights.actor_identity(row, "amazon_agent"), ("Own login", "attended-default"))
+
+    def test_identity_cell_splits_only_when_actors_differ(self):
+        row = copy.deepcopy(self.matrix["rows"][0])
+        for actor in rights.ACTORS:
+            row[actor].pop("identity", None)
+            row[actor].pop("port", None)
+        row.update(identity="Example Brand login", port=9223)
+        matrix = {**self.matrix, "rows": [row]}
+        self.assertIn("| Example Brand login / 9223 |", rights.render_table(matrix))
+        row["amazon_agent"].update(identity="Example Brand login", port=9223)
+        self.assertIn("| Example Brand login / 9223 |", rights.render_table(matrix))
+        row["amazon_agent"].update(identity="Operator login", port="attended-default")
+        self.assertIn("| **Grimoire**: Example Brand login / 9223<br>**Amazon Agent**: Operator login / attended default |",
+                      rights.render_table(matrix))
+        row["amazon_agent"] = {key: row["amazon_agent"][key] for key in ("state", "how")}
+        row["grimoire"]["port"], row["port"] = 9223, None
+        self.assertIn("| **Grimoire**: Example Brand login / 9223<br>**Amazon Agent**: Example Brand login / API or local |",
+                      rights.render_table(matrix))
+
     def test_doc_only_requires_justification(self):
         self.matrix["rows"][0]["gates"] = [{"kind": "doc_only", "justification": ""}]
         self.assertTrue(rights.validate(self.matrix))
