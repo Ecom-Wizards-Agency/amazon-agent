@@ -13,8 +13,8 @@ Resolve the vault with `AMAZON_AGENT_TEAM_VAULT` or the first non-comment line i
 ## Lookup
 
 ```bash
-node tools/client-profiles/find-client-profile.mjs alphainfuse
-node tools/client-profiles/find-client-profile.mjs "Shaperluv US"
+node tools/client-profiles/find-client-profile.mjs acme
+node tools/client-profiles/find-client-profile.mjs "Acme US"
 node tools/client-profiles/find-client-profile.mjs --validate
 ```
 

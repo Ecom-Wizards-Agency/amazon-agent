@@ -25,7 +25,7 @@ def comp(price, rating, reviews, med_price=16.25, med_rating=4.1, med_reviews=16
 
 class OfferVerdictTest(unittest.TestCase):
     def test_premium_price_is_never_called_close_to_the_median(self):
-        # The real V Gummies shape: EUR 24.95 against a EUR 16.25 median, 54% above.
+        # A real client shape: EUR 24.95 against a EUR 16.25 median, 54% above.
         gap = _offer_gap(comp(24.95, 4.1, 972))
         self.assertAlmostEqual(gap["premium"], 0.535, places=2)
         phrase = _price_phrase(gap)

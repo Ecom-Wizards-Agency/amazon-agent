@@ -122,13 +122,13 @@ class LaunchModelTests(unittest.TestCase):
         self.assertEqual(result["status"], "ERROR")
         self.assertTrue(any("deduplicate" in error.lower() for error in result["errors"]))
 
-    def _tmrw_commercial_config(self):
+    def _two_product_commercial_config(self):
         config = copy.deepcopy(self.base)
         first = config["products"][0]
         starter = copy.deepcopy(first)
-        starter.update({"id": "starter-kit", "name": "TMRW Starter Kit", "list_price": 104.99, "launch_price": 104.99})
+        starter.update({"id": "starter-kit", "name": "Acme Starter Kit", "list_price": 104.99, "launch_price": 104.99})
         refill = copy.deepcopy(first)
-        refill.update({"id": "refill-pouch", "name": "TMRW Refill Pouch", "list_price": 99.99, "launch_price": 99.99})
+        refill.update({"id": "refill-pouch", "name": "Acme Refill Pouch", "list_price": 99.99, "launch_price": 99.99})
         starter["reviews"]["vine_units"] = 0
         refill["reviews"]["vine_units"] = 0
         config["products"] = [starter, refill]
@@ -160,7 +160,7 @@ class LaunchModelTests(unittest.TestCase):
         return config
 
     def test_commercial_revenue_paths_units_mix_and_stock_buffer(self):
-        model = build_model(self._tmrw_commercial_config())
+        model = build_model(self._two_product_commercial_config())
         commercial = model["commercial"]
         summaries = {item["path_id"]: item for item in commercial["summaries"]}
         self.assertAlmostEqual(summaries["committed"]["target_revenue"], 57400)
@@ -176,7 +176,7 @@ class LaunchModelTests(unittest.TestCase):
         self.assertAlmostEqual(starter_mix, 0.696, places=2)
 
     def test_commercial_ppc_allocations_and_ceilings(self):
-        config = self._tmrw_commercial_config()
+        config = self._two_product_commercial_config()
         result = validate_config(config)
         self.assertEqual(result["errors"], [])
         for plan in config["commercial_targets"]["ppc_plan"].values():
@@ -185,7 +185,7 @@ class LaunchModelTests(unittest.TestCase):
             self.assertEqual(plan["campaign_allocation"]["branded_defense"], 0.05)
 
     def test_commercial_ppc_validation_rejects_overspend(self):
-        config = self._tmrw_commercial_config()
+        config = self._two_product_commercial_config()
         config["commercial_targets"]["ppc_plan"]["month_1"]["planned_spend"] = 4000
         result = validate_config(config)
         self.assertTrue(any("cannot exceed" in error for error in result["errors"]))

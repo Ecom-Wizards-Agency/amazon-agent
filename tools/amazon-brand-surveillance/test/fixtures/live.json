@@ -1,8 +1,8 @@
 {
-  "requestedAsin": "B0HDH2KNFY",
-  "resolvedAsin": "B0HDH2KNFY",
-  "title": "TMRW Example Product",
-  "brand": "Visit the TMRW Store",
+  "requestedAsin": "B0EXAMPLE1",
+  "resolvedAsin": "B0EXAMPLE1",
+  "title": "ACME Example Product",
+  "brand": "Visit the ACME Store",
   "availability": "In Stock",
   "seller": "Example Seller",
   "shipsFrom": "Amazon",
@@ -10,7 +10,7 @@
   "rating": "4.2",
   "reviews": "18 ratings",
   "mainImage": "https://images.example/live.jpg",
-  "url": "https://www.amazon.com/dp/B0HDH2KNFY",
-  "pageTitle": "TMRW Example Product",
+  "url": "https://www.amazon.com/dp/B0EXAMPLE1",
+  "pageTitle": "ACME Example Product",
   "capturedAt": "2026-08-10T01:00:00.000Z"
 }

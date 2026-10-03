@@ -1,11 +1,11 @@
 # Niche discovery and scoring (POE breadth run)
 
 Method for going beyond the handful of niches Amazon attaches to a brand's own ASINs, into
-20 to 40 candidate niches, then filtering and weighting them. Derived from the Heusom US run
+20 to 40 candidate niches, then filtering and weighting them. Derived from a US pet-brand run
 (2026-07-30, pet nail grinder), which discovered 259 niches from 14 seeds.
 
 `merchant-niches` alone is not enough. It returns only the niches the brand's own ASINs
-already sit in, which is a self-referential view: on Heusom it returned 6, of which 2 were
+already sit in, which is a self-referential view: on that run it returned 6, of which 2 were
 the brand's own name, leaving 4 real category niches. Breadth changes conclusions, so run it.
 
 ## 1. Seed
@@ -46,7 +46,7 @@ aimed at women whose category men also search is the SAME niche: same shelf, sam
 segment of the same buyer. A product for humans when the brand is a pet brand is a DIFFERENT
 niche, no matter how similar the device is. Positioning, not mechanism, decides.
 
-On Heusom this mattered twice:
+On that run this mattered twice:
 
 - **31 of 44 downloaded niches were rotary-tool and DIY hardware** (drill press, carbide burr,
   soldering torch, oscillating saw blades). Every seed was a pet term. POE's relatedness graph
@@ -54,7 +54,7 @@ On Heusom this mattered twice:
   and workshops. **Expect POE to bridge categories through any brand or component that spans
   them**, and strip that cluster with a vocabulary blocklist.
 - **3 niches were human nail care** ("nail drill" at 3.66M T90 volume). Superficially the same
-  device, genuinely a different buyer. Heusom is a pet brand, so these are OUT. Volume is not
+  device, genuinely a different buyer. The client sells pet products, so these are OUT. Volume is not
   a reason to keep an irrelevant niche.
 
 A ~25% relevance hit rate is normal and is not a failure of the run. Report the hit rate.
@@ -77,14 +77,14 @@ Volume is the base of opportunity, never opportunity itself. Weight it down:
 A workable shape is volume x openness x trend, then filter on product fit and price distance.
 Tune per category; the point is that concentration and trend must appear, not the exact formula.
 
-Heusom's result shows why: "dog nail grinder" (954k volume) scored near the bottom because
+That run's result shows why: "dog nail grinder" (954k volume) scored near the bottom because
 **95% of clicks sit in the top 5** and volume fell 15% in the quarter, while "cat nail clipper"
 (592k, growing 9%, 74% concentration) scored far higher.
 
 ## 5. Read the aggregate review data across niches, not one niche
 
 Per-niche `nichePdr` is noisy. Averaging topics across every relevant niche, and recording in
-how many niches each topic appears, turns it into a category truth. On Heusom the single-niche
+how many niches each topic appears, turns it into a category truth. On that run the single-niche
 read was wrong twice against the 10-niche read:
 
 - **Charging** looked minor at 5.7% and eighth in one niche; across ten it was the **number one**
@@ -122,7 +122,7 @@ number next to it.
 
 Before recommending vocabulary work, check **where the funnel actually breaks**, using SQP
 indexed against the market: click-through rate against market, then cart-adds per click, then
-purchases per cart-add. On Heusom, click-through was 1.19x market on generic while cart-adds
+purchases per cart-add. On that run, click-through was 1.19x market on generic while cart-adds
 per click were 33.2% against a market 46.6%. The listing was winning the click and losing the
 detail page, so title and main-image vocabulary was the wrong surface. Diagnose before
 prescribing.

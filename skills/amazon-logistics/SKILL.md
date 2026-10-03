@@ -99,8 +99,9 @@ label stock. Thermal 4×6 UPS SPD labels run 2 pages per box (FBA box label + UP
 label), so pages = 2 × boxes; the house stock is thermal 4×6 unless the operator says
 otherwise.
 
-**Archive labels + packing plan in pCloud after creation** (client convention, e.g. Evora
-Body and Svens Island): `1_Delivery/1.1_Clients/<Client>/_Data/inventory/` with one label
+**Archive labels + packing plan in pCloud after creation** when the client's
+`Amazon Ops.md` profile sets `shipment_label_archive: pcloud`; if the profile is
+silent, ask the operator rather than skipping or archiving by default: `1_Delivery/1.1_Clients/<Client>/_Data/inventory/` with one label
 PDF per shipment named
 `YYYY-MM-DD_<Client>_<Market>_FBA-Box-Labels_<Mode>_<n>-<FC>_<ShipmentID>_Thermal-4x6_v1.pdf`
 plus one `YYYY-MM-DD_<Client>_<Market>_Carton-Packing-Plan_<Mode>_v1.xlsx`. The packing

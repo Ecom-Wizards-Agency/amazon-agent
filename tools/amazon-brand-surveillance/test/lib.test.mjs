@@ -10,7 +10,7 @@ import {
 
 const fixtureRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), "fixtures");
 const fixture = (name) => JSON.parse(fs.readFileSync(path.join(fixtureRoot, name), "utf8"));
-const asin = "B0HDH2KNFY";
+const asin = "B0EXAMPLE1";
 const config = {
   schemaVersion: CONFIG_SCHEMA,
   marketplaces: { com: { postalCode: "10001", verifyTokens: ["10001"] } },
@@ -18,7 +18,7 @@ const config = {
 };
 
 test("parses Amazon URLs and bare ASINs", () => {
-  assert.deepEqual(parseAmazonTarget("https://www.amazon.ca/dp/B0HDBBPG9S?th=1"), { marketplace: "ca", asin: "B0HDBBPG9S" });
+  assert.deepEqual(parseAmazonTarget("https://www.amazon.ca/dp/B0EXAMPLE2?th=1"), { marketplace: "ca", asin: "B0EXAMPLE2" });
   assert.deepEqual(parseAmazonTarget(asin, "com"), { marketplace: "com", asin });
 });
 
@@ -32,9 +32,9 @@ test("classifies live, unavailable, removed, blocked, and redirected fixtures", 
 
 test("discovery deduplicates matching organic and sponsored result cards", () => {
   const candidates = findSuspectedCandidates(fixture("search-results.json"), {
-    marketplace: "com", brandTokens: ["tmrw"], trackedTitles: ["TMRW Example Product"], minimumSimilarity: 0.55,
+    marketplace: "com", brandTokens: ["acme"], trackedTitles: ["ACME Example Product"], minimumSimilarity: 0.55,
   });
-  assert.deepEqual(candidates.map((item) => item.asin), ["B0HDH2KNFY", "B0BBBBBBBB"]);
+  assert.deepEqual(candidates.map((item) => item.asin), ["B0EXAMPLE1", "B0BBBBBBBB"]);
   assert.equal(candidates[1].sponsored, true);
   assert.equal(candidates.some((item) => item.asin === "B0DDDDDDDD"), false);
 });
@@ -62,7 +62,7 @@ test("a failed first run does not consume the successful baseline", () => {
   const live = { marketplace: "com", ...classifyPdp(fixture("live.json"), asin) };
   const recovered = applyRun(failed.state, {
     startedAt: "2026-08-11T01:00:00Z", finishedAt: "2026-08-11T01:01:00Z",
-    snapshots: [live], discoveries: [{ marketplace: "com", asin: "B0BBBBBBBB", title: "TMRW Copy" }], failures: [],
+    snapshots: [live], discoveries: [{ marketplace: "com", asin: "B0BBBBBBBB", title: "ACME Copy" }], failures: [],
   }, config);
   assert.equal(recovered.baseline, true);
   assert.equal(recovered.events.length, 0);
@@ -102,8 +102,8 @@ test("dismissed and authorized ASINs do not enter the candidate queue", () => {
   const run = {
     startedAt: "2026-08-10T01:00:00Z", finishedAt: "2026-08-10T01:01:00Z", snapshots: [], failures: [],
     discoveries: [
-      { marketplace: "com", asin: "B0BBBBBBBB", title: "TMRW Copy" },
-      { marketplace: "com", asin: "B0CCCCCCCC", title: "TMRW Authorized" },
+      { marketplace: "com", asin: "B0BBBBBBBB", title: "ACME Copy" },
+      { marketplace: "com", asin: "B0CCCCCCCC", title: "ACME Authorized" },
     ],
   };
   const result = applyRun(null, run, suppressed);
@@ -111,7 +111,7 @@ test("dismissed and authorized ASINs do not enter the candidate queue", () => {
 });
 
 test("an existing candidate adopts a later dismissed lifecycle", () => {
-  const discovery = { marketplace: "com", asin: "B0BBBBBBBB", title: "TMRW Copy" };
+  const discovery = { marketplace: "com", asin: "B0BBBBBBBB", title: "ACME Copy" };
   const first = applyRun(null, {
     startedAt: "2026-08-10T01:00:00Z", finishedAt: "2026-08-10T01:01:00Z",
     snapshots: [], failures: [], discoveries: [discovery],

@@ -444,7 +444,7 @@ def _price_vs_rating(plt, P, cfg, comps, asins, out):
                 xytext=(0, 5), ha="right", fontsize=8, color=P["steel"], zorder=2)
     # The website line only earns its place when the website charges something DIFFERENT.
     # When the two prices match it lands exactly on the client's own bubble, and its label
-    # overprints whichever rival is nearest that price (Resilia 2026-07: "your own website
+    # overprints whichever rival is nearest that price (one 2026-07 audit: "your own website
     # $29.99" straight through "Clean Nutraceuticals"). Same number, twice, plus a collision.
     dtc = cfg.get("client_dtc_price")
     amz = (own[0]["price"] if own else None)
@@ -507,7 +507,7 @@ def _price_vs_rating(plt, P, cfg, comps, asins, out):
         # A rank count ("rated below 16 of 25") is loud and says nothing about size: a
         # client sitting 0.02 stars off the category mean scores identically to one
         # sitting a full star below it, and the chart then shouts a finding that the
-        # body copy has to walk back. Blyss 2026-08 shipped exactly that contradiction.
+        # body copy has to walk back. One 2026-08 audit shipped exactly that contradiction.
         m = own[0]
         med_r = sorted(ratings)[len(ratings) // 2]
         dp = (m["price"] / med_p - 1) if med_p else 0.0
@@ -638,7 +638,7 @@ def _sqp_segments(cfg):
     is a single number.
 
     Every metric returned is a per-week average, never a window sum. Amazon caps SQP at
-    100 queries per ASIN per week, so the query set CHURNS: on Resilia 2026-07 the
+    100 queries per ASIN per week, so the query set CHURNS: on one 2026-07 audit the
     average query appeared in 1.88 of the 4 weeks and 62% of queries appeared exactly
     once. Summing across weeks therefore does not produce a four-week total of anything
     stable, it produces a number whose size depends on how many weeks each query

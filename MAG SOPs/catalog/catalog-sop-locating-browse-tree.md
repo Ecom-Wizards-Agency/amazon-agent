@@ -23,7 +23,7 @@ Source: https://sop.myamazonguy.com/books/catalog/page/catalog-sop-locating-brow
 
   ![image.png](https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/njSimage.png)
 2. Normally, the cell is is not editable. But, it can be replaced using the Browse Tree Guide. You can use the guide to put the accepted replacement categories per Amazon.
-3. Go to [this site](https://sellercentral.amazon.com/help/hub/reference/G1641?mons_sel_mkid=amzn1.mp.o.ATVPDKIKX0DER&mons_sel_mcid=amzn1.merchant.o.A3OO04JJ922PXW&mons_sel_persist=true) and go to "Use the following template versions".
+3. Go to [this site](https://sellercentral.amazon.com/help/hub/reference/G1641) and go to "Use the following template versions".
 4. Select the "Browse Tree Guide" alongside the relevant category of the template you have downloaded.
 5. Open the file and review the worksheet named "Instructions" on how to use the Browse Tree Guide.
 

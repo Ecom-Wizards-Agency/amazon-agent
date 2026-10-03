@@ -436,8 +436,8 @@ a table or the title is safer through the scaffold.
   on how often each query happened to surface, and it invites the reader to divide by four and be
   wrong. **Average search volume and purchases per query across the weeks it appeared, then sum
   those averages within the segment** (`analyze_audit.build_metrics`, changed 02.08.2026 after
-  Resilia). Both sides of every ratio now sit on one basis.
-  - **Verdicts do not move, headline counts do.** On Resilia branded capture went 85.1% to 84.6%
+  a prospect audit). Both sides of every ratio now sit on one basis.
+  - **Verdicts do not move, headline counts do.** On that audit branded capture went 85.1% to 84.6%
     and core generic 15.3% to 15.2%, because the same bias sits in numerator and denominator. The
     headline count went 97,033 to 25,345. Never quote an old window-sum total beside a new average.
   - **Known limit:** absence is treated as censoring rather than zero demand, which is right under

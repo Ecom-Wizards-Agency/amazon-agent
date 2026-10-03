@@ -194,7 +194,7 @@ def pull_account(account: dict, region: dict, run_date: str, cdp_env: dict,
     # Demand must come only from ASINs that actually hold an FBA offer. Without
     # this a child selling well on an FBM offer gets a restock recommendation on
     # sales alone: on 11.08.2026 that produced 10,899 phantom units for two
-    # AlphaInfuse children that have no FBA offer at all.
+    # children of one US account that have no FBA offer at all.
     offer_asins = {s.get("asin") for s in skus if s.get("fba_offer") and s.get("asin")}
 
     end = datetime.date.fromisoformat(run_date)
@@ -205,7 +205,7 @@ def pull_account(account: dict, region: dict, run_date: str, cdp_env: dict,
     # ID in mons_sel_dir_mcid with "Invalid request URL" (14.09.2026), so the
     # fetcher only carries the live tab's own account hints. The live GraphQL
     # context can expose the delegated partner id when a profile has no seller
-    # id (tmrw did this on 01.09.2026); using that as the merchant id makes the
+    # id (one US account did this on 01.09.2026); using that as the merchant id makes the
     # fetcher select the wrong session context. Name-based switching remains
     # fail-closed and is the correct fallback.
     seller_id = provider_profile.get("seller_id")

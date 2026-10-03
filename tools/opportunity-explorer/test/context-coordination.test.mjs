@@ -259,8 +259,8 @@ test("structured POE rejects a different observed seller after picker completion
   assert.equal(result.publications.length, 0);
 });
 
-test("Allfemme United States verifies without an unnecessary account switch", async (t) => {
-  const result = await scenario(t, null, { accountName: "Allfemme", initialDisplayName: "Allfemme United States",
+test("Acme United States verifies without an unnecessary account switch", async (t) => {
+  const result = await scenario(t, null, { accountName: "Acme", initialDisplayName: "Acme United States",
     identityMarketplace: null });
   assert.equal(result.code, 0, result.output);
   assert.equal(result.switchClicks, 0);
@@ -268,15 +268,15 @@ test("Allfemme United States verifies without an unnecessary account switch", as
 });
 
 test("structured POE recovers the requested marketplace before the first fetch", async (t) => {
-  const result = await scenario(t, null, { accountName: "Allfemme", initialDisplayName: "Allfemme Canada",
-    identityMarketplace: "A2EUQ1WTGCTBG2", switchDisplayName: "Allfemme United States", switchMarketplace: MARKETPLACE });
+  const result = await scenario(t, null, { accountName: "Acme", initialDisplayName: "Acme Canada",
+    identityMarketplace: "A2EUQ1WTGCTBG2", switchDisplayName: "Acme United States", switchMarketplace: MARKETPLACE });
   assert.equal(result.code, 0, result.output);
   assert.ok(result.switchClicks >= 2);
 });
 
 test("a wrong marketplace after picker completion blocks POE and publication", async (t) => {
-  const result = await scenario(t, null, { accountName: "Allfemme", initialDisplayName: "Allfemme United States",
-    identityMarketplace: "A2EUQ1WTGCTBG2", switchDisplayName: "Allfemme United States", expectedFetches: 0 });
+  const result = await scenario(t, null, { accountName: "Acme", initialDisplayName: "Acme United States",
+    identityMarketplace: "A2EUQ1WTGCTBG2", switchDisplayName: "Acme United States", expectedFetches: 0 });
   assert.equal(result.code, 1, result.output);
   assert.match(result.output, /POST-SWITCH ACCOUNT CHECK FAILED/);
   assert.equal(result.publications.length, 0);
