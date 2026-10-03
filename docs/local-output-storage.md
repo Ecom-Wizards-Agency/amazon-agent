@@ -70,3 +70,15 @@ verification, quarantine, restoration, and purge to the machine-local policy.
 When no local policy is installed, keep files in the gitignored defaults and
 report that no durable route was available rather than guessing or copying the
 same artifact to several systems.
+
+## Artifact lifecycle
+
+New downloaded and generated local files are registered by exact path under a
+workflow run ID. Successful runs become eligible after seven days. The weekly
+artifactctl job verifies the exact file and its disposition, moves eligible
+files into a 30-day local quarantine, and then purges only that registered file.
+Failed, blocked, active, modified, unregistered, out-of-scope, or manually
+supplied files are preserved. Verified weekly cleanup is the sole permitted
+automatic local-cleanup exception. It never deletes or modifies remote data in
+FlatFilePro, pCloud, or Google Drive. Handoffs list created paths, disposition,
+and eligibility date; only unclassified or blocked artifacts need approval.

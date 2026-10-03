@@ -395,6 +395,14 @@ A browser login grants no additional action rights. DataDive login recovery occu
 
 ## Authentication and profile identity
 
+If an allowlisted site shows a login screen, the local authentication broker may
+complete it on ports 9222 or 9223. The broker, not the reasoning process, retrieves
+and enters credentials. It validates the exact page origin, CDP port, adapter,
+and 1Password item route before retrieval. It emits structured non-secret status
+only. CAPTCHA, device approval, account recovery, identity verification, and
+invalid-credential states remain human-only. The agent must not inspect passwords,
+one-time codes, cookies, local storage, session stores, or browser profile data.
+
 An anchor redirected to a same-origin sign-in, MFA, CAPTCHA or recovery page,
 or to authentication on a configured `auth_origins` host, stays an anchor.
 Maintenance marks `authRequired: true` and returns `reason: "auth-required"` in
