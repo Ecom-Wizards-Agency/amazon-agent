@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_on": "2026-10-01",
+  "updated_on": "2026-10-03",
   "rows": [
     {
       "id": "seller-central.read",
@@ -12,7 +12,9 @@
       },
       "amazon_agent": {
         "state": "allowed",
-        "how": "Use the same identity checks in the attended default session: operator on 9222 with the operator's own login on Evo X1, otherwise the delegated login on 9223."
+        "how": "Use the same identity checks in the attended default session: operator on 9222 with the operator's own login on Evo X1, otherwise the delegated login on 9223.",
+        "identity": "Operator's own Seller Central login on the machine's attended default session (operator/9222 on Evo X1); machines that keep the grimoire/9223 default share the Grimoire delegated login",
+        "port": "attended-default"
       },
       "identity": "Grimoire delegated Seller Central login (shared Grimoire session)",
       "port": 9223,
@@ -48,7 +50,9 @@
       },
       "amazon_agent": {
         "state": "approval-gated",
-        "how": "Exact in-chat submission approval and verified per-account access are required."
+        "how": "Exact in-chat submission approval and verified per-account access are required.",
+        "identity": "Operator's own Seller Central login on the machine's attended default session (operator/9222 on Evo X1); machines that keep the grimoire/9223 default share the Grimoire delegated login",
+        "port": "attended-default"
       },
       "identity": "Grimoire delegated Seller Central login (shared Grimoire session)",
       "port": 9223,
@@ -81,7 +85,9 @@
       },
       "amazon_agent": {
         "state": "approval-gated",
-        "how": "Submit the exact reviewed workbook, mappings and target preview only with in-chat approval."
+        "how": "Submit the exact reviewed workbook, mappings and target preview only with in-chat approval.",
+        "identity": "Team FlatFilePro login, brokered on both ports, on the machine's attended default session (operator/9222 on Evo X1); machines that keep the grimoire/9223 default use the Grimoire session",
+        "port": "attended-default"
       },
       "identity": "Grimoire delegated Seller Central login (shared Grimoire session)",
       "port": 9223,
@@ -159,7 +165,9 @@
       },
       "amazon_agent": {
         "state": "approval-gated",
-        "how": "Use the same case service and saved owner. In attended chat the operator's approval of the exact signed, labelled text authorizes the send; the lead session sends it with seller-assistant.mjs on the operator session (9222), verifies it, records it with record-receipt and does not ask again. Seller Assistant creation is attended only until the case.create adapter supports it."
+        "how": "Use the same case service and saved owner. In attended chat the operator's approval of the exact signed, labelled text authorizes the send; the lead session sends it with seller-assistant.mjs on the operator session (9222), verifies it, records it with record-receipt and does not ask again. Seller Assistant creation is attended only until the case.create adapter supports it.",
+        "identity": "Operator's own Seller Central login on the operator session for Seller Assistant sends and replies; the retired-form case adapter stays Grimoire-only",
+        "port": 9222
       },
       "identity": "Grimoire delegated Seller Central login (shared Grimoire session)",
       "port": 9223,
@@ -1070,7 +1078,9 @@
       },
       "amazon_agent": {
         "state": "allowed",
-        "how": "Inspect the same account and marketplace before reporting."
+        "how": "Inspect the same account and marketplace before reporting.",
+        "identity": "Operator's own Seller Central login on the machine's attended default session (operator/9222 on Evo X1); machines that keep the grimoire/9223 default share the Grimoire delegated login",
+        "port": "attended-default"
       },
       "identity": "Grimoire delegated Seller Central login (shared Grimoire session)",
       "port": 9223,
@@ -1108,7 +1118,9 @@
       },
       "amazon_agent": {
         "state": "approval-gated",
-        "how": "Prepare the evidence and obtain exact submission approval; regulated appeals also require the designated final approver."
+        "how": "Prepare the evidence and obtain exact submission approval; regulated appeals also require the designated final approver.",
+        "identity": "Operator's own Seller Central login on the machine's attended default session (operator/9222 on Evo X1); machines that keep the grimoire/9223 default share the Grimoire delegated login",
+        "port": "attended-default"
       },
       "identity": "Grimoire delegated Seller Central login (shared Grimoire session)",
       "port": 9223,
@@ -1139,7 +1151,9 @@
       },
       "amazon_agent": {
         "state": "approval-gated",
-        "how": "Verify the exact recipient/thread and approved message or matching narrow standing permission."
+        "how": "Verify the exact recipient/thread and approved message or matching narrow standing permission.",
+        "identity": "Operator's own Amazon Ads login for Creator Connections and own Seller Central login for buyer messages, on the machine's attended default session (operator/9222 on Evo X1); machines that keep the grimoire/9223 default share the Grimoire delegated login",
+        "port": "attended-default"
       },
       "identity": "Grimoire delegated Seller Central login (shared Grimoire session)",
       "port": 9223,
@@ -1172,7 +1186,9 @@
       },
       "amazon_agent": {
         "state": "approval-gated",
-        "how": "Reads are allowed; exact bids, budgets, targeting or submission changes require approval."
+        "how": "Reads are allowed; exact bids, budgets, targeting or submission changes require approval.",
+        "identity": "Operator's own Amazon Ads login on the machine's attended default session (operator/9222 on Evo X1); machines that keep the grimoire/9223 default share the Grimoire delegated login",
+        "port": "attended-default"
       },
       "identity": "Grimoire delegated Seller Central login (shared Grimoire session)",
       "port": 9223,
@@ -1556,7 +1572,9 @@
       },
       "amazon_agent": {
         "state": "allowed",
-        "how": "Use the same task controller."
+        "how": "Use the same task controller.",
+        "identity": "Operator's own Seller Central login on the machine's attended default session (operator/9222 on Evo X1); machines that keep the grimoire/9223 default share the Grimoire delegated login",
+        "port": "attended-default"
       },
       "identity": "Grimoire delegated Seller Central login (shared Grimoire session)",
       "port": 9223,
@@ -1589,7 +1607,9 @@
       },
       "amazon_agent": {
         "state": "allowed",
-        "how": "Use the same keyed acquisition and completion contract."
+        "how": "Use the same keyed acquisition and completion contract.",
+        "identity": "Operator's own Seller Central login on the machine's attended default session (operator/9222 on Evo X1); machines that keep the grimoire/9223 default share the Grimoire delegated login",
+        "port": "attended-default"
       },
       "identity": "Grimoire delegated Seller Central login (shared Grimoire session)",
       "port": 9223,
@@ -1661,7 +1681,9 @@
       },
       "amazon_agent": {
         "state": "allowed",
-        "how": "Use seller-central-region and the regional exclusive claim; account-switcher work uses claimScope global."
+        "how": "Use seller-central-region and the regional exclusive claim; account-switcher work uses claimScope global.",
+        "identity": "Operator's own Seller Central login on the machine's attended default session (operator/9222 on Evo X1); machines that keep the grimoire/9223 default share the Grimoire delegated login",
+        "port": "attended-default"
       },
       "identity": "Grimoire delegated Seller Central login (shared Grimoire session)",
       "port": 9223,
@@ -1700,7 +1722,9 @@
       },
       "amazon_agent": {
         "state": "allowed",
-        "how": "Use identical leases and outcome rules."
+        "how": "Use identical leases and outcome rules.",
+        "identity": "Operator's own Seller Central login on the machine's attended default session (operator/9222 on Evo X1); machines that keep the grimoire/9223 default share the Grimoire delegated login",
+        "port": "attended-default"
       },
       "identity": "Grimoire delegated Seller Central login (shared Grimoire session)",
       "port": 9223,
