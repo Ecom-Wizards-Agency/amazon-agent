@@ -1150,7 +1150,7 @@
       "amazon_agent": {
         "state": "approval-gated",
         "how": "Verify the exact recipient/thread and approved message or matching narrow standing permission.",
-        "identity": "Operator's own Seller Central login on the machine's attended default session (operator/9222 on Evo X1); machines that keep the grimoire/9223 default share the Grimoire delegated login",
+        "identity": "Operator's own Amazon Ads login for Creator Connections and own Seller Central login for buyer messages, on the machine's attended default session (operator/9222 on Evo X1); machines that keep the grimoire/9223 default share the Grimoire delegated login",
         "port": "attended-default"
       },
       "identity": "Grimoire delegated Seller Central login (shared Grimoire session)",
@@ -1185,7 +1185,7 @@
       "amazon_agent": {
         "state": "approval-gated",
         "how": "Reads are allowed; exact bids, budgets, targeting or submission changes require approval.",
-        "identity": "Operator's own Seller Central login on the machine's attended default session (operator/9222 on Evo X1); machines that keep the grimoire/9223 default share the Grimoire delegated login",
+        "identity": "Operator's own Amazon Ads login on the machine's attended default session (operator/9222 on Evo X1); machines that keep the grimoire/9223 default share the Grimoire delegated login",
         "port": "attended-default"
       },
       "identity": "Grimoire delegated Seller Central login (shared Grimoire session)",

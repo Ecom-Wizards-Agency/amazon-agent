@@ -64,8 +64,10 @@ class RightsMatrixTests(unittest.TestCase):
                           {"port": True}, {"port": 9222.0}, {"port": "attended default"}):
                 matrix = copy.deepcopy(self.matrix)
                 matrix["rows"][0][actor].update(value)
+                message = (f"{actor} identity must be a nonempty string" if "identity" in value
+                           else f"{actor} port must be null, 9222, 9223 or attended-default")
                 with self.subTest(actor=actor, value=value):
-                    self.assertIn(actor, " ".join(rights.validate(matrix)))
+                    self.assertIn(message, " ".join(rights.validate(matrix)))
             for value in ({"identity": "Example login"}, {"port": None}, {"port": 9222}, {"port": "attended-default"}):
                 matrix = copy.deepcopy(self.matrix)
                 matrix["rows"][0][actor].update(value)
@@ -73,6 +75,12 @@ class RightsMatrixTests(unittest.TestCase):
                     self.assertEqual(rights.validate(matrix), [])
         self.matrix["rows"][0]["port"] = "attended-default"
         self.assertIn("port must be null, 9222 or 9223", " ".join(rights.validate(self.matrix)))
+
+    def test_checked_in_grimoire_uses_row_identity_and_port(self):
+        for row in self.matrix["rows"]:
+            with self.subTest(row=row["id"]):
+                self.assertFalse({"identity", "port"} & set(row["grimoire"]))
+                self.assertEqual(rights.actor_identity(row, "grimoire"), (row["identity"], row["port"]))
 
     def test_actor_identity_defaults_to_row(self):
         row = {"identity": "Row login", "port": 9223, "grimoire": {"state": "allowed", "how": "x"},
