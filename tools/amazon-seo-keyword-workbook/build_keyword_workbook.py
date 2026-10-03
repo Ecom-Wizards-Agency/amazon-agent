@@ -2208,7 +2208,7 @@ def run_validations(wb, cfg, counts, related_result, paths, warnings) -> list[di
                 # be reallocated to the highest-SV terms still uncovered anywhere.
                 if master_sv:
                     others = " ".join(
-                        _copy_line(v) for k, v in seo_by_section.items()
+                        v for k, v in seo_by_section.items()
                         if (k.startswith(("title", "bullet", "description"))
                             or "backend search terms" in k)
                     )
