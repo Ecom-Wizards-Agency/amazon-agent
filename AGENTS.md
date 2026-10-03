@@ -151,11 +151,11 @@ python3 "tools/search_amazon_libraries.py" "account health violation" --library 
 
 ## Specialist Skill Model
 
-This project uses one current agent, the main operator regardless of runtime or model, with specialist skills. Specialist skills are not permanent separate agents; they are focused playbooks the current agent loads when the request matches. In attended sessions, delegate parallel research, independent QA and large split tasks to temporary subagents; the current agent stays the only writer to external systems. Unattended passes follow their runbook and do not delegate.
+This project uses one current agent, the main operator regardless of runtime or model, with specialist skills. Specialist skills are not permanent separate agents; they are focused playbooks the current agent loads when the request matches. In attended sessions, delegate parallel research, independent QA and large split tasks to temporary subagents when that saves time; the current agent stays the only writer to external systems. Unattended passes follow their runbook and do not delegate.
 
 **Skills are agent-neutral.** The current agent owns a workflow end to end when it has the required capabilities: data collection, local build, writing, QA, and authorized internal delivery. Describe steps by capability or surface (`connected browser`, `CDP`, `DataDive MCP`, `local build`, `Google Drive`), never by a named assistant; platform names stay only where they name a real interface or discovery mechanism. When a capability is missing, leave the standard handoff for any capable agent; a handoff is a capability fallback, not a permanent role split.
 
-**One canonical copy of every Amazon skill, in this repo.** `skills/` owns the sources, and every runtime entry, including each `~/.codex/skills/amazon-*` entry, is a symlink to it; never replace a link with an independent copy. Designers may install only `amazon-listing-images` and `amazon-product-photography` per `docs/design-skills-installation.md`, without the `amazon-operator` role. SQP competitor benchmarks are a mode of `amazon-reporting`; its runner is `tools/sc-sqp-competitor/`.
+**One canonical copy of every Amazon skill, in this repo.** `skills/` owns the sources, and every runtime entry, including each `~/.codex/skills/amazon-*` entry, is a symlink to it; never replace a link with an independent copy. Designers may install only `amazon-listing-images` and `amazon-product-photography` per `docs/design-skills-installation.md`, without the `amazon-operator` role. SQP competitor benchmarks are a mode of `amazon-reporting`.
 
 Default routing:
 - `amazon-account-health-check`: daily or ad hoc Account Health checks, findings ledger and escalation.
@@ -191,7 +191,7 @@ Default routing:
 
 ## Data Source Routing: DataDive vs POE
 
-- DataDive (MCP): niche analysis, master keyword lists, competitor ASINs, Ranking Juice, Rank Radar and indexing-issue alerts, addressed by `nicheId` (`list_niches`). Use the local `datadive` MCP server first; web-app work follows the Browser Standard. Never save the DataDive API key in this project, GitHub, SOPs or operator notes; it lives only in local MCP/client secret storage.
+- DataDive (MCP): niche analysis, master keyword lists, competitor ASINs, Ranking Juice, Rank Radar and indexing-issue alerts, addressed by `nicheId` (`list_niches`). Use the local `datadive` MCP server first and read-only: a tool that spends DataDive quota or changes its state needs approval of that exact action. Web-app work follows the Browser Standard. Never save the DataDive API key in this project, GitHub, SOPs or operator notes; it lives only in local MCP/client secret storage.
 - Product Opportunity Explorer (POE/OEI): Products, Search Terms, Customer Review Insights, Returns and Related Niches, behind the Seller Central login with no MCP. Use the API-first downloader (`skills/amazon-opportunity-explorer/references/opportunity-explorer-workflow.md`) and `skills/amazon-opportunity-explorer/references/poe-niche-export-checklist.md`. POE data has one permanent store, the client's pCloud `_Data/opportunity-data/` tree, for Amazon Agent and Grimoire; the skill owns transfer, receipt and migration rules.
 - Listing copy for anchor and competitor ASINs comes from live product pages through `amazon-listing-capture`, never from DataDive or POE.
 
@@ -213,7 +213,6 @@ Owning skills carry the full standards; these lines route.
 - Campaign creation: `amazon-sponsored-products-bulk-files`; a file only, with campaigns defaulting to `paused`.
 - Sponsored Brands video briefs: `amazon-sponsored-brands-video-briefs` (`/video-brief`).
 - Creator Connections: `amazon-creator-connections`; messages, campaign publishing, MCF orders and Slack posts each pass the approval gate.
-- Client-facing brand precedence and the brand-compliance delivery gate: `docs/drive-delivery.md`.
 
 ## Local Output Storage
 
@@ -267,7 +266,7 @@ Keyword-workbook handoff notes resolve shared vault first, as `skills/amazon-seo
 
 ## Repository Hygiene (Public Release)
 
-Before committing doc or skill changes, run `python3 tools/lint_agent_docs.py`. It checks skill manifests, routing-table names, writing style, runtime-neutral skill text, that **every repo file path a doc names actually exists**, and that this file stays under 32,000 bytes with the Operating Contract's pinned rules inside the first 16,384 bytes; its docstring gives the reasons.
+Before committing doc or skill changes, run `python3 tools/lint_agent_docs.py`. It checks skill manifests, routing-table names, writing style, runtime-neutral skill text, that **every repo file path a doc names actually exists**, and that this file stays under 32,000 bytes with the Operating Contract's pinned rules inside the first 16,384 bytes.
 
 This repo is being prepared as a public-safe, reusable workspace. Before any push to a public remote, follow `docs/public-release-checklist.md`; the pushing agent re-runs it rather than trusting a handoff. Do not push unless the operator has explicitly asked for that specific push.
 
@@ -279,7 +278,7 @@ Before the final response of a meaningful attended work session, invoke the inst
 
 For managed Seller Support cases, use `tools/amazon-operations/case_service.py`; direct chat and Grimoire share its owner, authorization and delivery journal. Keep the original owner's approved signature unless reassignment is explicit, and ask once when ownership is missing instead of using the host operator's name. Grimoire, Slack requests and scheduled jobs send through the `case.create` / `case.reply` operations with every case-service gate; their retired-form adapter (`cases.mjs`) runs only on `grimoire` (9223) and is not the attended send path. Attended sends run `seller-assistant.mjs` on the operator session (`browserctl run --session operator --`, 9222) and are recorded with `case_service.py record-receipt`. Seller Assistant case creation is attended only until the `case.create` adapter supports it: the operator approves the exact texts once in chat, even under a case mandate, and Grimoire never drives it. Route: `skills/amazon-communications/references/seller-assistant-route.md`; daily review, Reply diagnosis, operator-session `observe` and rollout: `docs/team-owned-cases.md`.
 
-For flat-file and template work, download the blank template from the target seller account itself, never reuse one from another account, marketplace or product type, verify its merchant id, and clear every row at or below `dataRow` before writing, as `amazon-catalog` specifies. State the check in the operator note.
+For flat-file and template work, download the blank template from the target seller account itself; never reuse one from another account, marketplace or product type, even one already in `downloads/`. Verify its merchant id and read `dataRow` as `amazon-catalog` specifies, then clear every row at or below `dataRow` before writing. State the check in the operator note.
 
 For downloads:
 
