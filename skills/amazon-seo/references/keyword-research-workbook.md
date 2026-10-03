@@ -33,6 +33,8 @@ hand off only the blocked checklist and exact contract paths to any capable agen
 
 ### DataDive: MCP-first, and the full pool needs no UI export at all
 
+The local `datadive` MCP server runs `@datadive-tools/mcp` over stdio. Use it for DataDive-owned niche, keyword, competitor, Ranking Juice, and Rank Radar data before falling back to manual exports.
+
 Generate **roots**, **Core 30% MKL**, and **competitors** from the DataDive MCP. Do NOT open the browser for them. Validated byte-for-data-identical to the UI exports on a validation run (roots 222/222, Core 257/257, 0 mismatches; a full rebuild from the generated CSVs passed all QA gates with identical Ranking-Juice coverage). See [[datadive-mcp-vs-download]].
 
 **The old "Expanded 1% MKL" was a misnomer and its UI route is retired.** It was never a larger MKL export. The MKL is a capped, curated subset (500 on a capped niche; the frontend warns about a 600 ceiling in one inclusion flow), so lowering Min. Relevancy to 1% does not add rows once the niche is at the cap, and on a capped niche the UI simply cannot reach the tail. Changing that setting is also a `POST /niche_settings/{nicheId}/mkl_okl` that **mutates shared niche state for every teammate**. Do not do it.

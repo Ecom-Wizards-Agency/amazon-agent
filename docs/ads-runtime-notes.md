@@ -39,6 +39,10 @@ reports. Get `_local/` from the Amazon Agent Team Pack (shared privately), not f
 - `_local/ads-monitor/`  : `sellerboard-feeds.json` (SECRET tokens), config,
   `inbox/` (delivered CSVs), `samples/`
 Each teammate keeps their own `_local/` plus their own connector credentials.
+Three-layer split: the public GitHub repo holds skill code; gitignored `_local/` holds secrets and
+per-operator config; the Notion "Amazon Agent - Shared Brain" space holds the shared private
+knowledge. Runtimes with the repo but without `_local/` (Slack @Claude, a teammate without the
+team pack) read the methodology from Notion so they operate on the same playbook.
 Tested practice and external evidence now resolve from the shared team vault through
 `python3 tools/ads_recall.py <surface>`; do not maintain a second local knowledge digest.
 

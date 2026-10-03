@@ -11,7 +11,7 @@ Geteilte Ablagen/Ecom Wizards/01_Client Sheets/<Client>/
   <other folders>        Internal by default.
 ```
 
-The client boundary (what may enter `<Client> - Shared/`, the internal default, and that agents do not route work into `- Internal/`) is part of the Operating Contract in `AGENTS.md`.
+The client boundary (what may enter `<Client> - Shared/`, the internal default, and that agents do not route work into `- Internal/`) is part of the Operating Contract in `AGENTS.md`. `<Client> - Internal/` exists for files a human needs to open in Sheets or comment on.
 
 What agents deliver to Drive:
 
