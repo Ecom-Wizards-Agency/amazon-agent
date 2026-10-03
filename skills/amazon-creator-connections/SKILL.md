@@ -20,7 +20,7 @@ Creator Connections lives behind Amazon Ads login and currently has no direct MC
 - Keep undecided or ambiguous creators in an `Undecided` holding tab until they confirm their final product/ASIN.
 - Score creators against the qualification gate before recommending samples.
 - Draft creator replies for verification, proof requests, product-switch clarification, paused-product messaging, content follow-ups, sample confirmations, and thank-you messages.
-- Prepare MCF sample fulfillment details after the operator approves and the creator has passed the gate.
+- Hand approved 10/10 sample lanes to Arcana, which places the MCF order after the operator enters the address there, and record the order Arcana reports placed.
 - Update trackers with sample decisions, MCF/order details, posted content links, notes, follow-up dates, and qualification evidence.
 - Prepare daily/weekly Slack sweep updates with only new updates and material status changes, then post only through the configured helper when authorized.
 - Explain the whole workflow to a manager/client in plain language.
@@ -75,6 +75,7 @@ Creator Connections lives behind Amazon Ads login and currently has no direct MC
    - An archived or unqualified thread may be skipped only when its newest-message signature is unchanged. If it changed, reopen and classify the new message.
    - The completion equation is mandatory: `threads enumerated = unchanged threads + actioned threads + explicitly held/escalated threads`. Unmatched, unopened, or unclassified threads must be zero.
    - Save the new checkpoint only after the message action, tracker write, action-log entry, and any permitted reply all verify successfully. A partial failure keeps the old checkpoint so the next run retries it.
+   - End every sweep by building `sweep-checkpoint.json` with the runner's `sweep-checkpoint` command and submitting it with `creators.sweep_checkpoint`. Arcana decides whether the sweep reconciled; the file never claims it.
    - Report final mounted thread count, threads opened, changed threads, messages examined, messages sent, no-action acknowledgements, held/escalated threads, archived spam, and unmatched threads. Do not report a successful sweep when any count is unreconciled.
 
 ## How to use
@@ -167,12 +168,37 @@ Before a state-changing action, use `tools/creator-connections-control/creator_c
 - Run `score` after every background check or creator reply. Do not overwrite the score with a manually typed value when its visible evidence no longer supports it.
 - Build the dated machine-readable queue with `queue` before the daily sweep. Sync its results to `Daily Action Queue` and `Creator Action Log` only after the record ID is resolved.
 - Run `preflight-switch --phase offer` before proposing an alternate ASIN for an MCF-blocked product. Offer only a same-campaign alternative with verified FBA/MCF-fulfillable inventory. Run `preflight-switch --phase confirm` after the creator explicitly replies with that ASIN and before changing the active product record.
-- Run `preflight` immediately before any MCF order. It requires the explicit creator, campaign, tracker row, recipient fingerprint, live FBA/MCF inventory evidence, and exact ASIN/SKU match. Then run `reserve-mcf`, populate the form, and run `verify-mcf` with the returned reservation ID before submission. Run `confirm-mcf` only for that verified reservation and exact one-unit product. A `HOLD` result means no order and an escalation.
-- If an order definitively fails or is abandoned before submission, use `cancel-mcf` with an allowed reason and evidence. Never hand-edit a lock. Timeout or unknown outcome remains locked as `Reconciliation Required` until Amazon order history resolves it. Until SP-API access is authorized, MCF creation remains a controlled browser/operator action after all passing controls.
+- Run `preflight` immediately before handing a lane to Arcana or placing any MCF order. It requires the explicit creator, campaign, tracker row, recipient fingerprint, live FBA/MCF inventory evidence, and exact ASIN/SKU match. Then call `creators.preflight_result`, run `reserve-mcf` with its `derived_order_key`, and call `creators.register_record` (see Arcana hand-over below). A `HOLD` result means no order and an escalation.
+- If an order definitively fails or is abandoned before submission, use `cancel-mcf` with an allowed reason and evidence. Never hand-edit a lock. Timeout or unknown outcome remains locked as `Reconciliation Required` until Amazon order history resolves it. For a lane handed to Arcana, only Arcana places the order: an owner or admin types the address from the named tracker row on the Arcana lane screen and presses "Send 1 unit via Amazon". The skill never fills the Seller Central MCF form for that lane, never presses that button or "Cancel 1 order in Amazon", and records the order with `record-api-order` only after `creators.sample_send_outcome` reports `placed`. The Seller Central form stays a controlled browser/operator action, after all passing controls, only for a lane reserved with order owner `runner`: run `verify-mcf` before submission and `confirm-mcf` after it, with the stored derived key as the order ID.
 
 See `tools/creator-connections-control/README.md` for the input format and local HMAC-secret setup. Never commit run files, the registry, screenshots, raw addresses, or the HMAC secret.
 
 The shared tracker is the sole durable system of record. The daily bot is the sole routine executor. The local runner is disposable validation state and Slack is reporting only. Read the current tracker row and resolved Creator Record ID before every external action, then write the result back before moving to another creator.
+
+## Arcana hand-over
+
+Arcana (the wizard-ads app) receives the runner's results through its hosted MCP endpoint, with the `creator:write` key configured locally for this skill. Its tools write Arcana's records only: none sends a message or places, changes, or cancels an Amazon order. Write counts come back as `{read, inserted, updated, unchanged, skipped}`, where read = inserted + updated + unchanged + skipped; a `skipped` row was left alone on purpose and is not a failure.
+
+A sample lane reaches Arcana in this order:
+
+1. Run `preflight` with `"order_owner": "arcana"` in the proposal. The fee check is then cap-only; Arcana's preview checks the fee against the cap.
+2. Call `creators.preflight_result` with that output. Keep the returned `derived_order_key` exactly as given. Never compute, re-case, or rebuild it; if it is null, stop.
+3. Run `reserve-mcf` with the same proposal plus that `derived_order_key`.
+4. Call `creators.register_record` right away with the locked registry row. The daily file import stays as reconciliation. If `creators.register_record` refuses the row, stop: keep the lock, do not tell the operator the lane is ready, and escalate.
+5. Tell the operator the lane is ready. They open it in Arcana, copy the address from the tracker row with that Creator Record ID, check the review panel, and press "Send 1 unit via Amazon" there. Never ask them to type that wording anywhere else, and never put the address in chat, Slack, or a draft.
+
+On every later run, read `creators.sample_send_outcome` with `{"derivedOrderKey": <stored key>}`. The error `not_found` means Arcana has no send for the lane yet: keep the lock and read again next run. Otherwise save the payload under `_local/`, run the runner's `arcana-outcome` on it, and do only what its `next_action` says:
+
+- `record-api-order`: the class is `placed`. Run `record-api-order` with the payload, then set the tracker to `Sample Sent`, log the action, and send the standard confirmation by hand under message authority.
+- `cancel-mcf amazon_rejected`: the class is `failed`, so no order is active. Run `cancel-mcf` with reason `amazon_rejected`, the returned evidence reference, and `--outcome` pointing at the saved payload; the runner releases an Arcana lane only from its own failed outcome. If the order was already recorded, escalate instead.
+- `wait`: `pending` or `uncertain`. Never re-send, cancel, or record. Read again later.
+- `escalate`: the send is escalated or `cancelled` in Arcana. Keep the lock, record nothing, and raise an Action Needed escalation naming the lane. A cancelled send ends only on the operator's word: release the lane with `cancel-mcf`, reason `operator_aborted_before_submit`, and the evidence reference `arcana-outcome` returned. An escalated send waits until Arcana clears it.
+
+Never run `cancel-mcf` with `request_timeout`, `outcome_unknown`, or `confirmation_missing` on a lane handed to Arcana: Arcana owns an uncertain send, and the runner refuses it.
+
+Reserve with order owner `runner` (the Seller Central form) only when the operator names that route for the lane. A lane already handed to Arcana moves to it only on the operator's instruction and only while `creators.sample_send_outcome` answers `not_found`: release it with `cancel-mcf`, reason `operator_aborted_before_submit`, and evidence reference `arcana:send:<derived_order_key>:not_found`, then run `preflight` and `reserve-mcf` again. The order ID on the form is still the lane's `derived_order_key`. After any Arcana send for the lane, a second attempt is the operator's decision in Arcana, never the skill's.
+
+Submit reply drafts with `creators.submit_draft`, rendered from an approved template with the name placeholders left unrendered: `{first name}` in every template and `{recipient name}` in `recipient_mismatch_clarification`. The operator fills in names when sending by hand. A draft body never carries an email, phone number, address, or link.
 
 ## Status filter and evidence
 

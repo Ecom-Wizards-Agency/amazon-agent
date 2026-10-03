@@ -56,6 +56,8 @@ Use `tools/creator-connections-control/creator_control.py` with a local HMAC sec
 - `score` computes the 10/10 gate from evidence rather than trusting a typed score.
 - `queue` produces the dated action queue and automatic escalation at the follow-up limit.
 - `preflight` rejects any unresolved identity, ASIN/SKU mismatch, missing fulfillment data, duplicate-sample risk, non-Standard shipment, fee-cap breach, validation warning, or quantity other than one.
+- `reserve-mcf` locks the lane under the `derived_order_key` Arcana's `creators.preflight_result` returned, stored unchanged and never computed by the skill or runner.
+- `record-api-order` records an order Arcana placed, only from a `Reserved` lane handed to Arcana and only for a `placed` outcome under the stored key.
 
 Persist only opaque fingerprints in the local registry. The private tracker keeps the raw recipient data. A failed or held runner result is a hard stop for an external action.
 
@@ -73,7 +75,7 @@ Every action in the table that sends, publishes, orders, or posts runs only unde
 | Verification loop | Verification Sent / Proof Requested / Address Verification | Send only the tailored request for missing fields. Set due date to two days later. | Message send is visible in the correct thread and logged. |
 | Verified | Verification Confirmed | Reconcile latest reply against the Creator Record ID and recalculate score. | Required information matches the same resolved record. |
 | Sample eligible | Approved for Sample | Run the full MCF pre-flight. Do not create an order yet unless that action is permitted. | Score is exactly 10/10 and every fulfillment gate passes. |
-| Fulfilled | Sample Sent | Record order ID, one unit, fee, shipment and estimated delivery. Send confirmation only after order confirmation. | MCF confirmation screen and order ID match the record. |
+| Fulfilled | Sample Sent | Record order ID, one unit, fee, shipment and estimated delivery. Send confirmation only after order confirmation. | MCF confirmation screen and order ID match the record, or, for a lane handed to Arcana, `creators.sample_send_outcome` is `placed` and `record-api-order` passed. |
 | Delivery/content follow-up | Delivered / Awaiting Content / Follow Up | Start a kind follow-up at delivery plus three days, then every two days. | Due date and sent-message audit entry exist. |
 | Content/performance | Content Posted / Performance Update | Verify the link, write it to the campaign row, thank the creator when permitted. | Link opens and record/product match is visible or stated. |
 | Stop state | On Hold / Unqualified / Ghosted / Declined / Closed / Product Pause | Stop routine action, retain history, and log the reason. | Pause, risk, refusal, or cadence threshold is recorded. |
@@ -96,11 +98,14 @@ All checks must pass in the same run immediately before order creation:
 3. Creator record, campaign ID, tracker source row, final requested ASIN, catalog campaign, MCF SKU, and selected MCF product match exactly.
 4. Full name, street address, city, state/province, ZIP/postal code, phone, and email are present and their current HMAC fingerprints match the registry record.
 5. No prior sample exists for the same Creator Record ID and final product/ASIN. The synchronized registry's `sample_history` is authoritative for the deterministic gate; reconcile it against the tracker and MCF order history before pre-flight. Caller-supplied proposal history may add evidence but can never hide registry history.
-6. Quantity equals exactly `1`. Standard shipping is selected. The visible fee is within the client-approved cap.
+6. Quantity equals exactly `1`. Standard shipping is selected. The visible fee is within the client-approved cap. For a lane handed to Arcana only the cap is checked here; Arcana's preview checks the fee against it before the operator can send.
 7. The selected SKU is explicitly FBA/AFN fulfilled, is MCF-fulfillable, and has at least one currently fulfillable unit. Record the inventory-check timestamp and a private evidence reference from live MCF or an approved SP-API worker. An active FBM listing or seller-fulfilled quantity does not pass this gate.
 8. There are no page validation errors, recipient mismatches, or field truncations. Thread, pre-flight, and inventory evidence references are present.
 
-After `preflight` passes, run `reserve-mcf`. The returned reservation ID binds the creator, campaign, tracker row, ASIN, SKU, one-unit quantity, recipient fingerprint, fee cap, and evidence. Populate MCF, capture the screen, and run `verify-mcf` with that reservation ID before submitting. `confirm-mcf` must match the same reservation ID, ASIN, SKU, and one-unit quantity. If any check fails, keep the record locked and escalate. Never make a corrective second order to compensate for an uncertain first order.
+After `preflight` passes, call `creators.preflight_result` and run `reserve-mcf` with its `derived_order_key`. The returned reservation ID binds the creator, campaign, tracker row, ASIN, SKU, one-unit quantity, recipient fingerprint, fee cap, evidence, order owner, and derived order key. If any check fails, keep the record locked and escalate. Never make a corrective second order to compensate for an uncertain first order.
+
+- **Handed to Arcana** (order owner `arcana`, the normal route): call `creators.register_record` right away. An owner or admin types the address from the named tracker row on the Arcana lane screen and presses "Send 1 unit via Amazon"; nothing fills the Seller Central form. Arcana does not compare that typed address with the recipient fingerprints in check 4, so the recorded order carries the note "recipient: operator-entered in Arcana, binding unverified". Read `creators.sample_send_outcome`, classify it with `arcana-outcome`, and record the order with `record-api-order` only when it is `placed`. `failed` releases the lock with `cancel-mcf` reason `amazon_rejected` and that failed outcome; `pending` and `uncertain` wait and are never cancelled here; an escalated or `cancelled` send is escalated. If `creators.register_record` refuses the row, keep the lock, do not offer the lane to the operator, and escalate.
+- **Seller Central form** (order owner `runner`, only when the operator names that route): populate MCF with the stored derived key as the order ID, capture the screen, and run `verify-mcf` with that reservation ID before submitting. `confirm-mcf` must match the same reservation ID, ASIN, SKU, one-unit quantity, and order ID.
 
 If Amazon definitively rejects the order or evidence proves it was not submitted, run `cancel-mcf` with an allowed definitive reason and evidence reference. This appends a cancellation event and safely releases the reservation. A timeout, missing confirmation, or unknown outcome is not cancellable: the record moves to `Reconciliation Required` and remains locked until order history proves whether an order exists.
 
@@ -132,6 +137,7 @@ Escalate only when the bot cannot safely resolve or complete a task:
 - missing or conflicting recipient details
 - creator remains below 10/10 or unresponsive after the configured cadence
 - MCF pre-flight, quantity, fee, page-validation, or confirmation failure
+- an Arcana send that is escalated, `cancelled`, or `failed` after its order was recorded
 - message, tracker, or verified content-link failure
 - paused product, legal/review-manipulation, payment, or off-platform request
 

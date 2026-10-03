@@ -218,6 +218,115 @@ UNCERTAIN_MCF_CANCELLATION_REASONS = {
 }
 
 
+# Arcana (wizard-ads) derives the sample order key from its org id, the record
+# and the ASIN. The runner cannot compute it and never tries: it stores the key
+# exactly as creators.preflight_result returned it in derived_order_key.
+CCS_ORDER_KEY = re.compile(r"CCS-[0-9a-f]{32}")
+ORDER_OWNERS = ("runner", "arcana")
+ARCANA_BINDING_NOTE = "recipient: operator-entered in Arcana, binding unverified"
+
+# creators.sample_send_outcome: the eight fields it returns and the class of
+# each send state, mirrored from CreatorMcfSendOutcome in wizard-ads.
+ARCANA_OUTCOME_KEYS = frozenset(
+    ("derivedOrderKey", "state", "class", "escalated", "mcfStatus", "acceptedAt", "placedAt", "reservationId")
+)
+ARCANA_OUTCOME_CLASS = {
+    **dict.fromkeys(
+        ("sealed", "previewing", "preview_ready", "stale", "approved", "dispatching", "accepted"), "pending"
+    ),
+    "placed": "placed",
+    **dict.fromkeys(("uncertain", "conflict", "cancel_requested", "cancel_dispatching"), "uncertain"),
+    **dict.fromkeys(
+        (
+            "preview_refused", "withdrawn", "expired", "expired_unclaimed", "rejected",
+            "not_created", "failed_by_amazon", "failed_after_placement",
+        ),
+        "failed",
+    ),
+    "cancelled": "cancelled",
+}
+
+
+def valid_order_key(value: Any) -> str:
+    """Return the CCS key unchanged when it has the exact form, else ''."""
+    return value if isinstance(value, str) and CCS_ORDER_KEY.fullmatch(value) else ""
+
+
+def proposal_order_owner(proposal: dict[str, Any]) -> str:
+    """Who places the order: the browser/operator path ('runner') or Arcana."""
+    raw = proposal.get("order_owner")
+    if raw is None or raw == "":
+        return "runner"
+    owner = normalized(raw)
+    if owner not in ORDER_OWNERS:
+        raise Hold("order_owner must be 'runner' or 'arcana'.")
+    return owner
+
+
+def reservation_owner(reservation: dict[str, Any]) -> str:
+    return normalized(reservation.get("order_owner")) or "runner"
+
+
+def order_key_in_use(registry: dict[str, Any], key: str, reservation_id: str = "") -> bool:
+    """True when another reservation holds or has recorded this order key."""
+    for entry in registry.get("records", []):
+        for historical in entry.get("sample_history") or []:
+            if (
+                str(historical.get("order_id") or "").strip() == key
+                and normalized(historical.get("reservation_id")).upper() != reservation_id
+            ):
+                return True
+        reservation = entry.get("mcf_reservation") or {}
+        if reservation.get("derived_order_key") == key and active_reservation_id(entry) != reservation_id:
+            return True
+    return False
+
+
+def arcana_outcome(outcome: Any) -> dict[str, Any]:
+    """Check one creators.sample_send_outcome payload and say what it permits."""
+    if not isinstance(outcome, dict) or set(outcome) != ARCANA_OUTCOME_KEYS:
+        raise Hold("The Arcana outcome must be the creators.sample_send_outcome payload with exactly its eight fields.")
+    state, outcome_class = outcome.get("state"), outcome.get("class")
+    if ARCANA_OUTCOME_CLASS.get(state) is None or ARCANA_OUTCOME_CLASS[state] != outcome_class:
+        raise Hold("The Arcana outcome state and class do not agree with the known send states.")
+    key = valid_order_key(outcome.get("derivedOrderKey"))
+    reservation_id = str(outcome.get("reservationId") or "").strip().upper()
+    if not key or not reservation_id or type(outcome.get("escalated")) is not bool:
+        raise Hold("The Arcana outcome lacks a valid derivedOrderKey, reservationId or escalated flag.")
+    placed_at = outcome.get("placedAt")
+    if (state == "placed" or placed_at is not None) and not iso_timestamp(placed_at):
+        raise Hold("A placed Arcana outcome must carry placedAt as an ISO timestamp.")
+    # The digest covers only what stays fixed for one send event, so the same
+    # event always yields the same reference (mcfStatus changes on every read).
+    digest = hashlib.sha256(f"{key}|{reservation_id}|{state}|{placed_at or ''}".encode("utf-8")).hexdigest()
+    if outcome["escalated"] or outcome_class == "cancelled":
+        next_action = "escalate"
+    elif outcome_class == "placed":
+        next_action = "record-api-order"
+    elif outcome_class == "failed":
+        next_action = "cancel-mcf amazon_rejected"
+    else:
+        next_action = "wait"
+    return {
+        "result": "PASS",
+        "state": state,
+        "class": outcome_class,
+        "escalated": outcome["escalated"],
+        "derived_order_key": key,
+        "reservation_id": reservation_id,
+        "evidence_reference": f"arcana:send:{key}:{digest}",
+        "next_action": next_action,
+    }
+
+
+def reservation_quantity(reservation: dict[str, Any]) -> int:
+    """The reserved quantity; a corrupt value holds instead of crashing."""
+    try:
+        return int(reservation.get("quantity") or 0)
+    except (TypeError, ValueError):
+        raise Hold("The reservation quantity is not a whole number; review the registry row.") from None
+
+
 def active_reservation_id(entry: dict[str, Any]) -> str:
     """Return a stable ID, including for reservations created before IDs existed."""
     reservation = entry.get("mcf_reservation") or {}
@@ -591,6 +700,7 @@ def product_switch_preflight(registry: dict[str, Any], proposal: dict[str, Any],
 
 
 def mcf_preflight(registry: dict[str, Any], proposal: dict[str, Any], secret: bytes) -> dict[str, Any]:
+    order_owner = proposal_order_owner(proposal)
     record = proposal.get("creator") or {}
     identity = resolve_record(registry, record, secret)
     errors: list[str] = []
@@ -658,16 +768,22 @@ def mcf_preflight(registry: dict[str, Any], proposal: dict[str, Any], secret: by
     if quantity != 1: errors.append("quantity_must_equal_1")
     errors.extend(mcf_inventory_errors(catalog_item, max(quantity, 1)))
     if normalized(proposal.get("shipping_speed")) != "standard": errors.append("shipping_must_be_standard")
+    # A lane handed to Arcana has no visible form fee yet: Arcana's preview
+    # checks the fee against this cap. Only the cap is required here; a fee
+    # given anyway must still be within it.
     fee = None
     cap = None
     try:
-        if proposal.get("visible_fee_cents") is None or proposal.get("approved_fee_cap_cents") is None:
-            raise ValueError("fee or cap missing")
-        fee = int(proposal["visible_fee_cents"])
+        if proposal.get("approved_fee_cap_cents") is None:
+            raise ValueError("cap missing")
         cap = int(proposal["approved_fee_cap_cents"])
+        if proposal.get("visible_fee_cents") is not None:
+            fee = int(proposal["visible_fee_cents"])
+        elif order_owner != "arcana":
+            raise ValueError("fee missing")
     except (TypeError, ValueError):
         errors.append("fee_missing_or_invalid")
-    if fee is not None and cap is not None and (cap < 0 or fee > cap):
+    if cap is not None and (cap < 0 or (fee is not None and fee > cap)):
         errors.append("fee_exceeds_approved_cap")
     registry_history = resolved.get("sample_history") or []
     proposal_history = proposal.get("sample_history") or []
@@ -714,6 +830,15 @@ def reserve_mcf(registry: dict[str, Any], proposal: dict[str, Any], secret: byte
     result = mcf_preflight(registry, proposal, secret)
     if result["result"] != "PASS":
         return result
+    derived_order_key = valid_order_key(proposal.get("derived_order_key"))
+    if not derived_order_key:
+        raise Hold(
+            "reserve-mcf requires derived_order_key exactly as creators.preflight_result returned it "
+            "(CCS- plus 32 lower-case hex). The runner never computes it."
+        )
+    if order_key_in_use(registry, derived_order_key):
+        raise Hold("derived_order_key is already held or recorded by another reservation.")
+    order_owner = proposal_order_owner(proposal)
     identifier, asin = result["creator_record_id"], result["selected_asin"]
     reservation_id = "MCFR-" + secrets.token_hex(8).upper()
     reservation = {
@@ -735,7 +860,14 @@ def reserve_mcf(registry: dict[str, Any], proposal: dict[str, Any], secret: byte
             (proposal.get("product_catalog") or {}).get(asin, {}).get("fulfillment_evidence_reference") or ""
         ).strip(),
         "reserved_at": datetime.now(timezone.utc).isoformat(),
+        "derived_order_key": derived_order_key,
     }
+    if order_owner == "arcana":
+        # Absent means runner: a Seller Central lane keeps its older shape.
+        reservation["order_owner"] = order_owner
+    if reservation["visible_fee_cents"] is None:
+        # Cap-only lanes handed to Arcana: the fee is Arcana's preview's to show.
+        reservation.pop("visible_fee_cents")
     for entry in registry["records"]:
         if entry.get("creator_record_id") == identifier:
             entry["lock_state"] = "Locked for MCF"
@@ -746,6 +878,8 @@ def reserve_mcf(registry: dict[str, Any], proposal: dict[str, Any], secret: byte
                 "reservation": "LOCKED_FOR_MCF",
                 "reservation_id": reservation_id,
                 "reservation_state": "Reserved",
+                "derived_order_key": derived_order_key,
+                "order_owner": order_owner,
             }
     raise Hold("Resolved record vanished before MCF reservation.")
 
@@ -764,6 +898,12 @@ def verify_mcf(registry: dict[str, Any], payload: dict[str, Any], secret: bytes)
         errors.append("reservation_id_mismatch")
     if normalized(reservation.get("state")) not in {"reserved", "verified for submit"}:
         errors.append("reservation_not_verifiable")
+    if reservation_owner(reservation) == "arcana":
+        # Handed over: Arcana places this order. The Seller Central form is not filled.
+        errors.append("reservation_handed_over_to_arcana")
+    stored_key = reservation.get("derived_order_key")
+    if stored_key and payload.get("order_id") != stored_key:
+        errors.append("screen_order_id_mismatch")
     comparisons = {
         "creator_record_id": identifier,
         "campaign_id": normalized(payload.get("campaign_id")),
@@ -782,7 +922,7 @@ def verify_mcf(registry: dict[str, Any], payload: dict[str, Any], secret: bytes)
     except (TypeError, ValueError):
         quantity = 0
         errors.append("quantity_invalid")
-    if quantity != 1 or quantity != int(reservation.get("quantity") or 0):
+    if quantity != 1 or quantity != reservation_quantity(reservation):
         errors.append("quantity_must_equal_reserved_one")
     if normalized(payload.get("shipping_speed")) != "standard":
         errors.append("shipping_must_be_standard")
@@ -838,6 +978,7 @@ def verify_mcf(registry: dict[str, Any], payload: dict[str, Any], secret: bytes)
         "selected_asin": reservation["asin"],
         "selected_sku": reservation["sku"],
         "quantity": reservation["quantity"],
+        "order_id": stored_key or "",
     }
 
 
@@ -861,11 +1002,16 @@ def confirm_mcf(
         raise Hold("MCF confirmation does not match an active reservation.")
     if normalized(reservation.get("state")) != "verified for submit":
         raise Hold("MCF reservation must pass populated-screen verification before confirmation.")
+    if reservation_owner(reservation) == "arcana":
+        raise Hold("This reservation is handed over to Arcana; record its order with record-api-order.")
+    stored_key = reservation.get("derived_order_key")
+    if stored_key and order_id != stored_key:
+        raise Hold("The order ID must be the reservation's stored derived order key.")
     expected = (
         normalized(reservation.get("reservation_id")).upper(),
         normalized(reservation.get("asin")).upper(),
         normalized(reservation.get("sku")).upper(),
-        int(reservation.get("quantity") or 0),
+        reservation_quantity(reservation),
     )
     actual = (normalized(reservation_id).upper(), normalized(asin).upper(), normalized(sku).upper(), quantity)
     if actual != expected:
@@ -932,6 +1078,11 @@ def reconcile_mcf(registry: dict[str, Any], payload: dict[str, Any], secret: byt
         or normalized(reservation.get("state")) != "reconciliation required"
     ):
         raise Hold("Reconciliation requires an active reservation with an uncertain order outcome.")
+    if reservation_owner(reservation) == "arcana":
+        raise Hold("This reservation is handed over to Arcana; its outcome comes from creators.sample_send_outcome.")
+    stored_key = reservation.get("derived_order_key")
+    if stored_key and evidence["order_id"] != stored_key:
+        raise Hold("Reconciliation order ID must be the reservation's stored derived order key.")
     for key in ("creator_record_id", "reservation_id", "campaign_id", "tracker_source_ref", "asin", "sku", "product_title", "recipient_binding", "quantity"):
         expected = reservation.get(key)
         if key in {"creator_record_id", "reservation_id", "asin", "sku"}:
@@ -957,12 +1108,220 @@ def reconcile_mcf(registry: dict[str, Any], payload: dict[str, Any], secret: byt
     }
 
 
+def record_api_order(registry: dict[str, Any], payload: dict[str, Any]) -> dict[str, Any]:
+    """Record an order Arcana placed through SP-API; never place or change one.
+
+    Runs only from a Reserved reservation handed to Arcana, only for a `placed`
+    outcome under the reservation's stored derived order key. Arcana does not
+    compare the address the operator typed with the runner's recipient binding
+    (decision D4), so the history entry says the binding is unverified.
+    """
+    key = valid_order_key(payload.get("derived_order_key"))
+    if not key:
+        raise Hold("derived_order_key must be CCS- plus 32 lower-case hex, exactly as creators.preflight_result returned it.")
+    if type(payload.get("quantity")) is not int or payload["quantity"] != 1:
+        raise Hold("An Arcana order is recorded for exactly one unit.")
+    identifier = normalized(payload.get("creator_record_id")).upper()
+    reservation_id = normalized(payload.get("reservation_id")).upper()
+    asin = normalized(payload.get("asin")).upper()
+    sku = normalized(payload.get("sku")).upper()
+    if not all((identifier, reservation_id, asin, sku)):
+        raise Hold("record-api-order requires the Creator Record ID, reservation ID, ASIN and SKU.")
+    outcome = arcana_outcome(payload.get("outcome"))
+    if outcome["class"] != "placed" or outcome["state"] != "placed":
+        raise Hold(f"Arcana send is {outcome['state']} ({outcome['class']}); an order is recorded only when it is placed.")
+    if outcome["escalated"]:
+        raise Hold("Arcana has escalated this send; an operator must look at the lane before anything is recorded.")
+    if outcome["derived_order_key"] != key or outcome["reservation_id"] != reservation_id:
+        raise Hold("The Arcana outcome names another order key or reservation.")
+    entry = find_registry_record(registry, identifier)
+    if not entry:
+        raise Hold("Creator Record ID does not exist in the registry.")
+    for historical in entry.get("sample_history") or []:
+        if normalized(historical.get("reservation_id")).upper() != reservation_id:
+            continue
+        if (
+            historical.get("order_id") != key
+            or normalized(historical.get("asin")).upper() != asin
+            or normalized(historical.get("sku")).upper() != sku
+            or historical.get("recipient_note") != ARCANA_BINDING_NOTE
+        ):
+            raise Hold("This reservation already has a different recorded order.")
+        return {
+            "result": "PASS", "creator_record_id": identifier, "reservation_id": reservation_id,
+            "order_id": key, "evidence_reference": historical.get("evidence_reference"),
+            "state": "already_recorded",
+        }
+    reservation = entry.get("mcf_reservation") or {}
+    if normalized(entry.get("lock_state")) != "locked for mcf" or normalized(reservation.get("state")) != "reserved":
+        raise Hold("record-api-order runs only from a Reserved MCF reservation.")
+    if reservation_owner(reservation) != "arcana":
+        raise Hold("This reservation was not handed over to Arcana.")
+    if (
+        active_reservation_id(entry) != reservation_id
+        or normalized(reservation.get("creator_record_id")).upper() != identifier
+        or normalized(reservation.get("asin")).upper() != asin
+        or normalized(reservation.get("sku")).upper() != sku
+        or reservation_quantity(reservation) != 1
+    ):
+        raise Hold("record-api-order does not match the active reservation manifest.")
+    if reservation.get("derived_order_key") != key:
+        raise Hold("derived_order_key is not the key stored in this reservation.")
+    if order_key_in_use(registry, key, reservation_id):
+        raise Hold("This order key is already recorded on another reservation.")
+    entry["sample_history"] = entry.get("sample_history", []) + [{
+        "reservation_id": reservation_id,
+        "creator_record_id": identifier,
+        "campaign_id": reservation.get("campaign_id"),
+        "tracker_source_ref": reservation.get("tracker_source_ref"),
+        "asin": asin,
+        "sku": sku,
+        "product_title": reservation.get("product_title"),
+        "quantity": 1,
+        "order_id": key,
+        "status": "Confirmed",
+        "evidence_reference": outcome["evidence_reference"],
+        "recipient_note": ARCANA_BINDING_NOTE,
+        "confirmed_at": datetime.now(timezone.utc).isoformat(),
+    }]
+    entry["lock_state"] = "Unlocked"
+    entry.pop("mcf_reservation", None)
+    entry["version"] = int(entry.get("version") or 0) + 1
+    return {
+        "result": "PASS", "creator_record_id": identifier, "reservation_id": reservation_id,
+        "order_id": key, "evidence_reference": outcome["evidence_reference"],
+        "recipient": ARCANA_BINDING_NOTE, "state": "api_order_recorded",
+    }
+
+
+SWEEP_COUNT_KEYS = (
+    "mounted", "opened", "changed", "messages_examined", "messages_sent",
+    "no_action_acknowledgements", "held_or_escalated", "archived_spam", "unmatched",
+)
+SWEEP_OUTCOMES = {"unchanged", "actioned", "held", "escalated", "unmatched", "unopened", "unclassified"}
+SWEEP_SENDER_ROLES = {"creator", "brand", "amazon"}
+
+
+def iso_timestamp(value: Any) -> bool:
+    if not isinstance(value, str):
+        return False
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00")).tzinfo is not None
+    except ValueError:
+        return False
+
+
+def sweep_checkpoint(sweep: dict[str, Any], secret: bytes) -> dict[str, Any]:
+    """Build sweep-checkpoint.json: counts and per-thread fingerprints, never a message or a thread link."""
+    problems: list[str] = []
+    run_id = sweep.get("run_id")
+    if not isinstance(run_id, str) or not re.fullmatch(r"[A-Za-z0-9:_.-]{1,80}", run_id):
+        problems.append("run_id")
+    run_date = sweep.get("run_date")
+    try:
+        date.fromisoformat(run_date if isinstance(run_date, str) and len(run_date) == 10 else "")
+    except ValueError:
+        problems.append("run_date")
+    brand = sweep.get("brand")
+    if brand is not None and (not isinstance(brand, str) or len(brand.strip()) > 200):
+        problems.append("brand")
+    if sweep.get("started_at") is not None and not iso_timestamp(sweep.get("started_at")):
+        problems.append("started_at")
+    if not iso_timestamp(sweep.get("completed_at")):
+        problems.append("completed_at")
+    evidence = sweep.get("evidence_reference")
+    if evidence is not None and (not isinstance(evidence, str) or not 1 <= len(evidence.strip()) <= 500):
+        problems.append("evidence_reference")
+    counts = sweep.get("counts")
+    if (
+        not isinstance(counts, dict)
+        or set(counts) != set(SWEEP_COUNT_KEYS)
+        or any(type(counts[key]) is not int or counts[key] < 0 for key in SWEEP_COUNT_KEYS)
+    ):
+        problems.append("counts")
+    elif counts["archived_spam"] > counts["changed"]:
+        problems.append("counts.archived_spam")
+    threads = sweep.get("threads")
+    checkpoints: list[dict[str, Any]] = []
+    if not isinstance(threads, list):
+        problems.append("threads")
+        threads = []
+    for index, thread in enumerate(threads):
+        thread = thread if isinstance(thread, dict) else {}
+        record_id = thread.get("creator_record_id")
+        outcome = thread.get("outcome")
+        reason = thread.get("reason")
+        checks = {
+            "thread_key": isinstance(thread.get("thread_key"), str) and bool(normalized(thread.get("thread_key"))),
+            "body": isinstance(thread.get("body"), str) and bool(normalized(thread.get("body"))),
+            "creator_record_id": record_id is None
+            or (isinstance(record_id, str) and bool(re.fullmatch(r"CCR-[A-Z0-9]+-\d{2}-\d{4,}", record_id)) and outcome != "unmatched"),
+            "sender_role": thread.get("sender_role") in SWEEP_SENDER_ROLES,
+            "amazon_timestamp": thread.get("amazon_timestamp") is None or iso_timestamp(thread.get("amazon_timestamp")),
+            "outcome": outcome in SWEEP_OUTCOMES,
+            "reason": reason is None or (isinstance(reason, str) and bool(re.fullmatch(r"[a-z0-9_]{1,120}", reason))),
+        }
+        failed = [name for name, passed in checks.items() if not passed]
+        if failed:
+            problems.extend(f"threads[{index}].{name}" for name in failed)
+            continue
+        checkpoints.append({
+            "thread_key": fingerprint(secret, "thread", normalized(thread["thread_key"])),
+            "creator_record_id": record_id,
+            "sender_role": thread["sender_role"],
+            "amazon_timestamp": thread.get("amazon_timestamp"),
+            "body_hash": fingerprint(secret, "message_body", normalized(thread["body"])),
+            "outcome": outcome,
+            "reason": reason,
+        })
+    if problems:
+        # Name the failing fields only: the input holds message bodies.
+        raise Hold("Sweep checkpoint input is invalid: " + ", ".join(problems[:20]))
+    return {
+        "schema_version": 1,
+        "run_id": run_id,
+        "run_date": run_date,
+        "brand": brand.strip() if isinstance(brand, str) else None,
+        "started_at": sweep.get("started_at"),
+        "completed_at": sweep["completed_at"],
+        "evidence_reference": evidence.strip() if isinstance(evidence, str) else None,
+        "counts": {key: counts[key] for key in SWEEP_COUNT_KEYS},
+        "threads": checkpoints,
+    }
+
+
+def check_arcana_release(
+    reservation: dict[str, Any], reservation_id: str, reason: str, evidence_reference: str, outcome: Any,
+) -> None:
+    """Hold any release of an Arcana lane that its send outcome does not justify."""
+    stored_key = reservation.get("derived_order_key") or ""
+    if reason in UNCERTAIN_MCF_CANCELLATION_REASONS:
+        # Arcana owns an uncertain send; Reconciliation Required would strand a later `placed`.
+        raise Hold("An uncertain Arcana send is not cancelled here: wait for creators.sample_send_outcome to settle.")
+    if reason == "amazon_rejected":
+        checked = arcana_outcome(outcome)
+        if (
+            checked["class"] != "failed"
+            or checked["escalated"]
+            or checked["derived_order_key"] != stored_key
+            or checked["reservation_id"] != reservation_id
+            or evidence_reference != checked["evidence_reference"]
+        ):
+            raise Hold(
+                "amazon_rejected releases an Arcana lane only with its unescalated failed outcome for this "
+                "reservation and stored key, and that outcome's evidence reference."
+            )
+    elif not stored_key or not evidence_reference.startswith(f"arcana:send:{stored_key}:"):
+        raise Hold("Releasing an Arcana lane needs an evidence reference beginning arcana:send:<stored key>:.")
+
+
 def cancel_mcf(
     registry: dict[str, Any],
     identifier: str,
     reservation_id: str,
     reason_code: str,
     evidence_reference: str,
+    outcome: Any = None,
 ) -> dict[str, Any]:
     """Release only a definitively unsubmitted or definitively failed order."""
     if not all((identifier, reservation_id, reason_code, evidence_reference)):
@@ -985,6 +1344,8 @@ def cancel_mcf(
     if active_reservation_id(entry) != wanted_reservation:
         raise Hold("Cancellation does not match the active MCF reservation.")
     reason = normalized(reason_code).replace(" ", "_")
+    if reservation_owner(reservation) == "arcana":
+        check_arcana_release(reservation, wanted_reservation, reason, evidence_reference, outcome)
     if reason in UNCERTAIN_MCF_CANCELLATION_REASONS:
         reservation["state"] = "Reconciliation Required"
         reservation["reconciliation_reason"] = reason
@@ -1086,6 +1447,15 @@ def main() -> None:
     cancel.add_argument("--reservation-id", required=True)
     cancel.add_argument("--reason-code", required=True)
     cancel.add_argument("--evidence-reference", required=True)
+    cancel.add_argument("--outcome", help="creators.sample_send_outcome payload; required for amazon_rejected on an Arcana lane")
+    outcome_check = sub.add_parser("arcana-outcome")
+    outcome_check.add_argument("--input", required=True)
+    api_order = sub.add_parser("record-api-order")
+    api_order.add_argument("--registry", required=True)
+    api_order.add_argument("--input", required=True)
+    sweep_parser = sub.add_parser("sweep-checkpoint")
+    sweep_parser.add_argument("--input", required=True)
+    sweep_parser.add_argument("--output", required=True)
     list_reservations = sub.add_parser("list-mcf")
     list_reservations.add_argument("--registry", required=True)
     migrate = sub.add_parser("migrate-legacy")
@@ -1094,6 +1464,7 @@ def main() -> None:
     migrate.add_argument("--output", required=True)
     migrate.add_argument("--date", default=date.today().isoformat())
     args = parser.parse_args()
+    cancel_outcome = read_json(args.outcome) if getattr(args, "outcome", None) else None
     try:
         secret = get_secret(args.secret_env)
         if args.command == "register":
@@ -1171,9 +1542,23 @@ def main() -> None:
                     args.reservation_id,
                     args.reason_code,
                     args.evidence_reference,
+                    cancel_outcome,
                 ),
             )
             emit(result)
+        if args.command == "arcana-outcome":
+            emit(arcana_outcome(read_json(args.input)))
+        if args.command == "record-api-order":
+            payload = read_json(args.input)
+            result = mutate_registry(
+                args.registry,
+                lambda registry: record_api_order(registry, payload),
+            )
+            emit(result)
+        if args.command == "sweep-checkpoint":
+            checkpoint = sweep_checkpoint(read_json(args.input), secret)
+            write_json(args.output, checkpoint)
+            emit({"result": "PASS", "run_id": checkpoint["run_id"], "threads": len(checkpoint["threads"]), "output": args.output})
         if args.command == "list-mcf":
             emit(list_mcf_reservations(load_registry(args.registry)))
         if args.command == "migrate-legacy":
