@@ -52,12 +52,17 @@ The complete visual MAG SOP archive (all captured SOPs plus every screenshot/GIF
 
 Routing is by session, not by agent, and lives in the Browser Standard in `AGENTS.md`. The per-workflow table is `docs/browser-routing-map.md`. Browser choice never overrides account/marketplace verification or stop-before-risk rules.
 
-Managed Chrome on port 9223 is the default: the shared `grimoire` session used by
-direct chat, Slack and scheduled workers. Port 9222 is the separate `operator`
-browser, selected only for explicitly requested operator work. Action rights come
-from the capability matrix in `docs/rights/README.md`, not from the port. The T3
-Code in-app browser is explicit only and is never a silent fallback, especially
-for login, upload, or download work.
+Grimoire's Slack and scheduled runs use the shared `grimoire` session on port
+9223, and Grimoire always stays there. Attended direct chat uses the machine's
+attended default, set per machine in `routing.attended_cdp_port` of the
+setup-owned browser policy: Evo X1 sets 9222, so attended work there runs on the
+separate `operator` browser with the operator's own Seller Central login; every
+other machine keeps `grimoire` on 9223. Launch attended browser commands with
+`node tools/browserctl/browserctl.mjs run -- <command>`; session resolution and
+pinning are in `tools/browserctl/README.md`. Action rights come from the
+capability matrix in `docs/rights/README.md`, not from the port. The T3 Code
+in-app browser is explicit only and is never a silent fallback, especially for
+login, upload, or download work.
 
 CDP runners start or reuse the machine-policy profile automatically on the first
 applicable task. Seller Central and FlatFilePro may use the exact-origin
