@@ -2,7 +2,7 @@
 import { readFile } from 'node:fs/promises';
 import { basename, dirname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { acquireTaskPage,releaseTaskPage,taskIdFor } from '../browserctl/task-tabs.mjs';
+import { acquireTaskPageWithRegionWait,releaseTaskPage,taskIdFor } from '../browserctl/task-tabs.mjs';
 import * as ui from './browser-ui.mjs';
 
 export function verifyCatalogPreview(state,stage) {
@@ -17,7 +17,7 @@ export async function run(input) {
   const {plan}=input,stage=plan.body.stages[input.stage-1];
   ui.check(stage&&input.stage>=1,'Invalid catalog stage');
   const origin=ui.origins[plan.account.marketplace];ui.check(origin,'Unsupported marketplace');
-  const page=await acquireTaskPage({taskId:taskIdFor('amazon-operations',plan.operation_id),workflow:'amazon-catalog',initialUrl:origin+'/home',exclusiveContext:true,sellerCentral:{marketplace:plan.account.marketplace,origin}});
+  const page=await acquireTaskPageWithRegionWait({taskId:taskIdFor('amazon-operations',plan.operation_id),workflow:'amazon-catalog',initialUrl:origin+'/home',exclusiveContext:true,sellerCentral:{marketplace:plan.account.marketplace,origin}});
   let attempted=false,outcome='error';
   const result=data=>({schema_version:1,plan_hash:input.plan_hash,stage:input.stage,...data});
   try {

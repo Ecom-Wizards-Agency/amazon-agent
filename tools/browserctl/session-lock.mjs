@@ -15,9 +15,11 @@ function validate(root){let record=read(root),token=process.env.AMAZON_BROWSER_L
  if(!token||record.token!==token||!alive(record.pid))throw new Error('BROWSER_SESSION_LOCK_LOST: reacquire the workflow');
  for(const next of chain()){record=read(`${root}.child-${token}`);if(record.token!==next||!alive(record.pid))throw new Error('BROWSER_SESSION_LOCK_LOST: child control lost');token=next;}
  return token;}
+// Only Grimoire's 9223 carries the port-wide session lock; 9222 work serializes on task claims.
+export const portHasSessionLock=port=>Number(port)===9223;
 export function assertSessionLock(port){if(Number(port)===9223)validate(rootPath(port));}
 export function acquireSessionLock(port=9223,owner=`node:${process.pid}`){
- if(Number(port)!==9223)return ()=>{};
+ if(!portHasSessionLock(port))return ()=>{};
  if(launcherRelease)throw new Error('BROWSER_SESSION_BUSY: launcher release pending');
  const root=rootPath(port),local=locks.get(root);
  if(local){validate(root);local.users++;return ()=>release(root,local);}

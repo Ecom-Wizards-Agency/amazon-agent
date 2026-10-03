@@ -10,7 +10,7 @@ import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { evaluate } from '../report-fetcher/cdp.mjs';
 import { switchAccount, readIdentity } from '../report-fetcher/sc-account.mjs';
-import { acquireTaskPage, releaseTaskPage, taskIdFor } from '../browserctl/task-tabs.mjs';
+import { acquireTaskPage, acquireTaskPageWithRegionWait, releaseTaskPage, taskIdFor } from '../browserctl/task-tabs.mjs';
 import { acquireSessionLock } from '../browserctl/session-lock.mjs';
 import * as ui from './browser-ui.mjs';
 import { assertSession } from './seller-assistant.mjs';
@@ -285,7 +285,15 @@ export function caseSession(mode,env=process.env,cgroup=undefined){
   return binding;
 }
 
-export async function run(input){
+// operations.py stops a collector after 180 s (run_collector). An attended observe
+// keeps 120 s for its own work, so it waits for a busy region (9222) only until
+// 60 s after start and answers blocked/TASK_TAB_BUSY itself when the region comes
+// free later than that.
+export const COLLECTOR_TIMEOUT_MS=180000;
+export const OBSERVE_WORK_RESERVE_MS=120000;
+
+export async function run(input,{acquireObserve=acquireTaskPageWithRegionWait}={}){
+  const started=Date.now();
   ui.check(input.schema_version===1&&['observe','execute'].includes(input.mode),'Case mode must be observe or execute');
   const binding=caseSession(input.mode);
   if(input.mode==='execute'){
@@ -308,7 +316,9 @@ export async function run(input){
   };
   process.once('SIGTERM',onSigterm);
   try{
-    page=await acquireTaskPage({closeOnFailure:input.close_tab_after===true,taskId:taskIdFor('amazon-operations',plan?.operation_id||input.operation_id),workflow:'amazon-communications',initialUrl:origin+'/home',exclusiveContext:true,sellerCentral:{marketplace:caseBrowserAccount(account).marketplace,origin}});
+    const spec={closeOnFailure:input.close_tab_after===true,taskId:taskIdFor('amazon-operations',plan?.operation_id||input.operation_id),workflow:'amazon-communications',initialUrl:origin+'/home',exclusiveContext:true,sellerCentral:{marketplace:caseBrowserAccount(account).marketplace,origin}};
+    // Grimoire (9223, port lock) and execute keep the single attempt.
+    page=input.mode==='observe'&&!binding.lockPort?await acquireObserve(spec,{workBy:started+COLLECTOR_TIMEOUT_MS-OBSERVE_WORK_RESERVE_MS}):await acquireTaskPage(spec);
     await switchAccount(page.session,origin,{accountName:account.seller_central_name||account.seller_account,marketplaceLabel:account.marketplace_label,marketplace:caseBrowserAccount(account).marketplace,parentAccountName:account.parent_account_name},{returnTo:'/home'});
     const homeIdentity=await readIdentity(page.session);
     await context(page,account,homeIdentity);

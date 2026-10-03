@@ -55,6 +55,7 @@ const sources={
  'node:child_process':`export const execFileSync=(...args)=>globalThis.__wp16dOutput.exec(...args);`,
  'task-tabs.mjs':`export const taskIdFor=(...v)=>v.join(':');
  export async function acquireTaskPage(spec){const s=globalThis.__wp16dOutput;s.beforeAcquire?.();const unlock=await s.acquireLock();s.held=true;s.events.push('acquire');return {port:${PORT},taskId:spec.taskId,targetId:'target',_unlockSession:unlock,_registry:{releaseTaskTabControl:async()=>{}},session:{close(){},send:async()=>{},assertTaskControl:async()=>{}}};}
+ export const acquireTaskPageWithRegionWait=spec=>acquireTaskPage(spec);
  export const closeReleasedTaskPage=async()=>false;export const completeBrowserTask=async()=>{};
  export async function releaseTaskPage(page,options){const s=globalThis.__wp16dOutput;await s.releasePage(page,options);s.assertUnlocked();s.held=false;s.events.push('release:'+options.outcome);}`,
  'cdp.mjs':`export const ensureChrome=async()=>({});export const listPages=async()=>[];

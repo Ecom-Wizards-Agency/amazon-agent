@@ -3,7 +3,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { listTaskTabs } from "../browserctl/lease-registry.mjs";
-import { acquireTaskPage, releaseTaskPage } from "../browserctl/task-tabs.mjs";
+import { acquireTaskPageWithRegionWait, releaseTaskPage } from "../browserctl/task-tabs.mjs";
 import { captureTaskEvidence } from "../browserctl/task-evidence.mjs";
 
 const specPath = process.argv[2];
@@ -20,7 +20,7 @@ for (const item of spec.captures || []) {
   if (stored.workflow !== task.workflow) throw new Error("EVIDENCE_WORKFLOW_MISMATCH");
   const region = stored.contextScope;
   const regional = {"sc:na": "US", "sc:eu": "DE", "sc:au": "AU"};
-  const handle = await acquireTaskPage({ ...task, port,
+  const handle = await acquireTaskPageWithRegionWait({ ...task, port,
     exclusiveContext: Boolean(stored.exclusiveContext),
     sellerCentral: regional[region] ? {marketplace:regional[region]} : undefined,
     expectedTargetId: task.targetId, initialUrl: null });
