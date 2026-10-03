@@ -14,6 +14,7 @@ const boundary=globalThis.__collectorLifecycle={};
 const sources={
  'task-tabs.mjs':`export const taskIdFor=globalThis.__collectorLifecycle.taskIdFor;
  export const acquireTaskPage=(...args)=>globalThis.__collectorLifecycle.acquire(...args);
+ export const acquireTaskPageWithRegionWait=(...args)=>globalThis.__collectorLifecycle.acquire(...args);
  export const releaseTaskPage=(...args)=>globalThis.__collectorLifecycle.release(...args);
  export const closeReleasedTaskPage=(...args)=>globalThis.__collectorLifecycle.closeReleased(...args);
  export const completeBrowserTask=(...args)=>globalThis.__collectorLifecycle.complete(...args);`,
@@ -223,6 +224,21 @@ test('catalog pending report polls release as success and genuine failures relea
  boundary.evaluate=async()=>{throw Error('Report status unavailable');};
  assert.equal((await catalog.collect(f.input)).status,'blocked');
  assert.deepEqual(f.events,[...Array.from({length:3},()=>['release','success']),['release','error']]);
+});
+
+test('catalog acquisitions share one work deadline 60 s after start, inside the 180 s collector timeout',async t=>{
+ const f=await fixture(t),acquire=boundary.acquire,options=[];
+ boundary.acquire=async(spec,option)=>{options.push(option);await new Promise(resolve=>setTimeout(resolve,25));return acquire(spec);};
+ boundary.ui.snapshot=async()=>({url:'https://sellercentral.amazon.com/listing/reports',text:'Reports'});
+ boundary.ui.click=async()=>{};
+ boundary.evaluate=async(_session,source)=>source.includes('data.statuses')?[]:{report_value:'catalog',report_label:'Category Listings Report'};
+ const before=Date.now();
+ assert.equal((await catalog.collect(f.input)).status,'processing');
+ assert.equal(catalog.COLLECTOR_TIMEOUT_MS-catalog.COLLECTOR_WORK_RESERVE_MS,60000,'120 s of the 180 s collector timeout stay for the report work');
+ assert.equal(options.length,3,'first acquisition and both receipt reacquisitions');
+ assert.deepEqual(options.map(option=>Object.keys(option)),[['workBy'],['workBy'],['workBy']]);
+ assert.equal(new Set(options.map(option=>option.workBy)).size,1,'one deadline for every acquisition');
+ assert.ok(options[0].workBy>=before+60000&&options[0].workBy<=Date.now()+60000,`deadline ${options[0].workBy-before} ms after start`);
 });
 
 for(const name of ['catalog','cases']){

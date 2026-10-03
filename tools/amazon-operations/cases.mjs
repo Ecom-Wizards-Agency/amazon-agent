@@ -10,7 +10,7 @@ import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { evaluate } from '../report-fetcher/cdp.mjs';
 import { switchAccount, readIdentity } from '../report-fetcher/sc-account.mjs';
-import { acquireTaskPage, releaseTaskPage, taskIdFor } from '../browserctl/task-tabs.mjs';
+import { acquireTaskPage, acquireTaskPageWithRegionWait, releaseTaskPage, taskIdFor } from '../browserctl/task-tabs.mjs';
 import { acquireSessionLock } from '../browserctl/session-lock.mjs';
 import * as ui from './browser-ui.mjs';
 import { assertSession } from './seller-assistant.mjs';
@@ -24,12 +24,20 @@ const caseUrl=(origin,id)=>`${origin}/cu/case-dashboard/view-case?caseID=${encod
 const clean=value=>String(value||'').replace(/\s+/g,' ').trim();
 const fail=(code,message)=>{throw Object.assign(new Error(message),{code});};
 
-export function capability(state,metadata={}) {
+// logical:false ignores nested flags and counts every Reply element, which is
+// the rule case.reply execute has always used: its Reply click still needs one
+// matching element. Counting logical controls there too, with
+// ui.click(...,{outermost:true}), would let Grimoire reply on Resolved cases it
+// refuses today, so that change waits for the operator's approval.
+export function capability(state,metadata={},{logical=true}={}) {
   if(/\/ap\/signin|\/signin|\/ap\/challenge/.test(state.url||''))return{state:'login_required'};
   if(/you (?:do not|don't) have (?:access|permission)|access denied|not authorized to (?:view|edit)|insufficient permissions/i.test(state.text||''))return{state:'permission_denied'};
   if(metadata.canEditCase===false&&!/^(?:closed|resolved)$/i.test(metadata.caseStatus||''))return{state:'permission_denied'};
+  // Count logical Reply controls: a kat-button wrapper and the button inside it
+  // are one control (the inner one carries nested:true from ui.snapshot). A
+  // disabled wrapper or inner button makes that control unavailable.
   const reply=(state.controls||[]).filter(x=>x.label==='Reply');
-  if(reply.length===1&&!reply[0].disabled)return{state:'reply_available'};
+  if(reply.filter(x=>!logical||!x.nested).length===1&&!reply.some(x=>x.disabled))return{state:'reply_available'};
   if(/^(?:closed|resolved)$/i.test(metadata.caseStatus||''))return{state:'closed'};
   if(metadata.canEditCase===false)return{state:'permission_denied'};
   return{state:'unknown'};
@@ -83,10 +91,10 @@ async function context(page,account,homeIdentity) {
   // Case SPA navigation paints the surrounding menu before its account header.
   // Wait for the exact header under the retained claim; never read case data
   // using the menu alone or an account supplied only by the caller.
-  return waitForCaseContext(()=>ui.snapshot(page.session),assertControl,account,homeIdentity);
+  return waitForCaseContext(()=>ui.snapshot(page.session,{markNested:true}),assertControl,account,homeIdentity);
 }
 
-async function fetchCase(page,account,id,homeIdentity) {
+async function fetchCase(page,account,id,homeIdentity,{logical=true}={}) {
   const state=await context(page,account,homeIdentity);
   const response=await evaluate(page.session,String.raw`(async()=>{const r=await fetch('/hill/hillservice/mons-api/ViewCase?caseId='+encodeURIComponent(${JSON.stringify(id)})+'&pageSize=50',{credentials:'same-origin'});return{status:r.status,body:await r.text()};})()`,30000);
   if([401,403].includes(response.status))fail(response.status===401?'login_required':'permission_denied',`Case read HTTP ${response.status}`);
@@ -102,7 +110,7 @@ async function fetchCase(page,account,id,homeIdentity) {
       a.sha256=data;
     }
   }
-  result.capability=capability(state,result.metadata);
+  result.capability=capability(state,result.metadata,{logical});
   delete result.metadata;
   await context(page,account,homeIdentity);
   return result;
@@ -120,6 +128,9 @@ export function caseListSummary(text,ids,hasNext=false) {
   return{case_ids:unique,total_cases:total,complete:total!==null&&unique.length===total&&!hasNext};
 }
 
+// Duplicate query rule, shared with case_operations.py prepare(): an FBA
+// shipment id anywhere in subject plus issue key, else the first B0 ASIN, else
+// the trimmed subject. Change both files together.
 export function duplicateQuery(subject,issueKey='') {
   const text=String(subject||'')+' '+String(issueKey||'');
   const identity=/\bFBA[A-Z0-9]{8,12}\b/i.exec(text)||/\bB0[A-Z0-9]{8}\b/i.exec(text);
@@ -233,7 +244,7 @@ export async function submitPrepared(input,page,homeIdentity,dependencies={}) {
     if(plan.operation==='case.reply'){
       const id=plan.targets[0].case_id;
       await api.navigate(page,caseUrl(origin,id));
-      const current=await api.fetchCase(page,account,id,homeIdentity);
+      const current=await api.fetchCase(page,account,id,homeIdentity,{logical:false});
       if(current.capability.state!=='reply_available')fail(current.capability.state,'Case reply capability is unavailable');
       ui.check(current.history_complete,'Case history is incomplete');
       const expected=new Set(body.baseline.contact_ids||[]);
@@ -285,7 +296,15 @@ export function caseSession(mode,env=process.env,cgroup=undefined){
   return binding;
 }
 
-export async function run(input){
+// operations.py stops a collector after 180 s (run_collector). An attended observe
+// keeps 120 s for its own work, so it waits for a busy region (9222) only until
+// 60 s after start and answers blocked/TASK_TAB_BUSY itself when the region comes
+// free later than that.
+export const COLLECTOR_TIMEOUT_MS=180000;
+export const OBSERVE_WORK_RESERVE_MS=120000;
+
+export async function run(input,{acquireObserve=acquireTaskPageWithRegionWait}={}){
+  const started=Date.now();
   ui.check(input.schema_version===1&&['observe','execute'].includes(input.mode),'Case mode must be observe or execute');
   const binding=caseSession(input.mode);
   if(input.mode==='execute'){
@@ -308,7 +327,9 @@ export async function run(input){
   };
   process.once('SIGTERM',onSigterm);
   try{
-    page=await acquireTaskPage({closeOnFailure:input.close_tab_after===true,taskId:taskIdFor('amazon-operations',plan?.operation_id||input.operation_id),workflow:'amazon-communications',initialUrl:origin+'/home',exclusiveContext:true,sellerCentral:{marketplace:caseBrowserAccount(account).marketplace,origin}});
+    const spec={closeOnFailure:input.close_tab_after===true,taskId:taskIdFor('amazon-operations',plan?.operation_id||input.operation_id),workflow:'amazon-communications',initialUrl:origin+'/home',exclusiveContext:true,sellerCentral:{marketplace:caseBrowserAccount(account).marketplace,origin}};
+    // Grimoire (9223, port lock) and execute keep the single attempt.
+    page=input.mode==='observe'&&!binding.lockPort?await acquireObserve(spec,{workBy:started+COLLECTOR_TIMEOUT_MS-OBSERVE_WORK_RESERVE_MS}):await acquireTaskPage(spec);
     await switchAccount(page.session,origin,{accountName:account.seller_central_name||account.seller_account,marketplaceLabel:account.marketplace_label,marketplace:caseBrowserAccount(account).marketplace,parentAccountName:account.parent_account_name},{returnTo:'/home'});
     const homeIdentity=await readIdentity(page.session);
     await context(page,account,homeIdentity);

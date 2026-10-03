@@ -36,7 +36,7 @@ import fs from "node:fs";
 import path from "node:path";
 import readline from "node:readline";
 import { ensureChrome, listPages } from "../report-fetcher/cdp.mjs";
-import { acquireTaskPage, releaseTaskPage } from "../browserctl/task-tabs.mjs";
+import { acquireTaskPageWithRegionWait, releaseTaskPage } from "../browserctl/task-tabs.mjs";
 import { listTaskTabs } from "../browserctl/lease-registry.mjs";
 import { captureTaskEvidence, verifyEvidenceIdentity } from "../browserctl/task-evidence.mjs";
 
@@ -102,7 +102,7 @@ async function main() {
     expectedPartnerAccountId:arg("expected-partner-account-id",null),marketplaceId:arg("marketplace-id",null)};
   if (!expected.accountName || !expected.marketplace || !expected.marketplaceLabel) throw new Error("EVIDENCE_IDENTITY_REQUIRED: --account-name, --marketplace, --marketplace-label");
   const stored = retained[0];
-  const page = await acquireTaskPage({taskId,workflow:stored.workflow,slot:stored.slot,expectedTargetId:tab.id,
+  const page = await acquireTaskPageWithRegionWait({taskId,workflow:stored.workflow,slot:stored.slot,expectedTargetId:tab.id,
     initialUrl:null,exclusiveContext:stored.exclusiveContext,
     ...(String(stored.contextScope).startsWith("sc:")?{sellerCentral:{marketplace:expected.marketplace,origin:new URL(tab.url).origin}}:{})});
   const session = page.session;

@@ -26,6 +26,8 @@ import { execFile } from 'node:child_process';
 import { basename, dirname, isAbsolute, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { setTimeout as delay } from 'node:timers/promises';
+// Dependency-free: shared busy-region facts, no browser module.
+import { regionBusy, regionHolder, describeRegionHolder } from '../browserctl/region-holder.mjs';
 
 export const MAX_COMPOSER_CHARS = 2500;
 export const NAVIGATION_LABELS = Object.freeze(['Get help with a new issue', 'Show more', 'Show less']);
@@ -2112,26 +2114,9 @@ export function abortHandler(ctl, name, finish) {
 
 const REGION_POLL_MS = 2000;
 
-/** The busy answer for a Seller Central context another controller holds:
- * reserveTaskTab returns browser-context-busy with the blocking scope, which
- * acquireTaskPage throws as TASK_TAB_BUSY. Other busy answers still fail at once. */
-export function regionBusy(error) {
-  return error?.code === 'TASK_TAB_BUSY' && typeof error.blockingScope === 'string' && error.blockingScope !== '';
-}
-
-/** Non-secret facts about the holder, from the task record the registry lists
- * for the blocking claim. The control token is never copied. */
-export async function regionHolder(registry, error, now = Date.now()) {
-  const facts = { blocking_scope: error.blockingScope, owner: null, workflow: null, task_id: null, heartbeat_age_s: null };
-  let record = null;
-  if (error.blockingTask) {
-    try { record = (await registry.listTaskTabs()).find(entry => entry.key === error.blockingTask) || null; } catch { /* facts stay unknown */ }
-  }
-  if (!record) return facts;
-  const heartbeatAt = Number(record.controller?.heartbeatAt);
-  return { ...facts, owner: record.controller?.owner ?? null, workflow: record.workflow ?? null, task_id: record.taskId ?? null,
-    heartbeat_age_s: Number.isFinite(heartbeatAt) ? Math.max(0, Math.round((now - heartbeatAt) / 1000)) : null };
-}
+// The busy test and the holder facts are shared with every attended tool that
+// waits for a region (task-tabs.mjs acquireTaskPageWithRegionWait).
+export { regionBusy, regionHolder };
 
 /** Acquire through `acquire`, retrying while the region is busy, for at most
  * `waitMs`. Nothing is held between attempts: a busy reservation creates no
@@ -2154,7 +2139,7 @@ export async function acquireWhenRegionFree(acquire, { waitMs, pollMs = REGION_P
     const left = since + waitMs - now();
     if (left <= 0) {
       const waitedMs = now() - since;
-      throw codeError('region_busy', `Seller Central ${facts.blocking_scope} is held by ${facts.owner || 'another controller'}${facts.workflow ? ` (${facts.workflow})` : ''}; waited ${Math.round(waitedMs / 1000)} s`, { holder: facts, waitedMs });
+      throw codeError('region_busy', `${describeRegionHolder(facts)}; waited ${Math.round(waitedMs / 1000)} s`, { holder: facts, waitedMs });
     }
     if (signal?.aborted) throw stopped();
     await onWaiting({ first, holder: facts, since, until: since + waitMs });
