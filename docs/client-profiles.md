@@ -34,8 +34,8 @@ Never store credentials, passwords, login emails, cookies, tokens, payment detai
 ## Lookup And Validation
 
 ```bash
-node tools/client-profiles/find-client-profile.mjs alphainfuse
-node tools/client-profiles/find-client-profile.mjs "Shaperluv US"
+node tools/client-profiles/find-client-profile.mjs acme
+node tools/client-profiles/find-client-profile.mjs "Acme US"
 node tools/client-profiles/find-client-profile.mjs --validate
 ```
 

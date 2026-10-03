@@ -5,11 +5,11 @@ Read-only Amazon PDP and search surveillance over the shared port-9222 CDP brows
 ## Commands
 
 ```bash
-node tools/amazon-brand-surveillance/monitor.mjs init --config ~/.codex/automations/tmrw-amazon-product-tracker/config.json
-node tools/amazon-brand-surveillance/monitor.mjs doctor --config ~/.codex/automations/tmrw-amazon-product-tracker/config.json
-node tools/amazon-brand-surveillance/monitor.mjs run --config ~/.codex/automations/tmrw-amazon-product-tracker/config.json
-node tools/amazon-brand-surveillance/monitor.mjs add https://www.amazon.com/dp/B000000000 reported --config ~/.codex/automations/tmrw-amazon-product-tracker/config.json
-node tools/amazon-brand-surveillance/monitor.mjs set-status com B000000000 dismissed --config ~/.codex/automations/tmrw-amazon-product-tracker/config.json
+node tools/amazon-brand-surveillance/monitor.mjs init --config ~/.codex/automations/<brand>-amazon-product-tracker/config.json
+node tools/amazon-brand-surveillance/monitor.mjs doctor --config ~/.codex/automations/<brand>-amazon-product-tracker/config.json
+node tools/amazon-brand-surveillance/monitor.mjs run --config ~/.codex/automations/<brand>-amazon-product-tracker/config.json
+node tools/amazon-brand-surveillance/monitor.mjs add https://www.amazon.com/dp/B000000000 reported --config ~/.codex/automations/<brand>-amazon-product-tracker/config.json
+node tools/amazon-brand-surveillance/monitor.mjs set-status com B000000000 dismissed --config ~/.codex/automations/<brand>-amazon-product-tracker/config.json
 ```
 
 `init` creates the private config only when it does not already exist. Runtime state, JSONL history, the overlap lock, and event evidence stay beside that config and outside Git.

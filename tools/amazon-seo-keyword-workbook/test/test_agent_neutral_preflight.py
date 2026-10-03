@@ -85,10 +85,10 @@ class AgentNeutralKeywordPreflightTest(unittest.TestCase):
 
 class SeoEvidenceGateTest(unittest.TestCase):
     def test_identity_requires_brand_and_product_in_title_and_description(self):
-        cfg = {"seo_identity": {"brand": "Blissta", "product_name": "PainBloc PEA"}}
+        cfg = {"seo_identity": {"brand": "Acme", "product_name": "Example PEA"}}
         good = _seo_identity_status(cfg, {
-            "title (≤75 char)": "Blissta PainBloc PEA Supplement – 60 Capsules",
-            "description": "Blissta PainBloc PEA combines two labeled ingredients.",
+            "title (≤75 char)": "Acme Example PEA Supplement – 60 Capsules",
+            "description": "Acme Example PEA combines two labeled ingredients.",
         })
         self.assertTrue(good["title_brand"] and good["title_product"])
         self.assertTrue(good["description_brand"] and good["description_product"])

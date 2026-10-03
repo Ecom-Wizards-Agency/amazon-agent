@@ -424,8 +424,8 @@ if (cmd === "self-test") {
       { url: "https://example.com/" },
     ]).join(","), "https://sellercentral.amazon.de,https://sellercentral.amazon.com"],
     [accountPickerUrl("https://sellercentral.amazon.com", "/opportunity-explorer"), "https://sellercentral.amazon.com/account-switcher/default/merchantMarketplace?returnTo=%2Fopportunity-explorer"],
-    [accountMatches({ displayName: "SwissKlip United States", partnerAccountId: "A1UOCFOJBIIPMH" }, "A1UOCFOJBIIPMH"), true],
-    [accountMatches({ displayName: "Other account", partnerAccountId: "OTHER" }, "A1UOCFOJBIIPMH"), false],
+    [accountMatches({ displayName: "Acme United States", partnerAccountId: "A1EXAMPLESELLER" }, "A1EXAMPLESELLER"), true],
+    [accountMatches({ displayName: "Other account", partnerAccountId: "OTHER" }, "A1EXAMPLESELLER"), false],
     [poeReadinessError({ pageKind: "chooser", authState: "authenticated", facts: { url: "https://sellercentral.amazon.de/account-switcher/default/merchantMarketplace" } }).code, "POE_ACCOUNT_CHOOSER"],
     [poeReadinessError({ pageKind: "sign-in", authState: "logged_out", facts: { url: "https://sellercentral.amazon.de/ap/signin" } }).code, "POE_SIGNED_OUT"],
   ];

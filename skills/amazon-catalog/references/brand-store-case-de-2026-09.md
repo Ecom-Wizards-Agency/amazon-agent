@@ -1,4 +1,4 @@
-# Kabooki Germany: September 2026 evidence
+# German apparel Store: September 2026 evidence
 
 This dated case explains the reusable rules in [brand-store-updates.md](brand-store-updates.md).
 It is historical evidence, not a current assortment, stock list or permission.
@@ -10,7 +10,7 @@ Outlet's verified grid remained unchanged. Sock ASINs from the September build h
 been selected through retail search, title checks and Amazon's brand picker; they
 did not match the client's current catalog and pictured pack ranges. Broad automated
 queries also mixed gloves, rain sets, jackets and fleece products across categories.
-An apparently foreign LEGO Ninjago fleece glove was verified as a Kabooki model,
+An apparently foreign LEGO Ninjago fleece glove was verified as the client's own model,
 so title wording could not decide eligibility.
 
 The rain-set complaint concerned two models sharing a catalog parent. The underwear
@@ -18,7 +18,7 @@ complaint concerned duplicated pictured pack artwork; different image URLs did n
 prove different artwork. Both were separate from product-grid selection. Evidence
 did not establish the actor or date responsible for those defects.
 
-Source: `output/kabooki/reporting/2026-09-10-product-audit/audit.md` under the Amazon
+Source: `output/<client>/reporting/2026-09-10-product-audit/audit.md` under the Amazon
 Agent workspace, with catalog joins, saved ASIN lists and full-page comparison in
 the linked run evidence. [Original complaint](https://amazonwizards.slack.com/archives/C0ARVE7JKT2/p1789022706836359).
 
@@ -37,7 +37,7 @@ size could not be verified; another size was not substituted. Two approved produ
 destinations were retained despite zero sellable stock. An explicit glove unlink
 request was followed despite an available matching listing.
 
-Source: `output/kabooki/catalog/2026-09-13-image-links/correction-report.md`, with
+Source: `output/<client>/catalog/2026-09-13-image-links/correction-report.md`, with
 `live-before.json`, `draft-after.json`, `live-after.json`, `editor-readbacks.json` and
 `data-verification.json` under the corresponding evidence directory.
 [Correction sheet](https://docs.google.com/spreadsheets/d/1y29wdetC0eQJHuljFZmru_VWCtY6Uk-w2_gc6wSK86k/edit?gid=898575287).

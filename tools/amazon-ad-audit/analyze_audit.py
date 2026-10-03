@@ -481,7 +481,7 @@ def parse_bulk(cfg, market, path, agg):
 
     # ---- SB intent split: search term when it covers the channel, else TARGETS ----
     # Classifying SB by target silently mislabels conquesting. An SB campaign targeting
-    # a rival ASIN still serves against searches, and on the Heusom 2026-07 run 53% of
+    # a rival ASIN still serves against searches, and on one 2026-07 audit run 53% of
     # that spend reached generic queries and 45% reached the brand's OWN name — only 2%
     # reached someone typing a competitor. Read by target it looked like $16.6k of
     # efficient conquesting at 24.6% ACOS; read by search term it was $6.9k at 45.4%,
@@ -742,7 +742,7 @@ def build_metrics(cfg, agg, outdir):
         # thing an SQP section can do: it lumps the category language this product actually
         # competes on together with undifferentiated head terms no single listing wins, and
         # then invites the client to measure their share against the inflated total. On
-        # Heusom the two-way generic read 419,400 searches a week against a winnable 204,726,
+        # one audit the two-way generic read 419,400 searches a week against a winnable 204,726,
         # so the addressable market was overstated 2.05x on the page the audit calls its most
         # important table. classify_demand splits Generic into Core and Head
         # via core_tokens; with no core_tokens configured every Generic term falls to Core,
@@ -889,7 +889,7 @@ def _self_test():
     one file. Matching either exactly drops a whole channel or a whole entity class, and
     it does so silently: the buckets and the search-term rows truncate together, so spend
     reconciliation still passes and the audit ships plausible, wrong numbers. On the
-    V Gummies ES export that hid EUR 11,576 of Product-targeting spend and all of
+    one ES client export that hid EUR 11,576 of Product-targeting spend and all of
     Sponsored Display, understating account spend by 29%."""
     fails = []
 

@@ -87,7 +87,7 @@ We recommend adding at least one of the following images: one with the product o
 
 To help us fulfill these requirements, these images will be automatically selected and displayed in the first available slots of the media block.
 
-Reference: [Product image requirements](https://sellercentral.amazon.com/help/hub/reference/G1881?mons_sel_dir_mcid=amzn1.merchant.d.AAZIKZNO6RGRML25OE2TNKW2MCMQ&mons_sel_mkid=amzn1.mp.o.ATVPDKIKX0DER&mons_sel_dir_paid=amzn1.pa.d.ADWUSBAFAWDVQNTSTETKFFL4XSIQ&ignore_selection_changed=true)
+Reference: [Product image requirements](https://sellercentral.amazon.com/help/hub/reference/G1881)
 
 **Naming and formatting**
 

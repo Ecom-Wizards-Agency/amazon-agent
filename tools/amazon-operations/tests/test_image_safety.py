@@ -453,7 +453,7 @@ class ImageSafetyTests(unittest.TestCase):
             with self.subTest(mutation=mutation):
                 self.assertFalse(self.service.image_completion(directory, state, self.plan, evidence)['release_eligible'])
         wrong = copy.deepcopy(baseline)
-        wrong['account'] = {'client_slug': 'kabooki'}
+        wrong['account'] = {'client_slug': 'globex'}
         with self.assertRaisesRegex(op.OperationError, 'identity mismatch'):
             self.service.image_completion(directory, state, self.plan, wrong)
 

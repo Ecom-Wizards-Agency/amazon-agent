@@ -4,32 +4,32 @@ import test from "node:test";
 import { accountProfileMatches, waitForMarketplaceSelection } from "../account-selection.mjs";
 import { switchAccount } from "../sc-account.mjs";
 
-const profile = { accountName: "Allfemme", marketplace: "us", marketplaceLabel: "United States", marketplaceId: "ATVPDKIKX0DER" };
+const profile = { accountName: "Acme", marketplace: "us", marketplaceLabel: "United States", marketplaceId: "ATVPDKIKX0DER" };
 
 test("exact seller plus the requested marketplace suffix is accepted", () => {
-  for (const displayName of ["Allfemme United States", "Allfemme\nUnited States", "Allfemme / United States"]) {
+  for (const displayName of ["Acme United States", "Acme\nUnited States", "Acme / United States"]) {
     assert.equal(accountProfileMatches({ displayName, marketplace: null }, profile), true, displayName);
   }
-  assert.equal(accountProfileMatches({ displayName: "Allfemme", marketplace: "ATVPDKIKX0DER" }, profile), true);
-  assert.equal(accountProfileMatches({ displayName: "Allfemme", marketplace: "US" }, profile), true);
+  assert.equal(accountProfileMatches({ displayName: "Acme", marketplace: "ATVPDKIKX0DER" }, profile), true);
+  assert.equal(accountProfileMatches({ displayName: "Acme", marketplace: "US" }, profile), true);
 });
 
 test("similar sellers and wrong or unverified marketplaces are rejected", () => {
-  for (const displayName of ["Allfemme Plus", "Allfemme Plus United States", "Other Allfemme United States", "Allfemme Canada"]) {
+  for (const displayName of ["Acme Plus", "Acme Plus United States", "Other Acme United States", "Acme Canada"]) {
     assert.equal(accountProfileMatches({ displayName, marketplace: "US" }, profile), false, displayName);
   }
   for (const marketplace of ["CA", "A2EUQ1WTGCTBG2", "atvpdkikx0der", "Canada", { unknown: "US" }]) {
-    assert.equal(accountProfileMatches({ displayName: "Allfemme United States", marketplace }, profile), false);
+    assert.equal(accountProfileMatches({ displayName: "Acme United States", marketplace }, profile), false);
   }
-  assert.equal(accountProfileMatches({ displayName: "Allfemme", marketplace: null }, profile), false);
+  assert.equal(accountProfileMatches({ displayName: "Acme", marketplace: null }, profile), false);
 });
 
 test("a correct seller label never overrides a missing or inexact configured partner ID", () => {
   const expected = { ...profile, expectedPartnerAccountId: "PARTNER" };
   for (const partnerAccountId of [null, "PARTNER_MORE", "partner", "OTHER"]) {
-    assert.equal(accountProfileMatches({ displayName: "Allfemme United States", partnerAccountId }, expected), false);
+    assert.equal(accountProfileMatches({ displayName: "Acme United States", partnerAccountId }, expected), false);
   }
-  assert.equal(accountProfileMatches({ displayName: "Allfemme United States", partnerAccountId: "PARTNER" }, expected), true);
+  assert.equal(accountProfileMatches({ displayName: "Acme United States", partnerAccountId: "PARTNER" }, expected), true);
 });
 
 test("marketplace options may take longer than the old 500 ms delay to appear", async () => {
@@ -40,7 +40,7 @@ test("marketplace options may take longer than the old 500 ms delay to appear", 
     return Date.now() - started < 650
       ? { count: 0, optionCount: 0, loading: true }
       : { count: 1, x: 10, y: 20, current: false };
-  }, "Allfemme / United States", { timeoutMs: 2000, pollMs: 50 });
+  }, "Acme / United States", { timeoutMs: 2000, pollMs: 50 });
   assert.equal(hit.x, 10);
   assert.ok(reads > 2);
 });
@@ -50,7 +50,7 @@ test("duplicate marketplace matches fail immediately without choosing a row", as
   await assert.rejects(waitForMarketplaceSelection(async () => {
     reads++;
     return { count: 2, optionCount: 2 };
-  }, "Allfemme / United States"), { code: "ACCOUNT_SWITCH_MARKETPLACE_AMBIGUOUS" });
+  }, "Acme / United States"), { code: "ACCOUNT_SWITCH_MARKETPLACE_AMBIGUOUS" });
   assert.equal(reads, 1);
 });
 

@@ -6,9 +6,9 @@ Use this reference for product-grid audits, wrong or missing image destinations,
 approved artwork replacements and Store builds. The team vault's
 `Playbooks/amazon-brand-stores-playbook.md` owns design and module-selection guidance.
 For dated evidence behind these rules, read
-[brand-store-kabooki-2026-09.md](brand-store-kabooki-2026-09.md) when investigating that case.
+[brand-store-case-de-2026-09.md](brand-store-case-de-2026-09.md) when investigating that case.
 For image reuse, crop geometry and inspection side effects, see
-[brand-store-swissker-2026-09.md](brand-store-swissker-2026-09.md).
+[brand-store-case-us-2026-09.md](brand-store-case-us-2026-09.md).
 
 ## Choose the operation and authority
 

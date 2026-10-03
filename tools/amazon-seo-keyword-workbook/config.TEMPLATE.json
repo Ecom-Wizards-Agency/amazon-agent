@@ -14,8 +14,8 @@
   },
   "seo_identity": {
     "_comment": "REQUIRED. Consumer-facing identity that must appear in BOTH the <=75-character title and the description. Do not infer the consumer brand from the client/account name. product_name is the shortest exact product-line name a shopper recognizes, not the full legacy catalog title.",
-    "brand": "<consumer brand, e.g. Blissta>",
-    "product_name": "<recognizable product name, e.g. Corvael Nattokinase>"
+    "brand": "<consumer brand, e.g. Acme>",
+    "product_name": "<recognizable product name, e.g. Example Nattokinase>"
   },
   "product_facts": {
     "_comment": "Physical product facts from the LABEL/PDP. Fill BEFORE writing seo_content — they gate the title framing (blend vs single) and compliance. ingredient NAMES are factual (allowed); ingredient EFFECTS need an EU register entry at dose (see eu-compliance-matrix.md). The builder warns if this block is missing and checks it when present.",

@@ -31,8 +31,8 @@ test('retail evidence verifies the exact product, market and delivery postcode',
 });
 
 test('Seller Central proof rejects unrelated origins before reading account identity',async()=>{
- await assert.rejects(verifyEvidenceIdentity(handle,{kind:'seller-central',accountName:'Allfemme',marketplace:'US'},
-  {evaluate:async()=>({url:'https://sellercentral.amazon.com.example.org/home',text:'Allfemme United States'}),
+ await assert.rejects(verifyEvidenceIdentity(handle,{kind:'seller-central',accountName:'Acme',marketplace:'US'},
+  {evaluate:async()=>({url:'https://sellercentral.amazon.com.example.org/home',text:'Acme United States'}),
    readIdentity:async()=>{throw new Error('must not read identity');}}),/IDENTITY_REQUIRED/);
 });
 

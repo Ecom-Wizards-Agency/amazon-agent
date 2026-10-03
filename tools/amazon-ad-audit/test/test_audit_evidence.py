@@ -27,10 +27,10 @@ class EvidenceSelectionTest(unittest.TestCase):
             image = Path(td) / "proof.png"
             png(image, color=(0, 0, 0))
             row = {"id": "proof", "path": str(image), "source_kind": "seller_central",
-                   "finding": "Listing status", "caption": "Status", "account": "Allfemme", "marketplace": "US"}
+                   "finding": "Listing status", "caption": "Status", "account": "Acme", "marketplace": "US"}
             for proof in [{"kind": "seller-central", "accountName": "Other Seller", "requestedMarketplace": "US"},
-                          {"kind": "seller-central", "accountName": "Allfemme", "requestedMarketplace": "DE"}]:
-                result = select([{**row, "verified_identity": proof}], expected_account="Allfemme", marketplace="US")
+                          {"kind": "seller-central", "accountName": "Acme", "requestedMarketplace": "DE"}]:
+                result = select([{**row, "verified_identity": proof}], expected_account="Acme", marketplace="US")
                 self.assertEqual(result["selected"], [])
                 self.assertIn("verified", result["rejected"][0]["reason"])
 
@@ -44,7 +44,7 @@ class EvidenceSelectionTest(unittest.TestCase):
             duplicate.write_bytes(good.read_bytes())
             png(small, 300, 200, color=(0, 0, 0))
             base = {"finding": "suppression", "caption": "Listing status", "section": "performance",
-                    "account": "UltimaPeak US", "marketplace": "US", "priority": 80}
+                    "account": "Acme US", "marketplace": "US", "priority": 80}
             rows = [
                 {**base, "id": "good", "path": str(good), "source_kind": "seller_central"},
                 {**base, "id": "dup", "path": str(duplicate), "source_kind": "seller_central",
@@ -55,7 +55,7 @@ class EvidenceSelectionTest(unittest.TestCase):
                 {**base, "id": "wrong", "path": str(good), "source_kind": "amazon_pdp",
                  "account": "Other", "distinct_key": "wrong"},
             ]
-            result = select(rows, expected_account="UltimaPeak US", marketplace="US")
+            result = select(rows, expected_account="Acme US", marketplace="US")
             self.assertEqual([x["id"] for x in result["selected"]], ["good"])
             reasons = {x["id"]: x["reason"] for x in result["rejected"]}
             self.assertIn("duplicate", reasons["dup"])

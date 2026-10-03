@@ -189,9 +189,9 @@ test("--account verified via matching --expect-account name proceeds with the hi
 
 test("a stale pinned tab from the previous seller does not override the newest requested-account tab", { concurrency: false }, async () => {
   const requestedFacts = { url: "https://sellercentral.amazon.com/myinventory/inventory", title: "Manage Inventory", csrfMeta: true, chooserButtonCount: 0 };
-  const requestedIdentity = { displayName: "Evora Body", partnerAccountId: null, merchantId: "EVORA", marketplace: null, err: null };
-  const staleFacts = { url: "https://sellercentral.amazon.com/business-reports?mons_sel_dir_mcid=ALPHA", title: "Business Reports", csrfMeta: true, chooserButtonCount: 0 };
-  const staleIdentity = { displayName: "AlphaInfuse", partnerAccountId: null, merchantId: "ALPHA", marketplace: null, err: null };
+  const requestedIdentity = { displayName: "Acme", partnerAccountId: null, merchantId: "ACME", marketplace: null, err: null };
+  const staleFacts = { url: "https://sellercentral.amazon.com/business-reports?mons_sel_dir_mcid=GLOBEX", title: "Business Reports", csrfMeta: true, chooserButtonCount: 0 };
+  const staleIdentity = { displayName: "Globex", partnerAccountId: null, merchantId: "GLOBEX", marketplace: null, err: null };
   const fake = await startFakeCdp({
     targets: [
       { id: "NEWEST", url: requestedFacts.url, behavior: pageBehavior({ facts: requestedFacts, identity: requestedIdentity }) },
@@ -200,11 +200,11 @@ test("a stale pinned tab from the previous seller does not override the newest r
   });
   try {
     const { out } = await runCli(fake.port, [
-      ...BUSINESS_ARGS, "--marketplace", "us", "--account", "EVORA", "--expect-account", "Evora Body",
+      ...BUSINESS_ARGS, "--marketplace", "us", "--account", "ACME", "--expect-account", "Acme",
     ]);
-    assert.match(out, /Account: Evora Body/, out);
+    assert.match(out, /Account: Acme/, out);
     assert.match(out, /Account check: OK/, out);
-    assert.doesNotMatch(out, /AlphaInfuse/, out);
+    assert.doesNotMatch(out, /Globex/, out);
   } finally {
     await fake.close();
   }
@@ -212,12 +212,12 @@ test("a stale pinned tab from the previous seller does not override the newest r
 
 test("name-based switching does not inherit another seller's stale pinned tab", { concurrency: false }, async () => {
   const auFacts = { url: "https://sellercentral.amazon.com.au/myinventory/inventory", title: "Manage Inventory AU", csrfMeta: true, chooserButtonCount: 0 };
-  const auIdentity = { displayName: "Svens Island Australia", partnerAccountId: null, merchantId: "AU", marketplace: null, err: null };
+  const auIdentity = { displayName: "Initech Australia", partnerAccountId: null, merchantId: "AU", marketplace: null, err: null };
   const unknownFacts = { url: "https://sellercentral.amazon.com/business-reports", title: "Business Reports", csrfMeta: false, chooserButtonCount: 0 };
   const requestedFacts = { url: "https://sellercentral.amazon.com/myinventory/inventory", title: "Manage Inventory", csrfMeta: true, chooserButtonCount: 0 };
-  const requestedIdentity = { displayName: "Simply Nootropics", partnerAccountId: "DELEGATED", merchantId: null, marketplace: null, err: null };
-  const staleFacts = { url: "https://sellercentral.amazon.com/business-reports?mons_sel_dir_mcid=ALPHA", title: "Business Reports", csrfMeta: true, chooserButtonCount: 0 };
-  const staleIdentity = { displayName: "AlphaInfuse", partnerAccountId: null, merchantId: "ALPHA", marketplace: null, err: null };
+  const requestedIdentity = { displayName: "Acme", partnerAccountId: "DELEGATED", merchantId: null, marketplace: null, err: null };
+  const staleFacts = { url: "https://sellercentral.amazon.com/business-reports?mons_sel_dir_mcid=GLOBEX", title: "Business Reports", csrfMeta: true, chooserButtonCount: 0 };
+  const staleIdentity = { displayName: "Globex", partnerAccountId: null, merchantId: "GLOBEX", marketplace: null, err: null };
   const fake = await startFakeCdp({
     targets: [
       { id: "CROSSORIGIN", url: auFacts.url, behavior: pageBehavior({ facts: auFacts, identity: auIdentity }) },
@@ -228,11 +228,11 @@ test("name-based switching does not inherit another seller's stale pinned tab", 
   });
   try {
     const { out } = await runCli(fake.port, [
-      ...BUSINESS_ARGS, "--marketplace", "us", "--expect-account", "Simply Nootropics",
-      "--account-name", "Simply Nootropics", "--marketplace-label", "United States",
+      ...BUSINESS_ARGS, "--marketplace", "us", "--expect-account", "Acme",
+      "--account-name", "Acme", "--marketplace-label", "United States",
     ]);
     assert.match(out, /Account check: OK/, out);
-    assert.match(out, /Simply Nootropics/, out);
+    assert.match(out, /Acme/, out);
     assert.doesNotMatch(out, /does NOT match/, out);
   } finally {
     await fake.close();

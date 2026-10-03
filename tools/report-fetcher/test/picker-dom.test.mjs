@@ -18,21 +18,21 @@ test("picker scopes visible options to the exact seller in real Chromium DOM", t
   const file = join(root, "fixture.html");
   writeFileSync(file, `<!doctype html><html><body><div id="fixture"></div><pre id="result"></pre><script>
     const inspect = ${inspectPickerSelection.toString()};
-    const profile = { accountName: "Allfemme", marketplaceLabel: "United States" };
+    const profile = { accountName: "Acme", marketplaceLabel: "United States" };
     const button = (name, extra = "") => '<button class="full-page-account-switcher-account-details" '+extra+'>'+name+'</button>';
     const group = (name, options, extra = "") => '<div class="full-page-account-switcher-account">'+button(name,extra)+options+'</div>';
     const fixture = document.getElementById("fixture");
     const results = {};
     const run = (name, html) => { fixture.innerHTML = html; results[name] = inspect(profile, "marketplace"); };
-    run("one", group("Allfemme", button("United States")));
-    run("otherSeller", group("Allfemme", button("Canada"))+group("Other",button("United States")));
-    run("hiddenDuplicate", group("Allfemme", button("United States")+button("United States",'style="display:none"')));
-    run("hiddenParent", group("Allfemme", '<div style="display:none">'+button("United States")+'</div>'));
-    run("duplicate", group("Allfemme", button("United States")+button("United States")));
-    run("current", group("Allfemme", button("United States (current)")));
-    run("similarSeller", group("Allfemme Plus",button("United States")));
-    run("duplicateSeller", group("Allfemme",button("United States"))+group("Allfemme",button("United States")));
-    run("expandedPending", group("Allfemme", '<div aria-busy="true" style="width:20px;height:20px"></div>', 'aria-expanded="true"'));
+    run("one", group("Acme", button("United States")));
+    run("otherSeller", group("Acme", button("Canada"))+group("Other",button("United States")));
+    run("hiddenDuplicate", group("Acme", button("United States")+button("United States",'style="display:none"')));
+    run("hiddenParent", group("Acme", '<div style="display:none">'+button("United States")+'</div>'));
+    run("duplicate", group("Acme", button("United States")+button("United States")));
+    run("current", group("Acme", button("United States (current)")));
+    run("similarSeller", group("Acme Plus",button("United States")));
+    run("duplicateSeller", group("Acme",button("United States"))+group("Acme",button("United States")));
+    run("expandedPending", group("Acme", '<div aria-busy="true" style="width:20px;height:20px"></div>', 'aria-expanded="true"'));
     document.getElementById("result").textContent = JSON.stringify(results);
   </script></body></html>`);
   const chrome = spawnSync(binary, ["--headless", "--disable-gpu", "--no-first-run", "--no-default-browser-check",

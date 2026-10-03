@@ -152,7 +152,7 @@ Example:
 
 ```text
 bulk-<opaque-identifier>-2026-06-01-2026-06-30.xlsx
-bulk-Heusom-2026-06-01-2026-06-30.xlsx
+bulk-Acme-2026-06-01-2026-06-30.xlsx
 ```
 
 Preserve Amazon's exact date formatting and separator order when the generated filename

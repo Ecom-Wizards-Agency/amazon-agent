@@ -475,7 +475,7 @@ def build(config_path, outdir, force=False):
     market_sizing = _market_sizing(cfg)
     if market_sizing and market_sizing.get("products"):
         A("## Directional market appendix: the two next products\n")
-        A("This is a market check, not a sales forecast. DataDive estimates category demand and competitor performance. It does not tell us what UltimaPeak will sell.\n")
+        A("This is a market check, not a sales forecast. DataDive estimates category demand and competitor performance. It does not tell us what this brand will sell.\n")
         for product in market_sizing["products"]:
             cov = product.get("coverage", {})
             bench = product.get("benchmark", {})

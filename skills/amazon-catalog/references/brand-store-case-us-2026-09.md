@@ -1,4 +1,4 @@
-# Swissker United States: crop preparation, 14 September 2026
+# US Store: crop preparation, 14 September 2026
 
 Historical evidence for [brand-store-updates.md](brand-store-updates.md). This
 preparation did not establish live mutation compatibility or authorize an update.
@@ -43,7 +43,7 @@ through verified source PNG dimensions, saved width/height, zero offsets and edi
 readback. Missing crop metadata is therefore not a universal blocker, but arbitrary
 or partial geometry still cannot be assumed correct.
 
-Evidence is under `output/swissker/catalog/2026-09-14-store-updater/` in the Amazon
+Evidence is under `output/<client>/catalog/2026-09-14-store-updater/` in the Amazon
 Agent workspace: `preparation-report.md`, original/current source snapshots,
 `crop-inspection-metadata-diff.json`, `current-asset-matches.json` and the adapter
 probe reports, including `adapter-final-probe.json`. The original request is linked

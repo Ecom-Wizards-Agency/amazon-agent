@@ -17,15 +17,15 @@ from build_figures import (  # noqa: E402
 class FigureRelevanceTest(unittest.TestCase):
     def setUp(self):
         self.cfg = {
-            "brand_tokens": ["rovina"],
-            "_brand_re": re.compile("rovina", re.I),
+            "brand_tokens": ["acme"],
+            "_brand_re": re.compile("acme", re.I),
             "_competitor_re": None,
         }
         self.asins = {"B0CLIENT"}
 
     def _query(self, client_rank, competitor_rank, volume=22000):
         return {
-            "keyword": "rovina",
+            "keyword": "acme",
             "searchVolume": volume,
             "asinRanks": {
                 "B0CLIENT": client_rank,
