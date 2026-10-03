@@ -15,6 +15,12 @@ below.
 `config.UPDATE.<client>-<market>.json` files are gitignored; only the `.TEMPLATE.json` files
 are committed.
 
+Add `--quality-report <path.json>` to an explicit `--preflight` or `--validate` run, or to a
+normal build, to write a versioned machine-readable result. A normal build records artifact
+validation because preflight has already passed. The builder does not publish the local JSON,
+store credentials, or depend on an external system to enforce a guardrail. Keep the report
+under `output/` because its messages may contain campaign names, keywords, or ASINs.
+
 Create-mode campaign specs may set `child_state` separately from `state`. Leave it empty to
 make ad groups, product ads, targets, keywords, and negatives inherit the campaign state.
 Set `state: "paused"` with `child_state: "enabled"` when a file should be fully configured
@@ -44,7 +50,7 @@ reading before that upload.
 | SKW | exact | Rank | **Fixed bid** (Rank SKW) | one campaign per keyword |
 | Halo | exact | Profit | down only | one campaign, all keywords |
 | Phrase | phrase | Discovery | down only | one campaign |
-| Auto | auto | Discovery | up and down | 4 targeting groups with per-group bid/state |
+| Auto | auto | Discovery | up and down | one campaign per targeting group; one group enabled, three paused |
 | PAT | `asin=` / `asin-expanded=` | any | down only (competitor) / up and down (self, via `campaign_purpose`) | one campaign over `target_asins[]` |
 
 ### Per-type bidding defaults (naming-convention.md, QC-enforced)
@@ -64,24 +70,26 @@ these; leave it empty for the plain per-type default:
 | Discovery: Phrase/competitor PAT (default for `Phrase`/`PAT`) | Dynamic bids - down only | literal type |
 | Halo (default for `Halo`) | Dynamic bids - down only | `Halo` |
 
-Preflight NOTEs (not blocks) whenever a config's explicit `bidding_strategy` overrides this
-table, so overrides are visible, never silent. `CATEGORY` has no dedicated generator yet
-(no campaign type builds `category="..."` Product Targeting rows). It's a bidding/trigger-
-word hook for when that's added; set it manually on a PAT-shaped spec if you build one by
-hand today.
+For guarded EW builds, the approved Figma card is the authority: copy its value to
+`approved_bidding_strategy`. The builder uses that value unless `bidding_strategy` is also
+provided, in which case both must match. Legacy builds retain this table as their default and
+issue a note on an override. Category campaigns use a PAT-shaped spec with
+`target_categories[]` and emit `category="..."` Product Targeting rows.
 
 ### Naming: EW convention (default) vs legacy
 
-Default preset is **EW**, the 8-slot Ecom Wizards convention from `naming-convention.md`:
+The generated EW preset documents the legacy 8-slot convention from
+`naming-convention.md`:
 
 ```
 Goal | Ad Type | Match Type | Trigger Words OR Placement | Product Identifier | Keyword | Camp Counter | Suffix
 ```
 
-- `Camp Counter` is emitted **only** for Halo and Auto campaigns (naming-convention.md); every
-  other type has it silently blank (dropped from the joined name).
-- `Trigger Words` matches the campaign type exactly, unless `campaign_purpose` sets it to
-  `Shield` / `Self-Targeting` / `Category`.
+- `Camp Counter` is emitted **only** for grouped Halo campaigns; every other type has it
+  silently blank (dropped from the joined name).
+- `Trigger Words` matches the campaign type, unless `campaign_purpose` sets it to
+  `Shield` / `Self-Targeting` / `Category`. Auto leaves this slot blank because its
+  Match Type already supplies the Auto token.
 - Ad group name is the shorter form: campaign name minus `Goal`/`Ad Type`/`Camp Counter`/`Suffix`.
   It is guaranteed to differ from the campaign name (preflight NOTEs the rare case where it doesn't).
 
@@ -90,6 +98,12 @@ Set `naming.preset: "LEGACY"` to keep the pre-v2 6-token order
 sets its own `naming.variable_order` explicitly continues to produce byte-identical names,
 regardless of preset (an explicit `variable_order` always wins over any preset default; see
 `build_campaigns.load_config`).
+
+For guarded EW builds, every campaign spec must instead provide `campaign_name` and
+`ad_group_name` copied exactly from the approved live Figma card. Explicit names win over the
+generated preset. Preflight checks the suffix, adjacent duplicate tokens, required targeting
+token, and shorter ad-group form. This prevents invented names such as `Auto | Auto` or an
+unapproved `01` counter from reaching a bulk file.
 
 ### Keyword-file input
 
@@ -117,6 +131,26 @@ degrades gracefully if the "5. Campaign Structure" scan finds no sections.
 
 `keyword_file_defaults` in the config supplies `product_name`/`sku`/`asin` (the workbook
 itself doesn't carry those).
+
+### EW launch guardrails
+
+EW builds use `docs/ppc-launch-guardrails.md` and require the config's `guardrails` block.
+The preflight fails when product validation, the approved structure source, the negation-list
+source, verified brand terms, or own ASINs are missing. It also enforces branded-versus-generic
+separation, positive-negative collision checks, match-type alignment, the approved bidding
+strategy, split Auto targeting, and per-target suggested bids.
+
+`approved_bidding_strategy` is required for each guarded EW campaign and must be copied from
+the matching Figma card. This keeps the live structure ahead of compatibility defaults in the
+code.
+
+`suggested_bids` maps each exact keyword, ASIN, category ID, or Auto group key to its current
+Amazon suggested bid. The builder writes a target-specific launch bid at 30% below that value,
+rounded half up to the nearest cent. The example `0.75 -> 0.53` is covered by the self-test.
+
+The current builder intentionally blocks multiple advertised SKUs or ASINs in one EW campaign
+spec. The agency structure requires separate variation ad groups, which this version cannot
+represent safely. Extend the model before using it for a multi-variation campaign.
 
 Legacy keyword workbooks or flat tables that request Sponsored Products BMM fail closed.
 Move approved roots to Phrase or route an explicitly approved plain-Broad test through

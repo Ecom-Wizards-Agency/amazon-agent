@@ -55,6 +55,17 @@ def section(title):
 TMP = Path(tempfile.mkdtemp(prefix="campaign-builder-selftest-"))
 
 
+def ew_guardrails():
+    return {
+        "structure_reference": "selftest approved structure",
+        "negative_list_source": "selftest workbook tab 2.1",
+        "own_brand_terms": ["acme"],
+        "own_asins": ["B000000009"],
+        "never_negative_terms": [],
+        "product_validation_verified": True,
+    }
+
+
 # =================================================================== A. create/LEGACY
 def test_create_legacy():
     section("A. create mode: LEGACY naming preset (backward compatibility)")
@@ -154,26 +165,68 @@ def test_create_ew():
     section("B. create mode: EW naming preset (default) + campaign_purpose overrides")
     cfg = {
         "client": "Selftest EW", "brand": "Selftest", "marketplace": "US",
+        "guardrails": ew_guardrails(),
         "defaults": {"daily_budget": 10.0, "keyword_bid": 0.5, "state": "paused"},
         "campaigns": [
             {"campaign_type": "SKW", "product_name": "Widget", "sku": ["SKU-1"],
+             "campaign_name": "Rank | SP | Exact | SKW | Widget | red widget | EW",
+             "ad_group_name": "SP | Exact | SKW | Widget | red widget",
+             "approved_bidding_strategy": "Fixed bids",
              "keywords": ["red widget"], "top_of_search_placement": 55,
              "amazon_business_placement": 35,
-             "child_state": "enabled"},
+             "child_state": "enabled", "suggested_bids": {"red widget": 0.75},
+             "negative_keywords": ["acme"], "negative_match_type": "NEGATIVE_PHRASE",
+             "negative_level": "campaign"},
             {"campaign_type": "SKW", "campaign_purpose": "SHIELD", "product_name": "Widget",
-             "sku": ["SKU-1"], "keywords": ["acme widget"]},
+             "campaign_name": "Rank | SP | Exact | Shield | Widget | acme widget | EW",
+             "ad_group_name": "SP | Exact | Shield | Widget | acme widget",
+             "approved_bidding_strategy": "Down only",
+             "sku": ["SKU-1"], "keywords": ["acme widget"],
+             "suggested_bids": {"acme widget": 0.75}},
             {"campaign_type": "Halo", "product_name": "Widget", "target_descriptor": "long-tail",
-             "sku": ["SKU-1"], "keywords": ["red widget for kitchen", "red widget for office"]},
-            {"campaign_type": "Auto", "product_name": "Widget", "sku": ["SKU-1"]},
+             "campaign_name": "Profit | SP | Exact | Halo | Widget | long-tail | EW",
+             "ad_group_name": "SP | Exact | Halo | Widget | long-tail",
+             "approved_bidding_strategy": "Down only",
+             "sku": ["SKU-1"], "keywords": ["red widget for kitchen", "red widget for office"],
+             "suggested_bids": {"red widget for kitchen": 0.75, "red widget for office": 0.85},
+             "negative_keywords": ["acme"], "negative_match_type": "NEGATIVE_PHRASE",
+             "negative_level": "campaign"},
+            {"campaign_type": "Auto", "product_name": "Widget", "target_descriptor": "CM",
+             "campaign_name": "Discovery | SP | Auto | Widget | CM | EW",
+             "ad_group_name": "SP | Auto | Widget | CM",
+             "approved_bidding_strategy": "Up and down",
+             "sku": ["SKU-1"],
+             "suggested_bids": {"close_match": 0.75, "loose_match": 0.85,
+                                "substitutes": 0.95, "complements": 1.05},
+             "negative_keywords": ["acme"], "negative_match_type": "NEGATIVE_PHRASE",
+             "negative_level": "campaign", "auto_close_match_state": "enabled",
+             "auto_loose_match_state": "paused", "auto_substitutes_state": "paused",
+             "auto_complements_state": "paused"},
             {"campaign_type": "PAT", "campaign_purpose": "SELF_TARGETING", "match_type": "ASIN_EXPANDED",
-             "product_name": "Widget", "sku": ["SKU-1"], "target_asins": ["B000000009"]},
+             "campaign_name": "Discovery | SP | PAT | Self-Targeting Expanded | Widget | EW",
+             "ad_group_name": "SP | PAT | Self-Targeting Expanded | Widget",
+             "approved_bidding_strategy": "Up and down",
+             "product_name": "Widget", "sku": ["SKU-1"], "target_asins": ["B000000009"],
+             "negative_target_asins": ["B000000009"],
+             "suggested_bids": {"B000000009": 0.75}},
             {"campaign_type": "PAT", "product_name": "Widget", "sku": ["SKU-1"],
-             "target_asins": ["B000000001"],
-             "bidding_strategy": "Up and down"},  # deliberate override -> should NOTE in preflight
-            {"campaign_type": "PAT", "goal": "Brand", "product_name": "Widget",
+             "campaign_name": "Discovery | SP | PAT | Competitor | Widget | EW",
+             "ad_group_name": "SP | PAT | Competitor | Widget",
+             "approved_bidding_strategy": "Down only",
+             "target_asins": ["B000000001"], "suggested_bids": {"B000000001": 0.75},
+             "negative_keywords": ["acme"], "negative_match_type": "NEGATIVE_PHRASE",
+             "negative_level": "campaign"},
+            {"campaign_type": "PAT", "campaign_purpose": "CATEGORY", "goal": "Brand",
+             "product_name": "Widget",
+             "campaign_name": "Brand | SP | PAT | Category | Widget | EW",
+             "ad_group_name": "SP | PAT | Category | Widget",
+             "approved_bidding_strategy": "Up and down",
              "target_descriptor": "category", "sku": ["SKU-1"],
              "target_categories": ["123456"],
-             "negative_target_asins": ["B000000002", "B000000003"]},
+             "negative_target_asins": ["B000000002", "B000000003"],
+             "suggested_bids": {"123456": 0.75},
+             "negative_keywords": ["acme"], "negative_match_type": "NEGATIVE_PHRASE",
+             "negative_level": "campaign"},
         ],
     }
     cfg_path = TMP / "cfg_ew.json"
@@ -183,6 +236,30 @@ def test_create_ew():
           loaded["naming"]["variable_order"] ==
           ["Goal", "AdType", "MatchType", "TriggerWord", "ProductName", "Keyword", "CampCounter", "EW"],
           str(loaded["naming"]["variable_order"]))
+    generated_ctx = {
+        "goal": "Rank", "ad_type": "SP", "match_type": "EXACT", "campaign_type": "SKW",
+        "product_name": "Widget", "keyword_text": "red widget", "counter": None,
+    }
+    check("generated EW ad-group name removes only goal and suffix",
+          cm.generate_ad_group_name(loaded["naming"], generated_ctx)
+          == "SP | Exact | SKW | Widget | red widget",
+          cm.generate_ad_group_name(loaded["naming"], generated_ctx))
+    check("ad-group guardrail accepts an exact derived name",
+          bc.ad_group_name_matches_campaign(
+              "Rank | SP | Exact | SKW | Widget | red widget | EW",
+              "SP | Exact | SKW | Widget | red widget"))
+    check("ad-group guardrail accepts one variation modifier",
+          bc.ad_group_name_matches_campaign(
+              "Rank | SP | Exact | SKW | Widget | red widget | EW",
+              "SP | Exact | SKW | Widget | red widget - 3 pack"))
+    check("ad-group guardrail rejects the full campaign name",
+          not bc.ad_group_name_matches_campaign(
+              "Rank | SP | Exact | SKW | Widget | red widget | EW",
+              "Rank | SP | Exact | SKW | Widget | red widget | EW"))
+    check("ad-group guardrail rejects missing middle tokens",
+          not bc.ad_group_name_matches_campaign(
+              "Rank | SP | Exact | SKW | Widget | red widget | EW",
+              "Exact | SKW | Widget | red widget"))
 
     campaigns = bc.generate_all(loaded)
     rank_skw = campaigns[0]
@@ -203,12 +280,17 @@ def test_create_ew():
     check("Shield SKW trigger word is 'Shield', not 'SKW'",
           "Shield" in shield_skw["campaign_name"], shield_skw["campaign_name"])
     check("Shield SKW bidding = Down only (purpose override)", shield_skw["bidding_strategy"] == "Down only")
-    check("Halo name carries CampCounter (counter 01)", "01" in halo["campaign_name"], halo["campaign_name"])
+    check("Halo name uses the approved explicit structure without an invented counter",
+          halo["campaign_name"] == "Profit | SP | Exact | Halo | Widget | long-tail | EW",
+          halo["campaign_name"])
     check("Halo bidding = Down only", halo["bidding_strategy"] == "Down only")
-    check("Auto name carries CampCounter (counter 01)", "01" in auto["campaign_name"], auto["campaign_name"])
+    check("Auto name has one Auto token, the target group, and no counter",
+          auto["campaign_name"] == "Discovery | SP | Auto | Widget | CM | EW",
+          auto["campaign_name"])
     check("Auto bidding = Up and down", auto["bidding_strategy"] == "Up and down")
-    check("Non-Halo/Auto campaigns have NO Camp Counter token in the name",
-          "01" not in rank_skw["campaign_name"] and "01" not in shield_skw["campaign_name"],
+    check("Non-Halo campaigns have NO Camp Counter token in the name",
+          "01" not in rank_skw["campaign_name"] and "01" not in shield_skw["campaign_name"]
+          and "01" not in auto["campaign_name"],
           f"{rank_skw['campaign_name']} / {shield_skw['campaign_name']}")
     check("Self-Targeting PAT trigger word is 'Self-Targeting'",
           "Self-Targeting" in self_pat["campaign_name"], self_pat["campaign_name"])
@@ -221,29 +303,46 @@ def test_create_ew():
           and brand_category_pat["categories"] == ["123456"]
           and not brand_category_pat["asins"],
           str({key: brand_category_pat[key] for key in ("goal", "categories", "asins")}))
+    check("Category PAT uses the approved Up and down strategy",
+          brand_category_pat["bidding_strategy"] == "Up and down",
+          brand_category_pat["bidding_strategy"])
 
     for c in campaigns:
         check(f"ad group name != campaign name ({c['campaign_type']})",
               c["ad_group_name"] != c["campaign_name"],
               f"{c['ad_group_name']!r} == {c['campaign_name']!r}")
 
-    # capture preflight stdout to check for the bidding-override NOTE and QC notes
+    # capture preflight stdout to check the strict EW guardrails
     import io
     from contextlib import redirect_stdout
     buf = io.StringIO()
+    preflight_report_path = TMP / "create_preflight_quality.json"
     with redirect_stdout(buf):
-        rc_pre = bc.preflight(loaded)
+        rc_pre = bc.preflight(loaded, preflight_report_path)
     out_text = buf.getvalue()
     print(out_text)
     check("preflight READY", rc_pre == 0)
-    check("preflight NOTEs the bidding_strategy override on the competitor PAT campaign",
-          "differs from the naming-convention.md default" in out_text, out_text)
-    check("preflight NOTEs missing negative_keywords on discovery-less check n/a (no Phrase here)",
-          True)
+    check("preflight accepts verified structure, products, exclusions, and suggested bids",
+          "[MISSING]" not in out_text, out_text)
+    preflight_report = json.loads(preflight_report_path.read_text(encoding="utf-8"))
+    check("create preflight quality report is machine-readable",
+          preflight_report["schema_version"] == 1
+          and preflight_report["mode"] == "create"
+          and preflight_report["phase"] == "preflight"
+          and preflight_report["status"] == "pass"
+          and preflight_report["summary"]["campaign_count"] == len(campaigns),
+          str(preflight_report))
 
     out = TMP / "ew.xlsx"
-    rc_build = bc.build(loaded, str(out))
+    validation_report_path = TMP / "create_validation_quality.json"
+    rc_build = bc.build(loaded, str(out), validation_report_path)
     check("build+validate PASS", rc_build == 0)
+    validation_report = json.loads(validation_report_path.read_text(encoding="utf-8"))
+    check("create artifact validation report records a passing row count",
+          validation_report["phase"] == "artifact_validation"
+          and validation_report["status"] == "pass"
+          and validation_report["summary"]["row_count"] > 0,
+          str(validation_report))
     built = openpyxl.load_workbook(out, data_only=True)["Sponsored Products Campaigns"]
     placement_rows = [
         row for row in built.iter_rows(values_only=True)
@@ -252,6 +351,13 @@ def test_create_ew():
     check("campaign-level placement override is written to the bulk file",
           any(row[24] == 55 for row in placement_rows),
           str([(row[23], row[24]) for row in placement_rows]))
+    rank_keyword_rows = [
+        row for row in built.iter_rows(min_row=2, values_only=True)
+        if row[1] == "Keyword" and row[20] == "red widget"
+    ]
+    check("target bid is 30% below suggested bid with half-up rounding (0.75 -> 0.53)",
+          len(rank_keyword_rows) == 1 and rank_keyword_rows[0][19] == 0.53,
+          str([(row[20], row[19]) for row in rank_keyword_rows]))
     business_placement_rows = [
         row for row in built.iter_rows(values_only=True)
         if row[1] == "Bidding Adjustment" and row[23] == "Placement Amazon Business"
@@ -298,6 +404,86 @@ def test_create_ew():
           and {row[expression_col] for row in negative_target_rows}
           == {'asin="B000000002"', 'asin="B000000003"'},
           str([(row[1], row[expression_col]) for row in negative_target_rows]))
+
+
+def test_ew_guardrails_fail_closed():
+    section("B2. EW guardrails fail closed on launch-callout classes")
+    cfg = {
+        "client": "Selftest Guardrails", "brand": "Selftest", "marketplace": "US",
+        "guardrails": ew_guardrails(),
+        "defaults": {"daily_budget": 10.0, "keyword_bid": 0.5, "state": "paused"},
+        "campaigns": [
+            {"campaign_type": "Phrase", "product_name": "Widget", "sku": ["SKU-1"],
+             "campaign_name": "Discovery | SP | Phrase | Widget | EW",
+             "ad_group_name": "SP | Phrase | Widget",
+             "approved_bidding_strategy": "Down only",
+             "keywords": ["widget"], "suggested_bids": {"widget": 0.75}},
+            {"campaign_type": "SKW", "campaign_purpose": "SHIELD", "product_name": "Widget",
+             "campaign_name": "Rank | SP | Exact | Shield | Widget | acme widget | EW",
+             "ad_group_name": "SP | Exact | Shield | Widget | acme widget",
+             "approved_bidding_strategy": "Down only",
+             "sku": ["SKU-1"], "keywords": ["acme widget"],
+             "suggested_bids": {"acme widget": 0.75}, "negative_keywords": ["acme"],
+             "negative_match_type": "NEGATIVE_PHRASE", "negative_level": "campaign"},
+            {"campaign_type": "Phrase", "match_type": "EXACT", "product_name": "Widget",
+             "campaign_name": "Discovery | SP | Phrase | Widget Accessory | EW",
+             "ad_group_name": "SP | Phrase | Widget Accessory",
+             "approved_bidding_strategy": "Down only",
+             "sku": ["SKU-1"], "keywords": ["widget accessory"],
+             "suggested_bids": {"widget accessory": 0.75}, "negative_keywords": ["acme"],
+             "negative_match_type": "NEGATIVE_PHRASE", "negative_level": "campaign"},
+            {"campaign_type": "Auto", "product_name": "Widget", "target_descriptor": "CM",
+             "campaign_name": "Discovery | SP | Auto | Auto | Widget | CM | EW",
+             "ad_group_name": "SP | Auto | Auto | Widget | CM",
+             "approved_bidding_strategy": "Up and down",
+             "sku": ["SKU-1"],
+             "suggested_bids": {"close_match": 0.75, "loose_match": 0.85,
+                                "substitutes": 0.95, "complements": 1.05},
+             "negative_keywords": ["acme"], "negative_match_type": "NEGATIVE_PHRASE",
+             "negative_level": "campaign", "auto_close_match_state": "enabled",
+             "auto_loose_match_state": "enabled", "auto_substitutes_state": "paused",
+             "auto_complements_state": "paused"},
+            {"campaign_type": "PAT", "product_name": "Widget", "sku": ["SKU-1"],
+             "campaign_name": "Discovery | SP | PAT | Competitor | Widget | EW",
+             "ad_group_name": "SP | PAT | Competitor | Widget",
+             "approved_bidding_strategy": "Down only",
+             "target_asins": ["B000000001"], "suggested_bids": {"B000000001": 0.75},
+             "negative_keywords": ["acme"], "negative_match_type": "NEGATIVE_PHRASE",
+             "negative_level": "campaign", "bidding_strategy": "Up and down"},
+        ],
+    }
+    cfg_path = TMP / "cfg_guardrails_fail.json"
+    cfg_path.write_text(json.dumps(cfg))
+    loaded = bc.load_config(str(cfg_path))
+    import io
+    from contextlib import redirect_stdout
+    buf = io.StringIO()
+    quality_report_path = TMP / "create_blocked_quality.json"
+    with redirect_stdout(buf):
+        rc = bc.preflight(loaded, quality_report_path)
+    out_text = buf.getvalue()
+    print(out_text)
+    check("guardrail preflight fails", rc == 1)
+    check("catches missing generic brand exclusion",
+          "missing own-brand Negative Phrase exclusions" in out_text, out_text)
+    check("catches own-brand negative inside Shield",
+          "Shield campaign cannot exclude own-brand terms" in out_text, out_text)
+    check("catches Phrase campaign with Exact targeting",
+          "Phrase cannot use EXACT" in out_text, out_text)
+    check("catches Auto with two enabled groups",
+          "split Auto requires exactly one enabled targeting group" in out_text, out_text)
+    check("catches duplicate adjacent campaign-name tokens",
+          "duplicate adjacent naming token(s): auto" in out_text, out_text)
+    check("catches wrong bidding strategy",
+          "differs from the approved" in out_text, out_text)
+    quality_report = json.loads(quality_report_path.read_text(encoding="utf-8"))
+    check("blocked preflight quality report preserves every blocking issue",
+          quality_report["status"] == "fail"
+          and quality_report["summary"]["error_count"] > 0
+          and len([item for item in quality_report["checks"]
+                   if item["severity"] == "error"])
+          == quality_report["summary"]["error_count"],
+          str(quality_report))
 
 
 # =================================================================== C. keyword-file input
@@ -381,6 +567,7 @@ def test_keyword_file():
 
     cfg = {
         "client": "Selftest KWFile", "brand": "Selftest", "marketplace": "US",
+        "naming": {"preset": "LEGACY", "suffix": "EW"},
         "defaults": {"daily_budget": 10.0, "keyword_bid": 0.5, "state": "paused"},
         "campaigns": specs,
     }
@@ -395,6 +582,7 @@ def test_keyword_file():
 
     # exercise the CLI wiring too (--keyword-file / --keyword-sheet)
     cfg2 = {"client": "Selftest KWFile CLI", "brand": "Selftest", "marketplace": "US",
+            "naming": {"preset": "LEGACY", "suffix": "EW"},
             "keyword_file_defaults": {"product_name": "Widget", "sku": ["SKU-1"]},
             "defaults": {"daily_budget": 10.0, "keyword_bid": 0.5, "state": "paused"},
             "campaigns": []}
@@ -547,8 +735,16 @@ def test_update_good():
     cfg_path.write_text(json.dumps(cfg))
     loaded = uc.load_config(str(cfg_path))
 
-    rc_pre = uc.preflight(loaded)
+    preflight_report_path = TMP / "update_preflight_quality.json"
+    rc_pre = uc.preflight(loaded, preflight_report_path)
     check("update preflight READY", rc_pre == 0)
+    preflight_report = json.loads(preflight_report_path.read_text(encoding="utf-8"))
+    check("update preflight quality report is machine-readable",
+          preflight_report["mode"] == "update"
+          and preflight_report["phase"] == "preflight"
+          and preflight_report["status"] == "pass"
+          and preflight_report["summary"]["planned_row_count"] > 0,
+          str(preflight_report))
 
     export2, rows, review, errors = uc._plan(loaded)
     check("no generation errors", errors == [], str(errors))
@@ -610,8 +806,15 @@ def test_update_good():
           len(target_enable) == 1 and target_enable[0]["State"] == "enabled")
 
     out = TMP / "update_good.xlsx"
-    rc_build = uc.build(loaded, str(out))
+    validation_report_path = TMP / "update_validation_quality.json"
+    rc_build = uc.build(loaded, str(out), validation_report_path)
     check("update build+validate PASS", rc_build == 0)
+    validation_report = json.loads(validation_report_path.read_text(encoding="utf-8"))
+    check("update artifact validation quality report passes",
+          validation_report["mode"] == "update"
+          and validation_report["phase"] == "artifact_validation"
+          and validation_report["status"] == "pass",
+          str(validation_report))
 
     # --preview / --validate CLI smoke test
     import subprocess
@@ -684,6 +887,7 @@ def main():
     test_create_legacy()
     test_sp_bmm_disabled()
     test_create_ew()
+    test_ew_guardrails_fail_closed()
     test_keyword_file()
     export_path = test_update_good()
     test_update_broken(export_path)
