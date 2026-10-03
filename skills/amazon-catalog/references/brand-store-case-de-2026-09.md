@@ -20,7 +20,8 @@ did not establish the actor or date responsible for those defects.
 
 Source: `output/<client>/reporting/2026-09-10-product-audit/audit.md` under the Amazon
 Agent workspace, with catalog joins, saved ASIN lists and full-page comparison in
-the linked run evidence. [Original complaint](https://amazonwizards.slack.com/archives/C0ARVE7JKT2/p1789022706836359).
+the linked run evidence. The original complaint is the internal Slack thread linked
+from that audit.
 
 ## Image-link corrections, 13 September
 
@@ -39,8 +40,8 @@ request was followed despite an available matching listing.
 
 Source: `output/<client>/catalog/2026-09-13-image-links/correction-report.md`, with
 `live-before.json`, `draft-after.json`, `live-after.json`, `editor-readbacks.json` and
-`data-verification.json` under the corresponding evidence directory.
-[Correction sheet](https://docs.google.com/spreadsheets/d/1y29wdetC0eQJHuljFZmru_VWCtY6Uk-w2_gc6wSK86k/edit?gid=898575287).
+`data-verification.json` under the corresponding evidence directory. The client's
+correction sheet is linked from that correction report.
 
 These receipts establish those dated runs. They do not establish current stock,
 current version status, general crop-replacement support or a new executor's live
