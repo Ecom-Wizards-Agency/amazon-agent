@@ -1,0 +1,11 @@
+[
+  {"name": "FBA shipment id only", "subject": "Missing units FBA100000001", "issue_key": "", "expected": "FBA100000001"},
+  {"name": "ASIN only", "subject": "Listing B012345678 issue", "issue_key": "", "expected": "B012345678"},
+  {"name": "ASIN before FBA shipment id", "subject": "Listing B012345678 missing from FBA100000001", "issue_key": "", "expected": "FBA100000001"},
+  {"name": "FBA shipment id before ASIN", "subject": "FBA100000001 lost units of B012345678", "issue_key": "", "expected": "FBA100000001"},
+  {"name": "first of two ASINs", "subject": "B012345678 and B087654321 suppressed", "issue_key": "", "expected": "B012345678"},
+  {"name": "lowercase FBA id is upper-cased", "subject": "missing units fba100000001", "issue_key": "", "expected": "FBA100000001"},
+  {"name": "FBA id only in the issue key", "subject": "Missing units", "issue_key": "FBA100000001", "expected": "FBA100000001"},
+  {"name": "ASIN in subject, FBA id in issue key", "subject": "Listing B012345678 issue", "issue_key": "fba100000001", "expected": "FBA100000001"},
+  {"name": "no identifier keeps the trimmed subject", "subject": "  Exact unrelated issue  ", "issue_key": "", "expected": "Exact unrelated issue"}
+]

@@ -158,6 +158,25 @@ class CaseOperationsTests(unittest.TestCase):
         observed['case_id']='99999999'
         self.assertEqual(self.reconcile(result,observed)['status'],'verified')
 
+    def test_duplicate_query_table_matches_cases_mjs(self):
+        # Same table as cases.test.mjs; both sides must derive one query.
+        table = json.loads((Path(__file__).parent / 'fixtures' / 'duplicate-query-cases.json').read_text())
+        for row in table:
+            with self.subTest(row['name']):
+                request = copy.deepcopy(self.request)
+                request['operation'] = 'case.create'; request['targets'] = [{'issue_key': row['issue_key'] or 'issue'}]
+                request['inputs'].update(subject=row['subject'], issue_key=row['issue_key'])
+                request['inputs']['baseline']['duplicate_query'] = row['expected']
+                directory = self.root / 'dq' / str(table.index(row))
+                self.assertEqual(self.cases.prepare(request, directory)['duplicate_query'], row['expected'])
+        request = copy.deepcopy(self.request)
+        request['operation'] = 'case.create'; request['targets'] = [{'issue_key': 'issue'}]
+        request['inputs'].update(subject='Listing B012345678 missing from FBA100000001', issue_key='')
+        request['inputs']['baseline']['duplicate_query'] = 'B012345678'
+        with self.assertRaises(self.cases.CaseOperationError) as raised:
+            self.cases.prepare(request, self.root / 'dq' / 'mismatch')
+        self.assertEqual(raised.exception.code, 'duplicate_query_mismatch')
+
     def test_full_approved_signature_can_include_company_after_name(self):
         self.request['inputs']['owner']['signature']='Danica\nEcom Wizards'
         self.request['inputs']['signed_body']+='\nEcom Wizards'

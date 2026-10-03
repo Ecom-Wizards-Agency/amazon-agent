@@ -2,6 +2,9 @@ import '../../report-fetcher/test/helpers/isolated-runtime.mjs';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { readFileSync } from 'node:fs';
+import vm from 'node:vm';
+import { snapshot } from '../browser-ui.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { capability, normalizeCase, verifyDraft, submitPrepared, decodeMessageEntities, caseListSummary, duplicateQuery, mergeSearchPage, caseBrowserAccount, claimAdapter, waitForCaseContext, caseSession, run } from '../cases.mjs';
@@ -34,6 +37,60 @@ test('capability distinguishes denied, closed, login, missing control and reply'
  assert.equal(capability(base,{canEditCase:true}).state,'unknown');
  assert.equal(capability({...base,url:'https://sellercentral.amazon.com/ap/signin'}).state,'login_required');
  assert.equal(capability({...base,controls:[{label:'Reply',disabled:false}]}).state,'reply_available');
+});
+test('capability counts logical Reply controls',()=>{
+ const base={url:'https://sellercentral.amazon.com/cu/case-dashboard/view-case',text:'Case'};
+ const resolved={canEditCase:true,caseStatus:'Resolved'};
+ // One plain Reply button.
+ assert.equal(capability({...base,controls:[{tag:'BUTTON',label:'Reply',disabled:false}]},resolved).state,'reply_available');
+ // kat-button wrapper plus the button in its shadow root: one logical control.
+ const wrapped=[{tag:'KAT-BUTTON',label:'Reply',disabled:false},{tag:'BUTTON',label:'Reply',disabled:false,nested:true}];
+ assert.equal(capability({...base,controls:wrapped},resolved).state,'reply_available');
+ assert.equal(capability({...base,controls:wrapped},{canEditCase:true,caseStatus:'PendingAmazonAction'}).state,'reply_available');
+ // Two separate Reply controls remain ambiguous.
+ assert.equal(capability({...base,controls:[wrapped[0],{...wrapped[1],nested:undefined}]},{canEditCase:true,caseStatus:'PendingAmazonAction'}).state,'unknown');
+ // No Reply on a Resolved or Closed case.
+ assert.equal(capability({...base,controls:[{tag:'BUTTON',label:'Back',disabled:false}]},resolved).state,'closed');
+ assert.equal(capability({...base,controls:[]},{canEditCase:false,caseStatus:'Closed'}).state,'closed');
+ // A disabled Reply, plain or inside an enabled wrapper.
+ assert.equal(capability({...base,controls:[{tag:'BUTTON',label:'Reply',disabled:true}]},{canEditCase:true,caseStatus:'PendingAmazonAction'}).state,'unknown');
+ assert.equal(capability({...base,controls:[{tag:'BUTTON',label:'Reply',disabled:true}]},resolved).state,'closed');
+ assert.equal(capability({...base,controls:[wrapped[0],{...wrapped[1],disabled:true}]},resolved).state,'closed');
+});
+// Minimal fake DOM: enough for ui.snapshot's selectors, shadow roots included.
+function fakePage(tree){
+ const parts=sel=>sel.split(',').map(x=>x.trim());
+ const make=(spec,parent)=>{
+  const el={nodeType:1,tagName:spec.tag.toUpperCase(),id:spec.id||'',parentNode:parent,disabled:spec.disabled===true,attrs:spec.attrs||{},children:[],shadowRoot:null,
+   innerText:spec.text||'',textContent:spec.text||'',checked:false,
+   getBoundingClientRect:()=>({width:10,height:10}),getAttribute:k=>el.attrs[k]??null,hasAttribute:k=>k in el.attrs,
+   matches:sel=>parts(sel).some(x=>{const a=/^\[([a-z-]+)="([^"]*)"\]$/.exec(x);return a?el.attrs[a[1]]===a[2]:/^[a-z-]+$/.test(x)&&x===spec.tag;}),
+   querySelectorAll:()=>all(el)};
+  el.children=(spec.children||[]).map(c=>make(c,el));
+  if(spec.shadow){const root={nodeType:11,host:el,children:[]};root.children=spec.shadow.map(c=>make(c,root));root.querySelectorAll=()=>all(root);el.shadowRoot=root;}
+  return el;
+ };
+ const all=node=>node.children.flatMap(c=>[c,...all(c)]);
+ const body=make({tag:'body',text:'Case',children:tree},null);
+ const document={nodeType:9,title:'Case',body,children:[body],querySelectorAll:()=>[body,...all(body)]};
+ body.parentNode=document;
+ const location={href:'https://sellercentral.amazon.com/cu/case-dashboard/view-case',origin:'https://sellercentral.amazon.com'};
+ return{send:async(method,params)=>method==='Runtime.evaluate'?{result:{value:JSON.parse(JSON.stringify(vm.runInNewContext(params.expression,{document,location})))}}:{}};
+}
+test('snapshot marks a control nested in a same-label control only on request',async()=>{
+ const page=fakePage([
+  {tag:'kat-button',attrs:{label:'Reply'},shadow:[{tag:'button',text:'Reply'}]},
+  {tag:'a',text:'Open case',children:[{tag:'button',text:'Reply'}]},
+ ]);
+ const marked=(await snapshot(page,{markNested:true})).controls;
+ assert.deepEqual(marked.map(c=>[c.tag,c.label,c.nested===true]),[['KAT-BUTTON','Reply',false],['A','Open case',false],['BUTTON','Reply',false],['BUTTON','Reply',true]]);
+ const plain=(await snapshot(page)).controls;
+ assert.ok(plain.every(c=>!('nested' in c)));
+ assert.deepEqual(plain,marked.map(({nested,...c})=>c));
+ // The wrapper and its inner button are one logical Reply control; the button
+ // inside an unrelated link is a second one, so Reply stays ambiguous.
+ assert.equal(capability({text:'Case',controls:marked},{canEditCase:true,caseStatus:'Resolved'}).state,'closed');
+ assert.equal(capability({text:'Case',controls:[marked[0],marked[3]]},{canEditCase:true,caseStatus:'Resolved'}).state,'reply_available');
 });
 test('draft verification rejects wrong signature, attachment and ambiguous textarea',()=>{
  verifyDraft(form,body,'case.reply');
@@ -84,6 +141,11 @@ test('first page of 556 cases cannot become a complete duplicate baseline',()=>{
  assert.equal(caseListSummary('Case log without known total',ids).complete,false);
 });
 
+// Same table as test_case_operations.py; both sides must derive one query.
+test('duplicate query table matches case_operations.py',()=>{
+ const table=JSON.parse(readFileSync(new URL('./fixtures/duplicate-query-cases.json',import.meta.url),'utf8'));
+ for(const row of table)assert.equal(duplicateQuery(row.subject,row.issue_key),row.expected,row.name);
+});
 test('scoped duplicate query and paging bind the full filtered result',()=>{
  assert.equal(duplicateQuery('Missing units FBA19BHQR9VJ'),'FBA19BHQR9VJ');
  assert.equal(duplicateQuery('Listing B012345678 issue'),'B012345678');

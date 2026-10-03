@@ -75,7 +75,10 @@ def prepare(request, directory):
     duplicate_query = None
     if request['operation'] == 'case.create':
         require(isinstance(subject, str) and subject.strip() and '\n' not in subject, 'missing_subject', 'New case requires an exact one-line subject')
-        identity = re.search(r'\bFBA[A-Z0-9]{8,12}\b|\bB0[A-Z0-9]{8}\b', subject + ' ' + str(inputs.get('issue_key', '')), re.I)
+        # Same rule as cases.mjs duplicateQuery(): an FBA shipment id anywhere in
+        # subject plus issue key, else the first B0 ASIN, else the stripped subject.
+        text = subject + ' ' + str(inputs.get('issue_key', ''))
+        identity = re.search(r'\bFBA[A-Z0-9]{8,12}\b', text, re.I) or re.search(r'\bB0[A-Z0-9]{8}\b', text, re.I)
         duplicate_query = identity.group(0).upper() if identity else subject.strip()
         require(baseline.get('duplicate_query') == duplicate_query, 'duplicate_query_mismatch', 'New case baseline must come from the same scoped issue/subject search')
     attachments = inputs.get('attachments', [])

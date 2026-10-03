@@ -28,8 +28,11 @@ export function capability(state,metadata={}) {
   if(/\/ap\/signin|\/signin|\/ap\/challenge/.test(state.url||''))return{state:'login_required'};
   if(/you (?:do not|don't) have (?:access|permission)|access denied|not authorized to (?:view|edit)|insufficient permissions/i.test(state.text||''))return{state:'permission_denied'};
   if(metadata.canEditCase===false&&!/^(?:closed|resolved)$/i.test(metadata.caseStatus||''))return{state:'permission_denied'};
+  // Count logical Reply controls: a kat-button wrapper and the button inside it
+  // are one control (the inner one carries nested:true from ui.snapshot). A
+  // disabled wrapper or inner button makes that control unavailable.
   const reply=(state.controls||[]).filter(x=>x.label==='Reply');
-  if(reply.length===1&&!reply[0].disabled)return{state:'reply_available'};
+  if(reply.filter(x=>!x.nested).length===1&&!reply.some(x=>x.disabled))return{state:'reply_available'};
   if(/^(?:closed|resolved)$/i.test(metadata.caseStatus||''))return{state:'closed'};
   if(metadata.canEditCase===false)return{state:'permission_denied'};
   return{state:'unknown'};
@@ -83,7 +86,7 @@ async function context(page,account,homeIdentity) {
   // Case SPA navigation paints the surrounding menu before its account header.
   // Wait for the exact header under the retained claim; never read case data
   // using the menu alone or an account supplied only by the caller.
-  return waitForCaseContext(()=>ui.snapshot(page.session),assertControl,account,homeIdentity);
+  return waitForCaseContext(()=>ui.snapshot(page.session,{markNested:true}),assertControl,account,homeIdentity);
 }
 
 async function fetchCase(page,account,id,homeIdentity) {
@@ -120,6 +123,9 @@ export function caseListSummary(text,ids,hasNext=false) {
   return{case_ids:unique,total_cases:total,complete:total!==null&&unique.length===total&&!hasNext};
 }
 
+// Duplicate query rule, shared with case_operations.py prepare(): an FBA
+// shipment id anywhere in subject plus issue key, else the first B0 ASIN, else
+// the trimmed subject. Change both files together.
 export function duplicateQuery(subject,issueKey='') {
   const text=String(subject||'')+' '+String(issueKey||'');
   const identity=/\bFBA[A-Z0-9]{8,12}\b/i.exec(text)||/\bB0[A-Z0-9]{8}\b/i.exec(text);
