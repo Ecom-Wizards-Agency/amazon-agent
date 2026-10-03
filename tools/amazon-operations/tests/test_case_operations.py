@@ -163,12 +163,20 @@ class CaseOperationsTests(unittest.TestCase):
         table = json.loads((Path(__file__).parent / 'fixtures' / 'duplicate-query-cases.json').read_text())
         for row in table:
             with self.subTest(row['name']):
+                # Length rows build their subject; an accepted one is its own query.
+                subject = row['subject_unit'] * row['repeat'] if 'repeat' in row else row['subject']
+                expected = subject if 'repeat' in row else row['expected']
                 request = copy.deepcopy(self.request)
                 request['operation'] = 'case.create'; request['targets'] = [{'issue_key': row['issue_key'] or 'issue'}]
-                request['inputs'].update(subject=row['subject'], issue_key=row['issue_key'])
-                request['inputs']['baseline']['duplicate_query'] = row['expected']
+                request['inputs'].update(subject=subject, issue_key=row['issue_key'])
+                request['inputs']['baseline']['duplicate_query'] = expected
                 directory = self.root / 'dq' / str(table.index(row))
-                self.assertEqual(self.cases.prepare(request, directory)['duplicate_query'], row['expected'])
+                if row.get('rejected'):
+                    with self.assertRaises(self.cases.CaseOperationError) as raised:
+                        self.cases.prepare(request, directory)
+                    self.assertEqual(raised.exception.code, 'invalid_subject')
+                else:
+                    self.assertEqual(self.cases.prepare(request, directory)['duplicate_query'], expected)
         request = copy.deepcopy(self.request)
         request['operation'] = 'case.create'; request['targets'] = [{'issue_key': 'issue'}]
         request['inputs'].update(subject='Listing B012345678 missing from FBA100000001', issue_key='')

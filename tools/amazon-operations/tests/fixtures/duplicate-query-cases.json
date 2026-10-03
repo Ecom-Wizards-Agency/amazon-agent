@@ -7,5 +7,13 @@
   {"name": "lowercase FBA id is upper-cased", "subject": "missing units fba100000001", "issue_key": "", "expected": "FBA100000001"},
   {"name": "FBA id only in the issue key", "subject": "Missing units", "issue_key": "FBA100000001", "expected": "FBA100000001"},
   {"name": "ASIN in subject, FBA id in issue key", "subject": "Listing B012345678 issue", "issue_key": "fba100000001", "expected": "FBA100000001"},
-  {"name": "no identifier keeps the trimmed subject", "subject": "  Exact unrelated issue  ", "issue_key": "", "expected": "Exact unrelated issue"}
+  {"name": "no identifier keeps the trimmed subject", "subject": "  Exact unrelated issue  ", "issue_key": "", "expected": "Exact unrelated issue"},
+  {"name": "accented letter before an FBA id is not a word character", "subject": "\u00e9FBA100000001 x", "issue_key": "", "expected": "FBA100000001"},
+  {"name": "long s does not case-fold into an ASIN", "subject": "Listing B0\u017f2345678 y", "issue_key": "", "expected": "Listing B0\u017f2345678 y"},
+  {"name": "byte order mark is trimmed", "subject": "\ufeffExact issue", "issue_key": "", "expected": "Exact issue"},
+  {"name": "next line control is not trimmed", "subject": "\u0085Exact issue\u0085", "issue_key": "", "expected": "\u0085Exact issue\u0085"},
+  {"name": "512 code units is the longest subject query", "subject_unit": "a", "repeat": 512, "issue_key": "", "rejected": false},
+  {"name": "513 code units is rejected", "subject_unit": "a", "repeat": 513, "issue_key": "", "rejected": true},
+  {"name": "256 astral characters fill 512 code units", "subject_unit": "\ud83d\ude00", "repeat": 256, "issue_key": "", "rejected": false},
+  {"name": "257 astral characters exceed 512 code units", "subject_unit": "\ud83d\ude00", "repeat": 257, "issue_key": "", "rejected": true}
 ]

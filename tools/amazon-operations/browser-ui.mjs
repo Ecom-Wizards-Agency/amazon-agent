@@ -99,11 +99,18 @@ export async function clickFlatFilePro(session,label) {
   await evaluate(session,`(()=>{if(location.origin!=='https://app.flatfile.pro')throw Error('Wrong FlatFilePro origin');const clean=x=>String(x||'').replace(/\\s+/g,' ').trim();const matches=[...document.querySelectorAll('button,a,[role="button"],[role="option"]')].filter(e=>e.getBoundingClientRect().width>0&&e.getBoundingClientRect().height>0&&!e.disabled&&e.getAttribute('aria-disabled')!=='true'&&clean(e.getAttribute('aria-label')||e.innerText||e.textContent)===${JSON.stringify(label)});if(matches.length!==1)throw Error('Expected one enabled FlatFilePro control');matches[0].click()})()`);
   await session.assertTaskControl({exclusiveContext:true});
 }
-export async function click(session,label,{id=null}={}) {
+// outermost counts logical controls, as snapshot's markNested does: a match
+// inside another visible match (crossing shadow hosts) is the same control.
+// Exactly one outermost match must remain and no matching part may be disabled.
+export async function click(session,label,{id=null,outermost=false}={}) {
+  check(!(id&&outermost),'outermost applies to labelled controls only');
   const point=await evaluate(session,`(() => {
     const roots=[document],els=[]; for(let i=0;i<roots.length;i++) for(const el of roots[i].querySelectorAll('*')){els.push(el);if(el.shadowRoot)roots.push(el.shadowRoot);}
     const clean=x=>String(x||'').replace(/\\s+/g,' ').trim();
-    const matches=els.filter(el=>{const r=el.getBoundingClientRect();return r.width>0&&r.height>0&&!el.disabled&&!el.hasAttribute('disabled')&&${id?`el.id===${JSON.stringify(id)}`:`el.matches('button,kat-button,a,[role="button"],[role="option"],option')&&clean(el.getAttribute('label')||el.getAttribute('aria-label')||el.innerText||el.textContent)===${JSON.stringify(label)}`};});
+    let matches=els.filter(el=>{const r=el.getBoundingClientRect();return r.width>0&&r.height>0&&${outermost?'':`!el.disabled&&!el.hasAttribute('disabled')&&`}${id?`el.id===${JSON.stringify(id)}`:`el.matches('button,kat-button,a,[role="button"],[role="option"],option')&&clean(el.getAttribute('label')||el.getAttribute('aria-label')||el.innerText||el.textContent)===${JSON.stringify(label)}`};});${outermost?`
+    {const set=new Set(matches),up=n=>{const p=n&&n.parentNode;return p&&p.nodeType===11?p.host:p;};
+      if(matches.some(el=>el.disabled||el.hasAttribute('disabled')))throw new Error('Expected exactly one enabled semantic control');
+      matches=matches.filter(el=>{for(let n=up(el);n;n=up(n))if(set.has(n))return false;return true;});}`:''}
     if(matches.length!==1)throw new Error('Expected exactly one enabled semantic control');const r=matches[0].getBoundingClientRect();return{x:r.x+r.width/2,y:r.y+r.height/2};
   })()`);
   await session.send('Input.dispatchMouseEvent',{type:'mousePressed',button:'left',clickCount:1,...point});

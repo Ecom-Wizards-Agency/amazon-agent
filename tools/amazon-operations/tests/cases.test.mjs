@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
-import { snapshot } from '../browser-ui.mjs';
+import { snapshot, click } from '../browser-ui.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { capability, normalizeCase, verifyDraft, submitPrepared, decodeMessageEntities, caseListSummary, duplicateQuery, mergeSearchPage, caseBrowserAccount, claimAdapter, waitForCaseContext, caseSession, run } from '../cases.mjs';
@@ -92,6 +92,26 @@ test('snapshot marks a control nested in a same-label control only on request',a
  assert.equal(capability({text:'Case',controls:marked},{canEditCase:true,caseStatus:'Resolved'}).state,'closed');
  assert.equal(capability({text:'Case',controls:[marked[0],marked[3]]},{canEditCase:true,caseStatus:'Resolved'}).state,'reply_available');
 });
+test('outermost click treats a wrapped control as one and still rejects two',async()=>{
+ const wrapped={tag:'kat-button',attrs:{label:'Reply'},shadow:[{tag:'button',text:'Reply'}]};
+ await assert.rejects(click(fakePage([wrapped]),'Reply'),/exactly one enabled/);
+ await click(fakePage([wrapped]),'Reply',{outermost:true});
+ await click(fakePage([{tag:'button',text:'Reply'}]),'Reply',{outermost:true});
+ await assert.rejects(click(fakePage([wrapped,{tag:'button',text:'Reply'}]),'Reply',{outermost:true}),/exactly one enabled/);
+ await assert.rejects(click(fakePage([{...wrapped,shadow:[{tag:'button',text:'Reply',disabled:true}]}]),'Reply',{outermost:true}),/exactly one enabled/);
+ await assert.rejects(click(fakePage([wrapped]),'Reply',{id:'reply',outermost:true}),/labelled controls only/);
+});
+test('case.reply execute keeps counting every Reply element',async()=>{
+ const wrapped=[{tag:'KAT-BUTTON',label:'Reply',disabled:false},{tag:'BUTTON',label:'Reply',disabled:false,nested:true}];
+ const resolved={canEditCase:true,caseStatus:'Resolved'};
+ assert.equal(capability({text:'Case',controls:wrapped},resolved,{logical:false}).state,'closed');
+ assert.equal(capability({text:'Case',controls:wrapped},{canEditCase:true,caseStatus:'PendingAmazonAction'},{logical:false}).state,'unknown');
+ assert.equal(capability({text:'Case',controls:[wrapped[0]]},resolved,{logical:false}).state,'reply_available');
+ const seen=[];const {input,deps}=fixture({fetchCase:async(...args)=>{seen.push(args[4]);return{capability:{state:'closed'},history_complete:true,contacts:[{id:'old'}]};}});
+ const result=await submitPrepared(input,{session:{}},{},deps);
+ assert.deepEqual(seen,[{logical:false}]);
+ assert.equal(result.status,'blocked');assert.equal(result.reason,'closed');assert.equal(result.attempted,false);
+});
 test('draft verification rejects wrong signature, attachment and ambiguous textarea',()=>{
  verifyDraft(form,body,'case.reply');
  assert.throws(()=>verifyDraft({...form,fields:[{...form.fields[0],value:body.signed_body.replace('Danica','Victor')}]},body,'case.reply'),/signed/);
@@ -144,7 +164,12 @@ test('first page of 556 cases cannot become a complete duplicate baseline',()=>{
 // Same table as test_case_operations.py; both sides must derive one query.
 test('duplicate query table matches case_operations.py',()=>{
  const table=JSON.parse(readFileSync(new URL('./fixtures/duplicate-query-cases.json',import.meta.url),'utf8'));
- for(const row of table)assert.equal(duplicateQuery(row.subject,row.issue_key),row.expected,row.name);
+ for(const row of table){
+  // Length rows build their subject; an accepted one is its own query.
+  const subject=row.repeat?row.subject_unit.repeat(row.repeat):row.subject;
+  if(row.rejected)assert.throws(()=>duplicateQuery(subject,row.issue_key),/exact subject/,row.name);
+  else assert.equal(duplicateQuery(subject,row.issue_key),row.repeat?subject:row.expected,row.name);
+ }
 });
 test('scoped duplicate query and paging bind the full filtered result',()=>{
  assert.equal(duplicateQuery('Missing units FBA19BHQR9VJ'),'FBA19BHQR9VJ');

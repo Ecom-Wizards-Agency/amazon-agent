@@ -16,6 +16,11 @@ import sys
 from pathlib import Path
 
 
+# Characters String.prototype.trim removes (ECMAScript WhiteSpace and
+# LineTerminator); str.strip() uses a different set.
+JS_WHITESPACE = '\t\n\v\f\r \u00a0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u2028\u2029\u202f\u205f\u3000\ufeff'
+
+
 class CaseOperationError(ValueError):
     def __init__(self, code, message):
         super().__init__(message)
@@ -74,12 +79,15 @@ def prepare(request, directory):
     subject = inputs.get('subject', '')
     duplicate_query = None
     if request['operation'] == 'case.create':
-        require(isinstance(subject, str) and subject.strip() and '\n' not in subject, 'missing_subject', 'New case requires an exact one-line subject')
+        require(isinstance(subject, str) and subject.strip(JS_WHITESPACE) and '\n' not in subject, 'missing_subject', 'New case requires an exact one-line subject')
         # Same rule as cases.mjs duplicateQuery(): an FBA shipment id anywhere in
-        # subject plus issue key, else the first B0 ASIN, else the stripped subject.
-        text = subject + ' ' + str(inputs.get('issue_key', ''))
-        identity = re.search(r'\bFBA[A-Z0-9]{8,12}\b', text, re.I) or re.search(r'\bB0[A-Z0-9]{8}\b', text, re.I)
-        duplicate_query = identity.group(0).upper() if identity else subject.strip()
+        # subject plus issue key, else the first B0 ASIN, else the subject trimmed
+        # as String.prototype.trim does. re.ASCII matches JS \b and /i without u.
+        text = subject + ' ' + str(inputs.get('issue_key') or '')
+        identity = re.search(r'\bFBA[A-Z0-9]{8,12}\b', text, re.I | re.A) or re.search(r'\bB0[A-Z0-9]{8}\b', text, re.I | re.A)
+        duplicate_query = identity.group(0).upper() if identity else subject.strip(JS_WHITESPACE)
+        # JS caps the query at 512 UTF-16 code units, not code points.
+        require(len(duplicate_query.encode('utf-16-le')) // 2 <= 512, 'invalid_subject', 'New case lookup query exceeds 512 characters')
         require(baseline.get('duplicate_query') == duplicate_query, 'duplicate_query_mismatch', 'New case baseline must come from the same scoped issue/subject search')
     attachments = inputs.get('attachments', [])
     require(isinstance(attachments, list), 'invalid_attachments', 'Attachments must be a list')
