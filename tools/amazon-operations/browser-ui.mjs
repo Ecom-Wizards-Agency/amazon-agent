@@ -19,14 +19,20 @@ export async function verifyEnvelope(input) {
     check(createHash('sha256').update(await readFile(a.path)).digest('hex')===a.sha256,'Artifact changed');
   }
 }
-export async function snapshot(session) {
+// markNested adds nested:true to a control that sits inside a visible control
+// with the same label (a kat-button and the button in its shadow root). Without
+// it the snapshot is unchanged; cases.mjs uses it to count logical controls.
+export async function snapshot(session,{markNested=false}={}) {
   return evaluate(session,`(() => {
     const clean=x=>String(x||'').replace(/\\s+/g,' ').trim();
     const roots=[document],els=[];
     for(let n=0;n<roots.length;n++) for(const el of roots[n].querySelectorAll('*')) { els.push(el); if(el.shadowRoot) roots.push(el.shadowRoot); }
     const visible=el=>{const r=el.getBoundingClientRect();return r.width>0&&r.height>0;};
     const controls=els.filter(el=>visible(el)&&el.matches('button,kat-button,a,[role="button"],[role="option"],option'))
-      .map(el=>({tag:el.tagName,id:el.id,label:clean(el.getAttribute('label')||el.getAttribute('aria-label')||el.innerText||el.textContent),disabled:el.disabled||el.hasAttribute('disabled')}));
+      .map(el=>({tag:el.tagName,id:el.id,label:clean(el.getAttribute('label')||el.getAttribute('aria-label')||el.innerText||el.textContent),disabled:el.disabled||el.hasAttribute('disabled')}));${markNested?`
+    {const ctl=els.filter(el=>visible(el)&&el.matches('button,kat-button,a,[role="button"],[role="option"],option')),set=new Set(ctl);
+      const up=n=>{const p=n&&n.parentNode;return p&&p.nodeType===11?p.host:p;};
+      ctl.forEach((el,i)=>{for(let n=up(el);n;n=up(n))if(set.has(n)&&controls[ctl.indexOf(n)].label===controls[i].label){controls[i].nested=true;break;}});}`:''}
     const rows=els.filter(el=>visible(el)&&el.matches('tr,[role="row"]')).map(el=>[...el.querySelectorAll('th,td,[role="cell"],[role="columnheader"],[role="gridcell"]')].map(c=>clean(c.innerText||c.textContent))).filter(r=>r.length);
     const contexts=els.filter(el=>visible(el)&&(el.matches('header,nav,[role="banner"],#sc-mkt-picker-switcher-select,#sc-mkt-picker-switcher')||clean(el.innerText||el.textContent).startsWith('Seller & Marketplace'))).map(el=>clean(el.innerText||el.textContent)).filter(t=>t.length<1600);
     const contextTokens=els.filter(el=>visible(el)&&el.matches('[data-test="current-account"],.dropdown-account-switcher-header,[class*="AccountSwitcher" i],[data-testid*="account-switcher" i],#sc-mkt-picker-switcher-select,header,nav')).map(el=>[...el.querySelectorAll('*')].filter(child=>visible(child)&&child.children.length===0).map(child=>clean(child.innerText||child.textContent)).filter(Boolean));
@@ -93,11 +99,18 @@ export async function clickFlatFilePro(session,label) {
   await evaluate(session,`(()=>{if(location.origin!=='https://app.flatfile.pro')throw Error('Wrong FlatFilePro origin');const clean=x=>String(x||'').replace(/\\s+/g,' ').trim();const matches=[...document.querySelectorAll('button,a,[role="button"],[role="option"]')].filter(e=>e.getBoundingClientRect().width>0&&e.getBoundingClientRect().height>0&&!e.disabled&&e.getAttribute('aria-disabled')!=='true'&&clean(e.getAttribute('aria-label')||e.innerText||e.textContent)===${JSON.stringify(label)});if(matches.length!==1)throw Error('Expected one enabled FlatFilePro control');matches[0].click()})()`);
   await session.assertTaskControl({exclusiveContext:true});
 }
-export async function click(session,label,{id=null}={}) {
+// outermost counts logical controls, as snapshot's markNested does: a match
+// inside another visible match (crossing shadow hosts) is the same control.
+// Exactly one outermost match must remain and no matching part may be disabled.
+export async function click(session,label,{id=null,outermost=false}={}) {
+  check(!(id&&outermost),'outermost applies to labelled controls only');
   const point=await evaluate(session,`(() => {
     const roots=[document],els=[]; for(let i=0;i<roots.length;i++) for(const el of roots[i].querySelectorAll('*')){els.push(el);if(el.shadowRoot)roots.push(el.shadowRoot);}
     const clean=x=>String(x||'').replace(/\\s+/g,' ').trim();
-    const matches=els.filter(el=>{const r=el.getBoundingClientRect();return r.width>0&&r.height>0&&!el.disabled&&!el.hasAttribute('disabled')&&${id?`el.id===${JSON.stringify(id)}`:`el.matches('button,kat-button,a,[role="button"],[role="option"],option')&&clean(el.getAttribute('label')||el.getAttribute('aria-label')||el.innerText||el.textContent)===${JSON.stringify(label)}`};});
+    let matches=els.filter(el=>{const r=el.getBoundingClientRect();return r.width>0&&r.height>0&&${outermost?'':`!el.disabled&&!el.hasAttribute('disabled')&&`}${id?`el.id===${JSON.stringify(id)}`:`el.matches('button,kat-button,a,[role="button"],[role="option"],option')&&clean(el.getAttribute('label')||el.getAttribute('aria-label')||el.innerText||el.textContent)===${JSON.stringify(label)}`};});${outermost?`
+    {const set=new Set(matches),up=n=>{const p=n&&n.parentNode;return p&&p.nodeType===11?p.host:p;};
+      if(matches.some(el=>el.disabled||el.hasAttribute('disabled')))throw new Error('Expected exactly one enabled semantic control');
+      matches=matches.filter(el=>{for(let n=up(el);n;n=up(n))if(set.has(n))return false;return true;});}`:''}
     if(matches.length!==1)throw new Error('Expected exactly one enabled semantic control');const r=matches[0].getBoundingClientRect();return{x:r.x+r.width/2,y:r.y+r.height/2};
   })()`);
   await session.send('Input.dispatchMouseEvent',{type:'mousePressed',button:'left',clickCount:1,...point});
