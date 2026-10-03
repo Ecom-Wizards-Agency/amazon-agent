@@ -38,7 +38,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { ensureChrome, listPages, evaluate } from "../report-fetcher/cdp.mjs";
-import { acquireTaskPage, releaseTaskPage, taskIdFor } from "../browserctl/task-tabs.mjs";
+import { acquireTaskPageWithRegionWait, releaseTaskPage, taskIdFor } from "../browserctl/task-tabs.mjs";
 import { normalizeOrigin, accountPickerUrl, accountMatches, switchAccount, readIdentity, inspectPage, waitFor } from "../report-fetcher/sc-account.mjs";
 import { formatEnvelope } from "./format-poe.mjs";
 import { accountProfileMatches } from "../report-fetcher/account-selection.mjs";
@@ -142,7 +142,7 @@ async function findOrCreatePoePage(origin) {
     "amazon-opportunity-explorer",
     cmd === "doctor" ? defaultTaskKey : `${defaultTaskKey}|${wantedOrigin}`,
   );
-  const taskPage = await acquireTaskPage({
+  const taskPage = await acquireTaskPageWithRegionWait({
     taskId, workflow: "amazon-opportunity-explorer", initialUrl: "about:blank",
     exclusiveContext: true,
     ...(cmd === "doctor" ? {} : { sellerCentral: { marketplace: opt("marketplace", null), origin: wantedOrigin } }),

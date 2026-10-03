@@ -19,7 +19,7 @@
 import { writeFileSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { ensureChrome, listPages, Session } from "./cdp.mjs";
-import { acquireTaskPage, releaseTaskPage, taskIdFor } from "../browserctl/task-tabs.mjs";
+import { acquireTaskPageWithRegionWait, releaseTaskPage, taskIdFor } from "../browserctl/task-tabs.mjs";
 
 import { scopeForOrigin } from "../browserctl/context-scopes.mjs";
 
@@ -81,7 +81,7 @@ async function main() {
     const scopes = NAV.map(scopeForOrigin);
     const sellerCentral = scopes[0] && scopes[0] !== "global" && scopes.every(scope => scope === scopes[0])
       ? { origin: NAV[0] } : undefined;
-    const taskPage = await acquireTaskPage({
+    const taskPage = await acquireTaskPageWithRegionWait({
       taskId: taskIdFor("endpoint-capture", `${OUT}|${NAV.join(",")}`),
       workflow: "amazon-reporting-endpoint-capture", initialUrl: "about:blank",
       exclusiveContext: true, sellerCentral,

@@ -4,9 +4,9 @@ Mode browser: CDP (logged-in FlatFilePro session; hidden native file input, MUI 
 
 ## Core Rule
 
-Use the shared Grimoire browser with its logged-in FlatFilePro session, per the Browser Standard in `AGENTS.md`. This mode operates the FlatFilePro upload/mapping UI after the upload file already exists. **FlatFilePro expects `.xlsx`** (operator, 2026-07-26); if you are handed a `.csv`, convert it to `.xlsx` before uploading rather than uploading the CSV. If the file still needs to be created from labels or backend exports, use the `prepare` mode first.
+Use the machine's attended default browser with its logged-in FlatFilePro session, per the Browser Standard in `AGENTS.md`. This mode operates the FlatFilePro upload/mapping UI after the upload file already exists. **FlatFilePro expects `.xlsx`** (operator, 2026-07-26); if you are handed a `.csv`, convert it to `.xlsx` before uploading rather than uploading the CSV. If the file still needs to be created from labels or backend exports, use the `prepare` mode first.
 
-Use managed Chrome CDP, the shared `grimoire` session on port 9223. Do not switch this workflow to the
+Use managed Chrome CDP on the machine's attended default session (`operator` on 9222 on Evo X1, `grimoire` on 9223 elsewhere), launched with `node tools/browserctl/browserctl.mjs run -- <command>`; Grimoire-side runs keep `--session grimoire`. The team FlatFilePro login is brokered on both ports. Do not switch this workflow to the
 T3 Code in-app browser: that surface does not carry the managed login broker or
 the supported `DOM.setFileInputFiles` upload path.
 
@@ -32,7 +32,7 @@ Before asking for repeated account or mapping details, check `_local/flatfilepro
 
 ## Workflow
 
-1. Resolve the machine's attended default with `browserctl run -- …` before imports; Grimoire keeps `--session grimoire`. Use a task-owned tab with its exclusive context claim, plus the shared session lock on 9223; verify the FlatFilePro seller and marketplace before acting.
+1. Resolve the machine's attended default with `browserctl run -- …` before imports; Grimoire keeps `--session grimoire`. Use a task-owned tab with its exclusive context claim, plus the shared session lock when the session is `grimoire` on 9223; verify the FlatFilePro seller and marketplace before acting.
 2. Start an `artifactctl` run for this attended workflow before creating,
    copying, or downloading a local file.
 3. Check the visible FlatFilePro `Seller & Marketplace` whenever possible.

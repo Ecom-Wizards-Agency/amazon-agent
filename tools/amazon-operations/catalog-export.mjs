@@ -8,11 +8,17 @@ import { pathToFileURL } from 'node:url';
 import { createHash } from 'node:crypto';
 import { isDeepStrictEqual } from 'node:util';
 import { evaluate } from '../report-fetcher/cdp.mjs';
-import { acquireTaskPage, releaseTaskPage, closeReleasedTaskPage, completeBrowserTask, taskIdFor } from '../browserctl/task-tabs.mjs';
+import { acquireTaskPageWithRegionWait, releaseTaskPage, closeReleasedTaskPage, completeBrowserTask, taskIdFor } from '../browserctl/task-tabs.mjs';
 import * as ui from './browser-ui.mjs';
 import { reserveSubmission } from './flatfilepro-contracts.mjs';
 
 export const MARKER_EXPIRY_MS=24*60*60*1000;
+// operations.py stops this collector after 180 s (run_collector). On 9222 every
+// acquisition waits for a busy region only until 60 s after start, keeping 120 s
+// for the report work (its download alone may take 60 s); a region that comes
+// free later answers TASK_TAB_BUSY instead of starting work that cannot finish.
+export const COLLECTOR_TIMEOUT_MS=180000;
+export const COLLECTOR_WORK_RESERVE_MS=120000;
 
 export function matchingCompletedReports(statuses, marker, minimumAfter) {
   const minimum=Math.max(Date.parse(marker.requested_at),Date.parse(minimumAfter));
@@ -52,12 +58,14 @@ export async function collect(input) {
   const markerPath=join(directory,'report-request.json');
   const taskSpec={closeOnFailure:input.close_tab_after===true,taskId:taskIdFor('amazon-operations',input.task_key || input.operation_id),slot:'verification',workflow:'amazon-reporting',initialUrl:origin+'/listing/reports/ref=xx_invreport_favb_xx',exclusiveContext:true,sellerCentral:{marketplace:input.account.marketplace,origin}};
   let page,releasedPage,outcome='error';
+  const workBy=Date.now()+COLLECTOR_TIMEOUT_MS-COLLECTOR_WORK_RESERVE_MS;
+  const acquire=spec=>acquireTaskPageWithRegionWait(spec,{workBy});
   const persistRequest=async(marker,reserve=false)=>{
     const targetId=page.targetId;
     releasedPage=page;
     await releaseTaskPage(page,{outcome:'success'});page=null;
     if(reserve)await reserveSubmission(markerPath,marker);else await ui.receipt(markerPath,marker);
-    page=await acquireTaskPage({...taskSpec,expectedTargetId:targetId});releasedPage=null;
+    page=await acquire({...taskSpec,expectedTargetId:targetId});releasedPage=null;
     ui.check(isDeepStrictEqual(JSON.parse(await readFile(markerPath,'utf8')),marker),'Report reservation changed during receipt write');
     const state=await ui.context(page.session,input.account,'catalog');
     ui.check(new URL(state.url).pathname.startsWith('/listing/reports'),'Report page changed during receipt write');
@@ -71,7 +79,7 @@ export async function collect(input) {
   process.once('SIGTERM',onSigterm);
   const common={schema_version:1,account:input.account,plan_hash:input.plan_hash,observed_at:new Date().toISOString()};
   try {
-    page=await acquireTaskPage(taskSpec);
+    page=await acquire(taskSpec);
     // Navigation text renders before the account selector. Wait for the same
     // exact identity check used before every report action; never infer identity
     // from page length or accept a partially rendered header.

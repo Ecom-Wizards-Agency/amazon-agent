@@ -10,6 +10,10 @@ from pathlib import Path
 
 STATES = {"allowed", "approval-gated", "forbidden", "undocumented", "consent-outdated", "open"}
 REPOS = {"amazon-agent", "wizards-ai", "company-ai-skills"}
+ACTORS = ("grimoire", "amazon_agent")
+PORTS = (None, 9222, 9223)
+# An actor-level port may also name the machine's attended default (9222 or 9223).
+ACTOR_PORTS = (*PORTS, "attended-default")
 GATE_FIELDS = {
     "python_symbol_contains": ("file", "symbol", "value"),
     "json_pointer_equals": ("file", "pointer", "value"),
@@ -73,11 +77,16 @@ def validate(matrix, roots=None) -> list[str]:
             if ident in seen:
                 errors.append(f"{label}: duplicate id")
             seen.add(ident)
-        for actor in ("grimoire", "amazon_agent"):
+        for actor in ACTORS:
             state = row.get(actor)
             if not isinstance(state, dict) or not isinstance(state.get("state"), str) or state["state"] not in STATES or not isinstance(state.get("how"), str) or not state["how"].strip():
                 errors.append(f"{label}: invalid {actor} state/how")
-        if row.get("port") not in (None, 9222, 9223) or "port" not in row:
+                continue
+            if "identity" in state and (not isinstance(state["identity"], str) or not state["identity"].strip()):
+                errors.append(f"{label}: {actor} identity must be a nonempty string")
+            if "port" in state and (type(state["port"]) not in (type(None), int, str) or state["port"] not in ACTOR_PORTS):
+                errors.append(f"{label}: {actor} port must be null, 9222, 9223 or attended-default")
+        if row.get("port") not in PORTS or "port" not in row:
             errors.append(f"{label}: port must be null, 9222 or 9223")
         if not isinstance(row.get("spp_rows"), list) or not all(isinstance(x, str) and x for x in row["spp_rows"]):
             errors.append(f"{label}: spp_rows must be a string list")
@@ -180,6 +189,16 @@ def digest(matrix) -> str:
     return hashlib.sha256(json.dumps(matrix, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()).hexdigest()
 
 
+def actor_identity(row, actor) -> tuple[str, object]:
+    """Return an actor's identity and port; actor fields override the row defaults."""
+    state = row[actor]
+    return state.get("identity", row["identity"]), state.get("port", row["port"])
+
+
+def _port_label(port):
+    return {None: "API or local", "attended-default": "attended default"}.get(port, port)
+
+
 def render_table(matrix) -> str:
     def cell(value):
         return str(value).replace("|", "\\|").replace("\n", "<br>")
@@ -189,8 +208,14 @@ def render_table(matrix) -> str:
         notes = f"{row['notes']} Verified {row['verified_on']}."
         if row.get("expires_on"):
             notes += f" Review expires {row['expires_on']}."
+        identities = [actor_identity(row, actor) for actor in ACTORS]
+        if identities[0] == identities[1]:
+            identity = f"{identities[0][0]} / {_port_label(identities[0][1])}"
+        else:
+            identity = "<br>".join(f"**{name}**: {ident} / {_port_label(port)}"
+                                   for name, (ident, port) in zip(("Grimoire", "Amazon Agent"), identities))
         values = [f"<a id=\"{row['id']}\"></a>`{row['id']}`: {row['capability']}",
                   *[f"**{row[actor]['state']}**: {row[actor]['how']}" for actor in ("grimoire", "amazon_agent")],
-                  f"{row['identity']} / {row['port'] or 'API or local'}", f"{notes} {evidence}"]
+                  identity, f"{notes} {evidence}"]
         lines.append("| " + " | ".join(cell(v) for v in values) + " |")
     return "\n".join(lines) + "\n"
