@@ -85,7 +85,9 @@
       },
       "amazon_agent": {
         "state": "approval-gated",
-        "how": "Submit the exact reviewed workbook, mappings and target preview only with in-chat approval."
+        "how": "Submit the exact reviewed workbook, mappings and target preview only with in-chat approval.",
+        "identity": "Team FlatFilePro login, brokered on both ports, on the machine's attended default session (operator/9222 on Evo X1); machines that keep the grimoire/9223 default use the Grimoire session",
+        "port": "attended-default"
       },
       "identity": "Grimoire delegated Seller Central login (shared Grimoire session)",
       "port": 9223,
