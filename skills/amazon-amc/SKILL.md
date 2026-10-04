@@ -9,6 +9,8 @@ Browser: None (AdLabs MCP plus local SQL validation).
 
 Use this skill for Amazon Marketing Cloud SQL, AMC measurement workflows, scheduled AMC queries, and AMC audiences. Ordinary Amazon Ads reporting and PPC diagnosis remain in `amazon-reporting` and `amazon-audit`.
 
+Trigger phrases include `Amazon Marketing Cloud`, `AMC SQL`, `AMC query`, `AMC audience`, and `schedule an AMC query`. Writing or validating SQL does not authorize a one-time run, schedule, audience, update, or deletion. Confirm the exact AMC execution mode before any write.
+
 ## Route The Request
 
 1. Identify the requested outcome: draft SQL, validate SQL, one-time query, recurring schedule, or audience.

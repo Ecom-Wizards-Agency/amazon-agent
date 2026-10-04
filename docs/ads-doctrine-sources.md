@@ -37,5 +37,11 @@ synchronized challenge decisions, matching Playbook, and Research topics. The ag
 order. If the team vault is unavailable, the helper exits successfully without output
 and the tracked skill plus local strategy remain sufficient to continue.
 
+`Playbooks/` holds long-form tactical write-ups from the team's own tested account work:
+doctrine-adjacent, because it reflects what the operator built, tested and confirmed. Read the
+playbook matching the task, such as `amazon-ppc-management-playbook.md` before a bid run.
+`Research/amazon-ads/` holds topic syntheses of external sources with per-claim provenance
+(`{video_id}@{MM:SS}` cites a YouTube timestamp) and disagreements deliberately preserved.
+
 New contradictions go to `Research/amazon-ads/challenges.md`. Decided challenges are
 not re-opened from Research. Changing an approved rule requires a new decision record.

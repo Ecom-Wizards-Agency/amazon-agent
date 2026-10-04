@@ -1,0 +1,2 @@
+# Codex caps combined project instructions at 32 KiB by default; this lets the full AGENTS.md load.
+project_doc_max_bytes = 131072

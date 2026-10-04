@@ -126,6 +126,7 @@ existing client `Video Briefings` folder as a native Google Doc.
 - `amazon-ads-console` and `amazon-ppc-weekly-management` own launch, measurement, verdict, and scaling under the canonical agency playbook.
 - Live tests and results belong in the existing Notion A/B Test Program and brand portal.
 - Campaign creation and performance writes are outside `build_and_deliver.py`.
+- Pure PPC structure routes to `amazon-sponsored-products-bulk-files` or `amazon-ads-console`; creator sourcing routes to `amazon-creator-connections`.
 
 ## Stop Before Risk
 

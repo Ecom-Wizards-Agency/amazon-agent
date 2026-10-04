@@ -16,6 +16,12 @@ This skill can be installed on its own from the Amazon Agent repository. Supplie
 product and POE files are enough; a full operator setup and Seller Central access
 are not required. Other Amazon skills are optional routes when installed and needed.
 
+Trigger phrases include `Amazon listing images`, `amazon-image-strategy`, `Bildkonzepte`,
+`Bildtexte`, `image copy`, and `gallery image order` when the task is image strategy
+or copy. Explicit live POE discovery or downloads remain with
+`amazon-opportunity-explorer`; rendering and publishing use their own workflows and
+authorization.
+
 ## Inputs and scope
 
 The two required inputs are **product data and POE data**. Accept files, tables,

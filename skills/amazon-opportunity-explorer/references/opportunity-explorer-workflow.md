@@ -4,16 +4,19 @@ Use this reference for Product Opportunity Explorer / OEI / POE workflows that f
 
 ## Extraction Tool
 
-Repo-native extraction workflow:
+Use the repo-native API-first downloader when an export is needed: one `getNiche` call returns every niche-detail tab (overview, Products, Search Terms, Customer Review Insights positive+negative with snippets, Returns, trends); the keyword search returns the related-niches grid:
 
-- `tools/opportunity-explorer/extract-opportunity-explorer.js`
-- `tools/opportunity-explorer/format-opportunity-explorer-export.mjs`
+- `tools/opportunity-explorer/fetch-poe.js` (browser-side, same-origin GraphQL; window.amazonAgentFetchPoe*)
+- `tools/opportunity-explorer/format-poe.mjs` (local formatter, `--self-test`)
+- `tools/opportunity-explorer/run-poe.mjs` (one-command CDP runner; shares the report-fetcher debug Chrome)
+- Contract + verification: `tools/opportunity-explorer/references/poe-endpoints.md`, `poe-gap-matrix.md`
+- Deprecated DOM-scraping fallback: `extract-opportunity-explorer.js` + `format-opportunity-explorer-export.mjs`
 
-Original Chrome extension/source backup, as the operator's current local placeholder path:
+Original Chrome extension/source backup, as a local placeholder path:
 
 `<your-pcloud>/Account shares/Amazon Wizards/2_Company/2.7_Tools/Chrome Extension-Opportunity Explorer Downloader`
 
-The operator confirmed ownership and backend clearance for reusing the previous extension logic. The path is a historical/source reference only, not a repo dependency. The repo workflow is to run the browser-side extractor on the visible Product Opportunity Explorer page and save JSON/Markdown.
+The operator confirmed ownership and backend clearance for reusing the previous extension logic. The extension path is a historical/source reference only, not a repo dependency. The extension is not part of the intended workflow once the script is tested. Do not inspect cookies, session storage, local storage, tokens, or credentials while extracting OEI/POE data.
 
 ## Script-First Operating Model
 
@@ -21,13 +24,12 @@ The normal workflow should not require a Chrome extension or manual extension cl
 
 The current agent should:
 
-1. Open the logged-in connected browser Seller Central page.
-2. Navigate to the relevant Product Opportunity Explorer niche/page.
-3. Run the extractor JavaScript in that page context.
-4. Save the returned data as JSON.
-5. Format that JSON into Markdown.
+1. Confirm the logged-in Seller Central session shows the requested account and marketplace.
+2. Run `tools/opportunity-explorer/run-poe.mjs` (`search` to find the niche, then `niche --niche-id <id>`) with `--marketplace` and `--client`. It verifies the account, fetches through the same-origin API and formats the result.
+3. Without shell access to the CDP runner, evaluate `tools/opportunity-explorer/fetch-poe.js` in a Product Opportunity Explorer page and pass the returned JSON from memory to `tools/opportunity-explorer/format-poe.mjs --stdin --client <slug>`.
+4. Use the deprecated DOM extractor (`extract-opportunity-explorer.js` + `format-opportunity-explorer-export.mjs`) only when both API paths fail, and say so in the operator note.
 
-Keep the original Chrome extension only as historical/source reference during transition. Once the script is tested, the extension is not needed.
+Keep the original Chrome extension only as historical/source reference. The API-first downloader replaces it.
 
 ## Setup Note For Team Members
 
@@ -36,9 +38,9 @@ Team members should clone the GitHub `amazon-agent` repo. No browser extension i
 When an OEI/POE export is needed, the current agent should:
 
 1. Open Product Opportunity Explorer in the connected browser.
-2. Run `tools/opportunity-explorer/extract-opportunity-explorer.js` in the page context.
-3. Save the returned object as JSON.
-4. Run `tools/opportunity-explorer/format-opportunity-explorer-export.mjs` to create the final JSON and Markdown files.
+2. Run `tools/opportunity-explorer/run-poe.mjs` for the niche, or evaluate `tools/opportunity-explorer/fetch-poe.js` in the page context when the CDP runner is unavailable.
+3. Format evaluated `fetch-poe.js` output with `tools/opportunity-explorer/format-poe.mjs --stdin --client <slug>`; `run-poe.mjs` formats its own output.
+4. Fall back to the deprecated `tools/opportunity-explorer/extract-opportunity-explorer.js` and `tools/opportunity-explorer/format-opportunity-explorer-export.mjs` only when the API path fails.
 
 ## Data To Capture
 

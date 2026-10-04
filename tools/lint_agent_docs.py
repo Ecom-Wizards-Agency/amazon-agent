@@ -15,6 +15,10 @@ Checks:
    invariants remain explicit.
 7. Registered Amazon Ads doctrine mirrors agree with their canonical strategy key
    whenever that key exists.
+8. AGENTS.md stays under its byte limit, and its pinned safety phrases appear
+   inside the first 16,384 bytes, where Codex's project-doc budget keeps them.
+9. Skill instructions name no model, model family or runtime agent type outside
+   a line that starts with a runtime label.
 
 Exit code 0 when clean, 1 when any check fails.
 """
@@ -104,6 +108,91 @@ DATADIVE_STALE_ROUTES = {
         "full keyword pool uses three read-only DataDive endpoints in the extension browser"
     ),
 }
+
+
+# Check 8. Codex loads project instructions only up to a combined byte budget and
+# drops the rest, so a safety rule that sits late in AGENTS.md is invisible there.
+# The window is half the default 32 KiB budget, leaving room for nested docs.
+AGENTS_MAX_BYTES = 32_000
+CONTRACT_WINDOW_BYTES = 16_384
+CONTRACT_PHRASES = (
+    "Before any Slack write",
+    "Never inspect browser cookies",
+    "never falls back to a personal identity",
+    "never fall back to Grimoire",
+)
+
+# Check 9. Skills are shared by every runtime, so model and agent-type choices live
+# in each runtime's global instructions. A line that starts with a runtime label is
+# the one place a skill may be runtime-specific.
+MODEL_NAME = re.compile(
+    r"\bclaude-|\bgpt-|\b(?:opus|fable|sonnet|haiku)\b|subagent_type"
+    r"|\bgeneral-purpose\b|\bew[-_](?:worker|reviewer)",
+    re.IGNORECASE,
+)
+RUNTIME_LABELS = ("**Claude Code.**", "**Codex.**")
+
+
+def normalise_whitespace(text: str) -> str:
+    return " ".join(text.split())
+
+
+def agents_md_contract_phrases(root: Path = ROOT) -> list[str]:
+    """The fixed contract phrases plus every rights-matrix literal pinned in AGENTS.md.
+
+    Deduplicated by normalised text, first occurrence kept, so a phrase that is
+    both fixed here and pinned by the matrix is reported once when it drifts.
+    """
+    phrases = list(CONTRACT_PHRASES)
+    try:
+        matrix = json.loads((root / "docs/rights/capability-matrix.json").read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        matrix = {}  # rights_matrix_errors reports the unreadable matrix
+    for row in matrix.get("rows", []) if isinstance(matrix, dict) else []:
+        for gate in row.get("gates", []) if isinstance(row, dict) else []:
+            if (isinstance(gate, dict) and gate.get("kind") == "file_literal"
+                    and gate.get("repo") == "amazon-agent" and gate.get("file") == "AGENTS.md"
+                    and isinstance(gate.get("literal"), str) and gate["literal"].strip()):
+                phrases.append(gate["literal"])
+    unique: dict[str, str] = {}
+    for phrase in phrases:
+        unique.setdefault(normalise_whitespace(phrase), phrase)
+    return list(unique.values())
+
+
+def agents_md_budget_errors(root: Path = ROOT) -> list[str]:
+    """Keep AGENTS.md small and its safety contract inside Codex's instruction window."""
+    raw = (root / "AGENTS.md").read_bytes()
+    errors: list[str] = []
+    if len(raw) > AGENTS_MAX_BYTES:
+        errors.append(f"AGENTS.md: {len(raw)} bytes, above the {AGENTS_MAX_BYTES}-byte limit; "
+                      "move detail into the owning skill or a doc and leave a pointer")
+    whole = normalise_whitespace(raw.decode("utf-8"))
+    window = normalise_whitespace(raw[:CONTRACT_WINDOW_BYTES].decode("utf-8", errors="ignore"))
+    for phrase in agents_md_contract_phrases(root):
+        needle = normalise_whitespace(phrase)
+        if needle not in whole:
+            errors.append(f"AGENTS.md: missing pinned phrase `{phrase}`")
+        elif needle not in window:
+            errors.append(f"AGENTS.md: pinned phrase `{phrase}` first appears after byte "
+                          f"{CONTRACT_WINDOW_BYTES}; keep it in the Operating Contract")
+    return errors
+
+
+def model_name_errors(root: Path = ROOT) -> list[str]:
+    """Flag model ids, model families and runtime agent types in skill instructions."""
+    errors: list[str] = []
+    paths = sorted(root.glob("skills/*/SKILL.md")) + sorted(root.glob("skills/*/references/**/*.md"))
+    for path in paths:
+        rel = path.relative_to(root)
+        for lineno, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+            if line.lstrip().startswith(RUNTIME_LABELS):
+                continue
+            match = MODEL_NAME.search(line)
+            if match:
+                errors.append(f"{rel}:{lineno}: names `{match.group(0)}`; skills stay runtime-neutral, "
+                              "so move it to a line starting with **Claude Code.** or **Codex.**")
+    return errors
 
 
 def validate_datadive_routing(root: Path = ROOT) -> list[str]:
@@ -309,6 +398,8 @@ def main() -> int:
 
     errors.extend(validate_datadive_routing())
     errors.extend(rights_matrix_errors())
+    errors.extend(agents_md_budget_errors())
+    errors.extend(model_name_errors())
 
     # 1. Skill manifests for both agents.
     skill_dirs = sorted(d for d in (ROOT / "skills").iterdir() if d.is_dir())
@@ -409,11 +500,9 @@ def main() -> int:
     for rule in required_operating_rules:
         if rule not in agents_md:
             errors.append(f"AGENTS.md: missing operating invariant `{rule}`")
-    routing = re.search(
-        r"^Default routing:\s*\n(.*?)(?=^Operational-check trigger phrases:)",
-        agents_md,
-        re.S | re.M,
-    )
+    # The block is the run of one-line `- ` entries after the label, which may be
+    # separated from the first entry by one blank line.
+    routing = re.search(r"^Default routing:[ \t]*\n(?:[ \t]*\n)?((?:- [^\n]*\n)+)", agents_md, re.M)
     if not routing:
         errors.append("AGENTS.md: `Default routing:` block not found")
     else:

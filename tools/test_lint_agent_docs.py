@@ -4,7 +4,11 @@ import unittest
 from pathlib import Path
 
 from tools.lint_agent_docs import (
+    AGENTS_MAX_BYTES,
+    CONTRACT_WINDOW_BYTES,
     ads_doctrine_drift_errors,
+    agents_md_budget_errors,
+    model_name_errors,
     validate_datadive_routing,
     validate_skill_directory,
 )
@@ -162,6 +166,93 @@ class AdsDoctrineLintTests(unittest.TestCase):
             data["mirrors"][0]["required"] = False
             source_map.write_text(json.dumps(data), encoding="utf-8")
             self.assertEqual(ads_doctrine_drift_errors(root, source_map, strategy), [])
+
+
+CONTRACT_TEXT = (
+    "Before any Slack write, read the posting file.\n"
+    "Never inspect browser cookies or tokens.\n"
+    "Missing bot access fails closed and never falls back to a personal identity.\n"
+    "If personal MCP access is missing, prepare a draft or stop; never fall back to\n"
+    "Grimoire.\n"
+)
+
+
+def write_agents_root(root: Path, agents_md: str) -> None:
+    (root / "docs" / "rights").mkdir(parents=True)
+    (root / "docs" / "rights" / "capability-matrix.json").write_text(
+        json.dumps({"rows": []}), encoding="utf-8"
+    )
+    (root / "AGENTS.md").write_text(agents_md, encoding="utf-8")
+
+
+class AgentsMdBudgetLintTests(unittest.TestCase):
+    def budget_errors(self, agents_md: str) -> list[str]:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            write_agents_root(root, agents_md)
+            return agents_md_budget_errors(root)
+
+    def test_contract_inside_window_passes_with_hard_wrapped_phrase(self):
+        self.assertEqual([], self.budget_errors(CONTRACT_TEXT))
+
+    def test_file_over_byte_limit_fails(self):
+        errors = self.budget_errors(CONTRACT_TEXT + "x" * AGENTS_MAX_BYTES)
+        self.assertTrue(any("-byte limit" in error for error in errors), errors)
+
+    def test_phrase_after_window_fails(self):
+        late = CONTRACT_TEXT.replace("Before any Slack write, read the posting file.\n", "")
+        late += "y" * CONTRACT_WINDOW_BYTES + "\nBefore any Slack write, read the posting file.\n"
+        errors = self.budget_errors(late)
+        self.assertEqual(1, len(errors), errors)
+        self.assertIn("`Before any Slack write` first appears after byte", errors[0])
+
+    def test_drifted_phrase_is_reported_once(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            write_agents_root(
+                root, CONTRACT_TEXT.replace("never falls back to a personal identity", "stops")
+            )
+            matrix = {"rows": [{"gates": [{
+                "kind": "file_literal", "repo": "amazon-agent", "file": "AGENTS.md",
+                "literal": "never falls back to a personal identity",
+            }]}]}
+            (root / "docs" / "rights" / "capability-matrix.json").write_text(
+                json.dumps(matrix), encoding="utf-8"
+            )
+            errors = agents_md_budget_errors(root)
+        self.assertEqual(1, len(errors), errors)
+        self.assertIn("missing pinned phrase", errors[0])
+
+
+class ModelNameLintTests(unittest.TestCase):
+    def model_errors(self, rel: str, text: str) -> list[str]:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            path = root / rel
+            path.parent.mkdir(parents=True)
+            path.write_text(text, encoding="utf-8")
+            return model_name_errors(root)
+
+    def test_model_name_in_skill_fails(self):
+        errors = self.model_errors("skills/amazon-example/SKILL.md", "Use gpt-6-sol\n")
+        self.assertEqual(1, len(errors), errors)
+        self.assertIn("skills/amazon-example/SKILL.md:1", errors[0])
+
+    def test_model_name_in_nested_reference_fails(self):
+        errors = self.model_errors(
+            "skills/amazon-example/references/nested/guide.md", "Use gpt-6-sol\n"
+        )
+        self.assertEqual(1, len(errors), errors)
+
+    def test_runtime_labelled_line_passes(self):
+        self.assertEqual(
+            [], self.model_errors("skills/amazon-example/SKILL.md", "**Codex.** Use gpt-6-sol\n")
+        )
+
+    def test_skill_readme_is_ignored(self):
+        self.assertEqual(
+            [], self.model_errors("skills/amazon-example/README.md", "Use gpt-6-sol\n")
+        )
 
 
 if __name__ == "__main__":

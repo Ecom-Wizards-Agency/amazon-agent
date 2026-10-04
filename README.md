@@ -8,7 +8,7 @@ Designers who only need image concepts/copy and product-photo prompts can use th
 [selective design installation prompt](docs/design-skills-installation.md).
 It installs only those two skills; full Amazon operator setup is unnecessary.
 
-Start with `AGENTS.md`. It is the single source of truth for assistant behavior: skill routing and trigger phrases, library search order, the Browser Standard, evidence capture, output-folder rules, and stop-before-risk rules. This README intentionally does not repeat that content; when the two disagree, `AGENTS.md` wins.
+Start with `AGENTS.md`. It is the single source of truth for assistant behavior: the Operating Contract (account, approval, safety, Drive and Slack identity rules), skill routing, library search order and the Browser Standard. Output-folder rules are in `docs/local-output-storage.md`. This README intentionally does not repeat that content; when the two disagree, `AGENTS.md` wins.
 
 For most work:
 
@@ -50,12 +50,19 @@ The complete visual MAG SOP archive (all captured SOPs plus every screenshot/GIF
 
 ## Browser Choice
 
-Routing is by session, not by agent, and lives in the Browser Standard in `AGENTS.md`: the CDP debug Chrome (port 9222) by default, the Chrome extension when the task needs the operator's own logged-in session. The per-workflow table is `docs/browser-routing-map.md`. Browser choice never overrides account/marketplace verification or stop-before-risk rules.
+Routing is by session, not by agent, and lives in the Browser Standard in `AGENTS.md`. The per-workflow table is `docs/browser-routing-map.md`. Browser choice never overrides account/marketplace verification or stop-before-risk rules.
 
-Managed Chrome on port 9222 is the normal browser default; port 9223 is reserved
-for Wizards AI's separate read session. The T3 Code in-app browser is explicit
-only and is never a silent fallback, especially for login, upload, or download
-work.
+Grimoire's Slack and scheduled runs use the shared `grimoire` session on port
+9223, and Grimoire always stays there. Attended direct chat uses the machine's
+attended default, set per machine in `routing.attended_cdp_port` of the
+setup-owned browser policy: Evo X1 sets 9222, so attended work there runs on the
+separate `operator` browser with the operator's own Seller Central login; every
+other machine keeps `grimoire` on 9223. Launch attended browser commands with
+`node tools/browserctl/browserctl.mjs run -- <command>`; session resolution and
+pinning are in `tools/browserctl/README.md`. Action rights come from the
+capability matrix in `docs/rights/README.md`, not from the port. The T3 Code
+in-app browser is explicit only and is never a silent fallback, especially for
+login, upload, or download work.
 
 CDP runners start or reuse the machine-policy profile automatically on the first
 applicable task. Seller Central and FlatFilePro may use the exact-origin
@@ -107,4 +114,4 @@ downloads/{client}/{source}/
 evidence/{client}/{workflow}/
 ```
 
-Dates belong in filenames, not folder names. The controlled workflow names, client-slug rules, and folder roles live in `AGENTS.md` under Local Output Storage.
+Dates belong in filenames, not folder names. The controlled workflow names, client-slug rules, and folder roles live in `docs/local-output-storage.md`.

@@ -136,6 +136,90 @@ Surplus anchors become inspection leases with two hours of retention before
 cleanup can reclaim them. Named additional slots and other surfaces keep their
 own task tabs. `cdp.mjs` rejects unkeyed creation and unknown option names.
 
+## Tab model and lifecycle
+
+This is the operating summary agents need; the sections below give the full contract.
+
+CDP runners start or reuse this dedicated profile lazily through the shared
+`ensureChrome()` helper. `assertChrome()` is the read-only probe for setup and
+diagnostics. Set `CDP_AUTOSTART=0` only when a caller explicitly needs probe-only
+behavior. Mode, profile, window class, anchors, and cleanup timings come from
+`~/.amazon-agent/browser-runtime/policy.json`. `ensureChrome()` never restarts a
+reachable browser to change mode. A mismatch fails with
+`MODE_CHANGE_REQUIRES_RESTART`; only `browserctl restart` may intentionally stop
+and relaunch a managed browser, and it requires an explicit reason.
+`browserctl ensure` and cleanup reject a reachable port with `PROFILE_MISMATCH`
+when its listening process does not use the policy profile. Profile comparison
+resolves symlinks. Status exposes `profile_verified` and `devtools_active_port`.
+Seller Central sign-in and authentication redirects keep their anchor lease with
+`authRequired: true`; maintenance reports `auth-required` and suppresses replacement
+creation during the origin cooldown. Recent inspection leases also delay creation.
+Install managed GNOME autostart entries with `tools/browserctl/autostart/install.sh`
+from the deployed repo. It archives competing raw Chrome entries and wrappers;
+review the reconciliation notes under GNOME autostart installation below before deployment.
+
+The standard machine preset remains headless. Evo X1 runs ports 9222 and 9223
+headed with distinct window classes. Every programmatic tab has a machine-local
+lease. Active controllers heartbeat every 30 seconds. Three kinds of tab share
+the controller in `tools/browserctl/task-tabs.mjs`:
+
+- Region tab: exactly one permanent `anchor` per region per port, NA at the US
+  home, EU at the DE home, and AU at the AUS home. Seller Central primary work
+  uses the fixed `seller-central-region` workflow and its regional task ID.
+  `success` parks the page at its region home and keeps the anchor role;
+  explicit `handoff` keeps the anchor without parking. Every other release
+  outcome detaches the target into a two-hour inspection lease, removing its
+  anchor role and task binding. The next acquisition or cleanup creates the
+  missing region tab. Acquisition failure on a live regional target abandons
+  the reservation rather than detaching it. A concurrent anchor binding raises
+  retryable `REGION_ANCHOR_CONFLICT`. Maintenance never demotes or replaces a
+  live region tab with a fresh controller heartbeat, whatever its URL.
+- Task tab: FlatFilePro, public PDPs, Brand Store builder and named additional
+  slots use one stable task ID per rollout or job, never per revision or
+  sub-step. Steps and retries reacquire that target. `success` gives ten minutes
+  of grace before cleanup; `handoff` means explicit operator handover only.
+  The terminal step completes the task. Regional tasks are released, never
+  permanently completed. Bulk-image keys use `bulk-images:<rollout_id or job_id>`;
+  terminal reconciliation requests `complete_task: true`. Operations keeps
+  collector flags false, finishes preservation reads, then calls `task complete`
+  only for `verified`, `failed` or `blocked`. Processing and partial results
+  retain the task. Earlier steps never request completion.
+  A workflow may close its own task tab at release, as scheduled image checks do; region tabs are never closed.
+- Inspection tab: an error, lost heartbeat, detach or adoption preserves the
+  target for two hours of idle time. Only pointer, key or wheel input, kind
+  `interaction`, extends retention. Focus, pageshow and visibilitychange, kind
+  `activity`, do not. Evo X1 adopts unknown tabs with a full two-hour window on
+  first observation; standard presets preserve unknown tabs. Cleanup preserves
+  targets when interaction cannot be measured.
+
+Seller Central tasks declare `sellerCentral: { marketplace, origin }` and
+`exclusiveContext: true`. Regional claims serialize US/CA/MX, EU/UK and AU work
+per port. Account-switcher workflows, including profile identity and FBA
+shipments, add `claimScope: "global"` (bridge flag `--claim global`) because the
+switcher uses the US host. Regional reads keep their regional claim. Unspecified,
+mixed or unmapped contexts retain global exclusion. Hold the claim through
+selection and dependent work; verify account, marketplace and region before
+using data. Non-region workflows cannot bind anchors. Direct `createPage()` is
+restricted to anchor maintenance and the keyed controller.
+
+The five-minute cleanup takes the port lock once per pass, waits up to 120
+seconds by default (`--lock-wait-ms`), and reports `deferred` with exit 0 when
+busy. `--audit-only` previews anchor changes and destructive actions, while
+tracker repair, observations and background heartbeat transitions still persist.
+Surplus anchors become inspection leases owned by `browserctl:anchor-duplicate`;
+permanent region anchors never
+expire. `task complete`, `task detach` and `region state` expose the registry
+through browserctl; task commands take the hashed task ID. Collector timeouts
+send SIGTERM, allow 15 seconds for cleanup, then send SIGKILL.
+
+Known implementation gap: cleanup follows interaction-only retention, but the
+low-level `touchLease(kind: "activity")` still extends an existing inspection or
+interactive lease. Callers must use `interaction` for retention updates; the
+low-level guard needs a separate browserctl change.
+
+The Linux operator profile remains merged with `~/.config/google-chrome-amazon-operator`
+through the `chrome-debug` symlink. It is independent of Grimoire's profile.
+
 ## Shape
 
 - `policy.mjs` validates the machine-local browser policy and provides conservative defaults when no policy is installed.
@@ -310,6 +394,14 @@ A browser login grants no additional action rights. DataDive login recovery occu
 
 
 ## Authentication and profile identity
+
+If an allowlisted site shows a login screen, the local authentication broker may
+complete it on ports 9222 or 9223. The broker, not the reasoning process, retrieves
+and enters credentials. It validates the exact page origin, CDP port, adapter,
+and 1Password item route before retrieval. It emits structured non-secret status
+only. CAPTCHA, device approval, account recovery, identity verification, and
+invalid-credential states remain human-only. The agent must not inspect passwords,
+one-time codes, cookies, local storage, session stores, or browser profile data.
 
 An anchor redirected to a same-origin sign-in, MFA, CAPTCHA or recovery page,
 or to authentication on a configured `auth_origins` host, stays an anchor.

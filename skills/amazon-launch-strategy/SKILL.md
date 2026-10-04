@@ -9,6 +9,8 @@ Browser: Mixed (local deterministic build plus narrow connected-source reads whe
 
 Build a clear Day 0 and Weeks 1-13 launch plan. Keep confirmed facts, editable assumptions, and missing confirmations visibly separate.
 
+Trigger phrases include `Amazon launch plan`, `90-day launch strategy`, `PPC budget and plan for launch`, `launch pricing and discount strategy`, `launch stock forecast`, and `review strategy before launch`. The workflow is read-only and may consume audit findings, keyword workbooks, POE, listing drafts, client briefs, and live project context. It never duplicates the `amazon-audit` historical diagnosis model. Campaign files, live PPC changes, catalog changes, shipments, and client messages remain separate authorized actions.
+
 ## Workflow
 
 1. Confirm the account, marketplace, initial offers, later-phase offers, and launch timing. Use Day 0 when the calendar date is not confirmed.
