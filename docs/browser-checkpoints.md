@@ -1,6 +1,6 @@
 # Browser Checkpoints
 
-Which browser to use per agent, the login rule, and the session-verification rule live in the Browser Standard section of `AGENTS.md`. This file is the detailed per-screen procedure for logged-in Amazon workflows after local library search.
+Which browser to use per agent and the login rule live in the Browser Standard section of `AGENTS.md`; the session-verification rule is the account and marketplace gate in its Operating Contract. This file is the detailed per-screen procedure for logged-in Amazon workflows after local library search.
 
 ## Before Navigating
 

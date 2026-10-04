@@ -85,7 +85,7 @@ Target 15 to 30 seconds. Amazon allows up to 45; almost nothing on a SERP earns 
 
 Angles: write 3 Frame-1-plus-Differentiator openings (Angle 1, 2, 3) over one shared Proof block and lockup. That is the Marksman batch. They must differ in buying criterion, not wording: for example Angle 1 mirrors the attribute, Angle 2 shows the texture or outcome, Angle 3 attacks the category default. Give each a short memorable name.
 
-Vocabulary note: a **cut** is one angle plus the shared second half, so angles and cuts are 1:1. Use Evolve's `ANGLE(S)` wording throughout, never "Hook A/B/C", so Amazon and Meta stay one system.
+Vocabulary note: a **cut** is one angle plus the shared second half, so angles and cuts are 1:1. Use Evolve's `ANGLE(S)` wording throughout, never "Hook A/B/C", so Amazon and Meta stay one system. Cadence is roughly 3 angles per month.
 
 Writing rules carried over from Evolve, tightened for Amazon:
 

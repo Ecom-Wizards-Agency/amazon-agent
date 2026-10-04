@@ -353,7 +353,8 @@ or prioritized recommendations. Internal recurring reviews remain written-first 
 
 **The deliverables are native Google files**, the narrative a Doc and the MASTER workbook a Sheet.
 The renderers produce `.docx` and `.xlsx` because python-docx and openpyxl are what give us the
-branded contract, but those files are intermediates. Deliver each with
+branded contract, but those files are intermediates. Intermediate working files from the audit
+run are not deliverables either: they stay in `_Working/account-check/` or local `output/`. Deliver each with
 `python3 tools/gdrive-deliver/deliver.py <file> "<drive folder>" --name "<delivery filename>"`,
 which converts it in Drive, verifies the native file, emits a receipt, and retains the local
 Office file for artifactctl. The native Google Doc

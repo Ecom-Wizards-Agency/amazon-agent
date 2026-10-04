@@ -1,6 +1,6 @@
 ---
 name: amazon-opportunity-explorer
-description: "Discover and score Amazon Product Opportunity Explorer niches, download full POE evidence packs, and turn findings into product, SEO, or creative strategy."
+description: "Discover and score Amazon Product Opportunity Explorer (POE, OEI, Niche Scout) niches, download full POE evidence packs, and turn findings into product, SEO, or creative strategy."
 ---
 
 # Amazon Opportunity Explorer
@@ -35,6 +35,7 @@ Stop without fetching when the configured account or marketplace is unavailable 
 - `tools/opportunity-explorer/run-poe.mjs`: CDP runner with account recovery and marketplace verification.
 - `references/poe-niche-export-checklist.md`: full-pack completeness.
 - `references/niche-discovery-and-scoring.md`: breadth discovery and scoring.
+- `references/opportunity-explorer-workflow.md`: downloader contract, endpoint references and the legacy extension source.
 
 The legacy DOM extractor is a deprecated fallback only.
 

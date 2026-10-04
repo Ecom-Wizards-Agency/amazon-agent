@@ -8,7 +8,7 @@ Use this when the operator asks for a full Amazon SEO keyword workbook, not only
 
 The current agent runs this workflow end to end: gather MCP and browser inputs, write SEO, build,
 validate, and complete authorized internal delivery. If one required capability is unavailable,
-hand off only the blocked checklist and exact contract paths to any capable agent.
+hand off only the blocked checklist and exact contract paths to any capable agent. Building a different product than the style template clears product-specific curated tabs to placeholders (via `tabs.carry_forward_clear`) so a new-market workbook never ships another product's content.
 
 ## Load Order
 
@@ -32,6 +32,8 @@ hand off only the blocked checklist and exact contract paths to any capable agen
 - Listing reference JSON with product family, ASINs, listing status, title/bullets/description, ingredients, and pack size.
 
 ### DataDive: MCP-first, and the full pool needs no UI export at all
+
+The local `datadive` MCP server runs `@datadive-tools/mcp` over stdio. Use it for DataDive-owned niche, keyword, competitor, Ranking Juice, and Rank Radar data before falling back to manual exports. Treat it as read-only: its read tools need no approval, but any tool that spends DataDive quota or changes shared DataDive state needs the operator's approval of that exact action. That covers niche dives and redives, niche deletion, Rank Radar creation and deletion, pausing or resuming a Rank Radar or its search terms, adding search terms, and listing-copy generation.
 
 Generate **roots**, **Core 30% MKL**, and **competitors** from the DataDive MCP. Do NOT open the browser for them. Validated byte-for-data-identical to the UI exports on a validation run (roots 222/222, Core 257/257, 0 mismatches; a full rebuild from the generated CSVs passed all QA gates with identical Ranking-Juice coverage). See [[datadive-mcp-vs-download]].
 

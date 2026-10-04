@@ -9,6 +9,8 @@ Browser: Mixed (local analysis; AdLabs MCP for schedule reads and operator-appro
 
 Use this skill when the operator asks for hourly performance analysis, dayparting, schedule bid rules, or an AdLabs hourly bid grid.
 
+Trigger phrases include `dayparting`, `hourly campaign report`, `hourly bid schedule`, `schedule bid rules`, and `AdLabs dayparting`. Keep Amazon-native increase-only schedule rules separate from AdLabs grids, which can contain positive and negative whole percentages.
+
 ## Choose The Surface
 
 - **Analysis only:** build a read-only hourly report and proposed grid locally.
