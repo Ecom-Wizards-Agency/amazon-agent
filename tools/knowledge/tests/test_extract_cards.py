@@ -161,6 +161,16 @@ class ScaffoldTests(Base):
         self.assertIn("is blocked (review manipulation advice)", err)
         self.assertFalse((self.root / "cards" / "candidate" / "CARD-0001.json").exists())
 
+    def test_scaffold_explicit_card_id(self) -> None:
+        code, out, _err = run(["scaffold", "--thread", f"{CLIENT_CHANNEL}:{TS_TEAM}", "--card-id", "CARD-1200", *self.common])
+        self.assertEqual(code, 0, out)
+        self.assertTrue((self.root / "cards" / "candidate" / "CARD-1200.json").exists())
+        code, _out, err = run(["scaffold", "--thread", f"{FORMER_CHANNEL}:{TS_GERMAN}", "--card-id", "CARD-1200", *self.common])
+        self.assertEqual(code, 2)
+        self.assertIn("already exists", err)
+        code, _out, err = run(["scaffold", "--thread", f"{FORMER_CHANNEL}:{TS_GERMAN}", "--card-id", "card-12", *self.common])
+        self.assertEqual(code, 2)
+
     def test_scaffold_twice_is_refused(self) -> None:
         run(["scaffold", "--thread", f"{CLIENT_CHANNEL}:{TS_TEAM}", *self.common])
         code, _out, err = run(["scaffold", "--thread", f"{CLIENT_CHANNEL}:{TS_TEAM}", *self.common])

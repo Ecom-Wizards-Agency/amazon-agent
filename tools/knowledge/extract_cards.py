@@ -539,7 +539,15 @@ def cmd_scaffold(args: argparse.Namespace) -> int:
     if topic not in lexicon.topics:
         print(f"scaffold: no usable topic ({topic!r}); pass --topic", file=sys.stderr)
         return 2
-    card_id = store.next_card_id()
+    card_id = args.card_id or store.next_card_id()
+    if args.card_id:
+        if not CARD_RE.match(args.card_id):
+            print(f"scaffold: --card-id must look like CARD-0042, got {args.card_id!r}", file=sys.stderr)
+            return 2
+        for folder in ("candidate", "accepted", "rejected"):
+            if (store.cards / folder / f"{args.card_id}.json").exists():
+                print(f"scaffold: {args.card_id} already exists under cards/{folder}/", file=sys.stderr)
+                return 2
     card = scaffold_from_record(store, record, card_id, topic, lexicon)
     out = store.cards / "candidate" / f"{card_id}.json"
     write_card(out, card)
@@ -626,6 +634,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.set_defaults(func=cmd_next)
 
     p = sub.add_parser("scaffold", parents=[common], help="write a candidate card with provenance prefilled")
+    p.add_argument("--card-id", default="", help="use this CARD-NNNN id instead of the next free number (parallel agents get disjoint ranges)")
     p.add_argument("--thread", required=True, help="CHANNEL:TS")
     p.add_argument("--topic")
     p.set_defaults(func=cmd_scaffold)
