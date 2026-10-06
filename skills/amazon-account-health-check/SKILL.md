@@ -7,6 +7,8 @@ description: "Run daily or ad hoc Seller Central Account Health checks, resolve 
 
 Browser: CDP (SC Account Health; Review-details clicks + screenshot evidence).
 
+Knowledge units for this area live in knowledge/account-health/; search them first with python3 tools/search_amazon_libraries.py "<symptom>" --library kb.
+
 Use this skill for recurring or ad hoc daily account health checks.
 
 Trigger phrases include `daily account health check`, `account health sweep`, `run account health`, `check account health for accounts`, and a scheduled account-health run for one region or one profile.

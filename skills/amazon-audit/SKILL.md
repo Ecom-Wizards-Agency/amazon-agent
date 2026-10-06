@@ -7,6 +7,8 @@ description: "Create read-only Amazon ad and sales audits, including falling-sal
 
 Browser: Mixed (AdLabs and DataDive over MCP; Seller Central reports and live creative capture over CDP; local workbook and document builds).
 
+Knowledge units for this area live in knowledge/ads/; search them first with python3 tools/search_amazon_libraries.py "<symptom>" --library kb.
+
 Use this skill for every Amazon ad or sales audit. It owns three postures:
 
 - `deep`: first-time prospect or onboarding audit from downloaded Amazon files.

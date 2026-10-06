@@ -7,6 +7,8 @@ description: "Execute and troubleshoot FBA logistics, including Send to Amazon, 
 
 Browser: CDP (Send to Amazon flows; exact approval is required before each shipment commitment).
 
+Knowledge units for this area live in knowledge/logistics/; search them first with python3 tools/search_amazon_libraries.py "<symptom>" --library kb.
+
 ## Workflow
 
 1. Confirm account, marketplace, SKU/ASIN list, quantities, shipment IDs, destination, and dates.

@@ -9,6 +9,8 @@ For Sponsored Brands video concept tests, use `<vault>/Playbooks/amazon-sb-video
 
 Browser: CDP (Ads Campaign Manager; stop before changes).
 
+Knowledge units for this area live in knowledge/ads/; search them first with python3 tools/search_amazon_libraries.py "<symptom>" --library kb.
+
 ## Doctrine and recall
 
 Run `python3 tools/ads_recall.py console` before campaign work and read the returned decision, Playbook, and matching Research files in order. Skip this step quietly when the helper returns no paths. Numeric operating thresholds belong only in `_local/ads-strategy/strategy.json`; do not copy or infer them in this skill. The ownership map is `docs/ads-doctrine-sources.md`.

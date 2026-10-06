@@ -7,6 +7,8 @@ description: "Build evidence-controlled appeal packs for serious regulated-produ
 
 Browser: Mixed (first-party policy research and catalog verification may use Chrome; pack creation and validation are local).
 
+Knowledge units for this area live in knowledge/compliance/; search them first with python3 tools/search_amazon_libraries.py "<symptom>" --library kb.
+
 ## Activation Boundary
 
 Use this skill when at least one of these conditions applies:

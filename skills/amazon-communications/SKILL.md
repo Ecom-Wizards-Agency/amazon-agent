@@ -7,6 +7,8 @@ description: "Create and follow up on team-owned Seller Support cases through th
 
 Browser: CDP (attended case sends: operator session on 9222 and the operator's approval of the exact text; Grimoire: its session on 9223 and a verified case mandate).
 
+Knowledge units for this area live in knowledge/support-cases/; search them first with python3 tools/search_amazon_libraries.py "<symptom>" --library kb.
+
 ## Workflow
 
 1. Confirm exact account, marketplace, brand, recipient/thread/case, and visible message context.

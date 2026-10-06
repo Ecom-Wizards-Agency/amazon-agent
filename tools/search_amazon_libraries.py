@@ -1,6 +1,19 @@
 #!/usr/bin/env python3
 """Search the operator's local Amazon SOP/help libraries.
 
+Libraries: the authored knowledge library (`knowledge/`), MAG SOPs, SOP drafts,
+the Amazon Seller Help, Amazon Ads Help and Advertising Help After Login
+captures, and AdLabs Help. `--library all` searches every one of them.
+
+Knowledge units get boosts from their frontmatter: a query phrase inside a
+symptom keyword, every query term across the symptom keywords, an error text
+hit and a verified unit. An error text hits when one query term equals a whole
+entry (a code such as FBA_INB_0008), or when the normalised query equals the
+entry's tokens or, with two or more terms, sits inside them (a pasted notice
+or a run of words from it). Retired units and `knowledge/_retired/` are skipped.
+MAG SOPs whose index entry has `status: superseded` score half and carry
+`superseded_by` in the hit.
+
 This script is intentionally local-only and avoids browser/process control.
 """
 
@@ -9,20 +22,38 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import sys
 from pathlib import Path
 
 
 WORKSPACE_ROOT = Path(__file__).resolve().parents[1]
+KNOWLEDGE_ROOT = WORKSPACE_ROOT / "knowledge"
+MAG_ROOT = WORKSPACE_ROOT / "MAG SOPs"
+MAG_INDEX = MAG_ROOT / "_index" / "sop-index.json"
+
+# Frontmatter parser for knowledge units. Without it, units score as plain text.
+sys.path.insert(0, str(WORKSPACE_ROOT / "tools" / "knowledge"))
+try:
+    from kb_frontmatter import parse_frontmatter
+except Exception:  # pragma: no cover - degrade to plain scoring
+    parse_frontmatter = None
 
 ROOTS = [
-    ("MAG SOPs", WORKSPACE_ROOT / "MAG SOPs"),
+    ("Amazon Knowledge", KNOWLEDGE_ROOT),
+    ("MAG SOPs", MAG_ROOT),
+    ("SOP Drafts", WORKSPACE_ROOT / "sop-drafts"),
     ("Amazon Seller Help", WORKSPACE_ROOT / "Amazon Seller Help"),
     ("Amazon Ads Help", WORKSPACE_ROOT / "Amazon Ads Help"),
     ("Advertising Help After Login", WORKSPACE_ROOT / "Advertising Help After Login"),
+    ("AdLabs Help", WORKSPACE_ROOT / "AdLabs Help"),
 ]
 
 LIBRARY_ALIASES = {
     "all": None,
+    "kb": {"Amazon Knowledge"},
+    "knowledge": {"Amazon Knowledge"},
+    "drafts": {"SOP Drafts"},
+    "adlabs": {"AdLabs Help"},
     "mag": {"MAG SOPs"},
     "sop": {"MAG SOPs"},
     "sops": {"MAG SOPs"},
@@ -37,6 +68,7 @@ LIBRARY_ALIASES = {
 }
 
 EXTS = {".md", ".json", ".txt"}
+SKIP_NAMES = {"TEMPLATE.md", ".gitkeep"}
 
 
 def tokenize(query: str) -> list[str]:
@@ -48,6 +80,13 @@ def iter_files(root: Path):
         return
     for path in root.rglob("*"):
         if path.is_file() and path.suffix.lower() in EXTS:
+            if path.name in SKIP_NAMES:
+                continue
+            if _is_under(path, KNOWLEDGE_ROOT / "_retired"):
+                continue
+            # Generated unit list; the units themselves are the hits.
+            if path == KNOWLEDGE_ROOT / "README.md":
+                continue
             if "/.direct-build" in str(path) or "/.final-build" in str(path):
                 continue
             if "/_archive/" in str(path):
@@ -55,6 +94,100 @@ def iter_files(root: Path):
             if "/_index/" in str(path) and path.suffix.lower() == ".json":
                 continue
             yield path
+
+
+def _is_under(path: Path, root: Path) -> bool:
+    try:
+        path.relative_to(root)
+    except ValueError:
+        return False
+    return True
+
+
+def _as_list(value: object) -> list[str]:
+    if isinstance(value, list):
+        return [str(v) for v in value]
+    if isinstance(value, str) and value:
+        return [value]
+    return []
+
+
+def knowledge_meta(text: str) -> dict | None:
+    """The unit's frontmatter, or None when it cannot be parsed."""
+    if parse_frontmatter is None:
+        return None
+    try:
+        mapping, _body, error = parse_frontmatter(text)
+    except Exception:
+        return None
+    if error or not isinstance(mapping, dict):
+        return None
+    return mapping
+
+
+def error_text_hit(entries: list[str], terms: list[str]) -> bool:
+    """True when the query matches an error_text entry.
+
+    Either one query term equals a whole entry (a single-token code), or the
+    query's joined lowercase terms equal the entry's joined tokens, or, for a
+    query of two or more terms, appear inside them on token boundaries (a
+    verbatim notice, whole or in part). One common word alone never matches
+    inside a longer notice.
+    """
+    if not entries or not terms:
+        return False
+    whole = {e.strip().lower() for e in entries}
+    if any(t in whole for t in terms):
+        return True
+    phrase = " ".join(terms)
+    for entry in entries:
+        normalised = " ".join(tokenize(entry))
+        if not normalised:
+            continue
+        if phrase == normalised:
+            return True
+        if len(terms) > 1 and f" {phrase} " in f" {normalised} ":
+            return True
+    return False
+
+
+def knowledge_boost(meta: dict, terms: list[str]) -> int:
+    """Extra score for a unit whose symptoms, error text or verification match."""
+    boost = 0
+    phrase = " ".join(terms)
+    keywords = [k.lower() for k in _as_list(meta.get("symptom_keywords"))]
+    if keywords:
+        if any(phrase in k for k in keywords):
+            boost += 60
+        joined = " ".join(keywords)
+        if all(t in joined for t in terms):
+            boost += 40
+    if error_text_hit(_as_list(meta.get("error_text")), terms):
+        boost += 120
+    if meta.get("verification") == "verified":
+        boost += 15
+    return boost
+
+
+def load_superseded(index_path: Path = MAG_INDEX) -> dict[str, str]:
+    """Map MAG SOP file (relative to MAG SOPs/) to its superseded_by target.
+
+    Tolerates a missing index, a missing `captured` list and entries without a
+    `status` field; any of those yields no down-ranking.
+    """
+    try:
+        data = json.loads(index_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    entries = data.get("captured") if isinstance(data, dict) else None
+    out: dict[str, str] = {}
+    for entry in entries if isinstance(entries, list) else []:
+        if not isinstance(entry, dict) or entry.get("status") != "superseded":
+            continue
+        rel = entry.get("file")
+        if isinstance(rel, str) and rel:
+            out[rel] = str(entry.get("superseded_by") or "")
+    return out
 
 
 def score_text(text: str, title: str, path: Path, terms: list[str]) -> int:
@@ -114,7 +247,7 @@ def main() -> int:
         "--library",
         choices=sorted(LIBRARY_ALIASES),
         default="all",
-        help="Limit search to a routed library group.",
+        help="Limit search to a routed library group: kb/knowledge, mag, drafts, seller, ads, adlabs, or all.",
     )
     args = parser.parse_args()
 
@@ -124,26 +257,48 @@ def main() -> int:
 
     hits = []
     allowed = LIBRARY_ALIASES[args.library]
+    superseded: dict[str, str] | None = None
     for label, root in ROOTS:
         if allowed is not None and label not in allowed:
             continue
+        if root == MAG_ROOT and superseded is None:
+            superseded = load_superseded(MAG_INDEX)
         for path in iter_files(root) or []:
             try:
                 text = path.read_text(encoding="utf-8", errors="ignore")
             except Exception:
                 continue
+            meta = None
+            if root == KNOWLEDGE_ROOT and path.suffix.lower() == ".md":
+                meta = knowledge_meta(text)
+                if meta is not None and meta.get("status") == "retired":
+                    continue
             title = title_for(path, text)
+            if meta is not None and isinstance(meta.get("title"), str) and meta["title"]:
+                title = meta["title"]
             s = score_text(text, title, path, terms)
+            if s and meta is not None:
+                s += knowledge_boost(meta, terms)
+            superseded_by = None
+            if s and root == MAG_ROOT and superseded:
+                rel = path.relative_to(MAG_ROOT).as_posix()
+                if rel in superseded:
+                    s = s // 2
+                    superseded_by = superseded[rel]
             if s:
-                hits.append(
-                    {
-                        "score": s,
-                        "library": label,
-                        "path": str(path),
-                        "title": title,
-                        "snippet": snippet(text, terms),
-                    }
-                )
+                hit = {
+                    "score": s,
+                    "library": label,
+                    "path": str(path),
+                    "title": title,
+                    "snippet": snippet(text, terms),
+                }
+                if meta is not None:
+                    for key in ("id", "status", "verification", "topic"):
+                        hit[key] = meta.get(key)
+                if superseded_by is not None:
+                    hit["superseded_by"] = superseded_by
+                hits.append(hit)
 
     hits.sort(key=lambda h: (-h["score"], h["library"], h["path"]))
     print(

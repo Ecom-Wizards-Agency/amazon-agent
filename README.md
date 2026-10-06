@@ -25,6 +25,8 @@ The search helper can search the local Amazon libraries:
 python3 "tools/search_amazon_libraries.py" "send to amazon shipment create fba shipment" --library mag --limit 5
 ```
 
+`--library kb` searches the anonymised knowledge units in `knowledge/`, which are the first stop for a symptom, an error text or a how-do-we question (see `docs/knowledge-library.md`).
+
 Doc/skill consistency is linted by `python3 tools/lint_agent_docs.py` (parsed skill manifests, bounded UI metadata, routing-table names, writing style, and agent-neutral wording). Run it before committing doc or skill changes.
 
 ## GitHub Repo
@@ -37,6 +39,7 @@ The local project should stay aligned with the GitHub repo's lightweight runtime
 
 - `AGENTS.md`
 - `skills/`
+- `knowledge/` as anonymised, verification-labelled answers from real account work (rules in `docs/knowledge-library.md`)
 - `Amazon Seller Help/`
 - `Amazon Ads Help/`
 - `Advertising Help After Login/`

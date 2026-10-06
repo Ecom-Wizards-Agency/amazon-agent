@@ -19,6 +19,10 @@ Checks:
    inside the first 16,384 bytes, where Codex's project-doc budget keeps them.
 9. Skill instructions name no model, model family or runtime agent type outside
    a line that starts with a runtime label.
+10. The knowledge library passes `tools/knowledge/lint_knowledge.py`: unit
+   format, enums, paths, privacy scrub and index drift. Run non-strict: the
+   scrub applies the denylist when `_local/knowledge-redaction-terms.txt` is
+   present and only the regex classes otherwise.
 
 Exit code 0 when clean, 1 when any check fails.
 """
@@ -52,6 +56,7 @@ AUTHORED_GLOBS = [
     "sop-drafts/*.md",
     "sop-updates/*.md",
     "tools/**/*.md",
+    "knowledge/**/*.md",
 ]
 
 # Generated or captured content inside the authored globs: exempt.
@@ -74,7 +79,7 @@ INLINE_CODE = re.compile(r"`[^`]*`")
 # tracked source directory, carrying a real extension, and free of placeholders. The
 # gitignored trees (output/, downloads/, evidence/, _local/) are deliberately absent,
 # because a doc naming `output/{client}/seo/` is describing a shape, not a file.
-CHECKED_ROOTS = ("tools/", "skills/", "docs/", ".claude/", "sop-drafts/", "sop-updates/")
+CHECKED_ROOTS = ("tools/", "skills/", "docs/", ".claude/", "sop-drafts/", "sop-updates/", "knowledge/")
 CHECKED_EXTS = (".py", ".md", ".mjs", ".js", ".json", ".sh", ".ps1", ".yaml", ".yml")
 # A path written with any of these is a template or a glob, not a file to resolve.
 PLACEHOLDER = re.compile(r"[{}<>*$\[\]]")
@@ -392,6 +397,23 @@ def rights_matrix_errors(root: Path = ROOT) -> list[str]:
     return errors
 
 
+def knowledge_errors(root: Path = ROOT) -> list[str]:
+    """Check 10: run the knowledge-library lint against `root`, non-strict.
+
+    The scrub applies the denylist when `_local/knowledge-redaction-terms.txt`
+    is present and only the regex classes otherwise, so a clean checkout without
+    `_local/` still lints. A missing module is one error, not a crash.
+    """
+    knowledge_tools = str(root / "tools" / "knowledge")
+    if knowledge_tools not in sys.path:
+        sys.path.insert(0, knowledge_tools)
+    try:
+        import lint_knowledge
+    except ImportError as exc:
+        return [f"tools/knowledge/lint_knowledge.py: cannot import lint_knowledge ({exc})"]
+    return lint_knowledge.lint_knowledge(root)
+
+
 def main() -> int:
     errors: list[str] = []
     missing_paths: list[tuple[str, int, str]] = []
@@ -514,6 +536,9 @@ def main() -> int:
             errors.append(f"AGENTS.md routing table: missing `{name}`")
         for name in sorted({name for name in routed_names if routed_names.count(name) > 1}):
             errors.append(f"AGENTS.md routing table: duplicate `{name}`")
+
+    # 10. Knowledge library units, scrub and index drift.
+    errors.extend(knowledge_errors(ROOT))
 
     if errors:
         print(f"lint_agent_docs: {len(errors)} problem(s)")
