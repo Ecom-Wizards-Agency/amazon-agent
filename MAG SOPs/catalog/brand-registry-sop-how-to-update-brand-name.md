@@ -69,7 +69,7 @@ Note: You cannot change brands of Generic items
 
 - Catalog →Inventory Reports → Category Listings Report
 
-![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-I8P3QFRQ.png?sv=2022-11-02&spr=https&st=2025-07-18T21%3A08%3A07Z&se=2025-07-18T21%3A24%3A07Z&sr=c&sp=r&sig=cv6aXMTBSs4za1q0oVKi%2BVuyLS3hsQjRL8fcC3pijLc%3D)
+![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-I8P3QFRQ.png)
 
 [![image.png](https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/Pfaimage.png)](https://sop.myamazonguy.com/uploads/images/gallery/2025-08/Pfaimage.png)
 
@@ -79,7 +79,7 @@ Note: You cannot change brands of Generic items
 
 4. Provide all required information on the file. You will know if the details are required if an empty tab is highlighted in red. (The essential attributes varies per product type)
 
-![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-ZQDGH677.png?sv=2022-11-02&spr=https&st=2025-07-18T21%3A08%3A07Z&se=2025-07-18T21%3A24%3A07Z&sr=c&sp=r&sig=cv6aXMTBSs4za1q0oVKi%2BVuyLS3hsQjRL8fcC3pijLc%3D)
+![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-ZQDGH677.png)
 
 [![image.png](https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/R1Timage.png)](https://sop.myamazonguy.com/uploads/images/gallery/2025-08/R1Timage.png)
 
@@ -106,7 +106,7 @@ Error on the brand value means that we weren’t able to push the update through
 
 **Help > Get Support > Selling on Amazon > Or, browse for your issue in the menu (this is a clickable phrase) > Products, Listings, or Inventory > Fix a product page**
 
-![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-GBWDIQWJ.png?sv=2022-11-02&spr=https&st=2025-07-18T21%3A08%3A07Z&se=2025-07-18T21%3A24%3A07Z&sr=c&sp=r&sig=cv6aXMTBSs4za1q0oVKi%2BVuyLS3hsQjRL8fcC3pijLc%3D)
+![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-GBWDIQWJ.png)
 
 [![image.png](https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/HNwimage.png)](https://sop.myamazonguy.com/uploads/images/gallery/2025-08/HNwimage.png)
 
@@ -150,7 +150,7 @@ Reference: [https://sellercentral.amazon.com/help/hub/reference/G5VG3YWGGXF4Y5WB
 
 - This error occurs when a listing attribute, such as the brand, title, UPC, or color, submitted by the seller corresponds to the product ID of an existing ASIN. This means a similar product was found in Amazon’s catalog and there is a discrepancy in the information provided by the seller versus what is recorded in Amazon’s product catalog. But since we’re doing a brand name change, it’s fine to ignore the error.
 
-![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1ZDGK3GY.png?sv=2022-11-02&spr=https&st=2025-07-18T21%3A08%3A07Z&se=2025-07-18T21%3A24%3A07Z&sr=c&sp=r&sig=cv6aXMTBSs4za1q0oVKi%2BVuyLS3hsQjRL8fcC3pijLc%3D)
+![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1ZDGK3GY.png)
 
 [![image.png](https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/y3pimage.png)](https://sop.myamazonguy.com/uploads/images/gallery/2025-08/y3pimage.png)
 
@@ -204,11 +204,11 @@ We welcome your feedback for improvement. Please click **[here](https://airtable
 
 ## Image References
 
-- 1. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-I8P3QFRQ.png?sv=2022-11-02&spr=https&st=2025-07-18T21%3A08%3A07Z&se=2025-07-18T21%3A24%3A07Z&sr=c&sp=r&sig=cv6aXMTBSs4za1q0oVKi%2BVuyLS3hsQjRL8fcC3pijLc%3D
+- 1. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-I8P3QFRQ.png
 - 2. image.png: https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/Pfaimage.png
-- 3. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-ZQDGH677.png?sv=2022-11-02&spr=https&st=2025-07-18T21%3A08%3A07Z&se=2025-07-18T21%3A24%3A07Z&sr=c&sp=r&sig=cv6aXMTBSs4za1q0oVKi%2BVuyLS3hsQjRL8fcC3pijLc%3D
+- 3. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-ZQDGH677.png
 - 4. image.png: https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/R1Timage.png
-- 5. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-GBWDIQWJ.png?sv=2022-11-02&spr=https&st=2025-07-18T21%3A08%3A07Z&se=2025-07-18T21%3A24%3A07Z&sr=c&sp=r&sig=cv6aXMTBSs4za1q0oVKi%2BVuyLS3hsQjRL8fcC3pijLc%3D
+- 5. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-GBWDIQWJ.png
 - 6. image.png: https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/HNwimage.png
-- 7. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1ZDGK3GY.png?sv=2022-11-02&spr=https&st=2025-07-18T21%3A08%3A07Z&se=2025-07-18T21%3A24%3A07Z&sr=c&sp=r&sig=cv6aXMTBSs4za1q0oVKi%2BVuyLS3hsQjRL8fcC3pijLc%3D
+- 7. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1ZDGK3GY.png
 - 8. image.png: https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/y3pimage.png

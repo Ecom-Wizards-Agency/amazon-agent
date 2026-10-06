@@ -23,17 +23,17 @@ A removal order created not long ago can be canceled before Amazon disposes or s
 
 1. Go to Reports → Fulfillment → Removals → Removal Order Detail
 
-![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/how-to-cancel-fba-removal-order-image-t3vx1pnp.gif?sv=2022-11-02&spr=https&st=2025-01-28T14%3A49%3A36Z&se=2025-01-28T14%3A59%3A36Z&sr=c&sp=r&sig=Ea1amZqSBYHxLDsU7eId7uMdLYaH2WZ2NZPvDrQS730%3D)
+![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/how-to-cancel-fba-removal-order-image-t3vx1pnp.gif)
 
 ![how-to-cancel-fba-removal-order-image-t3vx1pnp.gif](https://sop.myamazonguy.com/uploads/images/gallery/2025-08/how-to-cancel-fba-removal-order-image-t3vx1pnp.gif)
 
 2. Enter or search the Removal Order ID
 
-![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/how-to-cancel-fba-removal-order-image-bfdfn4u7.png?sv=2022-11-02&spr=https&st=2025-01-28T14%3A49%3A36Z&se=2025-01-28T14%3A59%3A36Z&sr=c&sp=r&sig=Ea1amZqSBYHxLDsU7eId7uMdLYaH2WZ2NZPvDrQS730%3D)
+![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/how-to-cancel-fba-removal-order-image-bfdfn4u7.png)
 
 ![image.png](https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/M5Fimage.png)
 
-3. Confirm the status of the removal order if it's Planning or Pending. Then click Cancel this order. ![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/how-to-cancel-fba-removal-order-image-g7ybymuv.png?sv=2022-11-02&spr=https&st=2025-01-28T14%3A49%3A36Z&se=2025-01-28T14%3A59%3A36Z&sr=c&sp=r&sig=Ea1amZqSBYHxLDsU7eId7uMdLYaH2WZ2NZPvDrQS730%3D)
+3. Confirm the status of the removal order if it's Planning or Pending. Then click Cancel this order. ![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/how-to-cancel-fba-removal-order-image-g7ybymuv.png)
 
 Sometimes Processing status orders cannot be canceled during peak periods such as Prime Day, Black Friday, Cyber Monday, and the holidays as the removal orders can stay in Processing status for several weeks. Sellers are not able to cancel a removal order for a required removal. For more information, go to [Required Removals](https://sellercentral.amazon.com/gp/help/202000820).
 
@@ -82,8 +82,8 @@ We welcome your feedback for improvement. Please click **[here](https://airtable
 
 ## Image References
 
-- 1. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/how-to-cancel-fba-removal-order-image-t3vx1pnp.gif?sv=2022-11-02&spr=https&st=2025-01-28T14%3A49%3A36Z&se=2025-01-28T14%3A59%3A36Z&sr=c&sp=r&sig=Ea1amZqSBYHxLDsU7eId7uMdLYaH2WZ2NZPvDrQS730%3D
+- 1. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/how-to-cancel-fba-removal-order-image-t3vx1pnp.gif
 - 2. how-to-cancel-fba-removal-order-image-t3vx1pnp.gif: https://sop.myamazonguy.com/uploads/images/gallery/2025-08/how-to-cancel-fba-removal-order-image-t3vx1pnp.gif
-- 3. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/how-to-cancel-fba-removal-order-image-bfdfn4u7.png?sv=2022-11-02&spr=https&st=2025-01-28T14%3A49%3A36Z&se=2025-01-28T14%3A59%3A36Z&sr=c&sp=r&sig=Ea1amZqSBYHxLDsU7eId7uMdLYaH2WZ2NZPvDrQS730%3D
+- 3. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/how-to-cancel-fba-removal-order-image-bfdfn4u7.png
 - 4. image.png: https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/M5Fimage.png
-- 5. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/how-to-cancel-fba-removal-order-image-g7ybymuv.png?sv=2022-11-02&spr=https&st=2025-01-28T14%3A49%3A36Z&se=2025-01-28T14%3A59%3A36Z&sr=c&sp=r&sig=Ea1amZqSBYHxLDsU7eId7uMdLYaH2WZ2NZPvDrQS730%3D
+- 5. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/how-to-cancel-fba-removal-order-image-g7ybymuv.png

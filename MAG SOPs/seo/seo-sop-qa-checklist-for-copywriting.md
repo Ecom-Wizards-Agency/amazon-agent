@@ -58,7 +58,7 @@ Source: https://sop.myamazonguy.com/books/seo/page/seo-sop-qa-checklist-for-copy
 
 ✓ Has 150-200 characters
 
-![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1712241579073.png?sv=2022-11-02&spr=https&st=2025-01-16T18%3A30%3A07Z&se=2025-01-16T18%3A40%3A07Z&sr=c&sp=r&sig=9cKATZ7blE4AMMcY%2Bd0WpHAyzHKkbV187CKFFHDlusA%3D)
+![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1712241579073.png)
 
 ![image.png](https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/7XTimage.png)
 
@@ -100,19 +100,19 @@ Source: https://sop.myamazonguy.com/books/seo/page/seo-sop-qa-checklist-for-copy
 
 ✓ Contains 500 words of crawlable text
 
-![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/QA%20Checklist%20for%20Copywriting-IMAGE4.png?sv=2022-11-02&spr=https&st=2025-01-16T18%3A30%3A07Z&se=2025-01-16T18%3A40%3A07Z&sr=c&sp=r&sig=9cKATZ7blE4AMMcY%2Bd0WpHAyzHKkbV187CKFFHDlusA%3D)
+![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/QA%20Checklist%20for%20Copywriting-IMAGE4.png)
 
 ![image.png](https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/97Nimage.png)
 
-![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1712241598052.png?sv=2022-11-02&spr=https&st=2025-01-16T18%3A30%3A07Z&se=2025-01-16T18%3A40%3A07Z&sr=c&sp=r&sig=9cKATZ7blE4AMMcY%2Bd0WpHAyzHKkbV187CKFFHDlusA%3D)
+![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1712241598052.png)
 
 ![image.png](https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/IpNimage.png)
 
-![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1712241609019.png?sv=2022-11-02&spr=https&st=2025-01-16T18%3A30%3A07Z&se=2025-01-16T18%3A40%3A07Z&sr=c&sp=r&sig=9cKATZ7blE4AMMcY%2Bd0WpHAyzHKkbV187CKFFHDlusA%3D)
+![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1712241609019.png)
 
 ![image.png](https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/X7zni7image.png)
 
-![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1712241624962.png?sv=2022-11-02&spr=https&st=2025-01-16T18%3A30%3A07Z&se=2025-01-16T18%3A40%3A07Z&sr=c&sp=r&sig=9cKATZ7blE4AMMcY%2Bd0WpHAyzHKkbV187CKFFHDlusA%3D)
+![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1712241624962.png)
 
 ![image.png](https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/vYfimage.png)
 
@@ -230,15 +230,15 @@ We welcome your feedback for improvement. Please click **[here](https://airtable
 
 ## Image References
 
-- 1. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1712241579073.png?sv=2022-11-02&spr=https&st=2025-01-16T18%3A30%3A07Z&se=2025-01-16T18%3A40%3A07Z&sr=c&sp=r&sig=9cKATZ7blE4AMMcY%2Bd0WpHAyzHKkbV187CKFFHDlusA%3D
+- 1. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1712241579073.png
 - 2. image.png: https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/7XTimage.png
 - 3. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/Screenshot%202025-01-17%20at%202.33.32%E2%80%AFAM(1).png
 - 4. image.png: https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/QYM8zSimage.png
-- 5. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/QA%20Checklist%20for%20Copywriting-IMAGE4.png?sv=2022-11-02&spr=https&st=2025-01-16T18%3A30%3A07Z&se=2025-01-16T18%3A40%3A07Z&sr=c&sp=r&sig=9cKATZ7blE4AMMcY%2Bd0WpHAyzHKkbV187CKFFHDlusA%3D
+- 5. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/QA%20Checklist%20for%20Copywriting-IMAGE4.png
 - 6. image.png: https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/97Nimage.png
-- 7. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1712241598052.png?sv=2022-11-02&spr=https&st=2025-01-16T18%3A30%3A07Z&se=2025-01-16T18%3A40%3A07Z&sr=c&sp=r&sig=9cKATZ7blE4AMMcY%2Bd0WpHAyzHKkbV187CKFFHDlusA%3D
+- 7. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1712241598052.png
 - 8. image.png: https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/IpNimage.png
-- 9. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1712241609019.png?sv=2022-11-02&spr=https&st=2025-01-16T18%3A30%3A07Z&se=2025-01-16T18%3A40%3A07Z&sr=c&sp=r&sig=9cKATZ7blE4AMMcY%2Bd0WpHAyzHKkbV187CKFFHDlusA%3D
+- 9. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1712241609019.png
 - 10. image.png: https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/X7zni7image.png
-- 11. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1712241624962.png?sv=2022-11-02&spr=https&st=2025-01-16T18%3A30%3A07Z&se=2025-01-16T18%3A40%3A07Z&sr=c&sp=r&sig=9cKATZ7blE4AMMcY%2Bd0WpHAyzHKkbV187CKFFHDlusA%3D
+- 11. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1712241624962.png
 - 12. image.png: https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/vYfimage.png

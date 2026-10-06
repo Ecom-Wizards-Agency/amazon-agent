@@ -30,7 +30,7 @@ What’s the difference between A+ Content and Brand Store rejection messages?
 
 The A+ rejection message will tell you to know what words or images to remove while the brand store rejection reasons don’t give the exact word or exact reason for content and/or image rejection most of the time.
 
-At a Glance![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/how-to-fix-brand-store-rejection-image-29ay8ow1.png?sv=2022-11-02&spr=https&st=2025-02-10T21%3A35%3A05Z&se=2025-02-10T21%3A45%3A05Z&sr=c&sp=r&sig=02G7%2FF0QYUfEJ8IRft%2BiTrNOHihdySclALk9Zcu%2F95I%3D)
+At a Glance![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/how-to-fix-brand-store-rejection-image-29ay8ow1.png)
 
 ![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/Screenshot%202025-02-11%20at%205.37.45%E2%80%AFAM.png)
 
@@ -148,7 +148,7 @@ We welcome your feedback for improvement. Please click **[here](https://airtable
 
 ## Image References
 
-- 1. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/how-to-fix-brand-store-rejection-image-29ay8ow1.png?sv=2022-11-02&spr=https&st=2025-02-10T21%3A35%3A05Z&se=2025-02-10T21%3A45%3A05Z&sr=c&sp=r&sig=02G7%2FF0QYUfEJ8IRft%2BiTrNOHihdySclALk9Zcu%2F95I%3D
+- 1. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/how-to-fix-brand-store-rejection-image-29ay8ow1.png
 - 2. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/Screenshot%202025-02-11%20at%205.37.45%E2%80%AFAM.png
 - 3. image.png: https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/N9Eimage.png
 - 4. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/Screenshot%202025-02-11%20at%205.37.52%E2%80%AFAM.png

@@ -33,7 +33,7 @@ B. To change the email address or phone number where you receive the notificatio
 
 C. Update your phone number and/or email address as well as your order notifications and hit Save.
 
-![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1680195146384.png?sv=2022-11-02&spr=https&st=2025-01-28T18%3A36%3A46Z&se=2025-01-28T18%3A46%3A46Z&sr=c&sp=r&sig=klhNMxTXDSJySeFV%2BN7JjNcgn4PQUQaYmxZFGf4DS%2FA%3D)
+![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1680195146384.png)
 
 ![image.png](https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/hpRtsdimage.png)
 
@@ -213,7 +213,7 @@ We welcome your feedback for improvement. Please click **[here](https://airtable
 - 2. image.png: https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/px7image.png
 - 3. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/Screenshot%202025-01-29%20at%202.39.32%E2%80%AFAM.png
 - 4. image.png: https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/mVkimage.png
-- 5. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1680195146384.png?sv=2022-11-02&spr=https&st=2025-01-28T18%3A36%3A46Z&se=2025-01-28T18%3A46%3A46Z&sr=c&sp=r&sig=klhNMxTXDSJySeFV%2BN7JjNcgn4PQUQaYmxZFGf4DS%2FA%3D
+- 5. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1680195146384.png
 - 6. image.png: https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/hpRtsdimage.png
 - 7. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/Screenshot%202025-01-29%20at%202.39.50%E2%80%AFAM.png
 - 8. image.png: https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/ngrimage.png
