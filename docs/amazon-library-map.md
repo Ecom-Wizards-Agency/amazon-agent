@@ -59,7 +59,7 @@ Important index:
 - `articles/`
 - `README.md`
 
-Coverage captured on 12.05.2026: 239/239 discovered pages.
+Coverage captured on 12.05.2026: 239/239 discovered pages; 54 articles re-captured 06.10.2026 after the first capture had saved 53 empty page shells (one video page still has no text).
 
 ## Amazon Ads Help
 
@@ -158,7 +158,7 @@ AdLabs optimizer math or bid formulas:
 - Amazon Knowledge: authored, anonymised units, growing monthly; counts per topic are in `knowledge/README.md`.
 - MAG SOPs: curated local MAG capture, 352 active SOPs, captured 12.05.2026 and curated 08.07.2026, 27.07.2026 and 06.10.2026; 314 carry `needs-update` until a live check confirms their limits, fees and labels.
 - SOP Drafts: review-stage tracked SOPs in `sop-drafts/`, searchable with `--library drafts`; useful for recent learnings but not final until promoted.
-- Amazon Seller Help: complete local Seller Help capture, 239/239 pages, captured 12.05.2026.
+- Amazon Seller Help: complete local Seller Help capture, 239/239 pages, captured 12.05.2026, 54 refreshed 06.10.2026 (`tools/knowledge/help_capture.mjs`).
 - Amazon Ads Help: complete Advanced Tools docs capture, 27/27 pages, updated 13.05.2026.
 - Advertising Help After Login: core Ads Support Center capture complete for 109/109 Chrome-indexed pages; linked expansion is partial at 14 captured and 127 remaining, updated 13.05.2026.
 - AdLabs Help: public AdLabs methodology articles, 7 files, downloaded 26.07.2026.

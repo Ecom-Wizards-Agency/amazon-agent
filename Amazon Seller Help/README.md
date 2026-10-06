@@ -1,6 +1,6 @@
 # Amazon Seller Help
 
-Downloaded/updated: 2026-05-12
+Downloaded/updated: 2026-05-12; 54 articles re-captured 2026-10-06 with `tools/knowledge/help_capture.mjs` (52 of the 53 empty shells from the first capture now hold the article text; `G200289490`, a video-tutorials page, has no article text to capture)
 
 Local capture of the Amazon Seller Central Help hub and linked article pages for the Amazon SOP master library.
 
