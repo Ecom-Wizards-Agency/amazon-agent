@@ -1,0 +1,64 @@
+{
+  "schema": "knowledge-sweep.topics.v1",
+  "note": "Topic lexicon shared by slack_collect.py candidates, extract_cards.py and review.py import-lessons. Keywords are lowercase and matched case-insensitively with a word boundary in front; keywords of five characters or fewer also need a boundary behind, longer ones may run on into German compounds and plurals. error_codes are regexes matched case-insensitively; a hit weighs double. Numeric codes need an error, Fehler or code prefix so that counts and prices do not match.",
+  "topics": {
+    "compliance": {
+      "skills": ["amazon-regulated-product-appeals", "amazon-seo"],
+      "keywords": ["compliance", "dangerous goods", "hazmat", "safety data sheet", "sds", "gpsr", "ce marking", "declaration of conformity", "certificate", "lab test", "test report", "restricted product", "prohibited", "pesticide", "health claim", "medical claim", "food contact", "prop 65", "epr", "battery", "gefahrgut", "sicherheitsdatenblatt", "zertifikat", "konformitätserklärung", "verpackungsgesetz"],
+      "error_codes": []
+    },
+    "logistics": {
+      "skills": ["amazon-logistics", "amazon-fba-inventory-planning"],
+      "keywords": ["shipment", "inbound", "send to amazon", "fba", "pallet", "carrier", "tracking", "checked-in", "receiving", "lost units", "missing units", "removal order", "reimbursement", "awd", "restock", "inventory", "fnsku", "versand", "sendung", "lieferung", "palette", "lagerbestand", "einlagerung", "rücksendung", "erstattung"],
+      "error_codes": ["\\bFBA_INB_\\d{4}\\b"]
+    },
+    "catalog": {
+      "skills": ["amazon-catalog", "amazon-flatfilepro"],
+      "keywords": ["variation", "parent asin", "child asin", "parentage", "flat file", "flatfile", "suppressed", "inactive listing", "listing error", "attribute", "product type", "browse node", "detail page", "contribution", "main image", "gtin", "ean exemption", "merge", "variante", "eltern-asin", "unterdrückt", "kategorie", "hauptbild", "inaktiv"],
+      "error_codes": [
+        "\\b(?:error|fehler|fehlercode|code)\\W{0,3}(?:code\\W{0,3})?8541\\b",
+        "\\b(?:error|fehler|fehlercode|code)\\W{0,3}(?:code\\W{0,3})?8542\\b",
+        "\\b(?:error|fehler|fehlercode|code)\\W{0,3}(?:code\\W{0,3})?8560\\b",
+        "\\b(?:error|fehler|fehlercode|code)\\W{0,3}(?:code\\W{0,3})?8572\\b",
+        "\\b(?:error|fehler|fehlercode|code)\\W{0,3}(?:code\\W{0,3})?8026\\b",
+        "\\b(?:error|fehler|fehlercode|code)\\W{0,3}(?:code\\W{0,3})?90118\\b",
+        "\\b(?:error|fehler|fehlercode|code)\\W{0,3}(?:code\\W{0,3})?90220\\b",
+        "\\b(?:error|fehler|fehlercode|code)\\W{0,3}(?:code\\W{0,3})?99001\\b"
+      ]
+    },
+    "support-cases": {
+      "skills": ["amazon-communications"],
+      "keywords": ["case", "seller support", "support case", "open a case", "case log", "escalate", "escalation", "reopen", "seller assistant", "chat with support", "reply from amazon", "support ticket", "ticket", "fall eröffnet", "fallnummer", "support-fall", "supportfall", "eskalation", "eskaliert", "rückmeldung von amazon", "anfrage an amazon"],
+      "error_codes": []
+    },
+    "ads": {
+      "skills": ["amazon-ads-console", "amazon-audit", "amazon-ppc-weekly-management"],
+      "keywords": ["ppc", "acos", "tacos", "roas", "campaign", "bid", "bids", "budget", "sponsored products", "sponsored brands", "sponsored display", "negative keyword", "placement", "top of search", "impressions", "cpc", "adlabs", "ad group", "bulk file", "kampagne", "gebot", "werbung", "anzeige", "werbekosten"],
+      "error_codes": []
+    },
+    "account-health": {
+      "skills": ["amazon-account-health-check"],
+      "keywords": ["account health", "ahr", "policy violation", "policy warning", "deactivated", "deactivation", "suspended", "suspension", "plan of action", "poa", "appeal", "order defect rate", "late shipment rate", "ip complaint", "intellectual property", "authenticity", "inauthentic", "kontozustand", "gesperrt", "sperrung", "deaktiviert", "richtlinienverstoß", "verstoß", "beschwerde", "aktionsplan"],
+      "error_codes": []
+    },
+    "seo": {
+      "skills": ["amazon-seo"],
+      "keywords": ["seo", "keyword", "search term", "backend keywords", "generic keyword", "title", "bullet", "a+ content", "indexing", "indexed", "ranking", "organic", "rufus", "datadive", "ranking juice", "suchbegriff", "schlüsselwort", "titel", "aufzählungspunkt", "indexiert", "sichtbarkeit"],
+      "error_codes": []
+    },
+    "brand-registry": {
+      "skills": ["amazon-catalog"],
+      "keywords": ["brand registry", "brand registered", "trademark", "brand owner", "brand authorization", "approval to list", "brand approval", "brand store", "transparency", "project zero", "report a violation", "counterfeit", "hijacker", "unauthorized seller", "markenregistrierung", "marke", "marken", "markeninhaber", "markenrecht", "fälschung", "trittbrettfahrer"],
+      "error_codes": [
+        "\\b(?:error|fehler|fehlercode|code)\\W{0,3}(?:code\\W{0,3})?5665\\b",
+        "\\b(?:error|fehler|fehlercode|code)\\W{0,3}(?:code\\W{0,3})?5461\\b"
+      ]
+    },
+    "reporting": {
+      "skills": ["amazon-reporting"],
+      "keywords": ["report", "business report", "sqp", "search query performance", "search catalog performance", "scp", "top search terms", "brand analytics", "sessions", "conversion rate", "unit session percentage", "date range", "csv", "bericht", "geschäftsbericht", "sitzungen", "konversionsrate", "auswertung", "zeitraum"],
+      "error_codes": []
+    }
+  },
+  "resolution_markers": ["resolved", "fixed", "works now", "back on active", "approved", "reinstated", "removed", "done", "sorted", "live again", "accepted", "erledigt", "gelöst", "funktioniert", "solved", "working again", "reactivated", "went through", "case closed", "is live", "back online", "behoben", "freigeschaltet", "wieder aktiv", "wieder online", "hat geklappt", "geklappt", "läuft wieder", "passt jetzt", "angenommen"]
+}

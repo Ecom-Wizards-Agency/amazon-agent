@@ -10,12 +10,33 @@
     "shell_line_pattern": "^[ \\t]*Loading[ \\t]*$",
     "login_url_pattern": "/ap/",
     "allowed_email_domains": [
-      "amazon.com", "amazon.ca", "amazon.com.mx", "amazon.com.br", "amazon.co.uk", "amazon.de",
-      "amazon.fr", "amazon.it", "amazon.es", "amazon.nl", "amazon.se", "amazon.pl", "amazon.com.be",
-      "amazon.ie", "amazon.com.tr", "amazon.ae", "amazon.sa", "amazon.eg", "amazon.co.za", "amazon.in",
-      "amazon.co.jp", "amazon.com.au", "amazon.sg"
+      "amazon.com",
+      "amazon.ca",
+      "amazon.com.mx",
+      "amazon.com.br",
+      "amazon.co.uk",
+      "amazon.de",
+      "amazon.fr",
+      "amazon.it",
+      "amazon.es",
+      "amazon.nl",
+      "amazon.se",
+      "amazon.pl",
+      "amazon.com.be",
+      "amazon.ie",
+      "amazon.com.tr",
+      "amazon.ae",
+      "amazon.sa",
+      "amazon.eg",
+      "amazon.co.za",
+      "amazon.in",
+      "amazon.co.jp",
+      "amazon.com.au",
+      "amazon.sg"
     ],
-    "keep_mons_sel_params": ["mons_sel_locale"],
+    "keep_mons_sel_params": [
+      "mons_sel_locale"
+    ],
     "public_marketplace_ids": [
       "ATVPDKIKX0DER",
       "A1PA6795UKMFR9",
@@ -62,15 +83,24 @@
       },
       "id_from_url": "/help/hub/reference/(?:external/)?([A-Z0-9]+)",
       "origin": "https://sellercentral.amazon.com",
-      "navigate_query": { "mons_sel_locale": "en_US" },
+      "navigate_query": {
+        "mons_sel_locale": "en_US"
+      },
       "missing_on_redirect": true,
       "region_task": {
-        "kind": "seller-central-region",
-        "marketplace": "us",
-        "origin": "https://sellercentral.amazon.com"
+        "kind": "plain",
+        "workflow": "amazon-help-capture",
+        "note": "Help articles do not depend on the selected account, so the capture uses a plain read-only task tab and never takes the Seller Central region claim from the operator."
       },
-      "frontmatter_keys": ["title", "source_url", "downloaded_at", "source"],
-      "frontmatter_defaults": { "source": "Amazon Seller Central Help" },
+      "frontmatter_keys": [
+        "title",
+        "source_url",
+        "downloaded_at",
+        "source"
+      ],
+      "frontmatter_defaults": {
+        "source": "Amazon Seller Central Help"
+      },
       "new_file_pattern": "{seq}-{slug}-{id}.md"
     },
     "ads-support": {
@@ -80,7 +110,9 @@
       "missing_list": "_index/advertising-help-missing.json",
       "articles_dir": "articles",
       "pages_path": "pages",
-      "extra_index_lists": ["captured_pages"],
+      "extra_index_lists": [
+        "captured_pages"
+      ],
       "new_entries_list": "captured_pages",
       "fields": {
         "id": null,
@@ -94,8 +126,18 @@
       "origin": "https://advertising.amazon.com",
       "navigate_query": {},
       "missing_on_redirect": true,
-      "region_task": { "kind": "plain", "workflow": "amazon-help-capture" },
-      "frontmatter_keys": ["title", "source_url", "library", "section", "downloaded_at", "status"],
+      "region_task": {
+        "kind": "plain",
+        "workflow": "amazon-help-capture"
+      },
+      "frontmatter_keys": [
+        "title",
+        "source_url",
+        "library",
+        "section",
+        "downloaded_at",
+        "status"
+      ],
       "frontmatter_defaults": {
         "library": "Amazon Ads Support Center",
         "section": "linked-expansion",
@@ -125,8 +167,18 @@
       "origin": "https://advertising.amazon.com",
       "navigate_query": {},
       "missing_on_redirect": false,
-      "region_task": { "kind": "plain", "workflow": "amazon-help-capture" },
-      "frontmatter_keys": ["title", "source_url", "library", "section", "downloaded_at", "status"],
+      "region_task": {
+        "kind": "plain",
+        "workflow": "amazon-help-capture"
+      },
+      "frontmatter_keys": [
+        "title",
+        "source_url",
+        "library",
+        "section",
+        "downloaded_at",
+        "status"
+      ],
       "frontmatter_defaults": {
         "library": "Amazon Ads Advanced Tools Center",
         "status": "captured"

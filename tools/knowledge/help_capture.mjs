@@ -451,9 +451,16 @@ export function buildStaged({ page, lib, result, trackedText = null, today, capt
     return { text: null, sidecar };
   }
   const body = scrubText(result.bodyMarkdown || "", { accountLabel: label, lib });
-  const stripped = stripLeadingTitle(body.text);
   const pageTitle = scrubText(result.title || "", { accountLabel: label, lib });
-  const title = stripped.title || pageTitle.text || page.title || page.id;
+  const stripped = stripLeadingTitle(body.text);
+  // Prefer the extractor's article title; the leading H1 of the body is only a fallback.
+  if (pageTitle.text && stripped.title && stripped.title !== pageTitle.text) {
+    stripped.body = body.text.trim();
+    stripped.title = "";
+  }
+  const title = pageTitle.text || stripped.title || page.title || page.id;
+  const firstTitleLine = stripped.body.split("\n").findIndex((line) => line.trim() === `# ${title}`);
+  if (firstTitleLine >= 0) stripped.body = stripped.body.split("\n").filter((_, i) => i !== firstTitleLine).join("\n").replace(/\n{3,}/g, "\n\n").trim();
   const trackedEntries = trackedText ? splitFrontmatter(trackedText).entries : [];
   const entries = stagedFrontmatterEntries({ trackedEntries, lib, page, title, today });
   const text = renderArticle({ entries, title, body: stripped.body });
@@ -837,6 +844,35 @@ async function runCapture(lib, opts) {
   return finish();
 }
 
+/**
+ * One poll step. Returns { done, result } when the page is settled, else the
+ * updated stability counters. A result without a found article container (the
+ * Seller Assistant workspace alone) is never accepted, however stable it is.
+ */
+export function pollDecision({ result: r, prevWords = -1, stable = 0, elapsedMs = 0, lib, stableNeeded = 2 }) {
+  if (r.status === "login-required" || isLoginUrl(r.url, lib) || isAccountChooserUrl(r.url)) {
+    return { done: true, result: { ...r, status: "login-required" } };
+  }
+  if (r.status === "missing") return { done: true, result: r };
+  const article = r.status === "ok" && r.articleFound !== false;
+  if (article && r.wordCount >= lib.min_body_words) return { done: true, result: r };
+  const nextStable = article && r.wordCount === prevWords ? stable + 1 : 0;
+  if (article && nextStable >= stableNeeded && elapsedMs >= 5000) return { done: true, result: r };
+  return { done: false, stable: nextStable, prevWords: article ? r.wordCount : -1 };
+}
+
+/** The result kept at the deadline: workspace-only or articleless pages stay shells. */
+export function finalizePoll(last, lastError = null) {
+  if (!last) return { status: "extraction-failed", error: lastError?.message || "no extractor result", url: "" };
+  if (last.status === "ok" && last.articleFound === false) {
+    return { ...last, status: "shell", error: "article container never rendered before the deadline" };
+  }
+  if (last.status === "shell" && last.workspace && last.articleFound === false) {
+    return { ...last, error: "only the Seller Assistant workspace rendered before the deadline" };
+  }
+  return last;
+}
+
 async function pollExtract(session, evaluate, lib) {
   const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   const start = Date.now();
@@ -860,18 +896,14 @@ async function pollExtract(session, evaluate, lib) {
     }
     if (r) {
       last = r;
-      if (r.status === "login-required" || isLoginUrl(r.url, lib) || isAccountChooserUrl(r.url)) return { ...r, status: "login-required" };
-      if (r.status === "missing") return r;
-      if (r.status === "ok" && r.wordCount >= lib.min_body_words) return r;
-      stable = r.status === "ok" && r.wordCount === prevWords ? stable + 1 : 0;
-      prevWords = r.wordCount;
-      if (r.status === "ok" && stable >= stableNeeded && Date.now() - start >= 5000) return r;
+      const decision = pollDecision({ result: r, prevWords, stable, elapsedMs: Date.now() - start, lib, stableNeeded });
+      if (decision.done) return decision.result;
+      ({ stable, prevWords } = decision);
     }
     if (Date.now() >= deadline) break;
     await sleep(lib.poll_interval_ms);
   }
-  if (!last) return { status: "extraction-failed", error: lastError?.message || "no extractor result", url: "" };
-  return last;
+  return finalizePoll(last, lastError);
 }
 
 // ---------------------------------------------------------------- CLI

@@ -16,6 +16,7 @@ import {
   scrubText, planLibrary, classifyDiff, updateIndexEntries, appendMissing, addMissingToIndex,
   serializeJsonLike, newFilePath, newIndexEntry, isLoginUrl, isAccountChooserUrl, redirectedAway,
   navigationUrl, shouldSkipCheckpoint, selectTargets, buildStaged, writeStaged, runDiff, runApply, slugify,
+  pollDecision, finalizePoll,
 } from "../help_capture.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -415,7 +416,7 @@ test("config declares the three libraries with the required keys", () => {
     assert.equal(lib.min_body_words, 120);
     assert.equal(lib.account_placeholder, "Example Brand");
   }
-  assert.equal(config.libraries["seller-help"].region_task.kind, "seller-central-region");
+  assert.equal(config.libraries["seller-help"].region_task.kind, "plain", "help pages use a plain read-only task tab");
   assert.equal(config.libraries["ads-support"].region_task.workflow, "amazon-help-capture");
   assert.ok(config.libraries["ads-support"].linked_list.endsWith("remaining-linked-urls-2026-05-13.txt"));
 });
@@ -485,4 +486,76 @@ test("noise filter keeps article sections whose ids only contain a noise word", 
   const helpers = extractorHelpers();
   const root = parseHtml("<div><div id=\"feedback-manager\"><p>Use Feedback Manager daily.</p></div><div class=\"language-tips\"><p>Listing languages matter.</p></div><div class=\"site-header\"><p>Header junk</p></div></div>");
   assert.equal(helpers.toMarkdown(root), "Use Feedback Manager daily.\n\nListing languages matter.");
+});
+
+// ---------------------------------------------------------------- Seller Assistant workspace layout
+
+
+test("findArticle waits while only the Seller Assistant workspace has rendered", () => {
+  const helpers = extractorHelpers();
+  const found = helpers.findArticle(parseHtml(read(path.join(FIXTURES, "workspace-early.html"))));
+  assert.equal(found.workspace, true);
+  assert.equal(found.container, null, "the workspace is never taken as the article");
+  assert.equal(found.title, "");
+});
+
+test("findArticle takes the article H1 and excludes the workspace once the article arrives", () => {
+  const helpers = extractorHelpers();
+  const found = helpers.findArticle(parseHtml(read(path.join(FIXTURES, "workspace-late.html"))));
+  assert.equal(found.workspace, true);
+  assert.equal(found.title, "Delivery with Services");
+  assert.equal(found.selector, "article-h1-ancestor");
+  const markdown = helpers.toMarkdown(found.container, { skip: found.chromeRoots });
+  assert.equal(markdown, read(path.join(FIXTURES, "workspace-late.expected.md")).trim());
+  for (const chrome of ["Actions", "Seller Assistant", "New chat", "network error", "No actions required", "canvas"]) {
+    assert.equal(markdown.includes(chrome), false, `workspace chrome leaked: ${chrome}`);
+  }
+});
+
+test("findArticle prefers a known container and still titles from the article H1", () => {
+  const helpers = extractorHelpers();
+  const found = helpers.findArticle(parseHtml(read(path.join(FIXTURES, "workspace-known-container.html"))));
+  assert.equal(found.selector, "known-container");
+  assert.equal(found.title, "Manage inventory");
+  const markdown = helpers.toMarkdown(found.container, { skip: found.chromeRoots });
+  assert.match(markdown, /^The Manage All Inventory tool/);
+  assert.equal(/Actions|Seller Assistant/.test(markdown), false);
+});
+
+test("toMarkdown drops exact workspace chrome blocks as a safety net", () => {
+  const helpers = extractorHelpers();
+  const root = parseHtml("<div><h1>Actions</h1><p>New chat</p><p>Real article text stays.</p></div>");
+  assert.equal(helpers.toMarkdown(root), "Real article text stays.");
+});
+
+test("pollDecision never accepts a stable workspace-only page and finalizePoll keeps it a shell", () => {
+  const lib = fixtureLib();
+  const chromeOnly = { status: "shell", wordCount: 0, articleFound: false, workspace: true, url: "https://sellercentral.amazon.com/help/hub/reference/G1" };
+  let state = { prevWords: -1, stable: 0 };
+  for (let i = 0; i < 10; i += 1) {
+    const d = pollDecision({ result: chromeOnly, ...state, elapsedMs: 1000 * (i + 1), lib });
+    assert.equal(d.done, false);
+    state = { prevWords: d.prevWords, stable: d.stable };
+  }
+  const okWithoutArticle = { ...chromeOnly, status: "ok", wordCount: 57 };
+  for (let i = 0; i < 5; i += 1) assert.equal(pollDecision({ result: okWithoutArticle, prevWords: 57, stable: 5, elapsedMs: 15000, lib }).done, false);
+  assert.equal(finalizePoll(okWithoutArticle).status, "shell");
+  assert.match(finalizePoll(chromeOnly).error, /only the Seller Assistant workspace/);
+  const thinArticle = { status: "ok", wordCount: 40, articleFound: true, url: chromeOnly.url };
+  assert.equal(pollDecision({ result: thinArticle, prevWords: -1, stable: 0, elapsedMs: 6000, lib }).done, false);
+  assert.equal(pollDecision({ result: thinArticle, prevWords: 40, stable: 1, elapsedMs: 6000, lib }).done, true);
+  assert.equal(pollDecision({ result: { ...thinArticle, wordCount: 256 }, elapsedMs: 1500, lib }).done, true);
+  assert.equal(finalizePoll(null, new Error("x")).status, "extraction-failed");
+  const stagedShell = buildStaged({ page: { id: "G1", url: chromeOnly.url, title: "T", file: null }, lib, result: finalizePoll(chromeOnly), today: TODAY, capturedAt: "t" });
+  assert.equal(classifyDiff({ stagedStatus: stagedShell.sidecar.status, trackedState: "shell", stagedHash: stagedShell.sidecar.body_sha256, trackedHash: "x" }), "still-shell");
+  assert.equal(classifyDiff({ stagedStatus: stagedShell.sidecar.status, trackedState: "ok", stagedHash: stagedShell.sidecar.body_sha256, trackedHash: "x" }), "extraction-failed");
+});
+
+test("buildStaged titles from the extractor and removes the duplicated article H1", () => {
+  const lib = fixtureLib();
+  const page = { id: "G41", url: "https://sellercentral.amazon.com/help/hub/reference/G41", title: "Manage inventory", file: null };
+  const known = buildStaged({ page, lib, result: { ...extraction("Body text without a heading."), title: "Manage inventory", articleFound: true }, today: TODAY, capturedAt: "t" });
+  assert.match(known.text, /\n---\n\n# Manage inventory\n\nBody text without a heading\.\n$/);
+  const withH1 = buildStaged({ page, lib, result: { ...extraction("Help > Inventory\n\n# Manage inventory\n\nBody."), title: "Manage inventory" }, today: TODAY, capturedAt: "t" });
+  assert.match(withH1.text, /\n# Manage inventory\n\nHelp > Inventory\n\nBody\.\n$/);
 });

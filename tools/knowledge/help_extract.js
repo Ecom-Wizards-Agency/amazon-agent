@@ -7,7 +7,14 @@
  * that returns:
  *
  *   { url, title, isLogin, accountLabel, wordCount, bodyMarkdown, status,
- *     loading, notFound, hasSignInForm, container }
+ *     loading, notFound, hasSignInForm, container, articleFound, workspace }
+ *
+ * Seller Central renders each help article inside the Seller Assistant
+ * workspace: H1 "Actions", H1 "Seller Assistant", then the article H1, and the
+ * article arrives seconds after the workspace. findArticle() takes the first
+ * non-workspace H1 as the title, uses a known article container or the nearest
+ * ancestor of that H1 holding real text, and skips the workspace roots. While
+ * only the workspace has rendered, status is "shell" and articleFound is false.
  *
  * status is one of ok | shell | missing | login-required. The Node side owns
  * the minimum-word wait, the redirect check and every scrub; accountLabel is
@@ -67,8 +74,12 @@
     return hits >= 3 && hits / items.length >= 0.6;
   }
 
+  // Elements excluded for the current conversion (the Seller Assistant workspace roots).
+  let extraSkip = new Set();
+
   function isNoise(node) {
     if (node.nodeType !== 1) return false;
+    if (extraSkip.has(node)) return true;
     const tag = tagOf(node);
     if (SKIP_TAGS.has(tag)) return true;
     if (typeof node.hasAttribute === "function" && node.hasAttribute("hidden")) return true;
@@ -190,8 +201,92 @@
     return blocks(node, []).join("\n\n");
   }
 
-  function toMarkdown(root) {
-    return blocks(root, []).join("\n\n").replace(/\n{3,}/g, "\n\n").trim();
+  // Exact blocks of the Seller Assistant / Actions workspace that Seller Central
+  // renders around every help article. A safety net behind the chrome-root skip.
+  const CHROME_BLOCKS = new Set([
+    "# Actions", "# Seller Assistant", "New chat", "Sorry! There's a network error. Try again later.",
+    "## No actions required",
+    "There are no actions in this workspace. However, you can use the filter above to check for other actions.",
+    "#### Explore with a canvas (Beta)", "Seller Assistant can turn your data into smart business decisions with a canvas.",
+    "#### Where to start", "#### Recently edited",
+  ]);
+  const CHROME_H1 = /^(?:actions|seller assistant)$/i;
+
+  function toMarkdown(root, { skip = null } = {}) {
+    const previous = extraSkip;
+    extraSkip = skip || new Set();
+    try {
+      return blocks(root, []).filter((block) => !CHROME_BLOCKS.has(block.trim()))
+        .join("\n\n").replace(/\n{3,}/g, "\n\n").trim();
+    } finally {
+      extraSkip = previous;
+    }
+  }
+
+  // Depth-first walk over elements with their ancestor chain (root first).
+  function walkElements(root, visit, ancestors = []) {
+    for (const child of kids(root)) {
+      if (child.nodeType !== 1) continue;
+      if (visit(child, ancestors) === false) continue;
+      walkElements(child, visit, [...ancestors, child]);
+    }
+  }
+
+  const KNOWN_IDS = new Set(["help-content", "help-article", "article-body"]);
+  const KNOWN_CLASSES = new Set([
+    "help-content", "help-article", "help-article-content", "help-page-content", "hh-content", "article-content", "article-body",
+  ]);
+  const isKnownContainer = (node) => KNOWN_IDS.has(attr(node, "id"))
+    || attr(node, "class").split(/\s+/).some((token) => KNOWN_CLASSES.has(token));
+
+  /**
+   * Locate the help article on a page that may wrap it in the Seller Assistant
+   * workspace (H1s "Actions" and "Seller Assistant" before the article H1).
+   * Returns { container, selector, title, articleH1, chromeRoots, workspace }.
+   * container is null while only the workspace chrome has rendered.
+   */
+  function findArticle(root) {
+    const h1s = [];
+    const known = [];
+    walkElements(root, (node, ancestors) => {
+      if (SKIP_TAGS.has(tagOf(node)) && tagOf(node) !== "HEADER") return false;
+      if (tagOf(node) === "H1") h1s.push({ node, ancestors, text: squash(textOf(node)).trim() });
+      if (isKnownContainer(node)) known.push({ node, ancestors });
+      return true;
+    });
+    const chrome = h1s.filter((h) => CHROME_H1.test(h.text));
+    const article = h1s.find((h) => h.text && !CHROME_H1.test(h.text) && !h.ancestors.some((a) => tagOf(a) !== "HEADER" && isNoise(a))) || null;
+    const workspace = chrome.length > 0;
+    // Chrome roots: for each chrome H1, the highest ancestor that holds neither the
+    // article H1 nor a known article container.
+    const protectedNodes = new Set();
+    if (article) { protectedNodes.add(article.node); article.ancestors.forEach((a) => protectedNodes.add(a)); }
+    for (const k of known) { protectedNodes.add(k.node); k.ancestors.forEach((a) => protectedNodes.add(a)); }
+    const chromeRoots = new Set();
+    for (const h of chrome) {
+      let top = h.node;
+      for (let i = h.ancestors.length - 1; i >= 0; i -= 1) {
+        if (protectedNodes.has(h.ancestors[i])) break;
+        top = h.ancestors[i];
+      }
+      if (!protectedNodes.has(top)) chromeRoots.add(top);
+    }
+    const wordsOf = (node) => countWords(toMarkdown(node, { skip: chromeRoots }));
+    let container = null;
+    let selector = "";
+    for (const k of known) {
+      if (chromeRoots.has(k.node) || k.ancestors.some((a) => chromeRoots.has(a))) continue;
+      if (wordsOf(k.node) >= 20) { container = k.node; selector = "known-container"; break; }
+    }
+    if (!container && article) {
+      const h1Words = countWords(article.text);
+      for (let i = article.ancestors.length - 1; i >= 0; i -= 1) {
+        const candidate = article.ancestors[i];
+        if (candidate === root) break;
+        if (wordsOf(candidate) - h1Words >= 20) { container = candidate; selector = "article-h1-ancestor"; break; }
+      }
+    }
+    return { container, selector, title: article ? article.text : "", articleH1: article ? article.node : null, chromeRoots, workspace };
   }
 
   function countWords(markdown) {
@@ -203,7 +298,7 @@
   }
 
   if (typeof document === "undefined") {
-    return { toMarkdown, countWords, hasLoadingLine, isNoise, textOf, LANGUAGE_NAMES };
+    return { toMarkdown, countWords, hasLoadingLine, isNoise, textOf, findArticle, LANGUAGE_NAMES };
   }
 
   // ---- browser-only part ----
@@ -285,16 +380,27 @@
   const hasSignInForm = !!document.querySelector(
     "form[name=\"signIn\"], #ap_email, #ap_password, #signInSubmit, input[type=\"password\"]",
   );
-  const { el, selector } = findContainer();
+  const found = findArticle(document.body || document.documentElement);
+  let el = found.container;
+  let selector = found.selector;
+  // Pages without the Seller Assistant workspace (Ads Support, Ads docs) keep the
+  // selector and largest-text fallbacks. Workspace pages never fall back: the
+  // largest block there is the workspace itself, so they wait for the article.
+  if (!el && !found.workspace) ({ el, selector } = findContainer());
+  const articleFound = !!el;
   const isLogin = /\/ap\//.test(url) || (hasSignInForm && (!el || selector === "largest-text-block"));
-  const bodyMarkdown = el ? toMarkdown(el) : "";
+  const bodyMarkdown = el ? toMarkdown(el, { skip: found.chromeRoots }) : "";
   const wordCount = countWords(bodyMarkdown);
   let loading = hasLoadingLine(bodyMarkdown) || document.readyState !== "complete";
   if (!loading && el) {
     try { loading = !!el.querySelector("[aria-busy=\"true\"], kat-spinner, .kat-spinner, .loading-spinner"); } catch { /* keep */ }
   }
-  const h1 = (el && el.querySelector("h1")) || document.querySelector("h1");
-  const title = h1 ? squash(textOf(h1)).trim() : squash(document.title || "").trim();
+  let title = found.title;
+  if (!title && el && !found.workspace) {
+    const h1 = el.querySelector("h1") || document.querySelector("h1");
+    title = h1 ? squash(textOf(h1)).trim() : "";
+  }
+  if (!title && !found.workspace) title = squash(document.title || "").trim();
   // Only the document title, or a near-empty body, may declare the page gone:
   // short real articles can mention retired features in their text.
   const NOT_FOUND = /page not found|page you requested|we couldn['’]t find|\b404\b/i;
@@ -302,9 +408,9 @@
   let status = "ok";
   if (isLogin) status = "login-required";
   else if (notFound) status = "missing";
-  else if (loading || wordCount === 0) status = "shell";
+  else if (loading || wordCount === 0 || !articleFound) status = "shell";
   return {
     url, title, isLogin, accountLabel: readAccountLabel(), wordCount, bodyMarkdown, status,
-    loading, notFound, hasSignInForm, container: selector,
+    loading, notFound, hasSignInForm, container: selector, articleFound, workspace: found.workspace,
   };
 })()
