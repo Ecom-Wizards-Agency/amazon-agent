@@ -1,7 +1,7 @@
 {
  "captured_at": "2026-05-12T07:07:49Z",
- "total_entries": 365,
- "captured_count": 365,
+ "total_entries": 364,
+ "captured_count": 364,
  "failure_count": 0,
  "categories": [
   "Amazon Advertising",
@@ -5456,26 +5456,6 @@
    "knowledge_value": "low"
   },
   {
-   "title": "Advertising SOP: How to Setup and Manage a New Ads Account",
-   "category": "Amazon Advertising",
-   "chapter": null,
-   "url": "https://sop.myamazonguy.com/books/amazon-advertising/page/advertising-sop-how-to-setup-and-manage-a-new-ads-account",
-   "captured_at": "2026-05-12T07:07:49Z",
-   "file": "_archive/amazon-advertising/advertising-sop-how-to-setup-and-manage-a-new-ads-account.md",
-   "body_length": 16982,
-   "image_count": 8,
-   "status": "merged",
-   "merge_into": "MAG SOPs/amazon-advertising/advertising-sop-master-ads-sop-with-existing-campaigns.md",
-   "triaged_on": "2026-10-06",
-   "flags": [
-    "tool_dependency",
-    "mag_internal",
-    "faq_unsourced"
-   ],
-   "knowledge_value": "low",
-   "archived": true
-  },
-  {
    "title": "Advertising SOP: Master Ads Setup SOP (W/O Existing Campaigns)",
    "category": "Amazon Advertising",
    "chapter": null,
@@ -5839,11 +5819,11 @@
    "file": "design/design-sop-brand-store-creation.md",
    "body_length": 14457,
    "image_count": 27,
-   "status": "superseded",
-   "superseded_by": "skills/amazon-catalog/references/brand-store-updates.md",
+   "status": "needs-update",
    "triaged_on": "2026-10-06",
    "flags": [
     "mag_internal",
+    "second-reader: target covers Store edits, not Manage Stores > Create Store",
     "tool_dependency"
    ],
    "knowledge_value": "low"
@@ -6257,7 +6237,7 @@
   }
  ],
  "failures": [],
- "archived_count": 13,
+ "archived_count": 12,
  "dropped": [
   {
    "what": "AI ChatGPT prompts",

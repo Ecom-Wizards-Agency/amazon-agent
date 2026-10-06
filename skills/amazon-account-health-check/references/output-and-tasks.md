@@ -102,5 +102,5 @@ Report:
 - The coverage entry written for this run: region, `checked`, `in_scope`, and the `skipped` list.
 - Notion task titles and URLs created or updated, or the task proposals when the stage forbids live writes.
 - Accounts checked or skipped.
-- Ledger written yes/no, and which browser was used (preferred or fallback).
+- Ledger written yes/no, and which CDP session was used.
 - Any blockers, including a missing or stale market-signal state file, login needs, or actions requiring the operator's approval.

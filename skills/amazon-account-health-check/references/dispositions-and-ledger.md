@@ -40,7 +40,7 @@ Escalation triggers (exhaustive - everything else defaults to `{daily_runner}`):
 - identity, bank, tax, or verification requests
 - legal, IP, or counterfeit claims
 - a hard marketplace deadline within 48 hours that is not already handled
-- Seller Central login/MFA blockers after both approved browsers were tried
+- Seller Central login/MFA blockers in the resolved CDP session
 
 ### How The Triggers Are Read
 
@@ -239,4 +239,4 @@ For an issue type the tables do not list, severity maps to default routing: Crit
 
 ### Degraded Run
 
-Degraded run (Seller Central blocked in both approved browsers): write the ledger under the carry-forward rule and write the coverage entry for the region with `checked: 0` and the blocked accounts in `skipped`. Carry every unverified finding forward untouched: never re-dispose it, never mark it resolved, and never restate it as verified today. Report the login blocker in the finish note, and post nothing beyond an immediate escalation if the blocker itself meets that bar. There is no queue post to fall back on, so a degraded run is visible through its coverage entry and the digest's pending count, not through a post.
+Degraded run (Seller Central login blocked in the resolved CDP session): write the ledger under the carry-forward rule and write the coverage entry for the region with `checked: 0` and the blocked accounts in `skipped`. Carry every unverified finding forward untouched: never re-dispose it, never mark it resolved, and never restate it as verified today. Report the login blocker in the finish note, and post nothing beyond an immediate escalation if the blocker itself meets that bar. There is no queue post to fall back on, so a degraded run is visible through its coverage entry and the digest's pending count, not through a post.

@@ -9,7 +9,7 @@ parts of Business Analysis (dropped 2026-07-08), the Walmart SOPs (dropped
 complete 535-file capture with all assets lives in the pCloud visual
 archive (see `docs/mag-sops-assets.md`).
 
-Active SOP entries: **352** (27 superseded) (plus 13 archived)
+Active SOP entries: **352** (26 superseded) (plus 12 archived)
 
 ## Amazon Advertising (37)
 
@@ -331,7 +331,7 @@ Active SOP entries: **352** (27 superseded) (plus 13 archived)
 - [Creative SOP: Amazon Image Best Practices](design/creative-sop-amazon-image-best-practices.md)
 - [Creative SOP: Design on Amazon - Best Practices](design/creative-sop-design-on-amazon-best-practices.md)
 - [Design SOP: Amazon Photo Rules & Guide](design/design-sop-amazon-photo-rules-and-guide.md)
-- [Design SOP: Brand Store Creation](design/design-sop-brand-store-creation.md) (superseded by `skills/amazon-catalog/references/brand-store-updates.md`)
+- [Design SOP: Brand Store Creation](design/design-sop-brand-store-creation.md)
 - [Design SOP: Creating A+ Content and Brand Story Modules](design/design-sop-creating-a-content-and-brand-story-modules.md)
 - [Design SOP: How to Design a CTR Hack Main Image](design/design-sop-how-to-design-a-ctr-hack-main-image.md)
 - [Design SOP: Identifying Font Styles on Websites](design/design-sop-identifying-font-styles-on-websites.md)
@@ -380,10 +380,9 @@ Active SOP entries: **352** (27 superseded) (plus 13 archived)
 
 ## Archived (excluded from search)
 
-### Amazon Advertising (2)
+### Amazon Advertising (1)
 
 - [Advertising SOP: Advertising First-Time Setup and Segmentation](_archive/amazon-advertising/advertising-sop-advertising-first-time-setup-and-segmentation.md) (merged into `MAG SOPs/amazon-advertising/advertising-sop-master-ads-sop-with-existing-campaigns.md`)
-- [Advertising SOP: How to Setup and Manage a New Ads Account](_archive/amazon-advertising/advertising-sop-how-to-setup-and-manage-a-new-ads-account.md) (merged into `MAG SOPs/amazon-advertising/advertising-sop-master-ads-sop-with-existing-campaigns.md`)
 
 ### Business Analysis (1)
 
