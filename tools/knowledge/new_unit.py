@@ -6,7 +6,9 @@ Usage:
   python3 tools/knowledge/new_unit.py --title "..." --topic <topic> [--kind K]
       [--skills a,b] [--marketplaces US,DE]
 Options: --id KC-NNNN (must be unused), --dry-run (print, write nothing),
---no-ledger (do not stage a ledger row), --today YYYY-MM-DD.
+--no-ledger (do not stage a ledger row), --today YYYY-MM-DD (the creation
+date; review_by is its month plus 12 months, so a unit built from an old
+thread is not stale on arrival; observed stays the card's first-seen month).
 
 The id is 1 + the highest KC number across every topic folder and _retired.
 The file is knowledge/<topic>/<id>_<slug>.md, built from the TEMPLATE key and
@@ -178,7 +180,7 @@ def build_unit(card: dict, unit_id: str, root: Path, today: dt.date) -> tuple[di
         "supersedes": [],
         "contradicts": contradicts,
         "observed": observed,
-        "review_by": plus_twelve_months(observed),
+        "review_by": plus_twelve_months(month_of(None, today)),
         "provenance": f"ledger:{unit_id}",
     }
 
@@ -340,7 +342,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--id", dest="unit_id", help="force an unused id KC-NNNN")
     parser.add_argument("--dry-run", action="store_true", help="print the unit, write nothing")
     parser.add_argument("--no-ledger", action="store_true", help="do not stage a ledger row")
-    parser.add_argument("--today", help="YYYY-MM-DD, default today")
+    parser.add_argument("--today", help="creation date YYYY-MM-DD, default today; review_by is its month plus 12 months")
     parser.add_argument("--staging", help="staging file (default _local/knowledge-sweep/ledger-staging.md)")
     parser.add_argument("--root", default=str(WORKSPACE_ROOT), help=argparse.SUPPRESS)
     args = parser.parse_args(argv)

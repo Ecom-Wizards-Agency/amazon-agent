@@ -23,7 +23,7 @@ related_sops: ["MAG SOPs/catalog/catalog-sop-seller-fulfilled-offers-mfn-suspens
 supersedes: []
 contradicts: []
 observed: 2026-09
-review_by: 2027-09
+review_by: 2027-10
 provenance: "ledger:KC-0006"
 ---
 
@@ -43,7 +43,7 @@ Amazon deactivated the FBM offers for the missing sizes because the Apparel Vali
 
 1. Check whether the missing children's offers are inactive and read the deactivation reason in Account Health before touching images, parentage or the flat file.
 2. If the reason is Valid Tracking Rate, ask the 3PL for the order report through the deactivation date with carrier and service, tracking IDs, pickup scans, and tracking upload timestamps or error logs.
-3. Compare it with Amazon's VTR defect report to prepare a plan of action for reinstatement. The appeal needs operator approval.
+3. Compare it with Amazon's VTR defect report to prepare a plan of action for reinstatement. Submit it with the route the deactivation notice names: its Appeal button, the Account Health Appeal button, or, for a VTR suspension, the separate VTR appeals email address the MFN suspension SOP gives. The appeal needs operator approval.
 4. Have the 3PL fix tracking upload before contacting Seller Support or Account Health.
 5. Consider moving the affected SKUs to FBA (an interim labelled parcel while the main stock is in transit) to remove the VTR dependency, and reduce ad spend while the children cannot be bought.
 
@@ -66,3 +66,4 @@ Stop before any submission, appeal, case send, refund, price change or listing c
 
 - Net new versus existing sources: No source links missing sizes in a variation family to an FBM Valid Tracking Rate deactivation or warns that image and handling-time fixes do not reinstate.
 - Existing coverage: partial (`MAG SOPs/catalog/catalog-sop-seller-fulfilled-offers-mfn-suspension.md`, `MAG SOPs/catalog/catalog-sop-parentage-check.md`).
+- The VTR appeals email route comes from the MAG SOP, not a first-party capture, and the thread never used it because it ended on the move to FBA. Check the notice before choosing the route.

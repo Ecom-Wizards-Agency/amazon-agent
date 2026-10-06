@@ -14,7 +14,7 @@ error_text: []
 resolution_status: partial
 fix_source: agency
 evidence_location: slack
-confidence: medium
+confidence: low
 verification: unverified
 verified_on: ""
 verified_how: ""
@@ -23,7 +23,7 @@ related_sops: []
 supersedes: []
 contradicts: []
 observed: 2026-09
-review_by: 2027-09
+review_by: 2027-10
 provenance: "ledger:KC-0009"
 ---
 
@@ -50,7 +50,7 @@ Not established. Agency checks ruled out budgets, stock, advertised SKUs, Buy Bo
 
 ## Verify
 
-The duplicated campaigns showed normal delivery and sales rose sharply the next day, but that day was a Prime Big Deal Days event, which confounds the result. Amazon gave no root cause and the case was still open.
+The duplicated campaigns showed normal delivery and sales rose sharply the next day, but that day was a sales event, which confounds the result. Amazon gave no root cause and the case was still open.
 
 ## Stop before
 
@@ -67,3 +67,4 @@ Stop before any submission, appeal, case send, refund, price change or listing c
 
 - Net new versus existing sources: No local source gives a delivery-loss troubleshooting sequence or the duplicate-campaign workaround.
 - Existing coverage: none.
+- Confidence is low: one thread, and the cited help pages cover copying a campaign and setting bids, not why delivery stopped.

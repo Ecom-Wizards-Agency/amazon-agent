@@ -18,12 +18,12 @@ confidence: medium
 verification: unverified
 verified_on: ""
 verified_how: ""
-amazon_sources: ["Amazon Seller Help/articles/028-manage-account-settings-G69035.md", "Amazon Seller Help/articles/001-account-settings-G181.md"]
+amazon_sources: ["Amazon Seller Help/articles/028-manage-account-settings-G69035.md", "Amazon Seller Help/articles/001-account-settings-G181.md", "Amazon Seller Help/articles/099-common-reasons-you-cannot-find-your-handmade-listings-GRCWJ4KHBNQ3SNTB.md"]
 related_sops: ["MAG SOPs/catalog/catalog-sop-shipping-template-for-fbm-listings.md", "MAG SOPs/catalog/catalog-sop-seller-fulfilled-offers-mfn-suspension.md"]
 supersedes: []
 contradicts: []
 observed: 2025-03
-review_by: 2026-03
+review_by: 2027-10
 provenance: "ledger:KC-0012"
 ---
 
@@ -33,7 +33,7 @@ The client asked how to tell whether their FBM offer had started selling.
 
 ## Answer
 
-When an FBM offer shows no orders, first check that the account's listing status is not set to vacation mode, which deactivates all seller-fulfilled offers at once. After reactivating, check the shipping template and confirm the fulfiller uploads tracking automatically before the first orders arrive. A late or missing tracking upload hurts the late-shipment and valid-tracking metrics. If FBA and FBM offers share an ASIN, the FBM offer needs a lower landed price to take the Buy Box.
+When an FBM offer shows no orders, first check that the account's listing status is not set to vacation mode, which deactivates all seller-fulfilled offers at once. After reactivating, check the shipping template and confirm the fulfiller uploads tracking automatically before the first orders arrive. A late or missing tracking upload hurts the late-shipment and valid-tracking metrics.
 
 ## Cause
 
@@ -42,9 +42,8 @@ The account's listing status was set to vacation mode, which makes all seller-fu
 ## Fix
 
 1. Under Account Info > Listing status, switch from vacation (inactive) back to active. Settings changes need operator approval.
-2. If an FBA offer shares the ASIN, price the FBM offer slightly below it so it can win the Buy Box. Price changes need operator approval.
-3. Update the shipping template under Shipping Settings so FBM rates and transit times are correct.
-4. Confirm the 3PL has an Amazon integration or uploads tracking numbers; valid tracking and on-time confirmation feed the late-shipment and valid-tracking metrics.
+2. Update the shipping template under Shipping Settings so FBM rates and transit times are correct.
+3. Confirm the 3PL has an Amazon integration or uploads tracking numbers; valid tracking and on-time confirmation feed the late-shipment and valid-tracking metrics.
 
 ## Verify
 
@@ -58,6 +57,7 @@ Stop before any submission, appeal, case send, refund, price change or listing c
 
 - First-party: `Amazon Seller Help/articles/028-manage-account-settings-G69035.md`
 - First-party: `Amazon Seller Help/articles/001-account-settings-G181.md`
+- First-party: `Amazon Seller Help/articles/099-common-reasons-you-cannot-find-your-handmade-listings-GRCWJ4KHBNQ3SNTB.md` (vacation settings as a reason listings cannot be found; Handmade scope)
 - Also in: `MAG SOPs/catalog/catalog-sop-shipping-template-for-fbm-listings.md`
 - Also in: `MAG SOPs/catalog/catalog-sop-seller-fulfilled-offers-mfn-suspension.md`
 - Evidence: team vault ledger row for this id.
@@ -66,3 +66,5 @@ Stop before any submission, appeal, case send, refund, price change or listing c
 
 - Net new versus existing sources: No local source gives 'FBM offer not selling, check vacation mode' as a diagnosis or joins it with the 3PL tracking check.
 - Existing coverage: partial (`MAG SOPs/catalog/catalog-sop-shipping-template-for-fbm-listings.md`, `Amazon Seller Help/articles/028-manage-account-settings-G69035.md`, `Amazon Seller Help/articles/001-account-settings-G181.md`, `MAG SOPs/catalog/catalog-sop-seller-fulfilled-offers-mfn-suspension.md`).
+- The dedicated help article 'Listing status for vacations, holidays, and other absences' is not captured locally. 028 states the rule in one line, 001 only links it, and 099 gives the vacation check for Handmade listings. The FBM-only scope of vacation mode also rests on that article. Capture it before verifying this unit.
+- Unsupported: the thread's advice that an FBM offer sharing an ASIN with an FBA offer needs a lower landed price to take the Buy Box. No cited source backs it.

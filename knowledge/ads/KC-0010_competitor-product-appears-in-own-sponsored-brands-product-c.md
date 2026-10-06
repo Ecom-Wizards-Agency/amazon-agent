@@ -18,12 +18,12 @@ confidence: low
 verification: unverified
 verified_on: ""
 verified_how: ""
-amazon_sources: ["Advertising Help After Login/articles/035-sponsored-brands-GGWFYHL27MFXLHS6.md", "Advertising Help After Login/articles/048-ads-content-moderation-GXZXZ78UXL2AEBQ9.md"]
+amazon_sources: ["Advertising Help After Login/articles/035-sponsored-brands-GGWFYHL27MFXLHS6.md", "Advertising Help After Login/articles/048-ads-content-moderation-GXZXZ78UXL2AEBQ9.md", "Advertising Help After Login/articles/020-edit-a-campaign-GW73Q54RZZCMPYYV.md"]
 related_sops: []
 supersedes: []
 contradicts: []
 observed: 2026-02
-review_by: 2027-02
+review_by: 2027-10
 provenance: "ledger:KC-0010"
 ---
 
@@ -33,7 +33,7 @@ The client saw another brand's product shown next to their own products in their
 
 ## Answer
 
-If another brand's product shows up inside your own Sponsored Brands Product Collection ad, check the creative's product selection and any Store page it links to. Replace the product in a new creative version and confirm moderation approved it. The ad keeps serving the old version until the new one is approved, so do it the same day.
+If another brand's product shows up inside your own Sponsored Brands Product Collection ad, check the creative's product selection and any Store page it links to. Replace the product with Edit creative and confirm moderation approved the new version. Review usually takes under 24 hours and can take up to 3 business days.
 
 ## Cause
 
@@ -41,9 +41,9 @@ Not established in the thread. The fix was a new creative version without the ot
 
 ## Fix
 
-1. Open the SB campaign and check the ASINs in the product collection creative and in any linked Store page.
-2. Remove any ASIN that is not the brand's own and submit a new creative version. Submission needs operator approval.
-3. Wait for moderation to approve the new version, then confirm the live ad no longer shows the other product. The old version keeps serving until then.
+1. Open the SB campaign, go to the Creative tab and check the ASINs in the product collection creative and in any linked Store page.
+2. Click Edit creative, remove any ASIN that is not the brand's own and submit the new creative version. Submission needs operator approval.
+3. Wait for moderation to approve the new version (read the status in the console; Amazon no longer emails approvals), then confirm the live ad no longer shows the other product.
 
 ## Verify
 
@@ -57,10 +57,13 @@ Stop before any submission, appeal, case send, refund, price change or listing c
 
 - First-party: `Advertising Help After Login/articles/035-sponsored-brands-GGWFYHL27MFXLHS6.md`
 - First-party: `Advertising Help After Login/articles/048-ads-content-moderation-GXZXZ78UXL2AEBQ9.md`
+- First-party: `Advertising Help After Login/articles/020-edit-a-campaign-GW73Q54RZZCMPYYV.md` (Edit creative in the Creative tab)
 - Also in: none.
 - Evidence: team vault ledger row for this id.
 
 ## Gaps
 
 - Net new versus existing sources: No source covers a foreign product appearing in a product collection ad or how a new creative version replaces the live ad after moderation.
-- Existing coverage: partial (`Advertising Help After Login/articles/035-sponsored-brands-GGWFYHL27MFXLHS6.md`).
+- Existing coverage: partial (`Advertising Help After Login/articles/035-sponsored-brands-GGWFYHL27MFXLHS6.md`, `Advertising Help After Login/articles/020-edit-a-campaign-GW73Q54RZZCMPYYV.md`).
+- Thread observations no captured page supports: the ad keeps serving the old version until the new one is approved, so the change should be made the same day. No Sponsored Brands creative page under `Advertising Help After Login/articles/` covers serving during moderation.
+- Confidence stays low: one thread, and the cited pages back the edit-and-moderation steps, not the mechanism that put the other product in the creative.

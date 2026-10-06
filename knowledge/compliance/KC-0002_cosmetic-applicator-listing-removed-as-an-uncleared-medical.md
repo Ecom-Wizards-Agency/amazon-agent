@@ -33,11 +33,11 @@ The client could no longer find their listing anywhere in Seller Central, not ev
 
 ## Answer
 
-A cosmetic tool can be reclassified as a medical device by its marketing language as much as by its mechanism. Wording about delivering ingredients into the skin (infusion, micro-infusion, needling-style or penetration claims) on a stamping or needle-like applicator triggers the FDA 510(k) requirement. Without a 510(k), remove every such term from all listing fields, including backend search terms, A+ and images, confirm each field changed, then appeal with packaging photos. Expect lower odds when the packaging itself carries the claims; the fix may then need repackaged inventory or a new ASIN.
+A cosmetic tool can be reclassified as a medical device by its marketing language as much as by its mechanism. Wording about delivering ingredients into the skin (infusion, micro-infusion, needling-style or penetration claims) on an applicator that touches the skin triggers the FDA 510(k) requirement. Without a 510(k), remove every such term from all listing fields, including backend search terms, A+ and images, confirm each field changed, then appeal with packaging photos. Expect lower odds when the packaging itself carries the claims; the fix may then need repackaged inventory or a new ASIN.
 
 ## Cause
 
-Amazon classified a cosmetic serum applicator (a stamp with ultra-thin applicators) as a medical device that needs FDA 510(k) clearance. The trigger was the delivery mechanism combined with listing claims: infusion-style wording, use on face, neck and lips, and active-ingredient language. The agency's reading was that the wording drove the classification; this was not confirmed by Amazon.
+Amazon classified a cosmetic applicator device as a medical device that needs FDA 510(k) clearance. The trigger was the delivery mechanism combined with listing claims: infusion-style wording and active-ingredient language. The agency's reading was that the wording drove the classification; this was not confirmed by Amazon.
 
 ## Fix
 

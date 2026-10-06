@@ -14,7 +14,7 @@ error_text: [FBA_INB_0008, "Additional information about the batteries is requir
 resolution_status: resolved
 fix_source: amazon-support
 evidence_location: slack
-confidence: high
+confidence: medium
 verification: unverified
 verified_on: ""
 verified_how: ""
@@ -23,7 +23,7 @@ related_sops: ["MAG SOPs/catalog/troubleshooting-sop-sds-upload-hazmat-issues.md
 supersedes: []
 contradicts: []
 observed: 2026-02
-review_by: 2027-02
+review_by: 2027-10
 provenance: "ledger:KC-0001"
 ---
 
@@ -33,11 +33,11 @@ A new battery-powered beauty device sold as a kit with a cosmetic liquid could n
 
 ## Answer
 
-A battery-powered device sold with a liquid, gel or foam for skin or teeth contact will go through a dangerous-goods review before FBA accepts it. Upload a signed and dated battery exemption sheet (watt-hours, voltage) and an SDS for the liquid through the FBA Compliance Dashboard. The SDS brand must match the detail-page brand exactly; if the manufacturer's SDS shows another brand, submit Amazon's SDS declaration form instead of the same SDS again. Keep six-sided packaging photos ready, budget hazmat storage fees, check expiry dates against the 105-day FBA minimum, and keep FBM as the fallback while classification is pending.
+A battery-powered device sold with a personal-care liquid will go through a dangerous-goods review before FBA accepts it. Upload a signed and dated battery exemption sheet (watt-hours, voltage) and an SDS for the liquid through the FBA Compliance Dashboard. The SDS brand must match the detail-page brand exactly; if the manufacturer's SDS shows another brand, submit Amazon's SDS declaration form instead of the same SDS again. Keep six-sided packaging photos ready, budget hazmat storage fees, check expiry dates against the 105-day FBA minimum, and keep FBM as the fallback while classification is pending.
 
 ## Cause
 
-The ASIN went into dangerous-goods (hazmat) review because it combines a battery-powered device with a liquid or foam for skin or teeth contact. Amazon needed battery information through the battery exemption sheet and an SDS for the liquid. The first SDS was rejected because the brand on the SDS did not match the brand on the detail page.
+The ASIN went into dangerous-goods (hazmat) review because it combines a battery-powered device with a personal-care liquid. Amazon needed battery information through the battery exemption sheet and an SDS for the liquid. The first SDS was rejected because the brand on the SDS did not match the brand on the detail page.
 
 ## Fix
 
@@ -66,3 +66,4 @@ Stop before any submission, appeal, case send, refund, price change or listing c
 
 - Net new versus existing sources: The SDS declaration form as the fallback for a brand mismatch, the FBA_INB_0008 text, the six-sided photo follow-up and the 105-day expiry interaction are not in the existing SOP.
 - Existing coverage: partial (`MAG SOPs/catalog/troubleshooting-sop-sds-upload-hazmat-issues.md`).
+- Confidence is medium, not high: the fix comes from one thread, no first-party capture is cited, and the MAG SOP matches only part of the mechanism (SDS and exemption-sheet upload, the SDS matching the listing).

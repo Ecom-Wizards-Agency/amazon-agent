@@ -157,8 +157,18 @@ class CardMappingTests(NewUnitFixture):
         self.assertEqual(mapping["supersedes"], [])
         self.assertEqual(mapping["contradicts"], [])
         self.assertEqual(mapping["observed"], "2026-03")
-        self.assertEqual(mapping["review_by"], "2027-03")
+        # review_by counts from the creation month (--today 2026-10-06), not from observed.
+        self.assertEqual(mapping["review_by"], "2027-10")
         self.assertEqual(mapping["provenance"], "ledger:KC-0007")
+
+    def test_review_by_counts_from_creation_month_for_old_threads(self) -> None:
+        mapping, _body = self.build(date_first_seen="2024-05-02")
+        self.assertEqual(mapping["observed"], "2024-05")
+        self.assertEqual(mapping["review_by"], "2027-10")
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out), self.assertRaises(SystemExit):
+            new_unit.main(["--help"])
+        self.assertIn("review_by is its month plus 12", " ".join(out.getvalue().split()))
 
     def test_defaults_without_optional_fields(self) -> None:
         card = sample_card()

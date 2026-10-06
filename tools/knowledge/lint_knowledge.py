@@ -3,8 +3,9 @@
 
 Checks every unit under `knowledge/<topic>/` and `knowledge/_retired/`
 against `docs/knowledge-library.md`: frontmatter keys and order, enums, id
-and file name, topic folder, skills and source paths, provenance, dates,
-body sections, length, spaced em-dashes and `scrub.find_hits`. Then it
+and file name, duplicate list items (paths case-insensitive), topic folder,
+skills and source paths, provenance, dates, body sections, length, spaced
+em-dashes and `scrub.find_hits`. Then it
 appends `build_knowledge_index.check_drift` so a stale index or README fails.
 `knowledge/TEMPLATE.md` is checked only for parseability and key order.
 
@@ -203,6 +204,17 @@ def _check_unit(
     def list_value(key: str) -> list[str]:
         value = mapping.get(key)
         return [str(v) for v in value] if isinstance(value, list) else []
+
+    # Duplicates inside list keys; paths compare case-insensitively.
+    for key in [k for k in KEY_ORDER if k in LIST_KEYS]:
+        seen: set[str] = set()
+        reported: set[str] = set()
+        for item in list_value(key):
+            norm = item.strip().casefold() if key in PATH_KEYS else item.strip()
+            if norm in seen and norm not in reported:
+                problems.append(f"{at(key)}: duplicate in {key}: {item}")
+                reported.add(norm)
+            seen.add(norm)
 
     # Enums.
     for key, allowed in ENUMS.items():

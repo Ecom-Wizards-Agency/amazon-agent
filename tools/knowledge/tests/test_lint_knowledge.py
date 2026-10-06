@@ -216,6 +216,25 @@ class FailureTests(LintFixture):
         self.write_unit(unit_mapping(skills=["amazon-nonexistent"]))
         self.assert_problem("skill 'amazon-nonexistent' is not a directory")
 
+    def test_duplicate_list_items(self) -> None:
+        upper = SOURCE.replace("Seller Help", "SELLER HELP")
+        path = self.write_unit(unit_mapping(
+            skills=["amazon-catalog", "amazon-catalog"],
+            marketplaces=["US", "DE", "US"],
+            symptom_keywords=["listing suppressed", "Listing suppressed", "listing suppressed"],
+            amazon_sources=[SOURCE, upper],
+        ))
+        rel = path.relative_to(self.root).as_posix()
+        lines = {line.split(":", 1)[0]: n for n, line in enumerate(path.read_text(encoding="utf-8").split("\n"), 1)}
+        problems = self.lint()
+        dupes = [p for p in problems if ": duplicate in " in p]
+        self.assertEqual(dupes, [
+            f"{rel}:{lines['skills']}: duplicate in skills: amazon-catalog",
+            f"{rel}:{lines['marketplaces']}: duplicate in marketplaces: US",
+            f"{rel}:{lines['symptom_keywords']}: duplicate in symptom_keywords: listing suppressed",
+            f"{rel}:{lines['amazon_sources']}: duplicate in amazon_sources: {upper}",
+        ])
+
     def test_provenance_must_match_id(self) -> None:
         self.write_unit(unit_mapping(provenance="ledger:KC-9999"))
         self.assert_problem("provenance must be 'ledger:KC-0001'")

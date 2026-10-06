@@ -14,7 +14,7 @@ error_text: ["Labeling required"]
 resolution_status: resolved
 fix_source: agency
 evidence_location: case
-confidence: high
+confidence: low
 verification: unverified
 verified_on: ""
 verified_how: ""
@@ -23,7 +23,7 @@ related_sops: ["MAG SOPs/catalog/catalog-sop-download-an-inbound-performance-rep
 supersedes: []
 contradicts: []
 observed: 2026-05
-review_by: 2027-05
+review_by: 2027-10
 provenance: "ledger:KC-0008"
 ---
 
@@ -69,3 +69,5 @@ Stop before any submission, appeal, case send, refund, price change or listing c
 
 - Net new versus existing sources: No local source covers disputing 'Labeling required' inbound defects, the one-case-per-shipment SAS rule or escalation through SAS Issue Assistance.
 - Existing coverage: none.
+- Confidence is low, not high: one thread, no first-party capture, and the cited SOP covers downloading the report, not the dispute mechanism.
+- Overlaps KC-0003, where a dispute from the Inbound Performance dashboard removed a 'Labeling required' defect because Amazon had no photo evidence. The case-per-shipment route with SAS escalation applied here, where Amazon held FC images, Seller Support stalled or disagreed, and several shipments on an account with SAS were affected.

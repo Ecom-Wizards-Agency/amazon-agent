@@ -23,7 +23,7 @@ related_sops: ["MAG SOPs/catalog/catalog-sop-fba-storage-capacity-limits.md"]
 supersedes: []
 contradicts: []
 observed: 2026-09
-review_by: 2027-09
+review_by: 2027-10
 provenance: "ledger:KC-0004"
 ---
 
@@ -33,7 +33,7 @@ The client's operations team needed to send a new multipack SKU from a 3PL into 
 
 ## Answer
 
-When FBA capacity is used up, submit a Capacity Manager increase request at once. Requests are reviewed several times a week, and one was approved within a day for the current month, so the help page's next-month framing does not always apply. Use AWD as the fallback, because it replenishes FBA as space frees up. Close to Q4, expect slower AWD-to-FBA transfers and prefer a capacity request when the stock must sell soon.
+When FBA capacity is used up, submit a Capacity Manager increase request at once. Amazon evaluates requests multiple times per week, and in this case one was approved within a day and applied to the current month. Limits refresh in the fourth week of each month for the next three months, so check the upcoming limits in Capacity Monitor too. Use AWD as the fallback; the help page recommends it for automated daily replenishment into FBA. Close to Q4, expect slower AWD-to-FBA transfers and prefer a capacity request when the stock must sell soon.
 
 ## Cause
 
@@ -63,5 +63,5 @@ Stop before any submission, appeal, case send, refund, price change or listing c
 
 ## Gaps
 
-- Net new versus existing sources: The AWD fallback, the Q4 caveat on AWD-to-FBA speed and the observed next-day approval are not in the existing SOP or help page.
+- Net new versus existing sources: The help page recommends AWD for replenishment and says requests are evaluated multiple times per week. Neither source gives the Q4 caveat on AWD-to-FBA speed or a turnaround time; the next-day approval is a single observation.
 - Existing coverage: partial (`MAG SOPs/catalog/catalog-sop-fba-storage-capacity-limits.md`, `Amazon Seller Help/articles/067-maximizing-delivery-speed-GA8NP4NDZZ3EJRU5.md`).

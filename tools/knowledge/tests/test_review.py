@@ -103,26 +103,46 @@ class QueueTests(Base):
 
 
 class FakeTools:
-    """Stands in for new_unit.py, build_knowledge_index.py and lint_knowledge.py."""
+    """Stands in for new_unit.py, build_knowledge_index.py and lint_knowledge.py.
 
-    def __init__(self, repo: Path, lint_code: int = 0) -> None:
+    lint_codes and build_codes give the exit code per call in order; the last
+    one repeats. lint_saw records the unit's status line at each lint call.
+    """
+
+    def __init__(self, repo: Path, lint_code: int = 0, lint_codes: list[int] | None = None,
+                 build_codes: list[int] | None = None) -> None:
         self.repo = repo
-        self.lint_code = lint_code
+        self.lint_codes = list(lint_codes or [lint_code])
+        self.build_codes = list(build_codes or [0])
+        self.lint_saw: list[str] = []
         self.calls: list[tuple[str, tuple[str, ...]]] = []
+
+    @staticmethod
+    def _next(codes: list[int]) -> int:
+        return codes.pop(0) if len(codes) > 1 else codes[0]
+
+    def unit_status(self) -> str:
+        unit = self.repo / UNIT_REL
+        if not unit.is_file():
+            return "missing"
+        return next((line for line in unit.read_text(encoding="utf-8").splitlines() if line.startswith("status:")), "")
 
     def __call__(self, repo: Path, script: str, *extra: str) -> subprocess.CompletedProcess:
         self.calls.append((script, extra))
         if script == "new_unit.py":
             unit = self.repo / UNIT_REL
             unit.parent.mkdir(parents=True, exist_ok=True)
-            unit.write_text("---\nid: KC-0001\n---\n", encoding="utf-8")
+            unit.write_text("---\nid: KC-0001\nstatus: draft\n---\n", encoding="utf-8")
             staging = Path(extra[extra.index("--staging") + 1])
             with staging.open("a", encoding="utf-8") as fh:
                 fh.write("| KC-0001 | staged row |\n")
             return subprocess.CompletedProcess([script], 0, stdout=f"wrote {UNIT_REL}\nstaged ledger rows: 1\n", stderr="")
         if script == "lint_knowledge.py":
-            return subprocess.CompletedProcess([script], self.lint_code, stdout="knowledge lint: 1 problem\n" if self.lint_code else "ok\n", stderr="")
-        return subprocess.CompletedProcess([script], 0, stdout="index ok\n", stderr="")
+            self.lint_saw.append(self.unit_status())
+            code = self._next(self.lint_codes)
+            return subprocess.CompletedProcess([script], code, stdout="knowledge lint: 1 problem\n" if code else "ok\n", stderr="")
+        code = self._next(self.build_codes)
+        return subprocess.CompletedProcess([script], code, stdout="index failed\n" if code else "index ok\n", stderr="")
 
 
 class PromoteTests(Base):
@@ -136,7 +156,13 @@ class PromoteTests(Base):
 
     def tick(self, card_id: str) -> None:
         path = self.root / "review-queue.md"
-        path.write_text(path.read_text(encoding="utf-8").replace(f"- [ ] {card_id}", f"- [x] {card_id}"), encoding="utf-8")
+        text = path.read_text(encoding="utf-8")
+        self.assertIn(f"- [ ] {card_id}", text)
+        path.write_text(text.replace(f"- [ ] {card_id}", f"- [x] {card_id}"), encoding="utf-8")
+
+    def promote(self, tools: FakeTools, *argv: str) -> tuple[int, str, str]:
+        with mock.patch.object(review, "run_tool", side_effect=tools):
+            return run(["promote", *argv, *self.common])
 
     def test_refuses_unticked_card(self) -> None:
         tools = FakeTools(self.repo)
@@ -160,10 +186,10 @@ class PromoteTests(Base):
 
     def test_refuses_publishable_false_even_with_override(self) -> None:
         self.add_card(filled_card("CARD-0003", publishable=False))
+        run(["queue", *self.common])
+        self.tick("CARD-0003")
         tools = FakeTools(self.repo)
-        with mock.patch.object(review, "run_tool", side_effect=tools):
-            code, _out, err = run(["promote", "--card", "CARD-0003", "--ticked-by", "agency-lead", "--confirm-tick",
-                                   "--agency-lead-override", *self.common])
+        code, _out, err = self.promote(tools, "--card", "CARD-0003", "--ticked-by", "agency-lead", "--agency-lead-override")
         self.assertEqual(code, 2)
         self.assertIn("new_unit.py refuses such cards", err)
         self.assertEqual(tools.calls, [])
@@ -181,7 +207,11 @@ class PromoteTests(Base):
             code, out, err = run(["promote", "--card", "CARD-0001", "--ticked-by", "operations-lead", *self.common])
         self.assertEqual(code, 0, err)
         self.assertEqual(out.strip().splitlines()[-1], UNIT_REL)
-        self.assertEqual([c[0] for c in tools.calls], ["new_unit.py", "build_knowledge_index.py", "lint_knowledge.py", "build_knowledge_index.py"])
+        self.assertEqual([c[0] for c in tools.calls], ["new_unit.py", "build_knowledge_index.py", "lint_knowledge.py",
+                                                       "build_knowledge_index.py", "lint_knowledge.py"])
+        self.assertEqual(tools.lint_saw, ["status: draft", "status: reviewed"])
+        self.assertIn("--strict", tools.calls[4][1])
+        self.assertEqual(tools.unit_status(), "status: reviewed")
         new_unit_args = tools.calls[0][1]
         self.assertEqual(new_unit_args[:2], ("--from-card", str(self.candidate / "CARD-0001.json")))
         self.assertIn("--root", new_unit_args)
@@ -201,13 +231,98 @@ class PromoteTests(Base):
         self.assertEqual(ledger[0]["unit_id"], "KC-0001")
         self.assertEqual(ledger[0]["client_slug"], "acme-test")
 
-    def test_confirm_tick_and_agency_lead_override(self) -> None:
+    def test_tick_source_is_recorded(self) -> None:
+        self.tick("CARD-0001")
+        queue = self.root / "review-queue.md"
+        code, _out, err = self.promote(FakeTools(self.repo), "--card", "CARD-0001", "--ticked-by", "operations-lead")
+        self.assertEqual(code, 0, err)
+        entry = self.state()["cards"]["CARD-0001"]
+        self.assertEqual(entry["tick_source"], "queue")
+        self.assertEqual(entry["queue_path"], str(queue))
+        ledger = json.loads((self.root / "ledger.jsonl").read_text(encoding="utf-8").splitlines()[0])
+        self.assertEqual(ledger["tick_source"], "queue")
+        self.assertEqual(ledger["queue_path"], str(queue))
+
+    def test_tick_in_custom_queue_file(self) -> None:
+        other = self.base / "elsewhere-queue.md"
+        other.write_text("- [x] CARD-0001 · logistics · hand-ticked\n", encoding="utf-8")
+        code, _out, err = self.promote(FakeTools(self.repo), "--card", "CARD-0001", "--ticked-by", "operations-lead",
+                                       "--queue", str(other))
+        self.assertEqual(code, 0, err)
+        self.assertEqual(self.state()["cards"]["CARD-0001"]["queue_path"], str(other))
+
+    def test_agent_only_promote_is_refused(self) -> None:
         tools = FakeTools(self.repo)
-        with mock.patch.object(review, "run_tool", side_effect=tools):
-            code, out, err = run(["promote", "--card", "CARD-0002", "--ticked-by", "agency-lead", "--confirm-tick",
-                                  "--agency-lead-override", *self.common])
+        # The old --confirm-tick bypass no longer exists; argparse rejects it.
+        with self.assertRaises(SystemExit) as caught, contextlib.redirect_stderr(io.StringIO()):
+            self.promote(tools, "--card", "CARD-0001", "--ticked-by", "agency-lead", "--confirm-tick")
+        self.assertEqual(caught.exception.code, 2)
+        # No combination of flags stands in for the queue tick.
+        code, _out, err = self.promote(tools, "--card", "CARD-0001", "--ticked-by", "agency-lead", "--agency-lead-override")
+        self.assertEqual(code, 2)
+        self.assertIn("is not ticked [x]", err)
+        self.assertEqual(tools.calls, [])
+        self.assertTrue((self.candidate / "CARD-0001.json").is_file())
+        self.assertFalse((self.root / "ledger.jsonl").exists())
+
+    def test_override_without_tick_is_refused(self) -> None:
+        tools = FakeTools(self.repo)
+        code, _out, err = self.promote(tools, "--card", "CARD-0002", "--ticked-by", "agency-lead", "--agency-lead-override")
+        self.assertEqual(code, 2)
+        self.assertIn("--agency-lead-override needs that tick too", err)
+        self.tick("CARD-0002")
+        code, _out, err = self.promote(tools, "--card", "CARD-0001", "--ticked-by", "operations-lead", "--agency-lead-override")
+        self.assertEqual(code, 2)
+        self.assertIn("is not ticked [x]", err)
+        self.tick("CARD-0001")
+        code, _out, err = self.promote(tools, "--card", "CARD-0001", "--ticked-by", "operations-lead", "--agency-lead-override")
+        self.assertEqual(code, 2)
+        self.assertIn("accepted only with --ticked-by agency-lead", err)
+        self.assertEqual(tools.calls, [])
+
+    def test_agency_lead_override_with_queue_tick(self) -> None:
+        self.tick("CARD-0002")
+        code, _out, err = self.promote(FakeTools(self.repo), "--card", "CARD-0002", "--ticked-by", "agency-lead",
+                                       "--agency-lead-override")
         self.assertEqual(code, 0, err)
         self.assertTrue((self.root / "cards" / "accepted" / "CARD-0002.json").is_file())
+
+    def test_unattended_refusal(self) -> None:
+        self.tick("CARD-0001")
+        tools = FakeTools(self.repo)
+        with mock.patch.dict(os.environ, {"WIZARDS_AI_MODE": "1"}):
+            code, _out, err = self.promote(tools, "--card", "CARD-0001", "--ticked-by", "agency-lead")
+        self.assertEqual(code, 2)
+        self.assertIn("WIZARDS_AI_MODE=1", err)
+        self.assertEqual(tools.calls, [])
+        self.assertTrue((self.candidate / "CARD-0001.json").is_file())
+
+    def test_post_tick_lint_failure_restores_draft(self) -> None:
+        self.tick("CARD-0001")
+        tools = FakeTools(self.repo, lint_codes=[0, 1])
+        code, out, err = self.promote(tools, "--card", "CARD-0001", "--ticked-by", "operations-lead")
+        self.assertEqual(code, 1)
+        self.assertIn("lint_knowledge.py --strict failed after setting", err)
+        self.assertIn("knowledge lint: 1 problem", out)
+        self.assertEqual(tools.lint_saw, ["status: draft", "status: reviewed"])
+        self.assertEqual(tools.unit_status(), "status: draft")
+        self.assertEqual([c[0] for c in tools.calls][-1], "build_knowledge_index.py")
+        self.assertTrue((self.candidate / "CARD-0001.json").is_file())
+        self.assertFalse((self.root / "cards" / "accepted" / "CARD-0001.json").exists())
+        self.assertFalse((self.root / "ledger.jsonl").exists())
+        self.assertFalse((self.root / "cards" / "state.json").exists())
+
+    def test_post_tick_index_failure_returns_nonzero(self) -> None:
+        self.tick("CARD-0001")
+        tools = FakeTools(self.repo, build_codes=[0, 1, 0])
+        code, _out, err = self.promote(tools, "--card", "CARD-0001", "--ticked-by", "operations-lead")
+        self.assertEqual(code, 1)
+        self.assertIn("build_knowledge_index.py failed after setting", err)
+        self.assertEqual([c[0] for c in tools.calls], ["new_unit.py", "build_knowledge_index.py", "lint_knowledge.py",
+                                                       "build_knowledge_index.py", "build_knowledge_index.py"])
+        self.assertEqual(tools.unit_status(), "status: draft")
+        self.assertTrue((self.candidate / "CARD-0001.json").is_file())
+        self.assertFalse((self.root / "ledger.jsonl").exists())
 
     def test_lint_failure_rolls_back(self) -> None:
         self.tick("CARD-0001")
@@ -227,9 +342,12 @@ class PromoteTests(Base):
 
     def test_invalid_card_is_not_promoted(self) -> None:
         self.add_card(filled_card("CARD-0004", generic_lesson=f"Relist {FAKE_ASIN}."))
+        # The queue leaves invalid cards out; a hand-written tick still meets validation.
+        with (self.root / "review-queue.md").open("a", encoding="utf-8") as fh:
+            fh.write("- [x] CARD-0004 · logistics · hand-ticked\n")
         tools = FakeTools(self.repo)
         with mock.patch.object(review, "run_tool", side_effect=tools):
-            code, _out, err = run(["promote", "--card", "CARD-0004", "--ticked-by", "agency-lead", "--confirm-tick", *self.common])
+            code, _out, err = run(["promote", "--card", "CARD-0004", "--ticked-by", "agency-lead", *self.common])
         self.assertEqual(code, 1)
         self.assertIn("scrub hit asin", err)
         self.assertEqual(tools.calls, [])

@@ -10,16 +10,22 @@ Commands:
       extract_cards validation, grouped by topic,
         - [ ] CARD-NNNN · topic · title · resolution_status · confidence · flags · coverage_verdict
       Ticks ("[x]") already in the file are kept.
-  promote --card CARD-NNNN --ticked-by ROLE [--confirm-tick] [--agency-lead-override]
-      Refuses (exit 2) unless the card's queue line is ticked or --confirm-tick
-      is given; when the role may not tick this topic; and when the card has
-      policy_risk true or publishable false without --agency-lead-override
-      from the agency lead. Then runs new_unit.py --from-card,
-      build_knowledge_index.py --readme and lint_knowledge.py --strict. On a
-      lint failure the unit file is removed, the staged ledger row is undone,
-      the index is rebuilt, the card stays in candidate/ and exit is 1. On
-      success the card moves to accepted/, state.json and <root>/ledger.jsonl
-      record the promotion, and the unit path is printed.
+  promote --card CARD-NNNN --ticked-by ROLE [--queue PATH] [--agency-lead-override]
+      Attended only: refused (exit 2) when WIZARDS_AI_MODE=1. The only accepted
+      tick is a "- [x] CARD-NNNN ..." line in the review queue file; there is
+      no flag that stands in for it. Also refused (exit 2) when the role may
+      not tick this topic; when --agency-lead-override comes without a queue
+      tick or from a role other than agency-lead; and when the card has
+      policy_risk true or publishable false without that override. Then runs
+      new_unit.py --from-card, build_knowledge_index.py --readme and
+      lint_knowledge.py --strict. On a failure there the unit file is removed,
+      the staged ledger row is undone, the index is rebuilt, the card stays in
+      candidate/ and exit is 1. Then the unit is set to status: reviewed, the
+      index is rebuilt and lint_knowledge.py --strict runs again; if either
+      fails the unit goes back to draft, the index is rebuilt, the card stays
+      in candidate/ and exit is 1. On success the card moves to accepted/,
+      state.json and <root>/ledger.jsonl record the promotion with
+      tick_source "queue" and the queue path, and the unit path is printed.
   reject --card CARD-NNNN --reason TEXT
       Move the card to rejected/ with the reason in state.json.
   import-lessons --vault PATH [--since YYYY-MM-DD] [--min-hits N]
@@ -211,7 +217,14 @@ def _set_status(unit_path: Path, status: str) -> None:
     unit_path.write_text("\n".join(lines), encoding="utf-8")
 
 
+def _unattended() -> bool:
+    return os.environ.get("WIZARDS_AI_MODE", "").strip() == "1"
+
+
 def cmd_promote(args: argparse.Namespace) -> int:
+    if _unattended():
+        print("promote: needs a human tick and is attended only; refused because WIZARDS_AI_MODE=1", file=sys.stderr)
+        return 2
     store = _store(args)
     card_path = store.cards / "candidate" / f"{args.card}.json"
     if not card_path.is_file():
@@ -228,13 +241,17 @@ def cmd_promote(args: argparse.Namespace) -> int:
         print(f"promote: {args.ticked_by} does not tick {topic} cards; the agency lead does", file=sys.stderr)
         return 2
 
+    # The queue file is the only record of a human tick; no flag stands in for it.
     queue_path = Path(args.queue) if args.queue else store.root / QUEUE_NAME
-    if not read_ticks(queue_path).get(args.card) and not args.confirm_tick:
+    if not read_ticks(queue_path).get(args.card):
         print(
-            f"promote: {args.card} is not ticked [x] in {queue_path}; tick it there, or pass --confirm-tick"
-            f" when {args.ticked_by} approved it in this session",
+            f"promote: {args.card} is not ticked [x] in {queue_path}; {args.ticked_by} ticks it there"
+            + (" (--agency-lead-override needs that tick too)" if args.agency_lead_override else ""),
             file=sys.stderr,
         )
+        return 2
+    if args.agency_lead_override and args.ticked_by != "agency-lead":
+        print("promote: --agency-lead-override is accepted only with --ticked-by agency-lead", file=sys.stderr)
         return 2
 
     risky = card.get("policy_risk") is True or card.get("publishable") is False
@@ -299,11 +316,26 @@ def cmd_promote(args: argparse.Namespace) -> int:
         )
         return 1
 
-    # The human tick is what promote verified, so the unit leaves draft here.
+    # The human tick is what promote verified, so the unit leaves draft here,
+    # and the reviewed unit has to pass the same index build and strict lint.
     _set_status(unit_path, "reviewed")
     rebuild_after_tick = run_tool(store.repo, "build_knowledge_index.py", "--readme", *root_args)
-    if rebuild_after_tick.returncode != 0:
-        _echo(rebuild_after_tick)
+    _echo(rebuild_after_tick)
+    relint = run_tool(store.repo, "lint_knowledge.py", *lint_args) if rebuild_after_tick.returncode == 0 else rebuild_after_tick
+    if rebuild_after_tick.returncode != 0 or relint.returncode != 0:
+        if relint is not rebuild_after_tick:
+            _echo(relint)
+        _set_status(unit_path, "draft")
+        restore = run_tool(store.repo, "build_knowledge_index.py", "--readme", *root_args)
+        step = "build_knowledge_index.py" if rebuild_after_tick.returncode != 0 else "lint_knowledge.py --strict"
+        print(
+            f"promote: {step} failed after setting {unit_rel} to reviewed; set it back to draft and rebuilt the index"
+            f" (exit {restore.returncode}). {unit_rel} and its staged ledger row remain; {args.card} stays in"
+            " candidate/. Fix the problem, then either set the status by hand or remove the draft and its staged"
+            " row before promoting again, or a second unit is created.",
+            file=sys.stderr,
+        )
+        return 1
     accepted = store.cards / "accepted" / card_path.name
     accepted.parent.mkdir(parents=True, exist_ok=True)
     shutil.move(str(card_path), str(accepted))
@@ -316,6 +348,8 @@ def cmd_promote(args: argparse.Namespace) -> int:
         "unit_path": unit_rel,
         "topic": topic,
         "ticked_by": args.ticked_by,
+        "tick_source": "queue",
+        "queue_path": str(queue_path),
         "promoted_on": today,
     }
     channel_id, parent_ts = str(card.get("channel_id") or ""), str(card.get("parent_ts") or "")
@@ -338,6 +372,8 @@ def cmd_promote(args: argparse.Namespace) -> int:
             "parent_ts": parent_ts,
             "permalink": card.get("permalink", ""),
             "ticked_by": args.ticked_by,
+            "tick_source": "queue",
+            "queue_path": str(queue_path),
             "promoted_on": today,
         },
     )
@@ -513,7 +549,7 @@ def build_run_note(store: ec.Store, date: str) -> str:
 
 
 def cmd_run_note(args: argparse.Namespace) -> int:
-    if os.environ.get("WIZARDS_AI_MODE", "").strip() == "1":
+    if _unattended():
         print("run-note: writes the team vault and is attended only; refused because WIZARDS_AI_MODE=1", file=sys.stderr)
         return 2
     try:
@@ -555,9 +591,9 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("promote", parents=[common], help="promote a ticked card into a unit")
     p.add_argument("--card", required=True)
     p.add_argument("--ticked-by", required=True, help="agency-lead, ads-lead or operations-lead")
-    p.add_argument("--queue", help="queue file (default <root>/review-queue.md)")
-    p.add_argument("--confirm-tick", action="store_true", help="the named role approved this card outside the queue file")
-    p.add_argument("--agency-lead-override", action="store_true", help="the agency lead decided a policy-risk card")
+    p.add_argument("--queue", help="queue file holding the [x] tick (default <root>/review-queue.md)")
+    p.add_argument("--agency-lead-override", action="store_true",
+                   help="the agency lead decided a policy-risk card; needs a queue tick and --ticked-by agency-lead")
     p.set_defaults(func=cmd_promote)
 
     p = sub.add_parser("reject", parents=[common], help="reject a candidate card")
