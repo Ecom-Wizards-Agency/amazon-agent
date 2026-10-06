@@ -66,6 +66,7 @@ On machines with separate profiles, the two hold independent sessions and do not
 | Ads console operations (bids, budgets, targeting) | `amazon-ads-console` | CDP | Ads Campaign Manager | Stop before changes. |
 | Troubleshooting / suppressed listings | `amazon-troubleshooting` | CDP | wherever the symptom is | Capture exact error text. |
 | Serious regulated-product suppression appeal packs | `amazon-regulated-product-appeals` | Mixed | first-party policy research in Chrome; pack generation and validation local | Victor signoff required; submission remains separate. |
+| Help-page re-capture (Seller Help, Ads support, Ads docs) | `amazon-sop-maintenance` | CDP | `tools/knowledge/help_capture.mjs` | Attended; logged-in Seller Central or Ads console session; read-only. |
 
 ## Constants Across All Paths
 

@@ -288,7 +288,7 @@ async function assertPoeContext(session) {
 
 // Resolve --marketplace <cc> to the obfuscated id we REQUEST in the GraphQL
 // variables. One regional login covers every marketplace in that region (house
-// rule, docs/daily-account-health-setup.md): from a .de session you can fetch
+// rule, skills/amazon-account-health-check/references/browser-rules.md): from a .de session you can fetch
 // de/it/es/fr/... directly. No UI switcher is needed. US needs the .com origin.
 function requestedMarketplace(ccArg) {
   const cc = (ccArg || "").toLowerCase();
