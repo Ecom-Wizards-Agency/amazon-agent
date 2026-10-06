@@ -82,6 +82,7 @@ PREVIEW_CHARS = 160
 # German compounds and plurals (versand -> Versandplan).
 WHOLE_WORD_MAX = 5
 CANDIDATES_NAME = "candidates.jsonl"
+BLOCKED_NAME = "blocked-threads.jsonl"  # {channel_id, thread_ts, reason, blocked_on}: never a candidate, never a card
 
 
 # ---------------------------------------------------------------- loading
@@ -470,13 +471,43 @@ def score_record(record: dict, config: dict, lexicon: Lexicon) -> dict | None:
     }
 
 
+def load_blocked(root: Path) -> dict[str, str]:
+    """Threads the agency lead blocked from ever becoming cards or units.
+
+    One JSON object per line in <root>/blocked-threads.jsonl with channel_id,
+    thread_ts and reason. Returns {"<channel_id>:<thread_ts>": reason}.
+    Malformed lines are reported and skipped, never silently accepted.
+    """
+    path = root / BLOCKED_NAME
+    blocked: dict[str, str] = {}
+    if not path.is_file():
+        return blocked
+    for lineno, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        try:
+            row = json.loads(line)
+            key = f"{row['channel_id']}:{row['thread_ts']}"
+        except (ValueError, KeyError, TypeError):
+            print(f"slack_collect: {path}:{lineno}: unreadable blocked-thread line", file=sys.stderr)
+            continue
+        blocked[key] = str(row.get("reason") or "blocked")
+    return blocked
+
+
 def build_candidates(root: Path, config: dict, lexicon: Lexicon) -> tuple[list[dict], Counter]:
     rows: list[dict] = []
     dropped: Counter = Counter()
+    blocked = load_blocked(root)
     for path, record, error in iter_records(root):
         if record is None:
             dropped["unreadable"] += 1
             print(f"slack_collect: skipped {path}: {error}", file=sys.stderr)
+            continue
+        key = f"{record.get('channel_id')}:{record.get('thread_ts')}"
+        if key in blocked:
+            dropped["blocked"] += 1
             continue
         row = score_record(record, config, lexicon)
         if row is None:
@@ -659,7 +690,7 @@ def cmd_candidates(args: argparse.Namespace) -> int:
     with out.open("w", encoding="utf-8") as fh:
         for row in rows:
             fh.write(json.dumps(row, ensure_ascii=False) + "\n")
-    print(f"candidates: {len(rows)} written to {out}; dropped {dropped['dropped']}, unreadable {dropped['unreadable']}")
+    print(f"candidates: {len(rows)} written to {out}; dropped {dropped['dropped']}, blocked {dropped['blocked']}, unreadable {dropped['unreadable']}")
     by_topic = Counter(r["topic"] for r in rows)
     by_family = Counter(r["family"] for r in rows)
     print("per topic: " + (", ".join(f"{k} {v}" for k, v in sorted(by_topic.items())) or "none"))

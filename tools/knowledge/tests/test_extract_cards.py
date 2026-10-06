@@ -153,6 +153,14 @@ class ScaffoldTests(Base):
         card = json.loads((self.root / "cards" / "candidate" / "CARD-0001.json").read_text(encoding="utf-8"))
         self.assertEqual(card["permalink"], "")
 
+    def test_scaffold_refuses_blocked_thread(self) -> None:
+        blocked = {"channel_id": CLIENT_CHANNEL, "thread_ts": TS_TEAM, "reason": "review manipulation advice"}
+        (self.root / "blocked-threads.jsonl").write_text(json.dumps(blocked) + "\n", encoding="utf-8")
+        code, _out, err = run(["scaffold", "--thread", f"{CLIENT_CHANNEL}:{TS_TEAM}", *self.common])
+        self.assertEqual(code, 2)
+        self.assertIn("is blocked (review manipulation advice)", err)
+        self.assertFalse((self.root / "cards" / "candidate" / "CARD-0001.json").exists())
+
     def test_scaffold_twice_is_refused(self) -> None:
         run(["scaffold", "--thread", f"{CLIENT_CHANNEL}:{TS_TEAM}", *self.common])
         code, _out, err = run(["scaffold", "--thread", f"{CLIENT_CHANNEL}:{TS_TEAM}", *self.common])

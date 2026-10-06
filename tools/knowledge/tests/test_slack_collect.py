@@ -255,6 +255,16 @@ class CandidateTests(unittest.TestCase):
         text = (self.root / "candidates.jsonl").read_text(encoding="utf-8")
         return [json.loads(line) for line in text.splitlines()]
 
+    def test_blocked_threads_never_become_candidates(self) -> None:
+        blocked = {"channel_id": CLIENT_CHANNEL, "thread_ts": TS_TEAM, "reason": "fabricated evidence", "blocked_on": "2026-10-07"}
+        (self.root / "blocked-threads.jsonl").write_text(json.dumps(blocked) + "\n# comment\nnot json\n", encoding="utf-8")
+        code, out, err = run(["candidates", "--root", str(self.root)])
+        self.assertEqual(code, 0)
+        rows = self.read_candidates()
+        self.assertNotIn(TS_TEAM, [r["thread_ts"] for r in rows])
+        self.assertIn("blocked 1", out)
+        self.assertIn("unreadable blocked-thread line", err)
+
     def test_scoring_order_flags_and_bot_drop(self) -> None:
         code, out, _ = run(["candidates", "--root", str(self.root)])
         self.assertEqual(code, 0)

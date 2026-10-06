@@ -476,8 +476,11 @@ def cmd_next(args: argparse.Namespace) -> int:
     state = store.load_state()
     terms = store.terms()
     picked = []
+    blocked = sc.load_blocked(store.root)
     for row in load_candidates(store):
         if row.get("topic") != args.topic:
+            continue
+        if thread_key(str(row.get("channel_id")), str(row.get("thread_ts"))) in blocked:
             continue
         if args.family and row.get("family") != args.family:
             continue
@@ -517,6 +520,10 @@ def cmd_scaffold(args: argparse.Namespace) -> int:
     record = json.loads(path.read_text(encoding="utf-8"))
     state = store.load_state()
     key = thread_key(channel_id, ts)
+    blocked_reason = sc.load_blocked(store.root).get(key)
+    if blocked_reason:
+        print(f"scaffold: {key} is blocked ({blocked_reason}); it never becomes a card", file=sys.stderr)
+        return 2
     existing = state["threads"].get(key)
     if existing and existing.get("card"):
         print(f"scaffold: {key} already has {existing['card']} ({existing.get('status')})", file=sys.stderr)
