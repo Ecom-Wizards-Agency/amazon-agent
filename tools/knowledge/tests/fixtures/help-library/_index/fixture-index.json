@@ -1,0 +1,42 @@
+{
+  "downloaded_at": "2026-05-12",
+  "source": "Amazon Seller Central Help",
+  "discovered_count": 4,
+  "captured_count": 4,
+  "missing_count": 0,
+  "pages": [
+    {
+      "title": "Normal article",
+      "path": "/help/hub/reference/G100",
+      "id": "G100",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G100",
+      "file": "articles/001-normal-article-G100.md",
+      "bytes": 923
+    },
+    {
+      "title": "Shell article",
+      "path": "/help/hub/reference/G200",
+      "id": "G200",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G200",
+      "file": "articles/002-shell-article-G200.md",
+      "bytes": 440
+    },
+    {
+      "title": "Seller\u2019s retired article",
+      "path": "/help/hub/reference/G300",
+      "id": "G300",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G300",
+      "file": "articles/003-retired-article-G300.md",
+      "bytes": 0
+    },
+    {
+      "title": "Thin directory",
+      "path": "/help/hub/reference/G150",
+      "id": "G150",
+      "url": "https://sellercentral.amazon.com/help/hub/reference/G150",
+      "file": "articles/004-thin-directory-G150.md",
+      "bytes": 239
+    }
+  ],
+  "missing": []
+}
