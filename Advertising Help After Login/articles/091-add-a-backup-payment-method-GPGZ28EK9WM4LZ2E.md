@@ -3,43 +3,26 @@ title: "Add a backup payment method"
 source_url: "https://advertising.amazon.com/help/GPGZ28EK9WM4LZ2E"
 library: "Amazon Ads Support Center"
 section: "billing-and-payments"
-downloaded_at: "2026-05-13"
+downloaded_at: "2026-10-07"
 status: "captured"
 ---
 
-# Add a Backup Payment Method
+# Add a backup payment method
 
-This article explains how to add a backup payment method to reduce payment failure risk.
+Learn how to add a backup payment method to your account.
 
-## Key Points
+Updated on Feb 24, 2026
 
-- Backup payment methods help prevent payment failures.
-- If the primary payment method fails, Amazon may charge the invoice amount to the backup card.
+If you pay for advertising with your vendor or seller account, the best way to avoid payment failure is to add a credit or debit card as a backup payment method. If your primary payment method fails, the full invoice amount will be deducted from the backup payment method.
 
-## Workflow
-
-1. Click **Administration** in the left menu.
+1. In the left menu, click **Administration**.
 2. Under **Billing and Payment**, select **Billing**.
-3. Open the **Payment Settings** tab.
+3. Once you’re on the Billing page, select the **Payment Settings** tab.
 4. Click **Change payment profile**.
-5. Click **Edit** next to the selected payment method.
-6. Check **Add a backup payment method**.
-7. Select credit or debit card.
+5. Click **Edit** next to your selected payment method (Seller account balance or Deduct from payment).
+6. Check the box next to **Add a backup payment method**.
+7. Select the bubble next to Credit or debit card.
 8. Click **Add a credit or debit card**.
-9. Enter required card details in Amazon Ads.
+9. Input all required information (name, card number, expiration date, security code).
 10. Click **Add your card**.
 11. Click **Save**.
-
-## Visual Reference
-
-![Administration icon](https://d369o5h5zn8mv7.cloudfront.net/images/Icons/Administration.png)
-
-## Checkpoints
-
-- Stop before entering or saving payment card details.
-- Do not record private payment details in notes.
-- Confirm the correct billing profile before adding a backup method.
-
-## Routing Use
-
-Use this page when the user asks to prevent payment failure, add a backup card, or restore campaign continuity after payment issues.

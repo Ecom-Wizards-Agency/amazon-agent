@@ -2,86 +2,70 @@
 title: "Understand targeting"
 source_url: "https://advertising.amazon.com/help/G3XAU5G7C2JTNQTM"
 library: "Amazon Ads Support Center"
-downloaded_at: "2026-05-12"
+downloaded_at: "2026-10-07"
 updated_on: "2026-03-09"
 status: "captured"
 ---
 
 # Understand targeting
 
-Targeting specifies which shoppers to reach with Sponsored ads and Display campaigns.
+Targeting is how you specify which shoppers you want to reach with your Sponsored ads and Display campaigns.
 
-Ads can appear in search results, detail pages, categories, other Amazon locations, and premium sites and apps off Amazon.
+Updated on Jul 29, 2026
 
 ## What is targeting?
 
-Typical targeting flow:
+Targeting is how you specify which shoppers you want to reach. Shoppers then see your ads in search results, when browsing detail pages and categories, or on other relevant locations on Amazon as well as on premium sites and apps off-Amazon (see Sponsored Products off-Amazon). Keyword and product targeting options vary depending on the advertising campaign type that you're using. It typically looks somethiing like this:
 
-1. For Sponsored Products only, choose automatic or manual targeting.
+1. (Sponsored Products only) Choose automatic or manual targeting.
 2. Choose keyword or product targeting.
 3. Add keywords or products to target.
 
 ## Automatic vs manual targeting
 
-Sponsored Products has two targeting methods:
+In Sponsored Products, there are 2 targeting methods to choose from: automatic and manual. If you pick automatic targeting, Amazon chooses products and keywords for you based on similar products and ads. With manual targeting, you'll choose specific keywords or products to bid on. Both strategies offer tools to control how similar customer shopping behavior and search patterns need to be to trigger a match. However in manual targeting, you can set different bids for individual keywords or products.
 
-- **Automatic targeting:** Amazon chooses products and keywords based on similar products and ads.
-- **Manual targeting:** the advertiser chooses specific keywords or products to bid on.
-
-Both strategies offer controls for how similar customer shopping behavior and search patterns need to be to trigger a match. Manual targeting allows different bids for individual keywords or products.
-
-Use automatic targeting when:
-
-- This is the first Sponsored Products campaign.
-- Campaign creation speed matters.
-- The ad should match potential customers looking for similar, related, or complementary products.
-
-Use manual targeting when the advertiser wants more control or has data from automatic campaigns/search term reports.
+- This is your first Sponsored Products campaign.
+- You want to create your campaign quickly.
+- You want your ad to match to potential customers looking for similar products, related products, or complementary ones.
 
 ## Keyword targeting
 
-Keyword targeting chooses keywords to drive product discovery and sales. Use it when the advertiser knows the search terms customers use for similar products.
+**Keyword targeting** allows you to choose keywords to drive additional product discovery and sales. Use this strategy when you know the search terms that customers use to search for products similar to yours. It's also effective for showing your ads where customers are most likely to discover and buy your products.
 
-In Sponsored Products, Amazon matches keywords to customer search terms and can also use them to show ads in relevant locations across Amazon and on premium sites/apps off Amazon.
+Amazon and partners match your keywords to a customer’s search term and interests to display ads for the products you advertise. Your keywords may also be used to automatically show your ads to other relevant locations across Amazon as well as on premium sites and apps off-Amazon (see Sponsored products off-Amazon), to drive additional product discovery and sales. When a customer search term is not available, Amazon will infer a search term from the context that best matches your keywords and show your ads in relevant placements.
 
-Example: keyword "phone case" can match shopper queries like "phone cover" in search results, product pages, and other relevant locations.
+For example, if you choose "phone case" as your keyword, your ad can appear for shopper queries like "phone cover" in search results, on product pages, and other relevant locations across Amazon.
 
 ## Product targeting
 
-Product targeting chooses specific products, categories, brands, or product features relevant to the advertised product.
+**Product targeting** allows you to choose specific products, categories, brands, or other product features that are relevant to the product in your ad. You can target categories and products individually or target a combination of categories and brands in the same campaign. Use this strategy when:
 
-Use product targeting when:
+- You’re looking for broad reach (rather than targeting specific keywords)
+- You’re launching a campaign in a foreign marketplace and don’t want to rely on translations to do keyword research.
 
-- Broad reach is desired rather than specific keyword targeting.
-- Launching in a foreign marketplace where keyword translations are less reliable.
+For example, if your advertised product is a "Brand A" shoe for women, you can target the "women’s running shoes" category for all search results and detail pages that are relevant. You may also target the brand "Brand B" because it’s a brand similar to "Brand A," or target price points, star reviews, or variations of similar products.
 
-Example: an advertised Brand A women's shoe can target "women's running shoes", similar Brand B, price points, star reviews, or variations of similar products.
+## Tutorial videos: targeting
 
-## Tutorial videos and visual references
+# Choose a targeting strategy for your campaign
 
-- Choose a targeting strategy: ![Automatic and manual targeting](https://d369o5h5zn8mv7.cloudfront.net/sponsoredproducts/02-targetingoptions/v2/en-US/02_Auto_Manual_Targeting.png)
-- Understanding Keywords: ![Understanding Keywords](https://d369o5h5zn8mv7.cloudfront.net/amazonadvertising/37-UnderstandingKeywords/Targeting-Keywords-Posterframe.webp)
-- Creating a campaign with manual targeting: ![Manual targeting](https://d369o5h5zn8mv7.cloudfront.net/sponsoredproducts/18-ManualTargeting/GG8B7Y6HJHHNU5B6.webp)
-- When to go from automatic to manual targeting: ![Automatic to manual targeting](https://d369o5h5zn8mv7.cloudfront.net/HMH/Videos/69%20When%20to%20go%20from%20automatic%20to%20manual%20targeting%20with%20SP/GH35WZWP64A263VE.webp)
+Understanding automatic and manual targeting.
+
+Was this video helpful? Select feedback
+
+01:41Choose a targeting strategy for your campaign
 
 ## Targeting restrictions
 
-Targeted keywords or products must be relevant to the promoted product. Ads must not target keywords or products that create offensive, insensitive, or undesirable shopping experiences.
+The keywords or products targeted in your campaigns must be relevant to the product being promoted. Ads must not target keywords or products that could result in an offensive, insensitive, or undesirable shopper experience. On that account, some product categories aren't permitted as advertising targets.
 
-Restricted examples:
+Some examples of restricted targeting keywords and products include:
 
-- Prescription drug keywords or products, such as Lipitor or prednisone.
-- Offensive, profane, or vulgar keywords/products.
-- Products or keywords for products that Amazon does not advertise under creative acceptance policies, such as e-cigarettes or sexually explicit/adult products.
+- Prescription drug keyword or products, such as "Lipitor" or "prednisone."
+- Offensive, profane, or vulgar keywords or products.
+- Products, and keywords of products that we don't advertise per our creative acceptance policy, such as e-cigarettes, or sexually explicit and adult products.
 
-If existing targets receive no impressions or clicks, keyword/product targeting restrictions may be the reason. Restricted targets may be addable during campaign creation, but ads will not run against them.
+**Note**: If some of your existing targets aren't receiving impressions or clicks, it may be due to keyword and product targeting restrictions. In such cases, you may be able to add a restricted keyword or product when creating your campaign, but ads won't run against those targets.
 
-## Related topics
-
-- [Understand keyword match types](https://advertising.amazon.com/help/GHTRFDZRJPW6764R)
-- [Set up keyword targeting](https://advertising.amazon.com/help/GK3MNACNTXG659J9)
-- [Set up product targeting](https://advertising.amazon.com/help/GB2JECV9CJK6R6AL)
-- [Add negative keywords or negative products](https://advertising.amazon.com/help/GTEHPEG5BXY9UX5W)
-- [Branded keyword guidelines and keyword suspension](https://advertising.amazon.com/help/G2QZJUGUT4RGLJ6N)
-- [Keyword translation](https://advertising.amazon.com/help/GHPTCVTGNFZ2KTSP)
-- [Reserve keywords in a Sponsored Brands campaign](https://advertising.amazon.com/help/G86SD7HK6NHHRB9B)
+Visit the Sponsored Advertising Guidelines and Acceptance Policies to learn more about our advertising policies.

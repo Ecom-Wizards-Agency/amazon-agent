@@ -2,53 +2,58 @@
 title: "Display"
 source_url: "https://advertising.amazon.com/help/GHYXY6HJRDM5VCCY"
 library: "Amazon Ads Support Center"
-downloaded_at: "2026-05-12"
+downloaded_at: "2026-10-07"
 status: "captured"
 ---
 
-# Display
+# Understand Display
 
-Display enables advertisers to reach relevant audiences browsing on and off Amazon.
+Display enables you to reach relevant audiences browsing both on and off Amazon.
 
-## Advertisers that sell in the Amazon store
+Updated on Sep 15, 2026
 
-Sponsored Display campaigns use auto-generated display creatives with an Amazon look and feel. Depending on targeting, ads can run on Amazon desktop and mobile, on detail pages, across other Amazon pages, off Amazon across third-party publishers, and on Amazon Business.
+## What is Display?
 
-Amazon uses brand safety tools to help deliver ads to trustworthy placements next to appropriate and relevant content. When customers click, they go to the product detail page.
+**Display** campaigns use custom or auto-generated creatives (like images, graphics, animations, or video) to engage customers on Amazon properties and premium placements across the open internet. Unlike search-based ads, display ads use audience-based behavioral targeting, not keywords, to find the right users.
 
-Sponsored Display ads are paused when items go out of stock. Once back in stock, campaigns return to running state if still within the campaign flight. There may be a delay of generally up to four hours.
+## Video Gallery: Display
 
-Sponsored Display is available only to Amazon vendors and sellers who are registered brand owners.
+# 3What is Sponsored Display?
 
-Campaign reporting shows performance alongside Sponsored Products and Sponsored Brands.
+Understand how Display campaigns enable you to reach shoppers browsing both on and off Amazon.
 
-## Advertisers that do not sell in the Amazon store
+Was this video helpful? Select feedback
 
-Sponsored Display enables self-service display campaigns for advertisers that sell outside the Amazon store. It uses audience insights and dynamically optimized creatives to drive marketing outcomes.
+Available multi-language captions are best viewed in the Google Chrome browser.
 
-All brands can activate first-party audiences and unique ad inventory.
+02:30What is Sponsored Display?
 
-## Key features
+# Introduction to Sponsored Display
 
-- Reach relevant audiences using Amazon Ads audience insights from shopping and streaming signals.
-- Reach audiences on Amazon, Twitch, IMDb, and thousands of websites and apps.
-- Refine audiences by postal code, city, DMA, or state.
-- Drive leads, page visits, or reach with display ads.
-- Start with brand logo, headline, and lifestyle image.
-- Set up campaigns with a few inputs for optimization strategy, targeting, creative, and landing page.
-- No minimum budget requirement.
-- Use CPC or vCPM cost types.
+How to set up a Sponsored Display campaign in the ad console, and use it to help drive traffic to your detail pages.
 
-## Additional resources
+Was this video helpful? Select feedback
 
-| Resource | Details |
-| --- | --- |
-| Interactive Guide | Everything you need to know about Sponsored Display. [View now](https://advertising.amazon.com/library/guides/sponsored-display-what-to-know?ref_=a20m_us_lbr_gd_sdig_help_&utm_channel=Website&utm_medium=SupportCentre&utm_campaign=sd) |
+04:44Introduction to Sponsored Display
 
-## Related topics
+# SD Amazon Audiences
 
-- [Understand Amazon DSP](https://advertising.amazon.com/help/GTTX72LGYHYYDDJ9)
-- [Sponsored Brands](https://advertising.amazon.com/help/GGWFYHL27MFXLHS6)
-- [Sponsored Products](https://advertising.amazon.com/help/GJUCNANNV3GQVXJZ)
-- [Streaming TV](https://advertising.amazon.com/help/GXFV9PSQ4356SNUF)
-- [Promoted Skills](https://advertising.amazon.com/help/G7RDY7RJ5DGV2CH7)
+How to use Display audiences to surface your products to shoppers most likely to be interested in purchasing based on lifestyle, interests, life events, and shopping behavior.
+
+Was this video helpful? Select feedback
+
+00:40Intro to Display audience targeting
+
+## How Display works
+
+**Display** targeting uses first-party shopping, streaming, and browsing signals and insights from Amazon, Prime Video, Twitch, and IMDb to help you reach relevant consumers. If you’re a vendor or professional seller enrolled in Amazon Brand Registry , you can reach audiences wherever they spend their time in Amazon-owned and partner networks. This includes the Amazon store, Twitch, Amazon Prime, and more.
+
+1. You set a budget and campaign duration
+2. Choose an ad format ( video or image) and products to advertise.
+3. Select an optimization and targeting strategy. You can use a combination of audience and contextual targeting to reach shoppers based on their interests and shoppping behavior. If you sell on the Amazon store, you can also use remarketing segments to target shoppers who have viewed or purchased your product or something similar.
+4. Your ads may serve on and off Amazon, which includes: Amazon detail and shopping result pages, Amazon Fresh, Whole Foods Market, IMDb, Twitch, and third-party websites and apps.
+5. When shoppers click your ad, they're directed to your product detail page or a custom landing page on an external website.
+
+To start promoting your products, see Create a Display campaign for step-by-step instructions. To start building your campaign, click here.
+
+## Common questions

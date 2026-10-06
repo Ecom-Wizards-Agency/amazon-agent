@@ -3,52 +3,65 @@ title: "Manage deny lists"
 source_url: "https://advertising.amazon.com/help/GFDAZEU76AZZ8K3A"
 library: "Amazon Ads Support Center"
 section: "account-management"
-downloaded_at: "2026-05-13"
+downloaded_at: "2026-10-07"
 status: "captured"
 ---
 
-# Manage Deny Lists
+# Manage deny lists
 
-Deny lists restrict where ads can appear on Amazon-supported inventory.
+Learn how to use a deny list to restrict where your ads appear.
 
-## Key Points
+Updated on Oct 5, 2026
 
-- Deny lists can limit ad delivery on specific domains, apps, and creator tags.
-- The feature is listed as available to advertisers in the US.
-- Deny lists can block entire websites, but not individual web pages.
+Amazon Ads makes efforts to protect you from invalid traffic, unauthorized sellers, and unsafe content at no extra charge using a combination of proprietary technology, strict on-site advertising policies, and independent third-party solutions. We also manually review third-party websites, apps, and creator content for unsafe content. If a third-party website, app, or creator is identified as unsafe, it's blocked from Amazon Ads.
 
-## File Format
+The StoreID deny list feature is available for advertisers in Brazil, Canada, Egypt, France, Germany, India, Italy, Mexico, Saudi Arabia, Spain, Türkiye, United Arab Emirates, United Kingdom, and the United States.
 
-| Value | Type |
-| --- | --- |
-| `www.example.com` | `WEBSITE` |
-| `com.example.app` | `APP` |
-| Creator tag ID | `CREATOR` |
+## Deny lists
 
-Supported upload formats include CSV, XLSX, and TSV.
+You can upload a custom list of web domains, mobile app IDs, and creator tags to be excluded from delivery of Sponsored Products and Display campaigns here . These deny lists are applied to all active Sponsored Products and Display campaigns and must meet the following requirements:
 
-## Workflow
+- Creator tags can be blocked by entering the tag ID found in the creator's promotional URL (the text betweentag=and the&symbol).
+- You can block the entire website (example.com) or subdomains from a website (news.example.com or docs.example.com); however, you can't block individual web pages, such as example.com/politics.html.
+- You can't block sections of the website with a URI (Uniform Resource Identifier). (example.com/sports/)
+- Mobile App IDs should never be submitted as a full URL as these can’t be processed.
+- If your deny list upload exceeds 10K, you’ll need to create multiple files, each with a maximum of 10K entries. For example, if your list is 45K, you’ll need to split the list into 5 files (four 10K files and one 5K file) and upload them individually.
 
-1. Create a file with the URL, app, or creator tag ID in column one.
-2. Add the type in column two: `WEBSITE`, `APP`, or `CREATOR`.
-3. In the left menu, go to **Administration**.
-4. Open **Account access and settings**.
-5. Open **Deny list**.
-6. Click **Upload deny list**.
-7. Check **Last action** for upload status.
-8. Download the result report after completion.
-9. To clear the deny list, use the menu next to **Upload deny list** and confirm.
+## Upload a deny list
 
-## Visual Reference
+To upload a deny list:
 
-![Administration icon](https://d369o5h5zn8mv7.cloudfront.net/images/Icons/Administration.png)
+1. Create a CSV/XLSX/TSV file containing web sites, mobile apps, or creator tag IDs where you don’t want your ads to be displayed. Enter the website URL or Apple/Android app ID/creator tag ID in the first column of your file with either “WEBSITE," “APP," or "CREATOR" in the second column. You can have up to 10,000 lines with 1 entry per line. www.example.comWEBSITEcom.example.appAPP
+2. In the left menu, click **Administration**.
+3. Select **Account access and settings**.
+4. Click **deny list**.
+5. Click **Upload deny list** and select your CSV/XLSX file.
+6. The **Last action** section will flag if there was an error. or if the upload was successful. You may need to wait up to 15 minutes for the operation to complete. You can refresh the page to get the latest status.
+7. Once the upload operation is complete, you can click **Download report**to review the upload operation results.
 
-## Checkpoints
+**Note:** If you’re importing a list from Display, Video, and Audio campaigns, you can reuse the same list for Sponsored Products and Display but will need to modify the list to support the Sponsored Products and Display deny list format. Display, Video, and Audio campaigns lists only have a single column with the website or mobile app name, so you’ll need to add a second column to the list to include WEBSITE, APP, or Creator.
 
-- Stop before uploading or clearing a deny list.
-- If the deny list exceeds 10,000 entries, split it into multiple files.
-- Download the existing deny list before clearing it because clearing is irreversible.
+## Find Creator tags
 
-## Routing Use
+To exclude a specific creator from promoting your products:
 
-Use this page when the user asks to block ad placements, exclude websites/apps/creators, or audit brand safety placement restrictions.
+1. Visit the page where the creator is promoting your product.
+2. Look at the URL in your browser's address bar.
+3. Find the text between tag= and the & symbol—this is the creator's tag.
+4. Add this tag to your deny list using the format shown above.
+
+**Example**: In https://www.amazon.com/tag=techreviewer-20&th, the creator tag is **techreviewer-20**.
+
+## Clear a deny list
+
+When you clear your deny list, you’ll lose all the websites, mobile apps, and and creator tags that you added previously to the deny list. It's highly recommended that you download the list locally prior to clearing it.
+
+To clear your deny list:
+
+1. Click the **…** button beside **Upload deny list** and select **Clear list**. This button is only available if the list is non-empty. You’ll get a prompt indicating that the action is non-reversible and that you should download the deny list prior to completing this action.
+2. Click **Clear list** to remove all items from your deny list. Check the **Last action** section to make sure that the clear operation was successful. You may need to wait up to 15 minutes for the operation to complete. You can refresh the page to get the latest status.
+3. Once the clear operation is complete, make sure that the **Download your deny list** button is disabled, this indicates that the deny list is empty.
+
+## Download a deny list
+
+To download your deny list, click **Download deny list**. You'll see everything added over the lifetime of the list. However, if the list has been previously cleared, it will only contain items after the last time you cleared the list.

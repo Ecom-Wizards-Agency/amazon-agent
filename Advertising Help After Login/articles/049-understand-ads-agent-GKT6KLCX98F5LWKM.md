@@ -2,45 +2,61 @@
 title: "Understand Ads Agent"
 source_url: "https://advertising.amazon.com/help/GKT6KLCX98F5LWKM"
 library: "Amazon Ads Support Center"
-downloaded_at: "2026-05-12"
+downloaded_at: "2026-10-07"
 status: "captured"
 ---
 
-# Understand Ads Agent
+# Understand the conversational experience in Amazon Ads Agent
 
-Ads Agent is an AI-powered tool that helps streamline campaign planning, launching, optimization, and measurement through automation and Amazon insights.
+Use natural language in Amazon Ads Agent to get more done, find answers, make decisions, and take action across your advertising needs.
 
-Ads Agent is currently in beta.
+Updated on Sep 30, 2026
 
-Through natural conversation, Ads Agent automates time-intensive tasks, provides data-driven recommendations, and streamlines analysis. It appears throughout the experience, including Campaign manager and Amazon Marketing Cloud (AMC), with buttons such as **Update campaigns** and **Generate SQL with AI**.
+Conversational experience in Amazon Ads Agent is currently available in closed beta to eligible advertisers. Availability varies by locale, with capabilities and access expanding over time.
 
-Ads Agent summarizes proposed changes before taking action. Advertisers review and approve recommendations before Ads Agent makes changes.
+Through a built-in conversational AI experience, you can ask Amazon Ads Agent questions or describe what you want to accomplish in plain language, and get relevant insights, recommendations, or actions based on your goals and advertising signals.
 
-## Who can use Ads Agent?
+## How does it work?
 
-Currently, advertisers with access to AMC and Multimedia Solutions with Amazon DSP can use Ads Agent. There is no cost. Advertisers can use it regardless of whether they sell products in the Amazon store.
+The conversational experience uses large language models with your Amazon advertising data to help you navigate and complete complex tasks. You can describe what you need in your own words, and the conversational experience in Amazon Ads Agent will use the context of your business, campaigns, and categories to answer questions and suggest relevant next steps.
 
-Using Ads Agent to create campaigns with a media plan and accelerate insights in AMC is available worldwide. Using Ads Agent for optimizing campaigns and campaign targeting is limited to advertisers in certain countries across North and South America.
+With the conversational experince you can:
 
-## Ads Agent skills and access paths
+- **Ask** a question or explain in plain language what you want to do.
+- **Get** a tailored response based on your advertising data.
+- **Review** recommendations or next steps.
+- **Approve** any actions you want to take conversationally
 
-| Area | Skill | Access path | Example requests |
-| --- | --- | --- | --- |
-| Campaign creation | Create campaigns from a media plan | **Campaigns > Overview > Display, Video, & Audio > Expert mode > Set up campaigns with media plan** | "I expect 3 campaigns with 6 ad groups"; "Update all ad groups to include audience segment Tech B2B Decision Makers"; "Add Amazon Publisher Direct inventory to all streaming TV ad groups" |
-| Campaign targeting | Generate keywords, categories, and Amazon audiences during ad group setup | Create a new ad group, then on the **Targeting** card click **Add targeting with AI** | Describe the product and ideal customer, such as active women interested in supportive running shoes |
-| Campaign management and optimization | Update budgets, bids, targeting, frequency caps, and more across Multimedia Solutions with DSP campaigns and ad groups | **Campaigns > Overview > Display, Video, & Audio > Expert mode > Update campaigns** | "For all campaigns with delivery rate below 80%, increase budgets by 25%"; "For all ad groups in campaign Q4-Sale, update frequency cap to 1 per 3 days" |
-| AMC insight acceleration | Build audience and analytics SQL queries in AMC | **Measurement & reporting > Amazon Marketing Cloud > Query editor > Generate SQL with AI** | "Create an audience query of shoppers who had add-to-cart events attributed to a specific campaign"; "Create a measurement query for total sales and ad sales from new-to-brand users for October 2025" |
-| AMC support | Product support and best-practice guidance | **Measurement & reporting > Amazon Marketing Cloud > Ask AI for AMC help** | "What tables can I use to measure sponsored ads performance?"; "What's the difference between conversions and conversions_all?" |
+Note: Experiences powered by AI can make mistakes. Always review important information before taking action. Review policy.
 
-## Learn more
+You will see a summary of all proposed changes before acting. You review and approve recommendations before changes are made. Review tips and best practices when using the conversational experience.
 
-- [Getting AMC help with the Ads Agent](https://advertising.amazon.com/help/GEDCL75VT727P23Z)
-- [Best practices for using the Ads Agent to generate AMC SQL queries](https://advertising.amazon.com/help/GZTSBQTMR2VHPL85)
+- Be specific. Include campaign names, ASINs, metrics, or time frames when you can.
+- Start with general questions, then follow up with deeper and more specific requests. Try "How are my campaigns doing?" and follow up with "Tell me more about the top or bottom performers.".
+- Try using the suggested prompts. These offer recommendations to help you get started or explore what’s possible.
+- Use “**Ask Ads Agent**’ as a quick way to find help and explore all you can do to work more conversationally.
+- Leave feedback to help improve the experience. Use the thumbs up / thumbs down on every response.
 
-## Related topics
+## Capabilities and example prompts
 
-- [Ads content moderation](https://advertising.amazon.com/help/GXZXZ78UXL2AEBQ9)
-- [Amazon DSP glossary](https://advertising.amazon.com/help/GJVHGUJXDUKTGHG4)
-- [Sponsored ads studies](https://advertising.amazon.com/help/GQGYZPBE7AVK6FPS)
-- [Amazon Ads consent signals](https://advertising.amazon.com/help/GJ9NZYG2UT4DZ9JR)
-- [Amazon DSP studies](https://advertising.amazon.com/help/GAGG2YNGMDDJULDP)
+Amazon Ads Agent can perform several tasks. This list will grow over time. See the table below to learn more about what you can accomplish through conversation.
+
+| Objective | Capabilities and description | Example prompts |
+| --- | --- | --- |
+| **Plan** | **Agentic media planning** Size audiences, forecast reach, budget recommendations, persona insights, and incremental reach over linear TV. | - "I expect 3 campaigns with 6 ad groups" - "Update all ad groups to include audience segment 'Tech B2B Decision Makers' " - "Add Amazon Publisher Direct inventory to all streaming TV ad groups" |
+| **Create** | **Create campaigns from a media plan**Auto-create campaigns from an uploaded media plan in DVA+ advanced setting; you review and launch when ready. | - "Build my campaigns from this media plan with the recommended budgets, goals, and targeting" |
+| **Apply campaign targeting** Receive campaign targeting recommendations across products, categories, keywords, Amazon audience in DVA+ with advance settings. | - "Recommend audience segments and keywords for my new launch" |
+| **Manage and optimize** | Get campaign guidance for Display, Video, and Audio campaigns Edit budgets, bids, targeting, naming, or uploading a bulk sheet in DVA+ with advance settings, you review and apply changes. | - “Alert me when any campaign drops below my ROAS target and recommend a fix” |
+| **Execute bulk actions** Edit budgets, bids, targeting, naming, or uploading a bulk sheet in DVA+ with advance settings, you review and apply changes. | - “Update bids on all campaigns and fix naming errors” - “Upload my bulk sheet and auto correct any formatting issues” - “For all campaigns with delivery rate below 80%, increase budgets by 25%” - “For all ad groups in campaign 'Q4-Sale', update the frequency cap to 1 per 3 days” |
+| **Get campaign guidance for sponsored ads** Quickly identify opportunities to improve individual Sponsored Product campaigns, with recommendations for targeting, bids, and budgets, and apply them in one click. | - "Diagnose my Sponsored Products campaign and keyword performance and show me what I can do to improve it" |
+| **Measure** | **Natural language analytics** Diagnose trends, benchmark results, and build visual analyses across Display, Video, and Audio campaigns, sponsored ads, and Full Funnel campaigns. | - "Show me a weekly trend of spend and sales with insights on what changed" |
+| **Resolve & Support** | **Get product support** Understand the functionality of ad products, targeting types, best practices, and how ad products work. | - "What happens when my campaign hits its daily budget? Do my ads just stop? " - “How do I on-board to AMC?” |
+|  | **Resolve billing** Ask about charges, track credits, resolve payment issues across Display, Video, and Audio campaigns and sponsored ads campaigns. | - "How do I resolve an overdue payment and set up a new account budget?" - "How do I match my campaign spend to my invoices?" |
+| **Get ad policy and moderation guidance** Understand why a creative was rejected, get guidance on what to change, and ask general policy questions about advertising restrictions and requirements. | - "Why was my creative rejected?" - "What are the requirements for advertising alcohol on Amazon?" |
+
+## Learn more about Amazon Ads Agent
+
+- Latest announcements
+- **Amazon Marketing Cloud** Getting AMC help with the Amazon Ads Agent Best practices for using the Amazon Ads Agent to generate AMC SQL queries
+- Campaign targeting through natural language
+- Analyze campaign performance using natural language

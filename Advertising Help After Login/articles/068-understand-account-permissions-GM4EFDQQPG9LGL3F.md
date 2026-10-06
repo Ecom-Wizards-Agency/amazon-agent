@@ -3,36 +3,51 @@ title: "Understand account permissions"
 source_url: "https://advertising.amazon.com/help/GM4EFDQQPG9LGL3F"
 library: "Amazon Ads Support Center"
 section: "account-management"
-downloaded_at: "2026-05-13"
+downloaded_at: "2026-10-07"
 status: "captured"
 ---
 
-# Understand Account Permissions
+# Understand account permissions
 
-This article explains permission levels and access rights across sponsored ads, Amazon DSP, Manager accounts, and Advertiser Accounts.
+Overview of permission levels and access rights for Manger accounts and Advertiser Accounts across campaign types.
 
-## Key Points
+Updated on Oct 6, 2026
 
-- Permission options vary by account type.
-- Admin permissions allow broad account control.
-- Viewer permissions are limited to reviewing account information and campaign data.
-- Custom permissions can be used to limit access to specific applications or functions.
+You have access to different features depending on your account type and permission level. Your account type is listed under your account name at the top right of the ads console.
 
-## Permission Areas
+## Account permissions for sponsored ads advertisers
 
-| Area | What to Review |
+| Permission level | Capabilities |
 | --- | --- |
-| Sponsored ads advertisers | User roles and access for sponsored ads activity. |
-| Amazon DSP advertisers | DSP-specific permissions and account access. |
-| Advertiser Accounts | Permissions for unified advertiser account access. |
-| Manager accounts | Permissions for users managing multiple linked accounts. |
+| **Admin** | View/change payment settings, manage users, link accounts, + all Editor, and Viewer permissions. |
+| **Editor** | Create/edit campaigns, and view billing history/reports, + all Viewer permissions. |
+| **Viewer** | View campaigns, billing history, and reports. |
+| **Custom** | Assign custom permissions to specific advertising applications. For example, you can invite your finance colleagues to only have access to payment settings and billing history. |
 
-## Checkpoints
+## Account permissions for Display, Video, and Audio campaigns advertisers
 
-- Stop before changing user roles or access levels.
-- Keep admin access limited to trusted users.
-- Review permissions regularly so users only keep the access they need.
+| Permission level | Capabilities |
+| --- | --- |
+| **Admin** | Manage users, link accounts, + all Editor permissions. |
+| **Editor** | Create/edit campaigns, ads (formerly known as Creatives), events, audiences, studies, frequency groups, inventory, and reports. |
+| **Viewer** | View campaigns, ads, events, audiences, frequency groups, inventory, and reports. |
+| **Custom** | Assign custom permissions to specific advertising applications. For example, you can invite your ads colleagues to only have access to ads and the campaign manager. |
 
-## Routing Use
+## Account permissions for Advertiser Accounts
 
-Use this page when the user asks who can do something in Amazon Ads, whether they have the right access, or how to audit user permissions before a Chrome action.
+Advertiser Accounts can access all sponsored ads and Display, Video, and Audio campaigns campaigns from a single account.
+
+| Permission level | Capabilities |
+| --- | --- |
+| **Admin** | View/change payment settings, manage users, link accounts, + all Editor, and Viewer permissions. |
+| **Editor** | Create/edit campaigns, and view billing history/reports, + all Viewer permissions. |
+| **Viewer** | View campaigns, ads, events, audiences, frequency groups, inventory, billing history, and reports. |
+| **Custom** | Assign custom permissions to specific advertising applications. For example, you can invite your finance colleagues to only have access to payment settings and billing history. |
+
+## Account permissions for Manager accounts
+
+| Permission level | Capabilities |
+| --- | --- |
+| **Admin** | Manage all campaigns, users, account links, and advertising product settings. |
+| **Editor** | Manage campaigns, view performance summary, and view billing information. |
+| **Viewer** | See campaigns, performance summary, and billing information. |

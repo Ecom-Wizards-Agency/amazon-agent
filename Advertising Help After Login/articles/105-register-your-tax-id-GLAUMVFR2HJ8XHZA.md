@@ -3,44 +3,27 @@ title: "Register your Tax ID"
 source_url: "https://advertising.amazon.com/help/GLAUMVFR2HJ8XHZA"
 library: "Amazon Ads Support Center"
 section: "billing-and-payments"
-downloaded_at: "2026-05-13"
+downloaded_at: "2026-10-07"
 status: "captured"
 ---
 
-# Register Your Tax ID
+# Register your Tax ID
 
-This article explains how to add a tax ID to an Amazon Ads account, with guidance for vendors, sellers, and DSP users.
+Learn how to add your tax ID to your Amazon Ads account with custom guidance for vendors, sellers, and DSP users.
 
-## Key Points
+Updated on Feb 24, 2026
 
-- Some countries require VAT/GST collection for electronically supplied services.
-- The tax registration number should match the business address.
-- Advertisers outside Canada may need to provide a Canada GST number when advertising in Canada.
+Certain countries with Value Added Tax (VAT) or Goods and Services Tax (GST) have introduced rules for taxing Electronically Supplied Services (ESS) at the place where they’re received. Where required by law, Amazon may charge and collect VAT/GST on the provision of digital advertising services under these rules.
 
-## Workflow
+Add your VAT/GST registration number to your Amazon Ads account. Ensure that the tax registration number provided corresponds with your business address.
 
 1. In the left menu, click **Administration**.
 2. Under **Billing and Payment**, select **Billing**.
-3. Open **Payment Settings**.
-4. In **Tax info**, enter the VAT/GST registration number.
+3. Once you’re on the Billing page, select the **Payment Settings** tab.
+4. In the Tax info section, enter your VAT/ GST registration number.
 
-## Visual Reference
+**Note:**Advertisers who have a business address located outside of Canada, but are advertising in Canada must provide Amazon with their Canada GST number.
 
-![Administration icon](https://d369o5h5zn8mv7.cloudfront.net/images/Icons/Administration.png)
+You'll find details of applicable taxes in the **Tax** line in the summary section at the bottom of your invoice.
 
-## Related Topics
-
-- Countries that collect tax on Electronically Supplied Services.
-- Tax refunds.
-- VAT on Electronically Supplied Services.
-- Washington State Sales Tax Requirements for Amazon Ads.
-
-## Checkpoints
-
-- Stop before saving tax ID changes.
-- Confirm the tax registration number is accurate and belongs to the billed business.
-- Confirm business address and invoice country before entering the tax ID.
-
-## Routing Use
-
-Use this page when the user asks how to add VAT/GST/tax ID to Amazon Ads or fix tax charging because a tax ID is missing.
+Refer to our Tax policy in these additional policies.

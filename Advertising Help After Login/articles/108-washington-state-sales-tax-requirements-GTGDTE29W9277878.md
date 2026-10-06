@@ -3,33 +3,43 @@ title: "Washington State Sales Tax Requirements for Amazon Ads"
 source_url: "https://advertising.amazon.com/help/GTGDTE29W9277878"
 library: "Amazon Ads Support Center"
 section: "billing-and-payments"
-downloaded_at: "2026-05-13"
+downloaded_at: "2026-10-07"
 status: "captured"
 ---
 
 # Washington State Sales Tax Requirements for Amazon Ads
 
-This article explains Washington State sales tax requirements for Amazon Ads customers with Washington billing addresses.
+This applies to Amazon Ads customers with billing addresses in Washington.
 
-## Key Points
+Updated on Sep 23, 2025
 
-- Washington Senate Bill 5814, signed May 20, 2025, expands sales tax to include advertising services.
-- Sales tax applies to advertising spend invoices for Washington billing addresses starting October 1, 2025.
-- Sales tax is calculated on the final sale price and can depend on service type and location.
-- Valid tax exemption certificates can be submitted where applicable.
+On May 20, 2025, Washington Senate Bill 5814 was signed by Governor Bob Ferguson, which expands the existing sales tax to include advertising services. The legislation specifically includes online advertising services as taxable retail sales and encompasses all aspects of online advertising production and placement services.
 
-## Workflow
+The legislation goes into effect on October 1, 2025, which means customers with billing addresses in Washington will see sales tax included on their invoices for advertising spend with Amazon once the legislation is effective, including all Display and Sponsored Ads products.
 
-1. Check whether the billing address is in Washington State.
-2. Review advertising service purchases for sales tax applicability.
-3. If eligible, submit a valid tax exemption certificate before expiration.
+## How Washington sales tax is calculated
 
-## Checkpoints
+Washington sales tax will be calculated on the final sale price of each individual product or service. The amount of tax collected depends on many factors, including, but not limited to, the type of product or service you purchase, and your location/addresses within Washington.
 
-- Stop before changing billing address or tax exemption details.
-- Confirm billing profile address is accurate.
-- Track exemption certificate expiration dates.
+If you have elected to use Manager Account level billing, the address associated with that billing profile will be used to determine the tax location for applicable taxes. Similarly, where you have elected to use Advertiser Account level billing, the address associated with that billing profile will be used to determine the tax location for applicable taxes.
 
-## Routing Use
+Once your bill is finalized, sales tax to be collected will be displayed as a line item on your PDF invoice.
 
-Use this page when the user asks why Washington sales tax appears on Amazon Ads invoices or how to handle tax exemption certificates.
+## Washington sale tax exemptions
+
+If you have a valid Washington tax exemption certificate that applies to your purchases of advertising services from Amazon, you can it here. Example of valid exemption certificates for advertising services include:
+
+- Reseller certificates: you are an agency or reseller that purchases advertising services from Amazon for the purpose of resale to advertisers.
+- Multiple points of use (MPU): you use the advertising services you purchase from Amazon across multiple jurisdictions.
+
+Your exemption will remain active until the expiration of your tax exemption certificate. To retain your tax exemption, you must submit an updated exemption certificate before the expiration of the current certificate. Applicable expiration dates are noted in our database.
+
+Exemption portal link (Login required for each advertising country)
+
+## For sellers
+
+For sellers, you can submit the exemption certificate in Seller Central. Seller Central help links:
+
+- How Amazon Tax Exemption Program (ATEP) Works
+- Customers with tax exempt status
+- Get tax exemption certificates

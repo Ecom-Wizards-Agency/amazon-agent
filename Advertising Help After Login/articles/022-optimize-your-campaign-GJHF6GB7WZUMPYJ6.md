@@ -2,67 +2,44 @@
 title: "Optimize your campaign"
 source_url: "https://advertising.amazon.com/help/GJHF6GB7WZUMPYJ6"
 library: "Amazon Ads Support Center"
-downloaded_at: "2026-05-12"
+downloaded_at: "2026-10-07"
 status: "captured"
 ---
 
 # Optimize your campaign
 
-Adjusting ad parameters can help improve performance.
+Adjusting the parameters of your ad can help improve performance.
 
-After a campaign has been running for at least 14 days, review performance and implement improvements.
+Updated on Aug 11, 2026
 
-> Note: Many factors are unique to campaigns and products. Amazon does not guarantee that recommendations will directly optimize a campaign.
+Once your campaign has been running for at least 14 days you can review your campaign performance and implement improvement
 
-## Maximize budget impact
+Note: There are many factors that are unique to your campaigns and products. We do not guarantee that any of these recommendations will directly result in an optimized campaign.
 
-- Use the metrics in the Budgets tab in Campaign manager to determine whether budget should be adjusted.
-- Consider the recommended budget if unsure how much to spend to ensure campaigns are served appropriately.
-- **Average time in budget:** 100% means the campaign ran all day and did not go over budget. Less than 100% means the campaign ran out of budget during the selected period.
-- **Estimated missed sales/impressions/clicks:** estimated activity the campaign could have received if it did not run out of budget.
+**Maximize your budget impact**
 
-## Avoid duplicate campaigns
+- Use the metrics in the budgets tab in campaign manager to determine if you need to adjust your budget. Consider the recommended budget if you’re not sure how much to spend to ensure your campaigns are being served appropriately.
 
-Multiple campaigns can run at the same time, but Amazon does not recommend running multiple campaigns for the same ASIN with the same targeting strategy at the same time.
+- Average time in budget: 100% means your campaign was running all day and did not go over budget. If the number here is less than 100%, your campaign ran out of budget for the selected time-period.
+- Estimated missed sales/impressions/clicks: This is how many estimated sales/impressions/clicks your campaign would have received if it didn’t run out of budget.
 
-Example: if ASIN 1 has an automatic targeting campaign from September 1 to October 31, it can also have a manual targeting campaign during September and October, but should not be added to another automatic targeting campaign for that same period.
+**Avoid duplicate campaigns**
 
-## ASIN grouping and keyword targeting
+You can run multiple campaigns simultaneously, but we don’t recommend running multiple campaigns for the same ASIN with the same targeting strategy simultaneously.
 
-Divide ASINs into categories based on organic performance.
+**ASIN grouping and keyword targeting**
 
-- **Group A:** lower performance or organic search rank, such as new or dated styles, low reviews, or high Average Sales Price (ASP).
-- **Group C:** top performers, such as best sellers, core products, common reorders, or best deals.
+- Divide your ASINs into categories based on organic performance. Group A: Products with lower performance or organic search rank. Example: new or dated styles, low reviews, high Average Sales Price (ASP). Group C: Products that top performers. Example: best sellers, core products, common reorders, best deals.
+- Create 2 manual targeting campaigns. In one campaign add all the Group A ASINs. In the other, add the Group C ASINs.
+- Use the suggested keyword groups to apply match types: Group A: Add keywords related to your brand Group C: Add keywords related to your product category and Keywords from brands also considered by shoppers. Ensure that brand keywords are set as negative so you don't duplicate efforts with organic search results.
 
-Create two manual targeting campaigns:
+**Choose effective keywords to increase impressions**
 
-- Add all Group A ASINs to one campaign.
-- Add all Group C ASINs to another campaign.
+If you don’t add enough keywords or if your keywords are too specific, your ads won’t receive enough impressions to reach your sales goals. Alternatively, if your keywords are too general, you might spend a lot on ad clicks without purchase. Learn more about Keyword targeting best practices.
 
-Suggested keyword group usage:
-
-- Group A: add keywords related to the brand.
-- Group C: add keywords related to the product category and keywords from brands also considered by shoppers.
-- Set brand keywords as negative where needed to avoid duplicating organic search efforts.
-
-## Choose effective keywords to increase impressions
-
-Too few or overly specific keywords can limit impressions. Overly broad keywords can spend on clicks without purchase.
-
-Example: for dog shampoo, targeting "shampoo" can attract human-shampoo traffic and waste spend.
+Example: If you sell dog shampoo and target the keyword "Shampoo," your ad may receive lots of impressions, but you’ll bid against both dog shampoo and human shampoo keywords. Shoppers looking for human shampoo that click your ad for dog shampoo are unlikely to make a purchase.
 
 ## Additional resources
 
-| Resource | Details |
+|  | **Amazon Ads Academy: **Learn strategies to improve sponsored ads performance**** In this learning path, you'll learn how to assess targeting strategies, adjust bidding and budgeting strategy according to your campaign objectives, and analyze insights. Enroll now |
 | --- | --- |
-| Amazon Ads Academy | Learn strategies to improve sponsored ads performance: assess targeting, adjust bidding and budgeting according to objectives, and analyze insights. [Enroll now](https://advertising.amazon.com/academy/student/path/4882?ref_=advcnsl_ww_SupportCenterOptimizeCampaign) |
-
-## Related topics
-
-- [Bulk management](https://advertising.amazon.com/help/GP5GZAXST3AF4M46)
-- [Copy a campaign](https://advertising.amazon.com/help/GPFGH67KMNLQ5TKU)
-- [Edit a campaign](https://advertising.amazon.com/help/GW73Q54RZZCMPYYV)
-- [Live Events Optimizer campaign management](https://advertising.amazon.com/help/GD6PETSSAQLNGVUT)
-- [Monitor product performance](https://advertising.amazon.com/help/GSGEG5FWNRFXC4KT)
-- [Portfolios](https://advertising.amazon.com/help/GXEM4K9PD2QH8GBJ)
-- [Use smart searches to manage campaigns](https://advertising.amazon.com/help/GGZ5H8F9X4YRFBGY)

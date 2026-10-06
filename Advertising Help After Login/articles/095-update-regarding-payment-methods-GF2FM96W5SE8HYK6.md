@@ -3,35 +3,22 @@ title: "Update regarding payment methods"
 source_url: "https://advertising.amazon.com/help/GF2FM96W5SE8HYK6"
 library: "Amazon Ads Support Center"
 section: "billing-and-payments"
-downloaded_at: "2026-05-13"
+downloaded_at: "2026-10-07"
 status: "captured"
 ---
 
-# Update Regarding Payment Methods
+# Update regarding payment methods
 
-This article explains Amazon Ads payment method changes beginning April 2, 2026 for selected advertisers.
+Frequently asked questions about the payment method updates for select sponsored ads advertisers.
 
-## Key Points
+Updated on Aug 11, 2026
 
-- Some advertisers transition to seller/vendor account balance or Pay by invoice.
-- Impacted advertisers are notified directly.
-- Credit/debit card may remain as a backup method.
-- The payment method change does not affect campaign performance.
+## Overview
 
-## Workflow
+Beginning April 2, 2026, we started notifying a small portion of sponsored ads advertisers that the primary payment methods for their advertising costs will transition to either available seller or vendor account balance or Pay by Invoice. The advertisers impacted by this change were contacted directly and provided advance notice to prepare for the change.
 
-1. Open **Billing**.
-2. Go to **Payment settings**.
-3. Review available payment methods.
-4. If eligible and needed, switch to **Pay by invoice**.
+## Common questions
 
-## Checkpoints
+## Understanding the change
 
-- Stop before switching payment methods.
-- Check whether the account was directly notified or is affected.
-- Review payment method status before the change date.
-- Confirm invoice ownership and internal approval before using Pay by invoice.
-
-## Routing Use
-
-Use this page when the user asks about the April 2026 payment method change, auto-deduction behavior, seller/vendor balance payments, or Pay by invoice eligibility.
+## Understanding available payment methods

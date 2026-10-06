@@ -3,27 +3,24 @@ title: "Stores eligibility requirements"
 source_url: "https://advertising.amazon.com/help/G3Y9UFTFSJYPGY6X"
 library: "Amazon Ads Support Center"
 section: "linked-expansion"
-downloaded_at: "2026-05-13"
+downloaded_at: "2026-10-07"
 status: "captured"
 ---
 
-# Stores Eligibility Requirements
+# Stores eligibility requirements
 
-This article outlines eligibility requirements for creating Stores on Amazon.
+To create Stores, you must meet certain eligibility requirements.
 
-## Key Points
+Updated on May 13, 2026
 
-- The advertiser must be a professional seller or vendor.
-- Brand Registry enrollment is required.
-- The account must be in good standing.
+## Account requirements
 
-## Checkpoints
+- Professional seller or vendor.
+- Sellers must be enrolled in the Brand Registry. To successfully create your Store, the brand must be properly registered and it must have the correct selling roles assigned. To complete Brand Registry enrollment, visit Brand Registry.
+- Active account in good standing with Amazon.
 
-- Confirm Brand Registry approval before creating a Store.
-- Confirm the seller/vendor account is in good standing.
-- Stop before creating or submitting a Store.
-- Contact support if Store creation errors appear despite eligibility.
+**Note:**For Amazon sellers, if your Brand Registry status is **Approved**, but you’re seeing an error when creating your Store, use the **Contact us** link on this page for support.
 
-## Routing Use
+## Content requirements
 
-Use this page when the user asks why they cannot create a Store, whether they are eligible for Stores, or how Brand Registry affects Store creation.
+In addition to the account and asset requirements, your Store must meet the Stores content guidelines and acceptance policies to pass the moderation review and go live. The moderation review process is usually completed within 24 hours, but it may take up to 3 business days. Learn more about Stores moderation.

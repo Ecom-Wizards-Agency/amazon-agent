@@ -2,38 +2,31 @@
 title: "Amazon Attribution"
 source_url: "https://advertising.amazon.com/help/GUK77L9456RQ6EJD"
 library: "Amazon Ads Support Center"
-downloaded_at: "2026-05-12"
+downloaded_at: "2026-10-07"
 status: "captured"
 page_type: "directory"
 ---
 
 # Amazon Attribution
 
-Amazon Attribution is an advertising and analytics measurement solution that gives marketers insight into how non-Amazon marketing channels perform on Amazon.
+Amazon Attribution is an advertising and analytics measurement solution that gives marketers insight into how their non-Amazon marketing channels perform on Amazon. Learn to set up attribution tagging, create attribution campaigns, and measure results to better understand the ROI of your digital marketing.
 
-It covers attribution tagging, attribution campaign creation, and measurement for understanding ROI from digital marketing.
+#### More ways to learn
 
-## Campaign creation
+Check out our library of videos and e-learning material to expand your Amazon Ads knowledge.
 
-- [Amazon Attribution](https://advertising.amazon.com/help/GBT6KJJEM7NDJG6U)
-- [Create an Amazon Attribution campaign](https://advertising.amazon.com/help/GJXTJCLK4WTWTQWU)
-- [Bulk upload campaign data](https://advertising.amazon.com/help/GD3X8KXBFKKC4BRJ)
-- [Attribution methodology](https://advertising.amazon.com/help/G4YK9L2G4NXDD7SC)
+# Intro to Amazon Attribution
 
-## Tagging
+How to set up an Amazon Attribution campaign and use ad groups to manage your attribution tags, determine where to send shoppers once they click your ad, apply tags to non-Amazon campaigns, and analyze reports.
 
-- [Apply an attribution tag](https://advertising.amazon.com/help/G5RUZFJU25FZSQFN)
-- [Validate and troubleshoot attribution tag traffic](https://advertising.amazon.com/help/G2LXF2NVBGFTXM2R)
+04:29Intro to Amazon Attribution
 
-## Metrics
+# Set up attribution campaigns
 
-- [Amazon Attribution metric definition](https://advertising.amazon.com/help/GA58RFKXFRQKX89X)
-- [Amazon Attribution conversion metrics](https://advertising.amazon.com/help/GKPJB66PB3877LSN)
-- [Amazon Attribution downloadable reports](https://advertising.amazon.com/help/GKKYD7FTJA2KANBT)
-- [Report column definitions for Amazon Attribution](https://advertising.amazon.com/help/GCJNVSR57T9BHPVJ)
+# Intro to Amazon Attribution
 
-## More ways to learn
+Learn about Amazon Attribution's capabilities and understand the metrics available with the Amazon Attribution console.
 
-- Intro to Amazon Attribution video: ![Intro to Amazon Attribution](https://d369o5h5zn8mv7.cloudfront.net/amazonadvertising/20-IntroAmazonAttribution/GEEF68MVGENGW5VS.webp)
-- Set up attribution campaigns.
-- Measure your marketing impact with Amazon Attribution.
+# Measure your marketing impact with Amazon Attribution
+
+Amazon Attribution is a free solution that helps advertisers measure performance of their non-Amazon marketing strategies. Learn how to use reporting and insights to understand how shoppers discover and buy products on Amazon, and also see how other brands leverage Amazon Attribution to help meet their business goals.

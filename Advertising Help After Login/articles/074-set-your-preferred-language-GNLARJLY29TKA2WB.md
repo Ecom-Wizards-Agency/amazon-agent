@@ -3,36 +3,28 @@ title: "Set your preferred language"
 source_url: "https://advertising.amazon.com/help/GNLARJLY29TKA2WB"
 library: "Amazon Ads Support Center"
 section: "account-management"
-downloaded_at: "2026-05-13"
+downloaded_at: "2026-10-07"
 status: "captured"
 ---
 
-# Set Your Preferred Language
+# Set your preferred language
 
-This article explains how to select a preferred language in Amazon Ads so the interface stays consistent across advertising accounts.
+Learn about language preferences and supported languages in Amazon Ads.
 
-## Key Points
+Updated on Aug 27, 2025
 
-- Language preference can apply across accounts in different countries.
-- Keyword translation and product category display can use the selected language.
-- Invoicing remains in the local currency and cannot be changed through language settings.
+Selecting a language preference maintains your language of choice when you switch between advertising accounts in different countries.
 
-## Workflow
+It also allows you to:
 
-1. Open account settings from the top-right corner.
-2. Select the preferred language.
-3. Click **Change**.
+- Add keywords from your preferred language and translate them to the local language of the campaign location.
+- View translations for suggested keywords in your preferred language.
+- View product categories within product targeting in your preferred language.
 
-## Supported Languages
+To set your preferred language go to **Account settings** in the top-right corner, select the language, and click **Change**. Invoicing and payments will continue to occur in the currency of the country where you advertise, the currency of preference is for reference only.
 
-English variants, Chinese Simplified, German, Spanish variants, French variants, Italian, Dutch, Polish, Portuguese, Swedish, Vietnamese, Turkish, Japanese, Arabic, Hindi, Tamil, Thai, and Korean are listed as supported language options.
+Supported languages are: English (US), 中文（简体), Deutsch, English (Canada), English (India), English (UK), English (UAE), English (Australia), English (Singapore), Español (España), Español (México), Français (Canada), Français (France), Italiano, Nederlands, Polski, Português, Svenska, Tiếng Việt, Turkce, 日本語, العربية, हिन्दी, தமிழ், ไทย, 한국어.
 
-## Checkpoints
+Note: Setting a language preference in advertising console doesn’t change applicable ad policy content guidelines that require creatives to be submitted in the primary language of the country.
 
-- Stop before changing language if the user is actively working in the account.
-- Ad policy guidelines still apply in the primary language of the country.
-- Currency and invoice language behavior may not follow the interface language.
-
-## Routing Use
-
-Use this page when the user asks to change the Amazon Ads interface language or troubleshoot translation/language display issues.
+Click here to view all supported currencies in Amazon Ads.

@@ -2,57 +2,45 @@
 title: "Reserve keywords in a Sponsored Brands campaign"
 source_url: "https://advertising.amazon.com/help/G86SD7HK6NHHRB9B"
 library: "Amazon Ads Support Center"
-downloaded_at: "2026-05-12"
+downloaded_at: "2026-10-07"
 status: "captured"
 ---
 
 # Reserve keywords in a Sponsored Brands campaign
 
-Reserve share of voice (SOV) gives a fixed upfront price to display ads in top-of-search placement when shoppers search for reserved branded keywords.
+Reserve share of voice (SOV) gives you a fixed, upfront price to display your ads in the top of search placement when a shopper searches for the branded keywords you reserve. This helps ensure your ads are consistently visible at the top of search results.
 
-> Note: Reserve share of voice is not available in Spain. After the campaign starts, keywords, campaign duration, and budget cannot be changed.
+Updated on Jul 7, 2026
 
-## Select goal and campaign duration
+**Note:** Reserve share of voice is not available in Spain. Once the campaign starts, you can't change your keywords, campaign duration, or budget. Pricing is for the duration of your campaign. Learn more about campaign goals for Sponsored Brands.
 
-1. In the Sponsored Brands campaign builder, select **Reserve share of voice** under the **Goals** card.
-2. Under the Settings card, select campaign start and end dates.
-3. Campaign duration must be 30 to 92 days.
-4. Campaign start date must be 3 days to 3 months in the future because up to 72 hours may be needed for ad setup.
+## Create a Reserve keywords campaign
 
-## Reserve keywords
+**Select your goal and campaign duration**
 
-1. Under **Keyword reservation**, reserve 5 to 1,000 keywords associated with the advertiser's brands.
-2. Reserve keywords with one of these methods:
-   - **Suggested tab:** click **Add** next to suggested branded keywords, listed by search volume.
-   - **Enter List tab:** enter branded keywords, separated by commas.
-   - **Upload a file tab:** upload a CSV, TSV, or XLSX file of branded keywords.
-3. Amazon validates keywords and rejects non-branded keywords.
-4. Click **Get price for campaign** to see fixed pricing for campaign duration.
-5. If pricing is not acceptable, update campaign duration and keyword list before campaign start.
+1. To Reserve keywords, select **Reserve share of voice** under the **Goals** card in the Sponsored Brands campaign builder. Learn more about how to create a Sponsored Brands campaign
+2. Select your campaign start and end date under the Settings card. For this goal, the campaign duration must be between 15 and 92 days.
+3. Set the campaign start date between 3 days to 3 months into the future (you need up to 72 hours to complete your ads set-up). For example, if you create your campaign on September 12, the start date can be anywhere from September 15 to December 12.
 
-> Note: A minimum budget of `$6,000` is required for this goal.
+**Reserve keywords**
 
-## Create ad group and map keywords
+1. Reserve 5 to 1,000 keywords associated with any of your brands under the **Keyword reservation** section.
+2. You can reserve keywords in 3 different ways: **Suggested tab:** Click **Add**next to the keyword you want to reserve. Suggested keywords are related to your brands and listed in order of keyword search volume. **Enter List tab:** Enter any branded keywords you want to reserve. Add a comma to separate keywords. **Upload a file tab:** Add a CSV, TSV, or XLXS file of your branded keywords.
+3. Click "Get price for campaign" to see the fixed pricing for the duration of the campaign.
+4. If you aren't satisfied with the pricing, you can update the campaign duration and list of keywords until you find a price that works for you. However, once the campaign starts, you can't change your keywords, campaign duration, or budget.
 
-1. Add the ad group name on the **Create an ad group** card.
-2. Choose ad format:
-   - **Product collection:** promote product collections or existing Stores.
-   - **Video:** promote a single product and drive traffic to the product detail page.
-3. Under **Keyword targeting**, assign keywords to the first ad group.
-4. Add remaining keywords to other ad groups after campaign creation.
-5. Under **Create an ad**, add ad name, headline, and brand.
-6. Click **Submit for review**.
+**Note:** A minimum budget of $3,000 is required to use this goal. This ensures you can achieve meaningful brand visibility.
 
-All reserved keywords must be added to an ad group within 14 days of campaign start. Keywords not associated with a relevant ad within 14 days are removed.
+**Create your ad group and map keywords**
 
-Moderation review usually completes within 24 hours but may take up to 3 business days.
+1. Add your Ad group name on the **Create an ad group**card. Ad groups are groups of ads within a campaign that share the same set of targeting tactics or creative type.
+2. Choose your ad format, which determines how your ad is displayed to shoppers. Select **Product collection** if you want to promote unique collections of products or existing Stores. Select **Video** to promote a single product and drive traffic to your product detail page.
+3. Under the**Keyword targeting** card, assign keywords to your first ad group. You can add remaining keywords to other ad groups after you create your campaign. You must add all reserved keywords to an ad group within 14 days of your campaign start date.
+4. Under **Create an ad**, add your ad details like your ad name, headline, and brand.
+5. Click the **Submit for review** button to submit your campaign for review.
 
-## Related topics
+Once you click the **Submit for review** button, your ad will go through our moderation review process before your campaign goes live. The review process is usually completed within 24 hours, but may take as long as 3 business days. We'll email you to let you know if your ad was approved or if changes need to be made. Learn more about Sponsored Brands moderation..
 
-- [Understand targeting](https://advertising.amazon.com/help/G3XAU5G7C2JTNQTM)
-- [Understand keyword match types](https://advertising.amazon.com/help/GHTRFDZRJPW6764R)
-- [Set up keyword targeting](https://advertising.amazon.com/help/GK3MNACNTXG659J9)
-- [Set up product targeting](https://advertising.amazon.com/help/GB2JECV9CJK6R6AL)
-- [Add negative keywords or negative products](https://advertising.amazon.com/help/GTEHPEG5BXY9UX5W)
-- [Branded keyword guidelines and keyword suspension](https://advertising.amazon.com/help/G2QZJUGUT4RGLJ6N)
-- [Keyword translation](https://advertising.amazon.com/help/GHPTCVTGNFZ2KTSP)
+**Tip:** You must map keywords to a relevant ad within 14 days of your campaign start. Keywords not associated with a relevant ad within 14 days will be removed from your campaign. Learn more about branded keywords guidelines and keyword suspension.
+
+Please review the additional terms that apply to Reserve Share of Voice campaigns here.

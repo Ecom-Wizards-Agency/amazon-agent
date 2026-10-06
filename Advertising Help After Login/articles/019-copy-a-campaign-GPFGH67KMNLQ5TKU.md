@@ -2,7 +2,7 @@
 title: "Copy a campaign"
 source_url: "https://advertising.amazon.com/help/GPFGH67KMNLQ5TKU"
 library: "Amazon Ads Support Center"
-downloaded_at: "2026-05-12"
+downloaded_at: "2026-10-07"
 status: "captured"
 ---
 
@@ -10,68 +10,35 @@ status: "captured"
 
 Learn how to copy an existing advertising campaign to start a new one with the same settings.
 
-## Terms to know
+Updated on Apr 30, 2026
 
-- **Cost Per Click (CPC):** the amount charged when a customer clicks an ad.
-- **Viewable Cost Per Thousand Impressions (vCPM):** an advertising model where you pay for every 1,000 viewable ad impressions.
+- **Cost Per Click (CPC)**: Represents the amount that you are charged when a customer clicks on your ad. This model helps control costs because you're only charged when someone shows interest in your ad by clicking on it.
+- **Viewable Cost Per Thousand Impressions (vCPM)**: Is an advertising model where you pay for every 1,000 impressions of your ad that are viewable. A viewable impression is typically defined as an ad that appears on screen for a certain amount of time, ensuring that users actually had a chance to see it.
 
 ## When to copy campaigns
 
-Copying an existing campaign can save time by copying settings instead of recreating ads, targets, and ad groups.
-
-Campaigns can be copied if they:
+Instead of creating new ads, keyword and product targets, and ad groups, you can save time and work by copying your existing campaigns. You can copy campaigns that:
 
 - Are currently running.
 - Have already ended.
 - Are archived.
-- Were not approved, provided necessary changes are made to comply with ad guidelines.
+- Weren't approved (be sure that you make the necessary changes to comply with our ad guidelines).
 
-When copied, the new campaign includes campaign name, start and end date, budget, keywords, bids, and ad groups. Performance metrics and archived ad groups, targets, and advertised products are not copied.
+When you copy a campaign, the campaign name, start and end date, budget, keywords, bids, and ad groups are copied. Performance metrics (example: impressions, clicks, and sales) and archived ad groups, targets, and advertised products aren't copied to the new campaign.
 
 ## How to copy a campaign
 
+To copy a campaign:
+
 1. In the navigation side menu, click **Campaigns**.
-2. Locate the campaign to copy, then click **More**.
-3. Click **Copy**, then modify and create the copied campaign according to campaign type.
+2. Locate the campaign that you wish to copy, then click **More**.
+3. Click **Copy**, then modify and create your copied campaign using the steps for your campaign type: **Sponsored Brands and Sponsored Products campaigns using custom text:** A new draft campaign will be created that is prepopulated with the parameters from the original campaign. Edit the draft campaign and submit. This isn't available for Display campaigns. **Sponsored Products:** You'll be presented with options to copy your campaign. Update the start and end date of your copied campaign by checking **Edit your start date and end date**. If you take no action, the following defaults are applied: **Start date of the original campaign is in the future:** Your copied campaign will have the same default start date and end date. **Original campaign hasn't ended yet:** The default start date for your copied campaign will be today's date and the end date will be the same as the original campaign. **Original campaign has already ended:** The default start date for your copied campaign will be today's date, and the end date will be **No end date**. Update the intended campaign status by unchecking **Pause new**campaigns**after creation**. By default, your campaign will be paused unless you uncheck this box. By unchecking this box, the status of the original campaign will carry over to a newly copied campaign. Click **Copy**. An **In progress** message will appear in the campaign manager while your campaign is being copied. You'll see a **Success** message when the copy is complete. The multi-marketplace campaign copy feature allows you to replicate your campaigns in multiple marketplaces. Check this video to learn how to use this feature in your campaign manager.
 
-### Sponsored Brands and Sponsored Products campaigns using custom text
+## Things to keep in mind when copying campaigns
 
-A new draft campaign is created and prepopulated with parameters from the original campaign. Edit the draft campaign and submit.
-
-This is not available for Display campaigns.
-
-### Sponsored Products
-
-1. Update the start and end date by checking **Edit your start date and end date**.
-2. If no action is taken, defaults are applied:
-   - If the original start date is in the future, the copied campaign has the same default start and end dates.
-   - If the original campaign has not ended, the copied campaign starts today and keeps the same end date.
-   - If the original campaign has ended, the copied campaign starts today and has **No end date**.
-3. Update intended campaign status by unchecking **Pause new campaigns after creation**. By default, the copied campaign is paused unless this box is unchecked.
-4. Click **Copy**.
-5. An **In progress** message appears in Campaign manager while copying. A **Success** message appears when complete.
-
-Multi-marketplace campaign copy can replicate campaigns in multiple marketplaces.
-
-## Things to keep in mind
-
-- Multi-marketplace campaign copy is not available for Display.
-- Targeting type and ad group settings are included in the copy.
-- For Sponsored Products, automatic/manual targeting and keyword/product attribute targeting cannot be changed during copy.
-- For Display campaigns, CPC/vCPM cost type and contextual/audience targeting cannot be changed during copy.
-- For Sponsored Brands, CPC/vCPM cost type and keyword/product targeting cannot be changed during copy.
-- Performance history, archived ad groups, targets, and advertised products are not copied.
-- Budget rules are not copied.
-- Ineligible ASINs, archived ad groups, targets, and advertised products are not copied.
-- Sponsored Products campaigns are generally eligible to go live 1 to 2 hours after submission.
-- Sponsored Brands, Display, and Sponsored Products campaigns promoting book ASINs go through review. Review usually completes within 24 hours but may take up to 3 business days.
-
-## Related topics
-
-- [Bulk management](https://advertising.amazon.com/help/GP5GZAXST3AF4M46)
-- [Edit a campaign](https://advertising.amazon.com/help/GW73Q54RZZCMPYYV)
-- [Live Events Optimizer campaign management](https://advertising.amazon.com/help/GD6PETSSAQLNGVUT)
-- [Monitor product performance](https://advertising.amazon.com/help/GSGEG5FWNRFXC4KT)
-- [Optimize your campaign](https://advertising.amazon.com/help/GJHF6GB7WZUMPYJ6)
-- [Portfolios](https://advertising.amazon.com/help/GXEM4K9PD2QH8GBJ)
-- [Use smart searches to manage campaigns](https://advertising.amazon.com/help/GGZ5H8F9X4YRFBGY)
+- Multimarketplace campaign copy isn't available for Display.
+- Targeting type and ad group settings are included in the copy. For Sponsored Products, you don't have the option to switch between automatic and manual targeting, or between keyword targeting and product attribute targeting. For Display campaigns, you don't have the option to switch between CPC or vCPM cost type, or between contextual or audience targeting. For Sponsored Brands, you don't have the option to switch between CPC or vCPM cost type, or between Keyword or Product targeting.
+- Performance history isn't carried over to the copied campaign, and archived ad groups, targets, and advertised products won't be copied.
+- Budget rules and performance history aren't carried over to the copied campaign.
+- Ineligible ASINs, archived ad groups, targets, and advertised products won't be copied.
+- Sponsored Products campaigns are generally eligible to go live 1 to 2 hours after you submit them. Sponsored Brands, Display, and Sponsored Products campaigns promoting book ASINs, will go through our review process and will be considered "pending" while Amazon is reviewing it. The review process is usually completed within 24 hours, but may take as long as 3 business days. We'll email you once your ad has been reviewed.

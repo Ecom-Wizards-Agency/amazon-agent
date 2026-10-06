@@ -3,36 +3,25 @@ title: "Troubleshoot invoice issues"
 source_url: "https://advertising.amazon.com/help/GKLYSJEH7WQPVFFC"
 library: "Amazon Ads Support Center"
 section: "billing-and-payments"
-downloaded_at: "2026-05-13"
+downloaded_at: "2026-10-07"
 status: "captured"
 ---
 
-# Troubleshoot Invoice Issues
+# Troubleshoot invoice issues
 
-This article explains how to troubleshoot missing, inaccessible, or problematic Amazon Ads invoices.
+Learn how to resolve issues with your advertising invoice.
 
-## Key Points
+Updated on Dec 11, 2025
 
-- Invoices are sent by email and can also be reviewed in the ads console.
-- Payment-failure invoices may not be downloadable until payment is processed.
-- Browser cache, cookies, extensions, firewalls, or mobile access can affect invoice download.
-- Written-off invoices may require Advertiser Support to reissue.
+**For Brazil advertisers:**Starting in 2026, new taxes (IBS at 0.1% and CBS at 0.9%) will appear on your invoices for informational purposes only. These new taxes will not be charged to you during 2026. Your current tax structure (PIS/COFINS and ISS) remains unchanged, and no action is required from you at this time.
 
-## Workflow
+You'll receive your invoice via email. You can also review and download your invoices directly from the ads console. If you’re unable to receive invoices via email, verify and update your Email ID under Payment Settings.
 
-1. Verify invoice email address under **Payment Settings**.
-2. If invoices cannot download, clear browser cache and cookies.
-3. Try a different browser.
-4. Disable ad blockers, extensions, or firewall rules that may block the UI.
-5. Use desktop access rather than mobile.
-6. Contact Advertiser Support for written-off invoices or unresolved issues.
+If you’re unable to download your invoice, try performing the following actions to resolve:
 
-## Checkpoints
+- Clear your browser cache and cookies and/or try using a different browser
+- Disable/Pause any Ad-Blocker extension or add-on in your browser.
+- Disable/Pause any type of firewall on your browser that could block the UI.
+- Access the account from a desktop computer and not a mobile device or tablet.
 
-- Confirm invoice status before troubleshooting download.
-- If in payment failure status, process payment before expecting invoice download.
-- Capture screenshots of error messages before contacting support.
-
-## Routing Use
-
-Use this page when the user asks why invoices are missing, cannot be downloaded, not received by email, or written off.
+Invoices that are in payment failure status can’t be downloaded until payment is successfully processed. For written-off invoices, contact Advertiser Support to reissue them and reactivate your account.

@@ -2,60 +2,53 @@
 title: "Branded keyword guidelines and keyword suspension"
 source_url: "https://advertising.amazon.com/help/G2QZJUGUT4RGLJ6N"
 library: "Amazon Ads Support Center"
-downloaded_at: "2026-05-12"
+downloaded_at: "2026-10-07"
 status: "captured"
 ---
 
 # Branded keyword guidelines and keyword suspension
 
-To reserve branded keywords in Sponsored Brands campaigns, advertisers must follow mapping requirements and account policies.
+To ensure you are able to reserve your branded keywords in Sponsored Brands campaigns, you must follow specific mapping requirements and account policies.
 
-Reserve share of voice (SOV) gives a fixed upfront price to display ads at the top of search placement when shoppers search reserved branded keywords.
+Updated on Nov 5, 2025
+
+Reserve share of voice (SOV) gives you a fixed, upfront price to display your ads in the top of search placement when a shopper searches for the branded keywords you reserve. This helps ensure your ads are consistently visible at the top of search results. This helps ensure your ads are consistently visible at the top of search results. Pricing is for the duration of your campaign. Learn more about how to Reserve keywords in a Sponsored Brands campaign.
+
+To maintain your branded keyword reservations, you must follow the branded keyword guidelines below and maintain an active account.
 
 ## Branded keyword guidelines
 
-- Reserve a minimum of 5 keywords and a maximum of 1,000.
-- Keywords must be branded and related to the advertiser's brands.
-- Generic terms, such as "moisturizer" or "face wash", cannot be reserved alone.
-- The same keyword cannot be reserved on multiple campaigns or ad groups.
-- To move a keyword from one ad group to another, archive it in the old ad group and add it to the new ad group.
-- Keywords must be mapped to a relevant ad within 14 days of campaign start.
-- If a keyword is not associated with a relevant ad within 14 days, it is removed from the campaign and becomes eligible for other ads.
-- Advertisers are charged for the time up to 14 days if the keyword was not mapped.
+Keep in mind the following guidelines when choosing your branded keywords:
+
+- You must reserve a minimum of 5 keywords and a maximum of 1,000.
+- Keywords must be branded and related to any of your brands. For example, if you are advertising a skincare brand named Glow, you can include branded keywords like Glow moisturizer and Glow skincare. You cannot include generic terms like moisturizer or face wash.
+- You cannot reserve the same keyword on multiple campaigns or ad groups. If you want to move a keyword from one ad group to another, you need to archive the keyword first in the old ad group and add it to the new ad group.
+- You must map keywords to a relevant ad within 14 days of your campaign start. You will be charged for that time up to 14 days if you did not map a keyword to a relevant ad. Keywords not associated with a relevant ad within 14 days will be removed from your campaign and become eligible for other ads.
 
 ## Keyword rejection
 
-Amazon validates keywords for reservation and rejects non-branded keywords. Appeals can be submitted through **Contact Us**.
+We will validate keywords for reservation and reject any non-branded keywords. You can appeal this decision by contacting us (click **Contact Us** in the right hand column under **More Help**on this page).
 
-Possible rejection reasons:
+Below are possible reasons why your keyword was rejected:
 
-- Brand or trademark is not registered with Amazon Brand Registry.
-- Brand/trademark keywords are too broad.
-- Keywords contain common misspellings and variations of brand names or trademarks.
-- Non-branded keywords were used.
-- Keyword contains the advertiser's and another company's brand/trademark.
-- Keyword has a brand/trademark shared by more than two brands.
-- Keyword contains another company's brand/trademark.
-- Brand is not mapped to the advertiser account reserving the keyword.
+- Your brand or trademark is not yet registered with Amazon Registry. Your brand and trademark must be available in Brand Registry to reserve keywords that utilize that brand or trademark name.
+- Your keywords with your brand name or trademark are too broad.
+- Your keywords contain common misspellings and variations of brand name or trademarks.
+- You used non-branded keywords (shoes, lipstick).
+- A keyword contains both your and another company's brand name or trademark or your keyword has a brand name or trademark shared by more than 2 brands.
+- You used keywords that contain another company's brand name or trademark.
+- Your brand isn't mapped to the advertiser account where you are reserving the keyword.
 
-## Keyword removal
+## Keyword Removal
 
-A keyword must be associated to a relevant ad within 14 days from campaign start or it will be removed.
+Your keyword needs to be associated to a relevant ad within 14 days from the campaign start date or your keyword will be removed.
 
-Example: if Kitchen Smart reserves "kitchen smart coffee maker", the keyword should be associated with a coffee-maker creative rather than unrelated dishwasher creative.
+**Example:** If Kitchen Smart reserves the keyword "kitchen smart coffee maker," they should associate this keyword to a creative about coffee makers rather something unrelated like dish washers.
 
-If removed, the ad will not appear at top of search for that keyword. The fixed upfront campaign price adjusts after keyword removal. Removed keywords cannot be added back to the same campaign.
+If your keyword is removed, then your ad will not appear at the top of search results for that keyword. Your fixed, upfront price for the campaign will adjust once the keyword is removed from your campaign.
+
+Once your keyword is removed, you cannot add it back to the same campaign.
 
 ## Account suspension
 
-If an account is suspended for non-payment, Amazon stops serving ads for these keywords. When reinstated, Amazon charges the fixed cost agreed when the campaign was created.
-
-## Related topics
-
-- [Understand targeting](https://advertising.amazon.com/help/G3XAU5G7C2JTNQTM)
-- [Understand keyword match types](https://advertising.amazon.com/help/GHTRFDZRJPW6764R)
-- [Set up keyword targeting](https://advertising.amazon.com/help/GK3MNACNTXG659J9)
-- [Set up product targeting](https://advertising.amazon.com/help/GB2JECV9CJK6R6AL)
-- [Add negative keywords or negative products](https://advertising.amazon.com/help/GTEHPEG5BXY9UX5W)
-- [Keyword translation](https://advertising.amazon.com/help/GHPTCVTGNFZ2KTSP)
-- [Reserve keywords in a Sponsored Brands campaign](https://advertising.amazon.com/help/G86SD7HK6NHHRB9B)
+If your account is suspended due to non-payment, we will stop serving your ads for these keywords. When your account is reinstated, we will charge the fixed cost agreed upon when the campaign was created.

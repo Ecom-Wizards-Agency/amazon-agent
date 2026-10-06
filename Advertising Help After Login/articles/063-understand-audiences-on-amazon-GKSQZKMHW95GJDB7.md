@@ -2,58 +2,74 @@
 title: "Understand audiences on Amazon"
 source_url: "https://advertising.amazon.com/help/GKSQZKMHW95GJDB7"
 library: "Amazon Ads Support Center"
-downloaded_at: "2026-05-12"
+downloaded_at: "2026-10-07"
 status: "captured"
 ---
 
 # Understand audiences on Amazon
 
-Audience targeting helps reach relevant customers. Advertisers can target or exclude audiences from a campaign to reach desired users while excluding irrelevant targeting criteria.
+Learn about the different types of custom and prebuilt audiences available to refine your campaign delivery.
 
-Audiences can be prebuilt Amazon audience segments or custom audiences based on first-party or third-party data.
+Updated on Aug 10, 2026
 
-## Audience types
+Was this video helpful? Select feedback
 
-Prebuilt Amazon audience segments are informed by first-party shopping and streaming signals. They can be used across line item types such as desktop, mobile, video, and Streaming TV.
+## What are audiences?
 
-- **In-market:** customers who are in the aisle and recently shopped for products in a category.
-- **Lifestyle:** segments mapped from aggregated shopping and viewing behaviors, such as Foodies, Sports Enthusiasts, or Tech Enthusiasts.
-- **Interests:** customers based on what they frequently browse and buy.
-- **Life events:** audiences around life moments, such as Traveling Soon.
-- **Custom first-party data:** custom audiences using the advertiser's first-party data.
-- **Custom third-party data:** custom audiences using third-party data.
+Audience targeting helps you reach relevant customers. You can precisely target or exclude audiences from your campaign, to help reach your desired audience while excluding irrelevant targeting criteria. This helps optimize ad cost and improve performance by ensuring your ads are shown to the most relevant users. You can utilize prebuilt Amazon audience segments, or create custom audiences based on first or third party data.
+
+For example, you can target users interested in board and mobile games ages 18-24.
+
+Prebuilt audience segments informed by a variety of first-party shopping and streaming signals. They can be used across all line item types, such as desktop, mobile, video, and Streaming TV.
+
+- **In-market**: Customers who are "in-the-aisle" and recently shopped for products in a certain category.
+- **Lifestyle**: We map a variety of aggregated shopping and viewing behaviors (shopping on Amazon, browsing on IMDb, streaming on Prime Video and Twitch) to lifestyle segments such as "Foodies," "Sports Enthusiasts," or "Tech Enthusiasts."
+- **Interests**: Engage customers based on what they frequently browse and buy. Examples of these audiences include "Interested in Canadian History" and "Interested in Interior Design."
+- **Life events**: Engage audiences based around life moments, such as "Traveling Soon."
 
 ## How to add Amazon audiences
 
-### With Ads Agent during ad group setup
+During ad group setup, browse prebuilt Amazon audiences. You can also create custom audiences and add them here manually, or use Ad Agent to generates policy compliant Amazon audience suggestions.
 
-1. Click **Add targeting with AI** on the targeting card.
-2. If products or ASINs are already added, Ads Agent provides a suggested intent.
-3. Use the intent or edit it according to the targeting strategy.
-4. Click **Get targeting suggestions**.
-5. Review suggestions and uncheck any that should not be included.
-6. Click **Add targeting**.
+To use Ads Agent during ad group set up:
 
-### Manually during ad group setup
+1. Click **Add targeting with AI** on the targeting card
+2. If you’ve already added product or ASINs, Ads agent will give a suggested intent. Use the intent as is, or edit according to your targeting strategy.
+3. Click **Get targeting suggestions**.
+4. Review the suggestions, and uncheck the box next to any you don't want to include (they will all be selected by default).
+5. Click **Add targeting.**
+
+To add targeting manually during ad group setup:
 
 1. On the targeting card, click **Change** next to audiences.
-2. Use search or filters to find audiences.
-3. Click **Add** next to audiences.
-4. Optionally browse and add suggested audiences.
-5. Optionally refine with audience groups, including include and exclude groups.
-6. Click **Save changes**.
+2. Use the search bar or filter dropdown to find your desired audiences.
+3. Click **Add** next to audiences you want to target.
+4. Optional: Browse and add suggested audiences. Suggested audiences populate to provide additional audiences related to the segments you already added.
+5. Optional: Refine your audience targeting with audience groups (include and exclude).
+6. Click **Save changes**
+
+Read set up audience targeting to learn about audience groups (include and exclude) and suggested audiences.
+
+## Migrate audiences between accounts
+
+Note: This applies to Amazon DSP audiences only.
+
+You can migrate custom-built and advertiser audiences from one Amazon DSP advertiser account to another under the same brand.
+
+**Eligible**
+
+- Custom-built audiences created in Amazon DSP using rules, pixels, or hashed files. Must remain within the same marketplace.
+- Advertiser audiences associated with your Amazon DSP account. Can migrate across marketplaces within the same region (NA, EU, FE).
+
+**Not eligible**: Lookalike audiences, DMP audiences, Standard catalog audiences, AMC audiences
+
+To request a migration, contact Amazon Advertising support with the following: Source entity ID, Source advertiser ID, Target advertiser ID, and Audience ID(s) Migrated audiences appear in the target account's Audiences section within 24 hours.
 
 ## Best practices
 
-Amazon recommends differentiated audiences, often broken out by purchase journey:
+We recomended that all camapaings use differentiated audiences.You can consider breaking out your audiences based on the purchase journey. For example:
 
-- **Loyalty:** audience that purchased the advertiser's products.
-- **Conversion:** audience browsing products like the advertiser's but not yet purchased.
-- **Consideration:** audience browsing similar products but not yet the advertiser's products.
-- **Awareness:** audience likely interested in products but not currently in consideration, conversion, or loyalty stages.
-
-## Related topics
-
-- [Amazon Marketing Cloud](https://advertising.amazon.com/help/G9H78BXVT5NCEGUM)
-- [Create a custom audience using first-party data](https://advertising.amazon.com/help/GS2PEGTHL288GM9Y)
-- [Create a custom audience using third-party data](https://advertising.amazon.com/help/GWU447PKLV5MHGYF)
+- **Loyalty:** This represents the audience that purchased your products. It’s based on the products that you wish to promote with your marketing. You can define it using a custom conversion segment, such as Amazon Product Purchases or by a directly referencing a list of ASINs.
+- **Conversion:**This represents the audience that has already been browsing for products like yours but have yet to purchase from your product. It’s based on the products that you wish to promote with your marketing. You can define it using a custom conversion segment, such as Amazon Product Views or Amazon Similar Product Views, or by directly referencing a list of ASINs.
+- **Consideration:** This represents the audience that is browsing similar products, but has not yet looked at your products. You can define it with a standard audience segment expression or with a list of Amazon retail categories.
+- **Awareness:** This stage represents the audience that should be interested in your products, but are not currently in the Consideration stage or Conversion and Loyalty stage. You can define it a standard audience segment expression or with a list of Amazon retail categories.

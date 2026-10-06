@@ -2,15 +2,14 @@
 title: "Advertiser audience agreement"
 source_url: "https://advertising.amazon.com/help/GFP898677TAJMLRS"
 library: "Amazon Ads Support Center"
-downloaded_at: "2026-05-12"
+downloaded_at: "2026-10-07"
 status: "captured"
 ---
 
 # Advertiser audience agreement
 
-Advertisers that bring their own audiences to Amazon by using Hashed Audiences, Amazon remarketing or conversion pixels, or a third party managing or providing audience data services additionally agree to the [Advertiser Audience Agreement](https://advertising.amazon.com/dsp/agreement/advertiserAudience/en?).
+Provides details about advertiser audience agreement.
 
-## Related topics
+Updated on Oct 21, 2025
 
-- [Amazon DSP inventory policies](https://advertising.amazon.com/help/GUYW2GE498ANTH8Y)
-- [Content adjacency policies for Amazon DSP](https://advertising.amazon.com/help/GGPF89QEQHKPF6WU)
+To the extent you bring your own audiences to Amazon by using Hashed Audiences, Amazon’s remarketing or conversion pixels, or a party that manages your audience data or otherwise provides audience data services to you, you additionally agree to the Advertiser Audience Agreement.

@@ -2,50 +2,41 @@
 title: "Understand Cost controls for sponsored ads"
 source_url: "https://advertising.amazon.com/help/GNJDAT6AEYD3XJA8"
 library: "Amazon Ads Support Center"
-downloaded_at: "2026-05-12"
+downloaded_at: "2026-10-07"
 status: "captured"
 ---
 
 # Understand Cost controls for sponsored ads
 
-Cost control automatically optimizes campaign bids to try to remain near the target cost per click while driving page visits.
+Cost control automatically optimizes your campaign bids to try to remain near your target cost per click while driving page visits.
 
-> Note: Cost control is available only for advertisers that sell on the Amazon store and select the "drive page visits" goal when creating a campaign.
+Updated on Apr 27, 2026
 
-Instead of manually creating custom bids, cost control automatically adjusts bids to optimize the campaign toward the desired target cost.
+**Note:**The cost control feature is available only for advertisers that sell on the Amazon store and select the “drive page visits” goal when creating a campaign.
 
-If the campaign goal is "drive page visits," cost control is automatically turned on. To turn it off, uncheck the box next to **Aim to keep average CPC near your target**.
+Instead of manually creating custom bids, the cost control feature automatically adjusts bids for you. This aims to optimize your campaign to drive page visits near your desired target cost, saving you time and effort.
 
-![Cost control checkbox in campaign setup](https://d369o5h5zn8mv7.cloudfront.net/images/2025/97_SB_Cost_Control/sb_cost_control_en-US.png)
-
-If cost control is turned off, specific bids must be entered for keywords or products in the targeting section.
+If your campaign goal is "drive page visits," cost control is automatically turned on. To turn cost control off, uncheck the box next to "Aim to keep average CPC near your target." If you turn off cost control, you'll need to enter in a specific bid for keywords or products when you get to the targeting section.
 
 ## How it works
 
-> Note: Cost control is a target average cost, not a max cost. Average CPC may be higher than the amount entered.
+**Note:**Because cost control is a target average cost and not a max cost, your average CPC may be higher than the amount entered.
 
-When using cost control, choose a target average cost per click (CPC). This represents the desired average cost paid when someone clicks the ad.
+When using cost control, you choose a target average cost per click (CPC). This number reflects the desired average cost you’d pay whenever someone clicks on your ad.
 
-Amazon provides a default value in the **Target average cost per click (CPC)** box, and the advertiser can edit it. A higher value will likely improve chances of a higher number of outbound page visits.
+To help you select your target average cost per click, we provide a default value in the “Target average cost per click (CPC)” box with the ability to edit the selection. Selecting a higher value will likely improve your chances of a higher number of outc
 
-After setting the target average CPC, no specific bids are needed in the targeting section of campaign setup. The bid is automatically set and adjusted periodically based on ad performance to try to meet the target CPC.
+Once you set your target average cost per click (CPC), you won't need to enter any specific bids when you get to the targeting section of campaign set up. Your bid is automatically set and adjusts periodically based on ad performance to try to meet your target CPC.
 
-Example: if the target average CPC is `$1.00`, Amazon optimizes bidding to try to keep spend near an average of `$1.00` per click.
+For example, if you enter "$1.00" in the "Target average cost per click (CPC)" box, Amazon will optimize bidding to try to keep your spend near an average of $1.00 per click.
 
-## Keep in mind
+**Keep in mind, with cost control on:**
 
-- Bids cannot be manually edited while cost control is on.
-- Suggested bids are not available.
-- Amazon optimizes toward the desired average CPC, but spend at or below the desired average cost is not guaranteed.
-- Cost control can be used with placement and audience bid adjustments, so the highest possible CPC can exceed the cost control target average CPC.
+- Bids can’t be manually edited.
+- Suggested bids aren’t available.
+- Amazon optimizes your campaign to get close to your desired average CPC, but your spend being at or below the desired average cost is not guaranteed.
+- Cost control can be used in combination with placement and audience bid adjustments. This means your highest possible CPC will exceed your cost control target average CPC. Learn more about bid adjustments.
 
 ## Manage cost control
 
-After launch, target average CPC displays on the Sponsored Brands campaign settings page as a 7-day rolling average.
-
-## Related topics
-
-- [Understand budgets](https://advertising.amazon.com/help/GTGPQGUXNCTHE2DS)
-- [Understand budget rules](https://advertising.amazon.com/help/GNSMLANWNF344YBE)
-- [Understand budgets on Amazon DSP](https://advertising.amazon.com/help/GU5J5G57KQX8BC95)
-- [Understand automatic budget allocation on Amazon DSP](https://advertising.amazon.com/help/GB8PANYRYQY4F4X3)
+Once your campaign has launched, your target average cost per click will display on the campaign settings page for Sponsored Brands as a 7-day rolling average.

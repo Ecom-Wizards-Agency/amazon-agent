@@ -89,7 +89,7 @@ Important index:
 - `README.md`
 - `_index/linked-expansion/remaining-linked-urls-2026-05-13.txt`
 
-Status on 13.05.2026: 109 Chrome snapshot-indexed pages captured, plus 14 linked-expansion pages captured. 127 linked-expansion URLs remain as optional future depth, not blockers for core routing.
+Status on 13.05.2026: 109 Chrome snapshot-indexed pages captured, plus 14 linked-expansion pages captured. 127 linked-expansion URLs remain as optional future depth, not blockers for core routing. Updated 06.10.2026: the linked expansion is complete (114 pages added, 15 dead URLs recorded) and 120 articles were re-captured verbatim.
 
 Safety note: billing/payment identifiers, credentials, tokens, and secret values are not stored in this library.
 
@@ -160,5 +160,5 @@ AdLabs optimizer math or bid formulas:
 - SOP Drafts: review-stage tracked SOPs in `sop-drafts/`, searchable with `--library drafts`; useful for recent learnings but not final until promoted.
 - Amazon Seller Help: complete local Seller Help capture, 239/239 pages, captured 12.05.2026, 54 refreshed 06.10.2026 (`tools/knowledge/help_capture.mjs`).
 - Amazon Ads Help: complete Advanced Tools docs capture, 27/27 pages, updated 13.05.2026.
-- Advertising Help After Login: core Ads Support Center capture complete for 109/109 Chrome-indexed pages; linked expansion is partial at 14 captured and 127 remaining, updated 13.05.2026.
+- Advertising Help After Login: Ads Support Center capture of 237 articles; 120 re-captured verbatim and 114 linked pages added 06.10.2026 (`tools/knowledge/help_capture.mjs`), 15 dead linked URLs listed in `_index/advertising-help-missing.json`.
 - AdLabs Help: public AdLabs methodology articles, 7 files, downloaded 26.07.2026.

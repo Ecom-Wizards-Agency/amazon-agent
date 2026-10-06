@@ -3,26 +3,18 @@ title: "Countries that collect tax on Electronically Supplied Services"
 source_url: "https://advertising.amazon.com/help/GR7XTRH2DH33V7XX"
 library: "Amazon Ads Support Center"
 section: "billing-and-payments"
-downloaded_at: "2026-05-13"
+downloaded_at: "2026-10-07"
 status: "captured"
 ---
 
-# Countries That Collect Tax on Electronically Supplied Services
+# Countries that collect tax on Electronically Supplied Services
 
-This article lists countries that collect tax on Electronically Supplied Services and explains why VAT registration matters for billing.
+Learn which countries charge tax on Electronically Supplied Services (ESS).
 
-## Key Points
+Updated on Sep 3, 2025
 
-- Certain countries collect tax on Electronically Supplied Services.
-- Advertisers in those countries should register the correct VAT/tax number in their account.
-- The article includes a country table for ESS tax treatment.
+If you live in, or your business is located in, one of these countries and you have a VAT registration number, register it in your account to ensure that you’re billed correctly.
 
-## Checkpoints
-
-- Stop before changing tax details.
-- Confirm billing country, business address, and VAT/tax registration status.
-- Use the official Amazon Ads table for current country-specific tax handling.
-
-## Routing Use
-
-Use this page when the user asks why tax is charged on Amazon Ads, whether ESS tax applies, or which countries collect tax on digital advertising services.
+| A - E | F - N | O - Z |
+| --- | --- | --- |
+| Albania Armenia Australia Austria Bahamas Bahrain Bangladesh Barbados Belarus Belgium Bulgaria Cambodia Cameroon Canada (British Columbia) Canada (Federal) Canada (Manitoba) Canada (Saskatchewan) Canada (Quebec) Canary Islands Chile Colombia Costa Rica Croatia Cyprus Czech Republic Denmark | Finland France French Polynesia Germany Ghana Greece Hungary Iceland India Indonesia Ireland Italy Japan Kazakhstan Kyrgyzstan Latvia Lithuania Luxembourg Malaysia Malta Mexico Moldova Netherlands New Zealand Nigeria Norway | Oman Poland Portugal Romania Russia Saudi Arabia Serbia Sierra Leone Singapore Slovakia Slovenia South Africa South Korea Spain Sweden Switzerland Taiwan Tajikistan Thailand Turkey United Arab Emirates Ukraine United Kingdom Uruguay Zimbabwe |

@@ -3,35 +3,27 @@ title: "Tax refunds"
 source_url: "https://advertising.amazon.com/help/GBM34HJ5MUHACVJM"
 library: "Amazon Ads Support Center"
 section: "billing-and-payments"
-downloaded_at: "2026-05-13"
+downloaded_at: "2026-10-07"
 status: "captured"
 ---
 
-# Tax Refunds
+# Tax refunds
 
-This article explains how to request VAT/GST refunds on Amazon Ads charges.
+Learn how to request Value Added Tax (VAT)/ Goods and Services Tax (GST) refunds on your Amazon Ads charges.
 
-## Key Points
+Updated on Sep 3, 2025
 
-- Amazon collects VAT/GST based on account information at invoicing time.
-- Eligible advertisers may request refunds for tax charges.
-- A valid VAT/GST registration number and proof of registration may be required.
-- Refund requests can take around 30 days to process.
+Amazon is required to collect Electronically Supplied Services (ESS) VAT/GST based on the information in your account at the time of invoicing. Understanding the refund process can help you recover eligible tax charges.
 
-## Workflow
+**Requirements for refunds**
 
-1. Verify required tax refund documents.
-2. Confirm the VAT/GST registration number is valid.
-3. Use **Contact us** to submit the refund request.
-4. Include supporting documentation.
-5. Wait for Amazon’s update after processing.
+- Valid VAT/GST registration number.
+- Registration certificate or proof of registration showing that registration was active during the billing period.
 
-## Checkpoints
+**Steps to request a refund**
 
-- Stop before submitting a refund request.
-- Confirm tax ID, invoice, business address, and supporting documents.
-- Capture invoice IDs and tax amounts before contacting support.
+1. Verify that you have the required documents.
+2. Click the **Contact us** link.
+3. Submit your refund request with supporting documentation.
 
-## Routing Use
-
-Use this page when the user asks how to recover VAT/GST, request a tax refund, or document tax charges for support.
+Tax refund requests can take 30 days to process. We’ll send you an update when your request has been processed. If approved, we’ll provide an estimated date when you can expect to receive a refund in your account.

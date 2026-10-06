@@ -2,42 +2,36 @@
 title: "Book a creative service"
 source_url: "https://advertising.amazon.com/help/G9EDYA544GKJFHMQ"
 library: "Amazon Ads Support Center"
-downloaded_at: "2026-05-12"
+downloaded_at: "2026-10-07"
 status: "captured"
 ---
 
 # Book a creative service
 
-Discover and book creative services through Amazon Creative Services.
+Discover and book creative services through the Amazon Creative Services.
 
-> Note: This feature is currently available only in US, GB, CA, MX, DE, FR, IT, ES, and IN marketplaces.
+Updated on Sep 11, 2026
+
+Note: This feature is currently only available in the following marketplaces: US, GB, CA, MX, DE, FR, IT, ES, IN.
 
 ## What is Amazon Creative Services Marketplace?
 
-Amazon Creative Services Marketplace helps advertisers access high-quality creative assets for ad campaigns.
+Amazon Creative Services Marketplace is designed to help you access high-quality creative assets for your ad campaigns.
 
-## Benefits
+**Benefits**
 
-- Access high-quality creative assets customized for campaign goals.
-- Available directly from Amazon Advertising Console and Amazon DSP.
-- Customizable options for different ad budgets.
+- Access to high-quality creative assets customized for your campiagn goals.
+- Available directly from the Amazon Advertising Console and Amazon DSP.
+- Customizable options for all ad budgets.
 
 ## To access
 
-1. Access Amazon Creative Services through the Console navigation bar.
-2. Search, filter, or browse for the desired ad type.
-3. Open a listing by clicking the image title or **Book service**.
-4. Click **Continue to booking** to start a service request.
-5. Review add-on features before submitting.
-6. Click **Submit booking request** to complete the booking.
+1. Access Amazon Creative Services through the Console the navigation bar.
+2. Search, filter, or browse for your desired ad type.
+3. Once you find a listing that you’re interested in, click the image title or the **Book service** button to see more details.
+4. To start a service request, click the **Continue to booking** button. You’ll be able to see any add-on features before submitting your order. Note:The price and delivery date may change based on your selected add-on features.
+5. Click **Submit booking request** to complete your booking.
 
-> Note: Price and delivery date may change based on selected add-on features.
+Once you submit your request, the service provider will receive a notification. You should expect a response from the service provider within one business day. When the service provider accepts your request, the creative project officially begins and the service provider will start collaborating with you.
 
-After submitting the request, the service provider receives a notification and should respond within one business day. If the provider accepts, the project officially begins. If the provider declines, choose another provider. If there is no response within one business day, cancel the request and choose another provider.
-
-## Related topics
-
-- [Understand Creative Studio](https://advertising.amazon.com/help/G37KKZ72NM5AFB46)
-- [Create and manage ads in Creative Studio](https://advertising.amazon.com/help/G55KXDLSKCKVG3TJ)
-- [Create and manage creative assets](https://advertising.amazon.com/help/GHACCZ3SEF3E6ZHX)
-- [Third-party ad tools](https://advertising.amazon.com/help/GAMAH7L8X3HR7QFR)
+If the service provider declines the request, select another service provider and start a new request. If you haven’t received a response from the service provider within one business day, you may cancel the request and select another service provider.
