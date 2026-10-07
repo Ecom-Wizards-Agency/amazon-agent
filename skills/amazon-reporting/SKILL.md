@@ -23,7 +23,7 @@ Browser: Mixed (CDP for scripted Seller Central fetches; CDP interactive for Ads
 2. Confirm account, marketplace, report type, date range, entity level, and destination folder.
 3. Search official docs for report definitions/current UI.
 4. Use internal analytics references for workbook generation and interpretation.
-5. Save deliverables under `output/{client}/reporting/` with dates in filenames unless the user specifies pCloud/Drive. `{client}` is the normalized lowercase-kebab client slug from `AGENTS.md`, with marketplace in filenames, not folder names.
+5. Save deliverables under `output/{client}/reporting/` with dates in filenames unless the user specifies pCloud/Drive. `{client}` is the normalized lowercase-kebab client slug from `AGENTS.md`, with marketplace in filenames, not folder names. Register raw report files with monthly archive metadata (`--archive-month`, `--archive-report-type`) and run `tools/artifactctl/artifactctl archive --run RUN_ID` before completing (`docs/local-output-storage.md`).
 6. Stop before creating scheduled reports, changing report settings, or downloading sensitive reports to an unclear destination.
 
 ## SQP Analysis

@@ -99,10 +99,12 @@ label stock. Thermal 4×6 UPS SPD labels run 2 pages per box (FBA box label + UP
 label), so pages = 2 × boxes; the house stock is thermal 4×6 unless the operator says
 otherwise.
 
-**Archive labels + packing plan in pCloud after creation** when the client's
-`Amazon Ops.md` profile sets `shipment_label_archive: pcloud`; if the profile is
-silent, ask the operator rather than skipping or archiving by default: `1_Delivery/1.1_Clients/<Client>/_Data/inventory/` with one label
-PDF per shipment named
+**Archive labels + packing plan in pCloud at run completion.** This is the default;
+`shipment_label_archive: none` in the client's `Amazon Ops.md` opts that client out.
+Each shipment set gets one bundle folder,
+`1_Delivery/1.1_Clients/<Client>/_Data/logistics/[{market}/]YYYY-MM-DD - {Origin} to {Dest} - {Partner} - {Carrier}/`
+(ship date; empty parts dropped; the market folder only for a multi-marketplace brand),
+holding one label PDF per shipment named
 `YYYY-MM-DD_<Client>_<Market>_FBA-Box-Labels_<Mode>_<n>-<FC>_<ShipmentID>_Thermal-4x6_v1.pdf`
 plus one `YYYY-MM-DD_<Client>_<Market>_Carton-Packing-Plan_<Mode>_v1.xlsx`. The packing
 plan workbook carries: header block (ship-from, carrier, ship date, delivery window),
@@ -110,6 +112,30 @@ destinations table with per-SKU carton counts per shipment (verified against eac
 shipment's contents page; whole cartons only), a carton breakdown (SKU, ASIN, EAN,
 units/carton, size, weight, expiration), and warehouse packing instructions (one SKU per
 carton, 2 label pages per numbered box, barcodes uncovered, prepaid handoff).
+
+Register each file at its final local path with `tools/artifactctl/artifactctl` using
+`--disposition archive-pcloud`, `--archive-client`, `--archive-dataset logistics`,
+`--archive-market` and the bundle flags (`--archive-bundle-date`,
+`--archive-bundle-scope "{Origin} to {Dest}"`, `--archive-bundle-partner`,
+`--archive-bundle-carrier`). Then run `artifactctl archive --run RUN_ID` and add the
+bundle's `pCloud:` line to the run note (`docs/local-output-storage.md`). When a corrected
+set replaces an archived bundle, create `_superseded/` beside it with the `pcloud-api`
+skill (`pcloud.sh mkdir`) if it is missing, and move the old bundle into it with
+`pcloud.sh movefolderid`, name unchanged. Its folder ID comes from the earlier receipt or
+`pcloud.sh foldermeta`. Then archive the new set and say in the run note which bundle was
+superseded. Never delete or prefix the old bundle.
+
+**Other logistics bundles.** Removal orders, AWD transfers and shipment reconciliations
+archive the same way: register each file with `--disposition archive-pcloud`,
+`--archive-client`, `--archive-dataset logistics`, `--archive-market`,
+`--archive-bundle-date` and `--archive-bundle-scope`, then run
+`artifactctl archive --run RUN_ID`. Use `--archive-bundle-scope "Removal Order"` with the
+run date; the receiving 3PL or destination may go in `--archive-bundle-partner`. Use
+`"AWD Transfer"` with the ship date, and set partner and carrier as for an FBA shipment. Use
+`"Shipment Reconciliation"` with the run date and no partner or carrier. For a
+multi-marketplace brand, every bundle sits in its market folder. Each bundle holds the files
+that operation produces. A file archived without `--archive-bundle-root` must be named
+`YYYY-MM-DD_...`; inside a rooted bundle every file keeps its relative path and name.
 
 **Multi-destination splits.** When the per-destination SKU table will not render, the split
 can be derived from each destination's carton count and unit count, since units per carton

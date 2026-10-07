@@ -4,13 +4,16 @@ import path from "node:path";
 
 const DEFAULT_CTL = path.join(path.dirname(fileURLToPath(import.meta.url)), "artifactctl");
 
-function call(args, { optional = false } = {}) {
+function call(args, { optional = false, okStatuses = [0] } = {}) {
   const executable = process.env.AMAZON_ARTIFACTCTL || DEFAULT_CTL;
   const result = spawnSync(executable, args.map(String), { encoding: "utf8" });
-  if (result.status !== 0) {
+  if (!okStatuses.includes(result.status)) {
     if (optional) return null;
     throw new Error(`ARTIFACTCTL_FAILED: ${(result.stderr || result.stdout || "unknown error").trim()}`);
   }
+  // stdout is the JSON status; stderr carries notices such as the run-complete
+  // archive reminder, so pass it through instead of dropping it.
+  if (result.stderr) process.stderr.write(result.stderr);
   try {
     return JSON.parse(result.stdout);
   } catch {
@@ -43,10 +46,24 @@ export class ArtifactRun {
         month: "--archive-month",
         report_type: "--archive-report-type",
         scope: "--archive-scope",
+        bundle_date: "--archive-bundle-date",
+        bundle_scope: "--archive-bundle-scope",
+        bundle_partner: "--archive-bundle-partner",
+        bundle_carrier: "--archive-bundle-carrier",
+        bundle_root: "--archive-bundle-root",
       };
       for (const [key, flag] of Object.entries(fields)) if (archive[key]) args.push(flag, archive[key]);
     }
     return call(args);
+  }
+
+  // Archives this run's archive-pcloud files now. Exit status 2 means some
+  // files were preserved; the parsed JSON (ok: false, preserved[]) is returned
+  // so the caller can name them instead of throwing.
+  archive(runId = this.id, { auditOnly = false } = {}) {
+    const args = ["archive", "--run", runId];
+    if (auditOnly) args.push("--audit-only");
+    return call(args, { okStatuses: [0, 2] });
   }
 
   complete(outcome = "success") {
