@@ -125,6 +125,15 @@ skill (`pcloud.sh mkdir`) if it is missing, and move the old bundle into it with
 `pcloud.sh foldermeta`. Then archive the new set and say in the run note which bundle was
 superseded. Never delete or prefix the old bundle.
 
+**Other logistics bundles.** Removal orders, AWD transfers and shipment reconciliations
+archive the same way: register each file with `--archive-dataset logistics` and the bundle
+flags, then run `artifactctl archive --run RUN_ID`. Use `--archive-bundle-scope "Removal Order"`
+with the run date; the receiving 3PL or destination may go in `--archive-bundle-partner`. Use
+`"AWD Transfer"` with the ship date, and set partner and carrier as for an FBA shipment. Use
+`"Shipment Reconciliation"` with the run date and no partner or carrier; for a
+multi-marketplace brand the market is the folder. Each bundle holds the files that operation
+produces, named by the file convention above.
+
 **Multi-destination splits.** When the per-destination SKU table will not render, the split
 can be derived from each destination's carton count and unit count, since units per carton
 differ per format. Only use the result when each destination has exactly one integer
