@@ -81,8 +81,9 @@ for a delivered bundle under
 monthly metadata (`--archive-month`, `--archive-report-type`, optional
 `--archive-scope`) for a flat raw file. Then run
 `tools/artifactctl/artifactctl archive --run RUN_ID` before completing the run.
-Bundle file names must start `YYYY-MM-DD_`. The weekly job is only the safety
-net for a run that missed this step. The lifecycle rules below say what the run
+A bundle file uploaded without `--archive-bundle-root` must be named
+`YYYY-MM-DD_...`; inside a rooted bundle every file keeps its relative path and
+name. The weekly job is only the safety net for a run that missed this step. The lifecycle rules below say what the run
 note records.
 
 ## Artifact lifecycle

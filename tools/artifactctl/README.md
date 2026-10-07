@@ -38,7 +38,8 @@ Bundle mode needs `--archive-bundle-date` and `--archive-bundle-scope`; partner,
 carrier and `--archive-bundle-root` (keep paths relative to that directory, for
 a change pack with numbered subfolders) are optional. It lands in
 `_Data/{workflow}/[{market}/]YYYY-MM-DD - {Scope} - {Partner} - {Carrier}/`, and
-each file name must start `YYYY-MM-DD_`. Monthly mode needs `--archive-month` and
+a file uploaded without `--archive-bundle-root` must be named `YYYY-MM-DD_...`;
+inside a rooted bundle every file keeps its relative path and name. Monthly mode needs `--archive-month` and
 `--archive-report-type`; `--archive-scope` defaults to `ALL-SKUS`. The two modes
 cannot be combined.
 
