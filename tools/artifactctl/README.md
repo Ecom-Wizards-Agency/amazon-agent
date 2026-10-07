@@ -43,13 +43,17 @@ each file name must start `YYYY-MM-DD_`. Monthly mode needs `--archive-month` an
 cannot be combined.
 
 `archive` archives every `archive-pcloud` file of the run that has no valid
-receipt yet, whether the run is active or complete, and stores the verified
-receipt. It changes nothing else: state, eligibility and quarantine timing stay
-as they were, and the weekly `cleanup` later quarantines the files without a
-second upload. It exits 2 with `"ok": false` when any file was preserved, and
-names each one with its reason. `run complete` prints a reminder on stderr while
-`archive-pcloud` files still lack a receipt; the weekly job remains the safety
-net. Add one line per bundle to the run note, using the `bundles` field of the
+receipt yet and is `registered` or `eligible-pending`, whether the run is active
+or complete, and stores the verified receipt. Files in `review` or `preserved`
+(a failed or blocked run) are listed under `skipped` and never uploaded. It
+changes nothing else: state, eligibility and quarantine timing stay as they
+were, and the weekly `cleanup` later quarantines the files without a second
+upload. A batch already archived by a concurrent `archive` or `cleanup` is
+reported as `already_archived`, not uploaded again. It exits 2 with
+`"ok": false` when any file was preserved, and names each one with its reason
+and, for a helper failure, a short `detail`. After a successful `run complete`,
+a reminder goes to stderr while `archive-pcloud` files still lack a receipt;
+the weekly job remains the safety net. Add one line per bundle to the run note, using the `bundles` field of the
 output:
 
 ```text

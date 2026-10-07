@@ -11,6 +11,9 @@ function call(args, { optional = false, okStatuses = [0] } = {}) {
     if (optional) return null;
     throw new Error(`ARTIFACTCTL_FAILED: ${(result.stderr || result.stdout || "unknown error").trim()}`);
   }
+  // stdout is the JSON status; stderr carries notices such as the run-complete
+  // archive reminder, so pass it through instead of dropping it.
+  if (result.stderr) process.stderr.write(result.stderr);
   try {
     return JSON.parse(result.stdout);
   } catch {

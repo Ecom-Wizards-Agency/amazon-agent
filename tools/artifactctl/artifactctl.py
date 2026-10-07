@@ -38,7 +38,8 @@ FLATFILEPRO_ORIGIN = "https://app.flatfile.pro"
 MONTHLY_ARCHIVE_KEYS = ("client", "dataset", "market", "month", "report_type", "scope")
 BUNDLE_ARCHIVE_KEYS = ("client", "dataset", "market", "bundle_date", "bundle_scope")
 BUNDLE_OPTIONAL_KEYS = ("bundle_partner", "bundle_carrier", "bundle_root")
-ARCHIVABLE_STATES = ("registered", "eligible-pending", "review", "preserved")
+ARCHIVABLE_STATES = ("registered", "eligible-pending")
+DETAIL_LIMIT = 300
 
 
 def utc_now() -> datetime:
@@ -258,16 +259,23 @@ class ArtifactRegistry:
                 (iso(now), iso(eligible), outcome, run_id),
             )
             if outcome == "success":
+                # An in-flight archive claim keeps state 'archiving'; the state it
+                # returns to on release is updated instead.
                 con.execute(
                     """UPDATE artifacts
-                       SET state=CASE WHEN disposition='preserve' OR state='review' THEN state ELSE 'eligible-pending' END,
+                       SET state=CASE WHEN disposition='preserve' OR state IN ('review','archiving') THEN state
+                                      ELSE 'eligible-pending' END,
+                           claim_prev_state=CASE WHEN state='archiving' THEN 'eligible-pending' ELSE claim_prev_state END,
                            eligible_at=CASE WHEN disposition='preserve' OR state='review' THEN eligible_at ELSE ? END,
                            updated_at=? WHERE run_id=?""",
                     (iso(eligible), iso(now), run_id),
                 )
             else:
                 con.execute(
-                    "UPDATE artifacts SET state='preserved',review_reason=?,updated_at=? WHERE run_id=?",
+                    """UPDATE artifacts
+                       SET state=CASE WHEN state='archiving' THEN state ELSE 'preserved' END,
+                           claim_prev_state=CASE WHEN state='archiving' THEN 'preserved' ELSE claim_prev_state END,
+                           review_reason=?,updated_at=? WHERE run_id=?""",
                     (f"run-{outcome}", iso(now), run_id),
                 )
             con.commit()
@@ -611,7 +619,7 @@ class ArtifactRegistry:
 
         for (_, archive_raw), rows in archive_groups.items():
             status, group_actions, _ = self._archive_group(rows, archive_raw, now, audit_only)
-            if status == "archived":
+            if status in {"archived", "already-archived"}:
                 normal.extend(rows)
             elif status == "audit":
                 for row in rows:
@@ -688,6 +696,7 @@ class ArtifactRegistry:
         """Archive one run's batch that shares the same archive metadata.
 
         Returns (status, preserved_actions, receipt). status is "archived",
+        "already-archived" (a concurrent run stored a valid receipt first),
         "audit" (checks passed, nothing run) or "preserved". On "archived"
         every row carries the stored receipt and is back in its pre-claim state.
         """
@@ -713,8 +722,14 @@ class ArtifactRegistry:
         if audit_only:
             return "audit", [], None
 
-        def preserved(reason: str) -> list[dict]:
-            return [{"artifact_id": row["id"], "path": row["path"], "action": "preserved", "reason": reason} for row in rows]
+        def preserved(reason: str, detail: str | None = None) -> list[dict]:
+            entries = []
+            for row in rows:
+                entry = {"artifact_id": row["id"], "path": row["path"], "action": "preserved", "reason": reason}
+                if detail:
+                    entry["detail"] = detail[:DETAIL_LIMIT]
+                entries.append(entry)
+            return entries
 
         def release(receipt_json: str | None = None) -> None:
             with self.connect() as con:
@@ -728,13 +743,21 @@ class ArtifactRegistry:
                 con.commit()
 
         claimed = False
+        already = 0
         with self.connect() as con:
             con.execute("BEGIN IMMEDIATE")
             for row in rows:
-                current = con.execute("SELECT state FROM artifacts WHERE id=?", (row["id"],)).fetchone()
+                current = con.execute("SELECT * FROM artifacts WHERE id=?", (row["id"],)).fetchone()
                 if not current or current["state"] != row["state"]:
                     break
+                if self._pcloud_receipt_valid(current):
+                    already += 1
             else:
+                if already:
+                    con.rollback()
+                    if already == len(rows):
+                        return "already-archived", [], None
+                    return "preserved", preserved("archive-claim-lost", "receipt stored concurrently for part of the batch"), None
                 for row in rows:
                     con.execute(
                         "UPDATE artifacts SET state='archiving',claim_prev_state=state,claim_at=?,updated_at=? WHERE id=?",
@@ -751,7 +774,7 @@ class ArtifactRegistry:
             receipt = self.archive_runner(paths, archive)
         except Exception as exc:
             release()
-            return "preserved", preserved(f"pcloud-archive-failed:{type(exc).__name__}"), None
+            return "preserved", preserved(f"pcloud-archive-failed:{type(exc).__name__}", str(exc)), None
         receipt_complete = bool(
             isinstance(receipt, dict)
             and receipt.get("provider") == "pcloud"
@@ -788,7 +811,12 @@ class ArtifactRegistry:
                 "SELECT * FROM artifacts WHERE run_id=? AND disposition='archive-pcloud' ORDER BY path", (run_id,)
             ).fetchall()
         pending_ids = {row["id"] for row in self.pending_archive(run_id)}
-        already = [row for row in rows if self._pcloud_receipt_valid(row)]
+        already = [row["id"] for row in rows if self._pcloud_receipt_valid(row)]
+        skipped = [
+            {"artifact_id": row["id"], "path": row["path"], "state": row["state"]}
+            for row in rows
+            if row["id"] not in pending_ids and row["id"] not in already
+        ]
         groups: dict[str, list[sqlite3.Row]] = defaultdict(list)
         for row in rows:
             if row["id"] in pending_ids:
@@ -798,9 +826,12 @@ class ArtifactRegistry:
         would_archive: list[str] = []
         preserved: list[dict] = []
         for archive_raw, group_rows in groups.items():
-            status, actions, receipt = self._archive_group(group_rows, archive_raw, now, audit_only, mark_review=False)
+            status, actions, _ = self._archive_group(group_rows, archive_raw, now, audit_only, mark_review=False)
             if status == "preserved":
                 preserved.extend(actions)
+                continue
+            if status == "already-archived":
+                already.extend(row["id"] for row in group_rows)
                 continue
             with self.connect() as con:
                 con.execute("BEGIN IMMEDIATE")
@@ -808,9 +839,19 @@ class ArtifactRegistry:
                     if status == "audit":
                         would_archive.append(row["id"])
                         self._journal(con, "would-archive", row["id"], archive_raw)
-                    else:
-                        archived.append(row["id"])
-                        self._journal(con, "archived", row["id"], self._receipt_item(receipt, row)["remote_path"])
+                        continue
+                    # Report only what the registry holds: the release can miss a
+                    # row whose claim was recovered by another process meanwhile.
+                    fresh = con.execute("SELECT * FROM artifacts WHERE id=?", (row["id"],)).fetchone()
+                    if not fresh or not self._pcloud_receipt_valid(fresh):
+                        preserved.append({
+                            "artifact_id": row["id"], "path": row["path"], "action": "preserved",
+                            "reason": "pcloud-receipt-not-stored",
+                        })
+                        continue
+                    archived.append(row["id"])
+                    item = self._receipt_item(json.loads(fresh["receipt_json"]), fresh)
+                    self._journal(con, "archived", row["id"], item["remote_path"])
                 con.commit()
 
         remote_paths: list[str] = []
@@ -833,8 +874,9 @@ class ArtifactRegistry:
             "audit_only": audit_only,
             "archived": archived,
             "would_archive": would_archive,
-            "already_archived": [row["id"] for row in already],
+            "already_archived": already,
             "preserved": preserved,
+            "skipped": skipped,
             "remote_paths": sorted(set(remote_paths)),
             "bundles": [bundles[key] for key in sorted(bundles)],
         }
@@ -1037,9 +1079,13 @@ def main(argv: list[str] | None = None) -> int:
             result = registry.start_run(args.owner, args.workflow, args.client, args.id)
         elif args.command == "run" and args.run_command == "complete":
             result = registry.complete_run(args.run, args.outcome)
-            reminder = archive_reminder(registry, args.run)
-            if reminder:
-                print(reminder, file=sys.stderr)
+            if args.outcome == "success":
+                try:
+                    reminder = archive_reminder(registry, args.run)
+                except Exception as exc:  # a reminder must never fail the completion
+                    reminder = f"artifactctl: archive reminder unavailable: {type(exc).__name__}"
+                if reminder:
+                    print(reminder, file=sys.stderr)
         elif args.command == "run" and args.run_command == "show":
             result = registry.get_run(args.run)
         elif args.command == "register":
