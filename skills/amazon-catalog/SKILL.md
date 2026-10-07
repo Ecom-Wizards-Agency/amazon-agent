@@ -39,6 +39,13 @@ Review `02-change-manifest.md` before upload. The current agent may perform the 
 submission only after the exact file and operation receive approval under the gate above;
 otherwise hand the validated pack to the assigned senior.
 
+After Amazon's processing is verified, archive the change pack to pCloud as one bundle,
+`_Data/catalog/[{market}/]YYYY-MM-DD - {Operation} - {Scope}/`, registering its files with
+`tools/artifactctl/artifactctl` bundle flags and `--archive-bundle-root` set to the pack
+folder so the numbered subfolders survive. The Category Listings Report and the blank
+template archive as flat monthly-mode files instead. Run `artifactctl archive --run RUN_ID`
+before completing (`docs/local-output-storage.md`).
+
 Routine titles, bullets, descriptions, images, backend attributes, and normal listing-content edits remain in FlatFilePro. Do not route those through the variation builder.
 
 ## Parentage / Variation Flat Files

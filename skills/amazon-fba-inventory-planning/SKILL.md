@@ -58,5 +58,5 @@ For each brand-market, produce:
 - `YYYY-MM-DD_Inventory Overview_[Brand]_[Market].csv`
 - `YYYY-MM-DD_Inventory Overview_[Brand]_[Market].xlsx`
 - Optional inventory-health tabs from `references/inventory-health-workbook.md` when requested.
-- Raw report files moved to the account's pCloud raw report folder after final approval when needed, with dates in filenames.
+- After final approval, raw reports archive to pCloud as flat monthly-mode files (`--archive-month`, `--archive-report-type`), and the approved planning evidence pack archives as one bundle, `_Data/inventory/[{market}/]YYYY-MM-DD - Reshipment Plan - {Market}/`. Register them with `tools/artifactctl/artifactctl`, then run `artifactctl archive --run RUN_ID` before completing (`docs/local-output-storage.md`). The reshipment plan CSV stays on Drive.
 - Slack staging copy for internal `#amazon` when actionable items exist.

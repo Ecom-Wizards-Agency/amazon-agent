@@ -80,6 +80,7 @@ section 7, never here. This is what stops the next agent redoing finished work.>
 | What | Where |
 |---|---|
 | <file, export, screenshot, workbook> | <absolute path or Drive/Doc link> |
+| archived bundle | <share-relative pCloud path> |
 
 ## 6. Context that cannot be inferred
 
