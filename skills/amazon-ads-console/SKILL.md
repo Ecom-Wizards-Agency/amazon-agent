@@ -25,4 +25,6 @@ Sponsored Products remain the core agency doctrine. Sponsored Brands, Sponsored 
 6. Use internal strategy notes for campaign logic and MAG SOPs for practical operator steps.
 7. Stop before saving bids, budgets, targeting, campaigns, billing/payment settings, scheduled reports, or Creator Connections sends.
 
+For an authorized campaign launch, load `docs/ppc-launch-guardrails.md`. After Amazon processes the write, perform its post-launch sanity check against the live account. Processing success alone does not complete the task. A correction is another Amazon write and follows the same approval rules.
+
 Creator Connections route: Campaign Manager > account selector > Brand content > Creator connections.

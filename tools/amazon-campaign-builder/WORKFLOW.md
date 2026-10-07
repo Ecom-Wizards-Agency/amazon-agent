@@ -31,9 +31,12 @@ contract; nothing in the code is client-specific.
 3. **Preflight**: `build_campaigns.py --config <cfg> [--keyword-file <wb>] --preflight`
    until READY. Catches invalid enums, sub-minimum bids/budgets, missing SKUs/keywords, past
    start dates, name fan-out without a disambiguating `Counter`/`CampCounter`/`Keyword` token,
-   and NOTEs (non-blocking): bidding-strategy overrides of the naming-convention.md per-purpose
-   defaults, discovery campaigns missing a negative-keyword list, Self-Targeting Expanded
-   missing a negative-ASIN list, and ad-group names that collide with their campaign name.
+   EW builds also fail closed on missing guardrail evidence, a bidding-strategy mismatch,
+   missing per-target suggested bids, branded-versus-generic exclusion errors, positive-negative
+   collisions, unsafe multi-variation structures, invalid split Auto states, and missing exact
+   own-ASIN negatives in Self-Targeting Expanded.
+   Add `--quality-report <gitignored-path.json>` when the run needs machine-readable quality
+   evidence. The JSON is local only; the builder never publishes it.
 
 4. **Preview**: `--preview` prints every planned campaign (name, type, state, budget, bid,
    strategy, target counts) and the combined daily budget. Show this to the operator; adjust
@@ -62,6 +65,8 @@ contract; nothing in the code is client-specific.
    ID not found in the export, invalid enum, or a disallowed `clear_end_date`. NOTEs every
    no-op and cascade-skip (e.g. an explicit ad-group archive whose parent campaign is also
    archived in the same file).
+   Add `--quality-report <gitignored-path.json>` when the run needs machine-readable quality
+   evidence. Publishing remains a separately configured external action.
 
 4. **Preview**: `--preview` prints a plain-English line per change (and per skip). Show this
    to the operator. This is the change-set's real content, not a technical row dump.
