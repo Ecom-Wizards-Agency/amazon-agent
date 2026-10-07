@@ -1,4 +1,6 @@
+import json
 import os
+import subprocess
 import tempfile
 import threading
 import unittest
@@ -7,7 +9,28 @@ from pathlib import Path
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from artifactctl import ArtifactRegistry, sha
+from artifactctl import ArtifactRegistry, archive_metadata, parser, sha
+
+CTL = Path(__file__).resolve().parent / "artifactctl.py"
+BUNDLE = {
+    "client": "client", "dataset": "logistics", "market": "DE",
+    "bundle_date": "2026-08-27", "bundle_scope": "DE to UK",
+    "bundle_partner": "Partner", "bundle_carrier": "Carrier",
+}
+STUB_HELPER = """
+import json, hashlib, sys
+from pathlib import Path
+args = sys.argv[1:]
+sources = []
+while args and not args[0].startswith("--"):
+    sources.append(Path(args.pop(0)))
+def digest(path, name):
+    return hashlib.new(name, path.read_bytes()).hexdigest()
+print(json.dumps({"provider": "pcloud", "verified": True, "mode": "stub", "argv": sys.argv[1:],
+                  "files": [{"source": str(p.resolve()), "sha1": digest(p, "sha1"),
+                             "sha256": digest(p, "sha256"), "remote_path": "remote/" + p.name}
+                            for p in sources]}))
+"""
 
 
 class FakeClock:
@@ -185,6 +208,201 @@ class ArtifactLifecycleTests(unittest.TestCase):
         result = self.registry.cleanup()
         self.assertEqual(2, result["counts"]["preserved"])
         self.assertTrue(all(path.exists() for path in paths))
+
+    def test_bundle_metadata_needs_date_and_scope_not_monthly_keys(self):
+        args = parser().parse_args([
+            "register", "--run", "r", "--path", "f", "--disposition", "archive-pcloud",
+            "--archive-client", "client", "--archive-dataset", "logistics", "--archive-market", "DE",
+            "--archive-bundle-date", "2026-08-27", "--archive-bundle-scope", "DE to UK",
+            "--archive-bundle-root", str(self.work),
+        ])
+        meta = archive_metadata(args)
+        self.assertEqual("2026-08-27", meta["bundle_date"])
+        self.assertEqual("DE to UK", meta["bundle_scope"])
+        self.assertEqual(str(self.work.resolve()), meta["bundle_root"])
+        self.assertIsNone(meta["scope"])
+        self.assertIsNone(meta["month"])
+        monthly = archive_metadata(parser().parse_args([
+            "register", "--run", "r", "--path", "f", "--disposition", "archive-pcloud",
+            "--archive-month", "2026-08",
+        ]))
+        self.assertEqual("ALL-SKUS", monthly["scope"])
+        self.assertIsNone(archive_metadata(parser().parse_args([
+            "register", "--run", "r", "--path", "f", "--disposition", "reproducible",
+        ])))
+
+        path = self.work / "2026-08-27_client_DE_labels.pdf"
+        path.write_text("labels", encoding="utf-8")
+        for key in ("bundle_date", "bundle_scope"):
+            with self.assertRaisesRegex(ValueError, key):
+                ArtifactRegistry._archive_pcloud(self.registry, [path], {**BUNDLE, key: None})
+        with self.assertRaisesRegex(ValueError, "month"):
+            ArtifactRegistry._archive_pcloud(self.registry, [path], {
+                "client": "client", "dataset": "reporting", "market": "DE", "scope": "ALL-SKUS",
+            })
+        helper = self.root / "stub-archive-raw.py"
+        helper.write_text(STUB_HELPER, encoding="utf-8")
+        previous = os.environ.get("AMAZON_ARTIFACT_PCLOUD_HELPER")
+        os.environ["AMAZON_ARTIFACT_PCLOUD_HELPER"] = str(helper)
+        try:
+            receipt = ArtifactRegistry._archive_pcloud(
+                self.registry, [path], {**BUNDLE, "bundle_root": str(self.work), "scope": None, "month": None},
+            )
+        finally:
+            if previous is None:
+                os.environ.pop("AMAZON_ARTIFACT_PCLOUD_HELPER")
+            else:
+                os.environ["AMAZON_ARTIFACT_PCLOUD_HELPER"] = previous
+        argv = receipt["argv"]
+        for flag, value in (
+            ("--bundle-date", "2026-08-27"), ("--bundle-scope", "DE to UK"),
+            ("--bundle-partner", "Partner"), ("--bundle-carrier", "Carrier"),
+            ("--bundle-root", str(self.work)), ("--dataset", "logistics"),
+        ):
+            self.assertEqual(value, argv[argv.index(flag) + 1])
+        for flag in ("--month", "--report-type", "--scope"):
+            self.assertNotIn(flag, argv)
+
+    def make_bundle_run(self):
+        run = self.registry.start_run("test", "logistics", "client")
+        paths, ids = [], []
+        for name in ("2026-08-27_client_DE_labels.pdf", "2026-08-27_client_DE_packing-plan.xlsx"):
+            path = self.work / name
+            path.write_text(name, encoding="utf-8")
+            paths.append(path)
+            ids.append(self.registry.register(run["id"], path, "archive-pcloud", archive=BUNDLE)["id"])
+        return run, paths, ids
+
+    def journal_actions(self):
+        with self.registry.connect() as con:
+            return [row[0] for row in con.execute("SELECT action FROM journal ORDER BY id")]
+
+    def test_archive_stores_receipt_then_weekly_cleanup_quarantines_without_rerun(self):
+        run, paths, ids = self.make_bundle_run()
+        calls = []
+
+        def runner(batch, spec):
+            calls.append((list(batch), spec))
+            receipt = self.archive_receipt(batch, spec)
+            receipt["mode"] = "bundle"
+            receipt["bundle"] = {"path": "1_Delivery/1.1_Clients/Client/_Data/logistics/2026-08-27 - DE to UK - Partner - Carrier", "folderid": 7}
+            return receipt
+
+        self.registry.archive_runner = runner
+        result = self.registry.archive(run["id"])
+        self.assertEqual(1, len(calls))
+        self.assertEqual("DE to UK", calls[0][1]["bundle_scope"])
+        self.assertEqual(sorted(ids), sorted(result["archived"]))
+        self.assertEqual([], result["preserved"])
+        self.assertEqual(2, len(result["remote_paths"]))
+        self.assertEqual(1, len(result["bundles"]))
+        self.assertEqual(2, result["bundles"][0]["files"])
+        for artifact_id in ids:
+            artifact = self.registry.get_artifact(artifact_id)
+            self.assertEqual("registered", artifact["state"])
+            self.assertIsNone(artifact["eligible_at"])
+            self.assertTrue(artifact["receipt"]["verified"])
+        self.assertEqual(2, self.journal_actions().count("archived"))
+
+        again = self.registry.archive(run["id"])
+        self.assertEqual(1, len(calls))
+        self.assertEqual([], again["archived"])
+        self.assertEqual(sorted(ids), sorted(again["already_archived"]))
+
+        self.registry.complete_run(run["id"], "success")
+        self.clock.advance(days=6)
+        self.assertEqual([], self.registry.cleanup()["actions"])
+        self.clock.advance(days=2)
+        cleanup = self.registry.cleanup()
+        self.assertEqual(2, cleanup["counts"]["quarantined"])
+        self.assertEqual(1, len(calls))
+        self.assertTrue(all(not path.exists() for path in paths))
+
+    def test_archive_runner_failure_leaves_state_unchanged(self):
+        run, paths, ids = self.make_bundle_run()
+        self.registry.complete_run(run["id"], "success")
+        before = {artifact_id: self.registry.get_artifact(artifact_id) for artifact_id in ids}
+
+        def failing(_batch, _spec):
+            raise RuntimeError("pCloud unavailable")
+
+        self.registry.archive_runner = failing
+        result = self.registry.archive(run["id"])
+        self.assertEqual([], result["archived"])
+        self.assertEqual(
+            ["pcloud-archive-failed:RuntimeError"] * 2,
+            [item["reason"] for item in result["preserved"]],
+        )
+        for artifact_id in ids:
+            after = self.registry.get_artifact(artifact_id)
+            self.assertEqual(before[artifact_id]["state"], after["state"])
+            self.assertEqual(before[artifact_id]["eligible_at"], after["eligible_at"])
+            self.assertIsNone(after["receipt"])
+            self.assertIsNone(after["claim_at"])
+        self.assertNotIn("archived", self.journal_actions())
+        self.assertTrue(all(path.exists() for path in paths))
+
+    def test_archive_audit_only_calls_no_runner(self):
+        run, _, ids = self.make_bundle_run()
+
+        def forbidden(_batch, _spec):
+            raise AssertionError("audit-only must not call the archive runner")
+
+        self.registry.archive_runner = forbidden
+        result = self.registry.archive(run["id"], audit_only=True)
+        self.assertEqual(sorted(ids), sorted(result["would_archive"]))
+        self.assertEqual([], result["archived"])
+        self.assertEqual([], result["preserved"])
+        self.assertEqual(2, self.journal_actions().count("would-archive"))
+        for artifact_id in ids:
+            artifact = self.registry.get_artifact(artifact_id)
+            self.assertEqual("registered", artifact["state"])
+            self.assertIsNone(artifact["receipt"])
+
+    def test_interrupted_archive_claim_returns_to_previous_state(self):
+        run, _, ids = self.make_bundle_run()
+        old_claim = (self.clock() - timedelta(hours=2)).isoformat().replace("+00:00", "Z")
+        with self.registry.connect() as con:
+            con.execute(
+                "UPDATE artifacts SET state='archiving',claim_prev_state='registered',claim_at=? WHERE id=?",
+                (old_claim, ids[0]),
+            )
+        self.registry.cleanup()
+        self.assertEqual("registered", self.registry.get_artifact(ids[0])["state"])
+
+    def test_run_complete_prints_archive_reminder(self):
+        env = {
+            **os.environ,
+            "AMAZON_ARTIFACT_RUNTIME_DIR": str(self.root / "cli-runtime"),
+            "AMAZON_ARTIFACT_ALLOWED_ROOTS": str(self.work),
+        }
+
+        def cli(*args):
+            return subprocess.run(
+                [sys.executable, str(CTL), *args], capture_output=True, text=True, env=env, check=False,
+            )
+
+        path = self.work / "2026-08-27_client_DE_labels.pdf"
+        path.write_text("labels", encoding="utf-8")
+        run_id = json.loads(cli("run", "start", "--owner", "test", "--workflow", "logistics").stdout)["id"]
+        registered = cli(
+            "register", "--run", run_id, "--path", str(path), "--disposition", "archive-pcloud",
+            "--archive-client", "client", "--archive-dataset", "logistics", "--archive-market", "DE",
+            "--archive-bundle-date", "2026-08-27", "--archive-bundle-scope", "DE to UK",
+        )
+        self.assertEqual(0, registered.returncode, registered.stderr)
+        self.assertEqual("DE to UK", json.loads(registered.stdout)["archive"]["bundle_scope"])
+        completed = cli("run", "complete", "--run", run_id)
+        self.assertEqual(0, completed.returncode, completed.stderr)
+        self.assertTrue(json.loads(completed.stdout)["ok"])
+        self.assertIn(f"artifactctl archive --run {run_id}", completed.stderr)
+
+        other = self.work / "plain.csv"
+        other.write_text("plain", encoding="utf-8")
+        plain_run = json.loads(cli("run", "start", "--owner", "test", "--workflow", "reporting").stdout)["id"]
+        cli("register", "--run", plain_run, "--path", str(other), "--disposition", "reproducible")
+        quiet = cli("run", "complete", "--run", plain_run)
+        self.assertEqual("", quiet.stderr)
 
     def test_concurrent_cleanup_claims_each_file_once(self):
         run, _, _ = self.make_run()
