@@ -126,13 +126,16 @@ skill (`pcloud.sh mkdir`) if it is missing, and move the old bundle into it with
 superseded. Never delete or prefix the old bundle.
 
 **Other logistics bundles.** Removal orders, AWD transfers and shipment reconciliations
-archive the same way: register each file with `--archive-dataset logistics` and the bundle
-flags, then run `artifactctl archive --run RUN_ID`. Use `--archive-bundle-scope "Removal Order"`
-with the run date; the receiving 3PL or destination may go in `--archive-bundle-partner`. Use
+archive the same way: register each file with `--disposition archive-pcloud`,
+`--archive-client`, `--archive-dataset logistics`, `--archive-market`,
+`--archive-bundle-date` and `--archive-bundle-scope`, then run
+`artifactctl archive --run RUN_ID`. Use `--archive-bundle-scope "Removal Order"` with the
+run date; the receiving 3PL or destination may go in `--archive-bundle-partner`. Use
 `"AWD Transfer"` with the ship date, and set partner and carrier as for an FBA shipment. Use
-`"Shipment Reconciliation"` with the run date and no partner or carrier; for a
-multi-marketplace brand the market is the folder. Each bundle holds the files that operation
-produces, named by the file convention above.
+`"Shipment Reconciliation"` with the run date and no partner or carrier. For a
+multi-marketplace brand, every bundle sits in its market folder. Each bundle holds the files
+that operation produces. A file archived without `--archive-bundle-root` must be named
+`YYYY-MM-DD_...`; inside a rooted bundle every file keeps its relative path and name.
 
 **Multi-destination splits.** When the per-destination SKU table will not render, the split
 can be derived from each destination's carton count and unit count, since units per carton
