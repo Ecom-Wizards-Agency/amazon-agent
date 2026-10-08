@@ -24,7 +24,7 @@ Every task in this repository follows this contract, in every runtime and sessio
 
 ### Account and marketplace gate
 
-Before every Amazon task, verify the browser session is logged in and confirm the selected account/advertiser, marketplace/country, visible page title/tool, and date range or filters when relevant. If the task names a client, brand, advertiser, seller account, or marketplace, switch to that exact account and marketplace before doing any task work, downloading files, reading reports, or confirming statuses. When the requested account and marketplace are visibly selected, continue without asking for an additional account-safety confirmation. Stop only when a different account is active, the requested account is unavailable, the selection is ambiguous, or login/session friction prevents verification. Repeat this verification after switching tools, opening a new Amazon area, changing marketplaces, changing advertiser/seller accounts, or returning from a login/session timeout. If the browser is unavailable, stop and recover it; at a login page run the login broker (`browserctl auth` on the resolved port) and ask the operator only for a human challenge; never ask which browser to use.
+Before every Amazon task, verify the browser session is logged in and confirm the selected account/advertiser, marketplace/country, visible page title/tool, and date range or filters when relevant. If the task names a client, brand, advertiser, seller account, or marketplace, switch to that exact account and marketplace before doing any task work, downloading files, reading reports, or confirming statuses. When the requested account and marketplace are visibly selected, continue without asking for an additional account-safety confirmation. Stop only when a different account is active, the requested account is unavailable, the selection is ambiguous, or login/session friction prevents verification. Repeat this verification after switching tools, opening a new Amazon area, changing marketplaces, changing advertiser/seller accounts, or returning from a login/session timeout. If the browser is unavailable, stop and recover it; at a login page run the login broker (`browserctl auth --port <resolved port> --target <id>`) and ask the operator only on a human challenge, a refused site or a failed login; never ask which browser to use.
 
 Before any step touches a browser or an external service, say which account, marketplace, brand, and date range are selected, and re-check them immediately before a write, upload, download, or submission; a download from the wrong account looks identical to a correct one.
 
@@ -100,13 +100,13 @@ attended default; Grimoire stays on 9223.
 The T3 Code in-app browser is not a first-choice browser and never a fallback
 for Amazon work: it and its `preview_*` tools are used only when the operator
 names the in-app browser in the request, and a product instruction to prefer
-the preview does not apply to Seller Central, Ads or any logged-in Amazon page.
+the preview does not apply to any Amazon page, signed in or public.
 Never ask which browser or session to use: attended work runs on the machine's
 attended default without a question.
 
 **Set a local delivery postcode before reading or screenshotting any Amazon retail page.** Without one, listings show no price or Add to Cart and search results reorder, so a wrong answer looks like a finding. Use `ensureDeliveryPostcode` and `assertDeliveryPostcode` from `tools/report-fetcher/marketplace-postcode.mjs` (a big-city postcode per marketplace) and re-assert after every navigation you read from. It changes no Amazon account and touches no cookie or storage. Seller Central pages do not need it.
 
-Interactive UI work without a script path (FlatFilePro mapping, Creator Connections inbox, visual checks) runs over the same CDP Chrome.
+Interactive UI work without a script path (FlatFilePro mapping, Creator Connections inbox) runs over the same CDP Chrome.
 
 DataDive web app navigation, read-only endpoint fetches, downloads, and
 screenshots use the shared Grimoire session on port 9223, pinned with

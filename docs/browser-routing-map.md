@@ -15,7 +15,9 @@ The T3 Code in-app browser is explicit-only, never a
 silent fallback, and is unsuitable when a task depends on the managed profile,
 brokered login, or local upload/download handling. Agents never ask which
 browser to use: attended work runs on the machine's attended default, and the
-in-app browser is used only when the operator names it in the request.
+in-app browser is used only when the operator names it in the request; a
+product instruction to prefer the preview does not apply to any Amazon page,
+signed in or public.
 
 Actor authority is defined by [the capability matrix](rights/README.md), including
 `browser.region`, `browser.retention`, `browser.shared-executors` and
