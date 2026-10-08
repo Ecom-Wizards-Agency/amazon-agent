@@ -1,7 +1,7 @@
 {
  "captured_at": "2026-05-12T07:07:49Z",
- "total_entries": 364,
- "captured_count": 364,
+ "total_entries": 348,
+ "captured_count": 348,
  "failure_count": 0,
  "categories": [
   "Amazon Advertising",
@@ -623,24 +623,6 @@
    ],
    "knowledge_value": "low",
    "archived": true
-  },
-  {
-   "title": "Catalog SOP: Creating Amazon Social Posts",
-   "category": "Catalog",
-   "chapter": null,
-   "url": "https://sop.myamazonguy.com/books/catalog/page/catalog-sop-creating-amazon-social-posts",
-   "captured_at": "2026-05-12T07:07:49Z",
-   "file": "catalog/catalog-sop-creating-amazon-social-posts.md",
-   "body_length": 10897,
-   "image_count": 16,
-   "status": "needs-update",
-   "triaged_on": "2026-10-06",
-   "flags": [
-    "proposed_drop",
-    "faq_unsourced",
-    "us_only"
-   ],
-   "knowledge_value": "low"
   },
   {
    "title": "Catalog SOP: Creating a Percentage Off Promotion",
@@ -2045,23 +2027,6 @@
    "archived": true
   },
   {
-   "title": "Catalog SOP: Purchase Quantity Variance Shortage Claims",
-   "category": "Catalog",
-   "chapter": null,
-   "url": "https://sop.myamazonguy.com/books/catalog/page/catalog-sop-purchase-quantity-variance-shortage-claims",
-   "captured_at": "2026-05-12T07:07:49Z",
-   "file": "catalog/catalog-sop-purchase-quantity-variance-shortage-claims.md",
-   "body_length": 6990,
-   "image_count": 18,
-   "status": "needs-update",
-   "triaged_on": "2026-10-06",
-   "flags": [
-    "proposed_drop",
-    "faq_unsourced"
-   ],
-   "knowledge_value": "low"
-  },
-  {
    "title": "Catalog SOP: Reconnect Excluded Offers in a Target Marketplace",
    "category": "Catalog",
    "chapter": null,
@@ -2355,25 +2320,6 @@
    "knowledge_value": "medium"
   },
   {
-   "title": "Catalog SOP: Update Attributes Using Item Maintenance Form",
-   "category": "Catalog",
-   "chapter": null,
-   "url": "https://sop.myamazonguy.com/books/catalog/page/catalog-sop-update-attributes-using-item-maintenance-form",
-   "captured_at": "2026-05-12T07:07:49Z",
-   "file": "catalog/catalog-sop-update-attributes-using-item-maintenance-form.md",
-   "body_length": 11954,
-   "image_count": 32,
-   "status": "needs-update",
-   "triaged_on": "2026-10-06",
-   "flags": [
-    "proposed_drop",
-    "old_nav",
-    "faq_unsourced",
-    "us_only"
-   ],
-   "knowledge_value": "low"
-  },
-  {
    "title": "Catalog SOP: Update FBA Weight and Dimension (Cubiscan)",
    "category": "Catalog",
    "chapter": null,
@@ -2436,24 +2382,6 @@
    "triaged_on": "2026-10-06",
    "flags": [
     "faq_unsourced"
-   ],
-   "knowledge_value": "low"
-  },
-  {
-   "title": "Catalog SOP: VC Image/Video Upload",
-   "category": "Catalog",
-   "chapter": null,
-   "url": "https://sop.myamazonguy.com/books/catalog/page/catalog-sop-vc-imagevideo-upload",
-   "captured_at": "2026-05-12T07:07:49Z",
-   "file": "catalog/catalog-sop-vc-image-video-upload.md",
-   "body_length": 10595,
-   "image_count": 22,
-   "status": "needs-update",
-   "triaged_on": "2026-10-06",
-   "flags": [
-    "proposed_drop",
-    "mag_internal",
-    "tool_dependency"
    ],
    "knowledge_value": "low"
   },
@@ -2542,24 +2470,6 @@
    "flags": [
     "mag_internal",
     "contradicts_repo"
-   ],
-   "knowledge_value": "low"
-  },
-  {
-   "title": "Logistics SOP: Create Inbound or Outbound Order in Flowspace (3PL Shipment)",
-   "category": "Catalog",
-   "chapter": null,
-   "url": "https://sop.myamazonguy.com/books/catalog/page/logistics-sop-create-inbound-or-outbound-order-in-flowspace-3pl-shipment",
-   "captured_at": "2026-05-12T07:07:49Z",
-   "file": "catalog/logistics-sop-create-inbound-or-outbound-order-in-flowspace-3pl-shipment.md",
-   "body_length": 9653,
-   "image_count": 22,
-   "status": "needs-update",
-   "triaged_on": "2026-10-06",
-   "flags": [
-    "proposed_drop",
-    "tool_dependency",
-    "mag_internal"
    ],
    "knowledge_value": "low"
   },
@@ -4764,22 +4674,6 @@
    "knowledge_value": "medium"
   },
   {
-   "title": "New Page",
-   "category": "Catalog",
-   "chapter": null,
-   "url": "https://sop.myamazonguy.com/books/catalog/page/new-page",
-   "captured_at": "2026-05-12T07:07:49Z",
-   "file": "catalog/new-page.md",
-   "body_length": 0,
-   "image_count": 0,
-   "status": "needs-update",
-   "triaged_on": "2026-10-06",
-   "flags": [
-    "proposed_drop"
-   ],
-   "knowledge_value": "low"
-  },
-  {
    "title": "Catalog SOP: Creating a Sales and Orders by Month Report",
    "category": "SEO",
    "chapter": null,
@@ -4830,24 +4724,6 @@
     "tool_dependency",
     "contradicts_repo",
     "faq_unsourced",
-    "mag_internal"
-   ],
-   "knowledge_value": "low"
-  },
-  {
-   "title": "SEO SOP: Competitor Research",
-   "category": "SEO",
-   "chapter": null,
-   "url": "https://sop.myamazonguy.com/books/seo/page/seo-sop-competitor-research",
-   "captured_at": "2026-05-12T07:07:49Z",
-   "file": "seo/seo-sop-competitor-research.md",
-   "body_length": 10758,
-   "image_count": 26,
-   "status": "needs-update",
-   "triaged_on": "2026-10-06",
-   "flags": [
-    "proposed_drop",
-    "tool_dependency",
     "mag_internal"
    ],
    "knowledge_value": "low"
@@ -4969,43 +4845,6 @@
     "mag_internal"
    ],
    "knowledge_value": "medium"
-  },
-  {
-   "title": "SEO SOP: Phase 2 SEO - Incremental Indexing",
-   "category": "SEO",
-   "chapter": null,
-   "url": "https://sop.myamazonguy.com/books/seo/page/seo-sop-phase-2-seo-incremental-indexing",
-   "captured_at": "2026-05-12T07:07:49Z",
-   "file": "seo/seo-sop-phase-2-seo-incremental-indexing.md",
-   "body_length": 10010,
-   "image_count": 5,
-   "status": "needs-update",
-   "triaged_on": "2026-10-06",
-   "flags": [
-    "proposed_drop",
-    "tool_dependency",
-    "mag_internal"
-   ],
-   "knowledge_value": "low"
-  },
-  {
-   "title": "SEO SOP: Phase 3 SEO - High Level Keyword Strategy for Advanced Keyword Striking Distance Rankings",
-   "category": "SEO",
-   "chapter": null,
-   "url": "https://sop.myamazonguy.com/books/seo/page/seo-sop-phase-3-seo-high-level-keyword-strategy-for-advanced-keyword-striking-distance-rankings",
-   "captured_at": "2026-05-12T07:07:49Z",
-   "file": "seo/seo-sop-phase-3-seo-high-level-keyword-strategy-for-advanced-keyword-striking-distance-rankings.md",
-   "body_length": 10297,
-   "image_count": 15,
-   "status": "needs-update",
-   "triaged_on": "2026-10-06",
-   "flags": [
-    "proposed_drop",
-    "tool_dependency",
-    "mag_internal",
-    "faq_unsourced"
-   ],
-   "knowledge_value": "low"
   },
   {
    "title": "SEO SOP: Phase 4 - Intent-Based Strategy - Leveraging Conversion and Click-through Rates for Market Share Expansion",
@@ -5758,23 +5597,6 @@
    "knowledge_value": "medium"
   },
   {
-   "title": "Creative SOP: Amazon Image Best Practices",
-   "category": "Design",
-   "chapter": null,
-   "url": "https://sop.myamazonguy.com/books/design-XyS/page/creative-sop-amazon-image-best-practices",
-   "captured_at": "2026-05-12T07:07:49Z",
-   "file": "design/creative-sop-amazon-image-best-practices.md",
-   "body_length": 14388,
-   "image_count": 44,
-   "status": "needs-update",
-   "triaged_on": "2026-10-06",
-   "flags": [
-    "proposed_drop",
-    "faq_unsourced"
-   ],
-   "knowledge_value": "low"
-  },
-  {
    "title": "Creative SOP: Design on Amazon - Best Practices",
    "category": "Design",
    "chapter": null,
@@ -5788,25 +5610,6 @@
    "flags": [
     "mag_internal",
     "faq_unsourced"
-   ],
-   "knowledge_value": "low"
-  },
-  {
-   "title": "Design SOP: Amazon Photo Rules & Guide",
-   "category": "Design",
-   "chapter": null,
-   "url": "https://sop.myamazonguy.com/books/design-XyS/page/design-sop-amazon-photo-rules-guide",
-   "captured_at": "2026-05-12T07:07:49Z",
-   "file": "design/design-sop-amazon-photo-rules-and-guide.md",
-   "body_length": 11414,
-   "image_count": 0,
-   "status": "needs-update",
-   "triaged_on": "2026-10-06",
-   "flags": [
-    "proposed_drop",
-    "mag_internal",
-    "faq_unsourced",
-    "contradicts_repo"
    ],
    "knowledge_value": "low"
   },
@@ -5861,41 +5664,6 @@
     "contradicts_repo",
     "tool_dependency",
     "mag_internal"
-   ],
-   "knowledge_value": "low"
-  },
-  {
-   "title": "Design SOP: Identifying Font Styles on Websites",
-   "category": "Design",
-   "chapter": null,
-   "url": "https://sop.myamazonguy.com/books/design-XyS/page/design-sop-identifying-font-styles-on-websites",
-   "captured_at": "2026-05-12T07:07:49Z",
-   "file": "design/design-sop-identifying-font-styles-on-websites.md",
-   "body_length": 3552,
-   "image_count": 8,
-   "status": "needs-update",
-   "triaged_on": "2026-10-06",
-   "flags": [
-    "proposed_drop",
-    "tool_dependency"
-   ],
-   "knowledge_value": "low"
-  },
-  {
-   "title": "Design Tier Q&A",
-   "category": "Design",
-   "chapter": null,
-   "url": "https://sop.myamazonguy.com/books/design-XyS/page/design-tier-qa",
-   "captured_at": "2026-05-12T07:07:49Z",
-   "file": "design/design-tier-q-and-a.md",
-   "body_length": 5484,
-   "image_count": 1,
-   "status": "needs-update",
-   "triaged_on": "2026-10-06",
-   "flags": [
-    "proposed_drop",
-    "mag_internal",
-    "tool_dependency"
    ],
    "knowledge_value": "low"
   },
@@ -6056,23 +5824,6 @@
    "knowledge_value": "medium"
   },
   {
-   "title": "General SOP: How to Make HTML Tags",
-   "category": "General",
-   "chapter": null,
-   "url": "https://sop.myamazonguy.com/books/general/page/general-sop-how-to-make-html-tags",
-   "captured_at": "2026-05-12T07:07:49Z",
-   "file": "general/general-sop-how-to-make-html-tags.md",
-   "body_length": 5053,
-   "image_count": 0,
-   "status": "needs-update",
-   "triaged_on": "2026-10-06",
-   "flags": [
-    "proposed_drop",
-    "faq_unsourced"
-   ],
-   "knowledge_value": "low"
-  },
-  {
    "title": "General SOP: How to Print GS1 Certificates",
    "category": "General",
    "chapter": null,
@@ -6102,25 +5853,6 @@
    "triaged_on": "2026-10-06",
    "flags": [
     "tool_dependency",
-    "faq_unsourced"
-   ],
-   "knowledge_value": "low"
-  },
-  {
-   "title": "General SOP: Uploading COGs",
-   "category": "General",
-   "chapter": null,
-   "url": "https://sop.myamazonguy.com/books/general/page/general-sop-uploading-cogs",
-   "captured_at": "2026-05-12T07:07:49Z",
-   "file": "general/general-sop-uploading-cogs.md",
-   "body_length": 4751,
-   "image_count": 10,
-   "status": "needs-update",
-   "triaged_on": "2026-10-06",
-   "flags": [
-    "proposed_drop",
-    "tool_dependency",
-    "mag_internal",
     "faq_unsourced"
    ],
    "knowledge_value": "low"
@@ -6182,23 +5914,6 @@
    "knowledge_value": "medium"
   },
   {
-   "title": "Supplemental Article: Ensuring Consistent Communication Through Multi-Threading",
-   "category": "General",
-   "chapter": null,
-   "url": "https://sop.myamazonguy.com/books/general/page/supplemental-article-ensuring-consistent-communication-through-multi-threading",
-   "captured_at": "2026-05-12T07:07:49Z",
-   "file": "general/supplemental-article-ensuring-consistent-communication-through-multi-threading.md",
-   "body_length": 5982,
-   "image_count": 0,
-   "status": "needs-update",
-   "triaged_on": "2026-10-06",
-   "flags": [
-    "proposed_drop",
-    "mag_internal"
-   ],
-   "knowledge_value": "low"
-  },
-  {
    "title": "Supplemental Article: Reviving Sales on Amazon (Strategies for Overcoming Common Seller Challenges)",
    "category": "General",
    "chapter": null,
@@ -6258,6 +5973,10 @@
   {
    "what": "110 SOPs triaged as unusable",
    "date": "2026-10-06"
+  },
+  {
+   "what": "16 SOPs triaged as unusable",
+   "date": "2026-10-08"
   }
  ]
 }

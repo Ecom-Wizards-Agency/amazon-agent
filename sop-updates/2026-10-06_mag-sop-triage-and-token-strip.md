@@ -36,4 +36,4 @@ Every SOP got a signal pass (`tools/knowledge/sop_triage.py signals`) and a read
 
 ## Follow-Up
 
-Operator decision on the 16 proposed drops; the supersede wave for the high-value `needs-update` SOPs (knowledge units or skill references verified live); the BookStack revision check once the library login is available.
+The 16 proposed drops were decided and removed on 08.10.2026 (`sop-updates/2026-10-08_parked-sop-drops.md`); the supersede wave for the high-value `needs-update` SOPs (knowledge units or skill references verified live); the BookStack revision check once the library login is available.
