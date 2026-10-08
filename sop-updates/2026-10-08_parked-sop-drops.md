@@ -23,7 +23,7 @@ The operator reviewed the 16 titles with their reasons on 08.10.2026 and decided
 
 ## Change Made
 
-`sop_triage.py merge-verdicts` set the 16 rows to `drop`, then `sop_apply_triage.py --apply --approved-by "Victor" --date 2026-10-08 --csv _local/knowledge-sop-triage/drops-2026-10-08.csv` removed the files with `git rm`, appended `16 SOPs triaged as unusable` dated 2026-10-08 to the index `dropped` list and regenerated the README through `tools/slim_sop_index.py`. Passing the 16-row CSV kept `triaged_on: 2026-10-06` on every other row.
+`sop_triage.py merge-verdicts` set the 16 rows to `drop`, then `sop_apply_triage.py --apply --approved-by "Victor" --date 2026-10-08 --csv _local/knowledge-sop-triage/drops-2026-10-08.csv` removed the files with `git rm`, appended `16 SOPs triaged as unusable` with date `2026-10-08` to the index `dropped` list and regenerated the README through `tools/slim_sop_index.py`. Passing the 16-row CSV kept `triaged_on: 2026-10-06` on every other row.
 
 ## Files Changed
 
@@ -37,7 +37,7 @@ Updated: `MAG SOPs/_index/sop-index.json` (348 entries, was 364; index status co
 
 ## Evidence
 
-`_local/knowledge-sop-triage/drops-2026-10-08.csv` and `triage.csv` (gitignored, this machine). Observation: the triage CSV holds 111 `drop` rows while the 06.10.2026 note reports 110 removed files; the difference predates this change and is left as recorded.
+`_local/knowledge-sop-triage/drops-2026-10-08.csv` and `triage.csv` (gitignored, this machine). Observation: before this change the triage CSV held 111 earlier `drop` rows against the 110 files the 06.10.2026 note reports; the 111th file, an archived advertising SOP, was removed in commit ac83a97 on 07.10.2026 without an entry in the index `dropped` list. Left as recorded.
 
 ## Follow-Up
 
