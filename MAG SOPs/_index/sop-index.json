@@ -26,7 +26,9 @@
     "old_nav",
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-14",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Brand Registry SOP: Add ASINs to Brand Store, Brand Story, and A+ Content",
@@ -43,7 +45,9 @@
     "faq_unsourced",
     "us_only"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-14",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Brand Registry SOP: Copying Brand Store to Another Marketplace",
@@ -59,7 +63,9 @@
    "flags": [
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-14",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Brand Registry SOP: Fix Brand/Store Byline",
@@ -76,7 +82,9 @@
     "old_nav",
     "us_only"
    ],
-   "knowledge_value": "high"
+   "knowledge_value": "high",
+   "revised_at": "2026-09-14",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Brand Registry SOP: How to Enroll a Brand and Products in the Amazon Transparency Program",
@@ -92,7 +100,9 @@
    "flags": [
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-14",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Brand Registry SOP: How to Fix Brand Store Rejection",
@@ -111,7 +121,9 @@
     "url_tokens",
     "us_only"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-14",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Brand Registry SOP: How to Submit a Ticket to Brand Registry",
@@ -127,7 +139,9 @@
    "flags": [
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-14",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Brand Registry SOP: How To Update Brand Name",
@@ -148,7 +162,9 @@
     "us_only",
     "contradicts_repo"
    ],
-   "knowledge_value": "high"
+   "knowledge_value": "high",
+   "revised_at": "2026-09-14",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Brand Registry SOP: How to Use New Selection Opportunities in Explore Brand Selection",
@@ -164,7 +180,9 @@
    "flags": [
     "us_only"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2026-09-14",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Brand Registry SOP: How to Use the Repeat Purchase Behavior Report in Brand Analytics",
@@ -181,7 +199,9 @@
     "old_nav",
     "us_only"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-14",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Brand Registry SOP: Letter of Authorization - Creating Listings for Non-Brand Registered Accounts",
@@ -198,7 +218,9 @@
     "faq_unsourced",
     "us_only"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-15",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Brand Registry SOP: No Product Listed in Store (Brand Node Issue)",
@@ -216,7 +238,9 @@
     "faq_unsourced",
     "us_only"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-15",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Brand Registry SOP: Unenroll Brand from Brand Registry",
@@ -233,7 +257,9 @@
     "faq_unsourced",
     "us_only"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog: SOP: Brand Registry Roles",
@@ -249,7 +275,9 @@
    "flags": [
     "old_nav"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-15",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Brand Registry Ticket Cases & Updates",
@@ -266,7 +294,9 @@
     "old_nav",
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-15",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Supplemental Article: Explore Brand Selection Tool",
@@ -302,7 +332,9 @@
     "tool_dependency",
     "us_only"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2026-09-15",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: A/B Test (A+ Content)",
@@ -319,7 +351,9 @@
     "faq_unsourced",
     "us_only"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-15",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: A/B Test (Bullet Points)",
@@ -336,7 +370,9 @@
     "faq_unsourced",
     "us_only"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-15",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: A/B Test (Main Image)",
@@ -353,7 +389,9 @@
     "faq_unsourced",
     "us_only"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-15",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: A/B Test (Product Description)",
@@ -371,7 +409,9 @@
     "contradicts_repo",
     "us_only"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2026-09-15",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Adding, Editing and Removing Videos",
@@ -388,7 +428,9 @@
     "mag_internal",
     "us_only"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-15",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Adding SKU_ASIN to Existing Parentage",
@@ -407,7 +449,9 @@
     "mag_internal",
     "tool_dependency"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2026-09-15",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Advertising a Social Media Promo Code",
@@ -442,7 +486,9 @@
     "faq_unsourced",
     "us_only"
    ],
-   "knowledge_value": "high"
+   "knowledge_value": "high",
+   "revised_at": "2026-09-15",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: ASIN is not Eligible for A+ Content",
@@ -461,7 +507,9 @@
     "faq_unsourced",
     "us_only"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-10-06",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Brand Registry Enrollment",
@@ -478,7 +526,9 @@
     "faq_unsourced",
     "old_nav"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-15",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Breaking a Phantom Parentage",
@@ -496,7 +546,9 @@
     "faq_unsourced",
     "us_only"
    ],
-   "knowledge_value": "high"
+   "knowledge_value": "high",
+   "revised_at": "2026-10-06",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Cancelling your Vine Enrolled Products on Seller Central",
@@ -513,7 +565,9 @@
     "old_nav",
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-15",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Chargeback/ A-Z Claims",
@@ -529,7 +583,9 @@
    "flags": [
     "us_only"
    ],
-   "knowledge_value": "high"
+   "knowledge_value": "high",
+   "revised_at": "2026-09-15",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Checking Your Performance Metrics for Seller-Fulfilled Prime",
@@ -547,7 +603,9 @@
     "old_nav",
     "us_only"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2026-09-15",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Children's Product Safety Request Or Children’s Product Certificate (CPC)",
@@ -566,7 +624,9 @@
     "old_nav",
     "us_only"
    ],
-   "knowledge_value": "high"
+   "knowledge_value": "high",
+   "revised_at": "2026-09-15",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Copyright Infringement",
@@ -585,7 +645,9 @@
     "policy_risk",
     "us_only"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-15",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Creating a Detail Page Sales and Traffic by Child ASIN Report",
@@ -603,7 +665,9 @@
     "old_nav",
     "faq_unsourced"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2026-09-15",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Creating a Detail Page Sales and Traffic by Child ASIN Report",
@@ -640,7 +704,9 @@
     "mag_internal",
     "us_only"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-15",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Creating a Promo Code",
@@ -658,7 +724,9 @@
     "tool_dependency",
     "us_only"
    ],
-   "knowledge_value": "high"
+   "knowledge_value": "high",
+   "revised_at": "2026-09-15",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Creating Multiple Offers (MFN + FBA) for an ASIN",
@@ -677,7 +745,9 @@
     "tool_dependency",
     "faq_unsourced"
    ],
-   "knowledge_value": "high"
+   "knowledge_value": "high",
+   "revised_at": "2026-09-15",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Creating Seller Fulfilled Prime SKUs for Your ASINs",
@@ -694,7 +764,9 @@
     "faq_unsourced",
     "us_only"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2026-09-15",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Customer Service - Buyer Messages, Refund and Replacement",
@@ -712,7 +784,9 @@
     "tool_dependency",
     "faq_unsourced"
    ],
-   "knowledge_value": "high"
+   "knowledge_value": "high",
+   "revised_at": "2026-09-15",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Disease, Medical & Pathogens Claims of Canada (CA)",
@@ -731,7 +805,9 @@
     "mag_internal",
     "faq_unsourced"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2026-09-15",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Disease, Medical & Pathogens Claims of USA",
@@ -750,7 +826,9 @@
     "old_nav",
     "faq_unsourced"
    ],
-   "knowledge_value": "high"
+   "knowledge_value": "high",
+   "revised_at": "2026-09-22",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Download a Sales Dashboard Report",
@@ -766,7 +844,9 @@
    "flags": [
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-15",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Download Category Listings Report",
@@ -799,7 +879,9 @@
    "flags": [
     "tool_dependency"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-15",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Duplicating A+ Content to Another Marketplace",
@@ -815,7 +897,9 @@
    "flags": [
     "us_only"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-16",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Editing Pricing",
@@ -831,7 +915,9 @@
    "flags": [
     "mag_internal"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-16",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Editing Variations Manually",
@@ -844,7 +930,9 @@
    "image_count": 14,
    "status": "needs-update",
    "triaged_on": "2026-10-06",
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-16",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Editing your Vine Enrolled Products on Seller Central",
@@ -860,7 +948,9 @@
    "flags": [
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-16",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Eligibility Criteria for Seller Fulfilled Prime",
@@ -877,7 +967,9 @@
     "us_only",
     "faq_unsourced"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2026-09-16",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Enabling Seller Fulfilled Prime on Your account",
@@ -894,7 +986,9 @@
     "us_only",
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-16",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Error 5887",
@@ -910,7 +1004,9 @@
    "flags": [
     "policy_risk"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-16",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Error 8026",
@@ -926,7 +1022,9 @@
    "flags": [
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-16",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Error 8058",
@@ -942,7 +1040,9 @@
    "flags": [
     "old_nav"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-16",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Error 8541",
@@ -958,7 +1058,9 @@
    "flags": [
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-16",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Error 13043, 90114",
@@ -975,7 +1077,9 @@
     "faq_unsourced",
     "contradicts_repo"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-21",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Error 20002",
@@ -991,7 +1095,9 @@
    "flags": [
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-16",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Error 90118",
@@ -1008,7 +1114,9 @@
     "url_tokens",
     "faq_unsourced"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2026-09-16",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Error 99001 and 90041",
@@ -1024,7 +1132,9 @@
    "flags": [
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-21",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Error 99003",
@@ -1037,7 +1147,9 @@
    "image_count": 6,
    "status": "active",
    "triaged_on": "2026-10-06",
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-16",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Errors while Enrolling for Amazon Brand Registry",
@@ -1053,7 +1165,9 @@
    "flags": [
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-16",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: FBA Removal Order",
@@ -1070,7 +1184,9 @@
     "faq_unsourced",
     "us_only"
    ],
-   "knowledge_value": "high"
+   "knowledge_value": "high",
+   "revised_at": "2026-09-16",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: FBA Shipment Reconciliation",
@@ -1087,7 +1203,9 @@
     "faq_unsourced",
     "old_nav"
    ],
-   "knowledge_value": "high"
+   "knowledge_value": "high",
+   "revised_at": "2026-09-16",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: FBA Storage Capacity Limits",
@@ -1107,7 +1225,9 @@
     "tool_dependency",
     "mag_internal"
    ],
-   "knowledge_value": "high"
+   "knowledge_value": "high",
+   "revised_at": "2026-10-05",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: FBM Late Shipment",
@@ -1124,7 +1244,9 @@
     "mag_internal",
     "us_only"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-16",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Feed Processing Error Code - 5665",
@@ -1141,7 +1263,9 @@
     "policy_risk",
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-16",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Feed Processing Error Code - 8115",
@@ -1158,7 +1282,9 @@
     "faq_unsourced",
     "contradicts_repo"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-16",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Feed Processing Error Code: 98888",
@@ -1175,7 +1301,9 @@
     "policy_risk",
     "us_only"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-16",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: File Uploads - Delete-Relist",
@@ -1193,7 +1321,9 @@
     "tool_dependency",
     "contradicts_repo"
    ],
-   "knowledge_value": "high"
+   "knowledge_value": "high",
+   "revised_at": "2026-09-16",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Finding a Refund Report on Amazon Seller Central",
@@ -1210,7 +1340,9 @@
     "faq_unsourced",
     "tool_dependency"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-16",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Fulfilling Merchant Fulfilled Orders via Email Notification",
@@ -1226,7 +1358,9 @@
    "flags": [
     "us_only"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2026-09-16",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Full Update Flat File",
@@ -1244,7 +1378,9 @@
     "mag_internal",
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-16",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: How to Add ASINs/SKUs in the Subscribe and Save program",
@@ -1261,7 +1397,9 @@
     "faq_unsourced",
     "us_only"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-23",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: How to Break a Parentage",
@@ -1280,7 +1418,9 @@
     "tool_dependency",
     "contradicts_repo"
    ],
-   "knowledge_value": "high"
+   "knowledge_value": "high",
+   "revised_at": "2026-09-16",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: How to Cancel FBA Removal Order",
@@ -1298,7 +1438,9 @@
     "faq_unsourced",
     "us_only"
    ],
-   "knowledge_value": "high"
+   "knowledge_value": "high",
+   "revised_at": "2026-09-22",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: How to Cancel FBA Shipment",
@@ -1315,7 +1457,9 @@
     "faq_unsourced",
     "us_only"
    ],
-   "knowledge_value": "high"
+   "knowledge_value": "high",
+   "revised_at": "2026-09-16",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: How to Change FBM Shipping Cut-Off Times",
@@ -1331,7 +1475,9 @@
    "flags": [
     "us_only"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-16",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: How to Change Legal Entity",
@@ -1349,7 +1495,9 @@
     "old_nav",
     "faq_unsourced"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2026-09-16",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: How to Create Deals (Lightning and Best)",
@@ -1367,7 +1515,9 @@
     "faq_unsourced",
     "us_only"
    ],
-   "knowledge_value": "high"
+   "knowledge_value": "high",
+   "revised_at": "2026-09-16",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: How To Create Virtual Bundles",
@@ -1385,7 +1535,9 @@
     "us_only",
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-16",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: How to Delete a Listing",
@@ -1403,7 +1555,9 @@
     "faq_unsourced",
     "mag_internal"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-16",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: How to enroll in Remote Fulfillment with FBA",
@@ -1422,7 +1576,9 @@
     "faq_unsourced",
     "mag_internal"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2026-09-16",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: How to File a Ticket in Seller Central",
@@ -1441,7 +1597,9 @@
     "contradicts_repo",
     "faq_unsourced"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2026-09-16",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: How to Fix Errors in the Vine Program on Seller Central",
@@ -1458,7 +1616,9 @@
     "old_nav",
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-17",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: How to Fix Hidden Price",
@@ -1477,7 +1637,9 @@
     "us_only",
     "tool_dependency"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-17",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: How to Fix Listing Policy Violation",
@@ -1495,7 +1657,9 @@
     "faq_unsourced",
     "contradicts_repo"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-17",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: How to fix Medical Devices and Accessories Yanks",
@@ -1513,7 +1677,9 @@
     "us_only",
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-17",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: How to Fix Pesticide Yanks and Gating",
@@ -1532,7 +1698,9 @@
     "us_only",
     "contradicts_repo"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-17",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: How To Identify & Solve Active Listings With No Sales Rank",
@@ -1550,7 +1718,9 @@
     "faq_unsourced",
     "contradicts_repo"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-17",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: How to Manually Ship and Confirm Merchant Fulfilled Orders (FBM) On the Amazon Marketplace",
@@ -1567,7 +1737,9 @@
     "faq_unsourced",
     "url_tokens"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-17",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: How to Merge ASINs",
@@ -1585,7 +1757,9 @@
     "faq_unsourced",
     "us_only"
    ],
-   "knowledge_value": "high"
+   "knowledge_value": "high",
+   "revised_at": "2026-09-17",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: How to Print Amazon Barcodes",
@@ -1601,7 +1775,9 @@
    "flags": [
     "us_only"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-17",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: How to Reconcile FBA Shipments - Missing and Overage Units",
@@ -1637,7 +1813,9 @@
     "old_nav",
     "contradicts_repo"
    ],
-   "knowledge_value": "high"
+   "knowledge_value": "high",
+   "revised_at": "2026-09-17",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: How to Set Up a Coupon",
@@ -1656,7 +1834,9 @@
     "us_only",
     "tool_dependency"
    ],
-   "knowledge_value": "high"
+   "knowledge_value": "high",
+   "revised_at": "2026-09-17",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: How to Transfer Subscribe and Save Subscriptions",
@@ -1673,7 +1853,9 @@
     "faq_unsourced",
     "us_only"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-22",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: How to Update a Variation Theme",
@@ -1691,7 +1873,9 @@
     "mag_internal",
     "tool_dependency"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-14",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: How to Update the Vanity or Short Store URL",
@@ -1708,7 +1892,9 @@
     "old_nav",
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-17",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Insurance Certificate Uploading",
@@ -1725,7 +1911,9 @@
     "us_only",
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-17",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: INVOICE - Proper Invoice Template for Amazon",
@@ -1743,7 +1931,9 @@
     "tool_dependency",
     "us_only"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-17",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Listing Customization Tutorial",
@@ -1760,7 +1950,9 @@
     "tool_dependency",
     "faq_unsourced"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2026-09-17",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Listing Partial Update (Flat File)",
@@ -1778,7 +1970,9 @@
     "contradicts_repo",
     "old_nav"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2026-09-17",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Managing Enrolled Vine Products on Seller Central",
@@ -1796,7 +1990,9 @@
     "faq_unsourced",
     "us_only"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-17",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Managing Listing Enhancements",
@@ -1809,7 +2005,9 @@
    "image_count": 4,
    "status": "needs-update",
    "triaged_on": "2026-10-06",
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2026-09-17",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Mental Health Disorder and Sleep Disorder Claims",
@@ -1829,7 +2027,9 @@
     "us_only",
     "contradicts_repo"
    ],
-   "knowledge_value": "high"
+   "knowledge_value": "high",
+   "revised_at": "2026-09-17",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Merging Variations",
@@ -1846,7 +2046,9 @@
    "flags": [
     "contradicts_repo"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2026-09-17",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Parentage Check",
@@ -1864,7 +2066,9 @@
     "us_only",
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-17",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Parentage Creation",
@@ -1881,7 +2085,9 @@
     "contradicts_repo",
     "faq_unsourced"
    ],
-   "knowledge_value": "high"
+   "knowledge_value": "high",
+   "revised_at": "2026-09-17",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Pesticide Claims-Keywords to Avoid",
@@ -1898,7 +2104,9 @@
     "faq_unsourced",
     "us_only"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-17",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Product Authenticity Customer Complaint",
@@ -1917,7 +2125,9 @@
     "faq_unsourced",
     "us_only"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-17",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Product Condition Customer Complaint (Damaged/Defective)",
@@ -1935,7 +2145,9 @@
     "faq_unsourced",
     "old_nav"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-18",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Product Condition Customer Complaints (Expired)",
@@ -1953,7 +2165,9 @@
     "faq_unsourced",
     "mag_internal"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-18",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Product Condition Customer Complaints (USED SOLD AS NEW)",
@@ -1971,7 +2185,9 @@
     "faq_unsourced",
     "mag_internal"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-18",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Product Document Upload",
@@ -1988,7 +2204,9 @@
     "faq_unsourced",
     "us_only"
    ],
-   "knowledge_value": "high"
+   "knowledge_value": "high",
+   "revised_at": "2026-09-18",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Providing DMCA Counter Notice for Copyright Infringements",
@@ -2005,7 +2223,9 @@
     "faq_unsourced",
     "us_only"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-18",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Providing DMCA Counter Notice for Copyright Infringements",
@@ -2041,7 +2261,9 @@
     "us_only",
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-18",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Remove Unauthorized Sellers (Hijackers)",
@@ -2060,7 +2282,9 @@
     "us_only",
     "faq_unsourced"
    ],
-   "knowledge_value": "high"
+   "knowledge_value": "high",
+   "revised_at": "2026-09-18",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Request A Bin Check To Amazon",
@@ -2077,7 +2301,9 @@
     "old_nav",
     "faq_unsourced"
    ],
-   "knowledge_value": "high"
+   "knowledge_value": "high",
+   "revised_at": "2026-09-18",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Retract a Report of Infringement",
@@ -2095,7 +2321,9 @@
     "us_only",
     "old_nav"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-18",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Return Status and Issue Refunds (MFN)",
@@ -2113,7 +2341,9 @@
     "us_only",
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-18",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: SC Bulk Image Upload",
@@ -2131,7 +2361,9 @@
     "mag_internal",
     "old_nav"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-18",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Schedule Brand Store Versions",
@@ -2147,7 +2379,9 @@
    "flags": [
     "old_nav"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-18",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Seller-Fulfilled Offers (MFN) Suspension",
@@ -2165,7 +2399,9 @@
     "faq_unsourced",
     "us_only"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-18",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Seller Central URLs",
@@ -2181,7 +2417,9 @@
    "flags": [
     "contradicts_repo"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2026-09-18",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Seller Fulfilled Prime Deactivation",
@@ -2198,7 +2436,9 @@
     "us_only",
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-18",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Seller Fulfilled Prime Enabled",
@@ -2215,7 +2455,9 @@
     "us_only",
     "faq_unsourced"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2026-09-18",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Setting the Available Quantity for Seller-Fulfilled Prime SKUs",
@@ -2232,7 +2474,9 @@
     "faq_unsourced",
     "old_nav"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2026-09-18",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Setting up Seller Fulfilled Prime on an Existing Shipping Template",
@@ -2249,7 +2493,9 @@
     "us_only",
     "faq_unsourced"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2026-09-18",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Set up European Fulfillment Network (EFN)",
@@ -2265,7 +2511,9 @@
    "flags": [
     "old_nav"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-18",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Shipping Template for FBM Listings",
@@ -2282,7 +2530,9 @@
     "faq_unsourced",
     "us_only"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-18",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Unauthorized Merging of Two Parent ASINs",
@@ -2300,7 +2550,9 @@
     "faq_unsourced",
     "mag_internal"
    ],
-   "knowledge_value": "high"
+   "knowledge_value": "high",
+   "revised_at": "2026-09-18",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Unenroll from the Remote Fulfillment Program (NARF)",
@@ -2317,7 +2569,9 @@
     "faq_unsourced",
     "us_only"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-18",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Update FBA Weight and Dimension (Cubiscan)",
@@ -2334,7 +2588,9 @@
     "faq_unsourced",
     "us_only"
    ],
-   "knowledge_value": "high"
+   "knowledge_value": "high",
+   "revised_at": "2026-09-28",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Update Product Listings Manually",
@@ -2350,7 +2606,9 @@
    "flags": [
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-22",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Updating Product Listing Images",
@@ -2367,7 +2625,9 @@
     "old_nav",
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-18",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Using the Lister Loader Template",
@@ -2383,7 +2643,9 @@
    "flags": [
     "faq_unsourced"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2026-09-18",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Video Rejected",
@@ -2400,7 +2662,9 @@
     "old_nav",
     "us_only"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-21",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Vine Setup",
@@ -2419,7 +2683,9 @@
     "mag_internal",
     "tool_dependency"
    ],
-   "knowledge_value": "high"
+   "knowledge_value": "high",
+   "revised_at": "2026-09-21",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Wrong Brand Name in Stores Manager",
@@ -2437,7 +2703,9 @@
     "faq_unsourced",
     "us_only"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-21",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Quick Reference Guide: Product Document Guideline",
@@ -2453,7 +2721,9 @@
    "flags": [
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-10-01",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Delivery Document - FBA Restock",
@@ -2471,7 +2741,9 @@
     "mag_internal",
     "contradicts_repo"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2026-09-21",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Logistics SOP: Download a Customer Shipment Sales Report",
@@ -2488,7 +2760,9 @@
     "faq_unsourced",
     "us_only"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-21",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Logistics SOP: Download a Customer Shipment Sales Report",
@@ -2523,7 +2797,9 @@
     "faq_unsourced",
     "us_only"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-21",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Logistics SOP: Download a Removal Shipment Detail Report",
@@ -2540,7 +2816,9 @@
     "faq_unsourced",
     "us_only"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-21",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Logistics SOP: FBA Customer Returns Reimbursements",
@@ -2559,7 +2837,9 @@
     "tool_dependency",
     "us_only"
    ],
-   "knowledge_value": "high"
+   "knowledge_value": "high",
+   "revised_at": "2026-09-21",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Logistics SOP: How to Download an FBA Inventory Report",
@@ -2575,7 +2855,9 @@
    "flags": [
     "us_only"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-21",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Logistics SOP: How to Download Restock Inventory Report in Seller Central",
@@ -2592,7 +2874,9 @@
     "faq_unsourced",
     "us_only"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-21",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Logistics SOP: How to Enroll and Use Multi-Location Inventory (MLI)",
@@ -2608,7 +2892,9 @@
    "flags": [
     "tool_dependency"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2026-09-21",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Logistics SOP: How to Generate a Recommended Removal Report",
@@ -2621,7 +2907,9 @@
    "image_count": 14,
    "status": "needs-update",
    "triaged_on": "2026-10-06",
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2026-09-21",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Logistics SOP: How to Generate a Removal Order Detail Report",
@@ -2638,7 +2926,9 @@
     "faq_unsourced",
     "us_only"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-21",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Logistics SOP: How to Move Inventory in Amazon Warehousing and Distribution (AWD)",
@@ -2654,7 +2944,9 @@
    "flags": [
     "us_only"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-21",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Logistics SOP: How to Send inventory to Amazon Warehousing and Distribution (AWD)",
@@ -2671,7 +2963,9 @@
     "us_only",
     "tool_dependency"
    ],
-   "knowledge_value": "high"
+   "knowledge_value": "high",
+   "revised_at": "2026-09-21",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Logistics SOP: How to Set Order Handling Capacity in Amazon Seller Central",
@@ -2687,7 +2981,9 @@
    "flags": [
     "us_only"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-21",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Logistics SOP: How to Switch from Amazon Barcodes to Manufacturer Barcodes for Virtual Tracking",
@@ -2703,7 +2999,9 @@
    "flags": [
     "us_only"
    ],
-   "knowledge_value": "high"
+   "knowledge_value": "high",
+   "revised_at": "2026-09-21",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Logistics SOP: Package Dimensions and Weight Update",
@@ -2722,7 +3020,9 @@
     "tool_dependency",
     "us_only"
    ],
-   "knowledge_value": "high"
+   "knowledge_value": "high",
+   "revised_at": "2026-09-21",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Logistics SOP: Remove Inventory from a Fulfillment Center",
@@ -2741,7 +3041,9 @@
     "mag_internal",
     "us_only"
    ],
-   "knowledge_value": "high"
+   "knowledge_value": "high",
+   "revised_at": "2026-09-21",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Logistics SOP: Reserved Inventory Report Generation and Management",
@@ -2758,7 +3060,9 @@
     "faq_unsourced",
     "us_only"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-21",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Logistics SOP: Restock Report (Stand Alone)",
@@ -2776,7 +3080,9 @@
     "tool_dependency",
     "mag_internal"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2026-09-21",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Logistics SOP: Seller Fulfilled Prime Trial Period",
@@ -2793,7 +3099,9 @@
     "us_only",
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-21",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Logistics SOP: Send to Amazon - How to Create FBA Shipment",
@@ -2811,7 +3119,9 @@
     "tool_dependency",
     "faq_unsourced"
    ],
-   "knowledge_value": "high"
+   "knowledge_value": "high",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Logistics SOP: Setting up a New Shipping Template for Seller Fulfilled Prime SKUs",
@@ -2828,7 +3138,9 @@
     "faq_unsourced",
     "us_only"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-21",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Logistics SOP: Setting up Return Settings for Merchant Fulfilled SKUs",
@@ -2845,7 +3157,9 @@
     "faq_unsourced",
     "us_only"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-21",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Logistics SOP: Setting up the Returns Policy for your Merchant Fulfilled Orders",
@@ -2862,7 +3176,9 @@
     "faq_unsourced",
     "us_only"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2026-09-21",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Logistics SOP: Updating Tracking for your Merchant Fulfilled Orders via Seller Central",
@@ -2878,7 +3194,9 @@
    "flags": [
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-21",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Logistics SOP: Uploading Cost of Goods for Amazon Reimbursement Policy Update (Effective March 10th, 2025)",
@@ -2894,7 +3212,9 @@
    "flags": [
     "us_only"
    ],
-   "knowledge_value": "high"
+   "knowledge_value": "high",
+   "revised_at": "2026-10-02",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Quick Reference Guide: Amazon Warehousing and Distribution (AWD) Inventory Dashboard",
@@ -2910,7 +3230,9 @@
    "flags": [
     "us_only"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-21",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Supplemental Article: Best Practices for Stock Recommendations During Amazon Events",
@@ -2927,7 +3249,9 @@
     "us_only",
     "tool_dependency"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2026-09-21",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Supplemental Article: Maximizing Efficiency with Amazon Warehousing and Distribution (AWD)",
@@ -2944,7 +3268,9 @@
     "us_only",
     "old_nav"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-21",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Supplemental Article: The Benefits of Multi-Location Inventory (MLI)",
@@ -2960,7 +3286,9 @@
    "flags": [
     "us_only"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2026-09-21",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Supplemental Article: Understanding Order Handling Capacity on Amazon Seller Central",
@@ -2976,7 +3304,9 @@
    "flags": [
     "us_only"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-21",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: A/B Test (Product Title)",
@@ -2994,7 +3324,9 @@
     "contradicts_repo",
     "us_only"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-10-02",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Cancelling a Lightning Deal in Seller Central",
@@ -3012,7 +3344,9 @@
     "mag_internal",
     "tool_dependency"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-21",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Classify Your Products Using Browse Tree Guides",
@@ -3030,7 +3364,9 @@
     "old_nav",
     "us_only"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-21",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Creating a Brand Performance Report",
@@ -3047,7 +3383,9 @@
     "old_nav",
     "faq_unsourced"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2026-09-21",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Creating a Buy One Get One Promotion",
@@ -3065,7 +3403,9 @@
     "faq_unsourced",
     "us_only"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-21",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Creating a Detail Page Sales and Traffic by Child ASIN Report",
@@ -3102,7 +3442,9 @@
     "old_nav",
     "faq_unsourced"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2026-09-21",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Creating a Detail Page Sales and Traffic Report by ASIN",
@@ -3119,7 +3461,9 @@
     "old_nav",
     "faq_unsourced"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2026-09-21",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Creating a Detail Page Sales and Traffic Report by Date",
@@ -3136,7 +3480,9 @@
     "old_nav",
     "faq_unsourced"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2026-09-21",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Creating an Archived Orders Report",
@@ -3152,7 +3498,9 @@
    "flags": [
     "faq_unsourced"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2026-09-21",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Creating an End of Day Form",
@@ -3169,7 +3517,9 @@
     "us_only",
     "faq_unsourced"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2026-09-21",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Creating a New Automated Pricing Rule",
@@ -3187,7 +3537,9 @@
     "mag_internal",
     "faq_unsourced"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2026-09-21",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Creating an Unshipped Orders Report",
@@ -3203,7 +3555,9 @@
    "flags": [
     "faq_unsourced"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2026-09-21",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Creating a Referral Fee Discounts Report",
@@ -3220,7 +3574,9 @@
     "old_nav",
     "faq_unsourced"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2026-09-21",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Creating a Sales and Orders by Month Report",
@@ -3236,7 +3592,9 @@
    "flags": [
     "old_nav"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2026-09-21",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Creating a Sales and Traffic Report by Date",
@@ -3253,7 +3611,9 @@
     "old_nav",
     "faq_unsourced"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2026-09-21",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Creating a Seller Performance Report by Date",
@@ -3269,7 +3629,9 @@
    "flags": [
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-22",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Download a Category Specific Template",
@@ -3286,7 +3648,9 @@
    "flags": [
     "contradicts_repo"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2026-09-22",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Download a Dangerous Goods Status Report",
@@ -3302,7 +3666,9 @@
    "flags": [
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-22",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Download a High Volumes Listing Report",
@@ -3318,7 +3684,9 @@
    "flags": [
     "faq_unsourced"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2026-09-22",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Download a Listing Quality and Suppressed Listing Report",
@@ -3331,7 +3699,9 @@
    "image_count": 12,
    "status": "needs-update",
    "triaged_on": "2026-10-06",
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-22",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Download a Manage FBA Inventory Archive Report",
@@ -3347,7 +3717,9 @@
    "flags": [
     "faq_unsourced"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2026-09-22",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Download a Manage FBA Inventory Report",
@@ -3363,7 +3735,9 @@
    "flags": [
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-22",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Download an All Orders Report",
@@ -3379,7 +3753,9 @@
    "flags": [
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-22",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Download an Amazon Fulfilled Inventory Report",
@@ -3395,7 +3771,9 @@
    "flags": [
     "faq_unsourced"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2026-09-22",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Download a New Order Report",
@@ -3411,7 +3789,9 @@
    "flags": [
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-22",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Download an Exportable Inventory (US) Report",
@@ -3428,7 +3808,9 @@
     "us_only",
     "faq_unsourced"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2026-09-22",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Download an Inbound Performance Report",
@@ -3441,7 +3823,9 @@
    "image_count": 12,
    "status": "needs-update",
    "triaged_on": "2026-10-06",
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-22",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Download an Outlet Deals Report",
@@ -3458,7 +3842,9 @@
     "faq_unsourced",
     "us_only"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2026-09-22",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Download a Referral Fee Preview Report",
@@ -3474,7 +3860,9 @@
    "flags": [
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-22",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Download a Reserved Inventory Report",
@@ -3491,7 +3879,9 @@
     "us_only",
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-22",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Download a Sales Dashboard Report",
@@ -3525,7 +3915,9 @@
    "flags": [
     "faq_unsourced"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2026-09-22",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Download a Stranded Inventory Report",
@@ -3541,7 +3933,9 @@
    "flags": [
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-22",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Download a Subscribe and Save Performance Report",
@@ -3557,7 +3951,9 @@
    "flags": [
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-22",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Downloading an All Statements Report",
@@ -3570,7 +3966,9 @@
    "image_count": 10,
    "status": "needs-update",
    "triaged_on": "2026-10-06",
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-22",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Downloading a Statement View Report",
@@ -3586,7 +3984,9 @@
    "flags": [
     "faq_unsourced"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2026-09-22",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Downloading a Transaction View Report",
@@ -3599,7 +3999,9 @@
    "image_count": 12,
    "status": "needs-update",
    "triaged_on": "2026-10-06",
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-22",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Download Return Reports",
@@ -3612,7 +4014,9 @@
    "image_count": 12,
    "status": "needs-update",
    "triaged_on": "2026-10-06",
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-22",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Duplicating Brand Store to Another Marketplace",
@@ -3629,7 +4033,9 @@
     "faq_unsourced",
     "us_only"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-22",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Edit an Automated Pricing Rule via File Template",
@@ -3646,7 +4052,9 @@
     "mag_internal",
     "faq_unsourced"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2026-09-22",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Editing a Lightning Deal in Seller Central",
@@ -3663,7 +4071,9 @@
     "mag_internal",
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-22",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Editing an Existing Automated Pricing Rule Manually",
@@ -3680,7 +4090,9 @@
     "mag_internal",
     "faq_unsourced"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Fixing Price Alerts",
@@ -3696,7 +4108,9 @@
    "flags": [
     "old_nav"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: How to Check Hidden Suppression",
@@ -3713,7 +4127,9 @@
     "faq_unsourced",
     "us_only"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: How to Download a Cancelled Listings Report",
@@ -3729,7 +4145,9 @@
    "flags": [
     "faq_unsourced"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: How to download an Active Listings Report",
@@ -3742,7 +4160,9 @@
    "image_count": 12,
    "status": "active",
    "triaged_on": "2026-10-06",
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: How to Download an All Listings Report",
@@ -3759,7 +4179,9 @@
     "contradicts_repo",
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: How to Download an Inactive Listings Report",
@@ -3775,7 +4197,9 @@
    "flags": [
     "faq_unsourced"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: How to Download an Inventory Report",
@@ -3792,7 +4216,9 @@
     "contradicts_repo",
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: How to Download an Open Listings Report",
@@ -3808,7 +4234,9 @@
    "flags": [
     "faq_unsourced"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: How to Generate a Fee Preview Report",
@@ -3824,7 +4252,9 @@
    "flags": [
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: How to Generate a Monthly Storage Fees Report",
@@ -3840,7 +4270,9 @@
    "flags": [
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: How to Generate an Aged Inventory Surcharge Report",
@@ -3856,7 +4288,9 @@
    "flags": [
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: How to Generate an Amazon Fulfilled Shipments – Tax Remittance Report",
@@ -3873,7 +4307,9 @@
     "us_only",
     "faq_unsourced"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: How to Generate an FBA Customer Returns Report",
@@ -3889,7 +4325,9 @@
    "flags": [
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: How to Generate an Inventory Storage Overage Fees Report",
@@ -3905,7 +4343,9 @@
    "flags": [
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: How to Generate a Promotions Report",
@@ -3921,7 +4361,9 @@
    "flags": [
     "faq_unsourced"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: How to Generate a Reimbursements Report",
@@ -3937,7 +4379,9 @@
    "flags": [
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: How to Generate a Replacements Report",
@@ -3953,7 +4397,9 @@
    "flags": [
     "faq_unsourced"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: How to Request GTIN Exemption",
@@ -3969,7 +4415,9 @@
    "flags": [
     "us_only"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: How to Set the Available Quantity for Merchant Fulfilled SKUs",
@@ -3985,7 +4433,9 @@
    "flags": [
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Locating Browse Tree",
@@ -4001,7 +4451,9 @@
    "flags": [
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Managing Inactive Inventory",
@@ -4017,7 +4469,9 @@
    "flags": [
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Managing Inventory Amazon Fulfills",
@@ -4034,7 +4488,9 @@
     "us_only",
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-01-29",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Managing Pricing",
@@ -4050,7 +4506,9 @@
    "flags": [
     "mag_internal"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Managing Suppressed Lightning Deals",
@@ -4067,7 +4525,9 @@
     "faq_unsourced",
     "us_only"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Managing Your Buy Box Percentage",
@@ -4084,7 +4544,9 @@
     "mag_internal",
     "us_only"
    ],
-   "knowledge_value": "high"
+   "knowledge_value": "high",
+   "revised_at": "2026-01-29",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Managing Your Fee Discounts",
@@ -4097,7 +4559,9 @@
    "image_count": 0,
    "status": "needs-update",
    "triaged_on": "2026-10-06",
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Managing Your Price Competitiveness",
@@ -4133,7 +4597,9 @@
     "old_nav",
     "faq_unsourced"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Scheduling a New Orders Report",
@@ -4149,7 +4615,9 @@
    "flags": [
     "us_only"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Switching Fulfillment Methods between FBA and FBM",
@@ -4165,7 +4633,9 @@
    "flags": [
     "old_nav"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Viewing Lightning Deal Costs and Performance",
@@ -4182,7 +4652,9 @@
     "faq_unsourced",
     "us_only"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Factors That Affect A Seller’s Chance To Win The Buy Box",
@@ -4198,7 +4670,9 @@
    "flags": [
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Merchandising SOP: Amazon Listing Creation",
@@ -4216,7 +4690,9 @@
     "faq_unsourced",
     "us_only"
    ],
-   "knowledge_value": "high"
+   "knowledge_value": "high",
+   "revised_at": "2026-06-11",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Merchandising SOP: Amazon List Price MRSP",
@@ -4235,7 +4711,9 @@
     "faq_unsourced",
     "us_only"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Merchandising SOP: How to Use the Match Low Price Feature in Amazon",
@@ -4251,7 +4729,9 @@
    "flags": [
     "us_only"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Supplemental Article: Maximizing Sales Insights with the Amazon Sales Dashboard",
@@ -4264,7 +4744,9 @@
    "image_count": 5,
    "status": "needs-update",
    "triaged_on": "2026-10-06",
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Amazon Policy Violations Check",
@@ -4283,7 +4765,9 @@
     "faq_unsourced",
     "old_nav"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Design Rights Infringement",
@@ -4300,7 +4784,9 @@
     "old_nav",
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Error 8566",
@@ -4317,7 +4803,9 @@
     "old_nav",
     "faq_unsourced"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: High ODR Account Suspension",
@@ -4335,7 +4823,9 @@
     "faq_unsourced",
     "us_only"
    ],
-   "knowledge_value": "high"
+   "knowledge_value": "high",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: How to Fix Trademark (TM) Infringement Yank",
@@ -4355,7 +4845,9 @@
     "url_tokens",
     "us_only"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Letter of Compliance",
@@ -4372,7 +4864,9 @@
     "contradicts_repo",
     "us_only"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Negative Feedback Removal",
@@ -4391,7 +4885,9 @@
     "mag_internal",
     "policy_risk"
    ],
-   "knowledge_value": "high"
+   "knowledge_value": "high",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: PCRP Restriction Reinstatement",
@@ -4409,7 +4905,9 @@
     "faq_unsourced",
     "us_only"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Return Status and Issue Refunds (MFN)",
@@ -4446,7 +4944,9 @@
     "old_nav",
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Troubleshooting SOP: How to Clear Pesticides Gating Amazon Seller Central (Answer Key)",
@@ -4464,7 +4964,9 @@
     "us_only",
     "tool_dependency"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Troubleshooting SOP: How to Email Seller Executive Relations",
@@ -4481,7 +4983,9 @@
     "us_only",
     "mag_internal"
    ],
-   "knowledge_value": "high"
+   "knowledge_value": "high",
+   "revised_at": "2026-10-01",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Troubleshooting SOP: How to Fix Federal Communications Commission (FCC) Yanks",
@@ -4499,7 +5003,9 @@
     "faq_unsourced",
     "us_only"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Troubleshooting SOP: How to Fix Search Suppressed",
@@ -4517,7 +5023,9 @@
     "faq_unsourced",
     "us_only"
    ],
-   "knowledge_value": "high"
+   "knowledge_value": "high",
+   "revised_at": "2026-10-01",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Troubleshooting SOP: How to Report Patent Infringement",
@@ -4535,7 +5043,9 @@
     "faq_unsourced",
     "us_only"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Troubleshooting SOP: Merging Reviews",
@@ -4553,7 +5063,9 @@
     "faq_unsourced",
     "tool_dependency"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Troubleshooting SOP: Price Not Updating in Automate Pricing",
@@ -4566,7 +5078,9 @@
    "image_count": 30,
    "status": "needs-update",
    "triaged_on": "2026-10-06",
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Troubleshooting SOP: SAFE-T Claim Template",
@@ -4582,7 +5096,9 @@
    "flags": [
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-10-01",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Troubleshooting SOP: SDS Upload/HAZMAT Issues",
@@ -4599,7 +5115,9 @@
     "faq_unsourced",
     "us_only"
    ],
-   "knowledge_value": "high"
+   "knowledge_value": "high",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Troubleshooting SOP: Stranded Inventory (Inventory Error)",
@@ -4617,7 +5135,9 @@
     "old_nav",
     "mag_internal"
    ],
-   "knowledge_value": "high"
+   "knowledge_value": "high",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Troubleshooting SOP: Unlink CA/MX Inventory From US Inventory",
@@ -4634,7 +5154,9 @@
     "us_only",
     "faq_unsourced"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2026-10-01",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Troubleshooting SOP: UPC Change (GTIN, EAN applicable)",
@@ -4653,7 +5175,9 @@
     "us_only",
     "old_nav"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-10-01",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Troubleshooting SOP: UPC Upload Error (UPC Codes Don't Match Product) Fix",
@@ -4671,7 +5195,9 @@
     "old_nav",
     "us_only"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Creating a Sales and Orders by Month Report",
@@ -4706,7 +5232,9 @@
     "policy_risk",
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2025-10-25",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "SEO SOP: Amazon's Best Practices for Titles, Bullet Points, Descriptions, and Search Terms",
@@ -4726,7 +5254,9 @@
     "faq_unsourced",
     "mag_internal"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2026-06-11",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "SEO SOP: Create Meta Description Using Master Keyword List (MKL) + How to Set the Meta Description of Any Page in a Brand Store",
@@ -4743,7 +5273,9 @@
     "tool_dependency",
     "mag_internal"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2025-10-25",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "SEO SOP: How to Construct Alt-Text and Add Them to A+ Content Images",
@@ -4761,7 +5293,9 @@
     "mag_internal",
     "faq_unsourced"
    ],
-   "knowledge_value": "high"
+   "knowledge_value": "high",
+   "revised_at": "2026-01-29",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "SEO SOP: Indexing vs Ranking",
@@ -4777,7 +5311,9 @@
    "flags": [
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2025-10-25",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "SEO SOP: Market Share Report",
@@ -4794,7 +5330,9 @@
     "tool_dependency",
     "mag_internal"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-10-05",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "SEO SOP: Optimization of Title, Bullets, & Description",
@@ -4814,7 +5352,9 @@
     "faq_unsourced",
     "mag_internal"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2026-10-01",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "SEO SOP: Organic Ranking Versus Sponsored Ranking",
@@ -4827,7 +5367,9 @@
    "image_count": 0,
    "status": "active",
    "triaged_on": "2026-10-06",
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2026-10-05",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "SEO SOP: Phase 1 - How To Construct Master Keyword List (MKL) and Highly-Optimized Backend Search Terms Through Helium10 Cerebro Reverse ASIN Lookup",
@@ -4844,7 +5386,9 @@
     "tool_dependency",
     "mag_internal"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-07-10",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "SEO SOP: Phase 4 - Intent-Based Strategy - Leveraging Conversion and Click-through Rates for Market Share Expansion",
@@ -4864,7 +5408,9 @@
     "faq_unsourced",
     "old_nav"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2025-11-14",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "SEO SOP: Phrases for Amazon Copy and Search Terms - Words You Can't Use",
@@ -4881,7 +5427,9 @@
     "us_only",
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-06-11",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "SEO SOP: Prohibited Amazon Terms & Phrases with Creative",
@@ -4899,7 +5447,9 @@
     "us_only",
     "contradicts_repo"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-10-01",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "SEO SOP: QA Checklist for Copywriting",
@@ -4920,7 +5470,9 @@
     "mag_internal",
     "us_only"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2026-06-11",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "SEO SOP: Utilizing a Balanced Mix of Organic SEO and Sponsored Content for Maximum Visibility",
@@ -4939,7 +5491,9 @@
     "tool_dependency",
     "contradicts_repo"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2026-10-01",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Advertising SOP: Adding a SKU to an Existing Campaign Using Bulk File",
@@ -4956,7 +5510,9 @@
     "mag_internal",
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-14",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Advertising SOP: Advertising First-Time Setup and Segmentation",
@@ -4993,7 +5549,9 @@
    "flags": [
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-14",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Advertising SOP: Amazon Marketing Cloud",
@@ -5009,7 +5567,9 @@
    "flags": [
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2025-12-12",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Advertising SOP: Analyzing Ad Account using Restock Report",
@@ -5026,7 +5586,9 @@
     "us_only",
     "tool_dependency"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Advertising SOP: Best Practices on Campaign Segmentation",
@@ -5045,7 +5607,9 @@
     "tool_dependency",
     "faq_unsourced"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2026-01-29",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Advertising SOP: Budget Expectation",
@@ -5063,7 +5627,9 @@
     "mag_internal",
     "contradicts_repo"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2026-01-29",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Advertising SOP: Budget Rules",
@@ -5081,7 +5647,9 @@
     "faq_unsourced",
     "us_only"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-01-29",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Advertising SOP: Bulk Operations - Bid Adjustment",
@@ -5099,7 +5667,9 @@
     "contradicts_repo",
     "mag_internal"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Advertising SOP: Campaigns in every Account",
@@ -5116,7 +5686,9 @@
    "flags": [
     "contradicts_repo"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Advertising SOP: Creating an Advertising Report",
@@ -5133,7 +5705,9 @@
    "flags": [
     "old_nav"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Advertising SOP: Find Overoptimized, Underoptimized, or Wasted Spend Targets Using Bulk",
@@ -5153,7 +5727,9 @@
     "contradicts_repo",
     "faq_unsourced"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Advertising SOP: How Advertising Bidding Strategies Work",
@@ -5170,7 +5746,9 @@
     "contradicts_repo",
     "faq_unsourced"
    ],
-   "knowledge_value": "high"
+   "knowledge_value": "high",
+   "revised_at": "2026-01-29",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Advertising SOP: How to Change Campaign Names in Bulk",
@@ -5187,7 +5765,9 @@
    "flags": [
     "mag_internal"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Advertising SOP: How to Conduct Keyword and ASIN Research",
@@ -5206,7 +5786,9 @@
     "faq_unsourced",
     "contradicts_repo"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Advertising SOP: How to Convert Up & Down Bidding Strategy Account to Down Only",
@@ -5222,7 +5804,9 @@
    "flags": [
     "tool_dependency"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Advertising SOP: How to Delete Scheduled Advertising Reports",
@@ -5235,7 +5819,9 @@
    "image_count": 8,
    "status": "needs-update",
    "triaged_on": "2026-10-06",
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Advertising SOP: How to Download Advertising Invoice",
@@ -5248,7 +5834,9 @@
    "image_count": 10,
    "status": "needs-update",
    "triaged_on": "2026-10-06",
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Advertising SOP: How to find ASIN-based ACOS and Conversion Rate in Ad Account",
@@ -5261,7 +5849,9 @@
    "image_count": 8,
    "status": "needs-update",
    "triaged_on": "2026-10-06",
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Advertising SOP: How to find SKUs that are not being advertised",
@@ -5274,7 +5864,9 @@
    "image_count": 10,
    "status": "active",
    "triaged_on": "2026-10-06",
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Advertising SOP: How to Set Up Ad Campaigns on Seller Central",
@@ -5292,7 +5884,9 @@
     "mag_internal",
     "contradicts_repo"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2026-01-29",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Advertising SOP: Master Ads Setup SOP (W/O Existing Campaigns)",
@@ -5310,7 +5904,9 @@
     "mag_internal",
     "contradicts_repo"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2026-01-29",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Advertising SOP: Master Ads SOP (With Existing Campaigns)",
@@ -5328,7 +5924,9 @@
     "mag_internal",
     "contradicts_repo"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-01-29",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Advertising SOP: Naming Conventions and Creation Guidelines",
@@ -5347,7 +5945,9 @@
     "tool_dependency",
     "contradicts_repo"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Advertising SOP: Negation Guidance",
@@ -5364,7 +5964,9 @@
    "flags": [
     "contradicts_repo"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2026-09-11",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Advertising SOP: Prime Day Advertising Actions",
@@ -5381,7 +5983,9 @@
     "mag_internal",
     "contradicts_repo"
    ],
-   "knowledge_value": "high"
+   "knowledge_value": "high",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Advertising SOP: Rules Tab in Campaign Manager",
@@ -5397,7 +6001,9 @@
    "flags": [
     "contradicts_repo"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-01-29",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Advertising SOP: Setting Budget for Campaigns",
@@ -5414,7 +6020,9 @@
     "contradicts_repo",
     "mag_internal"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Advertising SOP: Setting Up a Budget Cap",
@@ -5430,7 +6038,9 @@
    "flags": [
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Advertising SOP: Setting Up a Sponsored Display Campaign",
@@ -5443,7 +6053,9 @@
    "image_count": 12,
    "status": "needs-update",
    "triaged_on": "2026-10-06",
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-01-29",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Advertising SOP: Sponsored Product Targeting Report",
@@ -5459,7 +6071,9 @@
    "flags": [
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Advertising SOP: Sponsored Products Placement Report",
@@ -5476,7 +6090,9 @@
     "contradicts_repo",
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Advertising SOP: Sponsored Products Purchased Product Report",
@@ -5492,7 +6108,9 @@
    "flags": [
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Advertising SOP: Steps to Reduction of Wasted Spend (Overspending Account)",
@@ -5510,7 +6128,9 @@
     "faq_unsourced",
     "tool_dependency"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-01-29",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Advertising SOP: STR Keyword and ASIN Harvesting",
@@ -5528,7 +6148,9 @@
     "tool_dependency",
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Advertising SOP: Uploading Backup File through Bulk Operations",
@@ -5546,7 +6168,9 @@
     "contradicts_repo",
     "faq_unsourced"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "PPC FAQs To Enrich Your Amazon Advertising Knowledge",
@@ -5564,7 +6188,9 @@
     "tool_dependency",
     "contradicts_repo"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2025-08-13",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Quick Reference Guide: Uploading Keywords and Bids via File in PPC Campaigns",
@@ -5577,7 +6203,9 @@
    "image_count": 4,
    "status": "needs-update",
    "triaged_on": "2026-10-06",
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Creative SOP: A+ Content Design",
@@ -5594,7 +6222,9 @@
     "mag_internal",
     "tool_dependency"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-01-29",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Creative SOP: Design on Amazon - Best Practices",
@@ -5611,7 +6241,9 @@
     "mag_internal",
     "faq_unsourced"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Design SOP: Brand Store Creation",
@@ -5629,7 +6261,9 @@
     "second-reader: target covers Store edits, not Manage Stores > Create Store",
     "tool_dependency"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Design SOP: Creating A+ Content and Brand Story Modules",
@@ -5646,7 +6280,9 @@
     "url_tokens",
     "mag_internal"
    ],
-   "knowledge_value": "high"
+   "knowledge_value": "high",
+   "revised_at": "2026-04-09",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Design SOP: How to Design a CTR Hack Main Image",
@@ -5665,7 +6301,9 @@
     "tool_dependency",
     "mag_internal"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2025-10-26",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Acronyms and Definition of terms",
@@ -5682,7 +6320,9 @@
     "mag_internal",
     "tool_dependency"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-10-01",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Brand Management SOP: NARF Pitch",
@@ -5699,7 +6339,9 @@
     "mag_internal",
     "us_only"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2025-10-25",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Dropshipping Appeal Policy Template",
@@ -5716,7 +6358,9 @@
     "policy_risk",
     "us_only"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2025-10-25",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "General SOP: Calling Into Amazon",
@@ -5734,7 +6378,9 @@
     "faq_unsourced",
     "us_only"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2025-10-25",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "General SOP: Definition and Overview of Amazon's Programs",
@@ -5751,7 +6397,9 @@
     "faq_unsourced",
     "us_only"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2025-10-25",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "General SOP: How to Change Amazon Email Address Login Settings",
@@ -5769,7 +6417,9 @@
     "faq_unsourced",
     "us_only"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2025-10-25",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "General SOP: How to Create an Amazon Seller Central Account",
@@ -5786,7 +6436,9 @@
     "us_only",
     "faq_unsourced"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2026-08-06",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "General SOP: How to Create an Attribution Tag",
@@ -5802,7 +6454,9 @@
    "flags": [
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2025-10-25",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "General SOP: How to do a Viral Launch",
@@ -5821,7 +6475,9 @@
     "tool_dependency",
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2026-09-10",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "General SOP: How to Print GS1 Certificates",
@@ -5838,7 +6494,9 @@
     "us_only",
     "faq_unsourced"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2025-10-25",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "General SOP: How To Use Keepa",
@@ -5855,7 +6513,9 @@
     "tool_dependency",
     "faq_unsourced"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2025-10-25",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "General SOP: Weekly Reporting SOP",
@@ -5873,7 +6533,9 @@
     "tool_dependency",
     "mag_internal"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2026-02-02",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Supplemental Article: Amazon Product Launch Guide",
@@ -5893,7 +6555,9 @@
     "policy_risk",
     "contradicts_repo"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2025-10-25",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Supplemental Article: Amazon Seller Central Home Page Basic Navigation",
@@ -5911,7 +6575,9 @@
     "us_only",
     "faq_unsourced"
    ],
-   "knowledge_value": "medium"
+   "knowledge_value": "medium",
+   "revised_at": "2025-10-25",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Supplemental Article: Reviving Sales on Amazon (Strategies for Overcoming Common Seller Challenges)",
@@ -5930,7 +6596,9 @@
     "old_nav",
     "faq_unsourced"
    ],
-   "knowledge_value": "low"
+   "knowledge_value": "low",
+   "revised_at": "2025-10-25",
+   "revision_checked_at": "2026-10-08"
   },
   {
    "title": "Catalog SOP: Creating a Sales and Orders by Month Report",
