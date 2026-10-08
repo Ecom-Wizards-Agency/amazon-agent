@@ -19,7 +19,7 @@ verification: unverified
 verified_on: ""
 verified_how: ""
 amazon_sources: []
-related_sops: ["MAG SOPs/catalog/catalog-sop-how-to-fix-medical-devices-and-accessories-yanks.md", "MAG SOPs/catalog/catalog-sop-disease-medical-and-pathogens-claims-of-usa.md"]
+related_sops: ["MAG SOPs/catalog/catalog-sop-disease-medical-and-pathogens-claims-of-usa.md"]
 supersedes: []
 contradicts: []
 observed: 2026-10
@@ -58,11 +58,10 @@ Stop before any submission, appeal, case send, refund, price change or listing c
 ## Sources
 
 - First-party: none captured yet.
-- Also in: `MAG SOPs/catalog/catalog-sop-how-to-fix-medical-devices-and-accessories-yanks.md`
 - Also in: `MAG SOPs/catalog/catalog-sop-disease-medical-and-pathogens-claims-of-usa.md`
 - Evidence: team vault ledger row for this id.
 
 ## Gaps
 
 - Net new versus existing sources: Infusion-style wording as a specific trigger term and the warning that claims printed on the packaging lower appeal odds are not in the existing SOP.
-- Existing coverage: partial (`MAG SOPs/catalog/catalog-sop-how-to-fix-medical-devices-and-accessories-yanks.md`, `MAG SOPs/catalog/catalog-sop-disease-medical-and-pathogens-claims-of-usa.md`).
+- Existing coverage: partial (a MAG SOP dropped on 08.10.2026, `MAG SOPs/catalog/catalog-sop-disease-medical-and-pathogens-claims-of-usa.md`).

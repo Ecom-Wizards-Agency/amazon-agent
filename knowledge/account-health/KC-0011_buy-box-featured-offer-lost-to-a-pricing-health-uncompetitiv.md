@@ -19,7 +19,7 @@ verification: unverified
 verified_on: ""
 verified_how: ""
 amazon_sources: []
-related_sops: ["MAG SOPs/catalog/catalog-sop-managing-your-buy-box-percentage.md", "MAG SOPs/catalog/catalog-sop-reading-your-pricing-dashboard.md", "MAG SOPs/catalog/catalog-sop-how-to-fix-hidden-price.md"]
+related_sops: ["MAG SOPs/catalog/catalog-sop-managing-your-buy-box-percentage.md"]
 supersedes: []
 contradicts: []
 observed: 2026-03
@@ -59,11 +59,9 @@ Stop before any submission, appeal, case send, refund, price change or listing c
 
 - First-party: none captured yet.
 - Also in: `MAG SOPs/catalog/catalog-sop-managing-your-buy-box-percentage.md`
-- Also in: `MAG SOPs/catalog/catalog-sop-reading-your-pricing-dashboard.md`
-- Also in: `MAG SOPs/catalog/catalog-sop-how-to-fix-hidden-price.md`
 - Evidence: team vault ledger row for this id.
 
 ## Gaps
 
 - Net new versus existing sources: It adds a diagnostic order: the 'uncompetitive price' flag with its displayed threshold as the first check for a lost Buy Box, and pricing to that threshold.
-- Existing coverage: partial (`MAG SOPs/catalog/catalog-sop-managing-your-buy-box-percentage.md`, `MAG SOPs/catalog/catalog-sop-reading-your-pricing-dashboard.md`, `MAG SOPs/catalog/catalog-sop-how-to-fix-hidden-price.md`).
+- Existing coverage: partial (`MAG SOPs/catalog/catalog-sop-managing-your-buy-box-percentage.md`, a MAG SOP dropped on 08.10.2026, a MAG SOP dropped on 08.10.2026).

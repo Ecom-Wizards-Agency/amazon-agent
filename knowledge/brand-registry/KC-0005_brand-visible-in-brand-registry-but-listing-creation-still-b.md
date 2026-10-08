@@ -19,7 +19,7 @@ verification: unverified
 verified_on: ""
 verified_how: ""
 amazon_sources: ["Amazon Seller Help/articles/220-brand-registry-protection-roles-GCF9UE9VGKGA2W5F.md", "Amazon Seller Help/articles/221-brand-registry-selling-roles-GJ84K745AL3R5N3Q.md"]
-related_sops: ["MAG SOPs/catalog/catalog-sop-brand-registry-roles.md", "MAG SOPs/catalog/catalog-sop-error-8566.md", "MAG SOPs/catalog/catalog-sop-how-to-request-gtin-exemption.md", "MAG SOPs/catalog/brand-registry-sop-how-to-submit-a-ticket-to-brand-registry.md"]
+related_sops: ["MAG SOPs/catalog/catalog-sop-how-to-request-gtin-exemption.md"]
 supersedes: []
 contradicts: []
 observed: 2025-04
@@ -59,16 +59,13 @@ Stop before any submission, appeal, case send, refund, price change or listing c
 
 - First-party: `Amazon Seller Help/articles/220-brand-registry-protection-roles-GCF9UE9VGKGA2W5F.md` (captured and read 07.10.2026): the three protection roles, Administrator-only assignment in User Permissions, Rights Owner and Registered Agent mutually exclusive.
 - First-party: `Amazon Seller Help/articles/221-brand-registry-selling-roles-GJ84K745AL3R5N3Q.md` (read 07.10.2026): Administrator-only selling roles, Brand Benefit Eligibility requests, error code 6789, Support only for removal.
-- Also in: `MAG SOPs/catalog/catalog-sop-brand-registry-roles.md`
-- Also in: `MAG SOPs/catalog/catalog-sop-error-8566.md`
 - Also in: `MAG SOPs/catalog/catalog-sop-how-to-request-gtin-exemption.md`
-- Also in: `MAG SOPs/catalog/brand-registry-sop-how-to-submit-a-ticket-to-brand-registry.md`
 - Evidence: team vault ledger row for this id.
 
 ## Gaps
 
 - Net new versus existing sources: The three-layer triage (protection role, selling role, 5461 approval), the 'already have a protection role' message and the 24-hour wait with a timestamped resubmit are not covered.
-- Existing coverage: partial (`MAG SOPs/catalog/catalog-sop-brand-registry-roles.md`, `Amazon Seller Help/articles/220-brand-registry-protection-roles-GCF9UE9VGKGA2W5F.md`, `Amazon Seller Help/articles/221-brand-registry-selling-roles-GJ84K745AL3R5N3Q.md`, `MAG SOPs/catalog/catalog-sop-error-8566.md`, `MAG SOPs/catalog/catalog-sop-how-to-request-gtin-exemption.md`).
+- Existing coverage: partial (a MAG SOP dropped on 08.10.2026, `Amazon Seller Help/articles/220-brand-registry-protection-roles-GCF9UE9VGKGA2W5F.md`, `Amazon Seller Help/articles/221-brand-registry-selling-roles-GJ84K745AL3R5N3Q.md`, a MAG SOP dropped on 08.10.2026, `MAG SOPs/catalog/catalog-sop-how-to-request-gtin-exemption.md`).
 - Unconfirmed: the thread said Support grants a selling role when contacted from the selling account itself. The selling-roles page contradicts this: only the Administrator assigns selling roles, and Support is named only for removing a role when the Administrator cannot be reached.
 - The protection-roles page also lets a user who already has an enrolled brand request a protection role through Brand Registry Support > Update brand ownership; the thread did not try it.
 - The message 'You already have a protection role', error 5461 and the 24-hour wait appear in neither help page.
