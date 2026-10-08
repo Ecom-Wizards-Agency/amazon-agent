@@ -3,53 +3,51 @@ title: "Developer guides overview"
 source_url: "https://advertising.amazon.com/API/docs/en-us/guides/overview"
 library: "Amazon Ads Advanced Tools Center"
 section: "guides"
-downloaded_at: "2026-05-13"
+downloaded_at: "2026-10-07"
 status: "captured"
 ---
 
 # Developer guides overview
 
-Amazon Ads provides advanced tools for developers to programmatically create and manage campaigns and retrieve performance data.
+Amazon Ads provides a number of advanced tools that give developers the ability to programmatically create and manage campaigns, as well as retrieve performance data.
 
-## Documentation translations
+Documentation translations
 
-Translations of developer guides are available in select languages. See [Translations](https://advertising.amazon.com/API/docs/en-us/guides/translations).
+Translations of these developer guides are available in select languages. For a list of available languages, see Translations.
 
 ## Use cases
 
 ### Onboarding
 
-To use developer tools, complete onboarding, which includes registering an application and applying for API access.
+To use all developer tools, you must first complete the onboarding process which includes registering an application and applying for access to the API.
 
-- [Get started with onboarding](https://advertising.amazon.com/API/docs/en-us/guides/onboarding/overview)
+Get started with the onboarding process.
 
-### Reporting and measurement
+### Reporting & measurement
 
-Developers can use Amazon Ads API and Amazon Marketing Stream for campaign performance metrics.
+Developers can use the Amazon Ads API and Amazon Marketing Stream to access performance metrics for Amazon Ads campaigns.
 
-- The Ads API supports asynchronous report requests.
-- Amazon Marketing Stream provides near real-time metrics through AWS.
+The Ads API supports asynchronous report requests, while Amazon Marketing Stream provides near real-time access to metrics through your AWS account.
 
-Key links:
-
-- [Request a report using the API](https://advertising.amazon.com/API/docs/en-us/guides/reporting/v3/get-started)
-- [Get started with Amazon Marketing Stream](https://advertising.amazon.com/API/docs/en-us/guides/amazon-marketing-stream/onboarding)
+- Request a report using the API
+- Get started with Amazon Marketing Stream
 
 ### Campaign management
 
-Campaign management APIs support managing campaigns across ad products using a common model and a single set of endpoints.
+New campaign management APIs
 
-Key links:
+You can now manage campaigns across ad products using a common model and a single set of API endpoints. To get started with campaign management in the Amazon Ads API v1, see the campaign management overview.
 
-- [Campaign management overview](https://advertising.amazon.com/API/docs/en-us/guides/campaign-management/overview)
-- [Create a Sponsored Products campaign](https://advertising.amazon.com/API/docs/en-us/guides/sponsored-products/get-started/manual-campaigns)
-- [Create a Sponsored Brands campaign](https://advertising.amazon.com/API/docs/en-us/guides/sponsored-brands/campaigns/get-started-with-campaigns)
-- [Create a Sponsored Display campaign for Amazon sellers/vendors](https://advertising.amazon.com/API/docs/en-us/guides/sponsored-display/contextual-targeting)
-- [Create a Sponsored Display campaign for non-Amazon sellers](https://advertising.amazon.com/API/docs/en-us/guides/sponsored-display/non-amazon-sellers/get-started)
+You can also use the Amazon Ads API to create and manage sponsored ads and Amazon DSP campaigns.
+
+- Create a Sponsored Products campaign
+- Create a Sponsored Brands campaign
+- Create a Sponsored Display campaign (Amazon sellers or vendors)
+- Create a Sponsored Display campaign (advertisers that do not sell on Amazon)
 
 ## More information
 
-- [Full API reference](https://advertising.amazon.com/API/docs/en-us/reference/api-overview)
-- [API best practices](https://advertising.amazon.com/API/docs/en-us/reference/concepts/overview)
-- [Release notes](https://advertising.amazon.com/API/docs/en-us/release-notes/index)
-- [Support](https://advertising.amazon.com/API/docs/en-us/support/overview)
+- Full API reference
+- API best practices
+- Release notes
+- Support

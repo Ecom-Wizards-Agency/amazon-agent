@@ -3,114 +3,178 @@ title: "Getting started with Sponsored Brands campaigns"
 source_url: "https://advertising.amazon.com/API/docs/en-us/guides/sponsored-brands/campaigns/get-started-with-campaigns"
 library: "Amazon Ads Advanced Tools Center"
 section: "guides"
-downloaded_at: "2026-05-13"
+downloaded_at: "2026-10-07"
 status: "captured"
 ---
 
-# Getting started with Sponsored Brands campaigns
+# Getting started with campaigns
 
-Amazon notes that this page describes Sponsored Brands-specific APIs, while newer campaign management APIs can manage multiple ad products through a common model.
+Note
 
-Use the newer campaign management overview when the task can be handled through the common campaign model. Use this page when Sponsored Brands-specific v4 behavior, creative constraints, or goal-based campaign details matter.
+See the latest Campaign Management APIs here for the latest Campaigns, Ad Groups, Ads, and Targets objects. Use the Ad Product Pill selector to see Sponsored Brands.
+
+New campaign management APIs
+
+This document describes using Sponsored Brands-specific APIs for campaign management. However, you can now manage campaigns across different ad products using a common model and a single set of API endpoints. To get started using the common campaign model in the Amazon Ads API v1, see the campaign management overview.
 
 ## Before you begin
 
-- Complete Amazon Ads API onboarding and getting started.
-- Have an access token and profile ID.
-- Understand Sponsored Brands campaign structure.
-- Optional: use a test account to practice the flow without ad spend.
+- Complete the Amazon Ads API Onboarding and Getting started processes to obtain your access token and profile ID. You will need these to make all the calls referenced in the tutorial.
+- Understand the structure of Sponsored Brands campaigns.
 
-## Workflow
+Tip
 
-| Step | Action | Endpoint or object |
-| --- | --- | --- |
-| 1 | Create a campaign | `POST /sb/v4/campaigns` |
-| 2 | Create ad group | `POST /sb/v4/adGroups` |
-| 3 | Upload and register assets | Creative asset library API |
-| 4 | Create an ad | Sponsored Brands ad type endpoint |
-| 5 | Add targeting to the ad group | Keywords, product targets, or themes |
-| 6 | Check moderation status | Moderation API using `adId` |
-| 7 | Update ad or creative if needed | Asset management and campaign management APIs |
+If you want to test out the creation flow for Sponsored Brands campaigns without worrying about ad spend, you can create a Test account and use it to complete this tutorial.
 
-## Step 1: Create campaign
+### Step 1: Create a campaign
 
-The first step is creating the campaign with `POST /sb/v4/campaigns`.
+The first step is to create a campaign using the POST /sb/v4/campaigns endpoint.
 
-For sellers with an approved brand, Amazon says `brandEntityId` is required. Retrieve it through the `GET /brands` endpoint.
+Bidding strategies can be specified at the campaign level. Bidding can be done automatically by Amazon to optimize bids for placements other than top of search or by specifying a custom bidding adjustment.
 
-Campaign-level bidding can be automatic for placements outside top of search, or can use custom bidding adjustments.
+Note
 
-## Goal-based campaigns
+If you are a seller and your brand has been approved, you must provide a `brandEntityId`. You can get the `brandEntityId` by calling the GET /brands endpoint.
 
-Goal-based campaigns provide a streamlined setup with recommendations aligned to the campaign goal.
+#### Goal-based campaigns
+
+Goal-based campaigns offer a streamlined campaign creation and management workflow to enhance your campaign performance. Each goal comes with a unique set of target and bid recommendations, designed to maximize success metrics and expand opportunities to display ads and reach potential customers on Amazon.
+
+**Parameters to create goal-based campaigns**
 
 | Parameter | Optional | Description | Default |
 | --- | --- | --- | --- |
-| `goal` | No | Goal type. `BRAND_IMPRESSION_SHARE` shows ads to shoppers searching for the brand. `PAGE_VISIT` drives traffic to landing and detail pages. | `PAGE_VISIT` |
-| `costType` | No | Bid/charge model. `CPC` is cost per click. `VCPM` is cost per 1000 viewable impressions. | `CPC` |
-| `smartDefault` | Yes | Default strategy list. `MANUAL` creates no default targeting. `TARGETING` creates theme targeting automatically when creating an ad group. | `MANUAL` without a goal; `TARGETING` when a goal is present. |
+| `goal` | Yes | The goal type of the campaign. `BRAND_IMPRESSION_SHARE` - This goal will show your ads to shoppers searching for your brand. `PAGE_VISIT` - This goal drives traffic to your landing and detail pages through all placements. | `PAGE_VISIT` |
+| `costType` | Yes | The `costType` can be set to determine how the campaign will bid and charge. To view the bid maximums and minimums by geography and `costType`, see https://advertising.amazon.com/API/docs/en-us/concepts/limits#bid-constraints-by-marketplace `CPC` - Cost per click. The performance of this campaign is measured by the clicks triggered by the ad. `VCPM` - Cost per 1000 viewable impressions. The performance of this campaign is measured by the viewable impressions triggered by the ad. | `CPC` |
+| `smartDefault` | Yes | The `smartDefault` parameter specifies a list of strategies for a campaign. Each element in `smartDefault` can be set to determine which default strategy to use. `MANUAL` - No default targeting is created. If `MANUAL` is added on the list, no other strategies are allowed on the list (the list must contain only one item). `TARGETING` - Theme targeting is automatically created when creating an ad group. | If no goal is present in request, `MANUAL` is set by default. If a goal is present, `TARGETING` is set by default. |
 
-Once a goal-based campaign is created, `goal`, `costType`, and `smartDefault` are not editable.
+Note
 
-Validation rules:
+Once a goal-based campaign is created, the `goal`, `costType`, and `smartDefault` values are not editable.
 
-| Goal included? | Cost type included? | Result |
+**Validation rules**
+
+Both `goal` and `costType` parameters must be included in the request body in order to create a goal-based campaign. If the request body contains only one of these parameters, the response will return a validation error of `INVALID_ARGUMENT`. Depending on the goal, either a goal-based campaign focused on brand impression or driving traffic to your landing page and detail page is created along with a set of target and bid recommendations to improve campaign performance.
+
+| Goal type | `costType` | Result |
 | --- | --- | --- |
-| No | No | Defaults to `PAGE_VISIT` with `CPC`. |
-| No | Yes | Validation error. |
-| Yes | No | Validation error. |
-| Yes | Yes | Creates a goal-based campaign. |
+| Not included in request | Not included in request | Default goal type is `PAGE_VISIT` with a `costType` of `CPC` |
+| Not included in request | Included in request | `INVALID_ARGUMENT` error |
+| Included in request | Not included in request | `INVALID_ARGUMENT` error |
+| Included in request | Included in request | Creates a goal-based campaign |
 
-Operational note: for optimized performance, Amazon advises not to include bidding optimizations when `smartDefault` is `TARGETING` or `costType` is `VCPM`.
+Note
 
-## Step 2: Create ad group
+Goal-based campaigns are not supported in the Ireland (IE) marketplace. For IE, both `goal` and `costType` must be omitted from the request body, which creates a standard (non-goal-based) campaign; the default `PAGE_VISIT` / `CPC` behavior described above does not apply. Supplying `goal` and `costType` in IE returns a `GOAL_BASED_CAMPAIGNS_DISABLED` error.
 
-Create at least one ad group with `POST /sb/v4/adGroups`, using the `campaignId` from campaign creation. A successful create call can return a multi-status response and the created `adGroupId`.
+Tip
 
-## Step 3: Upload and register assets
+For optimized campaign performance, do **not** include any bidding optimizations (`bidOptimizationStrategy`, `bidAdjustmentsByShopperSegment`, `bidAdjustmentsByPlacement`, `bidOptimization`) when setting `smartDefault` to `TARGETING` or using a `costType` of `VCPM`.
 
-Use the creative asset library API for images or videos before creating the ad.
+**Sample request**
 
-## Step 4: Create ad
+The `smartDefault` parameter with `["TARGETING"]` value automatically creates theme-based targeting based on the goal selected. In this example, the theme targeting is created with a focus on brand impression.
 
-Supported ad types mentioned by Amazon:
+```
+curl --location  'https://advertising-api.amazon.com/sb/v4/campaigns'  \
+--header  'Amazon-Advertising-API-ClientId: amzn1.REDACTED'  \
+--header  'Authorization: Bearer Atza|xxxxxx'  \
+--header  'Amazon-Advertising-API-Scope: xxxxxxx'  \
+--header  'Accept: application/vnd.sbcampaignresource.v4+json'  \
+--header  'Content-Type: application/json'  \
+--data  '{
+    "campaigns": [
+        {
+            "budgetType": "DAILY",
+            "name": "Goal-based campaign",
+            "state": "ENABLED",
+            "startDate": "2023-08-21",
+            "budget": 10,
+            "goal": "BRAND_IMPRESSION_SHARE",
+            "costType": "VCPM",
+            "smartDefault": ["TARGETING"]
+        }
+    ]
+}'
+```
+
+For `goal` type `BRAND_IMPRESSION_SHARE`, only `costType` `VCPM` is available. If you try to use `costType` `CPC` for goal type `BRAND_IMPRESSION_SHARE`, the following error will occur:
+
+```
+  "errors" :   [ 
+                     { 
+                         "errorType" :   "INVALID_ARGUMENT" , 
+                         "errorValue" :   { 
+                             "otherError" :   { 
+                                 "cause" :   { 
+                                     "location" :   "$.goal" 
+                                 } , 
+                                 "message" :   "Invalid goal type specified." , 
+                                 "reason" :   "CAMPAIGN_GOAL_TYPE_INVALID" 
+                             } 
+                         } 
+                     } 
+                 ]
+```
+
+### Step 2: Create ad group
+
+Create at least one ad group using the POST /sb/v4/adGroups endpoint. Use the `campaignId` returned in step 1 to create your ad group.
+
+**Sample request**
+
+This sample request creates an ad group associated to one campaign. A successful call returns a `207` response code and indicates the `adGroupId` of the ad group created.
+
+```
+curl --location --request POST  'https://advertising-api.amazon.com/sb/v4/adGroups'  \
+--header  'Amazon-Advertising-API-ClientId: amzn1.REDACTED'  \
+--header  'Authorization: Bearer Atza|xxxxxxxxxxxxxx'  \
+--header  'Amazon-Advertising-API-Scope: xxxxxxxxxxxxx'  \
+--header  'Accept: application/vnd.sbadgroupresource.v4+json'  \
+--data-raw  '{
+"adGroups": [{
+    "campaignId": "{{campaignId}}",
+    "name": "My ad group name",
+    "state": "ENABLED"
+}]
+}
+'
+```
+
+### Step 3: Upload and register assets
+
+You can upload and register a video or image asset prior to creating an ad by using the creative asset library API.
+
+### Step 4: Create an ad
+
+Once you have the `assetId` from the previous step, you can create an ad. The ad types are collections, video, brand video and store spotlight. There has to be at least one ad in an ad group and an ad group cannot have more than one ad type.
+
+To learn more about the requirements for each ad type, see:
 
 - Collections
-- Product collection
-- Video
-- Brand video
+- Video (including brand video)
 - Store spotlight
 
-An ad group must have at least one ad and cannot contain more than one ad type.
+**Ad restrictions when using a brand impression share goal**
 
-When using `BRAND_IMPRESSION_SHARE`, use one of:
+If you create a campaign with a goal of `BRAND_IMPRESSION_SHARE`, you must use one of the following creative types:
 
-- Product collection with custom image and Store landing page.
-- Store spotlight with Store landing page.
-- Brand video with Store landing page.
+- Manual collection directing to a Store landing page
+- Store spotlight directing to a Store landing page
+- Brand video ad pointing to a Store landing page
 
-## Step 5: Add targeting
+### Step 5: Add targeting to your ad group
 
-An ad group can use product or keyword targeting expressions.
+Once you have created an ad in an ad group, you need to add targeting. An ad group can be associated to either product or keyword targeting expressions.
 
-| Targeting type | Endpoint |
-| --- | --- |
-| Keyword targeting | `POST /sb/keywords` |
-| Product targeting | `POST /sb/targets` |
-| Theme targeting | `POST /sb/themes` |
+- For keyword targeting, use the POST /sb/keywords endpoint.
+- For product targeting, use the POST /sb/targets endpoint.
+- For theme targeting, use the POST /sb/themes endpoint.
 
-## Step 6: Check moderation
+### Step 6: Check the moderation status
 
-Use the Moderation API and pass the `adId` as the moderation `id`.
+You can check the moderation status of your ads by passing the `adId` as the `id` in the Moderation API.
 
-## Step 7: Make changes
+### Step 7: Make any changes to your ads or creatives
 
-If moderation requires changes, use asset management and campaign management docs to update the ad or creative.
-
-## Related pages
-
-- [Campaign management overview](https://advertising.amazon.com/API/docs/en-us/guides/campaign-management/overview)
-- [Sponsored Brands campaign structure](https://advertising.amazon.com/API/docs/en-us/guides/sponsored-brands/campaigns/structure)
-- [Creative asset library](https://advertising.amazon.com/API/docs/en-us/guides/creative-asset/asset-library-overview)
-- [Moderation API](https://advertising.amazon.com/API/docs/en-us/moderation)
-- [Managing Sponsored Brands campaigns](https://advertising.amazon.com/API/docs/en-us/guides/sponsored-brands/campaigns/managing-multi-ad-group-campaigns)
+Based on the moderation status, you may need to make changes to your ad or creative. See Managing assets and Managing campaigns for more details.

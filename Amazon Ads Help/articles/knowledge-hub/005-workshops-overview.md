@@ -3,29 +3,28 @@ title: "Amazon Ads Knowledge Hub Workshops"
 source_url: "https://advertising.amazon.com/API/docs/en-us/knowledge-hub/hands-on-workshops/overview"
 library: "Amazon Ads Advanced Tools Center"
 section: "knowledge-hub"
-downloaded_at: "2026-05-13"
+downloaded_at: "2026-10-07"
 status: "captured"
 ---
 
-# Amazon Ads Knowledge Hub Workshops
+# Workshops
 
-The Workshops section contains guided, multi-module learning experiences for developers and partners building with Amazon Ads APIs.
+Get hands-on experience building advertising solutions with Amazon Ads APIs. These step-by-step workshops walk you through real-world implementations, from environment setup to deployment, so you can learn by doing.
 
-## Included workshop material
+## What you will find here
 
-- Step-by-step instructions with runnable code samples.
-- Downloadable source code.
-- Architecture explanations.
-- Deployment guides from local development to production.
+Each workshop is a guided, multi-module learning experience designed for developers and partners building with Amazon Ads APIs. Workshops include the following:
 
-## Featured workshops
+- **Step-by-step instructions** with code samples you can run immediately
+- **Downloadable source code** so you can follow along at your own pace
+- **Architecture deep-dives** explaining the design decisions behind each solution
+- **Deployment guides** to take your project from local development to production
 
-| Workshop | Duration | Level | What it covers |
+## Featured Workshops
+
+| # | Workshop | Duration | Level |
 | --- | --- | --- | --- |
-| [Agents with Amazon Ads MCP Server](https://advertising.amazon.com/API/docs/en-us/knowledge-hub/hands-on-workshops/amazon-ads-mcp-server/01-overview) | ~4 hours | Intermediate | MCP server development, LangGraph agents, Bedrock AgentCore deployment, Amazon Ads MCP Server integration. |
-| [First-party data with ADM](https://advertising.amazon.com/API/docs/en-us/knowledge-hub/hands-on-workshops/1st-party-data-workshop/overview) | ~3 hours | Intermediate | Audience onboarding, DSP audiences, AMC sharing, conversion tracking, privacy compliance. |
-| [Multi-Agent Advertising Campaign Creation](https://advertising.amazon.com/API/docs/en-us/knowledge-hub/hands-on-workshops/workshop-gen-ai-langgraph-agents/overview) | ~3 hours | Intermediate | LangGraph, A2A protocol, MCP servers, orchestration, RAG with S3 Vectors, chat frontend. |
-
-## Routing use
-
-Use this page when deciding which hands-on workshop applies to a technical implementation request. For the current Amazon SOP master, this is mainly useful for future API/agent automation rather than routine front-end navigation.
+| 1 | Agents with Amazon Ads MCP Server — Build MCP servers, create LangGraph agents, deploy them to Amazon Bedrock AgentCore, and integrate with the Amazon Ads MCP Server. Covers custom MCP server development (Track A) and Amazon Ads API integration (Track B). | ~4 hours | Intermediate |
+| 2 | How to onboard first-party data to Amazon Ads using ADM: Implementation Workshop — Onboard first-party data to Amazon Ads using the ADM API, and activate it across Amazon DSP and AMC. Covers audience onboarding, DSP audiences, AMC sharing, conversion tracking, and privacy compliance. | ~3 hours | Intermediate |
+| 3 | Multi-Agent Advertising Campaign Creation Workshop — Build and deploy a production-ready multi-agent advertising system using LangGraph, the A2A protocol, and MCP servers. Covers orchestration, RAG with S3 Vectors, and a chat frontend. | ~3 hours | Intermediate |
+| 4 | Amazon Ads Events API: Hands-On Implementation Workshop — Send conversion events to Amazon Ads with the Events API. Covers match key normalization and hashing, purchase and offline conversions, UK and EEA consent signals, batching and deduplication, and custom attributes. | ~3 hours | Intermediate |
