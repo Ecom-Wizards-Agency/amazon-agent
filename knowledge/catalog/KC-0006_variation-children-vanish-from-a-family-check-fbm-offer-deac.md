@@ -19,7 +19,7 @@ verification: unverified
 verified_on: ""
 verified_how: ""
 amazon_sources: []
-related_sops: ["MAG SOPs/catalog/catalog-sop-seller-fulfilled-offers-mfn-suspension.md", "MAG SOPs/catalog/catalog-sop-parentage-check.md"]
+related_sops: []
 supersedes: []
 contradicts: []
 observed: 2026-09
@@ -58,12 +58,10 @@ Stop before any submission, appeal, case send, refund, price change or listing c
 ## Sources
 
 - First-party: none captured yet.
-- Also in: `MAG SOPs/catalog/catalog-sop-seller-fulfilled-offers-mfn-suspension.md`
-- Also in: `MAG SOPs/catalog/catalog-sop-parentage-check.md`
 - Evidence: team vault ledger row for this id.
 
 ## Gaps
 
 - Net new versus existing sources: No source links missing sizes in a variation family to an FBM Valid Tracking Rate deactivation or warns that image and handling-time fixes do not reinstate.
-- Existing coverage: partial (`MAG SOPs/catalog/catalog-sop-seller-fulfilled-offers-mfn-suspension.md`, `MAG SOPs/catalog/catalog-sop-parentage-check.md`).
+- Existing coverage: partial (a MAG SOP dropped on 08.10.2026, a MAG SOP dropped on 08.10.2026).
 - The VTR appeals email route comes from the MAG SOP, not a first-party capture, and the thread never used it because it ended on the move to FBA. Check the notice before choosing the route.

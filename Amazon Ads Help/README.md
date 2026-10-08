@@ -1,6 +1,6 @@
 # Amazon Ads Help
 
-Downloaded/updated: 2026-05-13
+Downloaded/updated: 2026-10-08
 
 Amazon Ads Advanced Tools Center capture staging for the Amazon SOP master library.
 
@@ -23,6 +23,6 @@ Amazon Ads Advanced Tools Center capture staging for the Amazon SOP master libra
 
 ## Notes
 
-The GitHub repository `amzn/ads-advanced-tools-docs` contains tools and samples, but not the full documentation site content. Public documentation pages were captured into markdown as routing and workflow notes.
+The GitHub repository `amzn/ads-advanced-tools-docs` contains tools and samples, but not the full documentation site content. Public documentation pages are captured into markdown from the live site.
 
-Security-sensitive implementation examples, especially pages containing access tokens, refresh tokens, client secrets, bearer headers, private keys, IAM policies, or CloudFormation credentials, were summarized rather than stored as runnable secret-handling code.
+The API documentation pages are stored verbatim since 08.10.2026, apart from `amzn1.` identifiers, which the capture replaces with `amzn1.REDACTED`. Their credential-shaped strings are Amazon's own placeholders and template variables (`Bearer Atza|xxxxxx`, `{{client_secret}}`, truncated example tokens), checked before capture; no real token, secret or key is stored.

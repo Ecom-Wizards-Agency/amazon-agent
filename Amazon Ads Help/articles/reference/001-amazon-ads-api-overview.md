@@ -3,44 +3,46 @@ title: "Amazon Ads API overview"
 source_url: "https://advertising.amazon.com/API/docs/en-us/reference/api-overview"
 library: "Amazon Ads Advanced Tools Center"
 section: "reference"
-downloaded_at: "2026-05-13"
+downloaded_at: "2026-10-07"
 status: "captured"
 ---
 
 # Amazon Ads API overview
 
-The Amazon Ads API lets advertisers and partners programmatically manage advertising operations and retrieve performance data.
+The Amazon Ads API enables Amazon advertisers and partners to programmatically manage advertising operations and retrieve performance data.
 
-Use the API reference navigation for endpoint details. Use the Developer guides for workflows, recommendations, and tutorials.
+Find reference API docs by exploring the **API reference** navigation menu.
 
-## First steps
+For user guides, recommendations, and tutorials, explore the **Developer guides** menu or see the developer guides overview.
 
-| Need | Page |
-| --- | --- |
-| Apply and gain access | [Onboarding](https://advertising.amazon.com/API/docs/en-us/guides/onboarding/overview) |
-| Manage authorization and make first requests | [Getting started](https://advertising.amazon.com/API/docs/en-us/guides/get-started/overview) |
-| New common API model | [Amazon Ads API v1](https://advertising.amazon.com/API/docs/en-us/reference/amazon-ads/overview) |
+## New to the Amazon Ads API?
 
-Amazon recommends Amazon Ads API v1 for new API users.
+Find useful first steps in our table of contents at left or see these docs:
+
+- **Onboarding**: step-by-step instructions for gaining access.
+- **Getting started**: step-by-step instructions for managing auth and making your first requests.
+
+## Amazon Ads API v1 is available
+
+The new Amazon Ads API v1 is a reimagined approach to our Ads API, designed to provide a seamless experience across all Amazon advertising products through a common model. If you are new to Amazon Ads APIs, we recommend using it.
+For more details, see Amazon Ads API v1.
 
 ## Typical use cases
 
-Amazon expects a typical client to regularly:
+We expect a typical client will perform the following operations regularly:
 
-1. Make batch requests for campaigns, ad groups, ads, and keywords in paginated requests, then store/update a local data copy.
-2. Request recent performance data through reports, then join report data to locally stored entity IDs.
-3. Analyze performance and update bids and budgets through batch update APIs.
+1. Make batch requests for all campaigns, ad groups, ads and keywords in paginated requests and store/update a local copy of the data.
+2. Request recent performance data for all campaigns, ad groups, ads and keywords in reports and use the IDs to associate and store/update performance data with the entities retrieved from a batch request.
+3. Analyze performance and make changes to bids and budgets. Optimize performance using the batch update API for campaigns, ad groups, ads and keywords.
 
-Single-entity operations are also supported.
+These, as well as operations to modify single entities, are supported use cases for the API.
 
-## Regional endpoints
+## API endpoints
+
+The API is accessible through the following regional hosts:
 
 | URL | Region | Marketplaces |
 | --- | --- | --- |
-| `https://advertising-api.amazon.com` | North America (NA) | US, CA, MX, BR |
-| `https://advertising-api-eu.amazon.com` | Europe (EU) | UK, FR, IT, ES, DE, NL, AE, PL, TR, EG, SA, SE, BE, IN, ZA |
-| `https://advertising-api-fe.amazon.com` | Far East (FE) | JP, AU, SG |
-
-## Routing use
-
-Use this page when deciding which regional endpoint or high-level API reference section applies. For campaign build/update tasks, route onward to API v1 and Campaign Management unless an older product-specific API is required.
+| https://advertising-api.amazon.com | North America (`NA`) | United States (`US`), Canada (`CA`), Mexico (`MX`), Brazil (`BR`) |
+| https://advertising-api-eu.amazon.com | Europe (`EU`) | United Kingdom (`UK`), France (`FR`), Italy (`IT`), Spain (`ES`), Germany (`DE`), Netherlands (`NL`), United Arab Emirates (`AE`), Poland (`PL`), Turkey (`TR`), Egypt (`EG`), Saudi Arabia (`SA`), Sweden (`SE`), Belgium (`BE`), India (`IN`), South Africa (`ZA`) |
+| https://advertising-api-fe.amazon.com | Far East (`FE`) | Japan (`JP`), Australia (`AU`), Singapore (`SG`) |

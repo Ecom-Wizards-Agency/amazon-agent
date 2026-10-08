@@ -19,7 +19,7 @@ verification: unverified
 verified_on: ""
 verified_how: ""
 amazon_sources: []
-related_sops: ["MAG SOPs/catalog/catalog-sop-how-to-cancel-fba-removal-order.md", "MAG SOPs/catalog/catalog-sop-fba-removal-order.md", "MAG SOPs/catalog/troubleshooting-sop-stranded-inventory-inventory-error.md", "MAG SOPs/catalog/catalog-sop-download-a-stranded-inventory-report.md", "sop-drafts/2026-08-03_new-client-fba-disposal-prevention-gate.md"]
+related_sops: ["MAG SOPs/catalog/catalog-sop-how-to-cancel-fba-removal-order.md", "MAG SOPs/catalog/catalog-sop-fba-removal-order.md", "MAG SOPs/catalog/troubleshooting-sop-stranded-inventory-inventory-error.md", "sop-drafts/2026-08-03_new-client-fba-disposal-prevention-gate.md"]
 supersedes: []
 contradicts: []
 observed: 2026-08
@@ -64,7 +64,6 @@ Stop before any submission, appeal, case send, refund, price change or listing c
 - Also in: `MAG SOPs/catalog/catalog-sop-how-to-cancel-fba-removal-order.md`
 - Also in: `MAG SOPs/catalog/catalog-sop-fba-removal-order.md`
 - Also in: `MAG SOPs/catalog/troubleshooting-sop-stranded-inventory-inventory-error.md`
-- Also in: `MAG SOPs/catalog/catalog-sop-download-a-stranded-inventory-report.md`
 - Also in: `sop-drafts/2026-08-03_new-client-fba-disposal-prevention-gate.md` (draft; informed step 4: order source, order type and recall detection)
 - Evidence: team vault ledger row for this id.
 

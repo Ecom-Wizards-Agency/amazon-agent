@@ -3,17 +3,15 @@ title: "Campaign management in the Amazon Ads API"
 source_url: "https://advertising.amazon.com/API/docs/en-us/guides/campaign-management/overview"
 library: "Amazon Ads Advanced Tools Center"
 section: "guides"
-downloaded_at: "2026-05-13"
+downloaded_at: "2026-10-07"
 status: "captured"
 ---
 
 # Campaign management in the Amazon Ads API
 
-Campaign Management APIs cover creation, reading, updating, and deletion for campaign objects across Campaigns, Ad Groups, Ads, Targets, and Ad Associations.
+The Campaign Management APIs represent functionality needed to create, read, update, and delete campaign management objects for Campaigns, Ad Groups, Ads, Targets, and Ad Associations. These Campaign Management APIs are ad product-agnostic and use the same set versioning across the board, and one set of feature naming to represent similar ideas.
 
-Amazon describes the current campaign management model as ad product-agnostic, with common versioning and feature naming across supported ad products.
-
-## Supported ad products
+The Amazon Ads API currently supports campaign management operations for:
 
 - Amazon DSP
 - Sponsored Brands
@@ -21,29 +19,32 @@ Amazon describes the current campaign management model as ad product-agnostic, w
 - Sponsored Display
 - Sponsored Television
 
-## Entities
+## Campaign management entities
 
-| Entity | Guide | API specification |
-| --- | --- | --- |
-| Campaign | [Campaign entity guide](https://advertising.amazon.com/API/docs/en-us/guides/campaign-management/entities/campaign) | [Campaign API specification](https://advertising.amazon.com/API/docs/en-us/amazon-ads/1-0/apis#tag/Campaigns) |
-| Ad Group | [Ad Group entity guide](https://advertising.amazon.com/API/docs/en-us/guides/campaign-management/entities/ad-group) | [Ad Group API specification](https://advertising.amazon.com/API/docs/en-us/amazon-ads/1-0/apis#tag/AdGroups) |
-| Ad | [Ad entity guide](https://advertising.amazon.com/API/docs/en-us/guides/campaign-management/entities/ad) | [Ad API specification](https://advertising.amazon.com/API/docs/en-us/amazon-ads/1-0/apis#tag/Ads) |
-| Target | [Target entity guide](https://advertising.amazon.com/API/docs/en-us/guides/campaign-management/entities/target) | [Target API specification](https://advertising.amazon.com/API/docs/en-us/amazon-ads/1-0/apis#tag/Targets) |
-| Ad Association | [Ad Association entity guide](https://advertising.amazon.com/API/docs/en-us/guides/campaign-management/entities/ad-association) | [Ad Association API specification](https://advertising.amazon.com/API/docs/en-us/amazon-ads/1-0/apis#tag/AdAssociations) |
+The API currently covers five entities: campaigns, ad groups, targets, ads, and ad associations.
+
+See the entity guides overview or these individual guides for information about each entity:
+
+| Entity | API Specification |
+| --- | --- |
+| Campaign | Campaign API Specification |
+| Ad Group | Ad Group API Specification |
+| Ad | Ad API Specification |
+| Target | Target API Specification |
+| Ad Association | Ad Association API Specification |
 
 ## Current limitations
 
-- At launch, calls are bound to one ad product at a time.
-- At launch, API rate limits are per ad product.
-- Amazon's stated direction is multi-ad-product operations in the same payload, with rate limiting moving to the payload level.
+### Campaign management scale
 
-## Routing use
+The goal is to allow multiple-ad product support within payload for writes and reads without scale differences across ad products.
 
-Use this page when the task is about cross-product campaign entity operations, especially when choosing whether to use the newer common campaign management model instead of older Sponsored Brands, Sponsored Products, Sponsored Display, or DSP-specific endpoints.
+- At launch, calls will be bound to one ad product at a time.
+- At launch, API rate limits (TPS) will be per each ad product.
 
-## Related pages
+Following launch, we will:
 
-- [Entity guides overview](https://advertising.amazon.com/API/docs/en-us/guides/campaign-management/entities/overview)
-- [Example request payloads](https://advertising.amazon.com/API/docs/en-us/guides/campaign-management/example-payloads)
-- [Amazon Ads API reference overview](https://advertising.amazon.com/API/docs/en-us/reference/amazon-ads/overview)
-- [Support](https://advertising.amazon.com/API/docs/en-us/support/overview)
+- Enable support for multi-ad product operations in the same payload and move rate limiting to payload level, allowing mixing of ad products. This helps use cases such as bulk updates across ad products without orchestration of multiple write calls.
+- Continue to increase the scaling across ad products to create a consistent TPS experience.
+
+Please report any issues with the campaign management APIs through our contact support page.

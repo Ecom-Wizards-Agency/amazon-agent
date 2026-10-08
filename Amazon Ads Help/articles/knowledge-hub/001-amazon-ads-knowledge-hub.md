@@ -3,39 +3,36 @@ title: "Amazon Ads Knowledge Hub"
 source_url: "https://advertising.amazon.com/API/docs/en-us/knowledge-hub/knowledge-hub-overview"
 library: "Amazon Ads Advanced Tools Center"
 section: "knowledge-hub"
-downloaded_at: "2026-05-13"
+downloaded_at: "2026-10-07"
 status: "captured"
 ---
 
 # Amazon Ads Knowledge Hub
 
-The Knowledge Hub collects technical blogs, implementation guides, partner solutions, and hands-on workshops for Amazon Ads.
+The Amazon Ads Knowledge Hub is your central resource for building successful advertising solutions on Amazon. Whether you are an advertiser, partner, or developer, you will find curated content including technical blogs, hands-on workshops, and partner-contributed solutions to accelerate your Amazon Ads journey.
 
-## Content types
+- **Blogs**: Technical guides, best practices, and deep dives on conversion tracking, generative AI, partner solutions, and usage examples
+- **Hands-on Workshops**: Step-by-step, multi-module workshops with downloadable code to build real-world advertising solutions
 
-| Type | Purpose |
-| --- | --- |
-| Blogs | Technical guides, best practices, deep dives on conversion tracking, generative AI, partner solutions, and usage examples. |
-| Hands-on Workshops | Step-by-step multi-module workshops with downloadable code for real-world advertising solutions. |
+## Featured Workshops
 
-## Featured workshops
-
-| Workshop | Duration | Level | What it covers |
+| # | Workshop | Duration | Level |
 | --- | --- | --- | --- |
-| [Agents with Amazon Ads MCP Server](https://advertising.amazon.com/API/docs/en-us/knowledge-hub/hands-on-workshops/amazon-ads-mcp-server/01-overview) | ~4 hours | Intermediate | Build MCP servers, create LangGraph agents, deploy to Amazon Bedrock AgentCore, integrate with Amazon Ads MCP Server. |
-| [How to onboard first-party data to Amazon Ads using ADM](https://advertising.amazon.com/API/docs/en-us/knowledge-hub/hands-on-workshops/1st-party-data-workshop/overview) | ~3 hours | Intermediate | Onboard first-party data using the ADM API and activate across Amazon DSP and AMC. |
-| [Multi-Agent Advertising Campaign Creation Workshop](https://advertising.amazon.com/API/docs/en-us/knowledge-hub/hands-on-workshops/workshop-gen-ai-langgraph-agents/overview) | ~3 hours | Intermediate | Build and deploy a multi-agent advertising system using LangGraph, A2A protocol, and MCP servers. |
+| 1 | Agents with Amazon Ads MCP Server — Build MCP servers, create LangGraph agents, deploy them to Amazon Bedrock AgentCore, and integrate with the Amazon Ads MCP Server. | ~4 hours | Intermediate |
+| 2 | How to onboard first-party data to Amazon Ads using ADM — Onboard first-party data using the ADM API, and activate it across Amazon DSP and AMC. | ~3 hours | Intermediate |
+| 3 | Multi-Agent Advertising Campaign Creation Workshop — Build and deploy a multi-agent advertising system using LangGraph, A2A protocol, and MCP servers. | ~3 hours | Intermediate |
+| 4 | Amazon Ads Events API Implementation Workshop — Send conversion events to Amazon Ads with the Events API, from match key hashing to consent signals and batching. | ~3 hours | Intermediate |
 
-## Featured blogs
+View all workshops →
 
-| Blog | Category | What it covers |
+## Featured Blogs
+
+| # | Blog | Category |
 | --- | --- | --- |
-| [How Advertisers Increase Customer Satisfaction and Scale Using Amazon Ads API, Amazon Connect and Tealium](https://advertising.amazon.com/API/docs/en-us/knowledge-hub/blogs/partners/How-Advertisers-Increase-Customer) | Partner | Integrate Amazon Connect, Tealium CDP, and Amazon Ads APIs to link advertising and contact center conversions. |
-| [How Advertisers Optimize Audiences Using Conversion Events](https://advertising.amazon.com/API/docs/en-us/knowledge-hub/blogs/conversion/conversion) | Conversion | Conversion tracking, campaign performance measurement, and audience building with Conversion APIs and AMC. |
-| [AI Agents in Advertising](https://advertising.amazon.com/API/docs/en-us/knowledge-hub/blogs/genai/gen-ai-amazon-ads) | Generative AI | AI-powered advertising solutions with LLMs and Amazon Bedrock. |
-| [Authorization for Amazon Ads API Requests Using Python](https://advertising.amazon.com/API/docs/en-us/knowledge-hub/blogs/usage-examples/2025-03-step-by-step-guide-authorization-amazon-ads-api-requests-using-python) | Usage Examples | Authenticating and authorizing Amazon Ads API requests using Python. |
-| [Amazon Marketing Stream and Snowflake Integration](https://advertising.amazon.com/API/docs/en-us/knowledge-hub/blogs/usage-examples/2025-01-ams-and-snowflake-integration) | Usage Examples | Real-time Amazon Marketing Stream data processing with Snowflake. |
+| 1 | How Advertisers Increase Customer Satisfaction and Scale Using Amazon Ads API, Amazon Connect and Tealium — Integrate Amazon Connect, Tealium CDP, and Amazon Ads APIs to close the attribution gap between digital advertising and contact center conversions. | Partner |
+| 2 | How Advertisers Optimize Audiences Using Conversion Events — Implement conversion tracking, measure campaign performance, and build targeted audiences using Amazon Ads Conversion APIs and AMC. | Conversion |
+| 3 | AI Agents in Advertising — Discover AI-powered advertising solutions and automation with LLMs and Amazon Bedrock. | Generative AI |
+| 4 | Step-by-Step Guide: Authorization for Amazon Ads API Requests Using Python — Practical guide for authenticating and authorizing Amazon Ads API requests using Python. | Usage Examples |
+| 5 | Amazon Marketing Stream and Snowflake Integration — Integrate Amazon Marketing Stream with Snowflake for real-time data processing and advanced analytics. | Usage Examples |
 
-## Routing use
-
-Use this page as the table of contents for workshops and technical blogs. For operational Seller Central or Ads Console work, route to the SOP/help libraries first; use Knowledge Hub when the task is about API integration, data architecture, AI agents, conversion events, or analytics pipelines.
+View all blogs →

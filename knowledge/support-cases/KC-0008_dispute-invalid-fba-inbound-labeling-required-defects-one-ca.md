@@ -19,7 +19,7 @@ verification: unverified
 verified_on: ""
 verified_how: ""
 amazon_sources: []
-related_sops: ["MAG SOPs/catalog/catalog-sop-download-an-inbound-performance-report.md"]
+related_sops: []
 supersedes: []
 contradicts: []
 observed: 2026-05
@@ -62,7 +62,6 @@ Stop before any submission, appeal, case send, refund, price change or listing c
 ## Sources
 
 - First-party: none captured yet.
-- Also in: `MAG SOPs/catalog/catalog-sop-download-an-inbound-performance-report.md`
 - Evidence: team vault ledger row for this id.
 
 ## Gaps

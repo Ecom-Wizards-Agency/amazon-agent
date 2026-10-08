@@ -87,7 +87,6 @@
    "verified_on": "",
    "amazon_sources": [],
    "related_sops": [
-    "MAG SOPs/catalog/catalog-sop-how-to-fix-medical-devices-and-accessories-yanks.md",
     "MAG SOPs/catalog/catalog-sop-disease-medical-and-pathogens-claims-of-usa.md"
    ],
    "supersedes": [],
@@ -128,9 +127,7 @@
    "verification": "unverified",
    "verified_on": "",
    "amazon_sources": [],
-   "related_sops": [
-    "MAG SOPs/catalog/catalog-sop-download-an-inbound-performance-report.md"
-   ],
+   "related_sops": [],
    "supersedes": [],
    "contradicts": [],
    "observed": "2026-07",
@@ -212,10 +209,7 @@
     "Amazon Seller Help/articles/221-brand-registry-selling-roles-GJ84K745AL3R5N3Q.md"
    ],
    "related_sops": [
-    "MAG SOPs/catalog/catalog-sop-brand-registry-roles.md",
-    "MAG SOPs/catalog/catalog-sop-error-8566.md",
-    "MAG SOPs/catalog/catalog-sop-how-to-request-gtin-exemption.md",
-    "MAG SOPs/catalog/brand-registry-sop-how-to-submit-a-ticket-to-brand-registry.md"
+    "MAG SOPs/catalog/catalog-sop-how-to-request-gtin-exemption.md"
    ],
    "supersedes": [],
    "contradicts": [],
@@ -251,10 +245,7 @@
    "verification": "unverified",
    "verified_on": "",
    "amazon_sources": [],
-   "related_sops": [
-    "MAG SOPs/catalog/catalog-sop-seller-fulfilled-offers-mfn-suspension.md",
-    "MAG SOPs/catalog/catalog-sop-parentage-check.md"
-   ],
+   "related_sops": [],
    "supersedes": [],
    "contradicts": [],
    "observed": "2026-09",
@@ -293,7 +284,6 @@
     "MAG SOPs/catalog/catalog-sop-how-to-cancel-fba-removal-order.md",
     "MAG SOPs/catalog/catalog-sop-fba-removal-order.md",
     "MAG SOPs/catalog/troubleshooting-sop-stranded-inventory-inventory-error.md",
-    "MAG SOPs/catalog/catalog-sop-download-a-stranded-inventory-report.md",
     "sop-drafts/2026-08-03_new-client-fba-disposal-prevention-gate.md"
    ],
    "supersedes": [],
@@ -332,9 +322,7 @@
    "verification": "unverified",
    "verified_on": "",
    "amazon_sources": [],
-   "related_sops": [
-    "MAG SOPs/catalog/catalog-sop-download-an-inbound-performance-report.md"
-   ],
+   "related_sops": [],
    "supersedes": [],
    "contradicts": [],
    "observed": "2026-05",
@@ -448,9 +436,7 @@
    "verified_on": "",
    "amazon_sources": [],
    "related_sops": [
-    "MAG SOPs/catalog/catalog-sop-managing-your-buy-box-percentage.md",
-    "MAG SOPs/catalog/catalog-sop-reading-your-pricing-dashboard.md",
-    "MAG SOPs/catalog/catalog-sop-how-to-fix-hidden-price.md"
+    "MAG SOPs/catalog/catalog-sop-managing-your-buy-box-percentage.md"
    ],
    "supersedes": [],
    "contradicts": [],
@@ -490,10 +476,7 @@
     "Amazon Seller Help/articles/001-account-settings-G181.md",
     "Amazon Seller Help/articles/099-common-reasons-you-cannot-find-your-handmade-listings-GRCWJ4KHBNQ3SNTB.md"
    ],
-   "related_sops": [
-    "MAG SOPs/catalog/catalog-sop-shipping-template-for-fbm-listings.md",
-    "MAG SOPs/catalog/catalog-sop-seller-fulfilled-offers-mfn-suspension.md"
-   ],
+   "related_sops": [],
    "supersedes": [],
    "contradicts": [],
    "observed": "2025-03",
