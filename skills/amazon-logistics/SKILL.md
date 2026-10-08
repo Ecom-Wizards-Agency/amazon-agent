@@ -5,7 +5,7 @@ description: "Execute and troubleshoot FBA logistics, including Send to Amazon, 
 
 # Amazon Logistics
 
-Browser: CDP (Send to Amazon flows; exact approval is required before each shipment commitment).
+Browser: CDP (every Seller Central step, including removal orders and AWD, runs through `node tools/browserctl/browserctl.mjs run -- <command>` on the attended default, never the in-app preview; Send to Amazon flows need exact approval before each shipment commitment).
 
 Knowledge units for this area live in knowledge/logistics/; search them first with python3 tools/search_amazon_libraries.py "<symptom>" --library kb.
 

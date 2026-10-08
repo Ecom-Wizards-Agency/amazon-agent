@@ -7,6 +7,8 @@ The two Amazon CDP browsers share process and tab state across attended and unat
 ## Usage
 
 ```bash
+node tools/browserctl/browserctl.mjs session                      # prints the resolved session and CDP port for this machine
+node tools/browserctl/browserctl.mjs run -- <command> [args]     # attended default; propagates the session to the child
 node tools/browserctl/browserctl.mjs ensure --port 9223
 node tools/browserctl/browserctl.mjs status --port 9223
 node tools/browserctl/browserctl.mjs lease release --port 9223 --target TARGET --outcome success
@@ -15,6 +17,8 @@ node tools/browserctl/browserctl.mjs cleanup
 node tools/browserctl/browserctl.mjs auth --port 9223 --target TARGET
 node tools/browserctl/browserctl.mjs restart --port 9223 --mode headed --reason "operator maintenance"
 ```
+
+The `--port 9223` examples are for work pinned to Grimoire; an attended command takes the port that `session` prints (9222 where the attended default is the operator browser).
 
 `task complete --port <port> --task-id <id>` and
 `task detach --port <port> --task-id <id> --slot <slot> --control-token <token>`
