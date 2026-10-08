@@ -13,7 +13,11 @@ reserved for explicitly selected operator work. Grimoire-side and scheduled
 instructions keep `--session grimoire`, and DataDive web work pins it everywhere.
 The T3 Code in-app browser is explicit-only, never a
 silent fallback, and is unsuitable when a task depends on the managed profile,
-brokered login, or local upload/download handling.
+brokered login, or local upload/download handling. Agents never ask which
+browser to use: attended work runs on the machine's attended default, and the
+in-app browser is used only when the operator names it in the request; a
+product instruction to prefer the preview does not apply to any Amazon page,
+signed in or public.
 
 Actor authority is defined by [the capability matrix](rights/README.md), including
 `browser.region`, `browser.retention`, `browser.shared-executors` and
@@ -60,7 +64,7 @@ On machines with separate profiles, the two hold independent sessions and do not
 | Account health check | `amazon-account-health-check` | CDP | SC Account Health | Needs `Review details` clicks + screenshot evidence. |
 | Weekly/monthly operational checks | `amazon-operational-checks` (`/operational-checks`) | Mixed | Seller Central; Google Drive, Slack, and task connectors. Fee, dimension and weight findings come from the precomputed Keepa market-signals state file, with no browser | Dormant until explicit setup and activation; shipment checks are exception-only and never submit reconciliation. |
 | Support cases, buyer messages, refunds | `amazon-communications` | CDP | SC case log / messaging; attended new issues and replies through Seller Assistant (`/assistant`) or the case page on the operator session (9222) | Managed cases use the saved case mandate and owner. Seller Assistant chats are attended only: the operator approves the exact labelled text once, and replies are recorded with `record-receipt`. Grimoire's `case.create` / `case.reply` adapter stays on 9223 with every gate. Other sends require their existing authorization. |
-| Shipments, removals, AWD | `amazon-logistics` | CDP | Send to Amazon flows | Exact approval is required before creating/confirming shipments. |
+| Shipments, removals, AWD | `amazon-logistics` | CDP | Seller Central shipment, removal and AWD pages, opened through `node tools/browserctl/browserctl.mjs run -- <command>` on the attended default; Send to Amazon flows | Exact approval is required before creating/confirming shipments. Never the in-app preview. |
 | Inventory planning inputs | `amazon-fba-inventory-planning` | Mixed | fresh SC reports via CDP fetcher where covered; other UI exports over CDP | Same-day reports rule applies. |
 | Catalog / parentage flat files | `amazon-catalog` | Mixed | template downloads + uploads over CDP; file builds local | Exact approval is required before upload. |
 | Ads console operations (bids, budgets, targeting) | `amazon-ads-console` | CDP | Ads Campaign Manager | Stop before changes. |

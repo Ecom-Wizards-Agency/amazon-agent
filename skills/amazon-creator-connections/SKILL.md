@@ -223,7 +223,7 @@ Navigate through Amazon Ads where possible:
 
 Campaign Manager → account selector → Brand content → Creator connections.
 
-If authentication is unavailable, stop and ask the operator to log in. Do not use stale browser data for live sweeps or Slack posts.
+In an attended run, if authentication is unavailable, run the login broker on the resolved port first and stop for the operator only on a human challenge. Do not use stale browser data for live sweeps or Slack posts.
 
 For a scheduled run, start or reuse the configured local CDP profile before opening Amazon Ads. The operator completes the first login manually in that isolated profile; the job then reuses its persisted session. Never fall back to the in-app browser for an unattended run. If the CDP profile reaches a sign-in page, do not touch credentials: send the configured PII-free Slack-helper blocker and stop.
 

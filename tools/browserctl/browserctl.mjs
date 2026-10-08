@@ -575,7 +575,7 @@ export async function acquireTargetLease({
 
 export async function main(raw = process.argv.slice(2), { cleanup = cleanupPortWithLock, fetch = globalThis.fetch } = {}) {
   if (raw.includes("--help")) {
-    console.log("Usage: browserctl ensure|status|restart|lease|task|region|cleanup|auth");
+    console.log("Usage: browserctl ensure|status|restart|lease|task|region|cleanup|auth|session|run [--session grimoire|operator] -- <command>");
     return;
   }
   const separator = raw.indexOf("--");
