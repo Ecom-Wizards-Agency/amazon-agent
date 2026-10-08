@@ -14,6 +14,10 @@ Amazon SP campaign builder: text brief -> config -> bulk-upload .xlsx.
   # QA gates only (re-check an already-built file)
   python3 tools/amazon-campaign-builder/build_campaigns.py --config <cfg> --validate
 
+  # Optional local machine-readable quality artifact
+  python3 tools/amazon-campaign-builder/build_campaigns.py --config <cfg> --preflight \
+    --quality-report <report.json>
+
 Output is a FILE ONLY. This tool never uploads or touches live campaigns.
 Uploading via Campaign Manager > Bulk Operations is a separate, operator-
 confirmed action (stop-before-risk). Everything client-specific lives in
@@ -39,8 +43,10 @@ from campaign_model import (  # noqa: E402
     COLUMNS, DEFAULT_BID, DEFAULT_BUDGET, GOALS, MATCH_TYPES, MIN_BID,
     NAMING_PRESETS, NEGATIVE_LEVELS, NEGATIVE_MATCH_TYPES, PLACEMENT_LABELS, SHEET_NAMES, STATES,
     build_bulk_rows, generate_campaigns, parse_product_list,
+    launch_bid_from_suggested, normalize_target_key,
     resolve_bidding_strategy, resolve_campaign_purpose,
 )
+from quality_report import write_quality_report  # noqa: E402
 
 # v2 default: the Ecom Wizards 8-slot naming convention (naming-convention.md).
 # Every existing config that sets its own naming.variable_order is unaffected.
@@ -59,6 +65,26 @@ def slugify(s):
     return re.sub(r"[^a-z0-9]+", "-", s.lower()).strip("-")
 
 
+def expected_ad_group_name(campaign_name, delimiter=" | "):
+    """Return the agency ad-group base: campaign name without first/last tokens."""
+    parts = [part.strip() for part in str(campaign_name or "").split(delimiter)]
+    if len(parts) < 3 or not all(parts):
+        return ""
+    return delimiter.join(parts[1:-1])
+
+
+def ad_group_name_matches_campaign(campaign_name, ad_group_name, delimiter=" | "):
+    """Allow the exact base or one visible child/pack modifier after ` - `."""
+    expected = expected_ad_group_name(campaign_name, delimiter)
+    actual = str(ad_group_name or "").strip()
+    if not expected:
+        return False
+    if actual == expected:
+        return True
+    prefix = f"{expected} - "
+    return actual.startswith(prefix) and bool(actual[len(prefix):].strip())
+
+
 def _rel(p):
     try:
         return p.relative_to(REPO)
@@ -70,7 +96,9 @@ def load_config(path):
     cfg = json.loads(Path(path).read_text())
     cfg.setdefault("defaults", {})
     naming_in = cfg.get("naming", {})
-    preset = NAMING_PRESETS.get((naming_in.get("preset") or "").upper(), NAMING_DEFAULTS)
+    preset_name = (naming_in.get("preset") or "EW").upper()
+    preset = NAMING_PRESETS.get(preset_name, NAMING_DEFAULTS)
+    cfg["_naming_preset"] = preset_name
     cfg["naming"] = {**preset, **{k: v for k, v in naming_in.items() if k != "preset"}}
     return cfg
 
@@ -104,9 +132,27 @@ def campaign_forms(cfg):
             else target_asins if ctype == "PAT" and target_asins else spec.get("keywords", [])
         if isinstance(keywords, str):
             keywords = [k for k in re.split(r"\n", keywords)]
+        suggested_bids = {}
+        for key, value in (spec.get("suggested_bids") or {}).items():
+            normalized_key = normalize_target_key(key)
+            if not normalized_key or value in (None, ""):
+                continue
+            try:
+                suggested_bids[normalized_key] = float(value)
+            except (TypeError, ValueError):
+                suggested_bids[normalized_key] = None
+        target_bids = {
+            key: launch_bid_from_suggested(value)
+            for key, value in suggested_bids.items()
+            if value is not None and value > 0
+        }
+        fallback_bid = next(iter(target_bids.values()), float(pick("keyword_bid", DEFAULT_BID)))
+        approved_bidding_strategy = str(spec.get("approved_bidding_strategy") or "").strip()
         form = {
             "campaign_type": ctype,
             "campaign_purpose": (spec.get("campaign_purpose") or "").strip().upper(),
+            "campaign_name": str(spec.get("campaign_name") or "").strip(),
+            "ad_group_name": str(spec.get("ad_group_name") or "").strip(),
             "goal": spec.get("goal") or goals[0],
             "product_name": spec.get("product_name", ""),
             "target_descriptor": spec.get("target_descriptor", ""),
@@ -120,8 +166,11 @@ def campaign_forms(cfg):
             "skw_include_keyword_in_name": bool(spec.get("skw_include_keyword_in_name", True)),
             "match_type": spec.get("match_type") or "",
             "daily_budget": float(pick("daily_budget", DEFAULT_BUDGET)),
-            "keyword_bid": float(pick("keyword_bid", DEFAULT_BID)),
-            "bidding_strategy": pick("bidding_strategy", ""),
+            "keyword_bid": fallback_bid,
+            "suggested_bids": suggested_bids,
+            "target_bids": target_bids,
+            "approved_bidding_strategy": approved_bidding_strategy,
+            "bidding_strategy": pick("bidding_strategy", approved_bidding_strategy),
             "portfolio_id": str(pick("portfolio_id", "")),
             "negative_keywords": spec.get("negative_keywords", []),
             "negative_target_asins": spec.get("negative_target_asins", []),
@@ -151,7 +200,7 @@ def generate_all(cfg):
 
 
 # ----------------------------------------------------------------- preflight
-def preflight(cfg):
+def preflight(cfg, report_path=None):
     issues, notes = [], []
     for key in ("client", "marketplace"):
         if not cfg.get(key):
@@ -160,6 +209,43 @@ def preflight(cfg):
         issues.append("config: `campaigns[]` is empty (nothing to build)")
 
     vendor = bool(cfg["defaults"].get("vendor_central_mode") or cfg.get("vendor_central_mode"))
+    ew_guardrails = cfg.get("_naming_preset") == "EW"
+    guardrails = cfg.get("guardrails") or {}
+    own_brand_terms = [normalize_target_key(v) for v in guardrails.get("own_brand_terms", [])
+                       if normalize_target_key(v)]
+    own_asins = {str(v).strip().upper() for v in guardrails.get("own_asins", [])
+                 if ASIN_RE.match(str(v).strip().upper())}
+    never_negative_terms = [normalize_target_key(v) for v in guardrails.get("never_negative_terms", [])
+                            if normalize_target_key(v)]
+    if ew_guardrails:
+        if not str(guardrails.get("structure_reference") or "").strip():
+            issues.append("config: guardrails.structure_reference is required for EW builds")
+        if not str(guardrails.get("negative_list_source") or "").strip():
+            issues.append("config: guardrails.negative_list_source is required for EW builds")
+        if not own_brand_terms:
+            issues.append("config: guardrails.own_brand_terms must contain the verified brand and aliases")
+        if not own_asins:
+            issues.append("config: guardrails.own_asins must contain the verified advertised-product ASINs")
+        if guardrails.get("product_validation_verified") is not True:
+            issues.append("config: guardrails.product_validation_verified must be true after marketplace, "
+                          "product type, variation, availability, stock, and ad eligibility are checked")
+
+    def contains_phrase(text, phrase):
+        text_tokens = normalize_target_key(text).split()
+        phrase_tokens = normalize_target_key(phrase).split()
+        if not phrase_tokens or len(phrase_tokens) > len(text_tokens):
+            return False
+        return any(text_tokens[i:i + len(phrase_tokens)] == phrase_tokens
+                   for i in range(len(text_tokens) - len(phrase_tokens) + 1))
+
+    expected_match = {
+        "SKW": {"EXACT"},
+        "Halo": {"EXACT"},
+        "Phrase": {"PHRASE"},
+        "Auto": {"AUTO"},
+        "PAT": {"ASIN_EXACT", "ASIN_EXPANDED"},
+    }
+    generic_purposes = {"RANK_SKW", "HALO", "DISCOVERY", "AUTO", "CATEGORY"}
     for i, (spec, form) in enumerate(zip(cfg.get("campaigns", []), campaign_forms(cfg)), 1):
         tag = f"campaign {i} ({form['campaign_type'] or '?'})"
         ctype = form["campaign_type"]
@@ -168,11 +254,18 @@ def preflight(cfg):
             continue
         if not form["product_name"]:
             issues.append(f"{tag}: product_name is required (used in the campaign name)")
+        if ew_guardrails and not form["campaign_name"]:
+            issues.append(f"{tag}: campaign_name is required and must be copied from the approved structure")
+        if ew_guardrails and not form["ad_group_name"]:
+            issues.append(f"{tag}: ad_group_name is required and must follow the approved shorter form")
         skus, asins = parse_product_list(form["sku"]), parse_product_list(form["asin"])
         if vendor and not asins:
             issues.append(f"{tag}: vendor mode needs asin(s) for the Product Ad rows")
         if not vendor and not skus:
             issues.append(f"{tag}: sku(s) required for the Product Ad rows (seller accounts advertise by SKU)")
+        if ew_guardrails and (len(skus) > 1 or len(asins) > 1):
+            issues.append(f"{tag}: multiple child products require separate variation ad groups; the current "
+                          "builder cannot represent that structure safely, so this build is blocked")
         kws = [k for k in form["keywords_raw"].split("\n") if k.strip()]
         if ctype in ("SKW", "Halo", "Phrase") and not kws:
             issues.append(f"{tag}: keywords[] is required for {ctype}")
@@ -180,6 +273,9 @@ def preflight(cfg):
             issues.append(f"{tag}: target_asins[] or target_categories[] is required for PAT")
         if ctype == "PAT":
             if form.get("target_mode") == "CATEGORY":
+                if ew_guardrails and form["campaign_purpose"] != "CATEGORY":
+                    issues.append(f"{tag}: PAT category targeting requires campaign_purpose=CATEGORY so "
+                                  "the approved naming and bidding strategy are applied")
                 bad = [c for c in kws if not str(c).strip().isdigit()]
                 if bad:
                     issues.append(f"{tag}: target_categories entries must be numeric category IDs: "
@@ -206,12 +302,52 @@ def preflight(cfg):
                           f"the {ctype} default {CAMPAIGN_TYPE_DEFAULT_PURPOSE.get(ctype, '?')})")
         if form["bidding_strategy"] and form["bidding_strategy"] not in BIDDING_STRATEGIES:
             issues.append(f"{tag}: bidding_strategy must be one of {'/'.join(BIDDING_STRATEGIES)} (or empty)")
+        if ew_guardrails:
+            if form["approved_bidding_strategy"] not in BIDDING_STRATEGIES:
+                issues.append(f"{tag}: approved_bidding_strategy must be copied from the approved structure "
+                              f"and be one of {'/'.join(BIDDING_STRATEGIES)}")
+            elif form["bidding_strategy"] != form["approved_bidding_strategy"]:
+                issues.append(f"{tag}: bidding_strategy '{form['bidding_strategy']}' differs from the approved "
+                              f"'{form['approved_bidding_strategy']}' structure-card strategy")
         elif form["bidding_strategy"] and ctype in CAMPAIGN_TYPE_DEFAULT_PURPOSE:
             purpose = form["campaign_purpose"] or CAMPAIGN_TYPE_DEFAULT_PURPOSE[ctype]
             expected = CAMPAIGN_PURPOSE_BIDDING.get(purpose)
             if expected and form["bidding_strategy"] != expected:
-                notes.append(f"{tag}: bidding_strategy override '{form['bidding_strategy']}' differs from the "
-                             f"naming-convention.md default '{expected}' for purpose {purpose} (QC-enforced table)")
+                notes.append(f"{tag}: bidding_strategy '{form['bidding_strategy']}' differs from the legacy "
+                             f"'{expected}' default for purpose {purpose}")
+        resolved_match = form["match_type"] or CAMPAIGN_TYPE_MATCH[ctype]
+        if ew_guardrails and resolved_match not in expected_match[ctype]:
+            issues.append(f"{tag}: {ctype} cannot use {resolved_match}; campaign names and live targeting "
+                          "must describe the same match type")
+        if ew_guardrails and form["campaign_name"]:
+            required_name_token = {
+                "SKW": "Exact",
+                "Halo": "Exact",
+                "Phrase": "Phrase",
+                "Auto": "Auto",
+                "PAT": "PAT",
+            }[ctype]
+            name_parts = [normalize_target_key(p)
+                          for p in form["campaign_name"].split(cfg["naming"]["delimiter"])]
+            if normalize_target_key(required_name_token) not in name_parts:
+                issues.append(f"{tag}: campaign_name must contain the targeting token "
+                              f"'{required_name_token}'")
+            duplicate_pairs = [name_parts[j] for j in range(len(name_parts) - 1)
+                               if name_parts[j] == name_parts[j + 1]]
+            if duplicate_pairs:
+                issues.append(f"{tag}: duplicate adjacent naming token(s): "
+                              f"{', '.join(duplicate_pairs)}")
+            suffix = str(cfg["naming"].get("suffix") or "").strip()
+            if suffix != "EW" or not form["campaign_name"].endswith(
+                    f"{cfg['naming']['delimiter']}EW"):
+                issues.append(f"{tag}: new agency campaigns must end with '| EW'")
+            if form["ad_group_name"] == form["campaign_name"]:
+                issues.append(f"{tag}: ad_group_name must be the approved shorter form, not the campaign name")
+            if not ad_group_name_matches_campaign(
+                    form["campaign_name"], form["ad_group_name"], cfg["naming"]["delimiter"]):
+                expected = expected_ad_group_name(form["campaign_name"], cfg["naming"]["delimiter"])
+                issues.append(f"{tag}: ad_group_name must be '{expected}' or add one real child/pack "
+                              f"modifier as '{expected} - <variation>'")
         if form["state"] not in STATES:
             issues.append(f"{tag}: state must be enabled|paused")
         if form["child_state"] and form["child_state"] not in STATES:
@@ -228,6 +364,94 @@ def preflight(cfg):
             issues.append(f"{tag}: negative_match_type must be one of {'/'.join(NEGATIVE_MATCH_TYPES)}")
         if form["negative_level"] not in NEGATIVE_LEVELS:
             issues.append(f"{tag}: negative_level must be ad_group|campaign")
+        invalid_suggestions = [key for key, value in form["suggested_bids"].items()
+                               if value is None or value <= 0]
+        if invalid_suggestions:
+            issues.append(f"{tag}: suggested_bids values must be greater than zero: "
+                          f"{', '.join(invalid_suggestions)}")
+
+        purpose_for_qc = form["campaign_purpose"] or CAMPAIGN_TYPE_DEFAULT_PURPOSE.get(ctype, "")
+        normalized_negatives = [normalize_target_key(v) for v in form["negative_keywords"]
+                                if normalize_target_key(v)]
+        if ew_guardrails and purpose_for_qc in generic_purposes:
+            missing_brand_terms = [term for term in own_brand_terms if term not in normalized_negatives]
+            if missing_brand_terms:
+                issues.append(f"{tag}: generic campaign is missing own-brand Negative Phrase exclusions: "
+                              f"{', '.join(missing_brand_terms)}")
+            if form["negative_match_type"] != "NEGATIVE_PHRASE" or form["negative_level"] != "campaign":
+                issues.append(f"{tag}: generic campaign brand exclusions must be campaign-level "
+                              "NEGATIVE_PHRASE")
+        if ew_guardrails and purpose_for_qc in {"DISCOVERY", "AUTO", "CATEGORY"}:
+            missing_never_terms = [term for term in never_negative_terms
+                                   if term not in normalized_negatives]
+            if missing_never_terms:
+                issues.append(f"{tag}: campaign is missing approved Never-Ever Negative Phrase terms: "
+                              f"{', '.join(missing_never_terms[:10])}")
+        if ew_guardrails and purpose_for_qc == "SHIELD":
+            blocked_brand_terms = [negative for negative in normalized_negatives
+                                   if any(contains_phrase(negative, brand) or contains_phrase(brand, negative)
+                                          for brand in own_brand_terms)]
+            if blocked_brand_terms:
+                issues.append(f"{tag}: Shield campaign cannot exclude own-brand terms: "
+                              f"{', '.join(blocked_brand_terms)}")
+            non_brand_targets = [kw for kw in kws
+                                 if not any(contains_phrase(kw, brand) for brand in own_brand_terms)]
+            if ctype in {"SKW", "Phrase", "Halo"} and non_brand_targets:
+                issues.append(f"{tag}: Shield keyword targets must contain a verified own-brand term: "
+                              f"{', '.join(non_brand_targets[:10])}")
+        if ew_guardrails and purpose_for_qc == "SELF_TARGETING" and ctype == "PAT":
+            non_self_targets = [target for target in kws if str(target).strip().upper() not in own_asins]
+            if non_self_targets:
+                issues.append(f"{tag}: Self-Targeting may target only verified own ASINs: "
+                              f"{', '.join(non_self_targets[:10])}")
+            if resolved_match == "ASIN_EXPANDED":
+                missing_exact_negatives = [target for target in kws
+                                           if str(target).strip().upper() not in {
+                                               str(v).strip().upper()
+                                               for v in form["negative_target_asins"]
+                                           }]
+                if missing_exact_negatives:
+                    issues.append(f"{tag}: Self-Targeting Expanded must add each own ASIN as a Negative "
+                                  f"Exact product target: {', '.join(missing_exact_negatives[:10])}")
+
+        if ew_guardrails and ctype in {"SKW", "Halo", "Phrase", "PAT"}:
+            missing_suggestions = [target for target in kws
+                                   if normalize_target_key(target) not in form["suggested_bids"]]
+            if missing_suggestions:
+                issues.append(f"{tag}: suggested_bids must contain every target so each launch bid is "
+                              f"30% below its own current suggestion: {', '.join(missing_suggestions[:10])}")
+        if ew_guardrails and ctype == "Auto":
+            auto_groups = ("close_match", "loose_match", "substitutes", "complements")
+            active = [grp for grp in auto_groups if form.get(f"auto_{grp}_state") == "enabled"]
+            explicit_states = [form.get(f"auto_{grp}_state") for grp in auto_groups]
+            if len(active) != 1 or any(state not in STATES for state in explicit_states):
+                issues.append(f"{tag}: split Auto requires exactly one enabled targeting group and the "
+                              "other three explicitly paused")
+            missing_auto_suggestions = [grp for grp in auto_groups
+                                        if normalize_target_key(grp) not in form["suggested_bids"]]
+            if missing_auto_suggestions:
+                issues.append(f"{tag}: suggested_bids must contain all four Auto groups: "
+                              f"{', '.join(missing_auto_suggestions)}")
+            descriptor_aliases = {
+                "close_match": {"cm", "close match", "close-match"},
+                "loose_match": {"lm", "loose match", "loose-match"},
+                "substitutes": {"sub", "substitutes"},
+                "complements": {"com", "complements"},
+            }
+            if len(active) == 1 and normalize_target_key(form["target_descriptor"]) not in descriptor_aliases[active[0]]:
+                issues.append(f"{tag}: target_descriptor must name the enabled Auto group {active[0]}")
+
+        if ew_guardrails and ctype in {"SKW", "Halo", "Phrase"}:
+            for target in kws:
+                for negative in normalized_negatives:
+                    collision = (form["negative_match_type"] == "NEGATIVE_EXACT"
+                                 and normalize_target_key(target) == negative) or (
+                        form["negative_match_type"] == "NEGATIVE_PHRASE"
+                        and contains_phrase(target, negative)
+                    )
+                    if collision:
+                        issues.append(f"{tag}: positive target '{target}' is blocked by negative "
+                                      f"'{negative}'")
         if form["transpose_keywords"] and form["keywords_per_campaign"] < 1:
             issues.append(f"{tag}: transpose_keywords needs keywords_per_campaign >= 1")
         order = cfg["naming"]["variable_order"]
@@ -244,13 +468,12 @@ def preflight(cfg):
                           f"(or, for Halo/Auto, 'CampCounter') to naming.variable_order (Amazon rejects "
                           f"duplicate campaign names)")
         if ctype == "Phrase" and not form["negative_keywords"]:
-            notes.append(f"{tag}: discovery campaign has no negative_keywords; naming-convention.md QC "
-                         f"requires a Never-Ever/negative-phrase list at ad-group level from day one")
-        purpose_for_qc = form["campaign_purpose"] or CAMPAIGN_TYPE_DEFAULT_PURPOSE.get(ctype, "")
+            notes.append(f"{tag}: discovery campaign has no negative_keywords")
         if ctype == "PAT" and form["match_type"] == "ASIN_EXPANDED" and purpose_for_qc == "SELF_TARGETING":
             if not form["negative_target_asins"]:
-                notes.append(f"{tag}: Self-Targeting Expanded needs negative_target_asins for the exact own-ASIN "
-                             f"targets (naming-convention.md QC #7)")
+                message = (f"{tag}: Self-Targeting Expanded needs negative_target_asins for the exact "
+                           f"own-ASIN targets")
+                (issues if ew_guardrails else notes).append(message)
         if form["start_date"]:
             try:
                 sd = datetime.strptime(form["start_date"], "%Y-%m-%d").date()
@@ -264,15 +487,36 @@ def preflight(cfg):
 
     campaigns = generate_all(cfg) if not issues else []
     for c in campaigns:
-        if c["ad_group_name"] == c["campaign_name"]:
-            notes.append(f"'{c['campaign_name']}': ad group name equals campaign name; naming-convention.md "
-                         f"QC requires the ad group name to differ (drop prefix & suffix)")
+        if ew_guardrails:
+            if not ad_group_name_matches_campaign(
+                    c["campaign_name"], c["ad_group_name"], cfg["naming"]["delimiter"]):
+                expected = expected_ad_group_name(c["campaign_name"], cfg["naming"]["delimiter"])
+                issues.append(f"'{c['campaign_name']}': ad group name must be '{expected}' or "
+                              f"'{expected} - <variation>'")
+            parts = [normalize_target_key(p) for p in c["campaign_name"].split(cfg["naming"]["delimiter"])]
+            duplicate_pairs = [parts[i] for i in range(len(parts) - 1) if parts[i] == parts[i + 1]]
+            if duplicate_pairs:
+                issues.append(f"'{c['campaign_name']}': duplicate adjacent naming token(s): "
+                              f"{', '.join(duplicate_pairs)}")
+            suffix = str(cfg["naming"].get("suffix") or "").strip()
+            if suffix != "EW" or not c["campaign_name"].endswith(f"{cfg['naming']['delimiter']}EW"):
+                issues.append(f"'{c['campaign_name']}': new agency campaigns must end with '| EW'")
 
     print(f"Preflight: {cfg.get('client', '?')} ({cfg.get('marketplace', '?')})")
     for msg in issues:
         print(f"  [MISSING] {msg}")
     for msg in notes:
         print(f"  [NOTE]    {msg}")
+    if report_path:
+        report = write_quality_report(
+            report_path, mode="create", phase="preflight", cfg=cfg,
+            errors=issues, notes=notes,
+            metrics={
+                "campaign_spec_count": len(cfg.get("campaigns", [])),
+                "campaign_count": len(campaigns),
+            },
+        )
+        print(f"  [REPORT]  {_rel(report)}")
     if issues:
         print(f"\nNOT READY. Fix the {len(issues)} item(s) above in the config.")
         return 1
@@ -356,7 +600,7 @@ def write_review(cfg, campaigns, rows, xlsx):
 
 
 # ----------------------------------------------------------------- build
-def build(cfg, override_out=None):
+def build(cfg, override_out=None, report_path=None):
     from openpyxl import Workbook
 
     campaigns = generate_all(cfg)
@@ -386,27 +630,27 @@ def build(cfg, override_out=None):
     for line in summarize(cfg, campaigns):
         print(f"  {line}")
     print()
-    return validate(cfg, override_out)
+    return validate(cfg, override_out, report_path)
 
 
 # ----------------------------------------------------------------- QA gates
-def validate(cfg, override_out=None):
+def validate(cfg, override_out=None, report_path=None):
     from openpyxl import load_workbook
 
     xlsx = out_path(cfg, override_out)
     fails, warns = [], []
     if not xlsx.exists():
-        print(f"VALIDATE: file not found at {xlsx}")
-        return 1
+        fails.append(f"file not found at {xlsx}")
+        return _report(fails, warns, cfg=cfg, mode="create", report_path=report_path)
     wb = load_workbook(xlsx, data_only=True)
     if SHEET_NAMES["SP"] not in wb.sheetnames:
         fails.append(f"sheet '{SHEET_NAMES['SP']}' missing (found {wb.sheetnames})")
-        return _report(fails, warns)
+        return _report(fails, warns, cfg=cfg, mode="create", report_path=report_path)
     ws = wb[SHEET_NAMES["SP"]]
     header = [ws.cell(1, c).value for c in range(1, ws.max_column + 1)]
     if header != COLUMNS["SP"]:
         fails.append(f"header mismatch: {header} != expected {COLUMNS['SP']}")
-        return _report(fails, warns)
+        return _report(fails, warns, cfg=cfg, mode="create", report_path=report_path)
 
     rows = []
     for r in range(2, ws.max_row + 1):
@@ -525,14 +769,23 @@ def validate(cfg, override_out=None):
         if not ents & {"Keyword", "Product Targeting"}:
             fails.append(f"campaign {cid}: no Keyword or Product Targeting row, so no targets")
 
-    return _report(fails, warns)
+    return _report(
+        fails, warns, cfg=cfg, mode="create", report_path=report_path,
+        metrics={"row_count": len(rows), "campaign_count": len(camp_ids)},
+    )
 
 
-def _report(fails, warns):
+def _report(fails, warns, *, cfg=None, mode=None, report_path=None, metrics=None):
     for w in warns:
         print(f"  [WARN] {w}")
     for f in fails:
         print(f"  [FAIL] {f}")
+    if report_path:
+        report = write_quality_report(
+            report_path, mode=mode, phase="artifact_validation", cfg=cfg or {},
+            errors=fails, warnings=warns, metrics=metrics,
+        )
+        print(f"  [REPORT] {_rel(report)}")
     if fails:
         print(f"VALIDATE: FAIL ({len(fails)} gate(s), {len(warns)} warning(s))")
         return 1
@@ -554,6 +807,8 @@ def main():
     ap.add_argument("--preflight", action="store_true", help="check the config, list missing fields")
     ap.add_argument("--preview", action="store_true", help="print planned campaigns, write nothing")
     ap.add_argument("--validate", action="store_true", help="run QA gates on the built file only")
+    ap.add_argument("--quality-report",
+                    help="write a local machine-readable JSON quality result")
     args = ap.parse_args()
 
     cfg = load_config(args.config)
@@ -566,15 +821,15 @@ def main():
         cfg["campaigns"] = specs + cfg.get("campaigns", [])
         print(f"keyword-file: {len(specs)} campaign spec(s) parsed from {args.keyword_file}\n")
     if args.preflight:
-        return preflight(cfg)
+        return preflight(cfg, args.quality_report)
     if args.preview:
         return preview(cfg)
     if args.validate:
-        return validate(cfg, args.out)
-    if preflight(cfg) != 0:
+        return validate(cfg, args.out, args.quality_report)
+    if preflight(cfg, args.quality_report) != 0:
         return 1
     print()
-    return build(cfg, args.out)
+    return build(cfg, args.out, args.quality_report)
 
 
 if __name__ == "__main__":

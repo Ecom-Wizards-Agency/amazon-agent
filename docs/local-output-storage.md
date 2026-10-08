@@ -51,6 +51,7 @@ Controlled workflow names:
 - `ads`
 - `reporting`
 - `inventory`
+- `logistics`
 - `catalog`
 - `account-check`
 - `support-prep`
@@ -71,6 +72,20 @@ When no local policy is installed, keep files in the gitignored defaults and
 report that no durable route was available rather than guessing or copying the
 same artifact to several systems.
 
+Archiving finished client work to pCloud is a run-completion step, not a weekly
+one. Register each file at its final local path with `--disposition
+archive-pcloud` and either bundle metadata (`--archive-bundle-date`,
+`--archive-bundle-scope`, optional partner, carrier and `--archive-bundle-root`)
+for a delivered bundle under
+`_Data/{workflow}/[{market}/]YYYY-MM-DD - {Scope} - {Partner} - {Carrier}/`, or
+monthly metadata (`--archive-month`, `--archive-report-type`, optional
+`--archive-scope`) for a flat raw file. Then run
+`tools/artifactctl/artifactctl archive --run RUN_ID` before completing the run.
+A bundle file uploaded without `--archive-bundle-root` must be named
+`YYYY-MM-DD_...`; inside a rooted bundle every file keeps its relative path and
+name. The weekly job is only the safety net for a run that missed this step. The lifecycle rules below say what the run
+note records.
+
 ## Artifact lifecycle
 
 New downloaded and generated local files are registered by exact path under a
@@ -82,3 +97,9 @@ supplied files are preserved. Verified weekly cleanup is the sole permitted
 automatic local-cleanup exception. It never deletes or modifies remote data in
 FlatFilePro, pCloud, or Google Drive. Handoffs list created paths, disposition,
 and eligibility date; only unclassified or blocked artifacts need approval.
+
+Register files at their final local path and never rename a run folder after
+registration; the exact-path record would no longer match. A file bound for
+pCloud is archived at run completion as described under Durable Storage. The run
+note gets one line per archived bundle:
+`pCloud: <share-relative bundle path> (N files, SHA-1 verified, run RUN_ID)`.

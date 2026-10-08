@@ -35,6 +35,11 @@ RUN_OUTCOMES = {"success", "failed", "blocked"}
 ELIGIBILITY_DAYS = 7
 QUARANTINE_DAYS = 30
 FLATFILEPRO_ORIGIN = "https://app.flatfile.pro"
+MONTHLY_ARCHIVE_KEYS = ("client", "dataset", "market", "month", "report_type", "scope")
+BUNDLE_ARCHIVE_KEYS = ("client", "dataset", "market", "bundle_date", "bundle_scope")
+BUNDLE_OPTIONAL_KEYS = ("bundle_partner", "bundle_carrier", "bundle_root")
+ARCHIVABLE_STATES = ("registered", "eligible-pending")
+DETAIL_LIMIT = 300
 
 
 def utc_now() -> datetime:
@@ -198,6 +203,9 @@ class ArtifactRegistry:
                   ON artifacts(state, eligible_at, purge_at);
                 """
             )
+            columns = {row["name"] for row in con.execute("PRAGMA table_info(artifacts)")}
+            if "claim_prev_state" not in columns:
+                con.execute("ALTER TABLE artifacts ADD COLUMN claim_prev_state TEXT")
         if os.name != "nt":
             os.chmod(self.db_path, 0o600)
 
@@ -251,16 +259,23 @@ class ArtifactRegistry:
                 (iso(now), iso(eligible), outcome, run_id),
             )
             if outcome == "success":
+                # An in-flight archive claim keeps state 'archiving'; the state it
+                # returns to on release is updated instead.
                 con.execute(
                     """UPDATE artifacts
-                       SET state=CASE WHEN disposition='preserve' OR state='review' THEN state ELSE 'eligible-pending' END,
+                       SET state=CASE WHEN disposition='preserve' OR state IN ('review','archiving') THEN state
+                                      ELSE 'eligible-pending' END,
+                           claim_prev_state=CASE WHEN state='archiving' THEN 'eligible-pending' ELSE claim_prev_state END,
                            eligible_at=CASE WHEN disposition='preserve' OR state='review' THEN eligible_at ELSE ? END,
                            updated_at=? WHERE run_id=?""",
                     (iso(eligible), iso(now), run_id),
                 )
             else:
                 con.execute(
-                    "UPDATE artifacts SET state='preserved',review_reason=?,updated_at=? WHERE run_id=?",
+                    """UPDATE artifacts
+                       SET state=CASE WHEN state='archiving' THEN state ELSE 'preserved' END,
+                           claim_prev_state=CASE WHEN state='archiving' THEN 'preserved' ELSE claim_prev_state END,
+                           review_reason=?,updated_at=? WHERE run_id=?""",
                     (f"run-{outcome}", iso(now), run_id),
                 )
             con.commit()
@@ -413,20 +428,33 @@ class ArtifactRegistry:
             "AMAZON_ARTIFACT_PCLOUD_HELPER",
             Path.home() / "os" / "company-ai-skills" / "skills" / "pcloud-api" / "scripts" / "archive-raw.py",
         )).expanduser()
-        required = ("client", "dataset", "market", "month", "report_type", "scope")
+        bundle = archive_mode(archive) == "bundle"
+        required = BUNDLE_ARCHIVE_KEYS if bundle else MONTHLY_ARCHIVE_KEYS
         missing = [key for key in required if not archive.get(key)]
         if missing:
             raise ValueError("pCloud archive metadata missing: " + ", ".join(missing))
+        if bundle:
+            mixed = [key for key in ("month", "report_type", "scope") if archive.get(key)]
+            if mixed:
+                raise ValueError("pCloud bundle metadata cannot be combined with: " + ", ".join(mixed))
         command = [
             sys.executable, str(helper), *[str(path) for path in paths],
             "--client", str(archive["client"]),
             "--dataset", str(archive["dataset"]),
             "--market", str(archive["market"]),
-            "--month", str(archive["month"]),
-            "--report-type", str(archive["report_type"]),
-            "--scope", str(archive["scope"]),
-            "--keep-local", "--json",
         ]
+        if bundle:
+            command += ["--bundle-date", str(archive["bundle_date"]), "--bundle-scope", str(archive["bundle_scope"])]
+            for key in BUNDLE_OPTIONAL_KEYS:
+                if archive.get(key):
+                    command += ["--" + key.replace("_", "-"), str(archive[key])]
+        else:
+            command += [
+                "--month", str(archive["month"]),
+                "--report-type", str(archive["report_type"]),
+                "--scope", str(archive["scope"]),
+            ]
+        command += ["--keep-local", "--json"]
         result = subprocess.run(command, capture_output=True, text=True, check=False, timeout=1800)
         if result.returncode != 0:
             raise RuntimeError((result.stderr or result.stdout or "pCloud archive failed").strip())
@@ -464,8 +492,16 @@ class ArtifactRegistry:
             else:
                 claimed = parse_time(row["claim_at"])
                 if claimed and self.clock() - claimed > timedelta(hours=1):
-                    fallback = "quarantined" if row["state"] in {"purging", "restoring"} else "eligible-pending"
-                    con.execute("UPDATE artifacts SET state=?,claim_at=NULL,updated_at=? WHERE id=?", (fallback, now, row["id"]))
+                    if row["state"] in {"purging", "restoring"}:
+                        fallback = "quarantined"
+                    elif row["state"] == "archiving" and row["claim_prev_state"]:
+                        fallback = row["claim_prev_state"]
+                    else:
+                        fallback = "eligible-pending"
+                    con.execute(
+                        "UPDATE artifacts SET state=?,claim_at=NULL,claim_prev_state=NULL,updated_at=? WHERE id=?",
+                        (fallback, now, row["id"]),
+                    )
 
     def _quarantine_one(self, artifact_id: str) -> dict:
         now = self.clock()
@@ -582,94 +618,14 @@ class ArtifactRegistry:
                 normal.append(row)
 
         for (_, archive_raw), rows in archive_groups.items():
-            paths = [Path(row["path"]) for row in rows]
-            failures = []
-            for row, path in zip(rows, paths):
-                ok, reason = self._fingerprint_matches(path, row)
-                if not ok:
-                    failures.append({"artifact_id": row["id"], "path": str(path), "reason": reason})
-            try:
-                archive = json.loads(archive_raw) if archive_raw else None
-            except json.JSONDecodeError:
-                archive = None
-            if failures or not archive:
-                for row in rows:
-                    reason = next((item["reason"] for item in failures if item["artifact_id"] == row["id"]), "pcloud-archive-metadata-missing")
-                    actions.append({"artifact_id": row["id"], "path": row["path"], "action": "preserved", "reason": reason})
-                    if not audit_only:
-                        with self.connect() as con:
-                            con.execute("UPDATE artifacts SET state='review',review_reason=?,updated_at=? WHERE id=?", (reason, iso(now), row["id"]))
-                continue
-            if audit_only:
+            status, group_actions, _ = self._archive_group(rows, archive_raw, now, audit_only)
+            if status in {"archived", "already-archived"}:
+                normal.extend(rows)
+            elif status == "audit":
                 for row in rows:
                     actions.append({"artifact_id": row["id"], "path": row["path"], "action": "would-archive-and-quarantine"})
-                continue
-            claimed = False
-            with self.connect() as con:
-                con.execute("BEGIN IMMEDIATE")
-                for row in rows:
-                    current = con.execute("SELECT state FROM artifacts WHERE id=?", (row["id"],)).fetchone()
-                    if not current or current["state"] != "eligible-pending":
-                        break
-                else:
-                    for row in rows:
-                        con.execute(
-                            "UPDATE artifacts SET state='archiving',claim_at=?,updated_at=? WHERE id=?",
-                            (iso(now), iso(now), row["id"]),
-                        )
-                    claimed = True
-                if claimed:
-                    con.commit()
-                else:
-                    con.rollback()
-            if not claimed:
-                for row in rows:
-                    actions.append({"artifact_id": row["id"], "path": row["path"], "action": "preserved", "reason": "archive-claim-lost"})
-                continue
-            try:
-                receipt = self.archive_runner(paths, archive)
-            except Exception as exc:
-                with self.connect() as con:
-                    con.execute(
-                        "UPDATE artifacts SET state='eligible-pending',claim_at=NULL,updated_at=? WHERE run_id=? AND archive_json=? AND state='archiving'",
-                        (iso(now), rows[0]["run_id"], archive_raw),
-                    )
-                for row in rows:
-                    actions.append({"artifact_id": row["id"], "path": row["path"], "action": "preserved", "reason": f"pcloud-archive-failed:{type(exc).__name__}"})
-                continue
-            receipt_items = receipt.get("files") if isinstance(receipt, dict) else None
-            receipt_complete = bool(
-                receipt.get("provider") == "pcloud"
-                and receipt.get("verified") is True
-                and isinstance(receipt_items, list)
-                and all(any(
-                    isinstance(item, dict)
-                    and item.get("source") == str(Path(row["path"]).resolve())
-                    and item.get("sha256") == row["sha256"]
-                    and item.get("sha1")
-                    and item.get("remote_path")
-                    for item in receipt_items
-                ) for row in rows)
-            )
-            if not receipt_complete:
-                with self.connect() as con:
-                    con.execute(
-                        "UPDATE artifacts SET state='eligible-pending',claim_at=NULL,updated_at=? WHERE run_id=? AND archive_json=? AND state='archiving'",
-                        (iso(now), rows[0]["run_id"], archive_raw),
-                    )
-                for row in rows:
-                    actions.append({"artifact_id": row["id"], "path": row["path"], "action": "preserved", "reason": "pcloud-receipt-incomplete"})
-                continue
-            receipt_json = json.dumps(receipt, sort_keys=True)
-            with self.connect() as con:
-                con.execute("BEGIN IMMEDIATE")
-                for row in rows:
-                    con.execute(
-                        "UPDATE artifacts SET receipt_json=?,state='eligible-pending',claim_at=NULL,updated_at=? WHERE id=? AND state='archiving'",
-                        (receipt_json, iso(now), row["id"]),
-                    )
-                con.commit()
-            normal.extend(rows)
+            else:
+                actions.extend(group_actions)
 
         for row in normal:
             path = Path(row["path"])
@@ -715,6 +671,214 @@ class ArtifactRegistry:
             "at": iso(now),
             "actions": actions,
             "counts": dict(sorted(counts.items())),
+        }
+
+    @staticmethod
+    def _receipt_item(receipt: dict | None, row: sqlite3.Row) -> dict | None:
+        items = receipt.get("files") if isinstance(receipt, dict) else None
+        if not isinstance(items, list):
+            return None
+        source = str(Path(row["path"]).resolve())
+        return next((
+            item for item in items
+            if isinstance(item, dict) and item.get("source") == source
+            and item.get("sha256") == row["sha256"] and item.get("sha1") and item.get("remote_path")
+        ), None)
+
+    def _archive_group(
+        self,
+        rows: list[sqlite3.Row],
+        archive_raw: str,
+        now: datetime,
+        audit_only: bool,
+        mark_review: bool = True,
+    ) -> tuple[str, list[dict], dict | None]:
+        """Archive one run's batch that shares the same archive metadata.
+
+        Returns (status, preserved_actions, receipt). status is "archived",
+        "already-archived" (a concurrent run stored a valid receipt first),
+        "audit" (checks passed, nothing run) or "preserved". On "archived"
+        every row carries the stored receipt and is back in its pre-claim state.
+        """
+        paths = [Path(row["path"]) for row in rows]
+        failures = []
+        for row, path in zip(rows, paths):
+            ok, reason = self._fingerprint_matches(path, row)
+            if not ok:
+                failures.append({"artifact_id": row["id"], "path": str(path), "reason": reason})
+        try:
+            archive = json.loads(archive_raw) if archive_raw else None
+        except json.JSONDecodeError:
+            archive = None
+        if failures or not archive:
+            actions = []
+            for row in rows:
+                reason = next((item["reason"] for item in failures if item["artifact_id"] == row["id"]), "pcloud-archive-metadata-missing")
+                actions.append({"artifact_id": row["id"], "path": row["path"], "action": "preserved", "reason": reason})
+                if mark_review and not audit_only:
+                    with self.connect() as con:
+                        con.execute("UPDATE artifacts SET state='review',review_reason=?,updated_at=? WHERE id=?", (reason, iso(now), row["id"]))
+            return "preserved", actions, None
+        if audit_only:
+            return "audit", [], None
+
+        def preserved(reason: str, detail: str | None = None) -> list[dict]:
+            entries = []
+            for row in rows:
+                entry = {"artifact_id": row["id"], "path": row["path"], "action": "preserved", "reason": reason}
+                if detail:
+                    entry["detail"] = detail[:DETAIL_LIMIT]
+                entries.append(entry)
+            return entries
+
+        def release(receipt_json: str | None = None) -> None:
+            with self.connect() as con:
+                con.execute("BEGIN IMMEDIATE")
+                for row in rows:
+                    con.execute(
+                        """UPDATE artifacts SET receipt_json=COALESCE(?,receipt_json),state=COALESCE(claim_prev_state,?),
+                           claim_at=NULL,claim_prev_state=NULL,updated_at=? WHERE id=? AND state='archiving'""",
+                        (receipt_json, row["state"], iso(now), row["id"]),
+                    )
+                con.commit()
+
+        claimed = False
+        already = 0
+        with self.connect() as con:
+            con.execute("BEGIN IMMEDIATE")
+            for row in rows:
+                current = con.execute("SELECT * FROM artifacts WHERE id=?", (row["id"],)).fetchone()
+                if not current or current["state"] != row["state"]:
+                    break
+                if self._pcloud_receipt_valid(current):
+                    already += 1
+            else:
+                if already:
+                    con.rollback()
+                    if already == len(rows):
+                        return "already-archived", [], None
+                    return "preserved", preserved("archive-claim-lost", "receipt stored concurrently for part of the batch"), None
+                for row in rows:
+                    con.execute(
+                        "UPDATE artifacts SET state='archiving',claim_prev_state=state,claim_at=?,updated_at=? WHERE id=?",
+                        (iso(now), iso(now), row["id"]),
+                    )
+                claimed = True
+            if claimed:
+                con.commit()
+            else:
+                con.rollback()
+        if not claimed:
+            return "preserved", preserved("archive-claim-lost"), None
+        try:
+            receipt = self.archive_runner(paths, archive)
+        except Exception as exc:
+            release()
+            return "preserved", preserved(f"pcloud-archive-failed:{type(exc).__name__}", str(exc)), None
+        receipt_complete = bool(
+            isinstance(receipt, dict)
+            and receipt.get("provider") == "pcloud"
+            and receipt.get("verified") is True
+            and all(self._receipt_item(receipt, row) for row in rows)
+        )
+        if not receipt_complete:
+            release()
+            return "preserved", preserved("pcloud-receipt-incomplete"), None
+        release(json.dumps(receipt, sort_keys=True))
+        return "archived", [], receipt
+
+    def pending_archive(self, run_id: str) -> list[sqlite3.Row]:
+        """archive-pcloud artifacts of a run that still lack a valid pCloud receipt."""
+        with self.connect() as con:
+            rows = con.execute(
+                f"""SELECT * FROM artifacts WHERE run_id=? AND disposition='archive-pcloud'
+                    AND state IN ({",".join("?" * len(ARCHIVABLE_STATES))}) ORDER BY path""",
+                (run_id, *ARCHIVABLE_STATES),
+            ).fetchall()
+        return [row for row in rows if not self._pcloud_receipt_valid(row)]
+
+    def archive(self, run_id: str, audit_only: bool = False) -> dict:
+        """Archive a run's archive-pcloud artifacts now, at run completion.
+
+        Only the receipt changes: state, eligibility and quarantine timing stay
+        as they were, so the weekly cleanup still owns the local lifecycle.
+        """
+        now = self.clock()
+        with self.connect() as con:
+            if not con.execute("SELECT 1 FROM runs WHERE id=?", (run_id,)).fetchone():
+                raise ValueError(f"unknown run: {run_id}")
+            rows = con.execute(
+                "SELECT * FROM artifacts WHERE run_id=? AND disposition='archive-pcloud' ORDER BY path", (run_id,)
+            ).fetchall()
+        pending_ids = {row["id"] for row in self.pending_archive(run_id)}
+        already = [row["id"] for row in rows if self._pcloud_receipt_valid(row)]
+        skipped = [
+            {"artifact_id": row["id"], "path": row["path"], "state": row["state"]}
+            for row in rows
+            if row["id"] not in pending_ids and row["id"] not in already
+        ]
+        groups: dict[str, list[sqlite3.Row]] = defaultdict(list)
+        for row in rows:
+            if row["id"] in pending_ids:
+                groups[row["archive_json"] or ""].append(row)
+
+        archived: list[str] = []
+        would_archive: list[str] = []
+        preserved: list[dict] = []
+        for archive_raw, group_rows in groups.items():
+            status, actions, _ = self._archive_group(group_rows, archive_raw, now, audit_only, mark_review=False)
+            if status == "preserved":
+                preserved.extend(actions)
+                continue
+            if status == "already-archived":
+                already.extend(row["id"] for row in group_rows)
+                continue
+            with self.connect() as con:
+                con.execute("BEGIN IMMEDIATE")
+                for row in group_rows:
+                    if status == "audit":
+                        would_archive.append(row["id"])
+                        self._journal(con, "would-archive", row["id"], archive_raw)
+                        continue
+                    # Report only what the registry holds: the release can miss a
+                    # row whose claim was recovered by another process meanwhile.
+                    fresh = con.execute("SELECT * FROM artifacts WHERE id=?", (row["id"],)).fetchone()
+                    if not fresh or not self._pcloud_receipt_valid(fresh):
+                        preserved.append({
+                            "artifact_id": row["id"], "path": row["path"], "action": "preserved",
+                            "reason": "pcloud-receipt-not-stored",
+                        })
+                        continue
+                    archived.append(row["id"])
+                    item = self._receipt_item(json.loads(fresh["receipt_json"]), fresh)
+                    self._journal(con, "archived", row["id"], item["remote_path"])
+                con.commit()
+
+        remote_paths: list[str] = []
+        bundles: dict[str, dict] = {}
+        for row in rows:
+            fresh = self._refresh_row(row["id"])
+            if not self._pcloud_receipt_valid(fresh):
+                continue
+            receipt = json.loads(fresh["receipt_json"])
+            item = self._receipt_item(receipt, fresh)
+            remote_paths.append(item["remote_path"])
+            bundle = receipt.get("bundle") if receipt.get("mode") == "bundle" else None
+            if isinstance(bundle, dict) and bundle.get("path"):
+                entry = bundles.setdefault(bundle["path"], {
+                    "path": bundle["path"], "folderid": bundle.get("folderid"), "files": 0,
+                })
+                entry["files"] += 1
+        return {
+            "run_id": run_id,
+            "audit_only": audit_only,
+            "archived": archived,
+            "would_archive": would_archive,
+            "already_archived": already,
+            "preserved": preserved,
+            "skipped": skipped,
+            "remote_paths": sorted(set(remote_paths)),
+            "bundles": [bundles[key] for key in sorted(bundles)],
         }
 
     def _refresh_row(self, artifact_id: str) -> sqlite3.Row:
@@ -814,6 +978,10 @@ class ArtifactRegistry:
         return {**payload, "report_path": str(output)}
 
 
+def archive_mode(archive: dict) -> str:
+    return "bundle" if any(archive.get(key) for key in ("bundle_date", "bundle_scope", *BUNDLE_OPTIONAL_KEYS)) else "monthly"
+
+
 def archive_metadata(args) -> dict | None:
     values = {
         "client": args.archive_client,
@@ -822,8 +990,27 @@ def archive_metadata(args) -> dict | None:
         "month": args.archive_month,
         "report_type": args.archive_report_type,
         "scope": args.archive_scope,
+        "bundle_date": args.archive_bundle_date,
+        "bundle_scope": args.archive_bundle_scope,
+        "bundle_partner": args.archive_bundle_partner,
+        "bundle_carrier": args.archive_bundle_carrier,
+        "bundle_root": str(args.archive_bundle_root.expanduser().resolve()) if args.archive_bundle_root else None,
     }
-    return values if any(values.values()) else None
+    if not any(values.values()):
+        return None
+    if archive_mode(values) == "monthly" and not values["scope"]:
+        values["scope"] = "ALL-SKUS"
+    return values
+
+
+def archive_reminder(registry: ArtifactRegistry, run_id: str) -> str | None:
+    pending = registry.pending_archive(run_id)
+    if not pending:
+        return None
+    return (
+        f"artifactctl: {len(pending)} archive-pcloud file(s) in run {run_id} have no pCloud receipt; "
+        f"run: tools/artifactctl/artifactctl archive --run {run_id}"
+    )
 
 
 def parser() -> argparse.ArgumentParser:
@@ -853,8 +1040,24 @@ def parser() -> argparse.ArgumentParser:
     register.add_argument("--archive-market")
     register.add_argument("--archive-month")
     register.add_argument("--archive-report-type")
-    register.add_argument("--archive-scope", default="ALL-SKUS")
+    register.add_argument("--archive-scope", help="monthly mode: ASIN, SKU or ALL-SKUS (default)")
+    register.add_argument("--archive-bundle-date", help="bundle mode: YYYY-MM-DD ship or run date")
+    register.add_argument("--archive-bundle-scope", help="bundle mode: '{Origin} to {Dest}' or a controlled noun")
+    register.add_argument("--archive-bundle-partner", help="bundle mode: optional partner, for example a 3PL")
+    register.add_argument("--archive-bundle-carrier", help="bundle mode: optional carrier")
+    register.add_argument("--archive-bundle-root", type=Path,
+                          help="bundle mode: keep each file's path relative to this directory")
 
+    archive = sub.add_parser(
+        "archive",
+        help="archive a run's archive-pcloud files to pCloud now",
+        description="Archive every archive-pcloud file of one run that has no valid pCloud receipt yet. "
+                    "Stores the verified receipt and leaves state and eligibility unchanged; "
+                    "the weekly cleanup still owns quarantine.",
+    )
+    archive.add_argument("--run", required=True)
+    archive.add_argument("--audit-only", action="store_true",
+                         help="check fingerprints and metadata only; no pCloud call")
     cleanup = sub.add_parser("cleanup")
     cleanup.add_argument("--audit-only", action="store_true")
     quarantine = sub.add_parser("quarantine")
@@ -867,14 +1070,22 @@ def parser() -> argparse.ArgumentParser:
     return ap
 
 
-def main() -> int:
-    args = parser().parse_args()
+def main(argv: list[str] | None = None) -> int:
+    args = parser().parse_args(argv)
     registry = ArtifactRegistry()
+    exit_code = 0
     try:
         if args.command == "run" and args.run_command == "start":
             result = registry.start_run(args.owner, args.workflow, args.client, args.id)
         elif args.command == "run" and args.run_command == "complete":
             result = registry.complete_run(args.run, args.outcome)
+            if args.outcome == "success":
+                try:
+                    reminder = archive_reminder(registry, args.run)
+                except Exception as exc:  # a reminder must never fail the completion
+                    reminder = f"artifactctl: archive reminder unavailable: {type(exc).__name__}"
+                if reminder:
+                    print(reminder, file=sys.stderr)
         elif args.command == "run" and args.run_command == "show":
             result = registry.get_run(args.run)
         elif args.command == "register":
@@ -886,6 +1097,10 @@ def main() -> int:
                 json_value(args.receipt),
                 archive_metadata(args),
             )
+        elif args.command == "archive":
+            result = registry.archive(args.run, args.audit_only)
+            if result["preserved"]:
+                exit_code = 2
         elif args.command == "cleanup":
             result = registry.cleanup(args.audit_only)
         elif args.command == "quarantine" and args.quarantine_command == "list":
@@ -899,8 +1114,8 @@ def main() -> int:
     except (OSError, ValueError, RuntimeError, sqlite3.Error, json.JSONDecodeError) as exc:
         print(json.dumps({"ok": False, "error": str(exc)}, sort_keys=True), file=sys.stderr)
         return 1
-    print(json.dumps({"ok": True, **result}, indent=2, sort_keys=True))
-    return 0
+    print(json.dumps({"ok": exit_code == 0, **result}, indent=2, sort_keys=True))
+    return exit_code
 
 
 if __name__ == "__main__":
