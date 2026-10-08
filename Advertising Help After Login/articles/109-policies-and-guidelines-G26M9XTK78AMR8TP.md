@@ -3,39 +3,28 @@ title: "Policies and guidelines"
 source_url: "https://advertising.amazon.com/help/G26M9XTK78AMR8TP"
 library: "Amazon Ads Support Center"
 section: "policies-and-guidelines"
-downloaded_at: "2026-05-13"
+downloaded_at: "2026-10-07"
 status: "captured"
 ---
 
-# Policies and Guidelines
+# Policies and guidelines
 
-This article is the Amazon Ads policy and guideline hub for creating compliant ads.
+We help you create effective ads that customers trust. Our advertising policies ensure a positive experience for customers while maximizing your campaign performance.
 
-## Key Points
+#### More ways to learn
 
-- Covers Amazon Ads policies and guidelines.
-- Includes prohibited and restricted content, products, and services.
-- Includes ad specifications and requirements for different formats.
-- Links to learning resources for Amazon Ads.
+Check out our library of videos and e-learning material to expand your Amazon Ads knowledge.
 
-## Workflow
+# Stores Guidelines HMH
 
-1. Review the relevant Amazon Ads policy overview.
-2. Check prohibited content and prohibited products.
-3. Review restricted categories before creating or editing campaigns.
-4. Confirm ad format specifications.
-5. Use additional learning resources if a policy issue is unclear.
+Understand our guidelines for Store creation including minimum creative requirements and design best practices.
 
-## Visual Reference
+Available multi-language captions are best viewed in the Google Chrome browser.
 
-![Stores guidelines visual](https://d369o5h5zn8mv7.cloudfront.net/HMH/Videos/23%20Stores%20Guidelines/23_PF.webp)
+00:53Stores Guidelines
 
-## Checkpoints
+# Identify core policies for Sponsored ads
 
-- Stop before launching campaigns with policy-sensitive content.
-- Review prohibited and restricted categories before submitting ads.
-- Capture rejection screenshots and policy text when troubleshooting moderation issues.
+# Demystifying moderation: Tips to help your ads and custom creatives get approved
 
-## Routing Use
-
-Use this page when the user asks about ad disapprovals, policy troubleshooting, restricted products, creative guidelines, or pre-launch compliance checks.
+Learn everything you need to know about using logos, custom text, images, and videos with Amazon Ads. Understand Amazon's ad policies and how they apply to your campaigns and creative assets.

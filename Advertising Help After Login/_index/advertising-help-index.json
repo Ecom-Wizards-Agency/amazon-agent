@@ -563,43 +563,727 @@
       "title": "Understand bidding",
       "url": "https://advertising.amazon.com/help/GDS2E64R9GQ35768",
       "file": "articles/001-understand-bidding-GDS2E64R9GQ35768.md",
-      "bytes": 5487
+      "bytes": 6278
     },
     {
       "title": "Understand Amazon Ads auctions",
       "url": "https://advertising.amazon.com/help/GEXGZNBBWPZZK7P8",
       "file": "articles/002-understand-amazon-ads-auctions-GEXGZNBBWPZZK7P8.md",
-      "bytes": 4570
+      "bytes": 4612
     },
     {
       "title": "Bidding rules for Sponsored Products",
       "url": "https://advertising.amazon.com/help/GDLQ5D2BNFCAU3TW",
       "file": "articles/003-bidding-rules-for-sponsored-products-GDLQ5D2BNFCAU3TW.md",
-      "bytes": 5294
+      "bytes": 5310
     },
     {
       "title": "Bidding strategies for Sponsored Products",
       "url": "https://advertising.amazon.com/help/GCU2BUWJH2W3A8Z7",
       "file": "articles/004-bidding-strategies-for-sponsored-products-GCU2BUWJH2W3A8Z7.md",
-      "bytes": 4003
+      "bytes": 4356
     },
     {
       "title": "Apply Schedule bid rules for Sponsored Products",
       "url": "https://advertising.amazon.com/help/G7JFAU9C7PHA3Q68",
       "file": "articles/005-apply-schedule-bid-rules-for-sponsored-products-G7JFAU9C7PHA3Q68.md",
-      "bytes": 2177
+      "bytes": 2196
     },
     {
       "title": "Set bids in a Sponsored Products campaign",
       "url": "https://advertising.amazon.com/help/GTMXQWASBRZTHLF2",
       "file": "articles/006-set-bids-in-a-sponsored-products-campaign-GTMXQWASBRZTHLF2.md",
-      "bytes": 4589
+      "bytes": 5062
     },
     {
       "title": "Understand bid adjustments in Sponsored ads",
       "url": "https://advertising.amazon.com/help/GQ4R4FR4H56JL6V8",
       "file": "articles/007-understand-bid-adjustments-in-sponsored-ads-GQ4R4FR4H56JL6V8.md",
-      "bytes": 4449
+      "bytes": 4536
+    },
+    {
+      "title": "Create a Complete TV",
+      "url": "https://advertising.amazon.com/help/G2HAHJPQR8LZRTHF",
+      "file": "articles/124-create-a-complete-tv-G2HAHJPQR8LZRTHF.md",
+      "bytes": 4109
+    },
+    {
+      "title": "Attribution methodology",
+      "url": "https://advertising.amazon.com/help/G4YK9L2G4NXDD7SC",
+      "file": "articles/125-attribution-methodology-G4YK9L2G4NXDD7SC.md",
+      "bytes": 1861
+    },
+    {
+      "title": "Find your Amazon Marketing Cloud audience",
+      "url": "https://advertising.amazon.com/help/G4YKCVPZWUZH3AAV",
+      "file": "articles/126-find-your-amazon-marketing-cloud-audience-G4YKCVPZWUZH3AAV.md",
+      "bytes": 2125
+    },
+    {
+      "title": "Edit your portfolios",
+      "url": "https://advertising.amazon.com/help/G57LGLBC94DGWXEH",
+      "file": "articles/127-edit-your-portfolios-G57LGLBC94DGWXEH.md",
+      "bytes": 1348
+    },
+    {
+      "title": "Apply an attribution tag",
+      "url": "https://advertising.amazon.com/help/G5RUZFJU25FZSQFN",
+      "file": "articles/128-apply-an-attribution-tag-G5RUZFJU25FZSQFN.md",
+      "bytes": 1708
+    },
+    {
+      "title": "Create a Twitch campaign",
+      "url": "https://advertising.amazon.com/help/G6672DJSBNSY6BWV",
+      "file": "articles/129-create-a-twitch-campaign-G6672DJSBNSY6BWV.md",
+      "bytes": 2827
+    },
+    {
+      "title": "Stores metrics",
+      "url": "https://advertising.amazon.com/help/G7F5K8AK6BV57VXC",
+      "file": "articles/130-stores-metrics-G7F5K8AK6BV57VXC.md",
+      "bytes": 3171
+    },
+    {
+      "title": "Create Display, Video, and Audio campaigns with additional video placements",
+      "url": "https://advertising.amazon.com/help/G7S4D2M2RSRKHM8Y",
+      "file": "articles/131-create-display-video-and-audio-campaigns-with-additional-video-placements-G7S4D2M2RSRKHM8Y.md",
+      "bytes": 2976
+    },
+    {
+      "title": "Amazon Brand Lift methodology",
+      "url": "https://advertising.amazon.com/help/G7SUSMZ2GKJP42QS",
+      "file": "articles/132-amazon-brand-lift-methodology-G7SUSMZ2GKJP42QS.md",
+      "bytes": 2954
+    },
+    {
+      "title": "Understand the AI experience on Brand Stores (beta)",
+      "url": "https://advertising.amazon.com/help/G7VRGNH27HX7TZFW",
+      "file": "articles/133-understand-the-ai-experience-on-brand-stores-beta-G7VRGNH27HX7TZFW.md",
+      "bytes": 2630
+    },
+    {
+      "title": "Sponsored ads campaign limits",
+      "url": "https://advertising.amazon.com/help/G86H2227323T8T4Q",
+      "file": "articles/134-sponsored-ads-campaign-limits-G86H2227323T8T4Q.md",
+      "bytes": 1920
+    },
+    {
+      "title": "Create a Prime Video campaign",
+      "url": "https://advertising.amazon.com/help/G8KJQP4RED4VBJGN",
+      "file": "articles/135-create-a-prime-video-campaign-G8KJQP4RED4VBJGN.md",
+      "bytes": 3040
+    },
+    {
+      "title": "Understanding the sandbox components",
+      "url": "https://advertising.amazon.com/help/G8P6Q5ZJDZALQKGV",
+      "file": "articles/136-understanding-the-sandbox-components-G8P6Q5ZJDZALQKGV.md",
+      "bytes": 5455
+    },
+    {
+      "title": "Create a portfolio",
+      "url": "https://advertising.amazon.com/help/G93DM6LV85JRTR4J",
+      "file": "articles/137-create-a-portfolio-G93DM6LV85JRTR4J.md",
+      "bytes": 834
+    },
+    {
+      "title": "The query editor",
+      "url": "https://advertising.amazon.com/help/G9EP3HV7WNB65MA4",
+      "file": "articles/138-the-query-editor-G9EP3HV7WNB65MA4.md",
+      "bytes": 462
+    },
+    {
+      "title": "First-party signals in Amazon Marketing Cloud",
+      "url": "https://advertising.amazon.com/help/G9MWJR9CK8PRNUXQ",
+      "file": "articles/139-first-party-signals-in-amazon-marketing-cloud-G9MWJR9CK8PRNUXQ.md",
+      "bytes": 3175
+    },
+    {
+      "title": "Amazon Attribution metric definition",
+      "url": "https://advertising.amazon.com/help/GA58RFKXFRQKX89X",
+      "file": "articles/140-amazon-attribution-metric-definition-GA58RFKXFRQKX89X.md",
+      "bytes": 5026
+    },
+    {
+      "title": "Stores moderation",
+      "url": "https://advertising.amazon.com/help/GAEG64S8CFJH5Z7R",
+      "file": "articles/141-stores-moderation-GAEG64S8CFJH5Z7R.md",
+      "bytes": 1977
+    },
+    {
+      "title": "Display, Video, and Audio campaigns studies",
+      "url": "https://advertising.amazon.com/help/GAGG2YNGMDDJULDP",
+      "file": "articles/142-display-video-and-audio-campaigns-studies-GAGG2YNGMDDJULDP.md",
+      "bytes": 488
+    },
+    {
+      "title": "Understand automatic budget allocation in Display, Video, and Audio campaigns",
+      "url": "https://advertising.amazon.com/help/GB8PANYRYQY4F4X3",
+      "file": "articles/143-understand-automatic-budget-allocation-in-display-video-and-audio-campaigns-GB8PANYRYQY4F4X3.md",
+      "bytes": 3287
+    },
+    {
+      "title": "Create and schedule Store versions",
+      "url": "https://advertising.amazon.com/help/GBBEVJFH6HZFF2DS",
+      "file": "articles/144-create-and-schedule-store-versions-GBBEVJFH6HZFF2DS.md",
+      "bytes": 3290
+    },
+    {
+      "title": "Stores translations",
+      "url": "https://advertising.amazon.com/help/GBHEX87H8T6ERMGV",
+      "file": "articles/145-stores-translations-GBHEX87H8T6ERMGV.md",
+      "bytes": 4104
+    },
+    {
+      "title": "Amazon Attribution",
+      "url": "https://advertising.amazon.com/help/GBT6KJJEM7NDJG6U",
+      "file": "articles/146-amazon-attribution-GBT6KJJEM7NDJG6U.md",
+      "bytes": 2821
+    },
+    {
+      "title": "Create interactive video ad campaigns",
+      "url": "https://advertising.amazon.com/help/GBUX9LUF6K6Q5ZVM",
+      "file": "articles/147-create-interactive-video-ad-campaigns-GBUX9LUF6K6Q5ZVM.md",
+      "bytes": 3556
+    },
+    {
+      "title": "Content tiles on Stores",
+      "url": "https://advertising.amazon.com/help/GBX4ZFVHAKXKA5WM",
+      "file": "articles/148-content-tiles-on-stores-GBX4ZFVHAKXKA5WM.md",
+      "bytes": 6903
+    },
+    {
+      "title": "Lead generation ads",
+      "url": "https://advertising.amazon.com/help/GC7A737ENJV3N7WM",
+      "file": "articles/149-lead-generation-ads-GC7A737ENJV3N7WM.md",
+      "bytes": 2888
+    },
+    {
+      "title": "Understand delivery and pacing",
+      "url": "https://advertising.amazon.com/help/GCELVBWV7S8S9AJA",
+      "file": "articles/150-understand-delivery-and-pacing-GCELVBWV7S8S9AJA.md",
+      "bytes": 2510
+    },
+    {
+      "title": "Understand brand suitability controls",
+      "url": "https://advertising.amazon.com/help/GCH82F6F48AC4VJD",
+      "file": "articles/151-understand-brand-suitability-controls-GCH82F6F48AC4VJD.md",
+      "bytes": 11898
+    },
+    {
+      "title": "Report column definitions for Amazon Attribution",
+      "url": "https://advertising.amazon.com/help/GCJNVSR57T9BHPVJ",
+      "file": "articles/152-report-column-definitions-for-amazon-attribution-GCJNVSR57T9BHPVJ.md",
+      "bytes": 16372
+    },
+    {
+      "title": "Troubleshoot Amazon Marketing Cloud analytics queries",
+      "url": "https://advertising.amazon.com/help/GCQW26UPK6U2GPMX",
+      "file": "articles/153-troubleshoot-amazon-marketing-cloud-analytics-queries-GCQW26UPK6U2GPMX.md",
+      "bytes": 3352
+    },
+    {
+      "title": "Build your quiz with Product Selector",
+      "url": "https://advertising.amazon.com/help/GCW86YUD59ANGG67",
+      "file": "articles/154-build-your-quiz-with-product-selector-GCW86YUD59ANGG67.md",
+      "bytes": 5676
+    },
+    {
+      "title": "Bulk upload campaign data",
+      "url": "https://advertising.amazon.com/help/GD3X8KXBFKKC4BRJ",
+      "file": "articles/155-bulk-upload-campaign-data-GD3X8KXBFKKC4BRJ.md",
+      "bytes": 3647
+    },
+    {
+      "title": "Live Events Optimizer campaign management",
+      "url": "https://advertising.amazon.com/help/GD6PETSSAQLNGVUT",
+      "file": "articles/156-live-events-optimizer-campaign-management-GD6PETSSAQLNGVUT.md",
+      "bytes": 3777
+    },
+    {
+      "title": "View audience details in Amazon Marketing Cloud",
+      "url": "https://advertising.amazon.com/help/GD7CBPPLDA3PD9MK",
+      "file": "articles/157-view-audience-details-in-amazon-marketing-cloud-GD7CBPPLDA3PD9MK.md",
+      "bytes": 2882
+    },
+    {
+      "title": "Amazon Marketing Cloud SQL",
+      "url": "https://advertising.amazon.com/help/GD8747ZU4M89AMWX",
+      "file": "articles/158-amazon-marketing-cloud-sql-GD8747ZU4M89AMWX.md",
+      "bytes": 2611
+    },
+    {
+      "title": "Manage your Amazon Marketing Cloud audiences",
+      "url": "https://advertising.amazon.com/help/GD9DJBUXY5QEX272",
+      "file": "articles/159-manage-your-amazon-marketing-cloud-audiences-GD9DJBUXY5QEX272.md",
+      "bytes": 4259
+    },
+    {
+      "title": "Amazon Marketing Cloud custom audiences",
+      "url": "https://advertising.amazon.com/help/GDBVDCL6NCK2WF9L",
+      "file": "articles/160-amazon-marketing-cloud-custom-audiences-GDBVDCL6NCK2WF9L.md",
+      "bytes": 908
+    },
+    {
+      "title": "Create a Netflix campaign",
+      "url": "https://advertising.amazon.com/help/GDDD3R6XBHFV8FGD",
+      "file": "articles/161-create-a-netflix-campaign-GDDD3R6XBHFV8FGD.md",
+      "bytes": 3980
+    },
+    {
+      "title": "Amazon Publisher Direct (APD) Streaming TV publishers",
+      "url": "https://advertising.amazon.com/help/GDK72E3CBZXYZ3GN",
+      "file": "articles/162-amazon-publisher-direct-apd-streaming-tv-publishers-GDK72E3CBZXYZ3GN.md",
+      "bytes": 3116
+    },
+    {
+      "title": "Portfolio views",
+      "url": "https://advertising.amazon.com/help/GDPUY49XWL6ETNMZ",
+      "file": "articles/163-portfolio-views-GDPUY49XWL6ETNMZ.md",
+      "bytes": 1564
+    },
+    {
+      "title": "Amazon Marketing Cloud privacy",
+      "url": "https://advertising.amazon.com/help/GDSX9FYQXWWYHLZ2",
+      "file": "articles/164-amazon-marketing-cloud-privacy-GDSX9FYQXWWYHLZ2.md",
+      "bytes": 2614
+    },
+    {
+      "title": "Study setup best practices",
+      "url": "https://advertising.amazon.com/help/GDUKG9Q4B3FQDGGT",
+      "file": "articles/165-study-setup-best-practices-GDUKG9Q4B3FQDGGT.md",
+      "bytes": 2876
+    },
+    {
+      "title": "Consent update for Amazon Ads",
+      "url": "https://advertising.amazon.com/help/GE2Q65JXRZA8D4KJ",
+      "file": "articles/166-consent-update-for-amazon-ads-GE2Q65JXRZA8D4KJ.md",
+      "bytes": 2392
+    },
+    {
+      "title": "Understand Bulksheets",
+      "url": "https://advertising.amazon.com/help/GE5CCNFF7Z8ENLB7",
+      "file": "articles/167-understand-bulksheets-GE5CCNFF7Z8ENLB7.md",
+      "bytes": 1727
+    },
+    {
+      "title": "Understand targeting in Display, Video, and Audio campaigns",
+      "url": "https://advertising.amazon.com/help/GEA3K9FZBZQ37YQ2",
+      "file": "articles/168-understand-targeting-in-display-video-and-audio-campaigns-GEA3K9FZBZQ37YQ2.md",
+      "bytes": 2684
+    },
+    {
+      "title": "Create in-store digital signage grocery campaigns",
+      "url": "https://advertising.amazon.com/help/GEAUHUMUBGHBWWDZ",
+      "file": "articles/169-create-in-store-digital-signage-grocery-campaigns-GEAUHUMUBGHBWWDZ.md",
+      "bytes": 2945
+    },
+    {
+      "title": "Getting AMC help with the Ads Agent in AMC",
+      "url": "https://advertising.amazon.com/help/GEDCL75VT727P23Z",
+      "file": "articles/170-getting-amc-help-with-the-ads-agent-in-amc-GEDCL75VT727P23Z.md",
+      "bytes": 3766
+    },
+    {
+      "title": "Stores",
+      "url": "https://advertising.amazon.com/help/GEQXGAH9CZWU2K76",
+      "file": "articles/171-stores-GEQXGAH9CZWU2K76.md",
+      "bytes": 2811
+    },
+    {
+      "title": "Create a Sponsored Brands campaign",
+      "url": "https://advertising.amazon.com/help/GF86HBCNDJUAC5WN",
+      "file": "articles/172-create-a-sponsored-brands-campaign-GF86HBCNDJUAC5WN.md",
+      "bytes": 14691
+    },
+    {
+      "title": "Understand grocery campaigns",
+      "url": "https://advertising.amazon.com/help/GFHDCRZQHLQFNR9V",
+      "file": "articles/173-understand-grocery-campaigns-GFHDCRZQHLQFNR9V.md",
+      "bytes": 2690
+    },
+    {
+      "title": "View your portfolio reports",
+      "url": "https://advertising.amazon.com/help/GGM4TK6JPNPKA53Z",
+      "file": "articles/174-view-your-portfolio-reports-GGM4TK6JPNPKA53Z.md",
+      "bytes": 1576
+    },
+    {
+      "title": "Content adjacency policies for Amazon DSP",
+      "url": "https://advertising.amazon.com/help/GGPF89QEQHKPF6WU",
+      "file": "articles/175-content-adjacency-policies-for-amazon-dsp-GGPF89QEQHKPF6WU.md",
+      "bytes": 4289
+    },
+    {
+      "title": "Consent requirements for uploading data to Amazon Ads",
+      "url": "https://advertising.amazon.com/help/GGVR2P4YB5QH2SFJ",
+      "file": "articles/176-consent-requirements-for-uploading-data-to-amazon-ads-GGVR2P4YB5QH2SFJ.md",
+      "bytes": 2589
+    },
+    {
+      "title": "Create an app advertising campaign",
+      "url": "https://advertising.amazon.com/help/GGVVDRH786R6R58Q",
+      "file": "articles/177-create-an-app-advertising-campaign-GGVVDRH786R6R58Q.md",
+      "bytes": 5600
+    },
+    {
+      "title": "Sponsored Products video guidelines",
+      "url": "https://advertising.amazon.com/help/GGXB3X3PWHQBRY2M",
+      "file": "articles/178-sponsored-products-video-guidelines-GGXB3X3PWHQBRY2M.md",
+      "bytes": 4697
+    },
+    {
+      "title": "Stores builder",
+      "url": "https://advertising.amazon.com/help/GGYZFGR2ZP8444PB",
+      "file": "articles/179-stores-builder-GGYZFGR2ZP8444PB.md",
+      "bytes": 3566
+    },
+    {
+      "title": "Third-party mobile app traffic",
+      "url": "https://advertising.amazon.com/help/GH3JRK6DM3DHSM8S",
+      "file": "articles/180-third-party-mobile-app-traffic-GH3JRK6DM3DHSM8S.md",
+      "bytes": 1382
+    },
+    {
+      "title": "Create a Display campaign",
+      "url": "https://advertising.amazon.com/help/GHG5D7G37KZSD3VQ",
+      "file": "articles/181-create-a-display-campaign-GHG5D7G37KZSD3VQ.md",
+      "bytes": 9618
+    },
+    {
+      "title": "Attributed events and conversion tables",
+      "url": "https://advertising.amazon.com/help/GHNTMYL5DJBJEQC9",
+      "file": "articles/182-attributed-events-and-conversion-tables-GHNTMYL5DJBJEQC9.md",
+      "bytes": 6741
+    },
+    {
+      "title": "View and interpret study results",
+      "url": "https://advertising.amazon.com/help/GHRTKMK4SL3F6FB6",
+      "file": "articles/183-view-and-interpret-study-results-GHRTKMK4SL3F6FB6.md",
+      "bytes": 7773
+    },
+    {
+      "title": "Create a campaign with Brand+ or Performance+",
+      "url": "https://advertising.amazon.com/help/GJEB6HC73Y8YGXQ9",
+      "file": "articles/184-create-a-campaign-with-brand-or-performance-GJEB6HC73Y8YGXQ9.md",
+      "bytes": 7096
+    },
+    {
+      "title": "Understand brand safety and suitability",
+      "url": "https://advertising.amazon.com/help/GJFLKW8CEWSWPY2B",
+      "file": "articles/185-understand-brand-safety-and-suitability-GJFLKW8CEWSWPY2B.md",
+      "bytes": 2961
+    },
+    {
+      "title": "Sites selection for Sponsored Ads campaigns",
+      "url": "https://advertising.amazon.com/help/GJGYD2FKNF3MUWBQ",
+      "file": "articles/186-sites-selection-for-sponsored-ads-campaigns-GJGYD2FKNF3MUWBQ.md",
+      "bytes": 4451
+    },
+    {
+      "title": "Add or remove users from your organization's account",
+      "url": "https://advertising.amazon.com/help/GJHUF3HF98KVR4RM",
+      "file": "articles/187-add-or-remove-users-from-your-organization-s-account-GJHUF3HF98KVR4RM.md",
+      "bytes": 3686
+    },
+    {
+      "title": "Create an Amazon Attribution campaign",
+      "url": "https://advertising.amazon.com/help/GJXTJCLK4WTWTQWU",
+      "file": "articles/188-create-an-amazon-attribution-campaign-GJXTJCLK4WTWTQWU.md",
+      "bytes": 4328
+    },
+    {
+      "title": "Attribute-based reporting in Amazon Marketing Cloud",
+      "url": "https://advertising.amazon.com/help/GKC2F9CAUMBRL65S",
+      "file": "articles/189-attribute-based-reporting-in-amazon-marketing-cloud-GKC2F9CAUMBRL65S.md",
+      "bytes": 4937
+    },
+    {
+      "title": "Amazon Consent Signal (ACS) integration guide for consent management platforms",
+      "url": "https://advertising.amazon.com/help/GKJQ7E8SE9BRG73Q",
+      "file": "articles/190-amazon-consent-signal-acs-integration-guide-for-consent-management-platforms-GKJQ7E8SE9BRG73Q.md",
+      "bytes": 3860
+    },
+    {
+      "title": "Amazon Attribution downloadable reports",
+      "url": "https://advertising.amazon.com/help/GKKYD7FTJA2KANBT",
+      "file": "articles/191-amazon-attribution-downloadable-reports-GKKYD7FTJA2KANBT.md",
+      "bytes": 3290
+    },
+    {
+      "title": "Create a Sponsored Products campaign",
+      "url": "https://advertising.amazon.com/help/GKLSYGFS2YD33FER",
+      "file": "articles/192-create-a-sponsored-products-campaign-GKLSYGFS2YD33FER.md",
+      "bytes": 6279
+    },
+    {
+      "title": "Understand ad groups",
+      "url": "https://advertising.amazon.com/help/GKPA6T8WW3AYKV4Q",
+      "file": "articles/193-understand-ad-groups-GKPA6T8WW3AYKV4Q.md",
+      "bytes": 3824
+    },
+    {
+      "title": "Amazon Attribution conversion metrics",
+      "url": "https://advertising.amazon.com/help/GKPJB66PB3877LSN",
+      "file": "articles/194-amazon-attribution-conversion-metrics-GKPJB66PB3877LSN.md",
+      "bytes": 1662
+    },
+    {
+      "title": "Understand prompts on Sponsored Products and Sponsored Brands",
+      "url": "https://advertising.amazon.com/help/GLWNW26EWQZW46WZ",
+      "file": "articles/195-understand-prompts-on-sponsored-products-and-sponsored-brands-GLWNW26EWQZW46WZ.md",
+      "bytes": 2396
+    },
+    {
+      "title": "Create and manage a Creator Connections campaign",
+      "url": "https://advertising.amazon.com/help/GMANECFAFD49W23Y",
+      "file": "articles/196-create-and-manage-a-creator-connections-campaign-GMANECFAFD49W23Y.md",
+      "bytes": 5577
+    },
+    {
+      "title": "Consent requirements for Events Manager (CAPI)",
+      "url": "https://advertising.amazon.com/help/GMWN8LLFCZQN5DQ5",
+      "file": "articles/197-consent-requirements-for-events-manager-capi-GMWN8LLFCZQN5DQ5.md",
+      "bytes": 2657
+    },
+    {
+      "title": "Amazon Marketing Cloud accounts and instances",
+      "url": "https://advertising.amazon.com/help/GN2CAWL9QS4ERDNA",
+      "file": "articles/198-amazon-marketing-cloud-accounts-and-instances-GN2CAWL9QS4ERDNA.md",
+      "bytes": 3311
+    },
+    {
+      "title": "Run an analytics query",
+      "url": "https://advertising.amazon.com/help/GN7BKK8Y6ZA86J8X",
+      "file": "articles/199-run-an-analytics-query-GN7BKK8Y6ZA86J8X.md",
+      "bytes": 1112
+    },
+    {
+      "title": "Brand Store - All Deals page",
+      "url": "https://advertising.amazon.com/help/GN8ENNYBFQQUTG7K",
+      "file": "articles/200-brand-store-all-deals-page-GN8ENNYBFQQUTG7K.md",
+      "bytes": 2161
+    },
+    {
+      "title": "Understand language targeting in Display, Video, and Audio campaigns",
+      "url": "https://advertising.amazon.com/help/GN8SJSGVXYNBUN96",
+      "file": "articles/201-understand-language-targeting-in-display-video-and-audio-campaigns-GN8SJSGVXYNBUN96.md",
+      "bytes": 2275
+    },
+    {
+      "title": "Understand portfolios",
+      "url": "https://advertising.amazon.com/help/GPEJN2E6R52G7C2T",
+      "file": "articles/202-understand-portfolios-GPEJN2E6R52G7C2T.md",
+      "bytes": 2187
+    },
+    {
+      "title": "Manage sponsored ads campaigns with bulksheets",
+      "url": "https://advertising.amazon.com/help/GPVTCZRJ7G9HXHWB",
+      "file": "articles/203-manage-sponsored-ads-campaigns-with-bulksheets-GPVTCZRJ7G9HXHWB.md",
+      "bytes": 5271
+    },
+    {
+      "title": "Create a source tag",
+      "url": "https://advertising.amazon.com/help/GQSJ39HZA7Z92ELD",
+      "file": "articles/204-create-a-source-tag-GQSJ39HZA7Z92ELD.md",
+      "bytes": 3545
+    },
+    {
+      "title": "Add the Live Shopping tile to your Brand Store and create a livestream (beta)",
+      "url": "https://advertising.amazon.com/help/GQTCJ84S424G6EJ5",
+      "file": "articles/205-add-the-live-shopping-tile-to-your-brand-store-and-create-a-livestream-beta-GQTCJ84S424G6EJ5.md",
+      "bytes": 3687
+    },
+    {
+      "title": "Understand delivery alerts and recommendations",
+      "url": "https://advertising.amazon.com/help/GR6VEAG2EQWG56RD",
+      "file": "articles/206-understand-delivery-alerts-and-recommendations-GR6VEAG2EQWG56RD.md",
+      "bytes": 2910
+    },
+    {
+      "title": "Supported primary language per country",
+      "url": "https://advertising.amazon.com/help/GR6WPLZ2UUJMXCH8",
+      "file": "articles/207-supported-primary-language-per-country-GR6WPLZ2UUJMXCH8.md",
+      "bytes": 1198
+    },
+    {
+      "title": "Prompt writing for Brand Store Builder Agent",
+      "url": "https://advertising.amazon.com/help/GRNZ4GA7UKDVMVJH",
+      "file": "articles/208-prompt-writing-for-brand-store-builder-agent-GRNZ4GA7UKDVMVJH.md",
+      "bytes": 3803
+    },
+    {
+      "title": "Amazon Marketing Cloud sandbox",
+      "url": "https://advertising.amazon.com/help/GRRNHKR8QV6DGS4T",
+      "file": "articles/209-amazon-marketing-cloud-sandbox-GRRNHKR8QV6DGS4T.md",
+      "bytes": 3839
+    },
+    {
+      "title": "Edit Stores pages",
+      "url": "https://advertising.amazon.com/help/GTK96857E6292RKA",
+      "file": "articles/210-edit-stores-pages-GTK96857E6292RKA.md",
+      "bytes": 1216
+    },
+    {
+      "title": "Understand Display, Video, and Audio campaigns",
+      "url": "https://advertising.amazon.com/help/GTTX72LGYHYYDDJ9",
+      "file": "articles/211-understand-display-video-and-audio-campaigns-GTTX72LGYHYYDDJ9.md",
+      "bytes": 7585
+    },
+    {
+      "title": "Understand budgets in Display, Video, and Audio campaigns",
+      "url": "https://advertising.amazon.com/help/GU5J5G57KQX8BC95",
+      "file": "articles/212-understand-budgets-in-display-video-and-audio-campaigns-GU5J5G57KQX8BC95.md",
+      "bytes": 2605
+    },
+    {
+      "title": "Portfolio budgets",
+      "url": "https://advertising.amazon.com/help/GU7E77PGF96FMW3X",
+      "file": "articles/213-portfolio-budgets-GU7E77PGF96FMW3X.md",
+      "bytes": 4013
+    },
+    {
+      "title": "Stores byline",
+      "url": "https://advertising.amazon.com/help/GUDC6TPJBUFSGVFG",
+      "file": "articles/214-stores-byline-GUDC6TPJBUFSGVFG.md",
+      "bytes": 1716
+    },
+    {
+      "title": "Interactive video ads",
+      "url": "https://advertising.amazon.com/help/GUHY8SP7GYSWRMFU",
+      "file": "articles/215-interactive-video-ads-GUHY8SP7GYSWRMFU.md",
+      "bytes": 5292
+    },
+    {
+      "title": "Create an Online Video (OLV) campaign",
+      "url": "https://advertising.amazon.com/help/GUL9GJTF8VR9HYQL",
+      "file": "articles/216-create-an-online-video-olv-campaign-GUL9GJTF8VR9HYQL.md",
+      "bytes": 2647
+    },
+    {
+      "title": "Create a Fire TV campaign",
+      "url": "https://advertising.amazon.com/help/GUPH8R7B8CHFFBEB",
+      "file": "articles/217-create-a-fire-tv-campaign-GUPH8R7B8CHFFBEB.md",
+      "bytes": 6924
+    },
+    {
+      "title": "Stores insights",
+      "url": "https://advertising.amazon.com/help/GUX5NVX5UWXYDZM7",
+      "file": "articles/218-stores-insights-GUX5NVX5UWXYDZM7.md",
+      "bytes": 7102
+    },
+    {
+      "title": "Amazon DSP inventory policies",
+      "url": "https://advertising.amazon.com/help/GUYW2GE498ANTH8Y",
+      "file": "articles/219-amazon-dsp-inventory-policies-GUYW2GE498ANTH8Y.md",
+      "bytes": 12339
+    },
+    {
+      "title": "Short URL for Stores",
+      "url": "https://advertising.amazon.com/help/GW3CES543L22Y9EA",
+      "file": "articles/220-short-url-for-stores-GW3CES543L22Y9EA.md",
+      "bytes": 2181
+    },
+    {
+      "title": "Page templates",
+      "url": "https://advertising.amazon.com/help/GWF5DFY4PWQ2358M",
+      "file": "articles/221-page-templates-GWF5DFY4PWQ2358M.md",
+      "bytes": 2264
+    },
+    {
+      "title": "Traffic tables",
+      "url": "https://advertising.amazon.com/help/GWNPZK6FU8FVT8GV",
+      "file": "articles/222-traffic-tables-GWNPZK6FU8FVT8GV.md",
+      "bytes": 1213
+    },
+    {
+      "title": "Set your Display, Video, and Audio campaign budget",
+      "url": "https://advertising.amazon.com/help/GWUL7QBQEM5XSSTM",
+      "file": "articles/223-set-your-display-video-and-audio-campaign-budget-GWUL7QBQEM5XSSTM.md",
+      "bytes": 5103
+    },
+    {
+      "title": "Paid features",
+      "url": "https://advertising.amazon.com/help/GWZZKXBA7Q75NZH2",
+      "file": "articles/224-paid-features-GWZZKXBA7Q75NZH2.md",
+      "bytes": 2591
+    },
+    {
+      "title": "Manage your connected AWS account",
+      "url": "https://advertising.amazon.com/help/GX5SZY5THV3UGV4N",
+      "file": "articles/225-manage-your-connected-aws-account-GX5SZY5THV3UGV4N.md",
+      "bytes": 2866
+    },
+    {
+      "title": "Unspent campaign budget in portfolios (beta)",
+      "url": "https://advertising.amazon.com/help/GXAJ8NNCDCQ4XEX5",
+      "file": "articles/226-unspent-campaign-budget-in-portfolios-beta-GXAJ8NNCDCQ4XEX5.md",
+      "bytes": 4177
+    },
+    {
+      "title": "Amazon Brand Lift",
+      "url": "https://advertising.amazon.com/help/GXTLXTAG9SB5Z38P",
+      "file": "articles/227-amazon-brand-lift-GXTLXTAG9SB5Z38P.md",
+      "bytes": 3736
+    },
+    {
+      "title": "Live Shopping (beta)",
+      "url": "https://advertising.amazon.com/help/GXUKPQULY6DKFYMK",
+      "file": "articles/228-live-shopping-beta-GXUKPQULY6DKFYMK.md",
+      "bytes": 3050
+    },
+    {
+      "title": "Campaign goals for Sponsored Brands",
+      "url": "https://advertising.amazon.com/help/GXXPFXLSVX9VD3U9",
+      "file": "articles/229-campaign-goals-for-sponsored-brands-GXXPFXLSVX9VD3U9.md",
+      "bytes": 4565
+    },
+    {
+      "title": "Create your Store",
+      "url": "https://advertising.amazon.com/help/GXYQWXYUW67LPVVF",
+      "file": "articles/230-create-your-store-GXYQWXYUW67LPVVF.md",
+      "bytes": 5504
+    },
+    {
+      "title": "Accessing Amazon Marketing Cloud",
+      "url": "https://advertising.amazon.com/help/GYQH4WUFEQBVEN6N",
+      "file": "articles/231-accessing-amazon-marketing-cloud-GYQH4WUFEQBVEN6N.md",
+      "bytes": 4250
+    },
+    {
+      "title": "Understand Sponsored Products off-Amazon advertising",
+      "url": "https://advertising.amazon.com/help/GYTD2Z3SYMAAMVXA",
+      "file": "articles/232-understand-sponsored-products-off-amazon-advertising-GYTD2Z3SYMAAMVXA.md",
+      "bytes": 5356
+    },
+    {
+      "title": "Optimization overview for SQL queries",
+      "url": "https://advertising.amazon.com/help/GYW24DJVFX5KEHGU",
+      "file": "articles/233-optimization-overview-for-sql-queries-GYW24DJVFX5KEHGU.md",
+      "bytes": 1238
+    },
+    {
+      "title": "Supply and format-specific requirements",
+      "url": "https://advertising.amazon.com/help/GZ7KJU4AHL6SWQMV",
+      "file": "articles/234-supply-and-format-specific-requirements-GZ7KJU4AHL6SWQMV.md",
+      "bytes": 7377
+    },
+    {
+      "title": "Create an Entertainment Spotlight Ads campaign",
+      "url": "https://advertising.amazon.com/help/GZ8JZFAN3DT3M5UA",
+      "file": "articles/235-create-an-entertainment-spotlight-ads-campaign-GZ8JZFAN3DT3M5UA.md",
+      "bytes": 4665
+    },
+    {
+      "title": "Out-of-stock products in Stores",
+      "url": "https://advertising.amazon.com/help/GZEH3FV3JSJGR8ZE",
+      "file": "articles/236-out-of-stock-products-in-stores-GZEH3FV3JSJGR8ZE.md",
+      "bytes": 1495
+    },
+    {
+      "title": "Best practices for using the Ads Agent in AMC to generate AMC SQL queries",
+      "url": "https://advertising.amazon.com/help/GZTSBQTMR2VHPL85",
+      "file": "articles/237-best-practices-for-using-the-ads-agent-in-amc-to-generate-amc-sql-queries-GZTSBQTMR2VHPL85.md",
+      "bytes": 5128
     }
   ]
 }

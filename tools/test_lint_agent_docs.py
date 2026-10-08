@@ -1,13 +1,18 @@
 import json
+import sys
 import tempfile
 import unittest
 from pathlib import Path
 
 from tools.lint_agent_docs import (
     AGENTS_MAX_BYTES,
+    AUTHORED_GLOBS,
+    CHECKED_ROOTS,
     CONTRACT_WINDOW_BYTES,
+    ROOT,
     ads_doctrine_drift_errors,
     agents_md_budget_errors,
+    knowledge_errors,
     model_name_errors,
     validate_datadive_routing,
     validate_skill_directory,
@@ -253,6 +258,73 @@ class ModelNameLintTests(unittest.TestCase):
         self.assertEqual(
             [], self.model_errors("skills/amazon-example/README.md", "Use gpt-6-sol\n")
         )
+
+
+class KnowledgeLintTests(unittest.TestCase):
+    """Check 10 wiring: globs, path roots and the lint_knowledge import."""
+
+    KNOWLEDGE_TOOLS = str(ROOT / "tools" / "knowledge")
+    KNOWLEDGE_MODULES = ("lint_knowledge", "build_knowledge_index", "scrub", "kb_frontmatter")
+
+    def setUp(self):
+        self.saved_path = list(sys.path)
+        self.saved_modules = {name: sys.modules.get(name) for name in self.KNOWLEDGE_MODULES}
+
+    def tearDown(self):
+        sys.path[:] = self.saved_path
+        for name, module in self.saved_modules.items():
+            if module is None:
+                sys.modules.pop(name, None)
+            else:
+                sys.modules[name] = module
+
+    def forget_knowledge_tools(self):
+        """Make lint_knowledge importable only through knowledge_errors' own setup."""
+        sys.path[:] = [entry for entry in sys.path if not entry.rstrip("/").endswith("tools/knowledge")]
+        for name in self.KNOWLEDGE_MODULES:
+            sys.modules.pop(name, None)
+
+    def test_authored_globs_and_checked_roots_cover_knowledge(self):
+        self.assertIn("knowledge/**/*.md", AUTHORED_GLOBS)
+        self.assertIn("knowledge/", CHECKED_ROOTS)
+
+    def test_knowledge_errors_imports_lint_knowledge_from_its_own_path_setup(self):
+        self.forget_knowledge_tools()
+        errors = knowledge_errors(ROOT)
+        self.assertFalse(any("cannot import lint_knowledge" in e for e in errors), errors)
+        self.assertIn("lint_knowledge", sys.modules)
+        self.assertIn(self.KNOWLEDGE_TOOLS, sys.path)
+
+    def test_knowledge_errors_reports_a_broken_unit_in_a_temp_root(self):
+        knowledge_errors(ROOT)  # loads lint_knowledge from the real tools/knowledge
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            unit = root / "knowledge" / "catalog" / "KC-0001_broken-unit.md"
+            unit.parent.mkdir(parents=True)
+            unit.write_text("no frontmatter here\n", encoding="utf-8")
+            errors = knowledge_errors(root)
+        self.assertTrue(any("KC-0001_broken-unit.md" in e for e in errors), errors)
+
+    def test_knowledge_errors_applies_the_denylist_only_when_present(self):
+        knowledge_errors(ROOT)  # loads lint_knowledge from the real tools/knowledge
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            errors = knowledge_errors(root)
+            self.assertFalse(any("denylist terms file missing" in e for e in errors), errors)
+            (root / "_local").mkdir()
+            (root / "_local" / "knowledge-redaction-terms.txt").write_text("Kestrel\n", encoding="utf-8")
+            unit = root / "knowledge" / "catalog" / "KC-0001_kestrel-note.md"
+            unit.parent.mkdir(parents=True)
+            unit.write_text("no frontmatter, Kestrel mentioned\n", encoding="utf-8")
+            errors = knowledge_errors(root)
+        self.assertTrue(any("scrub term:Kestrel" in e for e in errors), errors)
+
+    def test_knowledge_errors_names_the_missing_module(self):
+        self.forget_knowledge_tools()
+        with tempfile.TemporaryDirectory() as tmp:
+            errors = knowledge_errors(Path(tmp))
+        self.assertEqual(1, len(errors), errors)
+        self.assertIn("cannot import lint_knowledge", errors[0])
 
 
 if __name__ == "__main__":

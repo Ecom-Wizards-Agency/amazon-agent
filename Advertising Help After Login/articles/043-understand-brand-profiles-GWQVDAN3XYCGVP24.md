@@ -2,25 +2,22 @@
 title: "Understand Brand profiles"
 source_url: "https://advertising.amazon.com/help/GWQVDAN3XYCGVP24"
 library: "Amazon Ads Support Center"
-downloaded_at: "2026-05-12"
+downloaded_at: "2026-10-07"
 status: "captured"
 ---
 
 # Understand Brand profiles
 
-A brand profile is a central location to upload and manage logos, taglines, brand names, colors, images, videos, and more.
+A brand profile is a central location to upload and manage your logos, taglines, brand names, colors, images, videos, and more.
 
-Brand profiles help build and grow brand presence on Amazon. Taglines and descriptions help connect with customers and tell the brand story. Logos, colors, and featured content such as images or videos can help the brand stand out.
+Updated on Feb 25, 2026
 
-Profiles are created and accessed in the advertising console. Uploaded assets can be linked to Sponsored Brands, Sponsored Display, Posts, or Stores for consistent use across products.
+A brand profile is a central location to upload and manage your logo, brand name, and brand color (this will be in the background of your ads). You can reuse these assets across ad placements and product detail pages to create a consistent brand presence.
 
-Brand profiles are available to professional sellers and vendors enrolled in [Brand Registry](https://brandservices.amazon.com/?ld=ABRENSBO).
+To create or edit a brand profile, you must be assigned the selling role of “Brand representative” in Amazon’s Brand Registry. Selling roles define the relationship between selling partners and brands in Brand Registry. The Brand representative role is automatically assigned to intellectual property (IP) owners when they enroll in Brand Registry and can be changed on the Brand Registry homepage.
 
-To get started, click the Brand home icon in the advertising console.
+Note: To enroll in Brand Registry you must be a vendor or seller with an active payment method whose account is in good standing with Amazon.
 
-![Brand home icon](https://d369o5h5zn8mv7.cloudfront.net/images/Icons/Brand_Content.png)
+You can create one brand profile per registered brand associated with your advertiser account. Implementing consistent brand content across your ads helps you grow your brand presence and make it easier for customers to recognize your brand.
 
-## Related topics
-
-- [Understand brands on Amazon Ads](https://advertising.amazon.com/help/GYD2WUGJKAMM6UNU)
-- [Create a brand profile](https://advertising.amazon.com/help/G3SKBFCNXYFKLZ3D)
+To get started using brand profiles, click **Brand content** in the advertising console. For detailed instructions on how to set up your brand profile, visit Create your brand profile.

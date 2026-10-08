@@ -3,40 +3,39 @@ title: "View and download an advertising invoice"
 source_url: "https://advertising.amazon.com/help/GKEZS9J2K2FCPEAX"
 library: "Amazon Ads Support Center"
 section: "billing-and-payments"
-downloaded_at: "2026-05-13"
+downloaded_at: "2026-10-07"
 status: "captured"
 ---
 
-# View and Download an Advertising Invoice
+# View and download an advertising invoice
 
-This article explains how to view and download Amazon Ads invoices.
+Learn how to view and download your advertising invoices.
 
-## Key Points
+Updated on Jun 3, 2026
 
-- Invoices are accessed from the Administration menu.
-- Filters can locate invoices by date range.
-- Invoices can be downloaded as PDFs.
-- Global statements summarize invoice activity across multiple countries.
+## View and download your invoice
 
-## Workflow
+To access your invoice:
 
 1. In the left menu, click **Administration**.
 2. Under **Billing and Payment**, select **Billing**.
-3. Scroll to **Invoices** under **Documents**.
-4. Use date-range filters to find specific invoices.
-5. Click the invoice number to view it.
-6. Click **Download** next to an invoice to download the PDF.
+3. Scroll down to **Invoices** under the **Documents** section.
 
-## Visual Reference
+The Invoice section displays paid and unpaid invoices in your account. You can use the date range filter to only see invoices from a specific time period.
 
-![Annotated invoice table](https://d369o5h5zn8mv7.cloudfront.net/images/2025/87_annotated_invoice_table/87_annotated_invoice_table.png)
+- To view your invoice, click the invoice number you wish to review.
+- To download your invoice as a PDF, click **Download** next to any invoice.
+- To download your invoice as a CSV file, click **Download CSV** next to any invoice. The CSV file contains structured invoice data that you can import into your ERP, accounting software, or internal systems for reconciliation.
 
-## Checkpoints
+The Invoices table displays key information like due date, status, and amount due for unpaid and paid invoices. You can use the date range filter to only see invoices from a specific time period. If you’re unable to see your invoice on this table, confirm that you have access to the entity that the invoice is issued for. Reach out to your Admin to verify your access to the entity.
 
-- Confirm you have access to the entity that issued the invoice.
-- Check paid vs unpaid categories if the invoice is not visible.
-- Stop before downloading or sharing invoices outside approved finance channels.
+There are a few ways to download or view additional information:
 
-## Routing Use
+1. Click **Download summary** to see all invoices issued in the last 90 days.
+2. Search by invoice number (if you can't find your invoice, make sure to select the proper category above: unpaid VS paid)
+3. Download a PDF version.
+4. Select an invoice to export as a credit memo or payment complement.
 
-Use this page when the user asks to download invoices, find invoice PDFs, or collect billing documents.
+## Global statement
+
+Download your global statement to see a summary of your previous month's advertising cost across invoices globally. Consulting this statement is ideal if you run campaigns in multiple countries. Once you’re on the Billing page, scroll down to **Statements** under the Documents section and click **Download** to get your global statement PDF.

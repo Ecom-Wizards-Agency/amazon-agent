@@ -2,51 +2,37 @@
 title: "Sponsored Brands"
 source_url: "https://advertising.amazon.com/help/GGWFYHL27MFXLHS6"
 library: "Amazon Ads Support Center"
-downloaded_at: "2026-05-12"
+downloaded_at: "2026-10-07"
 status: "captured"
 ---
 
-# Sponsored Brands
+# Understand Sponsored Brands
 
-Sponsored Brands ads showcase brands on top of, alongside, or within shopping results on Amazon.
+Learn about how Sponsored Brands ads are created and displayed to shoppers.
 
-Sponsored Brands is available only to vendors and professional sellers enrolled in Amazon Brand Registry.
+Updated on Aug 27, 2026
 
-Sponsored Brands offers three ad formats. Advertisers can use cost per click (CPC) or cost per 1,000 viewable impressions (vCPM), set their own budget, and there is no minimum requirement.
+Sponsored Brands is only available to vendors and professional sellers enrolled in the Amazon Brand Registry.
 
-Ads include customizable creative components such as brand name, logo, headline, and images. Ads can direct shoppers to Store landing pages or product detail pages.
+## What's Sponsored Brands?
 
-## Video gallery references
+Sponsored Brands offers 3 ad formats that help you showcase your brand on top of, alongside, or within shopping results on Amazon. You can choose to use a cost per click (CPC), cost per 1,000 viewable impressions (VCPM), or fixed, upfront payment structure. You set your own budget and there’s no minimum requirement.
 
-- Introduction to Sponsored Brands: ![Sponsored Brands introduction](https://d369o5h5zn8mv7.cloudfront.net/sponsoredbrands/11-CreateFirstSBAd/en-US/11_create_first_sb_campaign.webp)
-- Sponsored Brands video format: ![Sponsored Brands video format](https://d369o5h5zn8mv7.cloudfront.net/HMH/Videos/42_How%20to%20use%20the%20Sponsored%20Brands%20video%20format%20/G99JR772NQBGUNCU.webp)
-- Drive traffic to Store with product collections: ![Store product collections](https://d369o5h5zn8mv7.cloudfront.net/HMH/Videos/29_How%20to%20drive%20traffic%20to%20your%20Store%20with%20SB%20product%20collection/GJJ7Y5RKHBLFVEY9.webp)
-- Product targeting in Sponsored Brands: ![Product targeting in Sponsored Brands](https://d369o5h5zn8mv7.cloudfront.net/HMH/Videos/50%20How%20to%20use%20product%20targeting%20in%20your%20Sponsored+Brands%20campaign/50_PF_en-US.webp)
+Your ad includes a customizable creative component to showcase your brand name, logo, and headline. Call out what makes your brand unique, and use images to showcase your product selection. Ads can direct your Store landing pages to showcase your brand holistically, or to a product detail page.
+
+## Video Gallery: Sponsored Brands
 
 ## How Sponsored Brands works
 
-1. Set campaign duration and budget.
-2. Select a campaign goal: drive page visits, grow brand impression share, or reserve share of voice.
-3. Choose an ad format:
-   - **Product collection:** showcase multiple products or promote existing Stores.
-   - **Store spotlight:** drive traffic to a Store with at least four pages, each with one or more unique products.
-   - **Video:** a video ad for a single product or brand that directs to a product detail page or Store.
-4. Pick products or a Store to showcase.
-5. Decide the bid and targeting, such as keywords, products, or audiences. Options vary by campaign goal and ad format.
-6. Add brand name, logo, headline, and images. Preview the ad.
+All ad formats may appear on top of, alongside, or within shopping results, on both desktop and mobile pages within the Amazon store (amazon.com) and Amazon Business (business.amazon.com).
 
-For full steps, see [Create a Sponsored Brands campaign](https://advertising.amazon.com/help/GF86HBCNDJUAC5WN).
+1. Set a campaign duration and budget.
+2. Select a campaign goal (drive page visits, grow brand impression share, or reserve share of voice). We use this to recommend bidding and targeting strategies later in the campaign setup process that align with your chosen goal.
+3. Choose an ad format to determine what shoppers see when they view your ad. **Collections**: Showcase a set of products relevant to shopper interests. **Store spotlight**: Ads drive traffic to your Store (it must have at least 4 pages, each with 1 or more unique products). **Video**: Promote your brand and drive traffic to your product detail page or your Store.
+4. Pick products or a Store to showcase in your ad.
+5. Decide how much to bid for this ad placement, and if you want to target certain keywords, products, or audiences (these options will vary depending on what campaign goal and ad format you chose).
+6. Add your brand name, logo, a headline, and images to your ad. In this step, you can preview what your ad will look like to shoppers.
 
-## Additional resources
+For complete steps on how to create a campaign, visit Create a Sponsored Brands campaign.
 
-| Resource | Details |
-| --- | --- |
-| Amazon Ads Academy | Get started with Sponsored Brands. [Enroll now](https://advertising.amazon.com/academy/student/activity/8422?ref_=advcnsl_ww_SupportCenterGetStartedSB) |
-
-## Related topics
-
-- [Understand Amazon DSP](https://advertising.amazon.com/help/GTTX72LGYHYYDDJ9)
-- [Display](https://advertising.amazon.com/help/GHYXY6HJRDM5VCCY)
-- [Sponsored Products](https://advertising.amazon.com/help/GJUCNANNV3GQVXJZ)
-- [Streaming TV](https://advertising.amazon.com/help/GXFV9PSQ4356SNUF)
-- [Promoted Skills](https://advertising.amazon.com/help/G7RDY7RJ5DGV2CH7)
+Some products are prohibited or restricted. Check the **Product Requirements** section in Sponsored Brands eligibility requirements to learn more.

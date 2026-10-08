@@ -2,53 +2,48 @@
 title: "Understand budget rules"
 source_url: "https://advertising.amazon.com/help/GNSMLANWNF344YBE"
 library: "Amazon Ads Support Center"
-downloaded_at: "2026-05-12"
+downloaded_at: "2026-10-07"
 updated_on: "2026-02-12"
 status: "captured"
 ---
 
-# Understand budget rules
+# Understand budget rules in Sponsored ads
 
-Learn how budget rules can control spend according to performance or event schedules.
+Learn how budget rules can control your spend for Sponsored ads campaigns according to performance or event schedules.
 
-Budget is set during campaign setup and can be edited later. Budget rules and cost controls can manage budgets automatically.
+Updated on Sep 2, 2026
+
+You set your budget during campaign set up, and can edit it at any time. You can use features like budget rules and cost controls to manage your budget automatically.
 
 ## What are budget rules?
 
-Budget rules automatically increase daily budgets based on shopping events and campaign performance.
+Budget rules allow you to set rules to automatically increase daily budgets based on shopping events and campaign performance.
 
-- Schedule-based rules increase budget during a special event or custom date range.
-- Performance-based rules increase budget when a performance metric, such as ROAS, is greater than or equal to a chosen value.
+- Schedule-based rules: increase budget during a special event or custom date range.
+- Performance-based rules: increase budget when a performance metric (ex: ROAS) is greater or equal to a chosen value.
 
-Budget rules help high-performing campaigns avoid running out of budget and help allocate consistent spending without manual adjustment. They can be used for holidays, sales, product launches, weekends, and other peak periods.
+Budget rules ensure that your high-performing campaigns don't run out of budget and help you allocate consistent spending without making manual adjustments. They help you plan budget increases for holidays, sales, and other peak shopping periods (like product launches or weekends).
 
 ## How budget rules work
 
-The selected campaign budget adjusts automatically when the rule conditions are met.
+The budget for your selected campaign will automatically adjust when the conditions of the rule (time period or performance threshold) are met.
 
-- Daily review: active budget rules are reviewed daily to determine the next day's budget.
-- Rule application: if conditions are met, the next day's budget is increased by the specified amount or percentage. If conditions are not met, the standard daily budget applies.
-- Multiple rules: if more than one rule meets the conditions, all applicable increases are cumulatively applied to the daily budget.
+- **Daily Review:** Active budget rules are reviewed daily to determine the next day's budget. Learn about budget rule status and what each review status indicates.
+- **Rule Application:** If conditions are met, the budget for the following day is increased by the specified amount or percentage. If conditions are not met, the standard daily budget applies.
+- **Multiple Rules:** You can set multiple rules per campaign. If more than one rule meets the conditions, all applicable increases are cumulatively applied to the daily budget.
 
-## Schedule rules
+You chose a special event (like Halloween or Black Friday) or a custom date range. During the specified time period, your budget will increase by the percentage you chose. The increase can occur all day, or only for a select time period.
 
-For schedule rules, choose a special event, such as Halloween or Black Friday, or a custom date range. During the selected period, budget increases by the chosen percentage. The increase can apply all day or only during selected hours.
+For example, a cleaning supply company may notice that shoppers search for dish soap most during dinner and want to increase budget to win placements during this high impact period. They set a budget rule to increase budget by 20% every day from 6 PM- 9 PM.
 
-Example: a cleaning supply company notices shoppers search for dish soap most during dinner and sets a budget rule to increase budget by 20% every day from 6 PM to 9 PM.
+You can apply multiple schedule based rules if you want to set an increase for a specific date, and another increase for a specific time range on that date.
 
-Multiple schedule-based rules can be applied, such as one increase for a date and another for a specific time range on that date.
-
-## Performance rule example
-
-| Campaign | Rules | ROAS | Daily budget increase |
+| **Campaign** | **Rules** | **ROAS** | **Daily budget increase** |
 | --- | --- | --- | --- |
-| Running shoes for Q4 | Increase budget by 20% with no end date if ROAS is greater than 5; increase budget by 40% with no end date if ROAS is greater than 3; increase budget by 100% on November 27, Black Friday | 4 | 140% |
+| Running shoes for Q4 | Increase budget by 20% with no end date if ROAS is greater than 5 (performance rule) | 4 | 140% |
+| Increase budget by 40% with no end date if ROAS is greater than 3 (performance rule) |
+| Increase budget by 100% on November 27 (Black Friday, schedule rule) |
 
-The 40% performance rule and the 100% schedule rule apply cumulatively. The 20% performance rule does not apply because its condition is not met.
+This includes a 40% increase from the performance rule whose conditions were met, and 100% increase from the scheduled rule. Note that the 20% performance rule wasn't applied because its condition wasn't met.
 
-## Related topics
-
-- [Understand budgets](https://advertising.amazon.com/help/GTGPQGUXNCTHE2DS)
-- [Understand Cost controls for sponsored ads](https://advertising.amazon.com/help/GNJDAT6AEYD3XJA8)
-- [Understand budgets on Amazon DSP](https://advertising.amazon.com/help/GU5J5G57KQX8BC95)
-- [Understand automatic budget allocation on Amazon DSP](https://advertising.amazon.com/help/GB8PANYRYQY4F4X3)
+If your campaign contains multiple rules, and more than one rule meets the conditions, all applicable increases are cumulatively applied to the daily budget.

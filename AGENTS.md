@@ -137,7 +137,7 @@ Per-screen checkpoints: `docs/browser-checkpoints.md`. Per-workflow browser rout
 
 ## Local Libraries
 
-Search narrowly before answering or operating. The libraries are `Amazon Seller Help`, `Amazon Ads Help`, `Advertising Help After Login`, `MAG SOPs` and `sop-drafts`; their purposes, coverage and per-task search order are in `docs/amazon-library-map.md`. Each ships a `README.md` and a machine-readable index under `_index/`; when no specialist skill matches, start from those indexes or the search helper, and never crawl or grep whole SOP/help folders. Search helper (`--library ads|seller|all`):
+Search narrowly before answering or operating. The libraries are `knowledge`, `Amazon Seller Help`, `Amazon Ads Help`, `Advertising Help After Login`, `MAG SOPs` and `sop-drafts`; purposes, coverage and search order are in `docs/amazon-library-map.md`. Search a symptom, error text or how-do-we question in `knowledge/` first (alias `kb`), then first-party help, then MAG SOPs; answers carry the unit's verification label. Each has a `README.md` and an `_index/`; without a matching skill start there or with the search helper, and never crawl or grep whole SOP/help folders. Search helper (`--library kb|ads|seller|all`):
 
 ```bash
 python3 "tools/search_amazon_libraries.py" "account health violation" --library seller --limit 8
@@ -145,7 +145,7 @@ python3 "tools/search_amazon_libraries.py" "account health violation" --library 
 
 ## SOP Drafts And MAG SOP Visual Archive
 
-`MAG SOPs/` is the curated, markdown-only runtime copy; images, GIFs, archives, evidence, outputs and client artifacts never belong in the source tree. The complete capture is each operator's pCloud visual archive at `<your-pcloud>/Amazon Agent/MAG SOPs` (expected contents: `docs/mag-sops-assets.md`); use it for visual confirmation and never commit it or a personal sync path. Search the markdown SOPs first, then `sop-drafts/` for recent learnings, especially support cases, troubleshooting, shipping defects and communications.
+`MAG SOPs/` is the curated, markdown-only runtime copy; images, GIFs, archives, evidence, outputs and client artifacts never belong in the source tree. The complete capture is each operator's pCloud visual archive at `<your-pcloud>/Amazon Agent/MAG SOPs` (expected contents: `docs/mag-sops-assets.md`); use it for visual confirmation and never commit it or a personal sync path. Search the markdown SOPs before `sop-drafts/`, which hold recent learnings on support cases, troubleshooting, shipping defects and communications.
 
 `sop-drafts/` is emerging procedure, not final. On conflict, first-party Amazon docs win for rules and current UI, promoted SOPs win for settled procedure, and the draft is a signal to flag the better path. Say in the operator note when a draft informed the work, and never promote or rewrite a draft unless the operator asks.
 
@@ -228,9 +228,9 @@ Shared client context lives in the team vault at `Clients/{Name}/Amazon Ops.md`,
 
 Never silently change shared client facts. In a human-supervised session, verify the correction against the narrow source, update the profile with its evidence link, and run `find-client-profile.mjs --validate`. Unattended runs read profiles but never edit them.
 
-## Shared Knowledge (Notion, for non-repo runtimes)
+## Shared Knowledge (Notion)
 
-Runtimes with the repo but without `_local/` read the private methodology from Notion instead. Find these pages by exact title with the Notion connector; their URLs stay out of this public repo: "Amazon Agent - Shared Brain" (the space's top page), "PPC Strategy (rank-first)", "PPC Naming Convention", "PPC Knowledge Digest", "Conflicts and Test Backlog", "Brand Identity / Alias Resolver". Per-brand Goal/Stage and Situation live in `Amazon Ops.md`; Notion holds meeting notes and these methodology pages. Never put secrets in either system.
+Runtimes without `_local/` read the private methodology under the Notion page "Amazon Playbooks" (in Delivery); find children such as "Advertising PPC Strategy v2" or "Amazon Troubleshooting Playbook" by exact title, and keep URLs out of this repo. Per-brand Goal/Stage and Situation live in `Amazon Ops.md`. Never put secrets in either system.
 
 ## Team Knowledge Recall (Ads Decisions, Playbooks, and Research)
 
@@ -272,7 +272,7 @@ This repo is being prepared as a public-safe, reusable workspace. Before any pus
 
 ## Session Completion
 
-Before the final response of a meaningful attended work session, invoke the installed `session-capture` skill. It owns the Daily, Lessons, and decision-link rules. Claude Code may satisfy this through its opt-in `SessionEnd` hook. Codex has no equivalent hook and must invoke the skill manually. Short answers and read-only checks with no durable outcome need no capture.
+Before the final response of a meaningful attended session, invoke the installed `session-capture` skill. It owns the Daily, Lessons, and decision-link rules. Claude Code may use its opt-in `SessionEnd` hook; Codex must invoke the skill manually. Short answers and read-only checks with no durable outcome need no capture. A session that answered an Amazon question a teammate could ask again adds a knowledge unit (Knowledge Units in `amazon-sop-maintenance`; `/kb-add` in Claude Code).
 
 ## Execution Rules
 

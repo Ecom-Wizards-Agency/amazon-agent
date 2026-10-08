@@ -2,56 +2,49 @@
 title: "Sponsored Products"
 source_url: "https://advertising.amazon.com/help/GJUCNANNV3GQVXJZ"
 library: "Amazon Ads Support Center"
-downloaded_at: "2026-05-12"
+downloaded_at: "2026-10-07"
 status: "captured"
 ---
 
-# Sponsored Products
+# Understand Sponsored Products
 
-Sponsored Products ads appear to shoppers on Amazon, Amazon Business, and premium publishers.
+Learn what Sponsored Products ads are and where they appear to shoppers on Amazon, Amazon Business, and premium publishers.
 
-## What is Sponsored Products?
+Updated on Aug 27, 2026
 
-Sponsored Products is a cost-per-click advertising solution that places ads in visible locations on Amazon and premium publishers, including Pinterest, BuzzFeed, Hearst, and more in the US. Advertisers do not pay to display the ad; they are charged when a customer clicks it. Advertisers set budget and click bid.
+## What's Sponsored Products?
 
-## Video gallery references
+Sponsored Products is a cost-per-click advertising solution that places your ads in highly visible locations on Amazon and premium publishers including Pinterest, Buzzfeed, Hearst, and more in the US. You don’t pay to display your ad but are charged if a customer clicks it. You set the budget and amount that you’re willing to pay for each click.
 
-- Create your first Sponsored Products campaign: ![Create first Sponsored Products campaign](https://d369o5h5zn8mv7.cloudfront.net/sponsoredproducts/13-CreateFirstSPCampaign/13-CreateFirstSPCampaign-poster.webp)
-- Change Sponsored Products budget: ![Change SP budget](https://d369o5h5zn8mv7.cloudfront.net/HMH/Videos/45%20How%20to%20change%20your%20Sponsored%20Products%20campaign%20budget/45_PF_en-US.webp)
-- Product targeting in Sponsored Products: ![Product targeting in Sponsored Products](https://d369o5h5zn8mv7.cloudfront.net/HMH/Videos/57%20How%20to%20use%20product%20targeting%20in%20your%20Sponsored%20Products%20campaign/AA_HVAMicro_Video19.webp)
-- Adjusting Sponsored Products keyword bids: ![Adjusting keyword bids](https://d369o5h5zn8mv7.cloudfront.net/HMH/Videos/49%20How%20to%20adjust%20your%20Sponsored%20Products%20keyword%20bids/v2/49_Adjust_Keyword_Bids.png)
+## Video Gallery: Sponsored Products
 
 ## How Sponsored Products works
 
-1. Choose products to advertise.
-2. Select targeting and bidding strategy.
-3. Set duration and budget.
-4. If the product is the Featured Offer, shoppers can see the ad on the first page of shopping results and product detail pages.
-5. When shoppers click, they go to the product detail page.
+A Sponsored Products campaign allows you to promote your products to shoppers who are looking for similar items. This can help drive sales, reach new customers, and grow your brand.
 
-Ads serve on desktop and mobile browsers within Amazon, on Amazon Business, and on premium publishers including Pinterest, BuzzFeed, Hearst, and more in the US.
+1. You choose products to advertise.
+2. You select a targeting and bidding strategy to determine when and where your ad appears.
+3. You set a duration and budget for your campaign.
+4. If your product is the featured offer, shoppers will see your ad on the first page of shopping results and product detail pages.
+5. When advertisers click your ad, they’re directed to the product detail page for the advertised product.
+
+Ads serve on desktop and mobile browsers within the Amazon store (amazon.com), on Amazon Business (business.amazon.com), and premium publishers including Pinterest, Buzzfeed, Hearst, and more in the US.
+
+To start promoting your products, see Create a Sponsored Products campaign for step-by-step instructions.
 
 ## Sponsored Products variations
 
-### Amazon and beyond
+By default, Amazon extends your Sponsored Products cost-per-click campaigns to premium sites, apps, and creators using your existing campaign targeting, bid, and budget parameters. Your ads appear when customer behavior and search patterns indicate interest in your product, along with factors like relevant page context and prior shopping intent. When customers click your ad on third-party sites, they go directly to your Amazon product detail page. This creates a seamless path from discovery to purchase.
 
-By default, Amazon extends Sponsored Products CPC campaigns to premium sites, apps, and creators using existing campaign targeting, bid, and budget parameters. Ads appear when customer behavior and search patterns indicate product interest, along with page context and prior shopping intent. Clicks lead directly to the Amazon product detail page.
+Learn how to optimize your campaigns for off-Amazon advertising
 
-### Sponsored Products for creators
+**Sponsored Products for creators**
 
-When creating a Sponsored Products campaign and selecting Amazon and beyond as the site option, products automatically become available to eligible creators. Creators browse Sponsored Products, opt in to promote ASINs that match their audience, and earn for qualifying clicks through affiliate links.
+When you create a Sponsored Products campaign and select Amazon and beyond as your site option, your products automatically become available to eligible creators. Creators browse Sponsored Products, opt in to promote ASINs that match their audience, and earn for driving qualifying clicks through their affiliate links.
 
-## Set the campaign up for success
+## Set your campaign up for success
 
-- Check product requirements in Sponsored Products eligibility requirements for prohibited or restricted products.
-- Configure campaign settings to increase chances of impressions.
-- If an ad does not meet policy, Amazon sends a rejection email with guidance.
-- Beginning February 2026, Amazon no longer sends email notifications when an ad is approved or under review. Check status in the ad console. Review usually happens within 24 hours but can take up to 3 business days.
+- Some products are prohibited or restricted. Check the **Product Requirements** section in Sponsored Products eligibility requirements to learn more.
+- Configure your campaign settings to help increase your likelihood of receiving impressions. See Troubleshoot your campaign for impressions to learn more about campaign configuration.
 
-## Related topics
-
-- [Understand Amazon DSP](https://advertising.amazon.com/help/GTTX72LGYHYYDDJ9)
-- [Display](https://advertising.amazon.com/help/GHYXY6HJRDM5VCCY)
-- [Sponsored Brands](https://advertising.amazon.com/help/GGWFYHL27MFXLHS6)
-- [Streaming TV](https://advertising.amazon.com/help/GXFV9PSQ4356SNUF)
-- [Promoted Skills](https://advertising.amazon.com/help/G7RDY7RJ5DGV2CH7)
+If your ad doesn’t meet our policies, you’ll receive an email notification with the reason for rejection and guidance on how to make updates. Beginning February 2026, to reduce the volume of emails you receive, we’ll no longer send email notifications when an ad is approved or under review. You can check the status of your ads at any time in the ad console (usually within 24 hours, but this could take up to 3 business days).

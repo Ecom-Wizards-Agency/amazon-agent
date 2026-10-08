@@ -3,35 +3,20 @@ title: "Cancel your Amazon Ads account"
 source_url: "https://advertising.amazon.com/help/GSN22CWKEMVYVPFE"
 library: "Amazon Ads Support Center"
 section: "account-management"
-downloaded_at: "2026-05-13"
+downloaded_at: "2026-10-07"
 status: "captured"
 ---
 
-# Cancel Your Amazon Ads Account
+# Cancel your Amazon Ads account
 
-This article explains the prerequisites and effects of canceling an Amazon Ads account.
+Learn how to cancel your Amazon Ads account and understand the necessary steps before and after cancellation
 
-## Key Points
+Updated on Aug 27, 2025
 
-- All campaigns should be archived before cancellation.
-- Active Stores attached to the account must be deleted or transferred.
-- Outstanding invoices should be paid before requesting cancellation.
-- After cancellation, access and some data may remain available, and reactivation may be possible.
-- Authors cannot schedule new campaigns or view campaign history after cancellation.
+You can request to cancel your Amazon Ads account at any time by contacting us. Before contacting us to cancel your account, you must:
 
-## Workflow
+- Archive all campaigns.
+- Pay all outstanding invoices.
+- Delete or transfer your Store (if you have an active Store attached to the Amazon Ads account that you’re canceling).
 
-1. Archive all campaigns.
-2. Delete or transfer any active Stores associated with the account.
-3. Pay outstanding invoices.
-4. Request cancellation of the Amazon Ads account.
-
-## Checkpoints
-
-- This is a destructive account-level action. Stop before requesting cancellation.
-- Confirm the exact account, Store ownership, outstanding invoices, and business approval.
-- Capture screenshots of campaign/archive and billing status before proceeding.
-
-## Routing Use
-
-Use this page when the user asks about closing, canceling, deactivating, or reactivating an Amazon Ads account.
+After you cancel, you'll still be able to access your Amazon Ads account and related data. You can reactivate your account at any time. However, authors don’t have access to campaign history and can't reinstate their account and run new campaigns after cancelling.

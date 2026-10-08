@@ -73,7 +73,7 @@ The following claims are mental health disorder claims but are not limited to:
 4. Go to A+ contents and look for the ASIN. Remove the prohibited claims from the description, images, and alt-text keywords.
 5. If you’re confident that everything is set, go to Performance > Account Health > Restricted Product Policy Violations > Look for the ASIN > Appeal > Check the 2 boxes and Submit. Wait 24 hours before the listing gets reinstated.
 
-![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/mental-health-disorder-and-sleep-disorder-claims-image-qeof8ka6.png?sv=2022-11-02&spr=https&st=2025-02-07T16%3A41%3A05Z&se=2025-02-07T16%3A51%3A05Z&sr=c&sp=r&sig=dSFssbVkaq%2BZjBSXBi2SO7y44zUkOqjjPkYgOQDMwGE%3D)
+![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/mental-health-disorder-and-sleep-disorder-claims-image-qeof8ka6.png)
 
 ![image.png](https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/FYfimage.png)
 
@@ -232,5 +232,5 @@ We welcome your feedback for improvement. Please click**[here](https://airtable.
 
 ## Image References
 
-- 1. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/mental-health-disorder-and-sleep-disorder-claims-image-qeof8ka6.png?sv=2022-11-02&spr=https&st=2025-02-07T16%3A41%3A05Z&se=2025-02-07T16%3A51%3A05Z&sr=c&sp=r&sig=dSFssbVkaq%2BZjBSXBi2SO7y44zUkOqjjPkYgOQDMwGE%3D
+- 1. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/mental-health-disorder-and-sleep-disorder-claims-image-qeof8ka6.png
 - 2. image.png: https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/FYfimage.png

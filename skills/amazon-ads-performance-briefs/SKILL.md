@@ -16,4 +16,6 @@ Use this skill for daily or weekly Amazon Ads performance briefs. It observes an
 
 Read `references/brief-workflows.md` after selecting the mode. It contains the source priority, data-quality gates, daily and weekly flows, toolkit commands, Slack delivery contract, and hard rules.
 
+Read [references/runtime-caveats.md](references/runtime-caveats.md) before trusting a same-day figure, a multi-profile AdLabs pull, or a missing scheduled brief.
+
 Route interactive Ads Console work to `amazon-ads-console`, Sponsored Products bulk files to `amazon-sponsored-products-bulk-files`, audits to `amazon-audit`, and approved weekly optimization to `amazon-ppc-weekly-management`.

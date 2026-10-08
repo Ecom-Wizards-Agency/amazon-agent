@@ -3,33 +3,30 @@ title: "Value Added Tax (VAT) on Electronically Supplied Services (ESS)"
 source_url: "https://advertising.amazon.com/help/G82MMTCZWAMK4ZB4"
 library: "Amazon Ads Support Center"
 section: "billing-and-payments"
-downloaded_at: "2026-05-13"
+downloaded_at: "2026-10-07"
 status: "captured"
 ---
 
-# VAT on Electronically Supplied Services
+# Value Added Tax (VAT) on Electronically Supplied Services (ESS)
 
-This article explains VAT/GST requirements for Amazon digital advertising services.
+Learn about VAT/GST country-specific requirements, how to manage your tax status, and register your tax ID.
 
-## Key Points
+Updated on Sep 3, 2025
 
-- VAT/GST may apply to advertising fees in certain countries.
-- Providing a valid VAT/GST number may affect whether tax is charged.
-- Correct VAT/GST registration is important for accurate billing.
+Certain countries with Value Added Tax (VAT) or Goods and Services Tax (GST) have introduced rules for taxing Electronically Supplied Services (ESS) at the place where they’re received. Where required by law, Amazon may charge and collect VAT/GST on the provision of digital advertising services under these rules.
 
-## Workflow
+In general, ESS VAT/ GST is chargeable on sponsored advertising fees for advertisers that:
 
-1. Register the VAT/GST ID in the Amazon Ads account.
-2. If no valid VAT/GST ID is provided, Amazon may charge VAT on advertising fees.
-3. Consult a tax advisor when unsure about VAT/GST qualification.
-4. If VAT was charged and the advertiser has a valid registration number, use **Contact us** to request a refund.
+- Haven’t provided a valid VAT/GST registration number;
+- Are residents of countries that collect tax on ESS; and
+- Advertise on Amazon.com.
 
-## Checkpoints
+Review the full list of countries on Countries that collect tax on ESS.
 
-- Stop before entering or changing VAT/GST details.
-- Confirm with finance or a tax advisor when tax status is unclear.
-- Confirm business address, tax ID, and invoice country before saving.
+**Example:** If you're an advertiser based in France without a VAT registration number, Amazon will charge VAT on your advertising fees. However, if you provide a valid VAT number, you may be exempt from this charge (except in countries where VAT is always collected).
 
-## Routing Use
+Note: In certain countries, Amazon may be required to collect VAT/GST even if a VAT/GST ID is provided.
 
-Use this page when the user asks why VAT/GST was charged, how ESS tax works, or what to do if tax should not have been charged.
+Register your VAT/GST or equivalent ID in your account to ensure you’re billed correctly. If you don’t have a VAT/GST ID and aren’t sure if you qualify for one, consult your tax advisor. In some ESS countries, you can register on the tax authority's website.
+
+If you have been charged VAT and have a valid VAT/GST registration number and registration certificate covering the period of the invoice, use the **Contact us** link to request a refund. Learn more about Tax refunds.

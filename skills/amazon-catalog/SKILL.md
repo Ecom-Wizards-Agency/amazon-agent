@@ -7,6 +7,8 @@ description: "Audit and prepare Amazon catalog changes, including variations, fe
 
 Browser: Mixed (file builds are local; template downloads/uploads run over CDP; exact approval is required before upload).
 
+Knowledge units for this area live in knowledge/catalog/ and knowledge/brand-registry/; search them first with python3 tools/search_amazon_libraries.py "<symptom>" --library kb.
+
 ## Workflow
 
 1. Identify account, marketplace, ASIN, SKU, parent/child relationship, brand, and contribution source.

@@ -5,10 +5,6 @@ Browser: CDP (the machine's attended session in direct chat, Grimoire on port 92
 Use this reference for product-grid audits, wrong or missing image destinations,
 approved artwork replacements and Store builds. The team vault's
 `Playbooks/amazon-brand-stores-playbook.md` owns design and module-selection guidance.
-For dated evidence behind these rules, read
-[brand-store-case-de-2026-09.md](brand-store-case-de-2026-09.md) when investigating that case.
-For image reuse, crop geometry and inspection side effects, see
-[brand-store-case-us-2026-09.md](brand-store-case-us-2026-09.md).
 
 ## Choose the operation and authority
 
@@ -44,6 +40,10 @@ Verify the signed-in advertiser/account, marketplace, Store entity and subentity
 source edition ID, displayed version name and status. Recheck after navigation,
 reload, tool changes or login recovery: the builder may reopen an ended version.
 
+Select the exact edition before reading its page tree: editions of the same Store
+can differ in page count. The builder caches visited pages, so for fresh saved data
+reload with response listeners active, select the edition and visit each page through
+the UI; replaying a captured builder request is not a substitute.
 Read the complete page tree, scrolling its virtualized list as needed, and snapshot
 all source pages, headers, navigation, settings, widgets and breakpoint content.
 Record page IDs and widget IDs, not only titles or section positions. Inventory
@@ -63,7 +63,8 @@ hidden rows and embedded screenshots when they carry instructions. A sheet row,
 similar caption, preview position or familiar-looking asset is insufficient alone:
 match the screenshot to the actual existing desktop/mobile artwork and its widget.
 Identify whether the screenshot covers one tile, linked details, or a complete
-image group. Enumerate the exact affected widgets before editing.
+image group. Different image URLs do not prove different artwork; compare what the
+images show. Enumerate the exact affected widgets before editing.
 
 Build one reviewable manifest with source row/evidence, page and widget IDs,
 current asset and destination, intended operation, replacement evidence and outcome.
@@ -128,6 +129,13 @@ after reopening, alongside desktop/mobile rendering. A new media URL or a Crop c
 does not prove the intended crop persisted. Preserve existing mobile artwork during
 unrelated corrections; a same-ratio design is not permission to remove it. If crop
 readback is unavailable or differs, report a verification gap instead of success.
+Compare decoded pixels, not file hashes, because Amazon re-encodes uploaded images.
+Saved `imageWidth`/`imageHeight` hold the cropped size, `canvasData` the original
+dimensions and displayed canvas, and `cropBoxData` the displayed crop box; the saved
+image URL does not identify the crop, while the editor's transformed image URL does.
+A tile without `canvasData`/`cropBoxData` can still be proven full-frame from source
+dimensions, saved width/height, zero offsets and editor readback; never assume
+partial geometry is correct.
 The separate `restore_image_fit` operation can restore a complete approved desktop
 image with native Fit when a fixed-ratio tile clips it. Require matching decoded
 pixels, native full-source dimensions and zero offsets, reopened Fit selection,

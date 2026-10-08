@@ -23,6 +23,8 @@ For Seller Central promotion workflows, verify current Amazon promotion/price ru
 4. For a single-unit sales discount, consider whether the workflow should be a limited-time `Sale Price` instead of a percentage-off promotion.
 5. Stop at the final review/submit step unless the operator has explicitly approved submitting the exact promotion or price change.
 
+Step-by-step screens (flagged needs-update in the SOP index; verify the screens live before quoting them) are in the MAG SOPs [Creating a Percentage Off Promotion](../MAG%20SOPs/catalog/catalog-sop-creating-a-percentage-off-promotion.md), [Creating a Buy One Get One Promotion](../MAG%20SOPs/catalog/catalog-sop-creating-a-buy-one-get-one-promotion.md) and [How to Set Up a Coupon](../MAG%20SOPs/catalog/catalog-sop-how-to-set-up-a-coupon.md).
+
 ## Negative Review Outreach with Courtesy Refunds
 
 1. Filter for the requested star ratings, usually `1 Stars` and `2 Stars`.

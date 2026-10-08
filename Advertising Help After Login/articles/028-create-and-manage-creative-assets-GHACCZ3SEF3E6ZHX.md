@@ -2,83 +2,61 @@
 title: "Create and manage creative assets"
 source_url: "https://advertising.amazon.com/help/GHACCZ3SEF3E6ZHX"
 library: "Amazon Ads Support Center"
-downloaded_at: "2026-05-12"
+downloaded_at: "2026-10-07"
 status: "captured"
 ---
 
 # Create and manage creative assets
 
-Use creative assets to store, organize, and reuse brand content such as logos, images, and videos.
+Use creative assets to store, organize, and reuse brand content such as logos, images, and videos. Creative assets enable brands to provide a consistent shopping experience by easily applying your brand content across Amazon.
 
-Creative assets help brands provide a consistent shopping experience by applying brand content across Amazon.
+Updated on Jul 22, 2026
 
 ## What are creative assets?
 
-Creative assets are a centralized hub for storing, organizing, and reusing brand content across Amazon Ads. They integrate with image generation and video building creative tools.
+Creative assets help you store, organize, and reuse brand content such as logos, images, and videos across Amazon Ads. This centralized hub enables you to maintain brand consistency while streamlining your campaign creation process. Creative assets integrates with Creative Agent and video building tools for enhanced creative capabilities.
 
-## Benefits
+**Benefits**
 
-- Maintain brand consistency across Stores, Sponsored Brands, Display, and Amazon DSP campaigns.
-- Speed up campaign creation by reusing pre-approved content.
-- Organize large volumes of brand content with searchable tags and attributes.
-- Collaborate by accessing shared brand assets across the team.
-- Import assets in bulk from Dropbox, OneDrive, Google Drive, or local storage.
-- Maximum file size: 10 GB per file.
+- Maintain brand consistency across Stores, Sponsored Brands, Display, and Amazon DSP campaigns
+- Speed up campaign creation by reusing pre-approved content
+- Organize large volumes of brand content with searchable tags and attributes
+- Collaborate efficiently by accessing shared brand assets across your team
+- Import assets in bulk from existing storage systems (Dropbox, OneDrive, Google Drive, or local storage). Maximum file size: 10 GB per file.
 
 ## Upload and manage assets
 
-1. In the side navigation menu, select **Creative tools**.
-2. Click **Creative assets**.
-3. Select **Upload files**.
-4. Upload by bulk upload from local/cloud storage or by dragging and dropping assets.
-5. Click **Next**.
-6. Edit file names, assign asset type, add tags, and relate assets to specific products.
-7. Click **Add to library**.
+To upload, find, and manage your creative assets:
 
-## Find assets
-
-1. Use the search bar at the top of the Creative assets page.
-2. Search by name, tag, product, and more.
-3. Narrow results by filtering and sorting attributes, such as ad policy-approved assets, asset type, weight, and dimension.
-
-## View and edit asset details
-
-1. Find and click the asset to open its detail page.
-2. Edit tags, associate the asset to products, request moderation, or archive the asset.
-3. Click **Done**.
-
-## Manage asset versions
-
-1. Click the asset to open the asset detail page.
-2. Click **Upload new version**.
-3. Choose updated asset from local storage or cloud storage, or drag and drop it.
-4. Add a version note.
-5. Click **Done**.
-
-> Note: New asset versions do not delete previous versions. The desired asset version can be selected when creating campaigns.
+1. In the side navigation menu, select **Creative tools** and click **Creative assets**.
+2. Select **Upload files**.
+3. To upload, you can: Bulk upload from your local or cloud-based storage (OneDrive, Drop Box, Google Drive), Or Drag and drop your assets.
+4. Click **Next.**On this page you’ll be able to edit the name of the files, assign asset type, add tags, and relate the asset to specific products. This information will help you organize and locate your assets.
+5. Click **Add to library** to upload your assets.
+6. To **find assets** Use the search bar at the top of the creative assets page. You can use keywords to search by name, tag, product, and more. Narrow down your results by filtering and sorting by attributes. For example, you can filter to see ad policy-approved assets, by asset type (such as, logo, product image, lifestyle image), by weight and dimension, and more.
+7. To**view and edit asset details** Find and click the asset you want to edit to view the asset detail page. Make your edits. You'll be able to edit tags, associate your asset to products, request moderation, and archive your asset. Click **Done**.
+8. To**manage asset versions** Click the asset you want to edit to view the asset detail page. Click **Upload new version**. Navigate to your local storage or cloud-based storage (OneDrive, DropBox, GoogleDrive), or drag and drop your updated asset. Add a version note. Click **Done**.
 
 ## Archive assets
 
-Assets that are no longer needed can be archived individually or in bulk.
+You can archive assets that you'll no longer need. You can archive creative assets by individual asset or in bulk.
 
-- **Individual assets:** on the Creative assets page, find and select the asset, then click **Archive** on the asset details page.
-- **Bulk assets:** select the checkbox for all assets to archive, then in the **Actions** menu select **Archive**.
+- **Individual assets**: In the creative assets page, find and select the asset that you want to archive. Click **Archive** on the asset details page.
+- **Bulk assets**: In the creative assets page, click the checkbox of all the assets that you want to archive. In the **Actions** drop-down menu, select **Archive**.
 
-> Note: Archived assets cannot be reused. Amazon discourages deleting assets because it may break existing campaigns. Deletion may be considered if the asset contains personal or sensitive information.
+## Request moderation for your assets
 
-## Request moderation for assets
+You can request moderation for creative assets for usage in Stores, Store Spotlight, Sponsored Brands, and Display. You can request moderation for creative assets by individual asset or in bulk.
 
-Creative assets can be submitted for moderation for usage in Stores, Store Spotlight, Sponsored Brands, and Display.
+- **Individual assets**: Filter by moderation status to find assets that are **Not moderated**. Select the asset that you want to review and click **Request moderation** on the asset details page.
+- **Bulk assets**: Filter by moderation status to find assets that are **Not moderated** and click the checkbox for all the assets that you want to submit for moderation. You can also select checkboxes for multiple asset cards that don't have a **Moderated** or **In progress** label directly from the homepage. In the **Actions** drop-down menu, select **Request moderation**.
 
-- **Individual assets:** filter by moderation status for **Not moderated**, select an asset, and click **Request moderation** on the asset details page.
-- **Bulk assets:** filter for **Not moderated**, select the assets, then choose **Request moderation** from the **Actions** menu.
-- Multiple asset cards without a **Moderated** or **In progress** label can also be selected directly from the homepage.
+You'll have visibility into the historical approval or rejection of each asset per program and image or video type.
 
-Historical approval or rejection is visible for each asset per program and image or video type.
+#### More ways to learn
 
-## Related topics
+# Amazon Ads templates and guides on Canva
 
-- [Understand Creative Studio](https://advertising.amazon.com/help/G37KKZ72NM5AFB46)
-- [Book a creative service](https://advertising.amazon.com/help/G9EDYA544GKJFHMQ)
-- [Create and manage ads in Creative Studio](https://advertising.amazon.com/help/G55KXDLSKCKVG3TJ)
-- [Third-party ad tools](https://advertising.amazon.com/help/GAMAH7L8X3HR7QFR)
+Learn how to use Canva to create visual assets for Amazon Ads, and find an assortment of creative templates.
+
+30:00IntermediateAmazon Ads templates and guides on Canva

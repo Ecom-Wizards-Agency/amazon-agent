@@ -7,6 +7,8 @@ description: "Run daily or ad hoc Seller Central Account Health checks, resolve 
 
 Browser: CDP (SC Account Health; Review-details clicks + screenshot evidence).
 
+Knowledge units for this area live in knowledge/account-health/; search them first with python3 tools/search_amazon_libraries.py "<symptom>" --library kb.
+
 Use this skill for recurring or ad hoc daily account health checks.
 
 Trigger phrases include `daily account health check`, `account health sweep`, `run account health`, `check account health for accounts`, and a scheduled account-health run for one region or one profile.
@@ -14,7 +16,7 @@ Trigger phrases include `daily account health check`, `account health sweep`, `r
 ## How To Run
 
 1. First run only: collect the local configuration values and seed the findings ledger. Setup keys and account-profile-source rules are in `references/setup.md`. Configuration and the ledger are local-only; never commit them to GitHub.
-2. Open `{preferred_browser}` and confirm Seller Central is logged in before any account checks. Session, tab, and domain rules are in `references/browser-rules.md`.
+2. Open the resolved CDP session (`{preferred_browser}`, see `references/setup.md`) and confirm Seller Central is logged in before any account checks. Session, tab, and domain rules are in `references/browser-rules.md`.
 3. Step 0 of every run: re-check open findings before looking for new issues. Read them with `{findings_projection_command}` for this run's region, and one finding in full only by its key; never dump `{findings_ledger_path}` into the transcript. See `references/check-sequence.md`.
 4. Run the per-account check sequence, Europe accounts first, then US, then the rest. The sequence, including the read-only policy-issue deep dive, is in `references/check-sequence.md`.
 5. Give every finding exactly one disposition (no action / action needed / assigned / waiting / escalate) and write the ledger once at the end of the run. Disposition rules, escalation triggers, the default disposition for each issue type with its override rules, and the degraded-run procedure are in `references/dispositions-and-ledger.md`.

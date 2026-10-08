@@ -1,0 +1,243 @@
+#!/usr/bin/env python3
+"""Build the knowledge library index and README.
+
+Walks `knowledge/<topic>/*.md` for every topic folder and `knowledge/_retired/*.md`,
+parses each unit's frontmatter and writes `knowledge/_index/knowledge-index.json`.
+The output carries no timestamps, so repeated runs are byte-identical.
+
+Rerunnable and idempotent. Use --readme to also regenerate `knowledge/README.md`.
+Use --check to compare the generated files with the files on disk; it writes
+nothing and exits 1 on drift. A unit whose frontmatter fails to parse is
+reported on stderr, skipped, and makes the exit code 1.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from kb_frontmatter import TOPICS, read_unit  # noqa: E402
+
+WORKSPACE_ROOT = Path(__file__).resolve().parents[2]
+LIBRARY_NAME = "Amazon Knowledge"
+GENERATED_BY = "tools/knowledge/build_knowledge_index.py"
+INDEX_REL = Path("knowledge") / "_index" / "knowledge-index.json"
+README_REL = Path("knowledge") / "README.md"
+RETIRED_DIR = "_retired"
+SKIP_NAMES = {"TEMPLATE.md", "README.md", ".gitkeep"}
+
+LIST_FIELDS = {
+    "skills",
+    "marketplaces",
+    "symptom_keywords",
+    "error_text",
+    "amazon_sources",
+    "related_sops",
+    "supersedes",
+    "contradicts",
+}
+UNIT_FIELDS = [
+    "id",
+    "title",
+    "kind",
+    "topic",
+    "status",
+    "skills",
+    "marketplaces",
+    "surface",
+    "symptom_keywords",
+    "error_text",
+    "resolution_status",
+    "fix_source",
+    "evidence_location",
+    "confidence",
+    "verification",
+    "verified_on",
+    "amazon_sources",
+    "related_sops",
+    "supersedes",
+    "contradicts",
+    "observed",
+    "review_by",
+]
+
+
+def _unit_files(root: Path) -> list[tuple[str, Path]]:
+    """Return (folder, path) for every candidate unit file, in a stable order."""
+    knowledge = root / "knowledge"
+    found: list[tuple[str, Path]] = []
+    for folder in [*TOPICS, RETIRED_DIR]:
+        directory = knowledge / folder
+        if not directory.is_dir():
+            continue
+        for path in sorted(directory.glob("*.md")):
+            if path.name in SKIP_NAMES or not path.is_file():
+                continue
+            found.append((folder, path))
+    return found
+
+
+def _entry(mapping: dict, folder: str, rel: str) -> dict:
+    entry: dict = {}
+    for field in UNIT_FIELDS:
+        value = mapping.get(field)
+        if field in LIST_FIELDS:
+            if isinstance(value, list):
+                entry[field] = [str(item) for item in value]
+            elif value in (None, ""):
+                entry[field] = []
+            else:
+                entry[field] = [str(value)]
+        elif value is None:
+            entry[field] = ""
+        elif isinstance(value, bool):
+            entry[field] = "true" if value else "false"
+        elif isinstance(value, list):
+            entry[field] = ", ".join(str(item) for item in value)
+        else:
+            entry[field] = str(value)
+    if folder == RETIRED_DIR:
+        entry["status"] = "retired"
+    elif not entry["topic"]:
+        entry["topic"] = folder
+    entry["file"] = rel
+    return entry
+
+
+def build_index(root: str | Path = WORKSPACE_ROOT, errors: list[str] | None = None) -> dict:
+    """Build the index dict for the library under root/knowledge.
+
+    Parse failures are skipped; when `errors` is given they are appended to it.
+    """
+    root = Path(root)
+    units: list[dict] = []
+    for folder, path in _unit_files(root):
+        rel = path.relative_to(root).as_posix()
+        mapping, _body, error = read_unit(path)
+        if error or mapping is None:
+            if errors is not None:
+                errors.append(f"{rel}: {error}")
+            continue
+        units.append(_entry(mapping, folder, rel))
+    units.sort(key=lambda u: (u["id"], u["file"]))
+    active = [u for u in units if u["status"] != "retired"]
+    topics = {topic: 0 for topic in TOPICS}
+    for unit in active:
+        topics[unit["topic"]] = topics.get(unit["topic"], 0) + 1
+    return {
+        "library": LIBRARY_NAME,
+        "generated_by": GENERATED_BY,
+        "unit_count": len(units),
+        "active_count": len(active),
+        "retired_count": len(units) - len(active),
+        "topics": topics,
+        "units": units,
+    }
+
+
+def index_text(index: dict) -> str:
+    return json.dumps(index, ensure_ascii=False, indent=1) + "\n"
+
+
+def _link_line(unit: dict) -> str:
+    title = unit["title"].replace("[", "\\[").replace("]", "\\]")
+    target = unit["file"].removeprefix("knowledge/")
+    return f"- [{unit['id']} {title}]({target}) · {unit['kind']} · {unit['status']} · {unit['verification']}"
+
+
+def build_readme(index: dict) -> str:
+    units = index.get("units", [])
+    active = [u for u in units if u.get("status") != "retired"]
+    retired = [u for u in units if u.get("status") == "retired"]
+    lines = [
+        "# Amazon Knowledge Library",
+        "",
+        "Generated by `python3 tools/knowledge/build_knowledge_index.py --readme`. Do not edit by hand.",
+        "",
+        "Authored, anonymised answers to Amazon questions the team solved on real accounts.",
+        "One unit per question, each labelled with its review status and verification.",
+        "Agents search it first for a symptom, an error text or a \"how do we handle X\" question.",
+        "",
+        "Search:",
+        "",
+        "```bash",
+        'python3 tools/search_amazon_libraries.py "<question>" --library kb --limit 5',
+        "```",
+        "",
+        "Unit format, verification states and privacy rules: `docs/knowledge-library.md`.",
+        "",
+        f"Units: **{index.get('unit_count', len(units))}**"
+        f" ({index.get('active_count', len(active))} active,"
+        f" {index.get('retired_count', len(retired))} retired)",
+    ]
+    topic_order = list(TOPICS) + sorted({u["topic"] for u in active} - set(TOPICS))
+    for topic in topic_order:
+        entries = [u for u in active if u.get("topic") == topic]
+        if not entries:
+            continue
+        lines += ["", f"## {topic} ({len(entries)})", ""]
+        lines += [_link_line(u) for u in entries]
+    if retired:
+        lines += ["", "## Retired (excluded from search)", ""]
+        lines += [_link_line(u) for u in retired]
+    return "\n".join(lines) + "\n"
+
+
+def check_drift(root: str | Path = WORKSPACE_ROOT, errors: list[str] | None = None) -> list[str]:
+    """Return one message per generated file that differs from the file on disk."""
+    root = Path(root)
+    index = build_index(root, errors)
+    drift: list[str] = []
+    for rel, expected in ((INDEX_REL, index_text(index)), (README_REL, build_readme(index))):
+        path = root / rel
+        if not path.is_file():
+            drift.append(f"{rel.as_posix()}: missing, run python3 {GENERATED_BY} --readme")
+            continue
+        if path.read_text(encoding="utf-8") != expected:
+            drift.append(f"{rel.as_posix()}: out of date, run python3 {GENERATED_BY} --readme")
+    return drift
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--readme", action="store_true", help="also regenerate knowledge/README.md")
+    parser.add_argument("--check", action="store_true", help="report drift and write nothing")
+    parser.add_argument("--root", default=str(WORKSPACE_ROOT), help=argparse.SUPPRESS)
+    args = parser.parse_args(argv)
+    root = Path(args.root)
+
+    errors: list[str] = []
+    if args.check:
+        drift = check_drift(root, errors)
+        for error in errors:
+            print(f"parse error: {error}", file=sys.stderr)
+        for message in drift:
+            print(f"drift: {message}", file=sys.stderr)
+        if drift or errors:
+            return 1
+        print("knowledge index and README are up to date")
+        return 0
+
+    index = build_index(root, errors)
+    for error in errors:
+        print(f"parse error, skipped: {error}", file=sys.stderr)
+    index_path = root / INDEX_REL
+    index_path.parent.mkdir(parents=True, exist_ok=True)
+    index_path.write_text(index_text(index), encoding="utf-8")
+    print(
+        f"knowledge-index.json: {index['unit_count']} units"
+        f" ({index['active_count']} active, {index['retired_count']} retired)"
+    )
+    if args.readme:
+        readme_path = root / README_REL
+        readme_path.write_text(build_readme(index), encoding="utf-8")
+        print(f"regenerated {README_REL.as_posix()}")
+    return 1 if errors else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

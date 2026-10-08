@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Knowledge sweep thread record",
+  "description": "One collected Slack thread (parent plus replies) as written by a collection agent into the gitignored _local/knowledge-sweep/threads/<channel_id>/<thread_ts>.json. Records keep identifiers; they never enter the repo or the vault.",
+  "type": "object",
+  "required": ["schema", "channel_id", "channel_name", "family", "thread_ts", "parent", "replies", "participants", "has_team_member", "first_glance", "collected_on", "collected_via"],
+  "properties": {
+    "schema": {"const": "knowledge-sweep.thread.v1"},
+    "channel_id": {"type": "string"},
+    "channel_name": {"type": "string"},
+    "family": {"type": "string", "enum": ["client_current", "client_slack_connect", "client_former", "internal", "supplier_logistics", "own_brand", "dm", "group_dm"]},
+    "client_slug": {"type": "string"},
+    "thread_ts": {"type": "string", "pattern": "^[0-9]{10}\\.[0-9]{6}$"},
+    "permalink": {"type": "string"},
+    "parent": {"$ref": "#/$defs/message"},
+    "replies": {"type": "array", "items": {"$ref": "#/$defs/message"}},
+    "participants": {"type": "array", "items": {"type": "string"}, "description": "Distinct Slack user IDs in the thread."},
+    "has_team_member": {"type": "boolean"},
+    "first_glance": {
+      "type": "object",
+      "required": ["amazon_operational", "topic_guess", "has_resolution_hint", "language"],
+      "properties": {
+        "amazon_operational": {"type": "boolean"},
+        "topic_guess": {"type": "string", "enum": ["compliance", "logistics", "catalog", "support-cases", "ads", "account-health", "seo", "brand-registry", "reporting", "other"]},
+        "has_resolution_hint": {"type": "boolean"},
+        "language": {"type": "string", "enum": ["en", "de", "mixed", "other"]},
+        "note": {"type": "string"}
+      }
+    },
+    "collected_on": {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"},
+    "collected_via": {"type": "string", "enum": ["mcp", "bot"]}
+  },
+  "$defs": {
+    "message": {
+      "type": "object",
+      "required": ["ts", "user", "text"],
+      "properties": {
+        "ts": {"type": "string"},
+        "user": {"type": "string", "description": "Slack user ID, or 'bot:<name>' for bot posts."},
+        "user_name": {"type": "string"},
+        "text": {"type": "string", "description": "Verbatim message text. Mentions may stay as <@U...> tokens."},
+        "files": {"type": "array", "items": {"type": "string"}, "description": "Attachment names or types, not contents."},
+        "subtype": {"type": "string"}
+      }
+    }
+  }
+}

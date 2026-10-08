@@ -1,35 +1,30 @@
 ---
 title: "Policies, agreements, and guidelines"
 source_url: "https://sellercentral.amazon.com/help/hub/reference/GSNV3657R94YP9DZ"
-downloaded_at: "2026-05-12"
+downloaded_at: "2026-10-07"
 source: "Amazon Seller Central Help"
 ---
 
 # Policies, agreements, and guidelines
 
-Example Brand
-United States
-New Seller Central
-EN
-Help
-Loading
-	
-FEEDBACK
-Help Program Policies 
-English
-中文(简体)
-Deutsch
-Español
-Français
-Italiano
-日本語
-한국어
-ไทย
-Tiếng Việt
-हिंदी
-தமிழ்
-Português
-中文(繁體)
- 
-Download the Amazon Seller mobile app
-© 1999-2026, Amazon.com, Inc. or its affiliates
+Seller Central Help
+
+Seller Central Help
+
+Policies, agreements, and guidelines
+
+Policies, agreements, and guidelines
+
+Top
+
+Amazon Services Business Solutions Agreement
+
+Changes to the Amazon Services Business Solutions Agreement
+
+Canada Digital Tax Reporting
+
+Program Policies
+
+Amazon Autos
+
+Was this article helpful?

@@ -3,47 +3,19 @@ title: "Amazon DSP Knowledge Center"
 source_url: "https://advertising.amazon.com/help/G2R3BR4MP2YJURLQ"
 library: "Amazon Ads Support Center"
 section: "linked-expansion"
-downloaded_at: "2026-05-13"
+downloaded_at: "2026-10-07"
 status: "captured"
 ---
 
-# Amazon DSP Knowledge Center
+# Guide to Display, Video, and Audio campaigns
 
-This page is a training hub for Amazon DSP users.
+Onboarding and upskilling resources for Display, Video, and Audio campaigns
 
-## Key Points
+Updated on Sep 28, 2026
 
-- Contains modules for different levels of DSP expertise.
-- Covers DSP basics, campaign setup, refinement, advanced tools, and product updates.
-- Useful as the starting point when a DSP workflow is too broad for a single tactical page.
-
-## Modules
-
-| Module | Description |
+|  | ## Get to know Display, Video, and Audio campaigns Learn about using Amazon Ads, and account administration. Get started. Ideal for: Users new to Amazon Ads. |
 | --- | --- |
-| Get to know Amazon DSP | Introductory navigation and campaign basics for new users. |
-| Start advertising | Campaign setup and compliant ad design. |
-| Refine your campaigns | Bidding strategies and performance measurement. |
-| Advanced Tools | API integration and optimization tactics. |
-| What's New | New features and product launches. |
-
-## Visual References
-
-![Module 1](https://d369o5h5zn8mv7.cloudfront.net/DSP/knowledge_hub/mod1.webp)
-
-![Module 2](https://d369o5h5zn8mv7.cloudfront.net/DSP/knowledge_hub/mod2.webp)
-
-![Module 3](https://d369o5h5zn8mv7.cloudfront.net/DSP/knowledge_hub/mod3.webp)
-
-![Module 4](https://d369o5h5zn8mv7.cloudfront.net/DSP/knowledge_hub/mod4.webp)
-
-![Module 5](https://d369o5h5zn8mv7.cloudfront.net/DSP/knowledge_hub/mod5.webp)
-
-## Checkpoints
-
-- Use this as a routing hub before entering a DSP campaign workflow.
-- Stop before creating or changing DSP campaigns, ad groups, bids, or budgets.
-
-## Routing Use
-
-Use this page when the user asks generally about Amazon DSP training, DSP navigation, or which DSP guide to use.
+|  | ## Start advertising Learn about how to set up campaigns, and design compliant ads. Get started. Ideal for: Users ready to create a Display, Video, and Audio campaign. |
+|  | ## Refine your campaigns Learn about bidding, audience solutions, and measuring performance. Get started. Ideal for: Users who want to make existing campaigns more impactful. |
+|  | ## Incorporate advanced tools Learn about API tools, Amazon Marketing Cloud, and integrations. Get started. Ideal for: Experienced users who want to optimize and streamline operations. |
+|  | ## Discover what's new Learn about product launches, betas, and updates. Get started. Ideal for: Experienced users looking for information on new features. |

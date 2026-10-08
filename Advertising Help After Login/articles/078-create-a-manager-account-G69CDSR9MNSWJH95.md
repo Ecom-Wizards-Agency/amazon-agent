@@ -3,35 +3,22 @@ title: "Create a manager account"
 source_url: "https://advertising.amazon.com/help/G69CDSR9MNSWJH95"
 library: "Amazon Ads Support Center"
 section: "account-management"
-downloaded_at: "2026-05-13"
+downloaded_at: "2026-10-07"
 status: "captured"
 ---
 
-# Create a Manager Account
+# Create a manager account
 
-This article explains how to set up a manager account and link existing advertising accounts.
+Learn how to set up a manager account and link your existing advertising accounts in Amazon Ads.
 
-## Workflow
+Updated on Apr 30, 2026
 
-1. Click the account dropdown in the header bar.
-2. Select **Manage your accounts**.
-3. Click the **Manager Accounts** tab.
-4. Click **Create a Manager account**.
-5. Enter manager account information.
-6. Click **Add** next to the account to include.
-7. Click **Create Manager account**.
-8. Invite team members to the manager account.
+1. In the top right of the ads console, click your account name (to the left of the question mark).
+2. Click **Create a Manager account**.
+3. In the top left, click **Create Manager account**.
+4. Enter your account name.
+5. Choose an account type: **Advertiser** or **Agency**.
+6. Under link accounts, click **add** next to the account you would like to be a Manager account.
+7. Click **Create Manager account** at the top right.
 
-## Visual Reference
-
-![Create manager account animation](https://d369o5h5zn8mv7.cloudfront.net/amazonadvertising/gif_weblab/4/4_en.gif)
-
-## Checkpoints
-
-- Stop before clicking **Create Manager account**.
-- Confirm account name, account selection, and hierarchy.
-- Verify invited users receive only the intended access.
-
-## Routing Use
-
-Use this page when the user asks to create a manager account or prepare the setup for managing multiple advertising accounts.
+Once you’ve created a manager account, you can invite and manage users under **Account access and settings**.

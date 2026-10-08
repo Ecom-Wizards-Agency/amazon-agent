@@ -7,6 +7,8 @@ description: "Run Amazon keyword research, build keyword workbooks, write and au
 
 Browser: Mixed (listing writing and workbook builds are local; DataDive and POE inputs use their owning MCP or browser workflows).
 
+Knowledge units for this area live in knowledge/seo/ and knowledge/compliance/; search them first with python3 tools/search_amazon_libraries.py "<symptom>" --library kb.
+
 Use this skill for Amazon keyword research, keyword workbooks, listing optimization, semantic search, and claims compliance.
 
 ## Modes

@@ -3,38 +3,24 @@ title: "Understand Amazon Ads billing cycles"
 source_url: "https://advertising.amazon.com/help/GY3YNTWRZYVPLADL"
 library: "Amazon Ads Support Center"
 section: "billing-and-payments"
-downloaded_at: "2026-05-13"
+downloaded_at: "2026-10-07"
 status: "captured"
 ---
 
-# Understand Amazon Ads Billing Cycles
+# Understand Amazon Ads billing cycles
 
-This article explains advertising charges, invoice cycles, credit limits, and why campaign reporting and invoices can differ.
+Learn how Amazon Ads advertising charges work, including: invoice cycles, credit limits, and potential discrepancies between campaign reporting and monthly invoices.
 
-## Key Points
+Updated on Feb 25, 2026
 
-- A billing cycle collects advertising charges for an invoice period.
-- For sponsored ads, the billing cycle is determined by the account credit limit.
-- An invoice is issued when costs reach the credit limit, with charges made at least once per month.
-- Credit limits can increase after successful payment activity.
+The billing cycle is the period of time for which your advertising charges are collected for an invoice. For sponsored ads, the billing cycle is determined by your credit limit.
 
-## Visual Reference
+Every time the cost of your account reaches your credit limit, an invoice is issued and that billing cycle ends. Upon successful payment, a new billing cycle automatically begins. You’re always charged at least once a month. If you don’t reach your credit limit, you’ll be charged for your accumulated cost on the second day of the next month.
 
-![Credit limit graph](https://d369o5h5zn8mv7.cloudfront.net/images/2025/credit_limit_graph.gif)
+Your credit limit begins at $50 and increases each time you reach your credit limit and you make a successful payment. From $50, it increases to $150, $200, $350, and finally $500. Some advertisers may have a credit limit higher than $500 based on previous payment activity.
 
-## Workflow
+**Example:** If you're just getting started, your credit limit is $1. We’ll charge your chosen payment method when you accumulate $1 in click revenue from your campaigns. Once you make this $1 payment, your credit limit increases to $10.
 
-1. Campaigns accrue advertising costs.
-2. When costs reach the credit limit, Amazon issues an invoice and closes the current billing cycle.
-3. After payment, a new billing cycle begins.
-4. If the credit limit is not reached, charges occur on the second day of the next month.
+An invoice is automatically generated each time you reach your credit limit. If you pay by invoice, payment is due within 30 days. If you pay for advertising with a credit or debit card, your card will be charged.
 
-## Checkpoints
-
-- Stop before changing billing settings or payment methods.
-- For card payment, the card may be charged when accumulated costs reach the credit limit.
-- For invoice payment, invoices may be due within 30 days.
-
-## Routing Use
-
-Use this page when the user asks why they were charged, when invoices issue, or how Amazon Ads billing cycles work.
+For Amazon DSP there’s 1 billing cycle per month in which you’ll receive a single invoice that's due within 30 days.

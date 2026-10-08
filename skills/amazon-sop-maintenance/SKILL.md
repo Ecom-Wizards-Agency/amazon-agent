@@ -54,7 +54,27 @@ During `/create-sop`, do not edit:
 
 Only edit source files when the operator explicitly asks for that exact source update.
 
+Knowledge units under `knowledge/` are the one authored exception: an attended session may create or edit a unit and regenerate the index and README with the commands in Knowledge Units. Captures stay read-only in every session: never hand-edit `MAG SOPs/`, `Amazon Seller Help/`, `Amazon Ads Help/`, `Advertising Help After Login/` or `AdLabs Help/`, even to fix a unit's source. Unattended runs do not write units.
+
 During `/fix-sop`, source edits are allowed only after the issue has been verified against current Amazon docs, browser UI, pCloud visual archive, or user-provided evidence. Stop before pushing unless the operator explicitly asks to push.
+
+## Knowledge Units
+
+A learning becomes a knowledge unit instead of a SOP draft when it is one question with an answer that fits a unit under 90 lines: a symptom, an error text, a rule or a decision a teammate could ask again. A longer step-by-step procedure stays a SOP draft in `sop-drafts/`, and the unit links it.
+
+Apply the rule in `docs/knowledge-library.md`: strip every client-specific token (brand, product, person, ID, amount, link, date finer than month). If what remains still teaches any teammate how to recognise and solve the problem on any account, it is a unit. If it is empty or meaningless without the client, it belongs in the team vault (`Clients/{Name}/Runs/`, `Amazon Ops.md` or a one-line Lesson).
+
+Commands, run from the repo root:
+
+1. `python3 tools/knowledge/new_unit.py --from-card <card.json>` or `--title ... --topic ...` creates the unit with the next `KC-NNNN` id and stages its ledger row.
+2. Fill the unit from `knowledge/TEMPLATE.md`: every frontmatter key in order, every body section, symptom-first title.
+3. `python3 tools/knowledge/lint_knowledge.py --strict` checks format, enums, cited paths and the privacy scrub. Fix every finding.
+4. `python3 tools/knowledge/build_knowledge_index.py --readme` regenerates `knowledge/_index/knowledge-index.json` and `knowledge/README.md`.
+5. `python3 tools/knowledge/ledger.py check` confirms every unit has a ledger row; `append --from-staging` moves staged rows into the team vault ledger in an attended session.
+
+Review gate: a unit enters as `status: draft` and `verification: unverified` and stays there until a human ticks it. The agency lead ticks any unit; the ads lead ticks ads units; the operations lead ticks logistics, catalog, support-cases and account-health units from threads they owned. The agency lead decides every policy-risk or not-publishable card. The tick sets `status: reviewed`. Only a live read-only check in the attended browser, or a matching first-party capture, sets `verification: verified` with `verified_on` and `verified_how`. An agent never ticks its own unit.
+
+Privacy: nothing with a client name, product name, person's name, ASIN, SKU, FNSKU, EAN, shipment, case, order or removal ID, merchant token, price, unit count, address, 3PL or vendor name, Slack ID, Slack permalink, or Drive, Notion, Zoom or Cap link enters `knowledge/`. People appear as roles only. Provenance goes to the team vault ledger, joined by the unit id.
 
 ## `/fix-sop` Workflow
 

@@ -3,44 +3,36 @@ title: "Understand Advertiser Accounts"
 source_url: "https://advertising.amazon.com/help/GXKXR56ZCMJ3WCS4"
 library: "Amazon Ads Support Center"
 section: "account-management"
-downloaded_at: "2026-05-13"
+downloaded_at: "2026-10-07"
 status: "captured"
 ---
 
 # Understand Advertiser Accounts
 
-Advertiser Accounts let advertisers manage sponsored ads and Amazon DSP campaigns from a single account.
+Learn about upgrading to an Advertiser Account (AA) to access all sponsored ads and Display, Video, and Audio campaigns campaigns from a single account.
 
-## Key Points
+Updated on Oct 5, 2026
 
-- Supports global campaign management from one account.
-- Allows switching between Amazon DSP and sponsored ads.
-- Provides a unified campaign manager for media buying.
-- Supports consolidated reporting across products.
-- Streamlines billing and account settings.
+## Benefits of an Advertiser Account (AA)
 
-## Workflow
+Advertiser accounts allow you to create and manage campaigns using all ad-products and formats globally in a single account. Instead of creating and maintaining separate accounts for Amazon Ads Agent (formerly known as Amazon DSP) per country and for sponsored ads, you can create 1 Advertising Account when onboarding new advertisers.
 
-1. Open the left menu.
-2. Click **Administration**.
-3. Select **Account access and settings**.
-4. Click **Accounts**.
-5. Click **Add account**.
-6. Select **Create advertiser account**.
-7. Complete the required fields.
-8. Click **Accept and continue**.
-9. Wait for the notification that the account upgrade is complete.
+If you create a new Advertiser Account, you’ll pay by invoice for all ad campaigns under that account including sponsored ads. You’ll receive 1 invoice for your Display, Video, and Audio campaigns and a separate invoice for sponsored ads.
 
-## Visual Reference
+- Switch between Display, Video, and Audio campaigns and Sponsored Ads campaigns globally in one account.
+- Invite team members once and set permissions that apply across all ad products.
+- Access a unified campaign manager for a simplified media buying experience.
+- View consolidated reporting to perform cross-product analysis.
+- Streamlined account and billing settings to update account details, billing, and generate both Display, Video, and Audio campaign and Sponsored Ads invoices.
 
-![Administration icon](https://d369o5h5zn8mv7.cloudfront.net/images/Icons/Administration.png)
+## How to create an advertiser account
 
-## Checkpoints
+Follow the steps below:
 
-- Stop before creating or upgrading an account.
-- Confirm the correct business, marketplace, and account context first.
-- If using Seller Central, add the merchant token under account settings after creating the Advertiser Account.
-
-## Routing Use
-
-Use this page when the user asks about Advertiser Accounts, unified sponsored ads/DSP management, or account upgrades.
+1. In the left menu, click **Administration**.
+2. Select **Account access and settings.**
+3. Click **Accounts**
+4. Click **Add account**
+5. Select **Create advertiser account**
+6. Complete the required fields and click **Accept and continue**. You can also automatically populate these fields by optionally linking an Amazon retail selling account (Seller central, Vendor central, Author Central etc.) to your Advertiser account.
+7. You’ll get a notification when the account creation is complete. You don't need to take any further action, unless you’re a merchant using Amazon Seller Central that wants to add a new merchant token. Once your AA is created, you need to add your merchant token under account settings.

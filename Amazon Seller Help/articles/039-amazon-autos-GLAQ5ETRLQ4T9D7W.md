@@ -1,35 +1,22 @@
 ---
 title: "Amazon Autos"
 source_url: "https://sellercentral.amazon.com/help/hub/reference/GLAQ5ETRLQ4T9D7W"
-downloaded_at: "2026-05-12"
+downloaded_at: "2026-10-07"
 source: "Amazon Seller Central Help"
 ---
 
 # Amazon Autos
 
-Example Brand
-United States
-New Seller Central
-EN
-Help
-Loading
-	
-FEEDBACK
-Help Program Policies 
-English
-中文(简体)
-Deutsch
-Español
-Français
-Italiano
-日本語
-한국어
-ไทย
-Tiếng Việt
-हिंदी
-தமிழ்
-Português
-中文(繁體)
- 
-Download the Amazon Seller mobile app
-© 1999-2026, Amazon.com, Inc. or its affiliates
+Amazon Autos connects dealerships with customers shopping for their next car on Amazon. Shoppers browse and buy online, then pick up their car at the dealership. Dealers maintain control of pricing and inventory, while Amazon delivers the trusted and convenient online buying experience customers expect. With Amazon Autos, dealers can reach more buyers, generate sales (not leads), and advertise to grow their business.
+
+Amazon Autos Terms and Conditions
+
+Amazon Autos Dealers Requirements
+
+Form Privacy Notice
+
+Required vehicle information
+
+E-Sign disclosure and consent for electronic communications agreement
+
+Amazon Autos Return policy

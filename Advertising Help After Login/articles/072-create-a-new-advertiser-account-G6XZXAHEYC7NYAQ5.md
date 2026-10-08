@@ -3,35 +3,47 @@ title: "Create a new Advertiser Account"
 source_url: "https://advertising.amazon.com/help/G6XZXAHEYC7NYAQ5"
 library: "Amazon Ads Support Center"
 section: "account-management"
-downloaded_at: "2026-05-13"
+downloaded_at: "2026-10-07"
 status: "captured"
 ---
 
-# Create a New Advertiser Account
+# Create a new Advertiser Account
 
-This article explains how to create an Advertiser Account for managing ad products across multiple countries.
+Learn how to create an Advertiser Account to advertise across all ad products.
 
-## Key Points
+Updated on Oct 5, 2026
 
-- The feature may be in beta and not available to all accounts.
-- Advertiser Accounts can manage multiple ad products from one place.
+With an Advertiser Account, you can manage all products and campaigns (Sponsored ads and Display, Video, and Audio campaigns) from 1 unified account, across multiple countries.
 
-## Workflow
+You can create a new Advertiser Account 2 ways.
 
-1. In the left navigation, click **Campaigns**.
-2. Click the **Video, Audio and Display ads** tab.
-3. Select **Advertisers**.
-4. Click **Create advertiser**.
-5. Enter advertiser information such as business name, phone number, and website.
-6. Set up billing through the Manager Account or Advertiser Account option.
-7. Save the changes.
+**Through the Amazon Advertising homepage**:
 
-## Checkpoints
+1. Go to advertising.amazon.com.
+2. Click the "**Don't have an account? Register**" button or the "**Register**" button in the upper right hand corner.
 
-- Stop before creating a new Advertiser Account.
-- Confirm the correct selling account and business entity.
-- Review business details and billing source before submitting.
+**Through Account access and settings:**
 
-## Routing Use
+1. Click **Adminstration**in the left side panel.
+2. Select **Account access and settings**.
+3. Click on the **Accounts**tab.
+4. Click on the **Add account** button.
 
-Use this page when the user asks to create a new Advertiser Account or set up a new advertiser under Amazon Ads.
+## 1. Enter advertiser information
+
+In the **Advertiser Info** section, enter your legal business details. If you're a partner, make sure that you enter your advertiser's details here.
+
+- **Business name**: the company headquarters that is shown on official documents and tax forms.
+- **Phone number**: the company’s primary contact number
+- **Website**: Include the full web address associated with the business being advertised. (ex: www.amazon.com)Click **Accept and continue.**
+
+**Note:**If you’re not logged in to the selling account you want to associate with this Advertiser Account, click **Switch email**to sign in.
+
+## 2. Set up billing
+
+Choose if you want to bill the:
+
+- **Manager Account:**Choose this if you’re a reseller, agency, or partner acting in your own capacity. The existing billing details and payment profiles from your account will be charged for the ad spend associated with this new Advertiser Account.
+- **Advertiser Account:**Choose this if you’re an advertiser or agency acting on behalf of the advertiser. Click **Change** to enter the billing details of the advertiser you want to charge for ad spend associated with this new Advertiser Account. You can only **Pay by invoice** when billing an advertiser account.
+
+Click **Save.**

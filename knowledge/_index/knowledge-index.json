@@ -1,0 +1,504 @@
+{
+ "library": "Amazon Knowledge",
+ "generated_by": "tools/knowledge/build_knowledge_index.py",
+ "unit_count": 12,
+ "active_count": 12,
+ "retired_count": 0,
+ "topics": {
+  "compliance": 2,
+  "logistics": 2,
+  "catalog": 1,
+  "support-cases": 2,
+  "ads": 2,
+  "account-health": 2,
+  "seo": 0,
+  "brand-registry": 1,
+  "reporting": 0
+ },
+ "units": [
+  {
+   "id": "KC-0001",
+   "title": "FBA hazmat review blocks a battery-powered kit with a cosmetic liquid: battery exemption sheet plus SDS, and an SDS declaration form when the SDS brand does not match",
+   "kind": "diagnosis",
+   "topic": "compliance",
+   "status": "draft",
+   "skills": [
+    "amazon-regulated-product-appeals"
+   ],
+   "marketplaces": [
+    "US"
+   ],
+   "surface": "Seller Central > FBA Compliance Dashboard (dangerous goods classification, SDS and exemption sheet upload); Send to Amazon; Seller Support case",
+   "symptom_keywords": [
+    "hazmat review battery kit",
+    "FBA_INB_0008 batteries",
+    "SDS brand does not match detail page",
+    "battery exemption sheet upload",
+    "cannot send battery product to FBA"
+   ],
+   "error_text": [
+    "FBA_INB_0008",
+    "Additional information about the batteries is required in order to complete the Hazmat review process.",
+    "The product brand in the SDS on file does not match the product brand on the detail page",
+    "FBA_INB_0181"
+   ],
+   "resolution_status": "resolved",
+   "fix_source": "amazon-support",
+   "evidence_location": "slack",
+   "confidence": "medium",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [],
+   "related_sops": [
+    "MAG SOPs/catalog/troubleshooting-sop-sds-upload-hazmat-issues.md"
+   ],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2026-02",
+   "review_by": "2027-10",
+   "file": "knowledge/compliance/KC-0001_fba-hazmat-review-blocks-a-battery-powered-kit-with-a-cosmet.md"
+  },
+  {
+   "id": "KC-0002",
+   "title": "Cosmetic applicator listing removed as an uncleared medical device because of skin-infusion marketing language",
+   "kind": "diagnosis",
+   "topic": "compliance",
+   "status": "draft",
+   "skills": [
+    "amazon-regulated-product-appeals"
+   ],
+   "marketplaces": [
+    "US"
+   ],
+   "surface": "Seller Central > Account Health > Restricted Product Policy Violations; listing content (title, bullets, backend search terms, images); appeal",
+   "symptom_keywords": [
+    "listing removed medical device",
+    "can't find listing not even inactive",
+    "510(k) required cosmetic tool",
+    "restricted product policy violation applicator",
+    "micro-infusion claim removed"
+   ],
+   "error_text": [],
+   "resolution_status": "diagnosis-only",
+   "fix_source": "agency",
+   "evidence_location": "slack",
+   "confidence": "medium",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [],
+   "related_sops": [
+    "MAG SOPs/catalog/catalog-sop-how-to-fix-medical-devices-and-accessories-yanks.md",
+    "MAG SOPs/catalog/catalog-sop-disease-medical-and-pathogens-claims-of-usa.md"
+   ],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2026-10",
+   "review_by": "2027-10",
+   "file": "knowledge/compliance/KC-0002_cosmetic-applicator-listing-removed-as-an-uncleared-medical.md"
+  },
+  {
+   "id": "KC-0003",
+   "title": "Inbound Performance defects (labeling required, unscannable barcode, wrong quantity) can be disputed and removed; an ASIN mismatch is reimbursed only in part",
+   "kind": "diagnosis",
+   "topic": "logistics",
+   "status": "draft",
+   "skills": [
+    "amazon-logistics"
+   ],
+   "marketplaces": [
+    "US"
+   ],
+   "surface": "Seller Central > Inventory > Shipments > shipment Problems tab; FBA Inbound Performance dashboard > Defects",
+   "symptom_keywords": [
+    "inbound performance defect dispute",
+    "labeling required defect",
+    "barcode cannot be scanned defect",
+    "inaccurate item quantity in box",
+    "is the inbound defect amazon's mistake"
+   ],
+   "error_text": [
+    "Barcode cannot be scanned",
+    "Inaccurate item quantity in box",
+    "Labeling required"
+   ],
+   "resolution_status": "partial",
+   "fix_source": "agency",
+   "evidence_location": "slack",
+   "confidence": "low",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [],
+   "related_sops": [
+    "MAG SOPs/catalog/catalog-sop-download-an-inbound-performance-report.md"
+   ],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2026-07",
+   "review_by": "2027-10",
+   "file": "knowledge/logistics/KC-0003_inbound-performance-defects-labeling-required-unscannable-ba.md"
+  },
+  {
+   "id": "KC-0004",
+   "title": "FBA capacity limit used up for the month: submit a Capacity Manager request (reservation-fee bid) or ship to AWD",
+   "kind": "procedure",
+   "topic": "logistics",
+   "status": "draft",
+   "skills": [
+    "amazon-logistics"
+   ],
+   "marketplaces": [
+    "US"
+   ],
+   "surface": "Seller Central > Inventory > Shipments > Capacity Monitor > Capacity Manager; Send to Amazon; AWD",
+   "symptom_keywords": [
+    "FBA capacity limit reached",
+    "capacity manager request",
+    "capacity bid reservation fee",
+    "no capacity to send to FBA",
+    "AWD instead of FBA capacity"
+   ],
+   "error_text": [],
+   "resolution_status": "resolved",
+   "fix_source": "client",
+   "evidence_location": "slack",
+   "confidence": "high",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [
+    "Amazon Seller Help/articles/067-maximizing-delivery-speed-GA8NP4NDZZ3EJRU5.md"
+   ],
+   "related_sops": [
+    "MAG SOPs/catalog/catalog-sop-fba-storage-capacity-limits.md"
+   ],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2026-09",
+   "review_by": "2027-10",
+   "file": "knowledge/logistics/KC-0004_fba-capacity-limit-used-up-for-the-month-submit-a-capacity-m.md"
+  },
+  {
+   "id": "KC-0005",
+   "title": "Brand visible in Brand Registry but listing creation still blocked: separate protection roles, selling roles and the brand-category listing approval (error 5461)",
+   "kind": "diagnosis",
+   "topic": "brand-registry",
+   "status": "draft",
+   "skills": [
+    "amazon-catalog"
+   ],
+   "marketplaces": [
+    "DE"
+   ],
+   "surface": "Brand Registry (user roles, Brand Overview); Seller Central > Add a Product; Brand Registry support case",
+   "symptom_keywords": [
+    "already have a protection role",
+    "error 5461 brand",
+    "cannot create listing for brand in brand registry",
+    "assign brand representative selling role",
+    "licensed brand invite failed"
+   ],
+   "error_text": [
+    "You already have a protection role",
+    "5461",
+    "6789"
+   ],
+   "resolution_status": "partial",
+   "fix_source": "client",
+   "evidence_location": "case",
+   "confidence": "medium",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [
+    "Amazon Seller Help/articles/220-brand-registry-protection-roles-GCF9UE9VGKGA2W5F.md",
+    "Amazon Seller Help/articles/221-brand-registry-selling-roles-GJ84K745AL3R5N3Q.md"
+   ],
+   "related_sops": [
+    "MAG SOPs/catalog/catalog-sop-brand-registry-roles.md",
+    "MAG SOPs/catalog/catalog-sop-error-8566.md",
+    "MAG SOPs/catalog/catalog-sop-how-to-request-gtin-exemption.md",
+    "MAG SOPs/catalog/brand-registry-sop-how-to-submit-a-ticket-to-brand-registry.md"
+   ],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2025-04",
+   "review_by": "2027-10",
+   "file": "knowledge/brand-registry/KC-0005_brand-visible-in-brand-registry-but-listing-creation-still-b.md"
+  },
+  {
+   "id": "KC-0006",
+   "title": "Variation children vanish from a family: check FBM offer deactivation for Valid Tracking Rate before fixing images or parentage",
+   "kind": "diagnosis",
+   "topic": "catalog",
+   "status": "draft",
+   "skills": [
+    "amazon-catalog"
+   ],
+   "marketplaces": [
+    "US"
+   ],
+   "surface": "Seller Central > Account Health > Shipping performance (Valid Tracking Rate); variation family on the detail page",
+   "symptom_keywords": [
+    "variation sizes missing",
+    "children disappeared from variation family",
+    "valid tracking rate deactivated FBM",
+    "only some sizes show on listing",
+    "VTR below 95% apparel"
+   ],
+   "error_text": [],
+   "resolution_status": "diagnosis-only",
+   "fix_source": "agency",
+   "evidence_location": "slack",
+   "confidence": "medium",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [],
+   "related_sops": [
+    "MAG SOPs/catalog/catalog-sop-seller-fulfilled-offers-mfn-suspension.md",
+    "MAG SOPs/catalog/catalog-sop-parentage-check.md"
+   ],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2026-09",
+   "review_by": "2027-10",
+   "file": "knowledge/catalog/KC-0006_variation-children-vanish-from-a-family-check-fbm-offer-deac.md"
+  },
+  {
+   "id": "KC-0007",
+   "title": "Cancel an Amazon-initiated disposal of stranded FBA inventory through Seller Support and harden automated removal settings",
+   "kind": "procedure",
+   "topic": "support-cases",
+   "status": "draft",
+   "skills": [
+    "amazon-communications"
+   ],
+   "marketplaces": [
+    "US"
+   ],
+   "surface": "Seller Central > Inventory > Removal orders (removal-order detail); Fulfillment by Amazon settings > Automated removal settings; Seller Support chat",
+   "symptom_keywords": [
+    "amazon started disposal order",
+    "cancel disposal stranded inventory",
+    "automated removal settings",
+    "stop amazon destroying inventory during appeal",
+    "disposal order while appeal pending"
+   ],
+   "error_text": [],
+   "resolution_status": "partial",
+   "fix_source": "agency",
+   "evidence_location": "slack",
+   "confidence": "medium",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [],
+   "related_sops": [
+    "MAG SOPs/catalog/catalog-sop-how-to-cancel-fba-removal-order.md",
+    "MAG SOPs/catalog/catalog-sop-fba-removal-order.md",
+    "MAG SOPs/catalog/troubleshooting-sop-stranded-inventory-inventory-error.md",
+    "MAG SOPs/catalog/catalog-sop-download-a-stranded-inventory-report.md",
+    "sop-drafts/2026-08-03_new-client-fba-disposal-prevention-gate.md"
+   ],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2026-08",
+   "review_by": "2027-10",
+   "file": "knowledge/support-cases/KC-0007_cancel-an-amazon-initiated-disposal-of-stranded-fba-inventor.md"
+  },
+  {
+   "id": "KC-0008",
+   "title": "Dispute invalid FBA inbound 'Labeling required' defects: one case per shipment, escalate disagreements to SAS, triage by defect type",
+   "kind": "diagnosis",
+   "topic": "support-cases",
+   "status": "draft",
+   "skills": [
+    "amazon-communications"
+   ],
+   "marketplaces": [
+    "US"
+   ],
+   "surface": "Seller Central > FBA > Inbound Performance dashboard; Seller Support cases; Help > Strategic Account Services Support (self-service, Issue Assistance); Reports > Payments > Transaction view",
+   "symptom_keywords": [
+    "labeling required inbound defect",
+    "dispute inbound performance defect",
+    "escalate to SAS issue assistance",
+    "manufacturer barcode flagged labeling",
+    "relabeling fee dispute"
+   ],
+   "error_text": [
+    "Labeling required"
+   ],
+   "resolution_status": "resolved",
+   "fix_source": "agency",
+   "evidence_location": "case",
+   "confidence": "low",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [],
+   "related_sops": [
+    "MAG SOPs/catalog/catalog-sop-download-an-inbound-performance-report.md"
+   ],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2026-05",
+   "review_by": "2027-10",
+   "file": "knowledge/support-cases/KC-0008_dispute-invalid-fba-inbound-labeling-required-defects-one-ca.md"
+  },
+  {
+   "id": "KC-0009",
+   "title": "Sponsored Products campaigns suddenly stop delivering impressions despite healthy bids, stock and Buy Box",
+   "kind": "diagnosis",
+   "topic": "ads",
+   "status": "draft",
+   "skills": [
+    "amazon-ads-console"
+   ],
+   "marketplaces": [
+    "US"
+   ],
+   "surface": "Amazon Ads Console > Sponsored Products campaign delivery; Amazon Ads support case",
+   "symptom_keywords": [
+    "campaigns stopped getting impressions",
+    "ad spend dropped overnight",
+    "sponsored products not delivering",
+    "impressions dropped suddenly",
+    "duplicate campaign fixes delivery"
+   ],
+   "error_text": [],
+   "resolution_status": "partial",
+   "fix_source": "agency",
+   "evidence_location": "slack",
+   "confidence": "low",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [
+    "Advertising Help After Login/articles/019-copy-a-campaign-GPFGH67KMNLQ5TKU.md",
+    "Advertising Help After Login/articles/006-set-bids-in-a-sponsored-products-campaign-GTMXQWASBRZTHLF2.md"
+   ],
+   "related_sops": [],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2026-09",
+   "review_by": "2027-10",
+   "file": "knowledge/ads/KC-0009_sponsored-products-campaigns-suddenly-stop-delivering-impres.md"
+  },
+  {
+   "id": "KC-0010",
+   "title": "Competitor product appears in own Sponsored Brands Product Collection ad",
+   "kind": "diagnosis",
+   "topic": "ads",
+   "status": "draft",
+   "skills": [
+    "amazon-ads-console"
+   ],
+   "marketplaces": [
+    "DE"
+   ],
+   "surface": "Amazon Ads Console > Sponsored Brands > product collection creative",
+   "symptom_keywords": [
+    "competitor product in my sponsored brands ad",
+    "wrong ASIN in product collection",
+    "other brand shown in SB ad",
+    "sponsored brands creative shows competitor"
+   ],
+   "error_text": [],
+   "resolution_status": "resolved",
+   "fix_source": "agency",
+   "evidence_location": "slack",
+   "confidence": "low",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [
+    "Advertising Help After Login/articles/035-sponsored-brands-GGWFYHL27MFXLHS6.md",
+    "Advertising Help After Login/articles/048-ads-content-moderation-GXZXZ78UXL2AEBQ9.md",
+    "Advertising Help After Login/articles/020-edit-a-campaign-GW73Q54RZZCMPYYV.md"
+   ],
+   "related_sops": [],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2026-02",
+   "review_by": "2027-10",
+   "file": "knowledge/ads/KC-0010_competitor-product-appears-in-own-sponsored-brands-product-c.md"
+  },
+  {
+   "id": "KC-0011",
+   "title": "Buy Box (Featured Offer) lost to a Pricing Health 'uncompetitive price' flag; restored by pricing at or below Amazon's competitive-price threshold",
+   "kind": "diagnosis",
+   "topic": "account-health",
+   "status": "draft",
+   "skills": [
+    "amazon-account-health-check"
+   ],
+   "marketplaces": [
+    "US"
+   ],
+   "surface": "Seller Central > Pricing > Pricing Health (Featured Offer eligibility); detail page Buy Box",
+   "symptom_keywords": [
+    "lost buy box no other seller",
+    "uncompetitive price flag",
+    "featured offer ineligible",
+    "pricing health competitive price threshold",
+    "buy box gone after pricing email"
+   ],
+   "error_text": [
+    "uncompetitive price"
+   ],
+   "resolution_status": "resolved",
+   "fix_source": "agency",
+   "evidence_location": "slack",
+   "confidence": "medium",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [],
+   "related_sops": [
+    "MAG SOPs/catalog/catalog-sop-managing-your-buy-box-percentage.md",
+    "MAG SOPs/catalog/catalog-sop-reading-your-pricing-dashboard.md",
+    "MAG SOPs/catalog/catalog-sop-how-to-fix-hidden-price.md"
+   ],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2026-03",
+   "review_by": "2027-10",
+   "file": "knowledge/account-health/KC-0011_buy-box-featured-offer-lost-to-a-pricing-health-uncompetitiv.md"
+  },
+  {
+   "id": "KC-0012",
+   "title": "FBM offer not selling because the account is in vacation mode; reactivate listings, set a shipping template and confirm the 3PL uploads tracking",
+   "kind": "diagnosis",
+   "topic": "account-health",
+   "status": "draft",
+   "skills": [
+    "amazon-account-health-check"
+   ],
+   "marketplaces": [
+    "US"
+   ],
+   "surface": "Seller Central > Settings > Account Info > Listing status (vacation mode); Settings > Shipping Settings > Shipping templates",
+   "symptom_keywords": [
+    "FBM not selling",
+    "how do I know FBM started",
+    "vacation mode listings inactive",
+    "FBM offer inactive",
+    "3PL tracking upload FBM"
+   ],
+   "error_text": [],
+   "resolution_status": "partial",
+   "fix_source": "agency",
+   "evidence_location": "slack",
+   "confidence": "medium",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [
+    "Amazon Seller Help/articles/028-manage-account-settings-G69035.md",
+    "Amazon Seller Help/articles/001-account-settings-G181.md",
+    "Amazon Seller Help/articles/099-common-reasons-you-cannot-find-your-handmade-listings-GRCWJ4KHBNQ3SNTB.md"
+   ],
+   "related_sops": [
+    "MAG SOPs/catalog/catalog-sop-shipping-template-for-fbm-listings.md",
+    "MAG SOPs/catalog/catalog-sop-seller-fulfilled-offers-mfn-suspension.md"
+   ],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2025-03",
+   "review_by": "2027-10",
+   "file": "knowledge/account-health/KC-0012_fbm-offer-not-selling-because-the-account-is-in-vacation-mod.md"
+  }
+ ]
+}

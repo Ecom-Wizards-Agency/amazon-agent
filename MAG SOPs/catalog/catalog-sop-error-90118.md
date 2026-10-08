@@ -19,7 +19,7 @@ Source: https://sop.myamazonguy.com/books/catalog/page/catalog-sop-error-90118
 
 This error occurs when the entered value for SKU exceeds the maximum number of bytes (characters) allowed: 40
 
-![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/error-90118-image-903pbd7l.png?sv=2022-11-02&spr=https&st=2025-01-29T17%3A54%3A05Z&se=2025-01-29T18%3A04%3A05Z&sr=c&sp=r&sig=tUpFoejYucIuB1FRwQFZVkUvQnwoNNOD0Y8HR3llE9g%3D)
+![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/error-90118-image-903pbd7l.png)
 
 ![image.png](https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/fXkimage.png)
 
@@ -81,7 +81,7 @@ We welcome your feedback for improvement. Please click **[here](https://airtable
 
 ## Image References
 
-- 1. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/error-90118-image-903pbd7l.png?sv=2022-11-02&spr=https&st=2025-01-29T17%3A54%3A05Z&se=2025-01-29T18%3A04%3A05Z&sr=c&sp=r&sig=tUpFoejYucIuB1FRwQFZVkUvQnwoNNOD0Y8HR3llE9g%3D
+- 1. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/error-90118-image-903pbd7l.png
 - 2. image.png: https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/fXkimage.png
 - 3. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/Screenshot%202025-01-30%20at%201.54.54%E2%80%AFAM.png
 - 4. image.png: https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/JXmimage.png

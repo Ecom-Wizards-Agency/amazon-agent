@@ -1,6 +1,6 @@
 # Advertising Help After Login
 
-Downloaded/updated: 2026-05-13
+Downloaded/updated: 2026-05-13; 120 articles re-captured verbatim and 114 linked pages added on 2026-10-06 with `tools/knowledge/help_capture.mjs` (15 dead linked URLs recorded in `_index/advertising-help-missing.json`)
 
 Amazon Ads Support Center library for the Amazon SOP master project.
 
@@ -12,8 +12,8 @@ Amazon Ads Support Center library for the Amazon SOP master project.
 - Firecrawl discovery: capped crawl found 300 help pages
 - Chrome snapshot links indexed: 109
 - Content files captured: 123
-- Status: 109 Chrome-indexed Support Center pages complete; linked expansion in progress.
-- Linked expansion: 14 additional linked pages captured, 127 linked pages remaining.
+- Status: 109 Chrome-indexed Support Center pages complete; linked expansion complete on 2026-10-06.
+- Linked expansion: 14 linked pages captured in May 2026, 114 more on 2026-10-06; 15 linked URLs no longer resolve to an article (listed in `_index/advertising-help-missing.json`).
 
 ## Files
 

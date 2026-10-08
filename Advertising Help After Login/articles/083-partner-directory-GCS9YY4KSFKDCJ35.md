@@ -3,33 +3,20 @@ title: "Partner directory"
 source_url: "https://advertising.amazon.com/help/GCS9YY4KSFKDCJ35"
 library: "Amazon Ads Support Center"
 section: "account-management"
-downloaded_at: "2026-05-13"
+downloaded_at: "2026-10-07"
 status: "captured"
 ---
 
-# Amazon Ads Partner Directory
+# Partner directory
 
-The Partner Directory helps advertisers discover agencies, solution providers, consultancies, and creative partners for Amazon Ads.
+Whether it's planning, creative, execution, or optimization, reach the partner that's right for you.
 
-## Key Points
+Updated on Jun 29, 2023
 
-- Directory listings include companies with Amazon Ads engagement and proficiency.
-- Search and filters can narrow partners by services, products, or location.
-- Partners should be evaluated against the exact campaign objective and product type.
+The Amazon Ads partner directory is an online resource to discover companies you can work with to support your Amazon Ads efforts.
 
-## Workflow
+This resource includes agencies, solution providers, consultancies, and creative partners that demonstrate a high level of engagement and proficiency with one or more Amazon Ads self-service ad products. The services that they provide can help you optimize campaigns to achieve business objectives and reach relevant audiences.
 
-1. Open the Partner Directory.
-2. Browse or search for relevant companies.
-3. Use filters for services, products, or location.
-4. Review partner fit against advertising goals.
+Browse the partner directory to discover companies that support the advertising products you want to use, offer the services you need, or specialize in the countries in which you advertise. You can also use the available filters to refine results by services and products.
 
-## Checkpoints
-
-- Confirm the partner has experience with the ad products needed.
-- Review whether the partner’s services match the campaign objective.
-- Stop before contacting or contracting a partner unless the user approves.
-
-## Routing Use
-
-Use this page when the user asks to find Amazon Ads agencies, solution providers, creative partners, or consultancies.
+The partner directory provides a consolidated list of available companies and it’s a great place to start your search for an Amazon Ads partner. We encourage you to engage with the partner that best meets your unique advertising needs.

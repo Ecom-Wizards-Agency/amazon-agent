@@ -25,19 +25,19 @@ If you want to manage your products enrolled in the Vine Program on Seller Centr
 
 1. From the top menu of Seller Central, select the "Advertising" tab, and from the drop-down menu, choose "Vine."
 
-![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1712241556367.png?sv=2022-11-02&spr=https&st=2025-01-17T19%3A29%3A44Z&se=2025-01-17T19%3A39%3A44Z&sr=c&sp=r&sig=6DZdMMsEhk7eYDjmdaiPsjeCqsvVRykiVJM%2FPPWxm8s%3D)
+![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1712241556367.png)
 
 ![image.png](https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/nbtimage.png)
 
 2. On the next page, click the "Start Enrolling Products into Vine today!" button at the bottom.
 
-![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1712241562653.png?sv=2022-11-02&spr=https&st=2025-01-17T19%3A29%3A44Z&se=2025-01-17T19%3A39%3A44Z&sr=c&sp=r&sig=6DZdMMsEhk7eYDjmdaiPsjeCqsvVRykiVJM%2FPPWxm8s%3D)
+![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1712241562653.png)
 
 ![image.png](https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/d5iimage.png)
 
 3. At the bottom of the following page, you will see the enrollment date, the number of units still available for Vine Voices to request, the number of units you enrolled, the number of units Vine Voices claimed, and the number of Vine reviews published for your most recent enrollments.
 
-![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1712241604667.png?sv=2022-11-02&spr=https&st=2025-01-17T19%3A29%3A44Z&se=2025-01-17T19%3A39%3A44Z&sr=c&sp=r&sig=6DZdMMsEhk7eYDjmdaiPsjeCqsvVRykiVJM%2FPPWxm8s%3D)
+![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1712241604667.png)
 
 ![image.png](https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/mt1image.png)
 
@@ -108,9 +108,9 @@ We welcome your feedback for improvement. Please click**[here](https://airtable.
 
 ## Image References
 
-- 1. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1712241556367.png?sv=2022-11-02&spr=https&st=2025-01-17T19%3A29%3A44Z&se=2025-01-17T19%3A39%3A44Z&sr=c&sp=r&sig=6DZdMMsEhk7eYDjmdaiPsjeCqsvVRykiVJM%2FPPWxm8s%3D
+- 1. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1712241556367.png
 - 2. image.png: https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/nbtimage.png
-- 3. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1712241562653.png?sv=2022-11-02&spr=https&st=2025-01-17T19%3A29%3A44Z&se=2025-01-17T19%3A39%3A44Z&sr=c&sp=r&sig=6DZdMMsEhk7eYDjmdaiPsjeCqsvVRykiVJM%2FPPWxm8s%3D
+- 3. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1712241562653.png
 - 4. image.png: https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/d5iimage.png
-- 5. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1712241604667.png?sv=2022-11-02&spr=https&st=2025-01-17T19%3A29%3A44Z&se=2025-01-17T19%3A39%3A44Z&sr=c&sp=r&sig=6DZdMMsEhk7eYDjmdaiPsjeCqsvVRykiVJM%2FPPWxm8s%3D
+- 5. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1712241604667.png
 - 6. image.png: https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/mt1image.png

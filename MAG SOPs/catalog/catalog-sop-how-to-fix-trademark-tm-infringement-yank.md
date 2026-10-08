@@ -51,7 +51,7 @@ NOTE: We have some cases where the sellers aren’t aware of which TMs they infr
 
 1. Obtain the serial number and registration number certificate (if any) of the TM from the United States Patent and Trademark Office (USPTO).
 2. Go to Performance > Account Health > Received Intellectual Property Complaints > Look for the ASIN and click the Appeal button.
-  ![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/trademark-infringement-image-m0qwt4ex.png?sv=2022-11-02&spr=https&st=2025-03-03T22%3A19%3A39Z&se=2025-03-03T22%3A29%3A39Z&sr=c&sp=r&sig=UgYlY5kWjc2NmWq8Gnqe7VsQrNsXkT%2BkKBs%2Bd%2BdeH8w%3D)
+  ![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/trademark-infringement-image-m0qwt4ex.png)
 
   ![image.png](https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/Eckimage.png)
 3. Dispute that the Seller owns the TM and attach all necessary documents as proof that they really own it.
@@ -268,5 +268,5 @@ We welcome your feedback for improvement. Please click**[here](https://airtable.
 
 ## Image References
 
-- 1. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/trademark-infringement-image-m0qwt4ex.png?sv=2022-11-02&spr=https&st=2025-03-03T22%3A19%3A39Z&se=2025-03-03T22%3A29%3A39Z&sr=c&sp=r&sig=UgYlY5kWjc2NmWq8Gnqe7VsQrNsXkT%2BkKBs%2Bd%2BdeH8w%3D
+- 1. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/trademark-infringement-image-m0qwt4ex.png
 - 2. image.png: https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/Eckimage.png

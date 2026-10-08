@@ -2,44 +2,33 @@
 title: "Understand contextual targeting in Display"
 source_url: "https://advertising.amazon.com/help/GNTK7LTYZS3KSTAN"
 library: "Amazon Ads Support Center"
-downloaded_at: "2026-05-12"
+downloaded_at: "2026-10-07"
 status: "captured"
 ---
 
 # Understand contextual targeting in Display
 
-With contextual targeting, ads can show to customers visiting selected products, selected categories, and similar products.
+With contextual targeting, you can show ads to customers who are visiting products and categories that you select and similar products.
 
-This article covers contextual targeting in Display (smart) campaigns, not Amazon DSP multi-signal targeting.
+Updated on May 1, 2026
+
+This article explains contextual targeting in Display (smart) campaigns. If you're looking for information about contextual targeting on Amazon DSP, read how to set up multi signal targeting.
 
 ## What is contextual targeting?
 
-Contextual targeting can serve ads on and off Amazon, including Amazon detail and shopping result pages, Amazon Fresh, Whole Foods Market, third-party websites and apps, and Twitch.
+With **contextual targeting**, you can show ads to customers who are visiting products and categories that you select and similar products. Your ads may serve on and off Amazon, which includes: Amazon detail and shopping result pages, Amazon Fresh, Whole Food Market, third-party websites and apps, and Twitch. **Contextual targeting** is available only to advertisers that sell products and services on Amazon.
 
-Contextual targeting is available only to advertisers that sell products and services on Amazon.
-
-> Tip: Add at least 10 well-performing products when using contextual targeting.
+**Tip**: Add at least 10 well performing products when you use contextual targeting.
 
 ## How contextual targeting works
 
-Amazon finds opportunities to show contextually relevant ads based on optimization and targeting strategies.
+Based on your optimization and targeting strategies, we’ll find the optimal opportunity to show contextually relevant ads. The selected targets within your campaign determine whether the ad will serve on or off Amazon:
 
-Selected targets determine whether the ad serves on or off Amazon:
+- If you add the**"similar to advertised products"**category, or a suggested **category with no refinements** your ad will: Reach audiences on Amazon, when customers search or view products on product pages. Reach audiences off Amazon, when customers visit content related to your selected category or advertised product.
+- If you add **individual products,**or**categories with refinements**your ad will: Serve ads on Amazon only. Reach audiences on Amazon product pages.
 
-- If adding the **similar to advertised products** category or a suggested category with no refinements, the ad can reach audiences on Amazon and off Amazon.
-- If adding individual products or categories with refinements, ads serve on Amazon only and reach audiences on Amazon product pages.
+Using **contextual targeting** you can target categories or individual products.
 
-## Categories
+Select entire Amazon categories as targets to help increase your audience reach and discovery. By targeting categories, we'll show ads on related products within the category on and off Amazon. If you're targeting multiple products sharing common features, you can refine categories with brands, price, ratings, or shipping status. When you refine categories, your ads will only show on Amazon product and result pages that match the refined attributes.
 
-Target entire Amazon categories to increase reach and discovery. Amazon shows ads on related products within the category on and off Amazon.
-
-When targeting multiple products sharing common features, categories can be refined by brand, price, rating, or shipping status. Refined categories show ads only on Amazon product and result pages matching the attributes.
-
-Example: target the "Fitness and Exercise" category to show ads on detail pages and search results for running shoes.
-
-## Related topics
-
-- [Understand targeting options on Amazon DSP](https://advertising.amazon.com/help/GEA3K9FZBZQ37YQ2)
-- [Understand language targeting on Amazon DSP](https://advertising.amazon.com/help/GN8SJSGVXYNBUN96)
-- [Understand targeting in Display campaigns](https://advertising.amazon.com/help/GPKPWTLW6B8T683N)
-- [Understand remarketing audience segments](https://advertising.amazon.com/help/G82GQS569JWSVNRB)
+For example, you can target the "Fitness and Exercise" category to show ads on detail pages and search results for running shoes.

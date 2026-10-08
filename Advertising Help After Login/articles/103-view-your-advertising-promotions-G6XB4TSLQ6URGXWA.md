@@ -3,50 +3,39 @@ title: "View your advertising promotions"
 source_url: "https://advertising.amazon.com/help/G6XB4TSLQ6URGXWA"
 library: "Amazon Ads Support Center"
 section: "billing-and-payments"
-downloaded_at: "2026-05-13"
+downloaded_at: "2026-10-07"
 status: "captured"
 ---
 
-# View Your Advertising Promotions
+# View your advertising promotions
 
-This article explains how to view advertising promotional credits.
+Learn how to view your advertising promotional credits across invoices.
 
-## Key Points
+Updated on Jul 17, 2026
 
-- Amazon sends an email when credits are added.
-- Promotions can be viewed in Campaign Manager/Billing.
-- Promotion statuses include Active, Future, Expired, Spent, and Partially consumed.
-- Amazon may not notify when credits are exhausted.
+You’ll receive an email when the credit is added to your account, and you can also view your past and active promotions in the campaign manager. Learn more about advertising promotions.
 
-## Workflow
+## View promotions in campaign manager
+
+Go to the promotions dashboard:
 
 1. In the left menu, click **Administration**.
 2. Under **Billing and Payment**, select **Billing**.
-3. In the left-side billing navigation, click **Promotions**.
+3. On the left, click **Promotions**.
 
-## Definitions
+The **Summary to date** section displays your active promotions available for use and the Rewards table displays information about your promotion status, amount, and timeline.
 
-| Field | Meaning |
-| --- | --- |
-| Promotion Name / Invoice ID | Promotion or invoice relationship. |
-| Redeemed amount | Used ad credits applied to an invoice. |
-| Remaining amount | Available ad credits for future costs. |
-| Total promotion amount | Credits awarded in marketplace currency. |
-| Start date | When credits became active. |
-| Status | Active, Future, Expired, Spent, or Partially consumed. |
+- **Promotions and invoices**: Promotion Name / Invoice ID
+- **Redeemed amount**: The portion of your ad credits that has been used to cover advertising costs and applied to an invoice.
+- **Remaining amount**: The portion of your ad credits that is still available for future advertising costs.
+- **Total promotion amount**: The amount awarded in the currency of the marketplace where the ads were created.
+- **Start date**: Date when the ad credits became active.
+- **Status**: **Active**: Currently available for use and has remaining ad credits value. **Future**: Awarded but hasn't reached start date. **Expired**: Reached end date with unused ad credits. **Spent**: Fully redeemed with no remaining ad credits. **Partially consumed (inactive)**: Partially used before the promotion ends.
 
-## Visual References
+**Tip**: Keep an eye on your **promotion remaining amount** and **expiration date**. You won’t be notified when the ad credits are exhausted, and will be charged for all advertising that exceeds the ad credits amount.
 
-![Promotional credits](https://d369o5h5zn8mv7.cloudfront.net/images/2025/23_Promotional_Credits.gif)
+## View promotions on your invoice
 
-![Administration icon](https://d369o5h5zn8mv7.cloudfront.net/images/Icons/Administration.png)
+When you receive your invoice, you’ll see the ad credits applied in the “Other Charges and Adjustments” section. Ad credits that are ad-specific (such as Streaming TV) will only be applied towards campaigns for that ad type. If you spend more than the allotted ad credits in that billing period, your default payment method will be charged to make up the difference.
 
-## Checkpoints
-
-- Track remaining amount and expiration date manually.
-- Confirm marketplace currency before comparing promo value.
-- Use credits before they expire.
-
-## Routing Use
-
-Use this page when the user asks where to see promotion credits, how much credit remains, or what promotion status means.
+## Common questions

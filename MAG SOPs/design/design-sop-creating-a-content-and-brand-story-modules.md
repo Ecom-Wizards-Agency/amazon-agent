@@ -59,7 +59,7 @@ Basic Modules
 
   - Minimum Size: 600px x 180px.
 
-![image](https://cdn.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/design-sop-creating-a-content-and-brand-story-modules-image-1.png?sv=2022-11-02&spr=https&st=2025-05-24T17%3A25%3A15Z&se=2025-05-24T19%3A15%3A15Z&sr=c&sp=r&sig=9%2F5FEiNbuksiPsjw0U0Cxuf%2BM7%2FPYtZ0bmPyjyb9O9Q%3D)
+![image](https://cdn.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/design-sop-creating-a-content-and-brand-story-modules-image-1.png)
 
 ![image.png](https://sop.myamazonguy.com/uploads/images/gallery/2025-06/scaled-1680-/2syimage.png)
 
@@ -639,7 +639,7 @@ We welcome your feedback for improvement. Please click**[here](https://airtable.
 
 ## Image References
 
-- 1. image: https://cdn.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/design-sop-creating-a-content-and-brand-story-modules-image-1.png?sv=2022-11-02&spr=https&st=2025-05-24T17%3A25%3A15Z&se=2025-05-24T19%3A15%3A15Z&sr=c&sp=r&sig=9%2F5FEiNbuksiPsjw0U0Cxuf%2BM7%2FPYtZ0bmPyjyb9O9Q%3D
+- 1. image: https://cdn.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/design-sop-creating-a-content-and-brand-story-modules-image-1.png
 - 2. image.png: https://sop.myamazonguy.com/uploads/images/gallery/2025-06/scaled-1680-/2syimage.png
 - 3. image.png: https://sop.myamazonguy.com/uploads/images/gallery/2025-06/scaled-1680-/Ttoimage.png
 - 4. image.png: https://sop.myamazonguy.com/uploads/images/gallery/2025-06/scaled-1680-/Poeimage.png

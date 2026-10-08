@@ -2,7 +2,7 @@
 title: "Create a custom audience using first-party data"
 source_url: "https://advertising.amazon.com/help/GS2PEGTHL288GM9Y"
 library: "Amazon Ads Support Center"
-downloaded_at: "2026-05-12"
+downloaded_at: "2026-10-07"
 status: "captured"
 ---
 
@@ -10,76 +10,76 @@ status: "captured"
 
 Use Amazon first-party shopping and streaming signals to create custom audience segments.
 
-Amazon DSP organizes first-party audience types into three main categories: media, retail, and remarketing audiences.
+Updated on Jul 22, 2026
 
-## Audience definitions and lookback windows
+**Good to know**
+
+- Audiences can take up to 24 hours to process. A "Failed" status usually means the audience is too small or policy-restricted. Add more values or extend the lookback window.
+- Twitch audiences don't allow third-party tags. Adding third-party tags to ad groups with Twitch audiences can pause your ads, including on other ad groups using the same ad.
+- Retail audiences are limited to brands tied to your account. Private label ASINs, policy-restricted products, and brands or Stores with fewer than 2,000 unique visitors can't be included.
+
+You can create several types of audiences based on Amazon 1st party data. Each audience type offers unique attributes and lookback windows to help you reach customers with relevant entertainment interests. Amazon DSP organizes them into 3 main categories: media, retail, and remarketing audiences.
 
 | Category | Audience type | Audience definition | Lookback window |
 | --- | --- | --- | --- |
-| Media | Prime Video | Audiences who streamed specified movies, TV series, genres, or titles with specified actors or directors. | 1-180 days |
-| Media | IMDb | Audiences who visited specified people or title pages on IMDb.com. | 1-365 days |
-| Media | Twitch | Audiences who streamed specified categories, games, streamers, or genres on Twitch.tv. | 1-30 days |
-| Media | Kindle Books | Audiences who opened specified Kindle book titles. | 1-365 days |
-| Retail | Amazon Stores | Customers who viewed specified Amazon Stores or Store pages. | 1-90 days |
-| Retail | Whole Foods Market | Customers who purchased specified ASINs from a Whole Foods Market store. | 1-365 days |
-| Retail | Product | Shoppers who engage with products on Amazon. | Variable |
-| Retail | Brand | People who engage with brands on Amazon. | Variable |
-| Remarketing | Streaming TV campaigns | Audiences exposed to selected Streaming TV and Prime Video orders or line items. | Unadjustable |
-| Remarketing | Audio ads | Audiences exposed to selected audio ads orders or line items. | Unadjustable |
-| Remarketing | Twitch ads | Audiences exposed to selected Twitch.tv ads orders or line items. | Unadjustable |
-| Remarketing | Display and Online Video ads | Audiences exposed to selected orders or line items on other supply sources. | Unadjustable |
-| Remarketing | OLV ads with completion rate | Audiences who watched a selected percentage of selected OLV orders or line items. | Unadjustable |
+| Media | Prime Video | Reach audiences who have streamed the specified movies, TV series, genres, or titles with the specified actors or directors. | 1-180 days |
+| IMDb | Reach audiences who have visited the specified people or title pages on IMDb.com. | 1-365 days |
+| Twitch | Reach audiences who have streamed the specified categories, games, streamers, or genres on Twitch.tv. | 1-30 days |
+| Kindle Books | Reach audiences who have opened any of the specified Kindle book titles. | 1-365 days |
+| Retail | Amazon Stores | Customers who have viewed the specified Amazon Stores, or Amazon Stores pages. | 1-90 days |
+| Whole Foods Market | Customers who purchased the specified ASINs from a Whole Foods Market store within a defined time frame. | 1-365 days |
+| Product | Shoppers who engage with products on Amazon | variable |
+| Brand | People who engage with brands on Amazon | variable |
+| Remarketing | Streaming TV campaigns | Reach audiences who have been exposed to selected Streaming TV and Prime Video orders or line items that you have run. | unadjustable |
+| Audio ads | Reach audiences who have been exposed to selected audio ads orders or line items that you have run. | unadjustable |
+| Twitch ads | Reach audiences who have been exposed to selected Twitch.tv ads orders or line items that you have run. | unadjustable |
+| Display and Online Video (OLV) ads | Reach audiences who have been exposed to selected orders or line items that you have run on other supply sources. | unadjustable |
+| Online Video (OLV) ads with completion rate | Reach audiences who have been watched a selected percentage of selected OLV orders or line items that you have run. Example: only engage customers who've watched 75% of the ad. | unadjustable |
 
 ## How to create an audience
 
-1. In the navigation side menu, click **Campaigns**.
+Create an audience:
+
+1. In the navigation side menu, click **Campaigns**
 2. Click **Audiences** in the side navigation.
 3. Click **New audience**.
-4. Click **Next** on the tile for the audience type: media, retail, or remarketing.
-5. Follow the flow for the selected audience type.
+4. Click **Next** on the tile for the audience type you want to create (media, retail, or remarketing).
+5. Follow the steps below according to your chosen audience type.
 
-## Media audience setup
+**1. Enter Audience settings**
 
-1. Enter audience settings:
-   - **Name:** descriptive name identifying purpose.
-   - **Description:** visible to other Amazon DSP users in the entity.
-2. Select attributes:
-   - Select a lookback window.
-   - Select an attribute from the dropdown.
-   - Click **choose**.
-   - Search for the value.
-   - Click **add** next to values to include, up to 10.
-   - Click **Done**.
-   - Add another attribute if needed.
-   - Click **Save**.
+- **Name**: choose a descriptive name that identifies the audience purpose
+- **Description**: viewable to other Amazon DSP users in your entity
 
-Up to three different attributes can be combined in one audience, and up to 10 values per attribute can be selected. Attributes and values are connected with OR statements.
+**2. Select attributes**
 
-## Twitch attribute types
+- Select a lookback window.
+- Select an attribute from the drop-down.
+- Click **choose**.
+- Search for the value you want to add. You can combine up to 3 different attributes (genre, games, and channels) in 1 audience, and select up to 10 values per attribute. Both attributes and their values are connected via OR statements. For example: **Prime Video**: If building an audience based on 2 movies and 3 TV series, viewers must stream at least 1 of the movies OR 1 of the TV series to be included. **Twitch**: If building an audience based on 2 games and 3 channels, viewers must stream at least 1 of the games OR 1 of the channels to be included **IMDb**: If building an audience based on 2 actors and 3 movies, shoppers must visit 1 of the actor pages OR 1 of the movie pages to be included.
+- Click **add** next to each 1 you want to include (up to 10).
+- Click **D1**.
+- To add another attribute, click **Add attribute** and follow steps 3-6 again.
+- Click **Save** when you're finished adding attributes.
 
-- **Streamer:** audience based on views of a specific Twitch streamer or event.
-- **Category/Game:** audience based on views of a game or activity.
-- **Genre:** audience based on views of a game type.
+**3. Twitch attribute types**
 
-In the [Twitch directory](https://www.twitch.tv/directory), popular streamers and categories/games can be viewed by sorting by viewers.
+- **Streamer**: build an audience based on user views of a specific Twitch streamer or event. Examples of streamers include pokimane and TimTheTatman.
+- **Category/Game**: build an audience based on user views of a specific game or activity. Examples of games include Fortnite and League of Legends while examples of activities include Just Chatting and Travel and Outdoors.
+- **Genre**: build audiences based on user views of a type of game. Examples of game genres include Real-Time Strategy, Sports, and Role-Playing. Learn about Twitch game genres.
 
-Twitch audiences do not permit third-party tagging. If third-party tags are included on ad lines with these audiences, and the same ad is used on other ad groups, the ad will be paused.
+In the Twitch directory you can view popular:
 
-## Audience status
+- **streamers**: select Live Channels and sort by Viewers (High to Low).
+- **categories/games**: select Categories and sort by Viewers (High to Low).
 
-Within 24 hours, audiences show a status in Campaign manager. Only Active audiences can be applied to Amazon Ads campaigns.
+Twitch audiences don't permit third-party tagging. If you include third-party tags on ad lines with these audiences, and the same ad they tagged is also used on other ad groups, their ad will be paused.
 
-| Status | Meaning |
-| --- | --- |
-| Pending | Collecting data or waiting for review. |
-| Processing | Audience is being built and will become available later. |
-| Active | Ready to use in the line item settings page. |
-| Failed | Cannot be built because of audience size or policy violation. |
+## Audience Status
 
-If an audience fails, it may violate policy or be too small. Add values or extend the lookback window to increase size.
+Within 24 hours, audiences will have a status of either Active or Failed listed in the Campaign Manager. Only audiences with an Active status can be applied to Amazon Ads campaigns. If your audience fails, it may violate our policies or be too small. Add additional values or extend the lookback window to increase the size.
 
-## Related topics
-
-- [Understand audiences on Amazon](https://advertising.amazon.com/help/GKSQZKMHW95GJDB7)
-- [Amazon Marketing Cloud](https://advertising.amazon.com/help/G9H78BXVT5NCEGUM)
-- [Create a custom audience using third-party data](https://advertising.amazon.com/help/GWU447PKLV5MHGYF)
+- **Pending**: Collecting data or waiting for review
+- **Processing**: Audience is being built. Will become available later.
+- **Active**: Ready to use in line item settings page.
+- **Failed**: Cannot be built per audience size or policy violation.

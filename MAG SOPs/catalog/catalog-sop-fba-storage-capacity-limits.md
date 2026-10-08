@@ -71,7 +71,7 @@ To increase capacity limit per storage type:
 - a. I would prefer to do my own - similar to the classic feature, you may add your requested volume and your maximum reservation fee per cubit feet
 - b. I need help - based on your inputs, Amazon auto-estimates the additional capacity you need and the maximum reservation fee
 
-![image](https://cdn.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-RPJOCWIJ.png?sv=2022-11-02&spr=https&st=2025-11-04T16%3A00%3A42Z&se=2025-11-04T16%3A17%3A42Z&sr=c&sp=r&sig=Xv3OOcmYCxBoQHqEjYEVM084shHo2TPDM50IBvCP8Ys%3D)
+![image](https://cdn.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-RPJOCWIJ.png)
 
 Option: I would prefer to do my own
 
@@ -96,13 +96,13 @@ Inventory Increase
 1. Enter your forecasted sales in units
 2. Enter the number of units to add in the capacity
 
-![image](https://cdn.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-NL7J0EY0.png?sv=2022-11-02&spr=https&st=2025-11-04T16%3A00%3A42Z&se=2025-11-04T16%3A17%3A42Z&sr=c&sp=r&sig=Xv3OOcmYCxBoQHqEjYEVM084shHo2TPDM50IBvCP8Ys%3D)
+![image](https://cdn.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-NL7J0EY0.png)
 
 [![image.png](https://sop.myamazonguy.com/uploads/images/gallery/2026-01/scaled-1680-/hNVimage.png)](https://sop.myamazonguy.com/uploads/images/gallery/2026-01/hNVimage.png)
 
 1. Once both numbers are added, Amazon provides an auto-estimate. You can change them before submitting.
 
-![image](https://cdn.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-2ZB6XR7O.png?sv=2022-11-02&spr=https&st=2025-11-04T16%3A00%3A42Z&se=2025-11-04T16%3A17%3A42Z&sr=c&sp=r&sig=Xv3OOcmYCxBoQHqEjYEVM084shHo2TPDM50IBvCP8Ys%3D)
+![image](https://cdn.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-2ZB6XR7O.png)
 
 [![image.png](https://sop.myamazonguy.com/uploads/images/gallery/2026-01/scaled-1680-/DIoimage.png)](https://sop.myamazonguy.com/uploads/images/gallery/2026-01/DIoimage.png)
 
@@ -115,11 +115,11 @@ New Product
 
 [![image.png](https://sop.myamazonguy.com/uploads/images/gallery/2026-01/scaled-1680-/cNcimage.png)](https://sop.myamazonguy.com/uploads/images/gallery/2026-01/cNcimage.png)
 
-![image](https://cdn.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-UPYASM6V.png?sv=2022-11-02&spr=https&st=2025-11-04T16%3A00%3A42Z&se=2025-11-04T16%3A17%3A42Z&sr=c&sp=r&sig=Xv3OOcmYCxBoQHqEjYEVM084shHo2TPDM50IBvCP8Ys%3D)
+![image](https://cdn.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-UPYASM6V.png)
 
 Once all the items are filled, Amazon suggests the forecasted sales, the capacity in cubic feet, and the estimated capacity reservation fee ($) per cubic foot. You may choose what Amazon estimated, or change them.
 
-![image](https://cdn.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-WTMOHSNI.png?sv=2022-11-02&spr=https&st=2025-11-04T16%3A00%3A42Z&se=2025-11-04T16%3A17%3A42Z&sr=c&sp=r&sig=Xv3OOcmYCxBoQHqEjYEVM084shHo2TPDM50IBvCP8Ys%3D)
+![image](https://cdn.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-WTMOHSNI.png)
 
 [![image.png](https://sop.myamazonguy.com/uploads/images/gallery/2026-01/scaled-1680-/ZZRimage.png)](https://sop.myamazonguy.com/uploads/images/gallery/2026-01/ZZRimage.png)
 
@@ -272,13 +272,13 @@ We welcome your feedback for improvement. Please click **[here](https://airtable
 - 8. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/catalog-sop--fba-storage-capacity-limits-image-4.png
 - 9. image.png: https://sop.myamazonguy.com/uploads/images/gallery/2026-01/scaled-1680-/1Qfimage.png
 - 10. image.png: https://sop.myamazonguy.com/uploads/images/gallery/2026-01/scaled-1680-/ZqNimage.png
-- 11. image: https://cdn.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-RPJOCWIJ.png?sv=2022-11-02&spr=https&st=2025-11-04T16%3A00%3A42Z&se=2025-11-04T16%3A17%3A42Z&sr=c&sp=r&sig=Xv3OOcmYCxBoQHqEjYEVM084shHo2TPDM50IBvCP8Ys%3D
+- 11. image: https://cdn.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-RPJOCWIJ.png
 - 12. image.png: https://sop.myamazonguy.com/uploads/images/gallery/2026-01/scaled-1680-/zafimage.png
-- 13. image: https://cdn.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-NL7J0EY0.png?sv=2022-11-02&spr=https&st=2025-11-04T16%3A00%3A42Z&se=2025-11-04T16%3A17%3A42Z&sr=c&sp=r&sig=Xv3OOcmYCxBoQHqEjYEVM084shHo2TPDM50IBvCP8Ys%3D
+- 13. image: https://cdn.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-NL7J0EY0.png
 - 14. image.png: https://sop.myamazonguy.com/uploads/images/gallery/2026-01/scaled-1680-/hNVimage.png
-- 15. image: https://cdn.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-2ZB6XR7O.png?sv=2022-11-02&spr=https&st=2025-11-04T16%3A00%3A42Z&se=2025-11-04T16%3A17%3A42Z&sr=c&sp=r&sig=Xv3OOcmYCxBoQHqEjYEVM084shHo2TPDM50IBvCP8Ys%3D
+- 15. image: https://cdn.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-2ZB6XR7O.png
 - 16. image.png: https://sop.myamazonguy.com/uploads/images/gallery/2026-01/scaled-1680-/DIoimage.png
 - 17. image.png: https://sop.myamazonguy.com/uploads/images/gallery/2026-01/scaled-1680-/cNcimage.png
-- 18. image: https://cdn.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-UPYASM6V.png?sv=2022-11-02&spr=https&st=2025-11-04T16%3A00%3A42Z&se=2025-11-04T16%3A17%3A42Z&sr=c&sp=r&sig=Xv3OOcmYCxBoQHqEjYEVM084shHo2TPDM50IBvCP8Ys%3D
-- 19. image: https://cdn.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-WTMOHSNI.png?sv=2022-11-02&spr=https&st=2025-11-04T16%3A00%3A42Z&se=2025-11-04T16%3A17%3A42Z&sr=c&sp=r&sig=Xv3OOcmYCxBoQHqEjYEVM084shHo2TPDM50IBvCP8Ys%3D
+- 18. image: https://cdn.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-UPYASM6V.png
+- 19. image: https://cdn.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-WTMOHSNI.png
 - 20. image.png: https://sop.myamazonguy.com/uploads/images/gallery/2026-01/scaled-1680-/ZZRimage.png

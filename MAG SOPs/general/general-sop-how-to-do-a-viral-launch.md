@@ -23,31 +23,31 @@ Create a 90% off promotion. Check [Creating a Percentage Off Promotion SOP](http
 
 1. Go to Inventory and then select Manage All Inventory
 
-![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1684772168198.png?sv=2022-11-02&spr=https&st=2025-01-16T19%3A54%3A01Z&se=2025-01-16T20%3A04%3A01Z&sr=c&sp=r&sig=XxfjkZtMJOhAZ7PxRYw7pYXKgHcWLbc72SmugN9U0Io%3D)
+![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1684772168198.png)
 
 ![image.png](https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/bZKimage.png)
 
 2. Find the ASIN where the promotion is created. Click Edit.
 
-![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/step%205%20viral%20launch.jpg?sv=2022-11-02&spr=https&st=2025-01-16T19%3A54%3A01Z&se=2025-01-16T20%3A04%3A01Z&sr=c&sp=r&sig=XxfjkZtMJOhAZ7PxRYw7pYXKgHcWLbc72SmugN9U0Io%3D)
+![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/step%205%20viral%20launch.jpg)
 
 ![image.png](https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/4dsimage.png)
 
 3. Go to Offer tab
 
-![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1684772284460.png?sv=2022-11-02&spr=https&st=2025-01-16T19%3A54%3A01Z&se=2025-01-16T20%3A04%3A01Z&sr=c&sp=r&sig=XxfjkZtMJOhAZ7PxRYw7pYXKgHcWLbc72SmugN9U0Io%3D)
+![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1684772284460.png)
 
 ![image.png](https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/B09image.png)
 
 4. Find the Max Order Quantity attribute and put 1 on its box. If there are duplicates, change both to 1 for the duration of the Viral Launch.
 
-![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1684772532470.png?sv=2022-11-02&spr=https&st=2025-01-16T19%3A54%3A01Z&se=2025-01-16T20%3A04%3A01Z&sr=c&sp=r&sig=XxfjkZtMJOhAZ7PxRYw7pYXKgHcWLbc72SmugN9U0Io%3D)
+![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1684772532470.png)
 
 ![image.png](https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/KZRimage.png)
 
 5. Click Save and finish.
 
-![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1684772849730.png?sv=2022-11-02&spr=https&st=2025-01-16T19%3A54%3A01Z&se=2025-01-16T20%3A04%3A01Z&sr=c&sp=r&sig=XxfjkZtMJOhAZ7PxRYw7pYXKgHcWLbc72SmugN9U0Io%3D)
+![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1684772849730.png)
 
 ![image.png](https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/tlqimage.png)
 
@@ -57,7 +57,7 @@ Create a 90% off promotion. Check [Creating a Percentage Off Promotion SOP](http
 
 1. Product Title: Create a clear product title that includes relevant keywords.
 
-![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1687338105728.png?sv=2022-11-02&spr=https&st=2025-01-16T19%3A54%3A01Z&se=2025-01-16T20%3A04%3A01Z&sr=c&sp=r&sig=XxfjkZtMJOhAZ7PxRYw7pYXKgHcWLbc72SmugN9U0Io%3D)
+![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1687338105728.png)
 
 ![image.png](https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/ldgimage.png)
 
@@ -67,25 +67,25 @@ Create a 90% off promotion. Check [Creating a Percentage Off Promotion SOP](http
 
 3. Product Images: Use high-quality product images that showcase your product from multiple angles. Follow Amazon's image guidelines, such as using a white background and adhering to the specified dimensions and file formats. Include lifestyle images if possible, demonstrating the product's use or benefits.
 
-![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1687338360068.png?sv=2022-11-02&spr=https&st=2025-01-16T19%3A54%3A01Z&se=2025-01-16T20%3A04%3A01Z&sr=c&sp=r&sig=XxfjkZtMJOhAZ7PxRYw7pYXKgHcWLbc72SmugN9U0Io%3D)
+![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1687338360068.png)
 
 ![image.png](https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/isCimage.png)
 
 4. Backend Search Terms: Utilize the backend search terms section to include additional relevant keywords that may not fit in the visible listing content. These keywords help improve your product's discoverability in Amazon's search results. Be specific, don't use a trademark or brand name. and maximize the 250 characters.
 
-![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1687338394765.png?sv=2022-11-02&spr=https&st=2025-01-16T19%3A54%3A01Z&se=2025-01-16T20%3A04%3A01Z&sr=c&sp=r&sig=XxfjkZtMJOhAZ7PxRYw7pYXKgHcWLbc72SmugN9U0Io%3D)
+![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1687338394765.png)
 
 ![image.png](https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/Zbgimage.png)
 
 5. Product Variation Listings: If your product has variations (e.g., size, color), create separate listings for each variation. Optimize each variation listing with specific titles, images, and descriptions that accurately reflect the respective product variant.
 
-![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1687338640550.png?sv=2022-11-02&spr=https&st=2025-01-16T19%3A54%3A01Z&se=2025-01-16T20%3A04%3A01Z&sr=c&sp=r&sig=XxfjkZtMJOhAZ7PxRYw7pYXKgHcWLbc72SmugN9U0Io%3D)
+![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1687338640550.png)
 
 ![image.png](https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/oiiimage.png)
 
 6. Enhanced Brand Content or A+ Content: If you have brand registry and access to Enhanced Brand Content (EBC) or A+ Content, take advantage of this feature to create more visually appealing and detailed product descriptions. Use engaging multimedia, including videos and comparison charts, to enhance your listing.
 
-![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1687338794225.png?sv=2022-11-02&spr=https&st=2025-01-16T19%3A54%3A01Z&se=2025-01-16T20%3A04%3A01Z&sr=c&sp=r&sig=XxfjkZtMJOhAZ7PxRYw7pYXKgHcWLbc72SmugN9U0Io%3D)
+![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1687338794225.png)
 
 ![image.png](https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/Ljfimage.png)
 
@@ -110,7 +110,7 @@ Create a 90% off promotion. Check [Creating a Percentage Off Promotion SOP](http
 
 1. Accurate Product Information: Ensure all product information, such as dimensions, materials, colors, and specifications, is accurate and up-to-date. Misleading or incorrect information can lead to customer dissatisfaction and negative reviews.
 
-![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1687339196551.png?sv=2022-11-02&spr=https&st=2025-01-16T19%3A54%3A01Z&se=2025-01-16T20%3A04%3A01Z&sr=c&sp=r&sig=XxfjkZtMJOhAZ7PxRYw7pYXKgHcWLbc72SmugN9U0Io%3D)
+![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1687339196551.png)
 
 ![image.png](https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/6b4image.png)
 
@@ -179,26 +179,26 @@ We welcome your feedback for improvement. Please click**[here](https://airtable.
 
 ## Image References
 
-- 1. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1684772168198.png?sv=2022-11-02&spr=https&st=2025-01-16T19%3A54%3A01Z&se=2025-01-16T20%3A04%3A01Z&sr=c&sp=r&sig=XxfjkZtMJOhAZ7PxRYw7pYXKgHcWLbc72SmugN9U0Io%3D
+- 1. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1684772168198.png
 - 2. image.png: https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/bZKimage.png
-- 3. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/step%205%20viral%20launch.jpg?sv=2022-11-02&spr=https&st=2025-01-16T19%3A54%3A01Z&se=2025-01-16T20%3A04%3A01Z&sr=c&sp=r&sig=XxfjkZtMJOhAZ7PxRYw7pYXKgHcWLbc72SmugN9U0Io%3D
+- 3. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/step%205%20viral%20launch.jpg
 - 4. image.png: https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/4dsimage.png
-- 5. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1684772284460.png?sv=2022-11-02&spr=https&st=2025-01-16T19%3A54%3A01Z&se=2025-01-16T20%3A04%3A01Z&sr=c&sp=r&sig=XxfjkZtMJOhAZ7PxRYw7pYXKgHcWLbc72SmugN9U0Io%3D
+- 5. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1684772284460.png
 - 6. image.png: https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/B09image.png
-- 7. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1684772532470.png?sv=2022-11-02&spr=https&st=2025-01-16T19%3A54%3A01Z&se=2025-01-16T20%3A04%3A01Z&sr=c&sp=r&sig=XxfjkZtMJOhAZ7PxRYw7pYXKgHcWLbc72SmugN9U0Io%3D
+- 7. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1684772532470.png
 - 8. image.png: https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/KZRimage.png
-- 9. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1684772849730.png?sv=2022-11-02&spr=https&st=2025-01-16T19%3A54%3A01Z&se=2025-01-16T20%3A04%3A01Z&sr=c&sp=r&sig=XxfjkZtMJOhAZ7PxRYw7pYXKgHcWLbc72SmugN9U0Io%3D
+- 9. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1684772849730.png
 - 10. image.png: https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/tlqimage.png
-- 11. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1687338105728.png?sv=2022-11-02&spr=https&st=2025-01-16T19%3A54%3A01Z&se=2025-01-16T20%3A04%3A01Z&sr=c&sp=r&sig=XxfjkZtMJOhAZ7PxRYw7pYXKgHcWLbc72SmugN9U0Io%3D
+- 11. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1687338105728.png
 - 12. image.png: https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/ldgimage.png
 - 13. image.png: https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/muIUr3image.png
-- 14. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1687338360068.png?sv=2022-11-02&spr=https&st=2025-01-16T19%3A54%3A01Z&se=2025-01-16T20%3A04%3A01Z&sr=c&sp=r&sig=XxfjkZtMJOhAZ7PxRYw7pYXKgHcWLbc72SmugN9U0Io%3D
+- 14. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1687338360068.png
 - 15. image.png: https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/isCimage.png
-- 16. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1687338394765.png?sv=2022-11-02&spr=https&st=2025-01-16T19%3A54%3A01Z&se=2025-01-16T20%3A04%3A01Z&sr=c&sp=r&sig=XxfjkZtMJOhAZ7PxRYw7pYXKgHcWLbc72SmugN9U0Io%3D
+- 16. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1687338394765.png
 - 17. image.png: https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/Zbgimage.png
-- 18. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1687338640550.png?sv=2022-11-02&spr=https&st=2025-01-16T19%3A54%3A01Z&se=2025-01-16T20%3A04%3A01Z&sr=c&sp=r&sig=XxfjkZtMJOhAZ7PxRYw7pYXKgHcWLbc72SmugN9U0Io%3D
+- 18. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1687338640550.png
 - 19. image.png: https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/oiiimage.png
-- 20. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1687338794225.png?sv=2022-11-02&spr=https&st=2025-01-16T19%3A54%3A01Z&se=2025-01-16T20%3A04%3A01Z&sr=c&sp=r&sig=XxfjkZtMJOhAZ7PxRYw7pYXKgHcWLbc72SmugN9U0Io%3D
+- 20. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1687338794225.png
 - 21. image.png: https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/Ljfimage.png
-- 22. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1687339196551.png?sv=2022-11-02&spr=https&st=2025-01-16T19%3A54%3A01Z&se=2025-01-16T20%3A04%3A01Z&sr=c&sp=r&sig=XxfjkZtMJOhAZ7PxRYw7pYXKgHcWLbc72SmugN9U0Io%3D
+- 22. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/image-1687339196551.png
 - 23. image.png: https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/6b4image.png

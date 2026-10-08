@@ -3,34 +3,23 @@ title: "Account Transparency Log (ATL)"
 source_url: "https://advertising.amazon.com/help/GA8QKH28BHRYUX5L"
 library: "Amazon Ads Support Center"
 section: "account-management"
-downloaded_at: "2026-05-13"
+downloaded_at: "2026-10-07"
 status: "captured"
 ---
 
-# Account Transparency Log
+# Account Transparency Log (ATL)
 
-The Account Transparency Log gives account admins an audit trail of actions taken by users in Amazon Ads.
+Reference the Account Transparency Log to view account action by user.
 
-## Key Points
+Updated on Feb 24, 2026
 
-- Tracks changes made by users in sponsored ads accounts.
-- Admins can view, search, filter, and export events to CSV.
-- Only actions taken in the ads console are recorded.
+The Account Transparency Log (ATL) publishes an audit trail of certain types of actions taken on an advertiser’s account. Sponsored ads admins can search, filter, and export this data to a CSV file.
 
-## Workflow
+For security, audit, and compliance purposes, account admins often need to know which user was responsible for changes to their account.
 
-1. Click **Administration** in the bottom-left area.
-2. In the side navigation, click **Security**.
-3. Use the **Date Range** dropdown to change the event period.
-4. Click **Filter** to filter the table by user.
-5. Export events to CSV if needed.
+To access your account transparency log:
 
-## Checkpoints
-
-- Confirm the date range before drawing conclusions.
-- Filter by user email when investigating a specific change.
-- Save/export evidence before making account corrections.
-
-## Routing Use
-
-Use this page when the user asks who changed something, how to audit account activity, or how to investigate unexpected campaign/account changes.
+1. In the left menu, click **Administration**.
+2. Under security, click **Account Transparency Log**.
+3. Click **Date Range** to change the time period for data shown.
+4. Click **Filter** and then click **User** to filter the report by account user.

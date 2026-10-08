@@ -14,7 +14,7 @@ Within each region, keep a stable marketplace/account order for the run so the l
 
 For each account-marketplace:
 
-1. Open `{preferred_browser}` and confirm Seller Central is logged in.
+1. Open the resolved CDP session (`{preferred_browser}`) and confirm Seller Central is logged in. Scope: Account Health and the listing issues it links; inventory and inbound shipments, Ads, Creator Connections, Brand Customer Reviews and Brand Registry stay out unless the operator triggers them, except the stranded-inventory issue types the ledger defines.
 2. Read this account's precomputed Keepa market signals from `{market_signals_state_path}`. They are computed from Keepa before the run starts. Never fetch market signals during the check. Freshness guard: if the file is missing or its `generated_at` is not from today, record that as a blocker, treat market coverage as not performed for this run, and carry on with the rest of the check. An account whose ASINs are not registered for monitoring has no market coverage at all: record that as `not monitored`, which is not the same as clean.
 
    A fresh file does not mean this account was covered. The sweep is paced against Keepa's refill and carries forward the last observation for anything it did not reach, so `generated_at` can be from today while a given ASIN's record is from yesterday. **Check `observed_at` on the ASIN records themselves**, not just `generated_at` on the file. If an account's records are not from today, it has no market coverage for this run: report it as `not covered`, leave its existing market findings carried forward untouched, and do not re-verify or resolve them. Not covered is not clean.

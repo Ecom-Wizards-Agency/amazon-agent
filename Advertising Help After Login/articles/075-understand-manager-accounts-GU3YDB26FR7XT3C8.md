@@ -3,40 +3,41 @@ title: "Understand manager accounts"
 source_url: "https://advertising.amazon.com/help/GU3YDB26FR7XT3C8"
 library: "Amazon Ads Support Center"
 section: "account-management"
-downloaded_at: "2026-05-13"
+downloaded_at: "2026-10-07"
 status: "captured"
 ---
 
-# Understand Manager Accounts
+# Understand manager accounts
 
-Manager accounts let advertisers manage multiple Amazon Ads accounts, user access, billing, and performance insights from one place.
+Learn how to manage multiple Amazon Ads accounts, control user access, and monitor performance across your accounts in one place.
 
-## Key Points
+Updated on May 7, 2026
 
-- Centralizes multiple advertiser accounts under one manager account.
-- Supports single sign-in across Amazon Ads accounts.
-- Works across different ad products.
-- Provides performance, finance, and alert views.
-- Supports account hierarchy organization.
+Manager accounts (MA) allow you to manage multiple advertiser accounts with a single sign-in. You can invite and manage users, access billing, and view top-level metrics across advertiser accounts in a centralized location. It’s ideal for advertisers with more than 1 Amazon Ads account.
 
-## Visual Reference
+Example: An agency managing ads for 3 different clients can oversee all 3 advertising accounts from 1 manager account instead of logging in to each account separately.
 
-![Manager account hierarchy](https://d369o5h5zn8mv7.cloudfront.net/images/2025/92_Manager_Account_Hierarchy/92_Mgr_Acct_Hierarchy_en-US.png)
+## Benefits of manager accounts
 
-## Workflow
+- Connect multiple advertiser accounts into a single MA.
+- Use a single sign in to access all Amazon Ads accounts, including other manager accounts.
+- Manage accounts across ad products (Sponsored ads and Amazon DSP).
+- View comprehensive insights and alerts about campaign performance and finances for all linked accounts.
+- Search, navigate, and manage all of your accounts from a single dashboard (you can find this under Account access and settings).
+- Set billing recipient as the manager account (Amazon DSP only).
+- Grant users different levels of access to your manager account.
 
-1. Create or access a manager account.
-2. Link advertiser accounts.
-3. Invite and manage users with the correct access level.
-4. Review billing and performance insights from the manager dashboard.
-5. Use tools such as Billing dashboard, Data manager, and Ads planner as needed.
+## Manager account hierarchy
 
-## Checkpoints
+You can create a manager account hierarchy by linking multiple manager accounts together. This provides centralized control of multiple accounts to access consolidated data, and organize complex structures efficiently. Advertisers with complex organizational structures or that represent multiple clients or teams may find this helpful.
 
-- Stop before linking accounts or changing hierarchy.
-- Confirm billing settings before connecting accounts.
-- Confirm user access levels before granting manager-level access.
+We suggest nesting your accounts in a manner that mirrors how your organization does business with Amazon. Each level can represent buying teams from your operating companies, countries, business units, etc. This will help you:
 
-## Routing Use
+- Manage all advertising accounts centrally while maintaining team separation
+- Access consolidated performance and billing data.
 
-Use this page when the user asks about managing multiple Amazon Ads accounts, hierarchy, manager dashboards, or agency-style access.
+Once set up, you can:
+
+- View Billing information in the Manager account billing dashboard.
+- Manager your data in Data manager.
+- Manage your ads in Ads planner.

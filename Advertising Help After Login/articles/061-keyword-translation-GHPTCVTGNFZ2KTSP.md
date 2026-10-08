@@ -2,30 +2,32 @@
 title: "Keyword translation"
 source_url: "https://advertising.amazon.com/help/GHPTCVTGNFZ2KTSP"
 library: "Amazon Ads Support Center"
-downloaded_at: "2026-05-12"
+downloaded_at: "2026-10-07"
 status: "captured"
 ---
 
 # Keyword translation
 
-Keyword translation lets advertisers enter preferred keywords in their language, and Amazon translates them into the local language of the country where the campaign is launching.
+The keyword translation feature allows you to enter your preferred keywords in your language, and we’ll translate them into the local language of the country where you’re launching your campaign.
 
-The feature is available when creating Sponsored Products and Sponsored Brands campaigns. Amazon recommends it when the advertiser is unfamiliar with the local marketplace language or wants to use trusted keywords from another marketplace.
+Updated on Sep 20, 2022
 
-Amazon uses machine-generated translations, professional linguist translations, and closest matching terms from the local marketplace.
+The keyword translation feature is available when creating Sponsored Products and Sponsored Brands campaigns. We recommend using this feature if you’re unfamiliar with the local marketplace language, or want to use trusted keywords from another marketplace with a different local language.
 
-## Ways to add translated keywords
+We’ll use a combination of machine-generated translations, translations by professional linguists, and closest matching terms from the local marketplace to add keywords to your campaign in the local marketplace language.
 
-- Enter individual keywords in the **Enter a list** tab and use **translate and add**.
-- Upload keywords as a file and select the **translate and add** checkbox in the **upload file** tab before upload.
+There are 2 ways that you can add and translate to your campaigns:
 
-> Note: Up to 1,000 keywords can be translated at once. Translated keywords cannot be edited, but can be removed.
+- Enter individual keywords in the **Enter a list** tab and use the **translate and add** option to add translated keywords to your campaign.
+- Upload keywords as a file, by selecting the **translate and add** checkbox in the **upload file** tab, before the file upload.
 
-Amazon saves the original submitted keywords with other campaign inputs. They are not used for targeting, but remain visible in campaign management views and reports for reference.
+**Note:**There’s a limit of 1,000 keywords that can be translated at once, using either enter a list or file upload methods of adding keywords. You can’t edit a translated keyword, but always have the option to remove it.
+
+We’ll save the original keywords you submit along with other campaign inputs. While they won’t be used to target the campaign, they’ll remain visible in campaign management views and reports to give you reference to the keywords you’ve used.
 
 ## Available languages per country
 
-| Country | Supported languages |
+| **Country** | **Supported Languages** |
 | --- | --- |
 | United States | Simplified Chinese, Spanish, German, French, Italian, Japanese |
 | Canada | Simplified Chinese, Spanish, German, French, Italian, Japanese |
@@ -35,7 +37,7 @@ Amazon saves the original submitted keywords with other campaign inputs. They ar
 | Italy | English, German, French, Spanish, Dutch, Simplified Chinese |
 | France | English, German, Italian, Spanish, Dutch, Simplified Chinese |
 | Spain | English, French, Italian, German, Dutch, Simplified Chinese |
-| Netherlands | English, German, French, Italian, Spanish, Simplified Chinese |
+| Netherland | English, German, French, Italian, Spanish, Simplified Chinese |
 | Brazil | English |
 | Japan | English, Simplified Chinese |
 | Singapore | Simplified Chinese |
@@ -43,13 +45,3 @@ Amazon saves the original submitted keywords with other campaign inputs. They ar
 | India | Simplified Chinese |
 | Saudi Arabia | English |
 | United Arab Emirates | English |
-
-## Related topics
-
-- [Understand targeting](https://advertising.amazon.com/help/G3XAU5G7C2JTNQTM)
-- [Understand keyword match types](https://advertising.amazon.com/help/GHTRFDZRJPW6764R)
-- [Set up keyword targeting](https://advertising.amazon.com/help/GK3MNACNTXG659J9)
-- [Set up product targeting](https://advertising.amazon.com/help/GB2JECV9CJK6R6AL)
-- [Add negative keywords or negative products](https://advertising.amazon.com/help/GTEHPEG5BXY9UX5W)
-- [Branded keyword guidelines and keyword suspension](https://advertising.amazon.com/help/G2QZJUGUT4RGLJ6N)
-- [Reserve keywords in a Sponsored Brands campaign](https://advertising.amazon.com/help/G86SD7HK6NHHRB9B)

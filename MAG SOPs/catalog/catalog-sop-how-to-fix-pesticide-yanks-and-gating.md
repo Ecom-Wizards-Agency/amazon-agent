@@ -32,7 +32,7 @@ To learn more about the pesticide policies, please visit [Pesticides and Pestici
 
 [![image.png](https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/il2image.png)](https://sop.myamazonguy.com/uploads/images/gallery/2025-08/il2image.png)
 
-![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/sop_-pesticide-image-jzod6q66.png?sv=2022-11-02&spr=https&st=2025-02-06T14%3A49%3A19Z&se=2025-02-06T14%3A59%3A19Z&sr=c&sp=r&sig=2JFuj2SOVqHAfZq7%2BpKgdye%2Fej1nBZ3qnHYgDbdPnH0%3D)
+![image](https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/sop_-pesticide-image-jzod6q66.png)
 
 How to Fix?
 
@@ -394,7 +394,7 @@ We welcome your feedback for improvement. Please click **[here](https://airtable
 
 - 1. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/Screenshot%202025-02-06%20at%2011.06.12%E2%80%AFPM.png
 - 2. image.png: https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/il2image.png
-- 3. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/sop_-pesticide-image-jzod6q66.png?sv=2022-11-02&spr=https&st=2025-02-06T14%3A49%3A19Z&se=2025-02-06T14%3A59%3A19Z&sr=c&sp=r&sig=2JFuj2SOVqHAfZq7%2BpKgdye%2Fej1nBZ3qnHYgDbdPnH0%3D
+- 3. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/sop_-pesticide-image-jzod6q66.png
 - 4. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/Screenshot%202025-02-06%20at%2011.06.23%E2%80%AFPM.png
 - 5. image: https://files.document360.io/d9e9b7a2-6758-4c75-97d3-36a6877048cf/Images/Documentation/Screenshot%202025-02-06%20at%2011.06.29%E2%80%AFPM.png
 - 6. image.png: https://sop.myamazonguy.com/uploads/images/gallery/2025-08/scaled-1680-/k5Vimage.png

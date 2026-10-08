@@ -3,46 +3,29 @@ title: "Add a purchase order or booking reference to your invoice"
 source_url: "https://advertising.amazon.com/help/GLP2PMYPQMEBE9BJ"
 library: "Amazon Ads Support Center"
 section: "billing-and-payments"
-downloaded_at: "2026-05-13"
+downloaded_at: "2026-10-07"
 status: "captured"
 ---
 
-# Add a Purchase Order or Booking Reference to Your Invoice
+# Add a purchase order or booking reference to your invoice
 
-This article explains how to add a PO number or booking reference to Amazon Ads invoices.
+A purchase order (PO) or a booking reference number is a payment reference that you can add on your invoice to help you identify it.
 
-## Key Points
+Updated on Feb 24, 2026
 
-- PO or booking references help identify invoices.
-- Add the reference before month-end so it appears on the next invoice.
-- Multiple purchase orders can be separated by spaces.
-
-## Sponsored Ads Workflow
+A purchase order (PO) or a booking reference number is a payment reference that you can add on your invoice to help you identify it. Add a PO or a booking reference number before the end of the month to ensure that it appears on your next month’s invoice.
 
 1. In the left menu, click **Administration**.
 2. Under **Billing and Payment**, select **Billing**.
-3. Open **Payment settings**.
+3. Once you’re on the Billing page, select **Payment settings**.
 4. Go to **Additional Information**.
-5. Enter the PO or booking reference in the PO Number field.
+5. Enter your PO or booking reference number in the **PO Number** field. Separate multiple POs or booking reference numbers with a space.
 
-## Amazon DSP Workflow
+**For Amazon DSP advertisers**:
 
 1. Go to **Campaign manager**.
 2. Select **Orders**.
-3. Open the order requiring a PO or booking reference.
-4. Go to **Order settings**.
-5. Enter the PO or booking reference in the PO Number field.
+3. Click into the order that requires a PO or booking reference and go to **Order settings**.
+4. Enter your PO or booking reference number in the **PO Number** field. Separate multiple PO or booking reference numbers with a space.
 
-## Visual Reference
-
-![Administration icon](https://d369o5h5zn8mv7.cloudfront.net/images/Icons/Administration.png)
-
-## Checkpoints
-
-- Stop before saving invoice reference changes.
-- Confirm the exact PO/booking reference with finance.
-- Add the value before month-end if it should appear on next month’s invoice.
-
-## Routing Use
-
-Use this page when the user asks to add a PO, booking reference, or finance identifier to Amazon Ads invoices.
+Once you enter a PO or a booking reference number, your invoices will continue to display that number until you update this field again.

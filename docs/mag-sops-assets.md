@@ -8,7 +8,7 @@ The GitHub/runtime project keeps the MAG SOP markdown searchable and lightweight
 - Expected contents: 535 Markdown files and 3,621 assets in `assets/`
 - Expected missing local image references: 0
 
-The pCloud archive stays complete. The runtime `MAG SOPs/` tree in this repo is curated for Amazon work (2026-07-08): the AI ChatGPT-prompt and Product Development categories and two Business Analysis SOPs were removed, and the Walmart SOPs sit under `MAG SOPs/_archive/` (excluded from the index and the search helper). Regenerate the slim index and README with `python3 tools/slim_sop_index.py --readme`.
+The pCloud archive stays complete. On 06.10.2026 a triage dropped 110 SOPs the agency cannot use (Vendor Central, Helium 10 tool chains, MAG-internal tools), archived 13 duplicates and marked 27 as superseded by repo procedures; the per-SOP status lives in `_index/sop-index.json`. Before that, the runtime `MAG SOPs/` tree was curated for Amazon work (2026-07-08): the AI ChatGPT-prompt and Product Development categories and two Business Analysis SOPs were removed, and the Walmart SOPs sit under `MAG SOPs/_archive/` (excluded from the index and the search helper). Regenerate the slim index and README with `python3 tools/slim_sop_index.py --readme`.
 
 This path is user-specific. Each team member should download or sync the shared pCloud visual archive locally and point their setup to their own path.
 
