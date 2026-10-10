@@ -1,16 +1,16 @@
 {
  "library": "Amazon Knowledge",
  "generated_by": "tools/knowledge/build_knowledge_index.py",
- "unit_count": 311,
- "active_count": 311,
+ "unit_count": 322,
+ "active_count": 322,
  "retired_count": 0,
  "topics": {
-  "compliance": 25,
-  "logistics": 95,
-  "catalog": 60,
+  "compliance": 27,
+  "logistics": 99,
+  "catalog": 62,
   "support-cases": 8,
-  "ads": 39,
-  "account-health": 24,
+  "ads": 41,
+  "account-health": 25,
   "seo": 9,
   "brand-registry": 42,
   "reporting": 9
@@ -13589,6 +13589,488 @@
    "observed": "2025-07",
    "review_by": "2027-10",
    "file": "knowledge/ads/KC-0311_ads-get-few-clicks-and-little-spend-because-the-fbm-offer-is.md"
+  },
+  {
+   "id": "KC-0312",
+   "title": "EU seller account deactivated for a verification problem; appeal stalls until the requested virtual identity verification is completed",
+   "kind": "diagnosis",
+   "topic": "account-health",
+   "status": "reviewed",
+   "skills": [
+    "amazon-account-health-check",
+    "amazon-communications"
+   ],
+   "marketplaces": [
+    "DE"
+   ],
+   "surface": "Seller Central > Account Health / account verification notice",
+   "symptom_keywords": [
+    "account deactivated verification",
+    "virtual verification amazon",
+    "video identity verification seller",
+    "eu account deactivated appeal",
+    "reactivate account after verification"
+   ],
+   "error_text": [],
+   "asked_as": [
+    "The seller account in Germany was deactivated."
+   ],
+   "synonyms": [],
+   "resolution_status": "resolved",
+   "fix_source": "agency",
+   "evidence_location": "slack",
+   "confidence": "medium",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [
+    "Amazon Seller Help/articles/026-global-seller-identity-address-and-business-verification-GQRP483PDN88Q3M9.md"
+   ],
+   "related_sops": [],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2026-04",
+   "review_by": "2027-10",
+   "file": "knowledge/account-health/KC-0312_eu-seller-account-deactivated-for-a-verification-problem-app.md"
+  },
+  {
+   "id": "KC-0313",
+   "title": "Cosmetic patch listing flagged for packaging wording: Amazon asks for 510(k) or a formal exemption letter with proof",
+   "kind": "diagnosis",
+   "topic": "compliance",
+   "status": "reviewed",
+   "skills": [
+    "amazon-regulated-product-appeals",
+    "amazon-communications",
+    "amazon-logistics"
+   ],
+   "marketplaces": [
+    "US"
+   ],
+   "surface": "",
+   "symptom_keywords": [
+    "510(k) exemption letter",
+    "cosmetic patch medical device",
+    "packaging wording flagged",
+    "prove product does not need 510k",
+    "FDA documents requested listing"
+   ],
+   "error_text": [],
+   "asked_as": [
+    "A cosmetic face patch listing was blocked because of wording on the packaging."
+   ],
+   "synonyms": [],
+   "resolution_status": "partial",
+   "fix_source": "amazon-support",
+   "evidence_location": "case",
+   "confidence": "medium",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [],
+   "related_sops": [
+    "MAG SOPs/catalog/catalog-sop-disease-medical-and-pathogens-claims-of-usa.md",
+    "MAG SOPs/catalog/catalog-sop-fba-removal-order.md"
+   ],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2025-12",
+   "review_by": "2027-10",
+   "file": "knowledge/compliance/KC-0313_cosmetic-patch-listing-flagged-for-packaging-wording-amazon.md"
+  },
+  {
+   "id": "KC-0314",
+   "title": "Can the package insert used for own-shop orders go into Amazon orders when it has QR codes to the brand site and a review-for-discount offer?",
+   "kind": "rule",
+   "topic": "compliance",
+   "status": "reviewed",
+   "skills": [
+    "amazon-communications",
+    "amazon-catalog"
+   ],
+   "marketplaces": [
+    "US"
+   ],
+   "surface": "Physical package insert (FBA and merchant-fulfilled orders)",
+   "symptom_keywords": [
+    "package insert Amazon orders",
+    "insert card QR code",
+    "insert with discount for review",
+    "can I reuse my Shopify insert on Amazon",
+    "product insert compliance"
+   ],
+   "error_text": [],
+   "asked_as": [
+    "The brand added an insert to its own-shop orders with a setup guide, QR codes to its own site, and a cashback offer for completing a survey and leaving a review on a third-party review site in exchang"
+   ],
+   "synonyms": [],
+   "resolution_status": "resolved",
+   "fix_source": "agency",
+   "evidence_location": "slack",
+   "confidence": "medium",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [
+    "Amazon Seller Help/articles/043-communicate-with-buyers-using-buyer-seller-messages-G200389080.md"
+   ],
+   "related_sops": [],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2025-10",
+   "review_by": "2027-10",
+   "file": "knowledge/compliance/KC-0314_can-the-package-insert-used-for-own-shop-orders-go-into-amaz.md"
+  },
+  {
+   "id": "KC-0315",
+   "title": "Sending multipacks to FBA: what barcode and packaging labels does each multipack need?",
+   "kind": "procedure",
+   "topic": "logistics",
+   "status": "reviewed",
+   "skills": [
+    "amazon-logistics",
+    "amazon-catalog"
+   ],
+   "marketplaces": [
+    "US"
+   ],
+   "surface": "Seller Central > Send to Amazon; listing barcode type (manufacturer barcode or Amazon barcode)",
+   "symptom_keywords": [
+    "multipack FBA barcode",
+    "FNSKU for bundle",
+    "do not separate label",
+    "packaging requirements apparel FBA",
+    "multipack needs different UPC",
+    "manufacturer barcode vs FNSKU"
+   ],
+   "error_text": [],
+   "asked_as": [
+    "A brand preparing its first FBA shipment of apparel multipacks from an overseas supplier asked what packaging rules apply, whether its usual bag works, and where to get a barcode for multipacks that h"
+   ],
+   "synonyms": [],
+   "resolution_status": "resolved",
+   "fix_source": "agency",
+   "evidence_location": "slack",
+   "confidence": "medium",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [
+    "Amazon Seller Help/articles/061-ship-products-to-amazon-G200141420.md"
+   ],
+   "related_sops": [
+    "knowledge/logistics/KC-0003_inbound-performance-defects-labeling-required-unscannable-ba.md"
+   ],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2026-05",
+   "review_by": "2027-10",
+   "file": "knowledge/logistics/KC-0315_sending-multipacks-to-fba-what-barcode-and-packaging-labels.md"
+  },
+  {
+   "id": "KC-0316",
+   "title": "Can Amazon store and ship inventory for a brand that does not sell on Amazon (off-Amazon store orders)?",
+   "kind": "rule",
+   "topic": "logistics",
+   "status": "reviewed",
+   "skills": [
+    "amazon-logistics",
+    "amazon-fba-inventory-planning"
+   ],
+   "marketplaces": [
+    "US"
+   ],
+   "surface": "Multi-Channel Fulfillment (supplychain.amazon.com/mcf); Seller Central inventory; Amazon Warehousing and Distribution",
+   "symptom_keywords": [
+    "use FBA for web store orders",
+    "Amazon fulfillment without selling on Amazon",
+    "Multi-Channel Fulfillment non Amazon brand",
+    "store inventory at Amazon without listing",
+    "MCF inactive listing"
+   ],
+   "error_text": [],
+   "asked_as": [
+    "A contact asked whether Amazon can hold inventory for a brand that does not sell on Amazon, and ship its web-store orders."
+   ],
+   "synonyms": [],
+   "resolution_status": "partial",
+   "fix_source": "agency",
+   "evidence_location": "slack",
+   "confidence": "medium",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [],
+   "related_sops": [
+    "MAG SOPs/catalog/supplemental-article-maximizing-efficiency-with-amazon-warehousing-and-distribution-awd.md"
+   ],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2026-03",
+   "review_by": "2027-10",
+   "file": "knowledge/logistics/KC-0316_can-amazon-store-and-ship-inventory-for-a-brand-that-does-no.md"
+  },
+  {
+   "id": "KC-0317",
+   "title": "Planning a first inbound from China to the US: how to split air and sea, and where to book ocean freight with Amazon",
+   "kind": "decision-aid",
+   "topic": "logistics",
+   "status": "reviewed",
+   "skills": [
+    "amazon-logistics",
+    "amazon-launch-strategy"
+   ],
+   "marketplaces": [
+    "US"
+   ],
+   "surface": "",
+   "symptom_keywords": [
+    "freight forwarder China to US",
+    "Amazon Global Logistics",
+    "AGL ocean freight",
+    "split air and sea shipment",
+    "launch inbound from China"
+   ],
+   "error_text": [],
+   "asked_as": [
+    "A client preparing a launch inbound from China to the US asked for a freight forwarder recommendation and planned to split the order between air and sea so some stock reaches Amazon quickly."
+   ],
+   "synonyms": [],
+   "resolution_status": "partial",
+   "fix_source": "agency",
+   "evidence_location": "slack",
+   "confidence": "medium",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [
+    "Amazon Seller Help/articles/064-fba-peak-readiness-playbook-G4QH4XCRWUXRJBLY.md"
+   ],
+   "related_sops": [
+    "MAG SOPs/catalog/logistics-sop-send-to-amazon-how-to-create-fba-shipment.md"
+   ],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2025-10",
+   "review_by": "2027-10",
+   "file": "knowledge/logistics/KC-0317_planning-a-first-inbound-from-china-to-the-us-how-to-split-a.md"
+  },
+  {
+   "id": "KC-0318",
+   "title": "Need to drop a near-expiry SKU from an FBA shipment confirmed more than a day ago: rebuild it, or keep the shipment and labels and leave the item out",
+   "kind": "decision-aid",
+   "topic": "logistics",
+   "status": "reviewed",
+   "skills": [
+    "amazon-logistics",
+    "amazon-fba-inventory-planning"
+   ],
+   "marketplaces": [
+    "FR"
+   ],
+   "surface": "Seller Central > Send to Amazon > Shipping queue",
+   "symptom_keywords": [
+    "remove a product from a confirmed FBA shipment",
+    "cancel shipment after 24 hours charge",
+    "leave SKU out of Send to Amazon shipment",
+    "short-dated stock exclude from FBA inbound",
+    "new labels needed after dropping an item"
+   ],
+   "error_text": [],
+   "asked_as": [
+    "After the agency created a Send to Amazon shipment and shared the packing list and labels, the client decided not to send two near-expiry products, to avoid customer returns of short-dated stock, and "
+   ],
+   "synonyms": [],
+   "resolution_status": "resolved",
+   "fix_source": "agency",
+   "evidence_location": "slack",
+   "confidence": "medium",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [],
+   "related_sops": [
+    "MAG SOPs/catalog/catalog-sop-how-to-cancel-fba-shipment.md",
+    "MAG SOPs/catalog/logistics-sop-send-to-amazon-how-to-create-fba-shipment.md"
+   ],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2025-11",
+   "review_by": "2027-10",
+   "file": "knowledge/logistics/KC-0318_need-to-drop-a-near-expiry-sku-from-an-fba-shipment-confirme.md"
+  },
+  {
+   "id": "KC-0319",
+   "title": "New listing blocked pending a GS1 certificate: the UPCs' company prefix does not match the prefix certificate",
+   "kind": "diagnosis",
+   "topic": "catalog",
+   "status": "reviewed",
+   "skills": [
+    "amazon-catalog"
+   ],
+   "marketplaces": [
+    "US"
+   ],
+   "surface": "Seller Central > Add a Product / listing creation with UPC; Seller Support request for GS1 proof",
+   "symptom_keywords": [
+    "amazon asking for GS1 certificate",
+    "UPC prefix does not match",
+    "new child listing blocked UPC",
+    "GS1 prefix certificate for listing",
+    "wrong UPC barcode pasted"
+   ],
+   "error_text": [],
+   "asked_as": [
+    "While listing several new size variants, a few could not be created; when the team contacted Amazon, it asked for the GS1 certificate for those UPCs."
+   ],
+   "synonyms": [],
+   "resolution_status": "resolved",
+   "fix_source": "agency",
+   "evidence_location": "case",
+   "confidence": "medium",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [
+    "Amazon Seller Help/articles/143-product-detail-page-rules-G200390640.md"
+   ],
+   "related_sops": [
+    "MAG SOPs/catalog/catalog-sop-how-to-request-gtin-exemption.md"
+   ],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2025-11",
+   "review_by": "2027-10",
+   "file": "knowledge/catalog/KC-0319_new-listing-blocked-pending-a-gs1-certificate-the-upcs-compa.md"
+  },
+  {
+   "id": "KC-0320",
+   "title": "Many enabled Sponsored Products campaigns spend nothing because bids sit far below the suggested range or a tool multiplier cuts them",
+   "kind": "diagnosis",
+   "topic": "ads",
+   "status": "reviewed",
+   "skills": [
+    "amazon-ads-console",
+    "amazon-ppc-weekly-management"
+   ],
+   "marketplaces": [
+    "DE",
+    "IT",
+    "ES"
+   ],
+   "surface": "Amazon Ads Console > Sponsored Products > campaign targeting (suggested bid range, placement adjustments); bid-management tool settings",
+   "symptom_keywords": [
+    "zero spend campaigns",
+    "enabled campaigns no impressions",
+    "campaigns not spending budget",
+    "bids too low to win auctions",
+    "placement multiplier below 1 cutting bids"
+   ],
+   "error_text": [],
+   "asked_as": [
+    "An account had a large share of enabled Sponsored Products campaigns spending nothing, while nominal daily budgets far exceeded actual spend; the team asked why these campaigns stayed dark and how to "
+   ],
+   "synonyms": [],
+   "resolution_status": "partial",
+   "fix_source": "agency",
+   "evidence_location": "slack",
+   "confidence": "medium",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [
+    "Advertising Help After Login/articles/006-set-bids-in-a-sponsored-products-campaign-GTMXQWASBRZTHLF2.md",
+    "Advertising Help After Login/articles/001-understand-bidding-GDS2E64R9GQ35768.md"
+   ],
+   "related_sops": [],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2026-07",
+   "review_by": "2027-10",
+   "file": "knowledge/ads/KC-0320_many-enabled-sponsored-products-campaigns-spend-nothing-beca.md"
+  },
+  {
+   "id": "KC-0321",
+   "title": "Agency cannot get into a seller's Ads console during onboarding: the client contact needs advertising rights first, then grants the agency in Seller Central User Permissions",
+   "kind": "procedure",
+   "topic": "ads",
+   "status": "reviewed",
+   "skills": [
+    "amazon-client-onboarding",
+    "amazon-ads-console"
+   ],
+   "marketplaces": [
+    "all"
+   ],
+   "surface": "",
+   "symptom_keywords": [
+    "agency no advertising access",
+    "grant agency access Amazon Ads",
+    "authorized partner user permissions",
+    "client cannot grant ads access",
+    "onboarding access preflight"
+   ],
+   "error_text": [],
+   "asked_as": [
+    "During onboarding the client contact had no Amazon Ads access yet, so could not grant the agency access."
+   ],
+   "synonyms": [],
+   "resolution_status": "resolved",
+   "fix_source": "agency",
+   "evidence_location": "slack",
+   "confidence": "medium",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [
+    "Amazon Seller Help/articles/028-manage-account-settings-G69035.md",
+    "Advertising Help After Login/articles/070-add-or-remove-users-from-your-account-GDQVHVQMY9F88PCA.md"
+   ],
+   "related_sops": [],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2025-09",
+   "review_by": "2027-10",
+   "file": "knowledge/ads/KC-0321_agency-cannot-get-into-a-seller-s-ads-console-during-onboard.md"
+  },
+  {
+   "id": "KC-0322",
+   "title": "Brand name change on an existing ASIN rejected as rebranding by Selling Partner Support",
+   "kind": "rule",
+   "topic": "catalog",
+   "status": "reviewed",
+   "skills": [
+    "amazon-catalog",
+    "amazon-communications"
+   ],
+   "marketplaces": [
+    "all"
+   ],
+   "surface": "",
+   "symptom_keywords": [
+    "brand name change rejected",
+    "rebrand existing ASIN",
+    "change brand on ASIN",
+    "Brand Name Policy rebranding",
+    "new ASIN for new brand"
+   ],
+   "error_text": [
+    "We are unable to approve this change, as it does not comply with our Amazon Brand Name Policy. We do not allow changes to the brand name on existing ASINs when those changes constitute rebranding, as this can lead to customer confusion. If you wish to sell your product under a new brand name, we recommend creating a new ASIN for the rebranded product.",
+    "Please note that minor corrections: such as fixing typos, adjusting capitalization, or addressing issues with legal abbreviations: are permitted. Any changes beyond such minor corrections are considered rebranding and will not be approved."
+   ],
+   "asked_as": [
+    "The agency requested a brand name update on an existing ASIN to a new brand name; Amazon declined."
+   ],
+   "synonyms": [],
+   "resolution_status": "diagnosis-only",
+   "fix_source": "amazon-support",
+   "evidence_location": "slack",
+   "confidence": "medium",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [
+    "Amazon Seller Help/articles/238-manage-your-brands-GF79K5R2ZLCWCPJT.md"
+   ],
+   "related_sops": [
+    "MAG SOPs/catalog/brand-registry-sop-how-to-update-brand-name.md"
+   ],
+   "supersedes": [],
+   "contradicts": [
+    "MAG SOPs/catalog/brand-registry-sop-how-to-update-brand-name.md"
+   ],
+   "observed": "2026-08",
+   "review_by": "2027-10",
+   "file": "knowledge/catalog/KC-0322_brand-name-change-on-an-existing-asin-rejected-as-rebranding.md"
   }
  ]
 }
