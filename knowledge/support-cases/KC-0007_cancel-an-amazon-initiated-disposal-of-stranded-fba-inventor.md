@@ -11,6 +11,8 @@ surface: "Seller Central > Inventory > Removal orders (removal-order detail); Fu
 surface_verified: false
 symptom_keywords: ["amazon started disposal order", "cancel disposal stranded inventory", "automated removal settings", "stop amazon destroying inventory during appeal", "disposal order while appeal pending"]
 error_text: []
+asked_as: ["The client saw that Amazon had started a disposal order for their inventory and asked whether Amazon would go through with it while their appeal was open, and how to stop it."]
+synonyms: ["Entsorgung", "disposal order", "stranded inventory"]
 resolution_status: partial
 fix_source: agency
 evidence_location: slack

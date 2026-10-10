@@ -11,6 +11,8 @@ surface: "Seller Central > Inventory > Manage All Inventory"
 surface_verified: false
 symptom_keywords: ["how the question is usually phrased", "second phrasing"]
 error_text: []
+asked_as: ["the question as a teammate typed it, first sentence"]
+synonyms: ["German or English term for the same thing", "Amazon jargon pair such as Featured Offer for Buy Box"]
 resolution_status: unknown
 fix_source: unknown
 evidence_location: none

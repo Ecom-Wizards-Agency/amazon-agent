@@ -11,6 +11,8 @@ surface: "Seller Central > Settings > Account Info > Listing status (vacation mo
 surface_verified: false
 symptom_keywords: ["FBM not selling", "how do I know FBM started", "vacation mode listings inactive", "FBM offer inactive", "3PL tracking upload FBM"]
 error_text: []
+asked_as: ["The client asked how to tell whether their FBM offer had started selling."]
+synonyms: ["Urlaubsmodus", "vacation mode", "FBM inactive"]
 resolution_status: partial
 fix_source: agency
 evidence_location: slack

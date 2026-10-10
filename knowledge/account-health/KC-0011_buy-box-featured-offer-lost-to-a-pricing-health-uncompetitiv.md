@@ -11,6 +11,8 @@ surface: "Seller Central > Pricing > Pricing Health (Featured Offer eligibility)
 surface_verified: false
 symptom_keywords: ["lost buy box no other seller", "uncompetitive price flag", "featured offer ineligible", "pricing health competitive price threshold", "buy box gone after pricing email"]
 error_text: ["uncompetitive price"]
+asked_as: ["The listing had lost the Buy Box and the client had received Amazon's pricing email."]
+synonyms: ["Buy Box verloren", "Featured Offer", "Pricing Health"]
 resolution_status: resolved
 fix_source: agency
 evidence_location: slack

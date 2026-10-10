@@ -11,6 +11,8 @@ surface: "Seller Central > Inventory > Shipments > shipment Problems tab; FBA In
 surface_verified: false
 symptom_keywords: ["inbound performance defect dispute", "labeling required defect", "barcode cannot be scanned defect", "inaccurate item quantity in box", "is the inbound defect amazon's mistake"]
 error_text: ["Barcode cannot be scanned", "Inaccurate item quantity in box", "Labeling required"]
+asked_as: ["The client asked whether three new Inbound Performance defects were Amazon's mistake or something to raise with their 3PL: 'Barcode cannot be scanned', 'Inaccurate item quantity in box' and 'Labeling "]
+synonyms: ["Wareneingangsfehler", "inbound defect", "Labeling required"]
 resolution_status: partial
 fix_source: agency
 evidence_location: slack

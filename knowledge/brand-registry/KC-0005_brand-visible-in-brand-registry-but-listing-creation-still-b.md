@@ -11,6 +11,8 @@ surface: "Brand Registry (user roles, Brand Overview); Seller Central > Add a Pr
 surface_verified: false
 symptom_keywords: ["already have a protection role", "error 5461 brand", "cannot create listing for brand in brand registry", "assign brand representative selling role", "licensed brand invite failed"]
 error_text: ["You already have a protection role", 5461, 6789]
+asked_as: ["The client was invited to a licensed brand in Brand Registry."]
+synonyms: ["Markenregistrierung", "brand approval", "error 5461"]
 resolution_status: partial
 fix_source: client
 evidence_location: case

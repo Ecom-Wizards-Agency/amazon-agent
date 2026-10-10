@@ -11,6 +11,8 @@ surface: "Seller Central > Account Health > Restricted Product Policy Violations
 surface_verified: false
 symptom_keywords: ["listing removed medical device", "can't find listing not even inactive", "510(k) required cosmetic tool", "restricted product policy violation applicator", "micro-infusion claim removed"]
 error_text: []
+asked_as: ["The client could no longer find their listing anywhere in Seller Central, not even as inactive, and asked whether they were off Amazon."]
+synonyms: ["Listing gelöscht", "listing removed medical device", "510(k)"]
 resolution_status: diagnosis-only
 fix_source: agency
 evidence_location: slack

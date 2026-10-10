@@ -37,6 +37,8 @@ KEY_ORDER = [
     "surface_verified",
     "symptom_keywords",
     "error_text",
+    "asked_as",
+    "synonyms",
     "resolution_status",
     "fix_source",
     "evidence_location",

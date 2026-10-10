@@ -96,6 +96,15 @@ def plus_twelve_months(month: str) -> str:
 # ---------------------------------------------------------------- mapping
 
 
+def _asked_as(question: object) -> list[str]:
+    """The first sentence of the question as asked, as one short phrasing."""
+    text = re.sub(r"\s+", " ", str(question or "")).strip()
+    if not text:
+        return []
+    first = re.split(r"(?<=[.?!])\s", text, maxsplit=1)[0]
+    return [first[:200]]
+
+
 def _list(value: object) -> list[str]:
     if isinstance(value, list):
         return [str(item).strip() for item in value if str(item).strip()]
@@ -168,6 +177,8 @@ def build_unit(card: dict, unit_id: str, root: Path, today: dt.date) -> tuple[di
         "surface_verified": bool(card.get("surface_verified", False)),
         "symptom_keywords": _list(card.get("symptom_keywords")),
         "error_text": _list(card.get("error_text")),
+        "asked_as": _asked_as(card.get("problem_as_asked")),
+        "synonyms": [],
         "resolution_status": card.get("resolution_status") or "unknown",
         "fix_source": card.get("fix_source") or "unknown",
         "evidence_location": card.get("evidence_location") or "none",
