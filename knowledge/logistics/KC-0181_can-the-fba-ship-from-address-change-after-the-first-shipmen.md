@@ -8,7 +8,7 @@ skills: [amazon-logistics]
 marketplaces: [US]
 marketplace_inferred: true
 surface: "Seller Central > Send to Amazon > Ship from"
-surface_verified: false
+surface_verified: true
 symptom_keywords: ["change ship from address FBA", "ship from different warehouse later", "start FBA from overseas warehouse then switch", "temporary 3PL ship from address", "ship from another address Send to Amazon"]
 error_text: []
 asked_as: ["A new seller planned to send the first FBA stock from a warehouse abroad and, a few months later, from a warehouse in the destination country, and asked whether it was acceptable to give the first war"]

@@ -8,7 +8,7 @@ skills: [amazon-logistics, amazon-fba-inventory-planning]
 marketplaces: [US]
 marketplace_inferred: true
 surface: "Settings > Fulfillment by Amazon > FBA Product Barcode Preference"
-surface_verified: false
+surface_verified: true
 symptom_keywords: ["FNSKU label needed for FBM", "barcode labels merchant fulfilled", "do I need Amazon barcode for 3PL", "FBA labels only", "3PL item identifier"]
 error_text: []
 asked_as: ["A seller asked whether item barcode labels are needed when the product ships through a 3PL as seller-fulfilled instead of FBA."]

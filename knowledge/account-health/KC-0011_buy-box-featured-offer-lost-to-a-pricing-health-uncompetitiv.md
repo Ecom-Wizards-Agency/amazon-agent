@@ -8,7 +8,7 @@ skills: [amazon-account-health-check]
 marketplaces: [US]
 marketplace_inferred: false
 surface: "Seller Central > Pricing > Pricing Health (Featured Offer eligibility); detail page Buy Box"
-surface_verified: false
+surface_verified: true
 symptom_keywords: ["lost buy box no other seller", "uncompetitive price flag", "featured offer ineligible", "pricing health competitive price threshold", "buy box gone after pricing email"]
 error_text: ["uncompetitive price"]
 asked_as: ["The listing had lost the Buy Box and the client had received Amazon's pricing email."]

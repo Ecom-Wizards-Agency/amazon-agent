@@ -8,7 +8,7 @@ skills: [amazon-logistics]
 marketplaces: [US]
 marketplace_inferred: true
 surface: "Seller Central > Send to Amazon > Print box labels"
-surface_verified: false
+surface_verified: true
 symptom_keywords: ["own label on FBA boxes", "packing list sticker on carton", "do I need to label each box FBA", "box label plus packing list"]
 error_text: []
 asked_as: ["The client wanted to put its own packing-list label on every carton of an FBA shipment and asked whether that is allowed, since it had done so before."]

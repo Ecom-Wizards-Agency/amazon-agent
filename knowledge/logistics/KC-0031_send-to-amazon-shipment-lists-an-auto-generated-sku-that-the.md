@@ -8,7 +8,7 @@ skills: [amazon-logistics, amazon-catalog]
 marketplaces: [US]
 marketplace_inferred: false
 surface: "Seller Central > Send to Amazon; Manage All Inventory"
-surface_verified: false
+surface_verified: true
 symptom_keywords: ["auto generated SKU in FBA shipment", "warehouse SKU mismatch on shipment", "wrong merchant SKU on shipment", "recreate FBA shipment with correct SKU", "cancel shipment to avoid charges"]
 error_text: []
 asked_as: ["After a shipment was created, the client operations lead saw that one product carried an Amazon-generated merchant SKU instead of the agreed SKU naming convention used in the warehouse system."]

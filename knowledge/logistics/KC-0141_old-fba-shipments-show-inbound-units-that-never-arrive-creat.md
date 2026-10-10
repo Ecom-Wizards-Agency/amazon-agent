@@ -8,7 +8,7 @@ skills: [amazon-logistics, amazon-fba-inventory-planning]
 marketplaces: [US]
 marketplace_inferred: true
 surface: "Seller Central > Inventory > Shipments; Manage Inventory inbound column"
-surface_verified: false
+surface_verified: true
 symptom_keywords: ["inbound units never arrived", "stale FBA shipment", "shipment created but not sent", "inbound inflates stock report", "cancel unsent FBA shipment"]
 error_text: []
 asked_as: ["An operator taking over logistics found older FBA shipments still counting as inbound with nothing received, and asked the supplier and the client's warehouse teams whether they had ever been sent."]

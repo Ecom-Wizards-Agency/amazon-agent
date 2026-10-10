@@ -8,7 +8,7 @@ skills: [amazon-logistics, amazon-fba-inventory-planning]
 marketplaces: [US]
 marketplace_inferred: false
 surface: "Seller Central > Send to Amazon"
-surface_verified: false
+surface_verified: true
 symptom_keywords: ["change case pack after shipment created", "units per carton changed FBA shipment", "send more or fewer units than shipment plan", "create shipment from 3PL warehouse", "redo Send to Amazon shipment"]
 error_text: []
 asked_as: ["The seller wanted to send a bridge quantity from a US third-party warehouse to FBA while the main shipment was still in transit."]

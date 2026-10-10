@@ -8,7 +8,7 @@ skills: [amazon-logistics, amazon-catalog]
 marketplaces: [AU]
 marketplace_inferred: false
 surface: "Seller Central > Orders > Manage Orders > Unshipped (seller-fulfilled)"
-surface_verified: false
+surface_verified: true
 symptom_keywords: ["FBM orders unshipped", "backup FBM SKU orders not fulfilled", "3PL not receiving merchant fulfilled orders", "FBA out of stock switch to FBM", "FBM orders missing in warehouse system"]
 error_text: []
 asked_as: ["During an FBA stockout the agency created simple FBM SKUs as a fallback."]
