@@ -8,7 +8,7 @@ skills: [amazon-catalog]
 marketplaces: [US]
 marketplace_inferred: false
 surface: "Seller Central > Account Health > Shipping performance (Valid Tracking Rate); variation family on the detail page"
-surface_verified: false
+surface_verified: true
 symptom_keywords: ["variation sizes missing", "children disappeared from variation family", "valid tracking rate deactivated FBM", "only some sizes show on listing", "VTR below 95% apparel"]
 error_text: []
 asked_as: ["The client asked why a multipack listing showed only some sizes."]

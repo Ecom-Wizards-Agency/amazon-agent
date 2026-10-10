@@ -8,7 +8,7 @@ skills: [amazon-fba-inventory-planning, amazon-logistics]
 marketplaces: [US]
 marketplace_inferred: false
 surface: "Seller Central > Inventory > Manage All Inventory; Reports > Restock Inventory"
-surface_verified: false
+surface_verified: true
 symptom_keywords: ["stock report shows fewer units than shipped", "what does stickerless mean", "where to see stock per SKU daily", "inbound units not in available", "restock report inbound transfer"]
 error_text: []
 asked_as: ["A client heard a large FBA shipment had arrived and selling had resumed, but the stock report showed only a small number of available units for the SKU, marked stickerless."]

@@ -8,7 +8,7 @@ skills: [amazon-regulated-product-appeals]
 marketplaces: [US]
 marketplace_inferred: false
 surface: "Seller Central > Account Health > Restricted Product Policy Violations; listing content (title, bullets, backend search terms, images); appeal"
-surface_verified: false
+surface_verified: true
 symptom_keywords: ["listing removed medical device", "can't find listing not even inactive", "510(k) required cosmetic tool", "restricted product policy violation applicator", "micro-infusion claim removed"]
 error_text: []
 asked_as: ["The client could no longer find their listing anywhere in Seller Central, not even as inactive, and asked whether they were off Amazon."]

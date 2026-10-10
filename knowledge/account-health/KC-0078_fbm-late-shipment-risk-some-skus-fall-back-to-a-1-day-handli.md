@@ -35,11 +35,11 @@ A brand with FBM orders asks what Amazon's late-delivery benchmark is and what '
 
 ## Answer
 
-An FBM order counts as late when it ships after the expected ship date, which comes from the offer's handling time in business days; the target is a late shipment rate of 4% or less. If some SKUs show a 1-day handling time instead of the value you set, those orders can turn late even when the warehouse ships on its normal schedule. Audit handling time on every FBM SKU, fix it by flat file or in the listing editor, and keep rechecking.
+An FBM order counts as late when it ships after the expected ship date, which comes from the offer's handling time in business days; the target is a late shipment rate of under 4%. If some SKUs show a 1-day handling time instead of the value you set, those orders can turn late even when the warehouse ships on its normal schedule. Audit handling time on every FBM SKU, fix it by flat file or in the listing editor, and keep rechecking.
 
 ## Cause
 
-Amazon's target is a late shipment rate of 4% or less. Most SKUs were set to a 4-business-day handling time, but some showed a 1-day handling time in the backend instead, so orders on those SKUs ran against a shorter ship-by promise. Why those SKUs showed 1 day was not established in the thread.
+Amazon's target is a late shipment rate of under 4%. Most SKUs were set to a 4-business-day handling time, but some showed a 1-day handling time in the backend instead, so orders on those SKUs ran against a shorter ship-by promise. Why those SKUs showed 1 day was not established in the thread.
 
 ## Fix
 

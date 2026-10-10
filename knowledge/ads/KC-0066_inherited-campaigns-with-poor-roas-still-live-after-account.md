@@ -8,7 +8,7 @@ skills: [amazon-ads-console, amazon-ppc-weekly-management, amazon-client-onboard
 marketplaces: [US]
 marketplace_inferred: true
 surface: "Amazon Ads Console > Campaign manager > Campaigns"
-surface_verified: false
+surface_verified: true
 symptom_keywords: ["old campaigns still live with bad ROAS", "should we pause all inherited campaigns", "account takeover pause campaigns", "legacy campaigns wasting money after onboarding"]
 error_text: []
 asked_as: ["Shortly after the agency took over an existing ads account, the client pointed out that many inherited campaigns were still live with very poor ROAS and expected them to be stopped."]
@@ -17,9 +17,9 @@ resolution_status: resolved
 fix_source: agency
 evidence_location: slack
 confidence: medium
-verification: unverified
-verified_on: ""
-verified_how: ""
+verification: verified
+verified_on: "2026-10-10"
+verified_how: live-ui
 amazon_sources: []
 related_sops: []
 supersedes: []
