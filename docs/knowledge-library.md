@@ -40,6 +40,8 @@ Frontmatter is a flat YAML subset that the stdlib parser in `tools/knowledge/kb_
 | `surface` | quoted UI path or tool, `surface_verified` true once seen live |
 | `symptom_keywords` | how people ask; the search helper boosts phrase hits |
 | `error_text` | verbatim Amazon notices or codes; the search helper boosts exact hits |
+| `asked_as` | the question as teammates typed it (first sentence per occurrence); the search helper boosts phrase hits like `symptom_keywords` |
+| `synonyms` | German and English terms and Amazon jargon pairs for the same thing (`Featured Offer` for Buy Box, `gesperrt` for suppressed); boosted the same way |
 | `resolution_status` | `resolved`, `partial`, `diagnosis-only`, `unknown` |
 | `fix_source` | `agency`, `client`, `amazon-support`, `first-party-doc`, `unknown` |
 | `evidence_location` | `slack`, `screenshot`, `call`, `email`, `case`, `video`, `run-note`, `none` |

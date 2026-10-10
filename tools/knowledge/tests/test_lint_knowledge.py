@@ -32,6 +32,8 @@ def unit_mapping(unit_id: str = "KC-0001", topic: str = "catalog", **extra: obje
         "surface_verified": False,
         "symptom_keywords": ["listing suppressed"],
         "error_text": [],
+        "asked_as": [],
+        "synonyms": [],
         "resolution_status": "resolved",
         "fix_source": "agency",
         "evidence_location": "slack",

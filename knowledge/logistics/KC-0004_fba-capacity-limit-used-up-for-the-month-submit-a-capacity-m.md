@@ -11,6 +11,8 @@ surface: "Seller Central > Inventory > Shipments > Capacity Monitor > Capacity M
 surface_verified: false
 symptom_keywords: ["FBA capacity limit reached", "capacity manager request", "capacity bid reservation fee", "no capacity to send to FBA", "AWD instead of FBA capacity"]
 error_text: []
+asked_as: ["The client's operations team needed to send a new multipack SKU from a 3PL into FBA but had already used the month's FBA capacity."]
+synonyms: ["Kapazitätslimit", "capacity limit", "AWD"]
 resolution_status: resolved
 fix_source: client
 evidence_location: slack

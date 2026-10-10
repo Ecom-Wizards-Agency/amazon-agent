@@ -11,6 +11,8 @@ surface: "Amazon Ads Console > Sponsored Products campaign delivery; Amazon Ads 
 surface_verified: false
 symptom_keywords: ["campaigns stopped getting impressions", "ad spend dropped overnight", "sponsored products not delivering", "impressions dropped suddenly", "duplicate campaign fixes delivery"]
 error_text: []
+asked_as: ["The client saw daily ad spend fall to a fraction of its usual level overnight."]
+synonyms: ["keine Impressionen", "no impressions", "ads stopped delivering"]
 resolution_status: partial
 fix_source: agency
 evidence_location: slack

@@ -6,7 +6,8 @@ the Amazon Seller Help, Amazon Ads Help and Advertising Help After Login
 captures, and AdLabs Help. `--library all` searches every one of them.
 
 Knowledge units get boosts from their frontmatter: a query phrase inside a
-symptom keyword, every query term across the symptom keywords, an error text
+symptom keyword, an `asked_as` phrasing or a synonym, every query term across
+those lists, an error text
 hit and a verified unit. An error text hits when one query term equals a whole
 entry (a code such as FBA_INB_0008), or when the normalised query equals the
 entry's tokens or, with two or more terms, sits inside them (a pasted notice
@@ -155,7 +156,7 @@ def knowledge_boost(meta: dict, terms: list[str]) -> int:
     """Extra score for a unit whose symptoms, error text or verification match."""
     boost = 0
     phrase = " ".join(terms)
-    keywords = [k.lower() for k in _as_list(meta.get("symptom_keywords"))]
+    keywords = [k.lower() for k in _as_list(meta.get("symptom_keywords")) + _as_list(meta.get("asked_as")) + _as_list(meta.get("synonyms"))]
     if keywords:
         if any(phrase in k for k in keywords):
             boost += 60

@@ -11,6 +11,8 @@ surface: "Seller Central > FBA Compliance Dashboard (dangerous goods classificat
 surface_verified: false
 symptom_keywords: ["hazmat review battery kit", "FBA_INB_0008 batteries", "SDS brand does not match detail page", "battery exemption sheet upload", "cannot send battery product to FBA"]
 error_text: [FBA_INB_0008, "Additional information about the batteries is required in order to complete the Hazmat review process.", "The product brand in the SDS on file does not match the product brand on the detail page", FBA_INB_0181]
+asked_as: ["A new battery-powered beauty device sold as a kit with a cosmetic liquid could not be sent to FBA."]
+synonyms: ["Gefahrgut", "dangerous goods review", "hazmat"]
 resolution_status: resolved
 fix_source: amazon-support
 evidence_location: slack

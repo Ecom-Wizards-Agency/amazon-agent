@@ -11,6 +11,8 @@ surface: "Amazon Ads Console > Sponsored Brands > product collection creative"
 surface_verified: false
 symptom_keywords: ["competitor product in my sponsored brands ad", "wrong ASIN in product collection", "other brand shown in SB ad", "sponsored brands creative shows competitor"]
 error_text: []
+asked_as: ["The client saw another brand's product shown next to their own products in their Sponsored Brands Product Collection ad on the first results page, and asked whether a competitor ASIN had been added to"]
+synonyms: ["Konkurrenzprodukt in Anzeige", "Sponsored Brands product collection", "wrong ASIN in ad"]
 resolution_status: resolved
 fix_source: agency
 evidence_location: slack

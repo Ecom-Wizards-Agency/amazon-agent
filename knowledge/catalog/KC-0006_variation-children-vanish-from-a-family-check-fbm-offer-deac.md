@@ -11,6 +11,8 @@ surface: "Seller Central > Account Health > Shipping performance (Valid Tracking
 surface_verified: false
 symptom_keywords: ["variation sizes missing", "children disappeared from variation family", "valid tracking rate deactivated FBM", "only some sizes show on listing", "VTR below 95% apparel"]
 error_text: []
+asked_as: ["The client asked why a multipack listing showed only some sizes."]
+synonyms: ["Varianten fehlen", "child ASINs missing", "VTR deactivation"]
 resolution_status: diagnosis-only
 fix_source: agency
 evidence_location: slack

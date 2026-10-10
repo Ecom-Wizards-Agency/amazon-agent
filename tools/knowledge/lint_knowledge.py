@@ -70,6 +70,8 @@ LIST_KEYS = {
     "marketplaces",
     "symptom_keywords",
     "error_text",
+    "asked_as",
+    "synonyms",
     "amazon_sources",
     "related_sops",
     "supersedes",

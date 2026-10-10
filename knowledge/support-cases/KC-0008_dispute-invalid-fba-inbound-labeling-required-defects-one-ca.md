@@ -11,6 +11,8 @@ surface: "Seller Central > FBA > Inbound Performance dashboard; Seller Support c
 surface_verified: false
 symptom_keywords: ["labeling required inbound defect", "dispute inbound performance defect", "escalate to SAS issue assistance", "manufacturer barcode flagged labeling", "relabeling fee dispute"]
 error_text: ["Labeling required"]
+asked_as: ["The client saw several inbound shipments flagged with 'Labeling required' defects on the Inbound Performance dashboard and asked what happens to unlabelled units, whether Amazon can be pushed for an a"]
+synonyms: ["Labeling required", "Inbound Performance", "SAS"]
 resolution_status: resolved
 fix_source: agency
 evidence_location: case
