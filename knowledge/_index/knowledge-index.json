@@ -196,9 +196,7 @@
    "amazon_sources": [
     "Amazon Seller Help/articles/067-maximizing-delivery-speed-GA8NP4NDZZ3EJRU5.md"
    ],
-   "related_sops": [
-    "MAG SOPs/catalog/catalog-sop-fba-storage-capacity-limits.md"
-   ],
+   "related_sops": [],
    "supersedes": [],
    "contradicts": [],
    "observed": "2026-09",
@@ -1218,7 +1216,6 @@
     "Amazon Seller Help/articles/067-maximizing-delivery-speed-GA8NP4NDZZ3EJRU5.md"
    ],
    "related_sops": [
-    "MAG SOPs/catalog/catalog-sop-fba-storage-capacity-limits.md",
     "MAG SOPs/catalog/catalog-sop-fba-removal-order.md"
    ],
    "supersedes": [],
@@ -1350,7 +1347,6 @@
     "Amazon Seller Help/articles/067-maximizing-delivery-speed-GA8NP4NDZZ3EJRU5.md"
    ],
    "related_sops": [
-    "MAG SOPs/catalog/factors-that-affect-a-seller-s-chance-to-win-the-buy-box.md",
     "MAG SOPs/catalog/catalog-sop-creating-multiple-offers-mfn-fba-for-an-asin.md"
    ],
    "supersedes": [],
@@ -1436,9 +1432,7 @@
    "amazon_sources": [
     "Amazon Seller Help/articles/067-maximizing-delivery-speed-GA8NP4NDZZ3EJRU5.md"
    ],
-   "related_sops": [
-    "MAG SOPs/catalog/catalog-sop-fba-storage-capacity-limits.md"
-   ],
+   "related_sops": [],
    "supersedes": [],
    "contradicts": [],
    "observed": "2024-08",
@@ -1697,8 +1691,7 @@
    "verified_on": "",
    "amazon_sources": [],
    "related_sops": [
-    "MAG SOPs/catalog/catalog-sop-creating-multiple-offers-mfn-fba-for-an-asin.md",
-    "MAG SOPs/catalog/factors-that-affect-a-seller-s-chance-to-win-the-buy-box.md"
+    "MAG SOPs/catalog/catalog-sop-creating-multiple-offers-mfn-fba-for-an-asin.md"
    ],
    "supersedes": [],
    "contradicts": [],
@@ -1956,7 +1949,6 @@
     "Amazon Seller Help/articles/137-featured-offer-G37911.md"
    ],
    "related_sops": [
-    "MAG SOPs/catalog/factors-that-affect-a-seller-s-chance-to-win-the-buy-box.md",
     "MAG SOPs/catalog/catalog-sop-creating-multiple-offers-mfn-fba-for-an-asin.md"
    ],
    "supersedes": [],

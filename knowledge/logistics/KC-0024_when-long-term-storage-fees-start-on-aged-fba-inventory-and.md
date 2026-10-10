@@ -66,4 +66,4 @@ Stop before any submission, appeal, case send, refund, price change or listing c
 ## Gaps
 
 - Net new versus existing sources: Sources name the fee and its reports but not the 15th-of-month timing after 181 days or the cubic-foot bucket projection a seller can run ahead of time.
-- Existing coverage: full (`Amazon Seller Help/articles/063-fba-features-services-and-fees-G201074400.md`, `MAG SOPs/catalog/catalog-sop-fba-storage-capacity-limits.md`).
+- Existing coverage: full (`Amazon Seller Help/articles/063-fba-features-services-and-fees-G201074400.md`, a MAG SOP removed on 10.10.2026).

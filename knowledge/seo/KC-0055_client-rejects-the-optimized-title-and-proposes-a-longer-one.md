@@ -67,4 +67,4 @@ Stop before any submission, appeal, case send, refund, price change or listing c
 ## Gaps
 
 - Net new versus existing sources: Adds a method for settling client title disputes with a Ranking Juice comparison plus the 75-character rule.
-- Existing coverage: full (`Amazon Seller Help/articles/150-product-title-requirements-and-guidelines-GYTR6SYGFA5E3EQC.md`, `MAG SOPs/catalog/catalog-sop-how-to-download-an-all-listings-report.md`, `Advertising Help After Login/articles/172-create-a-sponsored-brands-campaign-GF86HBCNDJUAC5WN.md`, `MAG SOPs/catalog/catalog-sop-how-to-fix-pesticide-yanks-and-gating.md`, `MAG SOPs/amazon-advertising/advertising-sop-prime-day-advertising-actions.md`).
+- Existing coverage: full (`Amazon Seller Help/articles/150-product-title-requirements-and-guidelines-GYTR6SYGFA5E3EQC.md`, a MAG SOP removed on 10.10.2026, `Advertising Help After Login/articles/172-create-a-sponsored-brands-campaign-GF86HBCNDJUAC5WN.md`, `MAG SOPs/catalog/catalog-sop-how-to-fix-pesticide-yanks-and-gating.md`, a MAG SOP removed on 10.10.2026).
