@@ -137,10 +137,10 @@ Per-screen checkpoints: `docs/browser-checkpoints.md`. Per-workflow browser rout
 
 ## Local Libraries
 
-Search narrowly before answering or operating. The libraries are `knowledge`, `Amazon Seller Help`, `Amazon Ads Help`, `Advertising Help After Login`, `MAG SOPs` and `sop-drafts`; purposes, coverage and search order are in `docs/amazon-library-map.md`. Search a symptom, error text or how-do-we question in `knowledge/` first (alias `kb`), then first-party help, then MAG SOPs; answers carry the unit's verification label. Each has a `README.md` and an `_index/`; without a matching skill start there or with the search helper, and never crawl or grep whole SOP/help folders. Search helper (`--library kb|ads|seller|all`):
+Search narrowly before answering or operating. The libraries are `knowledge`, `Amazon Seller Help`, `Amazon Ads Help`, `Advertising Help After Login`, `MAG SOPs` and `sop-drafts`; purposes, coverage and search order are in `docs/amazon-library-map.md`. Search a symptom, error text or how-do-we question in `knowledge/` first (alias `kb`), then first-party help, then MAG SOPs; answers carry the unit's verification label. Each has a `README.md` and an `_index/`; without a matching skill start with the entry point below, and never crawl or grep whole SOP/help folders. It ranks units, our skills, first-party help, drafts and MAG SOPs in that order:
 
 ```bash
-python3 "tools/search_amazon_libraries.py" "account health violation" --library seller --limit 8
+python3 tools/knowledge/ask.py "account health violation"
 ```
 
 ## SOP Drafts And MAG SOP Visual Archive
