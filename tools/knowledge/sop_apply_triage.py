@@ -7,7 +7,9 @@ Modes (exactly one):
   --apply --approved-by NAME    git rm drop rows, git mv merge rows into
                                 MAG SOPs/_archive/<category-folder>/, set index
                                 status fields, then slim the index and
-                                regenerate the README through slim_sop_index
+                                regenerate the README through slim_sop_index,
+                                and strip paths of removed or archived files from
+                                the knowledge units and sweep cards (strip_dead_paths)
 
 Status values written to the index: keep -> active, update -> needs-update,
 supersede -> superseded, merge -> merged. Drop rows lose their index entry when
@@ -30,6 +32,7 @@ sys.path.insert(0, str(HERE.parent))
 
 import slim_sop_index  # noqa: E402
 import sop_triage  # noqa: E402
+import strip_dead_paths  # noqa: E402
 
 SOP_DIRNAME = sop_triage.SOP_DIRNAME
 STATUS_BY_VERDICT = {
@@ -255,6 +258,9 @@ def main(argv: list[str] | None = None) -> int:
             print(f"missing target: {item}")
         print("index statuses written but slimming and README regeneration stopped")
         return 1
+
+    if dropped or merged_moves:
+        print(strip_dead_paths.summary(strip_dead_paths.run(root=root, date=args.date)))
 
     for f in unmatched:
         print(f"warning: no index entry for {f}")
