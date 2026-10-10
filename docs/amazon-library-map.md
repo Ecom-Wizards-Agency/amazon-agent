@@ -19,10 +19,11 @@ Strict rule: every unit is anonymised and labelled. No client, brand, product, p
 Search:
 
 ```bash
+python3 tools/knowledge/ask.py "<question or exact error text>"
 python3 tools/search_amazon_libraries.py "<exact error text or symptom>" --library kb --limit 5
 ```
 
-`--library knowledge` is the same search; `--library all` ranks units together with the captures.
+`ask.py` is the one entry point for a question: one search over every library, hits grouped by authority (units, our skills, first-party help, drafts, MAG SOPs last and labelled with status and site revision), and a short guidance block naming the answer, the procedure, the rule page and the external fallback. `search_amazon_libraries.py` is the raw search; `--library knowledge` is the same as `kb`, `--library all` ranks units together with the captures.
 
 ## MAG SOPs
 
@@ -116,7 +117,7 @@ Symptom, error text or how-do-we question:
 3. MAG SOPs
 4. SOP Drafts
 
-State the unit's verification label in the answer. When a unit and a first-party page disagree, follow the authority order in `docs/knowledge-library.md` and do not resolve it silently.
+`python3 tools/knowledge/ask.py "<question>"` applies this order automatically, with our skills ranked above first-party help and MAG SOPs last. State the unit's verification label in the answer. When a unit and a first-party page disagree, follow the authority order in `docs/knowledge-library.md` and do not resolve it silently.
 
 Seller Central task:
 
