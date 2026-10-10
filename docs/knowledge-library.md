@@ -46,7 +46,7 @@ Frontmatter is a flat YAML subset that the stdlib parser in `tools/knowledge/kb_
 | `confidence` | `high`: a first-party rule in a cited local capture backs the answer, or the fix was confirmed on two or more occasions; `medium`: one thread plus a partial first-party or MAG SOP match for the mechanism; `low`: a single thread with no supporting source, or an answer that lives in a call, screenshot or email |
 | `verification` | `unverified` or `verified`; then `verified_on` `YYYY-MM-DD` and `verified_how` `live-ui`, `first-party-capture` or `operator` |
 | `amazon_sources` | repo paths of local first-party captures; must exist |
-| `related_sops` | repo paths of MAG SOPs or drafts that cover part of it; must exist. When a SOP is dropped, `tools/knowledge/sop_apply_triage.py --apply` strips its path from units and sweep cards through `tools/knowledge/strip_dead_paths.py` and rebuilds the index |
+| `related_sops` | repo paths of MAG SOPs or drafts that cover part of it; must exist. When a SOP is dropped or archived, `tools/knowledge/sop_apply_triage.py --apply` strips every path that no longer exists from units and sweep cards through `tools/knowledge/strip_dead_paths.py` and rebuilds the index |
 | `supersedes` | repo paths this unit replaces (the SOP index marks them `superseded`) |
 | `contradicts` | repo paths whose statement this unit contradicts; stays until a human resolves it |
 | `observed` | `YYYY-MM` first seen; `review_by` `YYYY-MM`, the month the unit was created plus 12 months |

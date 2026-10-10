@@ -9,8 +9,10 @@ run() after its removals; the CLI exists for a manual pass.
 
 Units: the `related_sops` list loses paths that no longer exist, and a body line
 `- Also in: ...` that cites only removed pages is deleted (a mixed line keeps
-the live citations and names the removed one as dropped). Cards: the four path
-list fields lose dead paths and `verifier_notes` records which. The knowledge
+the live citations and names the removed one as removed; code fences are left
+alone and `#anchor` suffixes are ignored). Cards under cards/candidate: the four
+path list fields lose dead paths and `verifier_notes` records which. Every dead
+path goes, not only the files of the current run. The knowledge
 index and README are rebuilt when a unit changed.
 """
 from __future__ import annotations
@@ -29,7 +31,8 @@ import kb_frontmatter  # noqa: E402
 
 WORKSPACE_ROOT = HERE.parents[1]
 CARD_PATH_FIELDS = ("first_party_source_paths", "related_sop_paths", "coverage_paths", "contradicts_paths")
-BACKTICK_PATH = re.compile(r"`((?:MAG SOPs|Amazon Seller Help|Amazon Ads Help|Advertising Help After Login|knowledge|skills|docs)/[^`]+)`")
+BACKTICK_PATH = re.compile(r"`((?:MAG SOPs|sop-drafts|Amazon Seller Help|Amazon Ads Help|Advertising Help After Login|AdLabs Help|knowledge|skills|docs)/[^`#]+)(?:#[^`]*)?`")
+LABELS = (("MAG SOPs/", "a MAG SOP"), ("sop-drafts/", "a SOP draft"), ("knowledge/", "a knowledge unit"), ("skills/", "a skill reference"), ("docs/", "a repo doc"))
 
 
 def _ddmmyyyy(date: str) -> str:
@@ -40,7 +43,14 @@ def _ddmmyyyy(date: str) -> str:
 
 
 def _exists(root: Path, rel: str) -> bool:
-    return (root / rel).exists()
+    return (root / rel.split("#", 1)[0]).exists()
+
+
+def _label(rel: str) -> str:
+    for prefix, label in LABELS:
+        if rel.startswith(prefix):
+            return label
+    return "a help capture"
 
 
 def strip_units(root: Path, date: str, dry_run: bool) -> list[dict]:
@@ -59,8 +69,11 @@ def strip_units(root: Path, date: str, dry_run: bool) -> list[dict]:
         body_lines = body.split("\n")
         new_body: list[str] = []
         body_removed: list[str] = []
+        in_fence = False
         for line in body_lines:
-            cited = BACKTICK_PATH.findall(line)
+            if line.lstrip().startswith("```"):
+                in_fence = not in_fence
+            cited = [] if in_fence else BACKTICK_PATH.findall(line)
             dead = [c for c in cited if not _exists(root, c)]
             if not dead:
                 new_body.append(line)
@@ -69,7 +82,7 @@ def strip_units(root: Path, date: str, dry_run: bool) -> list[dict]:
             if line.lstrip().startswith("- Also in:") and len(dead) == len(cited):
                 continue
             for c in dead:
-                line = line.replace(f"`{c}`", f"a MAG SOP dropped on {_ddmmyyyy(date)}")
+                line = re.sub(rf"`{re.escape(c)}(?:#[^`]*)?`", f"{_label(c)} removed on {_ddmmyyyy(date)}", line)
             new_body.append(line)
         if not removed and not body_removed:
             continue
@@ -102,7 +115,10 @@ def strip_cards(root: Path, store: Path, date: str, dry_run: bool) -> list[dict]
             continue
         names = ", ".join(sorted({Path(p).name for gone in removed.values() for p in gone}))
         note = f" [paths of repo files removed on {_ddmmyyyy(date)} stripped: {names}]"
-        card["verifier_notes"] = (card.get("verifier_notes") or "") + note
+        previous = card.get("verifier_notes")
+        if isinstance(previous, list):
+            previous = "; ".join(str(x) for x in previous)
+        card["verifier_notes"] = (str(previous) if previous not in (None, "") else "") + note
         changes.append({"file": str(path), "removed": removed})
         if not dry_run:
             path.write_text(json.dumps(card, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
@@ -114,6 +130,8 @@ def rebuild_index(root: Path) -> bool:
     if not builder.exists():
         return False
     result = subprocess.run([sys.executable, str(builder), "--readme"], cwd=root, capture_output=True, text=True)
+    if result.returncode != 0:
+        print(f"knowledge index rebuild failed: {result.stderr.strip()[-300:]}", file=sys.stderr)
     return result.returncode == 0
 
 

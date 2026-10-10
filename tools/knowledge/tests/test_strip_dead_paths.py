@@ -72,7 +72,7 @@ class StripDeadPathsCase(unittest.TestCase):
         self.assertIsNone(error)
         self.assertEqual(mapping["related_sops"], [LIVE])
         self.assertNotIn(f"- Also in: `{DEAD}`\n", body)
-        self.assertIn(f"- Also in: `{LIVE}` and a MAG SOP dropped on 08.10.2026", body)
+        self.assertIn(f"- Also in: `{LIVE}` and a MAG SOP removed on 08.10.2026", body)
         self.assertIn(f"`{HELP}`", body)
         card = json.loads(self.card.read_text(encoding="utf-8"))
         self.assertEqual(card["coverage_paths"], [LIVE])
@@ -80,6 +80,19 @@ class StripDeadPathsCase(unittest.TestCase):
         self.assertEqual(card["first_party_source_paths"], [HELP])
         self.assertIn("dropped-page.md", card["verifier_notes"])
         self.assertFalse(result["index_rebuilt"])
+
+    def test_list_notes_anchor_and_code_fence(self) -> None:
+        card = json.loads(self.card.read_text(encoding="utf-8"))
+        card["verifier_notes"] = ["first note", "second note"]
+        self.card.write_text(json.dumps(card), encoding="utf-8")
+        self.unit.write_text(UNIT + f"\n- See `{DEAD}#step-3` for the old wording.\n\n```\n`{DEAD}` inside a fence stays\n```\n", encoding="utf-8")
+        result = sdp.run(self.root, "2026-10-08", dry_run=False, store=self.store)
+        card = json.loads(self.card.read_text(encoding="utf-8"))
+        self.assertTrue(card["verifier_notes"].startswith("first note; second note"))
+        text = self.unit.read_text(encoding="utf-8")
+        self.assertIn("- See a MAG SOP removed on 08.10.2026 for the old wording.", text)
+        self.assertIn(f"`{DEAD}` inside a fence stays", text)
+        self.assertEqual(result["unit_paths_removed"], 4)
 
     def test_nothing_to_strip_is_a_no_op(self) -> None:
         sdp.run(self.root, "2026-10-08", dry_run=False, store=self.store)
