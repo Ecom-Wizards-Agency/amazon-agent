@@ -8,7 +8,7 @@ skills: [amazon-logistics, amazon-fba-inventory-planning]
 marketplaces: [all]
 marketplace_inferred: true
 surface: "Seller Central > Manage All Inventory"
-surface_verified: false
+surface_verified: true
 symptom_keywords: ["FBM orders despite FBA stock", "merchant fulfilled offer winning Buy Box over FBA", "stop FBM offer selling", "make FBM out of stock", "FBM and FBA offer on same ASIN"]
 error_text: []
 asked_as: ["The client noticed seller-fulfilled orders on an ASIN that had a high FBA stock level and asked why the FBM offer was selling; on another product the client asked to make the FBM offer and every bundl"]

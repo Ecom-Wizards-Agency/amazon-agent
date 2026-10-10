@@ -8,7 +8,7 @@ skills: [amazon-account-health-check]
 marketplaces: [US]
 marketplace_inferred: true
 surface: "Seller Central > Performance > Account Health > Shipping Performance"
-surface_verified: false
+surface_verified: true
 symptom_keywords: ["where to see FBM shipping performance", "late shipment rate dashboard", "FBM cancellation rate where", "shipping performance page seller central", "monitor merchant fulfilled delivery metrics"]
 error_text: []
 asked_as: ["A seller asked where in Seller Central they can monitor shipping performance for seller-fulfilled orders."]
@@ -46,7 +46,7 @@ Not a fault. Seller-fulfilled shipping metrics sit on the Shipping Performance d
 1. Open Seller Central > Performance > Account Health.
 2. In the Shipping Performance section, open the detail view on the late shipment rate tab.
 3. Review late shipment rate, pre-fulfillment cancel rate and the tracking metrics, and the defective orders listed under each.
-4. Compare each rate against its target; the late shipment rate target in the MAG SOP is 4% or lower over 10 and 30 days.
+4. Compare each rate against its target; the late shipment rate target in the MAG SOP is under 4% over 10 and 30 days.
 
 ## Verify
 
