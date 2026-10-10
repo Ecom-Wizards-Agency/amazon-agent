@@ -17,9 +17,9 @@ resolution_status: resolved
 fix_source: agency
 evidence_location: slack
 confidence: medium
-verification: unverified
-verified_on: ""
-verified_how: ""
+verification: verified
+verified_on: "2026-10-10"
+verified_how: first-party-capture
 amazon_sources: ["Advertising Help After Login/articles/019-copy-a-campaign-GPFGH67KMNLQ5TKU.md", "Advertising Help After Login/articles/193-understand-ad-groups-GKPA6T8WW3AYKV4Q.md"]
 related_sops: []
 supersedes: []
@@ -35,7 +35,7 @@ An ads lead saw in the console that a set of new campaigns advertised every vari
 
 ## Answer
 
-When you copy a campaign, Amazon copies its ad groups, keywords and bids along with the settings and leaves out only archived ad groups, targets and advertised products, so every non-archived ad group from the original reappears in the copy. Before enabling the copy, check each ad group and advertised product against the plan and pause whatever it should not advertise. If only one variation should be pushed, keep only that variation's ad group enabled.
+A copy carries over the campaign name, dates, budget, keywords, bids and ad groups; it leaves out ineligible ASINs, archived ad groups, archived targets and archived advertised products, and budget rules and performance history are not carried over (Amazon's copy-a-campaign page). Before enabling the copy, check each ad group and advertised product against the plan and pause whatever it should not advertise. If only one variation should be pushed, keep only that variation's ad group enabled.
 
 ## Cause
 
