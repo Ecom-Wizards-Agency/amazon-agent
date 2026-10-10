@@ -17,9 +17,9 @@ resolution_status: resolved
 fix_source: client
 evidence_location: slack
 confidence: high
-verification: unverified
-verified_on: ""
-verified_how: ""
+verification: verified
+verified_on: "2026-10-10"
+verified_how: first-party-capture
 amazon_sources: ["Advertising Help After Login/articles/099-resolve-a-payment-failure-G2SQRLBPB8TY587E.md", "Advertising Help After Login/articles/091-add-a-backup-payment-method-GPGZ28EK9WM4LZ2E.md"]
 related_sops: []
 supersedes: []

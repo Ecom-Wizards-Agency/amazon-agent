@@ -17,9 +17,9 @@ resolution_status: partial
 fix_source: agency
 evidence_location: slack
 confidence: medium
-verification: unverified
-verified_on: ""
-verified_how: ""
+verification: verified
+verified_on: "2026-10-10"
+verified_how: first-party-capture
 amazon_sources: ["Amazon Seller Help/articles/233-report-a-violation-error-messages-GMSR9C4BP3GYR673.md", "Amazon Seller Help/articles/224-report-intellectual-property-infringements-G202132860.md"]
 related_sops: ["MAG SOPs/catalog/catalog-sop-how-to-fix-trademark-tm-infringement-yank.md"]
 supersedes: []

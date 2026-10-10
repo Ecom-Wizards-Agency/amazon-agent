@@ -17,9 +17,9 @@ resolution_status: resolved
 fix_source: agency
 evidence_location: case
 confidence: medium
-verification: unverified
-verified_on: ""
-verified_how: ""
+verification: verified
+verified_on: "2026-10-10"
+verified_how: first-party-capture
 amazon_sources: ["Amazon Seller Help/articles/143-product-detail-page-rules-G200390640.md"]
 related_sops: ["MAG SOPs/catalog/catalog-sop-how-to-request-gtin-exemption.md"]
 supersedes: []

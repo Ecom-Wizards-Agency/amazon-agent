@@ -17,9 +17,9 @@ resolution_status: resolved
 fix_source: agency
 evidence_location: slack
 confidence: medium
-verification: unverified
-verified_on: ""
-verified_how: ""
+verification: verified
+verified_on: "2026-10-10"
+verified_how: first-party-capture
 amazon_sources: ["Advertising Help After Login/articles/059-add-negative-keywords-or-negative-products-GTEHPEG5BXY9UX5W.md", "Advertising Help After Login/articles/056-understand-keyword-match-types-GHTRFDZRJPW6764R.md"]
 related_sops: []
 supersedes: []

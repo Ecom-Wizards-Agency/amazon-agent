@@ -17,9 +17,9 @@ resolution_status: resolved
 fix_source: agency
 evidence_location: screenshot
 confidence: high
-verification: unverified
-verified_on: ""
-verified_how: ""
+verification: verified
+verified_on: "2026-10-10"
+verified_how: first-party-capture
 amazon_sources: ["Amazon Seller Help/articles/150-product-title-requirements-and-guidelines-GYTR6SYGFA5E3EQC.md"]
 related_sops: ["MAG SOPs/catalog/catalog-sop-parentage-creation.md"]
 supersedes: []

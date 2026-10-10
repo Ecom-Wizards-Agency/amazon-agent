@@ -17,9 +17,9 @@ resolution_status: resolved
 fix_source: agency
 evidence_location: slack
 confidence: high
-verification: unverified
-verified_on: ""
-verified_how: ""
+verification: verified
+verified_on: "2026-10-10"
+verified_how: first-party-capture
 amazon_sources: ["Amazon Seller Help/articles/221-brand-registry-selling-roles-GJ84K745AL3R5N3Q.md", "Amazon Seller Help/articles/220-brand-registry-protection-roles-GCF9UE9VGKGA2W5F.md"]
 related_sops: []
 supersedes: []

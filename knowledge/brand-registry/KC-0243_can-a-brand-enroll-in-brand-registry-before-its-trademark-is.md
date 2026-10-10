@@ -17,9 +17,9 @@ resolution_status: partial
 fix_source: first-party-doc
 evidence_location: call
 confidence: high
-verification: unverified
-verified_on: ""
-verified_how: ""
+verification: verified
+verified_on: "2026-10-10"
+verified_how: first-party-capture
 amazon_sources: ["Amazon Seller Help/articles/022-amazon-brand-registry-G202130410.md", "Amazon Seller Help/articles/216-manage-brand-registry-application-issues-GJPGY8BRDAQUQV4V.md", "Amazon Seller Help/articles/215-brand-registry-application-step-by-step-guide-GRWHD3TXWAVKUT86.md", "Amazon Seller Help/articles/213-country-specific-trademark-information-GHUDSVJLN4U9WY8Z.md"]
 related_sops: []
 supersedes: []

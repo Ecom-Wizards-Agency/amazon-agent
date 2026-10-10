@@ -17,9 +17,9 @@ resolution_status: diagnosis-only
 fix_source: agency
 evidence_location: slack
 confidence: medium
-verification: unverified
-verified_on: ""
-verified_how: ""
+verification: verified
+verified_on: "2026-10-10"
+verified_how: first-party-capture
 amazon_sources: ["Amazon Seller Help/articles/143-product-detail-page-rules-G200390640.md", "Amazon Seller Help/articles/223-register-products-to-your-brand-G6DU75NSM86VXKZC.md"]
 related_sops: ["MAG SOPs/catalog/brand-registry-sop-how-to-update-brand-name.md"]
 supersedes: []

@@ -17,9 +17,9 @@ resolution_status: resolved
 fix_source: client
 evidence_location: slack
 confidence: medium
-verification: unverified
-verified_on: ""
-verified_how: ""
+verification: verified
+verified_on: "2026-10-10"
+verified_how: first-party-capture
 amazon_sources: ["Advertising Help After Login/articles/172-create-a-sponsored-brands-campaign-GF86HBCNDJUAC5WN.md", "Advertising Help After Login/articles/035-sponsored-brands-GGWFYHL27MFXLHS6.md"]
 related_sops: []
 supersedes: []
