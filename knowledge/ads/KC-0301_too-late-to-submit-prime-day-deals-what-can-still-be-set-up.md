@@ -17,9 +17,9 @@ resolution_status: resolved
 fix_source: agency
 evidence_location: slack
 confidence: medium
-verification: unverified
-verified_on: ""
-verified_how: ""
+verification: verified
+verified_on: "2026-10-10"
+verified_how: first-party-capture
 amazon_sources: ["Amazon Seller Help/articles/059-prime-day-readiness-playbook-GM2ADTH3XH3A5N57.md", "Amazon Seller Help/articles/090-price-discounts-G7F8CQ4EJ5YA4272.md", "Advertising Help After Login/articles/054-understand-remarketing-audience-segments-G82GQS569JWSVNRB.md"]
 related_sops: ["MAG SOPs/catalog/catalog-sop-how-to-create-deals-lightning-and-best.md"]
 supersedes: []

@@ -17,9 +17,9 @@ resolution_status: partial
 fix_source: first-party-doc
 evidence_location: slack
 confidence: high
-verification: unverified
-verified_on: ""
-verified_how: ""
+verification: verified
+verified_on: "2026-10-10"
+verified_how: first-party-capture
 amazon_sources: ["Amazon Seller Help/articles/214-brand-registry-application-process-GN2GYQVPR7R4VMPB.md", "Amazon Seller Help/articles/215-brand-registry-application-step-by-step-guide-GRWHD3TXWAVKUT86.md", "Amazon Seller Help/articles/227-add-additional-trademarks-to-your-brand-GQCYJTBSFZK8HGN6.md"]
 related_sops: []
 supersedes: []

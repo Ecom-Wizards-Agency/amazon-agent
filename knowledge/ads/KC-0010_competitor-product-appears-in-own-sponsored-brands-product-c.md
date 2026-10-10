@@ -17,9 +17,9 @@ resolution_status: resolved
 fix_source: agency
 evidence_location: slack
 confidence: low
-verification: unverified
-verified_on: ""
-verified_how: ""
+verification: verified
+verified_on: "2026-10-10"
+verified_how: first-party-capture
 amazon_sources: ["Advertising Help After Login/articles/035-sponsored-brands-GGWFYHL27MFXLHS6.md", "Advertising Help After Login/articles/048-ads-content-moderation-GXZXZ78UXL2AEBQ9.md", "Advertising Help After Login/articles/020-edit-a-campaign-GW73Q54RZZCMPYYV.md"]
 related_sops: []
 supersedes: []

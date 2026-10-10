@@ -17,9 +17,9 @@ resolution_status: partial
 fix_source: agency
 evidence_location: screenshot
 confidence: medium
-verification: unverified
-verified_on: ""
-verified_how: ""
+verification: verified
+verified_on: "2026-10-10"
+verified_how: first-party-capture
 amazon_sources: ["Amazon Seller Help/articles/022-amazon-brand-registry-G202130410.md", "Amazon Seller Help/articles/214-brand-registry-application-process-GN2GYQVPR7R4VMPB.md", "Amazon Seller Help/articles/212-brand-registry-glossary-GBR82EG272SZJDFS.md"]
 related_sops: []
 supersedes: []

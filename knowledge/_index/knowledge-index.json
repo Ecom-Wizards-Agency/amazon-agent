@@ -469,8 +469,8 @@
    "fix_source": "agency",
    "evidence_location": "slack",
    "confidence": "low",
-   "verification": "unverified",
-   "verified_on": "",
+   "verification": "verified",
+   "verified_on": "2026-10-10",
    "amazon_sources": [
     "Advertising Help After Login/articles/035-sponsored-brands-GGWFYHL27MFXLHS6.md",
     "Advertising Help After Login/articles/048-ads-content-moderation-GXZXZ78UXL2AEBQ9.md",
@@ -1038,8 +1038,8 @@
    "fix_source": "agency",
    "evidence_location": "slack",
    "confidence": "high",
-   "verification": "unverified",
-   "verified_on": "",
+   "verification": "verified",
+   "verified_on": "2026-10-10",
    "amazon_sources": [
     "Amazon Seller Help/articles/064-fba-peak-readiness-playbook-G4QH4XCRWUXRJBLY.md",
     "Amazon Seller Help/articles/059-prime-day-readiness-playbook-GM2ADTH3XH3A5N57.md"
@@ -1596,8 +1596,8 @@
    "fix_source": "first-party-doc",
    "evidence_location": "slack",
    "confidence": "high",
-   "verification": "unverified",
-   "verified_on": "",
+   "verification": "verified",
+   "verified_on": "2026-10-10",
    "amazon_sources": [
     "Amazon Seller Help/articles/077-amazon-vine-G92T8UV339NZ98TN.md"
    ],
@@ -2073,8 +2073,8 @@
    "fix_source": "agency",
    "evidence_location": "slack",
    "confidence": "high",
-   "verification": "unverified",
-   "verified_on": "",
+   "verification": "verified",
+   "verified_on": "2026-10-10",
    "amazon_sources": [
     "Amazon Seller Help/articles/227-add-additional-trademarks-to-your-brand-GQCYJTBSFZK8HGN6.md",
     "Amazon Seller Help/articles/216-manage-brand-registry-application-issues-GJPGY8BRDAQUQV4V.md"
@@ -2115,8 +2115,8 @@
    "fix_source": "agency",
    "evidence_location": "slack",
    "confidence": "high",
-   "verification": "unverified",
-   "verified_on": "",
+   "verification": "verified",
+   "verified_on": "2026-10-10",
    "amazon_sources": [
     "Amazon Seller Help/articles/220-brand-registry-protection-roles-GCF9UE9VGKGA2W5F.md",
     "Amazon Seller Help/articles/232-role-assignment-error-messages-GPQTLD2Z4EYAVGX5.md"
@@ -2158,8 +2158,8 @@
    "fix_source": "agency",
    "evidence_location": "slack",
    "confidence": "high",
-   "verification": "unverified",
-   "verified_on": "",
+   "verification": "verified",
+   "verified_on": "2026-10-10",
    "amazon_sources": [
     "Amazon Seller Help/articles/215-brand-registry-application-step-by-step-guide-GRWHD3TXWAVKUT86.md",
     "Amazon Seller Help/articles/212-brand-registry-glossary-GBR82EG272SZJDFS.md"
@@ -2410,8 +2410,8 @@
    "fix_source": "agency",
    "evidence_location": "slack",
    "confidence": "medium",
-   "verification": "unverified",
-   "verified_on": "",
+   "verification": "verified",
+   "verified_on": "2026-10-10",
    "amazon_sources": [
     "Amazon Seller Help/articles/150-product-title-requirements-and-guidelines-GYTR6SYGFA5E3EQC.md"
    ],
@@ -2636,8 +2636,8 @@
    "fix_source": "client",
    "evidence_location": "slack",
    "confidence": "high",
-   "verification": "unverified",
-   "verified_on": "",
+   "verification": "verified",
+   "verified_on": "2026-10-10",
    "amazon_sources": [
     "Advertising Help After Login/articles/099-resolve-a-payment-failure-G2SQRLBPB8TY587E.md",
     "Advertising Help After Login/articles/091-add-a-backup-payment-method-GPGZ28EK9WM4LZ2E.md"
@@ -2679,8 +2679,8 @@
    "fix_source": "client",
    "evidence_location": "slack",
    "confidence": "high",
-   "verification": "unverified",
-   "verified_on": "",
+   "verification": "verified",
+   "verified_on": "2026-10-10",
    "amazon_sources": [
     "Advertising Help After Login/articles/099-resolve-a-payment-failure-G2SQRLBPB8TY587E.md",
     "Advertising Help After Login/articles/087-payment-methods-sponsored-ads-GMELNQQNEEVLX456.md",
@@ -2767,8 +2767,8 @@
    "fix_source": "client",
    "evidence_location": "slack",
    "confidence": "medium",
-   "verification": "unverified",
-   "verified_on": "",
+   "verification": "verified",
+   "verified_on": "2026-10-10",
    "amazon_sources": [
     "Advertising Help After Login/articles/099-resolve-a-payment-failure-G2SQRLBPB8TY587E.md",
     "Advertising Help After Login/articles/087-payment-methods-sponsored-ads-GMELNQQNEEVLX456.md"
@@ -3684,8 +3684,8 @@
    "fix_source": "first-party-doc",
    "evidence_location": "slack",
    "confidence": "high",
-   "verification": "unverified",
-   "verified_on": "",
+   "verification": "verified",
+   "verified_on": "2026-10-10",
    "amazon_sources": [
     "Amazon Seller Help/articles/043-communicate-with-buyers-using-buyer-seller-messages-G200389080.md"
    ],
@@ -4834,8 +4834,8 @@
    "fix_source": "agency",
    "evidence_location": "slack",
    "confidence": "high",
-   "verification": "unverified",
-   "verified_on": "",
+   "verification": "verified",
+   "verified_on": "2026-10-10",
    "amazon_sources": [
     "Amazon Seller Help/articles/229-protect-your-brand-with-transparency-GSB2AVC33KWCAYSA.md"
    ],
@@ -5825,8 +5825,8 @@
    "fix_source": "agency",
    "evidence_location": "slack",
    "confidence": "medium",
-   "verification": "unverified",
-   "verified_on": "",
+   "verification": "verified",
+   "verified_on": "2026-10-10",
    "amazon_sources": [
     "Amazon Seller Help/articles/065-fba-inventory-G201074410.md"
    ],
@@ -5867,8 +5867,8 @@
    "fix_source": "agency",
    "evidence_location": "slack",
    "confidence": "medium",
-   "verification": "unverified",
-   "verified_on": "",
+   "verification": "verified",
+   "verified_on": "2026-10-10",
    "amazon_sources": [
     "Amazon Seller Help/articles/064-fba-peak-readiness-playbook-G4QH4XCRWUXRJBLY.md",
     "Amazon Seller Help/articles/177-prepare-for-the-holiday-season-G8ZDWEJB9Z9YPFQ8.md"
@@ -8356,8 +8356,8 @@
    "fix_source": "agency",
    "evidence_location": "screenshot",
    "confidence": "high",
-   "verification": "unverified",
-   "verified_on": "",
+   "verification": "verified",
+   "verified_on": "2026-10-10",
    "amazon_sources": [
     "Amazon Seller Help/articles/150-product-title-requirements-and-guidelines-GYTR6SYGFA5E3EQC.md"
    ],
@@ -8444,8 +8444,8 @@
    "fix_source": "agency",
    "evidence_location": "screenshot",
    "confidence": "high",
-   "verification": "unverified",
-   "verified_on": "",
+   "verification": "verified",
+   "verified_on": "2026-10-10",
    "amazon_sources": [
     "Amazon Seller Help/articles/153-product-image-guide-G1881.md"
    ],
@@ -8487,8 +8487,8 @@
    "fix_source": "agency",
    "evidence_location": "slack",
    "confidence": "high",
-   "verification": "unverified",
-   "verified_on": "",
+   "verification": "verified",
+   "verified_on": "2026-10-10",
    "amazon_sources": [
     "Amazon Seller Help/articles/153-product-image-guide-G1881.md"
    ],
@@ -8922,8 +8922,8 @@
    "fix_source": "agency",
    "evidence_location": "slack",
    "confidence": "medium",
-   "verification": "unverified",
-   "verified_on": "",
+   "verification": "verified",
+   "verified_on": "2026-10-10",
    "amazon_sources": [
     "Amazon Seller Help/articles/075-manage-your-experiments-GVP453K5XRBJS7Y9.md"
    ],
@@ -9531,8 +9531,8 @@
    "fix_source": "agency",
    "evidence_location": "slack",
    "confidence": "medium",
-   "verification": "unverified",
-   "verified_on": "",
+   "verification": "verified",
+   "verified_on": "2026-10-10",
    "amazon_sources": [
     "Amazon Seller Help/articles/075-manage-your-experiments-GVP453K5XRBJS7Y9.md",
     "Amazon Seller Help/articles/153-product-image-guide-G1881.md"
@@ -9618,8 +9618,8 @@
    "fix_source": "agency",
    "evidence_location": "slack",
    "confidence": "medium",
-   "verification": "unverified",
-   "verified_on": "",
+   "verification": "verified",
+   "verified_on": "2026-10-10",
    "amazon_sources": [
     "Amazon Seller Help/articles/143-product-detail-page-rules-G200390640.md",
     "Amazon Seller Help/articles/223-register-products-to-your-brand-G6DU75NSM86VXKZC.md"
@@ -9708,8 +9708,8 @@
    "fix_source": "client",
    "evidence_location": "slack",
    "confidence": "medium",
-   "verification": "unverified",
-   "verified_on": "",
+   "verification": "verified",
+   "verified_on": "2026-10-10",
    "amazon_sources": [
     "Amazon Seller Help/articles/150-product-title-requirements-and-guidelines-GYTR6SYGFA5E3EQC.md"
    ],
@@ -9875,8 +9875,8 @@
    "fix_source": "client",
    "evidence_location": "slack",
    "confidence": "medium",
-   "verification": "unverified",
-   "verified_on": "",
+   "verification": "verified",
+   "verified_on": "2026-10-10",
    "amazon_sources": [
     "Amazon Seller Help/articles/153-product-image-guide-G1881.md"
    ],
@@ -10089,8 +10089,8 @@
    "fix_source": "agency",
    "evidence_location": "call",
    "confidence": "medium",
-   "verification": "unverified",
-   "verified_on": "",
+   "verification": "verified",
+   "verified_on": "2026-10-10",
    "amazon_sources": [
     "Amazon Seller Help/articles/143-product-detail-page-rules-G200390640.md"
    ],
@@ -10435,8 +10435,8 @@
    "fix_source": "first-party-doc",
    "evidence_location": "slack",
    "confidence": "high",
-   "verification": "unverified",
-   "verified_on": "",
+   "verification": "verified",
+   "verified_on": "2026-10-10",
    "amazon_sources": [
     "Amazon Seller Help/articles/214-brand-registry-application-process-GN2GYQVPR7R4VMPB.md",
     "Amazon Seller Help/articles/215-brand-registry-application-step-by-step-guide-GRWHD3TXWAVKUT86.md",
@@ -10521,8 +10521,8 @@
    "fix_source": "client",
    "evidence_location": "slack",
    "confidence": "high",
-   "verification": "unverified",
-   "verified_on": "",
+   "verification": "verified",
+   "verified_on": "2026-10-10",
    "amazon_sources": [
     "Amazon Seller Help/articles/220-brand-registry-protection-roles-GCF9UE9VGKGA2W5F.md",
     "Amazon Seller Help/articles/221-brand-registry-selling-roles-GJ84K745AL3R5N3Q.md"
@@ -10606,8 +10606,8 @@
    "fix_source": "first-party-doc",
    "evidence_location": "call",
    "confidence": "high",
-   "verification": "unverified",
-   "verified_on": "",
+   "verification": "verified",
+   "verified_on": "2026-10-10",
    "amazon_sources": [
     "Amazon Seller Help/articles/022-amazon-brand-registry-G202130410.md",
     "Amazon Seller Help/articles/216-manage-brand-registry-application-issues-GJPGY8BRDAQUQV4V.md",
@@ -10694,8 +10694,8 @@
    "fix_source": "agency",
    "evidence_location": "screenshot",
    "confidence": "high",
-   "verification": "unverified",
-   "verified_on": "",
+   "verification": "verified",
+   "verified_on": "2026-10-10",
    "amazon_sources": [
     "Amazon Seller Help/articles/225-report-alleged-trademark-infringements-via-common-law-GS45XXXQDNDP9MJU.md",
     "Amazon Seller Help/articles/224-report-intellectual-property-infringements-G202132860.md",
@@ -10782,8 +10782,8 @@
    "fix_source": "client",
    "evidence_location": "slack",
    "confidence": "high",
-   "verification": "unverified",
-   "verified_on": "",
+   "verification": "verified",
+   "verified_on": "2026-10-10",
    "amazon_sources": [
     "Amazon Seller Help/articles/214-brand-registry-application-process-GN2GYQVPR7R4VMPB.md",
     "Amazon Seller Help/articles/022-amazon-brand-registry-G202130410.md",
@@ -10867,8 +10867,8 @@
    "fix_source": "agency",
    "evidence_location": "slack",
    "confidence": "high",
-   "verification": "unverified",
-   "verified_on": "",
+   "verification": "verified",
+   "verified_on": "2026-10-10",
    "amazon_sources": [
     "Amazon Seller Help/articles/022-amazon-brand-registry-G202130410.md",
     "Amazon Seller Help/articles/212-brand-registry-glossary-GBR82EG272SZJDFS.md"
@@ -10953,8 +10953,8 @@
    "fix_source": "agency",
    "evidence_location": "slack",
    "confidence": "high",
-   "verification": "unverified",
-   "verified_on": "",
+   "verification": "verified",
+   "verified_on": "2026-10-10",
    "amazon_sources": [
     "Amazon Seller Help/articles/221-brand-registry-selling-roles-GJ84K745AL3R5N3Q.md",
     "Amazon Seller Help/articles/220-brand-registry-protection-roles-GCF9UE9VGKGA2W5F.md"
@@ -11741,8 +11741,8 @@
    "fix_source": "agency",
    "evidence_location": "screenshot",
    "confidence": "medium",
-   "verification": "unverified",
-   "verified_on": "",
+   "verification": "verified",
+   "verified_on": "2026-10-10",
    "amazon_sources": [
     "Amazon Seller Help/articles/022-amazon-brand-registry-G202130410.md",
     "Amazon Seller Help/articles/214-brand-registry-application-process-GN2GYQVPR7R4VMPB.md",
@@ -11785,8 +11785,8 @@
    "fix_source": "agency",
    "evidence_location": "slack",
    "confidence": "medium",
-   "verification": "unverified",
-   "verified_on": "",
+   "verification": "verified",
+   "verified_on": "2026-10-10",
    "amazon_sources": [
     "Amazon Seller Help/articles/233-report-a-violation-error-messages-GMSR9C4BP3GYR673.md",
     "Amazon Seller Help/articles/224-report-intellectual-property-infringements-G202132860.md"
@@ -11830,8 +11830,8 @@
    "fix_source": "first-party-doc",
    "evidence_location": "slack",
    "confidence": "high",
-   "verification": "unverified",
-   "verified_on": "",
+   "verification": "verified",
+   "verified_on": "2026-10-10",
    "amazon_sources": [
     "Amazon Seller Help/articles/150-product-title-requirements-and-guidelines-GYTR6SYGFA5E3EQC.md"
    ],
@@ -11917,8 +11917,8 @@
    "fix_source": "agency",
    "evidence_location": "slack",
    "confidence": "high",
-   "verification": "unverified",
-   "verified_on": "",
+   "verification": "verified",
+   "verified_on": "2026-10-10",
    "amazon_sources": [
     "Amazon Seller Help/articles/150-product-title-requirements-and-guidelines-GYTR6SYGFA5E3EQC.md",
     "Amazon Seller Help/articles/075-manage-your-experiments-GVP453K5XRBJS7Y9.md"
@@ -11961,8 +11961,8 @@
    "fix_source": "agency",
    "evidence_location": "slack",
    "confidence": "medium",
-   "verification": "unverified",
-   "verified_on": "",
+   "verification": "verified",
+   "verified_on": "2026-10-10",
    "amazon_sources": [
     "Amazon Seller Help/articles/150-product-title-requirements-and-guidelines-GYTR6SYGFA5E3EQC.md"
    ],
@@ -12004,8 +12004,8 @@
    "fix_source": "client",
    "evidence_location": "slack",
    "confidence": "medium",
-   "verification": "unverified",
-   "verified_on": "",
+   "verification": "verified",
+   "verified_on": "2026-10-10",
    "amazon_sources": [
     "Amazon Seller Help/articles/143-product-detail-page-rules-G200390640.md"
    ],
@@ -12047,8 +12047,8 @@
    "fix_source": "agency",
    "evidence_location": "slack",
    "confidence": "medium",
-   "verification": "unverified",
-   "verified_on": "",
+   "verification": "verified",
+   "verified_on": "2026-10-10",
    "amazon_sources": [
     "Amazon Seller Help/articles/150-product-title-requirements-and-guidelines-GYTR6SYGFA5E3EQC.md",
     "Amazon Seller Help/articles/143-product-detail-page-rules-G200390640.md"
@@ -12528,8 +12528,8 @@
    "fix_source": "first-party-doc",
    "evidence_location": "slack",
    "confidence": "high",
-   "verification": "unverified",
-   "verified_on": "",
+   "verification": "verified",
+   "verified_on": "2026-10-10",
    "amazon_sources": [
     "Advertising Help After Login/articles/010-understand-budgets-GTGPQGUXNCTHE2DS.md",
     "Advertising Help After Login/articles/014-edit-your-budget-GVYUKBJQFPH7ZQ2L.md"
@@ -12928,8 +12928,8 @@
    "fix_source": "agency",
    "evidence_location": "screenshot",
    "confidence": "medium",
-   "verification": "unverified",
-   "verified_on": "",
+   "verification": "verified",
+   "verified_on": "2026-10-10",
    "amazon_sources": [
     "Advertising Help After Login/articles/196-create-and-manage-a-creator-connections-campaign-GMANECFAFD49W23Y.md",
     "Advertising Help After Login/articles/068-understand-account-permissions-GM4EFDQQPG9LGL3F.md"
@@ -13014,8 +13014,8 @@
    "fix_source": "agency",
    "evidence_location": "slack",
    "confidence": "medium",
-   "verification": "unverified",
-   "verified_on": "",
+   "verification": "verified",
+   "verified_on": "2026-10-10",
    "amazon_sources": [
     "Advertising Help After Login/articles/059-add-negative-keywords-or-negative-products-GTEHPEG5BXY9UX5W.md",
     "Advertising Help After Login/articles/056-understand-keyword-match-types-GHTRFDZRJPW6764R.md"
@@ -13143,8 +13143,8 @@
    "fix_source": "agency",
    "evidence_location": "slack",
    "confidence": "medium",
-   "verification": "unverified",
-   "verified_on": "",
+   "verification": "verified",
+   "verified_on": "2026-10-10",
    "amazon_sources": [
     "Amazon Seller Help/articles/059-prime-day-readiness-playbook-GM2ADTH3XH3A5N57.md",
     "Amazon Seller Help/articles/090-price-discounts-G7F8CQ4EJ5YA4272.md",
@@ -13276,8 +13276,8 @@
    "fix_source": "agency",
    "evidence_location": "slack",
    "confidence": "medium",
-   "verification": "unverified",
-   "verified_on": "",
+   "verification": "verified",
+   "verified_on": "2026-10-10",
    "amazon_sources": [
     "Advertising Help After Login/articles/056-understand-keyword-match-types-GHTRFDZRJPW6764R.md",
     "Advertising Help After Login/articles/059-add-negative-keywords-or-negative-products-GTEHPEG5BXY9UX5W.md"
@@ -13447,8 +13447,8 @@
    "fix_source": "client",
    "evidence_location": "slack",
    "confidence": "medium",
-   "verification": "unverified",
-   "verified_on": "",
+   "verification": "verified",
+   "verified_on": "2026-10-10",
    "amazon_sources": [
     "Advertising Help After Login/articles/172-create-a-sponsored-brands-campaign-GF86HBCNDJUAC5WN.md",
     "Advertising Help After Login/articles/035-sponsored-brands-GGWFYHL27MFXLHS6.md"
@@ -13706,8 +13706,8 @@
    "fix_source": "agency",
    "evidence_location": "slack",
    "confidence": "medium",
-   "verification": "unverified",
-   "verified_on": "",
+   "verification": "verified",
+   "verified_on": "2026-10-10",
    "amazon_sources": [
     "Amazon Seller Help/articles/043-communicate-with-buyers-using-buyer-seller-messages-G200389080.md"
    ],
@@ -13835,8 +13835,8 @@
    "fix_source": "agency",
    "evidence_location": "slack",
    "confidence": "medium",
-   "verification": "unverified",
-   "verified_on": "",
+   "verification": "verified",
+   "verified_on": "2026-10-10",
    "amazon_sources": [
     "Amazon Seller Help/articles/064-fba-peak-readiness-playbook-G4QH4XCRWUXRJBLY.md"
    ],
@@ -13921,8 +13921,8 @@
    "fix_source": "agency",
    "evidence_location": "case",
    "confidence": "medium",
-   "verification": "unverified",
-   "verified_on": "",
+   "verification": "verified",
+   "verified_on": "2026-10-10",
    "amazon_sources": [
     "Amazon Seller Help/articles/143-product-detail-page-rules-G200390640.md"
    ],

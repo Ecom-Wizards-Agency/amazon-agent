@@ -17,9 +17,9 @@ resolution_status: resolved
 fix_source: first-party-doc
 evidence_location: slack
 confidence: high
-verification: unverified
-verified_on: ""
-verified_how: ""
+verification: verified
+verified_on: "2026-10-10"
+verified_how: first-party-capture
 amazon_sources: ["Advertising Help After Login/articles/010-understand-budgets-GTGPQGUXNCTHE2DS.md", "Advertising Help After Login/articles/014-edit-your-budget-GVYUKBJQFPH7ZQ2L.md"]
 related_sops: []
 supersedes: []

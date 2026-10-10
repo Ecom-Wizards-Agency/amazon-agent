@@ -17,9 +17,9 @@ resolution_status: partial
 fix_source: agency
 evidence_location: screenshot
 confidence: high
-verification: unverified
-verified_on: ""
-verified_how: ""
+verification: verified
+verified_on: "2026-10-10"
+verified_how: first-party-capture
 amazon_sources: ["Amazon Seller Help/articles/225-report-alleged-trademark-infringements-via-common-law-GS45XXXQDNDP9MJU.md", "Amazon Seller Help/articles/224-report-intellectual-property-infringements-G202132860.md", "Amazon Seller Help/articles/220-brand-registry-protection-roles-GCF9UE9VGKGA2W5F.md"]
 related_sops: ["MAG SOPs/catalog/catalog-sop-remove-unauthorized-sellers-hijackers.md"]
 supersedes: []
