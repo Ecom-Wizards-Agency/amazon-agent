@@ -3,8 +3,8 @@
 
   python3 tools/knowledge/ask.py "<question or exact error text>" [--json] [--per-layer N]
 
-One search across every library, then the hits are grouped into the authority
-layers the operating contract names, in this order:
+One search across every library, then the hits are grouped into the lookup
+layers the library map names, in this order:
 
   1. knowledge units (our verified answers; draft and unverified labels shown)
   2. our skills and their references (own workflows first)
@@ -13,8 +13,10 @@ layers the operating contract names, in this order:
   5. MAG SOPs (external; shown last with status and site revision date)
 
 Scores come from tools/search_amazon_libraries.py; the layer order is fixed, so
-a MAG SOP never outranks our own procedure however well it matches. The text
-output is a short answer sheet; --json returns the same structure for tools.
+a MAG SOP never outranks our own procedure however well it matches. This is the
+lookup order, not the authority order: when sources disagree, first-party pages
+win on rules and current UI (docs/knowledge-library.md). The text output is a
+short answer sheet; --json returns the same structure for tools.
 """
 from __future__ import annotations
 
@@ -90,9 +92,14 @@ def collect(question: str, root: Path = WORKSPACE_ROOT) -> list[dict]:
     skills_root = root / "skills"
     sop_index = load_sop_index(root)
     hits: list[dict] = []
+    retired = knowledge_root / "_retired"
     for label, lib_root in roots_for(root):
         for path in search.iter_files(lib_root) or []:
             if label == "Skills" and not _skill_file(path, skills_root):
+                continue
+            if label == "Amazon Knowledge" and (path == knowledge_root / "README.md" or retired in path.parents):
+                continue
+            if "_index" in path.parts:
                 continue
             try:
                 text = path.read_text(encoding="utf-8", errors="ignore")
@@ -136,7 +143,7 @@ def layered(hits: list[dict], per_layer: dict[str, int] | None = None) -> dict:
     per_layer = per_layer or DEFAULT_PER_LAYER
     out: dict = {}
     for key, _label, libraries in LAYERS:
-        picks = [h for h in hits if h["library"] in libraries]
+        picks = [h for h in hits if h["library"] in libraries and (key != "units" or h.get("id"))]
         out[key] = picks[: per_layer.get(key, 2)]
     return out
 
@@ -149,6 +156,8 @@ def guidance(layers: dict) -> list[str]:
     mag = layers["mag"][0] if layers["mag"] else None
     if unit:
         lines.append(f"Answer from {unit.get('id')} ({unit.get('status')}, {unit.get('verification')}): {unit['title']}")
+    elif not (skill or page or layers["drafts"] or mag):
+        lines.append("Nothing in the libraries matches this wording: try the exact Amazon notice or other words, and add a unit after the question is resolved (/kb-add).")
     else:
         lines.append("No knowledge unit matches yet: answer from the skill and the first-party page, and add a unit afterwards (/kb-add).")
     if skill:

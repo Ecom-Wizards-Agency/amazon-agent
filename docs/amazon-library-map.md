@@ -110,14 +110,15 @@ Coverage: 7 files, downloaded 26.07.2026. Search with `--library adlabs`. The op
 
 ## Search Priority
 
-Symptom, error text or how-do-we question:
+Symptom, error text or how-do-we question (lookup order):
 
 1. Amazon Knowledge
-2. First-party help (Amazon Seller Help, Advertising Help After Login, Amazon Ads Help)
-3. MAG SOPs
+2. Our skills and their references (own workflows first)
+3. First-party help (Amazon Seller Help, Advertising Help After Login, Amazon Ads Help)
 4. SOP Drafts
+5. MAG SOPs (external, labelled with status and site revision)
 
-`python3 tools/knowledge/ask.py "<question>"` applies this order automatically, with our skills ranked above first-party help and MAG SOPs last. State the unit's verification label in the answer. When a unit and a first-party page disagree, follow the authority order in `docs/knowledge-library.md` and do not resolve it silently.
+`python3 tools/knowledge/ask.py "<question>"` applies this lookup order automatically. It is the order to look, not the order that wins a conflict: when sources disagree, first-party pages win on rules and current UI, per the authority order in `docs/knowledge-library.md`. State the unit's verification label in the answer. When a unit and a first-party page disagree, follow the authority order in `docs/knowledge-library.md` and do not resolve it silently.
 
 Seller Central task:
 

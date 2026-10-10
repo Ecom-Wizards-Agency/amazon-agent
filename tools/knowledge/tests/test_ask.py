@@ -70,6 +70,23 @@ class AskLayerTests(unittest.TestCase):
         self.assertLess(text.index("## Knowledge units"), text.index("## Our skills"))
         self.assertLess(text.index("## Our skills"), text.index("## MAG SOPs (external)"))
 
+    def test_readme_retired_and_index_files_never_enter_the_layers(self) -> None:
+        for rel, text in {
+            "knowledge/README.md": "# Knowledge\n\nlabeling required defect dispute listed here\n",
+            "knowledge/_retired/KC-0002_old.md": UNIT.replace("KC-0001", "KC-0002").replace("status: draft", "status: retired"),
+            "MAG SOPs/_index/category-notes.txt": "labeling required defect dispute\n",
+        }.items():
+            p = self.root / rel
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text(text, encoding="utf-8")
+        layers = ask.answer("labeling required defect dispute", self.root)["layers"]
+        self.assertEqual([h["id"] for h in layers["units"]], ["KC-0001"])
+        self.assertFalse(any("_index" in h["path"] for hits in layers.values() for h in hits))
+
+    def test_nothing_matching_says_so(self) -> None:
+        result = ask.answer("zzqxwv", self.root)
+        self.assertIn("Nothing in the libraries matches", result["guidance"][0])
+
     def test_no_unit_gives_the_add_a_unit_hint(self) -> None:
         (self.root / "knowledge/logistics/KC-0001_labeling.md").unlink()
         result = ask.answer("labeling required defect dispute", self.root)

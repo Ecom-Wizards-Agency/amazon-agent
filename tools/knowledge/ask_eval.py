@@ -7,10 +7,9 @@
 The question bank is gitignored (`_local/knowledge-sweep/ask-eval-questions.json`):
 each entry holds a card's question as asked and the repo paths that card cites
 (owning skills, coverage and first-party paths that still exist). A question
-counts as a hit when any expected path is among the top N hits of any layer, or
-when the card's own unit (same card id in the unit provenance) is in the unit
-layer. The bank samples evenly across topics by sorted card id, so reruns are
-comparable.
+counts as a hit when any expected path is among the top N hits of any layer.
+Generic paths (a README or an _index file) never count as expected. The bank
+samples evenly across topics by sorted card id, so reruns are comparable.
 """
 from __future__ import annotations
 
@@ -30,6 +29,8 @@ BANK = STORE / "ask-eval-questions.json"
 
 
 def build(count: int) -> list[dict]:
+    if not (STORE / "cards" / "candidate").exists():
+        raise SystemExit(f"no sweep store at {STORE}; the bank needs the cards")
     cards = []
     for path in sorted((STORE / "cards" / "candidate").glob("CARD-*.json")):
         card = json.loads(path.read_text(encoding="utf-8"))
@@ -43,11 +44,11 @@ def build(count: int) -> list[dict]:
                 expected.add(p)
         for field in ("coverage_paths", "first_party_source_paths", "related_sop_paths"):
             for p in card.get(field) or []:
-                if isinstance(p, str) and (ROOT / p).exists():
+                if isinstance(p, str) and (ROOT / p).exists() and Path(p).name != "README.md" and "_index" not in Path(p).parts:
                     expected.add(p)
         if not expected:
             continue
-        cards.append({"card_id": card["card_id"], "topic": card.get("topic"), "question": question, "expected": sorted(expected)})
+        cards.append({"card_id": card["card_id"], "topic": card.get("topic") or "other", "question": question, "expected": sorted(expected)})
     by_topic: dict[str, list[dict]] = collections.defaultdict(list)
     for c in cards:
         by_topic[c["topic"]].append(c)
