@@ -21,7 +21,7 @@ verification: unverified
 verified_on: ""
 verified_how: ""
 amazon_sources: ["Amazon Seller Help/articles/137-featured-offer-G37911.md"]
-related_sops: ["MAG SOPs/catalog/factors-that-affect-a-seller-s-chance-to-win-the-buy-box.md", "MAG SOPs/catalog/catalog-sop-creating-multiple-offers-mfn-fba-for-an-asin.md"]
+related_sops: ["MAG SOPs/catalog/catalog-sop-creating-multiple-offers-mfn-fba-for-an-asin.md"]
 supersedes: []
 contradicts: []
 observed: 2026-08
@@ -60,7 +60,6 @@ Stop before any submission, appeal, case send, refund, price change or listing c
 ## Sources
 
 - First-party: `Amazon Seller Help/articles/137-featured-offer-G37911.md`
-- Also in: `MAG SOPs/catalog/factors-that-affect-a-seller-s-chance-to-win-the-buy-box.md`
 - Also in: `MAG SOPs/catalog/catalog-sop-creating-multiple-offers-mfn-fba-for-an-asin.md`
 - Evidence: team vault ledger row for this id.
 

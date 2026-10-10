@@ -65,4 +65,4 @@ Stop before any submission, appeal, case send, refund, price change or listing c
 ## Gaps
 
 - Net new versus existing sources: Adds the agency practice of one test-buy order per suspect seller-fulfilled listing and excluding unbranded look-alikes from trademark reports.
-- Existing coverage: full (`Amazon Seller Help/articles/106-fulfill-amazon-custom-orders-G201822830.md`, `MAG SOPs/catalog/catalog-sop-download-a-new-order-report.md`, `MAG SOPs/README.md`).
+- Existing coverage: full (`Amazon Seller Help/articles/106-fulfill-amazon-custom-orders-G201822830.md`, a MAG SOP removed on 10.10.2026, `MAG SOPs/README.md`).

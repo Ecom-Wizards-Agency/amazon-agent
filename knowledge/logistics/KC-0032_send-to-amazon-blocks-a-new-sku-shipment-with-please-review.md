@@ -21,7 +21,7 @@ verification: unverified
 verified_on: ""
 verified_how: ""
 amazon_sources: ["Amazon Seller Help/articles/067-maximizing-delivery-speed-GA8NP4NDZZ3EJRU5.md"]
-related_sops: ["MAG SOPs/catalog/catalog-sop-fba-storage-capacity-limits.md"]
+related_sops: []
 supersedes: []
 contradicts: []
 observed: 2024-08
@@ -59,10 +59,9 @@ Stop before any submission, appeal, case send, refund, price change or listing c
 ## Sources
 
 - First-party: `Amazon Seller Help/articles/067-maximizing-delivery-speed-GA8NP4NDZZ3EJRU5.md`
-- Also in: `MAG SOPs/catalog/catalog-sop-fba-storage-capacity-limits.md`
 - Evidence: team vault ledger row for this id.
 
 ## Gaps
 
 - Net new versus existing sources: Maps the generic 'Please review SKUs with errors or unconfirmed SKUs' message to an exhausted FBA capacity limit.
-- Existing coverage: full (`MAG SOPs/catalog/logistics-sop-send-to-amazon-how-to-create-fba-shipment.md`, `MAG SOPs/catalog/catalog-sop-fba-storage-capacity-limits.md`, `knowledge/logistics/KC-0004_fba-capacity-limit-used-up-for-the-month-submit-a-capacity-m.md`, `MAG SOPs/catalog/catalog-sop-how-to-cancel-fba-shipment.md`, `Amazon Seller Help/articles/059-prime-day-readiness-playbook-GM2ADTH3XH3A5N57.md`).
+- Existing coverage: full (`MAG SOPs/catalog/logistics-sop-send-to-amazon-how-to-create-fba-shipment.md`, a MAG SOP removed on 10.10.2026, `knowledge/logistics/KC-0004_fba-capacity-limit-used-up-for-the-month-submit-a-capacity-m.md`, `MAG SOPs/catalog/catalog-sop-how-to-cancel-fba-shipment.md`, `Amazon Seller Help/articles/059-prime-day-readiness-playbook-GM2ADTH3XH3A5N57.md`).

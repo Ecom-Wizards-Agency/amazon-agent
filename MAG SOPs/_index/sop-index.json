@@ -1,7 +1,7 @@
 {
  "captured_at": "2026-05-12T07:07:49Z",
- "total_entries": 132,
- "captured_count": 132,
+ "total_entries": 119,
+ "captured_count": 119,
  "failure_count": 0,
  "categories": [
   "Amazon Advertising",
@@ -406,24 +406,6 @@
    "knowledge_value": "high"
   },
   {
-   "title": "Catalog SOP: Editing Pricing",
-   "category": "Catalog",
-   "chapter": null,
-   "url": "https://sop.myamazonguy.com/books/catalog/page/catalog-sop-editing-pricing",
-   "captured_at": "2026-05-12T07:07:49Z",
-   "file": "catalog/catalog-sop-editing-pricing.md",
-   "body_length": 6631,
-   "image_count": 22,
-   "status": "needs-update",
-   "triaged_on": "2026-10-06",
-   "flags": [
-    "mag_internal"
-   ],
-   "knowledge_value": "medium",
-   "revised_at": "2026-09-16",
-   "revision_checked_at": "2026-10-08"
-  },
-  {
    "title": "Catalog SOP: Error 5887",
    "category": "Catalog",
    "chapter": null,
@@ -552,24 +534,6 @@
    "revision_checked_at": "2026-10-08"
   },
   {
-   "title": "Catalog SOP: Error 99001 and 90041",
-   "category": "Catalog",
-   "chapter": null,
-   "url": "https://sop.myamazonguy.com/books/catalog/page/catalog-sop-error-99001-and-90041",
-   "captured_at": "2026-05-12T07:07:49Z",
-   "file": "catalog/catalog-sop-error-99001-and-90041.md",
-   "body_length": 7574,
-   "image_count": 6,
-   "status": "needs-update",
-   "triaged_on": "2026-10-06",
-   "flags": [
-    "faq_unsourced"
-   ],
-   "knowledge_value": "medium",
-   "revised_at": "2026-09-21",
-   "revision_checked_at": "2026-10-08"
-  },
-  {
    "title": "Catalog SOP: Error 99003",
    "category": "Catalog",
    "chapter": null,
@@ -620,28 +584,6 @@
    ],
    "knowledge_value": "high",
    "revised_at": "2026-09-16",
-   "revision_checked_at": "2026-10-08"
-  },
-  {
-   "title": "Catalog SOP: FBA Storage Capacity Limits",
-   "category": "Catalog",
-   "chapter": null,
-   "url": "https://sop.myamazonguy.com/books/catalog/page/catalog-sop-fba-storage-capacity-limits",
-   "captured_at": "2026-05-12T07:07:49Z",
-   "file": "catalog/catalog-sop-fba-storage-capacity-limits.md",
-   "body_length": 15648,
-   "image_count": 20,
-   "status": "needs-update",
-   "triaged_on": "2026-10-06",
-   "flags": [
-    "faq_unsourced",
-    "url_tokens",
-    "us_only",
-    "tool_dependency",
-    "mag_internal"
-   ],
-   "knowledge_value": "high",
-   "revised_at": "2026-10-05",
    "revision_checked_at": "2026-10-08"
   },
   {
@@ -1160,26 +1102,6 @@
    "revision_checked_at": "2026-10-08"
   },
   {
-   "title": "Catalog SOP: Retract a Report of Infringement",
-   "category": "Catalog",
-   "chapter": null,
-   "url": "https://sop.myamazonguy.com/books/catalog/page/catalog-sop-retract-a-report-of-infringement",
-   "captured_at": "2026-05-12T07:07:49Z",
-   "file": "catalog/catalog-sop-retract-a-report-of-infringement.md",
-   "body_length": 8666,
-   "image_count": 21,
-   "status": "needs-update",
-   "triaged_on": "2026-10-06",
-   "flags": [
-    "faq_unsourced",
-    "us_only",
-    "old_nav"
-   ],
-   "knowledge_value": "medium",
-   "revised_at": "2026-09-18",
-   "revision_checked_at": "2026-10-08"
-  },
-  {
    "title": "Catalog SOP: Set up European Fulfillment Network (EFN)",
    "category": "Catalog",
    "chapter": null,
@@ -1588,24 +1510,6 @@
    "revision_checked_at": "2026-10-08"
   },
   {
-   "title": "Catalog SOP: Download a New Order Report",
-   "category": "Catalog",
-   "chapter": null,
-   "url": "https://sop.myamazonguy.com/books/catalog/page/catalog-sop-download-a-new-order-report",
-   "captured_at": "2026-05-12T07:07:49Z",
-   "file": "catalog/catalog-sop-download-a-new-order-report.md",
-   "body_length": 7592,
-   "image_count": 14,
-   "status": "needs-update",
-   "triaged_on": "2026-10-06",
-   "flags": [
-    "faq_unsourced"
-   ],
-   "knowledge_value": "medium",
-   "revised_at": "2026-09-22",
-   "revision_checked_at": "2026-10-08"
-  },
-  {
    "title": "Catalog SOP: Downloading an All Statements Report",
    "category": "Catalog",
    "chapter": null,
@@ -1670,44 +1574,6 @@
    "revision_checked_at": "2026-10-08"
   },
   {
-   "title": "Catalog SOP: How to Download an All Listings Report",
-   "category": "Catalog",
-   "chapter": null,
-   "url": "https://sop.myamazonguy.com/books/catalog/page/catalog-sop-how-to-download-an-all-listings-report",
-   "captured_at": "2026-05-12T07:07:49Z",
-   "file": "catalog/catalog-sop-how-to-download-an-all-listings-report.md",
-   "body_length": 5724,
-   "image_count": 9,
-   "status": "needs-update",
-   "triaged_on": "2026-10-06",
-   "flags": [
-    "contradicts_repo",
-    "faq_unsourced"
-   ],
-   "knowledge_value": "medium",
-   "revised_at": "2025-10-26",
-   "revision_checked_at": "2026-10-08"
-  },
-  {
-   "title": "Catalog SOP: How to Download an Inventory Report",
-   "category": "Catalog",
-   "chapter": null,
-   "url": "https://sop.myamazonguy.com/books/catalog/page/catalog-sop-how-to-download-an-inventory-report",
-   "captured_at": "2026-05-12T07:07:49Z",
-   "file": "catalog/catalog-sop-how-to-download-an-inventory-report.md",
-   "body_length": 5906,
-   "image_count": 10,
-   "status": "needs-update",
-   "triaged_on": "2026-10-06",
-   "flags": [
-    "contradicts_repo",
-    "faq_unsourced"
-   ],
-   "knowledge_value": "medium",
-   "revised_at": "2025-10-26",
-   "revision_checked_at": "2026-10-08"
-  },
-  {
    "title": "Catalog SOP: How to Generate a Reimbursements Report",
    "category": "Catalog",
    "chapter": null,
@@ -1738,24 +1604,6 @@
    "triaged_on": "2026-10-06",
    "flags": [
     "us_only"
-   ],
-   "knowledge_value": "medium",
-   "revised_at": "2025-10-26",
-   "revision_checked_at": "2026-10-08"
-  },
-  {
-   "title": "Catalog SOP: Locating Browse Tree",
-   "category": "Catalog",
-   "chapter": null,
-   "url": "https://sop.myamazonguy.com/books/catalog/page/catalog-sop-locating-browse-tree",
-   "captured_at": "2026-05-12T07:07:49Z",
-   "file": "catalog/catalog-sop-locating-browse-tree.md",
-   "body_length": 5937,
-   "image_count": 6,
-   "status": "needs-update",
-   "triaged_on": "2026-10-06",
-   "flags": [
-    "faq_unsourced"
    ],
    "knowledge_value": "medium",
    "revised_at": "2025-10-26",
@@ -1833,24 +1681,6 @@
     "us_only"
    ],
    "knowledge_value": "low",
-   "revised_at": "2025-10-26",
-   "revision_checked_at": "2026-10-08"
-  },
-  {
-   "title": "Factors That Affect A Seller’s Chance To Win The Buy Box",
-   "category": "Catalog",
-   "chapter": null,
-   "url": "https://sop.myamazonguy.com/books/catalog/page/factors-that-affect-a-sellers-chance-to-win-the-buy-box",
-   "captured_at": "2026-05-12T07:07:49Z",
-   "file": "catalog/factors-that-affect-a-seller-s-chance-to-win-the-buy-box.md",
-   "body_length": 5737,
-   "image_count": 1,
-   "status": "needs-update",
-   "triaged_on": "2026-10-06",
-   "flags": [
-    "faq_unsourced"
-   ],
-   "knowledge_value": "medium",
    "revised_at": "2025-10-26",
    "revision_checked_at": "2026-10-08"
   },
@@ -2016,26 +1846,6 @@
    ],
    "knowledge_value": "high",
    "revised_at": "2026-10-01",
-   "revision_checked_at": "2026-10-08"
-  },
-  {
-   "title": "Troubleshooting SOP: How to Report Patent Infringement",
-   "category": "Catalog",
-   "chapter": null,
-   "url": "https://sop.myamazonguy.com/books/catalog/page/troubleshooting-sop-how-to-report-patent-infringement",
-   "captured_at": "2026-05-12T07:07:49Z",
-   "file": "catalog/troubleshooting-sop-how-to-report-patent-infringement.md",
-   "body_length": 6311,
-   "image_count": 16,
-   "status": "needs-update",
-   "triaged_on": "2026-10-06",
-   "flags": [
-    "policy_risk",
-    "faq_unsourced",
-    "us_only"
-   ],
-   "knowledge_value": "medium",
-   "revised_at": "2025-10-26",
    "revision_checked_at": "2026-10-08"
   },
   {
@@ -2341,25 +2151,6 @@
    "revision_checked_at": "2026-10-08"
   },
   {
-   "title": "Advertising SOP: How Advertising Bidding Strategies Work",
-   "category": "Amazon Advertising",
-   "chapter": null,
-   "url": "https://sop.myamazonguy.com/books/amazon-advertising/page/advertising-sop-how-advertising-bidding-strategies-work",
-   "captured_at": "2026-05-12T07:07:49Z",
-   "file": "amazon-advertising/advertising-sop-how-advertising-bidding-strategies-work.md",
-   "body_length": 10885,
-   "image_count": 1,
-   "status": "needs-update",
-   "triaged_on": "2026-10-06",
-   "flags": [
-    "contradicts_repo",
-    "faq_unsourced"
-   ],
-   "knowledge_value": "high",
-   "revised_at": "2026-01-29",
-   "revision_checked_at": "2026-10-08"
-  },
-  {
    "title": "Advertising SOP: How to Change Campaign Names in Bulk",
    "category": "Amazon Advertising",
    "chapter": null,
@@ -2396,21 +2187,6 @@
     "contradicts_repo"
    ],
    "knowledge_value": "low",
-   "revised_at": "2025-10-26",
-   "revision_checked_at": "2026-10-08"
-  },
-  {
-   "title": "Advertising SOP: How to Download Advertising Invoice",
-   "category": "Amazon Advertising",
-   "chapter": null,
-   "url": "https://sop.myamazonguy.com/books/amazon-advertising/page/advertising-sop-how-to-download-advertising-invoice",
-   "captured_at": "2026-05-12T07:07:49Z",
-   "file": "amazon-advertising/advertising-sop-how-to-download-advertising-invoice.md",
-   "body_length": 4505,
-   "image_count": 10,
-   "status": "needs-update",
-   "triaged_on": "2026-10-06",
-   "knowledge_value": "medium",
    "revised_at": "2025-10-26",
    "revision_checked_at": "2026-10-08"
   },
@@ -2467,25 +2243,6 @@
    ],
    "knowledge_value": "low",
    "revised_at": "2026-09-11",
-   "revision_checked_at": "2026-10-08"
-  },
-  {
-   "title": "Advertising SOP: Prime Day Advertising Actions",
-   "category": "Amazon Advertising",
-   "chapter": null,
-   "url": "https://sop.myamazonguy.com/books/amazon-advertising/page/advertising-sop-prime-day-advertising-actions",
-   "captured_at": "2026-05-12T07:07:49Z",
-   "file": "amazon-advertising/advertising-sop-prime-day-advertising-actions.md",
-   "body_length": 15959,
-   "image_count": 45,
-   "status": "needs-update",
-   "triaged_on": "2026-10-06",
-   "flags": [
-    "mag_internal",
-    "contradicts_repo"
-   ],
-   "knowledge_value": "high",
-   "revised_at": "2025-10-26",
    "revision_checked_at": "2026-10-08"
   },
   {
@@ -2598,6 +2355,10 @@
   {
    "what": "210 SOPs triaged as unusable",
    "date": "2026-10-08"
+  },
+  {
+   "what": "13 SOPs triaged as unusable",
+   "date": "2026-10-10"
   }
  ]
 }
