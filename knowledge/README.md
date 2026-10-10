@@ -14,9 +14,9 @@ python3 tools/search_amazon_libraries.py "<question>" --library kb --limit 5
 
 Unit format, verification states and privacy rules: `docs/knowledge-library.md`.
 
-Units: **311** (311 active, 0 retired)
+Units: **322** (322 active, 0 retired)
 
-## compliance (25)
+## compliance (27)
 
 - [KC-0001 FBA hazmat review blocks a battery-powered kit with a cosmetic liquid: battery exemption sheet plus SDS, and an SDS declaration form when the SDS brand does not match](compliance/KC-0001_fba-hazmat-review-blocks-a-battery-powered-kit-with-a-cosmet.md) · diagnosis · draft · unverified
 - [KC-0002 Cosmetic applicator listing removed as an uncleared medical device because of skin-infusion marketing language](compliance/KC-0002_cosmetic-applicator-listing-removed-as-an-uncleared-medical.md) · diagnosis · draft · unverified
@@ -43,8 +43,10 @@ Units: **311** (311 active, 0 retired)
 - [KC-0102 Compliance document such as a Certificate of Analysis shows publicly on the detail page and reveals the factory](compliance/KC-0102_compliance-document-such-as-a-certificate-of-analysis-shows.md) · diagnosis · reviewed · unverified
 - [KC-0103 Test report and brand website give different minimum ages for a toy or puzzle: which age goes on the listing](compliance/KC-0103_test-report-and-brand-website-give-different-minimum-ages-fo.md) · rule · reviewed · unverified
 - [KC-0104 Listing claims an ingredient the product does not contain: remove it from text and images and re-check claims against the label](compliance/KC-0104_listing-claims-an-ingredient-the-product-does-not-contain-re.md) · diagnosis · reviewed · unverified
+- [KC-0313 Cosmetic patch listing flagged for packaging wording: Amazon asks for 510(k) or a formal exemption letter with proof](compliance/KC-0313_cosmetic-patch-listing-flagged-for-packaging-wording-amazon.md) · diagnosis · reviewed · unverified
+- [KC-0314 Can the package insert used for own-shop orders go into Amazon orders when it has QR codes to the brand site and a review-for-discount offer?](compliance/KC-0314_can-the-package-insert-used-for-own-shop-orders-go-into-amaz.md) · rule · reviewed · unverified
 
-## logistics (95)
+## logistics (99)
 
 - [KC-0003 Inbound Performance defects (labeling required, unscannable barcode, wrong quantity) can be disputed and removed; an ASIN mismatch is reimbursed only in part](logistics/KC-0003_inbound-performance-defects-labeling-required-unscannable-ba.md) · diagnosis · draft · unverified
 - [KC-0004 FBA capacity limit used up for the month: submit a Capacity Manager request (reservation-fee bid) or ship to AWD](logistics/KC-0004_fba-capacity-limit-used-up-for-the-month-submit-a-capacity-m.md) · procedure · draft · unverified
@@ -141,8 +143,12 @@ Units: **311** (311 active, 0 retired)
 - [KC-0187 Restricted FBA units disposed automatically even though automated removal was set to return them](logistics/KC-0187_restricted-fba-units-disposed-automatically-even-though-auto.md) · diagnosis · reviewed · unverified
 - [KC-0188 Do FBA shipping cartons need their own case-level GTIN barcode?](logistics/KC-0188_do-fba-shipping-cartons-need-their-own-case-level-gtin-barco.md) · rule · reviewed · unverified
 - [KC-0189 FBA inventory report shows far fewer units than were shipped and the units are marked stickerless](logistics/KC-0189_fba-inventory-report-shows-far-fewer-units-than-were-shipped.md) · reference · reviewed · unverified
+- [KC-0315 Sending multipacks to FBA: what barcode and packaging labels does each multipack need?](logistics/KC-0315_sending-multipacks-to-fba-what-barcode-and-packaging-labels.md) · procedure · reviewed · unverified
+- [KC-0316 Can Amazon store and ship inventory for a brand that does not sell on Amazon (off-Amazon store orders)?](logistics/KC-0316_can-amazon-store-and-ship-inventory-for-a-brand-that-does-no.md) · rule · reviewed · unverified
+- [KC-0317 Planning a first inbound from China to the US: how to split air and sea, and where to book ocean freight with Amazon](logistics/KC-0317_planning-a-first-inbound-from-china-to-the-us-how-to-split-a.md) · decision-aid · reviewed · unverified
+- [KC-0318 Need to drop a near-expiry SKU from an FBA shipment confirmed more than a day ago: rebuild it, or keep the shipment and labels and leave the item out](logistics/KC-0318_need-to-drop-a-near-expiry-sku-from-an-fba-shipment-confirme.md) · decision-aid · reviewed · unverified
 
-## catalog (60)
+## catalog (62)
 
 - [KC-0006 Variation children vanish from a family: check FBM offer deactivation for Valid Tracking Rate before fixing images or parentage](catalog/KC-0006_variation-children-vanish-from-a-family-check-fbm-offer-deac.md) · diagnosis · draft · unverified
 - [KC-0035 Same image set needed on every size child of a variation: how to avoid uploading images one listing at a time](catalog/KC-0035_same-image-set-needed-on-every-size-child-of-a-variation-how.md) · procedure · reviewed · unverified
@@ -204,6 +210,8 @@ Units: **311** (311 active, 0 retired)
 - [KC-0236 Variation child missing from the listing until a missing attribute Amazon asked for is filled in](catalog/KC-0236_variation-child-missing-from-the-listing-until-a-missing-att.md) · diagnosis · reviewed · unverified
 - [KC-0237 Event discount badge suppressed during a sales event: the discounted price was not low enough to qualify](catalog/KC-0237_event-discount-badge-suppressed-during-a-sales-event-the-dis.md) · diagnosis · reviewed · unverified
 - [KC-0238 Unknown non-buyable "-Parent" SKU in inventory: it is the variation parent and should not be deleted](catalog/KC-0238_unknown-non-buyable-parent-sku-in-inventory-it-is-the-variat.md) · rule · reviewed · unverified
+- [KC-0319 New listing blocked pending a GS1 certificate: the UPCs' company prefix does not match the prefix certificate](catalog/KC-0319_new-listing-blocked-pending-a-gs1-certificate-the-upcs-compa.md) · diagnosis · reviewed · unverified
+- [KC-0322 Brand name change on an existing ASIN rejected as rebranding by Selling Partner Support](catalog/KC-0322_brand-name-change-on-an-existing-asin-rejected-as-rebranding.md) · rule · reviewed · unverified
 
 ## support-cases (8)
 
@@ -216,7 +224,7 @@ Units: **311** (311 active, 0 retired)
 - [KC-0108 Refund requested by buyer email address: Seller Central hides buyer emails, and Pending orders cannot be cancelled or refunded by the seller](support-cases/KC-0108_refund-requested-by-buyer-email-address-seller-central-hides.md) · diagnosis · reviewed · unverified
 - [KC-0109 Agency user cannot open or edit Seller Support cases until granted the Manage Your Cases permission](support-cases/KC-0109_agency-user-cannot-open-or-edit-seller-support-cases-until-g.md) · procedure · reviewed · unverified
 
-## ads (39)
+## ads (41)
 
 - [KC-0009 Sponsored Products campaigns suddenly stop delivering impressions despite healthy bids, stock and Buy Box](ads/KC-0009_sponsored-products-campaigns-suddenly-stop-delivering-impres.md) · diagnosis · draft · unverified
 - [KC-0010 Competitor product appears in own Sponsored Brands Product Collection ad](ads/KC-0010_competitor-product-appears-in-own-sponsored-brands-product-c.md) · diagnosis · draft · unverified
@@ -257,8 +265,10 @@ Units: **311** (311 active, 0 retired)
 - [KC-0309 Generic campaigns look efficient because branded search traffic is hidden inside them](ads/KC-0309_generic-campaigns-look-efficient-because-branded-search-traf.md) · diagnosis · reviewed · unverified
 - [KC-0310 Both FBA and FBM offers on the same products: which SKUs should the ads promote?](ads/KC-0310_both-fba-and-fbm-offers-on-the-same-products-which-skus-shou.md) · decision-aid · reviewed · unverified
 - [KC-0311 Ads get few clicks and little spend because the FBM offer is deactivated and FBA stock is mostly out](ads/KC-0311_ads-get-few-clicks-and-little-spend-because-the-fbm-offer-is.md) · diagnosis · reviewed · unverified
+- [KC-0320 Many enabled Sponsored Products campaigns spend nothing because bids sit far below the suggested range or a tool multiplier cuts them](ads/KC-0320_many-enabled-sponsored-products-campaigns-spend-nothing-beca.md) · diagnosis · reviewed · unverified
+- [KC-0321 Agency cannot get into a seller's Ads console during onboarding: the client contact needs advertising rights first, then grants the agency in Seller Central User Permissions](ads/KC-0321_agency-cannot-get-into-a-seller-s-ads-console-during-onboard.md) · procedure · reviewed · unverified
 
-## account-health (24)
+## account-health (25)
 
 - [KC-0011 Buy Box (Featured Offer) lost to a Pricing Health 'uncompetitive price' flag; restored by pricing at or below Amazon's competitive-price threshold](account-health/KC-0011_buy-box-featured-offer-lost-to-a-pricing-health-uncompetitiv.md) · diagnosis · draft · unverified
 - [KC-0012 FBM offer not selling because the account is in vacation mode; reactivate listings, set a shipping template and confirm the 3PL uploads tracking](account-health/KC-0012_fbm-offer-not-selling-because-the-account-is-in-vacation-mod.md) · diagnosis · draft · unverified
@@ -284,6 +294,7 @@ Units: **311** (311 active, 0 retired)
 - [KC-0080 All FBM listings turned inactive after poor seller-fulfilled shipping performance](account-health/KC-0080_all-fbm-listings-turned-inactive-after-poor-seller-fulfilled.md) · diagnosis · reviewed · unverified
 - [KC-0081 Third-party warehouse cannot meet FBM ship-by dates or no weekend fulfilment: raise the default handling time](account-health/KC-0081_third-party-warehouse-cannot-meet-fbm-ship-by-dates-or-no-we.md) · decision-aid · reviewed · unverified
 - [KC-0082 Account owner cannot find where to confirm the tax address or KYC request Amazon is asking for](account-health/KC-0082_account-owner-cannot-find-where-to-confirm-the-tax-address-o.md) · procedure · reviewed · unverified
+- [KC-0312 EU seller account deactivated for a verification problem; appeal stalls until the requested virtual identity verification is completed](account-health/KC-0312_eu-seller-account-deactivated-for-a-verification-problem-app.md) · diagnosis · reviewed · unverified
 
 ## seo (9)
 
