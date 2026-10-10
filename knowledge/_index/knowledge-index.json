@@ -1,19 +1,19 @@
 {
  "library": "Amazon Knowledge",
  "generated_by": "tools/knowledge/build_knowledge_index.py",
- "unit_count": 12,
- "active_count": 12,
+ "unit_count": 67,
+ "active_count": 67,
  "retired_count": 0,
  "topics": {
-  "compliance": 2,
-  "logistics": 2,
-  "catalog": 1,
-  "support-cases": 2,
-  "ads": 2,
-  "account-health": 2,
-  "seo": 0,
-  "brand-registry": 1,
-  "reporting": 0
+  "compliance": 3,
+  "logistics": 15,
+  "catalog": 11,
+  "support-cases": 3,
+  "ads": 13,
+  "account-health": 9,
+  "seo": 2,
+  "brand-registry": 10,
+  "reporting": 1
  },
  "units": [
   {
@@ -578,6 +578,2383 @@
    "observed": "2025-03",
    "review_by": "2027-10",
    "file": "knowledge/account-health/KC-0012_fbm-offer-not-selling-because-the-account-is-in-vacation-mod.md"
+  },
+  {
+   "id": "KC-0013",
+   "title": "Offers keep reappearing in Pricing Health as above the Featured Offer or uncompetitive: which to price-match and which need a margin check",
+   "kind": "decision-aid",
+   "topic": "account-health",
+   "status": "reviewed",
+   "skills": [
+    "amazon-account-health-check"
+   ],
+   "marketplaces": [
+    "DE"
+   ],
+   "surface": "Seller Central > Pricing > Pricing Health",
+   "symptom_keywords": [
+    "recurring pricing health alerts",
+    "price above featured offer",
+    "uncompetitive price competitive price threshold",
+    "FBM offer flagged pricing health",
+    "automated pricing not clearing pricing health"
+   ],
+   "error_text": [
+    "uncompetitive",
+    "Competitive Price Threshold",
+    "Featured Offer"
+   ],
+   "asked_as": [
+    "Several offers had been recurring in Pricing Health for weeks."
+   ],
+   "synonyms": [],
+   "resolution_status": "partial",
+   "fix_source": "agency",
+   "evidence_location": "slack",
+   "confidence": "medium",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [],
+   "related_sops": [
+    "MAG SOPs/catalog/catalog-sop-managing-your-buy-box-percentage.md"
+   ],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2026-08",
+   "review_by": "2027-10",
+   "file": "knowledge/account-health/KC-0013_offers-keep-reappearing-in-pricing-health-as-above-the-featu.md"
+  },
+  {
+   "id": "KC-0014",
+   "title": "Low valid tracking rate on FBM orders shipped by a 3PL: tracking uses the 3PL as carrier",
+   "kind": "diagnosis",
+   "topic": "account-health",
+   "status": "reviewed",
+   "skills": [
+    "amazon-account-health-check",
+    "amazon-troubleshooting"
+   ],
+   "marketplaces": [
+    "US"
+   ],
+   "surface": "",
+   "symptom_keywords": [
+    "low VTR",
+    "valid tracking rate low 3PL",
+    "invalid tracking FBM",
+    "carrier not recognized",
+    "3PL tracking number not valid"
+   ],
+   "error_text": [],
+   "asked_as": [
+    "The valid tracking rate stayed low although the 3PL had shipped the merchant-fulfilled orders; the team asked whether to fix it manually."
+   ],
+   "synonyms": [],
+   "resolution_status": "partial",
+   "fix_source": "client",
+   "evidence_location": "email",
+   "confidence": "medium",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [],
+   "related_sops": [],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2026-04",
+   "review_by": "2027-10",
+   "file": "knowledge/account-health/KC-0014_low-valid-tracking-rate-on-fbm-orders-shipped-by-a-3pl-track.md"
+  },
+  {
+   "id": "KC-0015",
+   "title": "Late shipment rate far above the 4% target on a new FBM program: write a Plan of Action, raise handling time and move volume to FBA",
+   "kind": "procedure",
+   "topic": "account-health",
+   "status": "reviewed",
+   "skills": [
+    "amazon-account-health-check",
+    "amazon-logistics"
+   ],
+   "marketplaces": [
+    "US"
+   ],
+   "surface": "Seller Central > Performance > Account Health > Shipping Performance > Late Shipment Rate",
+   "symptom_keywords": [
+    "late shipment rate above 4%",
+    "late shipment rate warning",
+    "plan of action late shipment",
+    "3PL shipping late FBM",
+    "FBM late shipment account health"
+   ],
+   "error_text": [],
+   "asked_as": [
+    "A brand that had just started merchant-fulfilled shipping through its 3PL saw a late shipment rate far above Amazon's 4% target in Account Health and asked what strategy to take."
+   ],
+   "synonyms": [],
+   "resolution_status": "partial",
+   "fix_source": "agency",
+   "evidence_location": "call",
+   "confidence": "medium",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [
+    "Amazon Seller Help/articles/109-amazon-business-faq-G201750810.md",
+    "Amazon Seller Help/articles/092-subscribe-and-save-for-sellers-G201620110.md"
+   ],
+   "related_sops": [
+    "MAG SOPs/catalog/catalog-sop-fbm-late-shipment.md"
+   ],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2026-01",
+   "review_by": "2027-10",
+   "file": "knowledge/account-health/KC-0015_late-shipment-rate-far-above-the-4-target-on-a-new-fbm-progr.md"
+  },
+  {
+   "id": "KC-0016",
+   "title": "FBM late shipment rate jumps above target although packages left the warehouse on time",
+   "kind": "diagnosis",
+   "topic": "account-health",
+   "status": "reviewed",
+   "skills": [
+    "amazon-account-health-check",
+    "amazon-logistics"
+   ],
+   "marketplaces": [
+    "US"
+   ],
+   "surface": "Seller Central > Performance > Account Health > Shipping Performance; Orders > Manage Orders",
+   "symptom_keywords": [
+    "late shipment rate above 4%",
+    "FBM late shipment rate spike",
+    "orders shipped on time but marked late",
+    "shipment confirmation not sent to Amazon",
+    "automatic ship confirmation failed"
+   ],
+   "error_text": [],
+   "asked_as": [
+    "The account showed a seller-fulfilled late shipment rate far above the 4% target, putting account health and the ability to keep FBM offers at risk."
+   ],
+   "synonyms": [],
+   "resolution_status": "resolved",
+   "fix_source": "client",
+   "evidence_location": "slack",
+   "confidence": "medium",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [
+    "Amazon Seller Help/articles/115-amazon-business-metrics-G202141920.md",
+    "Amazon Seller Help/articles/092-subscribe-and-save-for-sellers-G201620110.md"
+   ],
+   "related_sops": [
+    "MAG SOPs/catalog/catalog-sop-fbm-late-shipment.md"
+   ],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2025-04",
+   "review_by": "2027-10",
+   "file": "knowledge/account-health/KC-0016_fbm-late-shipment-rate-jumps-above-target-although-packages.md"
+  },
+  {
+   "id": "KC-0017",
+   "title": "Where to monitor seller-fulfilled (FBM) shipping performance: late shipment, cancellation and tracking metrics",
+   "kind": "reference",
+   "topic": "account-health",
+   "status": "reviewed",
+   "skills": [
+    "amazon-account-health-check"
+   ],
+   "marketplaces": [
+    "US"
+   ],
+   "surface": "Seller Central > Performance > Account Health > Shipping Performance",
+   "symptom_keywords": [
+    "where to see FBM shipping performance",
+    "late shipment rate dashboard",
+    "FBM cancellation rate where",
+    "shipping performance page seller central",
+    "monitor merchant fulfilled delivery metrics"
+   ],
+   "error_text": [],
+   "asked_as": [
+    "A seller asked where in Seller Central they can monitor shipping performance for seller-fulfilled orders."
+   ],
+   "synonyms": [],
+   "resolution_status": "resolved",
+   "fix_source": "agency",
+   "evidence_location": "slack",
+   "confidence": "medium",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [],
+   "related_sops": [
+    "MAG SOPs/catalog/catalog-sop-fbm-late-shipment.md"
+   ],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2026-04",
+   "review_by": "2027-10",
+   "file": "knowledge/account-health/KC-0017_where-to-monitor-seller-fulfilled-fbm-shipping-performance-l.md"
+  },
+  {
+   "id": "KC-0018",
+   "title": "Seller Central registration: which company's bank statement to upload when the IP owner and the paying company differ, and whether the store name must match the brand",
+   "kind": "rule",
+   "topic": "account-health",
+   "status": "reviewed",
+   "skills": [
+    "amazon-client-onboarding"
+   ],
+   "marketplaces": [
+    "US"
+   ],
+   "surface": "Seller Central registration",
+   "symptom_keywords": [
+    "which bank statement seller central registration",
+    "bank statement different company",
+    "store name already taken",
+    "store name brand name",
+    "seller verification bank statement"
+   ],
+   "error_text": [],
+   "asked_as": [
+    "A new seller registering Seller Central under the trademark-owning company, while a separate management company pays costs and receives revenue, asked whose bank statement to upload, and whether a rej"
+   ],
+   "synonyms": [],
+   "resolution_status": "resolved",
+   "fix_source": "agency",
+   "evidence_location": "slack",
+   "confidence": "medium",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [
+    "Amazon Seller Help/articles/184-registration-requirements-by-store-G201468460.md",
+    "Amazon Seller Help/articles/026-global-seller-identity-address-and-business-verification-GQRP483PDN88Q3M9.md",
+    "Amazon Seller Help/articles/031-bank-account-and-credit-or-debit-card-information-for-your-seller-account-G19791.md"
+   ],
+   "related_sops": [],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2026-02",
+   "review_by": "2027-10",
+   "file": "knowledge/account-health/KC-0018_seller-central-registration-which-company-s-bank-statement-t.md"
+  },
+  {
+   "id": "KC-0019",
+   "title": "Dormant seller account redirects to inactiveAccount and the billing page after Continue: re-add the card",
+   "kind": "diagnosis",
+   "topic": "account-health",
+   "status": "reviewed",
+   "skills": [
+    "amazon-account-health-check"
+   ],
+   "marketplaces": [
+    "US"
+   ],
+   "surface": "Seller Central > inactiveAccount page > seller verification > billing (charge method)",
+   "symptom_keywords": [
+    "seller account inactive dormant",
+    "inactiveAccount redirect billing",
+    "reactivate dormant seller account",
+    "re-verify ID dormant account"
+   ],
+   "error_text": [
+    "inactiveAccount"
+   ],
+   "asked_as": [
+    "The agency asked the client to reactivate a dormant Seller Central account by re-verifying IDs; after clicking Continue the client kept landing on the billing page."
+   ],
+   "synonyms": [],
+   "resolution_status": "resolved",
+   "fix_source": "client",
+   "evidence_location": "slack",
+   "confidence": "medium",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [
+    "Amazon Seller Help/articles/031-bank-account-and-credit-or-debit-card-information-for-your-seller-account-G19791.md",
+    "Amazon Seller Help/articles/026-global-seller-identity-address-and-business-verification-GQRP483PDN88Q3M9.md"
+   ],
+   "related_sops": [],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2025-02",
+   "review_by": "2027-10",
+   "file": "knowledge/account-health/KC-0019_dormant-seller-account-redirects-to-inactiveaccount-and-the.md"
+  },
+  {
+   "id": "KC-0020",
+   "title": "Fragrance product cannot be sent to FBA because of its dangerous goods classification: upload a Safety Data Sheet instead of the exemption sheet",
+   "kind": "diagnosis",
+   "topic": "compliance",
+   "status": "reviewed",
+   "skills": [
+    "amazon-logistics",
+    "amazon-troubleshooting"
+   ],
+   "marketplaces": [
+    "US"
+   ],
+   "surface": "Seller Central > FBA compliance dashboard (Upload and track the status of your safety data sheets (SDS) and exemption sheets); Send to Amazon",
+   "symptom_keywords": [
+    "cannot send fragrance to FBA hazmat",
+    "exemption sheet rejected perfume",
+    "dangerous goods review blocks shipment",
+    "upload SDS instead of exemption sheet",
+    "change category to clear hazmat"
+   ],
+   "error_text": [],
+   "asked_as": [
+    "A fragrance product could not be added to an FBA shipment because of its dangerous goods review."
+   ],
+   "synonyms": [],
+   "resolution_status": "resolved",
+   "fix_source": "agency",
+   "evidence_location": "slack",
+   "confidence": "medium",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [],
+   "related_sops": [
+    "MAG SOPs/catalog/troubleshooting-sop-sds-upload-hazmat-issues.md",
+    "knowledge/compliance/KC-0001_fba-hazmat-review-blocks-a-battery-powered-kit-with-a-cosmet.md"
+   ],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2025-04",
+   "review_by": "2027-10",
+   "file": "knowledge/compliance/KC-0020_fragrance-product-cannot-be-sent-to-fba-because-of-its-dange.md"
+  },
+  {
+   "id": "KC-0021",
+   "title": "FBA order not received, lost or damaged: who handles the customer",
+   "kind": "rule",
+   "topic": "support-cases",
+   "status": "reviewed",
+   "skills": [
+    "amazon-communications"
+   ],
+   "marketplaces": [
+    "US"
+   ],
+   "surface": "Buyer-Seller Messages; helpdesk connected to Amazon messages",
+   "symptom_keywords": [
+    "FBA order not received customer complaint",
+    "damaged FBA order what to do",
+    "who handles FBA customer service",
+    "customer asks seller about lost FBA package",
+    "refund or replacement FBA order"
+   ],
+   "error_text": [],
+   "asked_as": [
+    "A brand customer-experience lead, now answering Amazon messages through a helpdesk, asked how to handle FBA orders that customers report as not received, lost, stuck or damaged."
+   ],
+   "synonyms": [],
+   "resolution_status": "resolved",
+   "fix_source": "agency",
+   "evidence_location": "slack",
+   "confidence": "high",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [
+    "Amazon Seller Help/articles/063-fba-features-services-and-fees-G201074400.md"
+   ],
+   "related_sops": [
+    "MAG SOPs/catalog/catalog-sop-customer-service-buyer-messages-refund-and-replacement.md"
+   ],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2026-04",
+   "review_by": "2027-10",
+   "file": "knowledge/support-cases/KC-0021_fba-order-not-received-lost-or-damaged-who-handles-the-custo.md"
+  },
+  {
+   "id": "KC-0022",
+   "title": "Seller-fulfilled return requests are approved automatically, even for items that come back used: can the seller stop it?",
+   "kind": "rule",
+   "topic": "logistics",
+   "status": "reviewed",
+   "skills": [
+    "amazon-communications",
+    "amazon-logistics"
+   ],
+   "marketplaces": [
+    "US"
+   ],
+   "surface": "Seller Central > Orders > Manage Returns",
+   "symptom_keywords": [
+    "Amazon auto approved returns FBM",
+    "stop automatic return authorization",
+    "FBM returns come back used",
+    "seller fulfilled return requests approved without me",
+    "can I deny return request"
+   ],
+   "error_text": [],
+   "asked_as": [
+    "The client saw that Amazon had approved return requests on seller-fulfilled orders automatically and that many items came back used, and asked what could be done about these return requests."
+   ],
+   "synonyms": [],
+   "resolution_status": "resolved",
+   "fix_source": "agency",
+   "evidence_location": "slack",
+   "confidence": "high",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [
+    "Amazon Seller Help/articles/052-manage-seller-fulfilled-returns-G200708210.md",
+    "Amazon Seller Help/articles/007-seller-fulfilled-returns-refunds-cancellations-and-claims-G69126.md"
+   ],
+   "related_sops": [
+    "MAG SOPs/catalog/catalog-sop-amazon-damaged-and-lost-inventory-reimbursements.md"
+   ],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2025-02",
+   "review_by": "2027-10",
+   "file": "knowledge/logistics/KC-0022_seller-fulfilled-return-requests-are-approved-automatically.md"
+  },
+  {
+   "id": "KC-0023",
+   "title": "Is the carrier tracking number required for a non-partnered inbound shipment",
+   "kind": "rule",
+   "topic": "logistics",
+   "status": "reviewed",
+   "skills": [
+    "amazon-logistics"
+   ],
+   "marketplaces": [
+    "US"
+   ],
+   "surface": "Seller Central > Send to Amazon > Tracking details",
+   "symptom_keywords": [
+    "upload tracking number FBA shipment",
+    "is tracking needed for inbound",
+    "non-partnered carrier tracking ID",
+    "air freight tracking Send to Amazon"
+   ],
+   "error_text": [],
+   "asked_as": [
+    "A brand asked whether the tracking number for an air shipment to the Amazon warehouse had to be uploaded, after its forwarder said it was not needed."
+   ],
+   "synonyms": [],
+   "resolution_status": "resolved",
+   "fix_source": "agency",
+   "evidence_location": "slack",
+   "confidence": "high",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [
+    "Amazon Seller Help/articles/064-fba-peak-readiness-playbook-G4QH4XCRWUXRJBLY.md",
+    "Amazon Seller Help/articles/059-prime-day-readiness-playbook-GM2ADTH3XH3A5N57.md"
+   ],
+   "related_sops": [
+    "MAG SOPs/catalog/logistics-sop-send-to-amazon-how-to-create-fba-shipment.md"
+   ],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2025-11",
+   "review_by": "2027-10",
+   "file": "knowledge/logistics/KC-0023_is-the-carrier-tracking-number-required-for-a-non-partnered.md"
+  },
+  {
+   "id": "KC-0024",
+   "title": "When long-term storage fees start on aged FBA inventory and how to estimate them",
+   "kind": "reference",
+   "topic": "logistics",
+   "status": "reviewed",
+   "skills": [
+    "amazon-logistics",
+    "amazon-fba-inventory-planning"
+   ],
+   "marketplaces": [
+    "US"
+   ],
+   "surface": "Seller Central > Reports > Fulfillment > Long-Term Storage Fee Charges / FBA Inventory age",
+   "symptom_keywords": [
+    "when are long-term storage fees charged",
+    "aged inventory surcharge estimate",
+    "181 days storage fee",
+    "overstock storage fee projection"
+   ],
+   "error_text": [],
+   "asked_as": [
+    "A seller with an overstocked variation asked when long-term storage fees would first be charged and how much to expect."
+   ],
+   "synonyms": [],
+   "resolution_status": "resolved",
+   "fix_source": "agency",
+   "evidence_location": "slack",
+   "confidence": "medium",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [
+    "Amazon Seller Help/articles/063-fba-features-services-and-fees-G201074400.md"
+   ],
+   "related_sops": [],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2026-02",
+   "review_by": "2027-10",
+   "file": "knowledge/logistics/KC-0024_when-long-term-storage-fees-start-on-aged-fba-inventory-and.md"
+  },
+  {
+   "id": "KC-0025",
+   "title": "Can one package carry both the FNSKU and the UPC? No: keep one scannable barcode and print the UPC alone when the offer uses the manufacturer barcode",
+   "kind": "rule",
+   "topic": "logistics",
+   "status": "reviewed",
+   "skills": [
+    "amazon-logistics",
+    "amazon-catalog"
+   ],
+   "marketplaces": [
+    "US"
+   ],
+   "surface": "Product packaging; offer barcode type (manufacturer barcode or Amazon barcode)",
+   "symptom_keywords": [
+    "FNSKU and UPC on same box",
+    "two barcodes on packaging",
+    "same packaging for Shopify and Amazon",
+    "print UPC only FBA",
+    "small box barcode"
+   ],
+   "error_text": [],
+   "asked_as": [
+    "The client wanted one packaging for its own web store and Amazon and asked whether it could print both the FNSKU and the UPC on a small box."
+   ],
+   "synonyms": [],
+   "resolution_status": "resolved",
+   "fix_source": "agency",
+   "evidence_location": "slack",
+   "confidence": "medium",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [],
+   "related_sops": [
+    "MAG SOPs/catalog/logistics-sop-how-to-switch-from-amazon-barcodes-to-manufacturer-barcodes-for-virtual-tracking.md",
+    "knowledge/logistics/KC-0003_inbound-performance-defects-labeling-required-unscannable-ba.md"
+   ],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2025-12",
+   "review_by": "2027-10",
+   "file": "knowledge/logistics/KC-0025_can-one-package-carry-both-the-fnsku-and-the-upc-no-keep-one.md"
+  },
+  {
+   "id": "KC-0026",
+   "title": "Want to match an off-Amazon single-unit price by charging shipping: FBA offers cannot add a shipping fee, so price a multipack per unit instead",
+   "kind": "decision-aid",
+   "topic": "logistics",
+   "status": "reviewed",
+   "skills": [
+    "amazon-logistics",
+    "amazon-fba-inventory-planning"
+   ],
+   "marketplaces": [
+    "US"
+   ],
+   "surface": "Seller Central > Pricing; FBM shipping templates; Promotions (sale price)",
+   "symptom_keywords": [
+    "charge shipping on FBA listing",
+    "add shipping fee FBA",
+    "single unit price too low for fees",
+    "match website price on Amazon",
+    "multipack price per unit"
+   ],
+   "error_text": [],
+   "asked_as": [
+    "The client wanted to test the same low per-unit price it runs on its own website on a single-pack Amazon listing, and asked whether it could charge a shipping fee on top as the website does."
+   ],
+   "synonyms": [],
+   "resolution_status": "resolved",
+   "fix_source": "agency",
+   "evidence_location": "slack",
+   "confidence": "medium",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [
+    "Amazon Seller Help/articles/009-get-started-with-fulfillment-by-amazon-fba-G53921.md",
+    "Amazon Seller Help/articles/142-price-your-item-G62551.md"
+   ],
+   "related_sops": [],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2026-05",
+   "review_by": "2027-10",
+   "file": "knowledge/logistics/KC-0026_want-to-match-an-off-amazon-single-unit-price-by-charging-sh.md"
+  },
+  {
+   "id": "KC-0027",
+   "title": "Send to Amazon will not create a large inbound shipment because of the FBA capacity limit: split it, request capacity or wait for removals to clear",
+   "kind": "procedure",
+   "topic": "logistics",
+   "status": "reviewed",
+   "skills": [
+    "amazon-logistics",
+    "amazon-fba-inventory-planning"
+   ],
+   "marketplaces": [
+    "US"
+   ],
+   "surface": "Seller Central > Send to Amazon; Capacity Monitor / Capacity Manager; Removal orders; AWD",
+   "symptom_keywords": [
+    "cannot create shipment capacity limit",
+    "FBA storage capacity limit blocks inbound",
+    "maximum units allowed to send",
+    "request more FBA capacity",
+    "split shipment because of capacity"
+   ],
+   "error_text": [],
+   "asked_as": [
+    "The client asked for shipping labels for a large inbound shipment direct from its supplier; the system would not create the shipment because of the storage capacity limit, which allowed only part of t"
+   ],
+   "synonyms": [],
+   "resolution_status": "partial",
+   "fix_source": "agency",
+   "evidence_location": "slack",
+   "confidence": "medium",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [
+    "Amazon Seller Help/articles/067-maximizing-delivery-speed-GA8NP4NDZZ3EJRU5.md"
+   ],
+   "related_sops": [
+    "MAG SOPs/catalog/catalog-sop-fba-storage-capacity-limits.md",
+    "MAG SOPs/catalog/catalog-sop-fba-removal-order.md"
+   ],
+   "supersedes": [],
+   "contradicts": [
+    "Amazon Seller Help/articles/067-maximizing-delivery-speed-GA8NP4NDZZ3EJRU5.md"
+   ],
+   "observed": "2026-03",
+   "review_by": "2027-10",
+   "file": "knowledge/logistics/KC-0027_send-to-amazon-will-not-create-a-large-inbound-shipment-beca.md"
+  },
+  {
+   "id": "KC-0028",
+   "title": "Stranded inventory still showing after a removal order: Amazon cancelled part of the removal",
+   "kind": "diagnosis",
+   "topic": "logistics",
+   "status": "reviewed",
+   "skills": [
+    "amazon-logistics"
+   ],
+   "marketplaces": [
+    "US"
+   ],
+   "surface": "",
+   "symptom_keywords": [
+    "stranded inventory after removal order",
+    "removal order units cancelled",
+    "units not included in removal",
+    "stranded units still showing",
+    "removal order partially cancelled"
+   ],
+   "error_text": [],
+   "asked_as": [
+    "Seller Central still showed a large quantity of stranded inventory after a removal back to the 3PL; the client asked whether units were left out or Amazon was delayed."
+   ],
+   "synonyms": [],
+   "resolution_status": "resolved",
+   "fix_source": "agency",
+   "evidence_location": "slack",
+   "confidence": "medium",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [],
+   "related_sops": [
+    "MAG SOPs/catalog/catalog-sop-fba-removal-order.md",
+    "MAG SOPs/catalog/troubleshooting-sop-stranded-inventory-inventory-error.md"
+   ],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2026-07",
+   "review_by": "2027-10",
+   "file": "knowledge/logistics/KC-0028_stranded-inventory-still-showing-after-a-removal-order-amazo.md"
+  },
+  {
+   "id": "KC-0029",
+   "title": "Lost inbound units: a tracking number alone does not prove how many units were sent",
+   "kind": "procedure",
+   "topic": "logistics",
+   "status": "reviewed",
+   "skills": [
+    "amazon-logistics",
+    "amazon-communications"
+   ],
+   "marketplaces": [
+    "US"
+   ],
+   "surface": "FBA shipment reconciliation / lost inbound reimbursement claim",
+   "symptom_keywords": [
+    "lost inbound reimbursement proof",
+    "Amazon received fewer units than shipped",
+    "what document proves units sent to FBA",
+    "shipment shortage claim evidence",
+    "tracking number not enough for FBA claim"
+   ],
+   "error_text": [],
+   "asked_as": [
+    "Amazon received fewer units than the shipment declared, and a reimbursement claim needed supporting documents."
+   ],
+   "synonyms": [],
+   "resolution_status": "partial",
+   "fix_source": "agency",
+   "evidence_location": "slack",
+   "confidence": "medium",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [],
+   "related_sops": [
+    "MAG SOPs/catalog/catalog-sop-fba-shipment-reconciliation.md",
+    "MAG SOPs/catalog/catalog-sop-amazon-damaged-and-lost-inventory-reimbursements.md"
+   ],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2025-11",
+   "review_by": "2027-10",
+   "file": "knowledge/logistics/KC-0029_lost-inbound-units-a-tracking-number-alone-does-not-prove-ho.md"
+  },
+  {
+   "id": "KC-0030",
+   "title": "Orders are fulfilled by the merchant or 3PL offer instead of FBA even though FBA stock exists",
+   "kind": "diagnosis",
+   "topic": "logistics",
+   "status": "reviewed",
+   "skills": [
+    "amazon-logistics",
+    "amazon-troubleshooting"
+   ],
+   "marketplaces": [
+    "US"
+   ],
+   "surface": "Product detail page featured offer by delivery location; Seller Central > Manage Orders",
+   "symptom_keywords": [
+    "orders going to FBM instead of FBA",
+    "3PL fulfilling orders not FBA",
+    "why FBM offer wins over FBA",
+    "featured offer depends on zip code",
+    "FBA and FBM on same ASIN"
+   ],
+   "error_text": [],
+   "asked_as": [
+    "An ASIN with both an FBA offer and a merchant-fulfilled offer (shipped by a 3PL) received orders that went to the 3PL instead of FBA."
+   ],
+   "synonyms": [],
+   "resolution_status": "diagnosis-only",
+   "fix_source": "agency",
+   "evidence_location": "slack",
+   "confidence": "medium",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [
+    "Amazon Seller Help/articles/067-maximizing-delivery-speed-GA8NP4NDZZ3EJRU5.md"
+   ],
+   "related_sops": [
+    "MAG SOPs/catalog/factors-that-affect-a-seller-s-chance-to-win-the-buy-box.md",
+    "MAG SOPs/catalog/catalog-sop-creating-multiple-offers-mfn-fba-for-an-asin.md"
+   ],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2026-04",
+   "review_by": "2027-10",
+   "file": "knowledge/logistics/KC-0030_orders-are-fulfilled-by-the-merchant-or-3pl-offer-instead-of.md"
+  },
+  {
+   "id": "KC-0031",
+   "title": "Send to Amazon shipment lists an auto-generated SKU that the warehouse does not recognise",
+   "kind": "procedure",
+   "topic": "logistics",
+   "status": "reviewed",
+   "skills": [
+    "amazon-logistics",
+    "amazon-catalog"
+   ],
+   "marketplaces": [
+    "US"
+   ],
+   "surface": "Seller Central > Send to Amazon; Manage All Inventory",
+   "symptom_keywords": [
+    "auto generated SKU in FBA shipment",
+    "warehouse SKU mismatch on shipment",
+    "wrong merchant SKU on shipment",
+    "recreate FBA shipment with correct SKU",
+    "cancel shipment to avoid charges"
+   ],
+   "error_text": [],
+   "asked_as": [
+    "After a shipment was created, the client operations lead saw that one product carried an Amazon-generated merchant SKU instead of the agreed SKU naming convention used in the warehouse system."
+   ],
+   "synonyms": [],
+   "resolution_status": "resolved",
+   "fix_source": "agency",
+   "evidence_location": "slack",
+   "confidence": "medium",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [],
+   "related_sops": [
+    "MAG SOPs/catalog/logistics-sop-send-to-amazon-how-to-create-fba-shipment.md"
+   ],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2025-12",
+   "review_by": "2027-10",
+   "file": "knowledge/logistics/KC-0031_send-to-amazon-shipment-lists-an-auto-generated-sku-that-the.md"
+  },
+  {
+   "id": "KC-0032",
+   "title": "Send to Amazon blocks a new-SKU shipment with 'Please review SKUs with errors or unconfirmed SKUs' because FBA capacity is used up",
+   "kind": "diagnosis",
+   "topic": "logistics",
+   "status": "reviewed",
+   "skills": [
+    "amazon-logistics"
+   ],
+   "marketplaces": [
+    "US"
+   ],
+   "surface": "",
+   "symptom_keywords": [
+    "cannot send shipment SKUs with errors",
+    "unconfirmed SKUs Send to Amazon",
+    "FBA capacity full new shipment",
+    "shipment blocked capacity limit"
+   ],
+   "error_text": [
+    "Please review SKUs with errors or unconfirmed SKUs"
+   ],
+   "asked_as": [
+    "A team member creating a shipment of new SKUs could not continue; Send to Amazon showed 'Please review SKUs with errors or unconfirmed SKUs'."
+   ],
+   "synonyms": [],
+   "resolution_status": "diagnosis-only",
+   "fix_source": "agency",
+   "evidence_location": "screenshot",
+   "confidence": "medium",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [
+    "Amazon Seller Help/articles/067-maximizing-delivery-speed-GA8NP4NDZZ3EJRU5.md"
+   ],
+   "related_sops": [
+    "MAG SOPs/catalog/catalog-sop-fba-storage-capacity-limits.md"
+   ],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2024-08",
+   "review_by": "2027-10",
+   "file": "knowledge/logistics/KC-0032_send-to-amazon-blocks-a-new-sku-shipment-with-please-review.md"
+  },
+  {
+   "id": "KC-0033",
+   "title": "Choosing FBA over FBM when worried that FBA customer returns are not restocked",
+   "kind": "decision-aid",
+   "topic": "logistics",
+   "status": "reviewed",
+   "skills": [
+    "amazon-logistics",
+    "amazon-fba-inventory-planning"
+   ],
+   "marketplaces": [
+    "US"
+   ],
+   "surface": "Seller Central > Reports > Fulfillment > Customer returns; Inventory > Removal orders",
+   "symptom_keywords": [
+    "FBA returns not put back into stock",
+    "FBM more control over returns",
+    "unsellable FBA returns",
+    "FBA vs FBM returns"
+   ],
+   "error_text": [],
+   "asked_as": [
+    "The client preferred FBM because FBA returns go back to an Amazon warehouse and may not be restocked, while FBM lets them inspect and restock returns themselves."
+   ],
+   "synonyms": [],
+   "resolution_status": "resolved",
+   "fix_source": "agency",
+   "evidence_location": "slack",
+   "confidence": "medium",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [],
+   "related_sops": [
+    "MAG SOPs/catalog/catalog-sop-fba-removal-order.md",
+    "MAG SOPs/catalog/logistics-sop-fba-customer-returns-reimbursements.md"
+   ],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2025-10",
+   "review_by": "2027-10",
+   "file": "knowledge/logistics/KC-0033_choosing-fba-over-fbm-when-worried-that-fba-customer-returns.md"
+  },
+  {
+   "id": "KC-0034",
+   "title": "Do FBM products need Amazon barcode (FNSKU) labels? Only for FBA; a 3PL may set its own identifier",
+   "kind": "rule",
+   "topic": "logistics",
+   "status": "reviewed",
+   "skills": [
+    "amazon-logistics",
+    "amazon-fba-inventory-planning"
+   ],
+   "marketplaces": [
+    "US"
+   ],
+   "surface": "Settings > Fulfillment by Amazon > FBA Product Barcode Preference",
+   "symptom_keywords": [
+    "FNSKU label needed for FBM",
+    "barcode labels merchant fulfilled",
+    "do I need Amazon barcode for 3PL",
+    "FBA labels only",
+    "3PL item identifier"
+   ],
+   "error_text": [],
+   "asked_as": [
+    "A seller asked whether item barcode labels are needed when the product ships through a 3PL as seller-fulfilled instead of FBA."
+   ],
+   "synonyms": [],
+   "resolution_status": "resolved",
+   "fix_source": "agency",
+   "evidence_location": "slack",
+   "confidence": "medium",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [],
+   "related_sops": [
+    "MAG SOPs/catalog/merchandising-sop-amazon-listing-creation.md",
+    "MAG SOPs/catalog/logistics-sop-how-to-switch-from-amazon-barcodes-to-manufacturer-barcodes-for-virtual-tracking.md"
+   ],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2025-10",
+   "review_by": "2027-10",
+   "file": "knowledge/logistics/KC-0034_do-fbm-products-need-amazon-barcode-fnsku-labels-only-for-fb.md"
+  },
+  {
+   "id": "KC-0035",
+   "title": "Same image set needed on every size child of a variation: how to avoid uploading images one listing at a time",
+   "kind": "procedure",
+   "topic": "catalog",
+   "status": "reviewed",
+   "skills": [
+    "amazon-catalog",
+    "amazon-flatfilepro"
+   ],
+   "marketplaces": [
+    "DE"
+   ],
+   "surface": "Seller Central > Catalog > Upload Images (bulk image upload); category inventory file",
+   "symptom_keywords": [
+    "upload same images to all sizes",
+    "bulk image upload ASIN.MAIN PT01",
+    "copy image URLs to other child ASINs flat file",
+    "upload images for many variations at once",
+    "image naming convention bulk upload"
+   ],
+   "error_text": [],
+   "asked_as": [
+    "A designer had new gallery images for two new colours of a variation with many sizes and wanted a faster way than uploading seven images to every size in the listing editor."
+   ],
+   "synonyms": [],
+   "resolution_status": "resolved",
+   "fix_source": "agency",
+   "evidence_location": "slack",
+   "confidence": "high",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [
+    "Amazon Seller Help/articles/153-product-image-guide-G1881.md"
+   ],
+   "related_sops": [],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2024-10",
+   "review_by": "2027-10",
+   "file": "knowledge/catalog/KC-0035_same-image-set-needed-on-every-size-child-of-a-variation-how.md"
+  },
+  {
+   "id": "KC-0036",
+   "title": "Amazon new-item email suggests Vine and A+ but Vine is unavailable without an FBA offer",
+   "kind": "rule",
+   "topic": "catalog",
+   "status": "reviewed",
+   "skills": [
+    "amazon-catalog"
+   ],
+   "marketplaces": [
+    "US"
+   ],
+   "surface": "Seller Central > Advertising > Vine; Amazon new-item recommendation email",
+   "symptom_keywords": [
+    "Vine not available FBM",
+    "can I use Vine without FBA",
+    "grow new item sales email",
+    "Vine eligibility"
+   ],
+   "error_text": [
+    "Take these actions today to grow new item sales!"
+   ],
+   "asked_as": [
+    "Amazon emailed recommended actions to grow new-item sales; the agency noted the brand already had Premium A+ and that Vine only works with FBA."
+   ],
+   "synonyms": [],
+   "resolution_status": "resolved",
+   "fix_source": "first-party-doc",
+   "evidence_location": "slack",
+   "confidence": "high",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [
+    "Amazon Seller Help/articles/077-amazon-vine-G92T8UV339NZ98TN.md"
+   ],
+   "related_sops": [
+    "MAG SOPs/catalog/catalog-sop-vine-setup.md"
+   ],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2026-01",
+   "review_by": "2027-10",
+   "file": "knowledge/catalog/KC-0036_amazon-new-item-email-suggests-vine-and-a-but-vine-is-unavai.md"
+  },
+  {
+   "id": "KC-0037",
+   "title": "Where to show product usage instructions or a how-to video on the listing, and why the A+ video module is not available",
+   "kind": "rule",
+   "topic": "catalog",
+   "status": "reviewed",
+   "skills": [
+    "amazon-catalog",
+    "amazon-image-production",
+    "amazon-listing-images"
+   ],
+   "marketplaces": [
+    "US"
+   ],
+   "surface": "",
+   "symptom_keywords": [
+    "how to add product instructions to listing",
+    "A+ video module not available",
+    "premium A+ locked",
+    "add how-to video to A+ content",
+    "brand story needed for premium A+"
+   ],
+   "error_text": [],
+   "asked_as": [
+    "A brand owner asked how to give shoppers instructions for using a product correctly, worried that without them buyers would think it faulty, return it or leave negative reviews; the instructions exist"
+   ],
+   "synonyms": [],
+   "resolution_status": "partial",
+   "fix_source": "agency",
+   "evidence_location": "slack",
+   "confidence": "high",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [
+    "Amazon Seller Help/articles/076-a-content-G202102930.md",
+    "Amazon Seller Help/articles/156-a-content-guide-GLG4RQK2Y2RJADU4.md",
+    "Amazon Seller Help/articles/154-shoppable-video-guide-GUZBYWTTVULY6C9Y.md"
+   ],
+   "related_sops": [
+    "MAG SOPs/design/design-sop-creating-a-content-and-brand-story-modules.md"
+   ],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2025-11",
+   "review_by": "2027-10",
+   "file": "knowledge/catalog/KC-0037_where-to-show-product-usage-instructions-or-a-how-to-video-o.md"
+  },
+  {
+   "id": "KC-0038",
+   "title": "FBA stock running low: keep a backup FBM offer priced slightly above FBA",
+   "kind": "decision-aid",
+   "topic": "catalog",
+   "status": "reviewed",
+   "skills": [
+    "amazon-catalog",
+    "amazon-fba-inventory-planning"
+   ],
+   "marketplaces": [
+    "US"
+   ],
+   "surface": "",
+   "symptom_keywords": [
+    "FBM backup offer",
+    "FBA about to stock out",
+    "switch buy box to FBM",
+    "dual FBA FBM offers",
+    "keep listing live during stockout"
+   ],
+   "error_text": [],
+   "asked_as": [
+    "The client asked to close extra merchant-fulfilled offers to sell through FBA stock, but keep one merchant-fulfilled offer active as a stock-out backup during a sales event."
+   ],
+   "synonyms": [],
+   "resolution_status": "resolved",
+   "fix_source": "agency",
+   "evidence_location": "slack",
+   "confidence": "medium",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [],
+   "related_sops": [
+    "MAG SOPs/catalog/catalog-sop-creating-multiple-offers-mfn-fba-for-an-asin.md",
+    "MAG SOPs/catalog/factors-that-affect-a-seller-s-chance-to-win-the-buy-box.md"
+   ],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2026-06",
+   "review_by": "2027-10",
+   "file": "knowledge/catalog/KC-0038_fba-stock-running-low-keep-a-backup-fbm-offer-priced-slightl.md"
+  },
+  {
+   "id": "KC-0039",
+   "title": "Image A/B test result is unclear: keep the main image identical when testing the secondary images",
+   "kind": "rule",
+   "topic": "catalog",
+   "status": "reviewed",
+   "skills": [
+    "amazon-catalog",
+    "amazon-flatfilepro"
+   ],
+   "marketplaces": [
+    "all"
+   ],
+   "surface": "Brands > Manage Experiments",
+   "symptom_keywords": [
+    "image A/B test inconclusive",
+    "test secondary images manage experiments",
+    "main image changed during image test",
+    "listing images experiment setup"
+   ],
+   "error_text": [],
+   "asked_as": [
+    "A main-image experiment came back insignificant with the old version winning, and the team set up a second experiment for the secondary listing images."
+   ],
+   "synonyms": [],
+   "resolution_status": "resolved",
+   "fix_source": "agency",
+   "evidence_location": "slack",
+   "confidence": "medium",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [
+    "Amazon Seller Help/articles/075-manage-your-experiments-GVP453K5XRBJS7Y9.md"
+   ],
+   "related_sops": [
+    "MAG SOPs/catalog/catalog-sop-a-b-test-main-image.md"
+   ],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2026-05",
+   "review_by": "2027-10",
+   "file": "knowledge/catalog/KC-0039_image-a-b-test-result-is-unclear-keep-the-main-image-identic.md"
+  },
+  {
+   "id": "KC-0040",
+   "title": "Can a seller set the default Subscribe & Save delivery frequency?",
+   "kind": "rule",
+   "topic": "catalog",
+   "status": "reviewed",
+   "skills": [
+    "amazon-catalog"
+   ],
+   "marketplaces": [
+    "US"
+   ],
+   "surface": "Seller Central > Subscribe & Save; product detail page Subscribe & Save widget",
+   "symptom_keywords": [
+    "change subscribe and save frequency",
+    "default delivery interval subscription",
+    "SnS frequency backend",
+    "set subscription cadence",
+    "subscribe and save every month default"
+   ],
+   "error_text": [],
+   "asked_as": [
+    "The brand side asked whether the default subscription delivery frequency shown on the detail page can be set from the backend."
+   ],
+   "synonyms": [],
+   "resolution_status": "resolved",
+   "fix_source": "agency",
+   "evidence_location": "slack",
+   "confidence": "medium",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [
+    "Amazon Seller Help/articles/092-subscribe-and-save-for-sellers-G201620110.md"
+   ],
+   "related_sops": [],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2026-08",
+   "review_by": "2027-10",
+   "file": "knowledge/catalog/KC-0040_can-a-seller-set-the-default-subscribe-save-delivery-frequen.md"
+  },
+  {
+   "id": "KC-0041",
+   "title": "Does deleting a parent ASIN remove reviews or Subscribe & Save from the child ASINs?",
+   "kind": "rule",
+   "topic": "catalog",
+   "status": "reviewed",
+   "skills": [
+    "amazon-catalog"
+   ],
+   "marketplaces": [
+    "US"
+   ],
+   "surface": "Seller Central variation family (parent ASIN)",
+   "symptom_keywords": [
+    "delete parent ASIN reviews",
+    "will deleting parent remove reviews",
+    "Subscribe and Save after removing parent",
+    "break variation family impact",
+    "remove parent listing"
+   ],
+   "error_text": [],
+   "asked_as": [
+    "The agency planned to delete a parent ASIN as part of an attempt to unblock child ASINs; the client asked whether deleting the parent would delete the reviews and Subscribe & Save."
+   ],
+   "synonyms": [],
+   "resolution_status": "resolved",
+   "fix_source": "agency",
+   "evidence_location": "slack",
+   "confidence": "medium",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [],
+   "related_sops": [
+    "MAG SOPs/catalog/catalog-sop-how-to-break-a-parentage.md"
+   ],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2026-09",
+   "review_by": "2027-10",
+   "file": "knowledge/catalog/KC-0041_does-deleting-a-parent-asin-remove-reviews-or-subscribe-save.md"
+  },
+  {
+   "id": "KC-0042",
+   "title": "Scheduled sale discount does not show on the detail page; the listing's minimum price sits above the deal price, or Amazon wants a deeper discount",
+   "kind": "diagnosis",
+   "topic": "catalog",
+   "status": "reviewed",
+   "skills": [
+    "amazon-catalog"
+   ],
+   "marketplaces": [
+    "US"
+   ],
+   "surface": "Seller Central > Inventory > Manage All Inventory (Your Minimum Price column); Advertising > Deals / Price discounts",
+   "symptom_keywords": [
+    "deal price not showing",
+    "discount not live on listing",
+    "sale price shows full price",
+    "minimum price blocks deal",
+    "Amazon suggests lower deal price"
+   ],
+   "error_text": [],
+   "asked_as": [
+    "During a seasonal sale several ASINs still showed the full price on the storefront instead of the planned discounted price."
+   ],
+   "synonyms": [],
+   "resolution_status": "resolved",
+   "fix_source": "client",
+   "evidence_location": "email",
+   "confidence": "medium",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [
+    "Amazon Seller Help/articles/090-price-discounts-G7F8CQ4EJ5YA4272.md",
+    "Amazon Seller Help/articles/072-amazon-deals-G202043110.md"
+   ],
+   "related_sops": [],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2026-03",
+   "review_by": "2027-10",
+   "file": "knowledge/catalog/KC-0042_scheduled-sale-discount-does-not-show-on-the-detail-page-the.md"
+  },
+  {
+   "id": "KC-0043",
+   "title": "Listing price set at the lowest acceptable price leaves no room for event deals",
+   "kind": "decision-aid",
+   "topic": "catalog",
+   "status": "reviewed",
+   "skills": [
+    "amazon-catalog",
+    "amazon-flatfilepro"
+   ],
+   "marketplaces": [
+    "DE"
+   ],
+   "surface": "Seller Central > Pricing; Deals; Prime Exclusive Discounts",
+   "symptom_keywords": [
+    "price too low for Prime Day deal",
+    "reference price for deals",
+    "always discounted price no room for promotion",
+    "set base price before Prime Day",
+    "deal price must be lower than recent price"
+   ],
+   "error_text": [],
+   "asked_as": [
+    "A client operator asked whether to list at the lowest acceptable price all year or start higher and discount to it."
+   ],
+   "synonyms": [],
+   "resolution_status": "resolved",
+   "fix_source": "agency",
+   "evidence_location": "slack",
+   "confidence": "medium",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [
+    "Amazon Seller Help/articles/090-price-discounts-G7F8CQ4EJ5YA4272.md",
+    "Amazon Seller Help/articles/059-prime-day-readiness-playbook-GM2ADTH3XH3A5N57.md"
+   ],
+   "related_sops": [
+    "MAG SOPs/catalog/catalog-sop-how-to-create-deals-lightning-and-best.md"
+   ],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2024-09",
+   "review_by": "2027-10",
+   "file": "knowledge/catalog/KC-0043_listing-price-set-at-the-lowest-acceptable-price-leaves-no-r.md"
+  },
+  {
+   "id": "KC-0044",
+   "title": "Detail page shows seller-fulfilled although FBA stock exists: a cheaper FBM offer on the same ASIN wins the Featured Offer",
+   "kind": "diagnosis",
+   "topic": "catalog",
+   "status": "reviewed",
+   "skills": [
+    "amazon-catalog",
+    "amazon-flatfilepro"
+   ],
+   "marketplaces": [
+    "US"
+   ],
+   "surface": "Seller Central > Inventory > Manage All Inventory (offers per ASIN, price and sale price)",
+   "symptom_keywords": [
+    "listing shows shipped by seller not Amazon",
+    "FBA stock but FBM offer in buy box",
+    "featured offer goes to my own FBM offer",
+    "one pack ships FBA other pack FBM",
+    "duplicate FBA and FBM offers same ASIN"
+   ],
+   "error_text": [
+    "updates can take up to 24 hours"
+   ],
+   "asked_as": [
+    "One pack size of a product showed as fulfilled by Amazon while another pack size showed as shipped by the seller, and the requester asked why."
+   ],
+   "synonyms": [],
+   "resolution_status": "partial",
+   "fix_source": "agency",
+   "evidence_location": "slack",
+   "confidence": "medium",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [
+    "Amazon Seller Help/articles/137-featured-offer-G37911.md"
+   ],
+   "related_sops": [
+    "MAG SOPs/catalog/factors-that-affect-a-seller-s-chance-to-win-the-buy-box.md",
+    "MAG SOPs/catalog/catalog-sop-creating-multiple-offers-mfn-fba-for-an-asin.md"
+   ],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2026-08",
+   "review_by": "2027-10",
+   "file": "knowledge/catalog/KC-0044_detail-page-shows-seller-fulfilled-although-fba-stock-exists.md"
+  },
+  {
+   "id": "KC-0045",
+   "title": "Brand shows as registered in Brand Registry but cannot be connected to Seller Central because its trademark sits under another brand's profile",
+   "kind": "diagnosis",
+   "topic": "brand-registry",
+   "status": "reviewed",
+   "skills": [
+    "amazon-catalog"
+   ],
+   "marketplaces": [
+    "US"
+   ],
+   "surface": "Brand Registry > Manage intellectual property; Seller Central > Manage selling roles",
+   "symptom_keywords": [
+    "brand registered but not in manage selling roles",
+    "trademark listed under wrong brand",
+    "cannot connect brand to seller central",
+    "trademark attached to other brand profile",
+    "new brand missing from Brand Registry selling roles"
+   ],
+   "error_text": [],
+   "asked_as": [
+    "A second brand appeared to be registered in Brand Registry, but it could not be connected to the seller account and did not appear as its own brand in Manage selling roles."
+   ],
+   "synonyms": [],
+   "resolution_status": "partial",
+   "fix_source": "amazon-support",
+   "evidence_location": "case",
+   "confidence": "high",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [
+    "Amazon Seller Help/articles/227-add-additional-trademarks-to-your-brand-GQCYJTBSFZK8HGN6.md",
+    "Amazon Seller Help/articles/221-brand-registry-selling-roles-GJ84K745AL3R5N3Q.md",
+    "Amazon Seller Help/articles/214-brand-registry-application-process-GN2GYQVPR7R4VMPB.md"
+   ],
+   "related_sops": [],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2026-07",
+   "review_by": "2027-10",
+   "file": "knowledge/brand-registry/KC-0045_brand-shows-as-registered-in-brand-registry-but-cannot-be-co.md"
+  },
+  {
+   "id": "KC-0046",
+   "title": "Do FBM units of a Transparency-enrolled product need Transparency codes too, or only FBA units?",
+   "kind": "rule",
+   "topic": "brand-registry",
+   "status": "reviewed",
+   "skills": [
+    "amazon-catalog",
+    "amazon-logistics"
+   ],
+   "marketplaces": [
+    "US"
+   ],
+   "surface": "Brand Registry > Transparency; FBM order fulfilment",
+   "symptom_keywords": [
+    "Transparency codes FBM",
+    "merchant fulfilled Transparency",
+    "do I need Transparency for self-fulfilled orders",
+    "Transparency only FBA",
+    "Transparency code seller fulfilled"
+   ],
+   "error_text": [],
+   "asked_as": [
+    "While getting Brand Registry access to manage Transparency codes for a new listing, the brand asked whether codes had to go on its FBM stock, which it ships from the same pool as its own web shop."
+   ],
+   "synonyms": [],
+   "resolution_status": "diagnosis-only",
+   "fix_source": "first-party-doc",
+   "evidence_location": "slack",
+   "confidence": "high",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [
+    "Amazon Seller Help/articles/229-protect-your-brand-with-transparency-GSB2AVC33KWCAYSA.md"
+   ],
+   "related_sops": [],
+   "supersedes": [],
+   "contradicts": [
+    "Amazon Seller Help/articles/229-protect-your-brand-with-transparency-GSB2AVC33KWCAYSA.md"
+   ],
+   "observed": "2025-03",
+   "review_by": "2027-10",
+   "file": "knowledge/brand-registry/KC-0046_do-fbm-units-of-a-transparency-enrolled-product-need-transpa.md"
+  },
+  {
+   "id": "KC-0047",
+   "title": "Brand Registry asks us to confirm ownership of an added trademark and shows only a verification code: who has to use it?",
+   "kind": "procedure",
+   "topic": "brand-registry",
+   "status": "reviewed",
+   "skills": [
+    "amazon-catalog"
+   ],
+   "marketplaces": [
+    "US"
+   ],
+   "surface": "Brand Registry > Manage > Manage intellectual property > Requests > Confirm ownership",
+   "symptom_keywords": [
+    "confirm ownership trademark brand registry",
+    "verification code trademark correspondent",
+    "what do I do with brand registry verification code",
+    "approve ownership for US IP",
+    "add trademark to existing brand pending"
+   ],
+   "error_text": [],
+   "asked_as": [
+    "After a US trademark was added to an enrolled brand, Brand Registry asked the brand owner to confirm ownership."
+   ],
+   "synonyms": [],
+   "resolution_status": "resolved",
+   "fix_source": "agency",
+   "evidence_location": "slack",
+   "confidence": "high",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [
+    "Amazon Seller Help/articles/227-add-additional-trademarks-to-your-brand-GQCYJTBSFZK8HGN6.md",
+    "Amazon Seller Help/articles/216-manage-brand-registry-application-issues-GJPGY8BRDAQUQV4V.md"
+   ],
+   "related_sops": [],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2025-05",
+   "review_by": "2027-10",
+   "file": "knowledge/brand-registry/KC-0047_brand-registry-asks-us-to-confirm-ownership-of-an-added-trad.md"
+  },
+  {
+   "id": "KC-0048",
+   "title": "Brand owner offers to share Brand Registry login: have them add the agency as a user under User Permissions instead",
+   "kind": "procedure",
+   "topic": "brand-registry",
+   "status": "reviewed",
+   "skills": [
+    "amazon-client-onboarding"
+   ],
+   "marketplaces": [
+    "all"
+   ],
+   "surface": "Brand Registry > User Permissions",
+   "symptom_keywords": [
+    "share brand registry credentials",
+    "give agency brand registry access",
+    "add user brand registry",
+    "brand registry admin invite",
+    "user permissions brand registry"
+   ],
+   "error_text": [],
+   "asked_as": [
+    "A brand owner logged into Brand Registry and Seller Central with the same account asked how best to share Brand Registry credentials so the agency could move faster."
+   ],
+   "synonyms": [],
+   "resolution_status": "resolved",
+   "fix_source": "agency",
+   "evidence_location": "slack",
+   "confidence": "high",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [
+    "Amazon Seller Help/articles/220-brand-registry-protection-roles-GCF9UE9VGKGA2W5F.md",
+    "Amazon Seller Help/articles/232-role-assignment-error-messages-GPQTLD2Z4EYAVGX5.md"
+   ],
+   "related_sops": [],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2026-09",
+   "review_by": "2027-10",
+   "file": "knowledge/brand-registry/KC-0048_brand-owner-offers-to-share-brand-registry-login-have-them-a.md"
+  },
+  {
+   "id": "KC-0049",
+   "title": "Brand Registry application asks for a selling account that is still under review: you can enroll the brand without it",
+   "kind": "rule",
+   "topic": "brand-registry",
+   "status": "reviewed",
+   "skills": [
+    "amazon-client-onboarding",
+    "amazon-catalog"
+   ],
+   "marketplaces": [
+    "US"
+   ],
+   "surface": "brandregistry.amazon.com enrollment",
+   "symptom_keywords": [
+    "brand registry before seller account approved",
+    "wait for seller account brand registry",
+    "brand registry without seller central",
+    "brand registry seller account pending",
+    "enroll brand neither seller nor vendor"
+   ],
+   "error_text": [],
+   "asked_as": [
+    "The client had applied for a seller account and asked whether they must wait for its approval before continuing the Brand Registry application."
+   ],
+   "synonyms": [],
+   "resolution_status": "resolved",
+   "fix_source": "agency",
+   "evidence_location": "slack",
+   "confidence": "high",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [
+    "Amazon Seller Help/articles/215-brand-registry-application-step-by-step-guide-GRWHD3TXWAVKUT86.md",
+    "Amazon Seller Help/articles/212-brand-registry-glossary-GBR82EG272SZJDFS.md"
+   ],
+   "related_sops": [],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2025-10",
+   "review_by": "2027-10",
+   "file": "knowledge/brand-registry/KC-0049_brand-registry-application-asks-for-a-selling-account-that-i.md"
+  },
+  {
+   "id": "KC-0050",
+   "title": "Brand Store will not submit for publishing and still shows an outdated brand logo",
+   "kind": "procedure",
+   "topic": "brand-registry",
+   "status": "reviewed",
+   "skills": [
+    "amazon-catalog"
+   ],
+   "marketplaces": [
+    "DE"
+   ],
+   "surface": "Amazon Ads > Stores > Store builder (Submit for publishing, Store settings)",
+   "symptom_keywords": [
+    "brand store cannot publish",
+    "store builder errors in red",
+    "store missing image link warning",
+    "change brand logo in brand store",
+    "old logo on brand store"
+   ],
+   "error_text": [],
+   "asked_as": [
+    "After the agency built a Brand Store, the brand owner tried to publish it but the builder flagged issues that had to be fixed first."
+   ],
+   "synonyms": [],
+   "resolution_status": "resolved",
+   "fix_source": "client",
+   "evidence_location": "slack",
+   "confidence": "medium",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [
+    "Advertising Help After Login/articles/179-stores-builder-GGYZFGR2ZP8444PB.md",
+    "Advertising Help After Login/articles/230-create-your-store-GXYQWXYUW67LPVVF.md",
+    "Advertising Help After Login/articles/141-stores-moderation-GAEG64S8CFJH5Z7R.md"
+   ],
+   "related_sops": [],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2024-11",
+   "review_by": "2027-10",
+   "file": "knowledge/brand-registry/KC-0050_brand-store-will-not-submit-for-publishing-and-still-shows-a.md"
+  },
+  {
+   "id": "KC-0051",
+   "title": "Counterfeit copies of a branded listing found: what evidence to collect before reporting them",
+   "kind": "procedure",
+   "topic": "brand-registry",
+   "status": "reviewed",
+   "skills": [
+    "amazon-catalog",
+    "amazon-troubleshooting"
+   ],
+   "marketplaces": [
+    "US"
+   ],
+   "surface": "",
+   "symptom_keywords": [
+    "counterfeit listing takedown evidence",
+    "test buy for counterfeit report",
+    "order ID for trademark report",
+    "report fake copies of my product",
+    "one order or separate orders test buy"
+   ],
+   "error_text": [],
+   "asked_as": [
+    "The agency found several listings that look like counterfeits of the brand plus many similar unbranded products, and asked the brand owner for evidence to take the counterfeits down."
+   ],
+   "synonyms": [],
+   "resolution_status": "partial",
+   "fix_source": "agency",
+   "evidence_location": "slack",
+   "confidence": "medium",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [
+    "Amazon Seller Help/articles/224-report-intellectual-property-infringements-G202132860.md"
+   ],
+   "related_sops": [],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2026-04",
+   "review_by": "2027-10",
+   "file": "knowledge/brand-registry/KC-0051_counterfeit-copies-of-a-branded-listing-found-what-evidence.md"
+  },
+  {
+   "id": "KC-0052",
+   "title": "Agency user cannot open Brand Analytics after the brand was connected to the account",
+   "kind": "diagnosis",
+   "topic": "brand-registry",
+   "status": "reviewed",
+   "skills": [
+    "amazon-reporting",
+    "amazon-client-onboarding"
+   ],
+   "marketplaces": [
+    "US"
+   ],
+   "surface": "Seller Central > Brands > Brand Analytics; Settings > User Permissions",
+   "symptom_keywords": [
+    "Brand Analytics not visible",
+    "no access to Brand Analytics",
+    "Brand Analytics permission agency user",
+    "Brand Analytics missing after brand registry",
+    "grant Brand Analytics rights"
+   ],
+   "error_text": [],
+   "asked_as": [
+    "After the brand was correctly connected to the seller account, the account owner could see Brand Analytics but the agency user could not use it."
+   ],
+   "synonyms": [],
+   "resolution_status": "resolved",
+   "fix_source": "agency",
+   "evidence_location": "slack",
+   "confidence": "medium",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [
+    "Amazon Seller Help/articles/221-brand-registry-selling-roles-GJ84K745AL3R5N3Q.md"
+   ],
+   "related_sops": [],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2026-09",
+   "review_by": "2027-10",
+   "file": "knowledge/brand-registry/KC-0052_agency-user-cannot-open-brand-analytics-after-the-brand-was.md"
+  },
+  {
+   "id": "KC-0053",
+   "title": "Brand Store banners and images are not clickable",
+   "kind": "procedure",
+   "topic": "brand-registry",
+   "status": "reviewed",
+   "skills": [
+    "amazon-catalog"
+   ],
+   "marketplaces": [
+    "all"
+   ],
+   "surface": "Brand Store builder (image tiles)",
+   "symptom_keywords": [
+    "brand store banners not clickable",
+    "brand store image no link",
+    "link brand store image to product",
+    "brand store broken links",
+    "hyperlink brand store tile to PDP"
+   ],
+   "error_text": [],
+   "asked_as": [
+    "The client found that no Brand Store banners were clickable on any page, even product-specific ones, and asked to link them to the right product pages."
+   ],
+   "synonyms": [],
+   "resolution_status": "resolved",
+   "fix_source": "agency",
+   "evidence_location": "slack",
+   "confidence": "medium",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [
+    "Advertising Help After Login/articles/148-content-tiles-on-stores-GBX4ZFVHAKXKA5WM.md"
+   ],
+   "related_sops": [],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2026-05",
+   "review_by": "2027-10",
+   "file": "knowledge/brand-registry/KC-0053_brand-store-banners-and-images-are-not-clickable.md"
+  },
+  {
+   "id": "KC-0054",
+   "title": "Titles had to be shortened for the new title rules, and a new Item Highlights field appeared",
+   "kind": "rule",
+   "topic": "seo",
+   "status": "reviewed",
+   "skills": [
+    "amazon-seo"
+   ],
+   "marketplaces": [
+    "all"
+   ],
+   "surface": "",
+   "symptom_keywords": [
+    "new title rules",
+    "title 75 characters",
+    "item highlights field",
+    "shorter titles regulation"
+   ],
+   "error_text": [],
+   "asked_as": [
+    "The agency lead told the client the title had been updated ahead of new title regulations taking effect; the client asked what changed."
+   ],
+   "synonyms": [],
+   "resolution_status": "resolved",
+   "fix_source": "first-party-doc",
+   "evidence_location": "slack",
+   "confidence": "high",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [
+    "Amazon Seller Help/articles/150-product-title-requirements-and-guidelines-GYTR6SYGFA5E3EQC.md"
+   ],
+   "related_sops": [
+    "skills/amazon-seo/references/seo-writing-methodology.md"
+   ],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2026-07",
+   "review_by": "2027-10",
+   "file": "knowledge/seo/KC-0054_titles-had-to-be-shortened-for-the-new-title-rules-and-a-new.md"
+  },
+  {
+   "id": "KC-0055",
+   "title": "Client rejects the optimized title and proposes a longer one with more phrases: how to decide which ranks better",
+   "kind": "decision-aid",
+   "topic": "seo",
+   "status": "reviewed",
+   "skills": [
+    "amazon-seo"
+   ],
+   "marketplaces": [
+    "all"
+   ],
+   "surface": "Listing title / keyword workbook",
+   "symptom_keywords": [
+    "client wants own title",
+    "is this title SEO optimized",
+    "client title too long",
+    "compare titles ranking juice",
+    "why is this keyword in the title"
+   ],
+   "error_text": [],
+   "asked_as": [
+    "A client questioned an agency-written title and bullets, asked why certain feature phrases were included and whether a fabric name was invented, and proposed their own longer title packed with use cas"
+   ],
+   "synonyms": [],
+   "resolution_status": "resolved",
+   "fix_source": "agency",
+   "evidence_location": "slack",
+   "confidence": "medium",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [
+    "Amazon Seller Help/articles/150-product-title-requirements-and-guidelines-GYTR6SYGFA5E3EQC.md"
+   ],
+   "related_sops": [
+    "skills/amazon-seo/references/seo-writing-methodology.md",
+    "skills/amazon-seo/references/health-claims-compliance.md"
+   ],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2025-11",
+   "review_by": "2027-10",
+   "file": "knowledge/seo/KC-0055_client-rejects-the-optimized-title-and-proposes-a-longer-one.md"
+  },
+  {
+   "id": "KC-0056",
+   "title": "Profit and weekly KPIs wrong because product COGS were never entered in the profit analytics tool",
+   "kind": "diagnosis",
+   "topic": "reporting",
+   "status": "reviewed",
+   "skills": [
+    "amazon-ads-performance-briefs",
+    "amazon-client-onboarding",
+    "amazon-reporting"
+   ],
+   "marketplaces": [
+    "all"
+   ],
+   "surface": "",
+   "symptom_keywords": [
+    "COGS missing profit tool",
+    "profit too high zero cost",
+    "weekly KPIs wrong COGS",
+    "cost of goods not showing",
+    "margin wrong missing COGS"
+   ],
+   "error_text": [],
+   "asked_as": [
+    "A product showed no cost of goods in the profit analytics tool across several date ranges, so profit in the weekly update was overstated."
+   ],
+   "synonyms": [],
+   "resolution_status": "resolved",
+   "fix_source": "agency",
+   "evidence_location": "slack",
+   "confidence": "medium",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [],
+   "related_sops": [
+    "sop-drafts/2026-08-08_amazon-client-onboarding.md"
+   ],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2026-01",
+   "review_by": "2027-10",
+   "file": "knowledge/reporting/KC-0056_profit-and-weekly-kpis-wrong-because-product-cogs-were-never.md"
+  },
+  {
+   "id": "KC-0057",
+   "title": "Ads stop running after the payment card fails and switching to seller balance does not help",
+   "kind": "diagnosis",
+   "topic": "ads",
+   "status": "reviewed",
+   "skills": [
+    "amazon-ads-console",
+    "amazon-troubleshooting"
+   ],
+   "marketplaces": [
+    "all"
+   ],
+   "surface": "Amazon Ads console > Billing and payments > Payment settings",
+   "symptom_keywords": [
+    "ads paused payment failed",
+    "credit card declined advertising",
+    "deduct from seller balance not working",
+    "campaigns stopped no email from Amazon",
+    "advertising payment failure"
+   ],
+   "error_text": [],
+   "asked_as": [
+    "The card on the advertising account had a problem at the issuer and campaigns stopped during a peak event."
+   ],
+   "synonyms": [],
+   "resolution_status": "resolved",
+   "fix_source": "client",
+   "evidence_location": "slack",
+   "confidence": "high",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [
+    "Advertising Help After Login/articles/099-resolve-a-payment-failure-G2SQRLBPB8TY587E.md",
+    "Advertising Help After Login/articles/091-add-a-backup-payment-method-GPGZ28EK9WM4LZ2E.md",
+    "Advertising Help After Login/articles/087-payment-methods-sponsored-ads-GMELNQQNEEVLX456.md"
+   ],
+   "related_sops": [],
+   "supersedes": [],
+   "contradicts": [
+    "Advertising Help After Login/articles/099-resolve-a-payment-failure-G2SQRLBPB8TY587E.md"
+   ],
+   "observed": "2024-10",
+   "review_by": "2027-10",
+   "file": "knowledge/ads/KC-0057_ads-stop-running-after-the-payment-card-fails-and-switching.md"
+  },
+  {
+   "id": "KC-0058",
+   "title": "Daily ad spend lands far below the campaign budget even though nothing was changed",
+   "kind": "rule",
+   "topic": "ads",
+   "status": "reviewed",
+   "skills": [
+    "amazon-ads-console",
+    "amazon-audit",
+    "amazon-ppc-weekly-management"
+   ],
+   "marketplaces": [
+    "US"
+   ],
+   "surface": "Amazon Ads Console > Campaign Manager > campaign budget and daily spend",
+   "symptom_keywords": [
+    "spend dropped by half but budget unchanged",
+    "why did you cut the ad budget",
+    "daily spend below daily budget",
+    "ads spend lower than budget",
+    "budget not fully spent"
+   ],
+   "error_text": [],
+   "asked_as": [
+    "The account owner saw one day's ad spend at roughly half of the previous day's and assumed the agency had cut the budget, blaming lower sales on it."
+   ],
+   "synonyms": [],
+   "resolution_status": "resolved",
+   "fix_source": "first-party-doc",
+   "evidence_location": "slack",
+   "confidence": "high",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [
+    "Advertising Help After Login/articles/010-understand-budgets-GTGPQGUXNCTHE2DS.md",
+    "Advertising Help After Login/articles/014-edit-your-budget-GVYUKBJQFPH7ZQ2L.md"
+   ],
+   "related_sops": [],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2025-07",
+   "review_by": "2027-10",
+   "file": "knowledge/ads/KC-0058_daily-ad-spend-lands-far-below-the-campaign-budget-even-thou.md"
+  },
+  {
+   "id": "KC-0059",
+   "title": "Agency cannot switch to the client account directly in the Ads console: manager account link request needs advertiser approval",
+   "kind": "procedure",
+   "topic": "ads",
+   "status": "reviewed",
+   "skills": [
+    "amazon-ads-console",
+    "amazon-audit",
+    "amazon-ppc-weekly-management"
+   ],
+   "marketplaces": [
+    "DE",
+    "US"
+   ],
+   "surface": "Amazon Ads > Advertising accounts > Manager accounts > review link request",
+   "symptom_keywords": [
+    "manager account link request",
+    "approve agency as trusted partner",
+    "client account not in ads account selector",
+    "link advertiser to manager account",
+    "switch account without Seller Central"
+   ],
+   "error_text": [],
+   "asked_as": [
+    "The agency needed the client to approve a manager account link request so the client advertising account could be selected directly in the Ads console instead of reaching it through the Seller Central"
+   ],
+   "synonyms": [],
+   "resolution_status": "resolved",
+   "fix_source": "agency",
+   "evidence_location": "slack",
+   "confidence": "high",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [
+    "Advertising Help After Login/articles/077-add-accounts-to-your-manager-account-G23QYEJNEX3FJFH5.md",
+    "Advertising Help After Login/articles/075-understand-manager-accounts-GU3YDB26FR7XT3C8.md"
+   ],
+   "related_sops": [],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2025-07",
+   "review_by": "2027-10",
+   "file": "knowledge/ads/KC-0059_agency-cannot-switch-to-the-client-account-directly-in-the-a.md"
+  },
+  {
+   "id": "KC-0060",
+   "title": "Ads stopped spending with a Payment failure: card issuer blocked the Amazon Ads charge",
+   "kind": "diagnosis",
+   "topic": "ads",
+   "status": "reviewed",
+   "skills": [
+    "amazon-ads-console",
+    "amazon-audit",
+    "amazon-ppc-weekly-management"
+   ],
+   "marketplaces": [
+    "all"
+   ],
+   "surface": "Amazon Ads > Billing and payments > Payment settings",
+   "symptom_keywords": [
+    "ads not spending",
+    "payment failure on ads",
+    "campaigns paused billing",
+    "card blocked amazon ads charge",
+    "update charge method ads"
+   ],
+   "error_text": [
+    "Payment failure"
+   ],
+   "asked_as": [
+    "Ad spend stopped (or the Ads console showed a payment failure) and the agency asked the client whether Amazon was still spending and to fix the advertising payment method."
+   ],
+   "synonyms": [],
+   "resolution_status": "resolved",
+   "fix_source": "client",
+   "evidence_location": "slack",
+   "confidence": "high",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [
+    "Advertising Help After Login/articles/099-resolve-a-payment-failure-G2SQRLBPB8TY587E.md",
+    "Advertising Help After Login/articles/091-add-a-backup-payment-method-GPGZ28EK9WM4LZ2E.md"
+   ],
+   "related_sops": [],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2025-08",
+   "review_by": "2027-10",
+   "file": "knowledge/ads/KC-0060_ads-stopped-spending-with-a-payment-failure-card-issuer-bloc.md"
+  },
+  {
+   "id": "KC-0061",
+   "title": "All ads stopped spending for a day because the ads payment card was rejected",
+   "kind": "diagnosis",
+   "topic": "ads",
+   "status": "reviewed",
+   "skills": [
+    "amazon-ads-console",
+    "amazon-troubleshooting"
+   ],
+   "marketplaces": [
+    "US"
+   ],
+   "surface": "Amazon Ads > Billing and payments; Campaign Manager",
+   "symptom_keywords": [
+    "ad spend dropped to zero for a day",
+    "all campaigns stopped spending",
+    "ads paused payment failure",
+    "credit card rejected ads",
+    "ads down over the weekend"
+   ],
+   "error_text": [],
+   "asked_as": [
+    "Ad spend dropped for a whole day over a weekend and nobody noticed; the client asked what happened."
+   ],
+   "synonyms": [],
+   "resolution_status": "resolved",
+   "fix_source": "client",
+   "evidence_location": "slack",
+   "confidence": "high",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [
+    "Advertising Help After Login/articles/099-resolve-a-payment-failure-G2SQRLBPB8TY587E.md",
+    "Advertising Help After Login/articles/087-payment-methods-sponsored-ads-GMELNQQNEEVLX456.md",
+    "Advertising Help After Login/articles/091-add-a-backup-payment-method-GPGZ28EK9WM4LZ2E.md"
+   ],
+   "related_sops": [],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2025-07",
+   "review_by": "2027-10",
+   "file": "knowledge/ads/KC-0061_all-ads-stopped-spending-for-a-day-because-the-ads-payment-c.md"
+  },
+  {
+   "id": "KC-0062",
+   "title": "Agency still lacks advertising access after the client adds a user; invite the right email under Settings > User Permissions",
+   "kind": "procedure",
+   "topic": "ads",
+   "status": "reviewed",
+   "skills": [
+    "amazon-client-onboarding",
+    "amazon-ads-console"
+   ],
+   "marketplaces": [
+    "all"
+   ],
+   "surface": "Seller Central > Settings > User Permissions",
+   "symptom_keywords": [
+    "give agency advertising access",
+    "add user seller central advertising",
+    "user permissions invite wrong email",
+    "agency cannot see ads account",
+    "grant ads console access to partner"
+   ],
+   "error_text": [],
+   "asked_as": [
+    "The agency asked the client to grant advertising access."
+   ],
+   "synonyms": [],
+   "resolution_status": "resolved",
+   "fix_source": "agency",
+   "evidence_location": "slack",
+   "confidence": "high",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [
+    "Advertising Help After Login/articles/070-add-or-remove-users-from-your-account-GDQVHVQMY9F88PCA.md",
+    "Advertising Help After Login/articles/068-understand-account-permissions-GM4EFDQQPG9LGL3F.md"
+   ],
+   "related_sops": [],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2025-11",
+   "review_by": "2027-10",
+   "file": "knowledge/ads/KC-0062_agency-still-lacks-advertising-access-after-the-client-adds.md"
+  },
+  {
+   "id": "KC-0063",
+   "title": "Ads console keeps showing Payment Failure and card charges are reversed although the account is active",
+   "kind": "diagnosis",
+   "topic": "ads",
+   "status": "reviewed",
+   "skills": [
+    "amazon-ads-console"
+   ],
+   "marketplaces": [
+    "US"
+   ],
+   "surface": "Amazon Ads console > Billing and payments > payment settings",
+   "symptom_keywords": [
+    "ads payment failure",
+    "card charges reversed amazon ads",
+    "campaigns paused payment failure",
+    "change default card ads console",
+    "payment failure account active"
+   ],
+   "error_text": [
+    "Payment Failure"
+   ],
+   "asked_as": [
+    "The Ads console showed 'Payment Failure' while the account was active."
+   ],
+   "synonyms": [],
+   "resolution_status": "resolved",
+   "fix_source": "client",
+   "evidence_location": "slack",
+   "confidence": "medium",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [
+    "Advertising Help After Login/articles/099-resolve-a-payment-failure-G2SQRLBPB8TY587E.md",
+    "Advertising Help After Login/articles/087-payment-methods-sponsored-ads-GMELNQQNEEVLX456.md"
+   ],
+   "related_sops": [],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2025-12",
+   "review_by": "2027-10",
+   "file": "knowledge/ads/KC-0063_ads-console-keeps-showing-payment-failure-and-card-charges-a.md"
+  },
+  {
+   "id": "KC-0064",
+   "title": "Revenue and profit both fell in a month: split stock-outs from bid pushes and use search-query conversion versus market to place budget",
+   "kind": "decision-aid",
+   "topic": "ads",
+   "status": "reviewed",
+   "skills": [
+    "amazon-audit",
+    "amazon-reporting",
+    "amazon-ppc-weekly-management"
+   ],
+   "marketplaces": [
+    "DE"
+   ],
+   "surface": "Business Reports; Search Query Performance; Amazon Ads campaign manager",
+   "symptom_keywords": [
+    "revenue and profit down month",
+    "profit leak analysis ads",
+    "where to put ad budget sqp conversion",
+    "conversion below market keyword",
+    "stock out caused revenue drop"
+   ],
+   "error_text": [],
+   "asked_as": [
+    "The brand owner reported a month with revenue down and profit down even more while the agency was pushing a key product, and asked for a detailed analysis of the profit leaks and a strategy to grow sa"
+   ],
+   "synonyms": [],
+   "resolution_status": "partial",
+   "fix_source": "agency",
+   "evidence_location": "slack",
+   "confidence": "medium",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [],
+   "related_sops": [],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2026-07",
+   "review_by": "2027-10",
+   "file": "knowledge/ads/KC-0064_revenue-and-profit-both-fell-in-a-month-split-stock-outs-fro.md"
+  },
+  {
+   "id": "KC-0065",
+   "title": "Scaling a winning ad by adding more targets to the same campaign",
+   "kind": "decision-aid",
+   "topic": "ads",
+   "status": "reviewed",
+   "skills": [
+    "amazon-ads-console",
+    "amazon-audit",
+    "amazon-ppc-weekly-management"
+   ],
+   "marketplaces": [
+    "US"
+   ],
+   "surface": "",
+   "symptom_keywords": [
+    "too many targets in one campaign",
+    "how to scale winning campaign",
+    "add targets or new campaign",
+    "campaign level optimization"
+   ],
+   "error_text": [],
+   "asked_as": [
+    "A brand-side operator planned to expand cold targeting and branded search by adding targets to an existing winning campaign."
+   ],
+   "synonyms": [],
+   "resolution_status": "resolved",
+   "fix_source": "agency",
+   "evidence_location": "slack",
+   "confidence": "medium",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [
+    "Advertising Help After Login/articles/007-understand-bid-adjustments-in-sponsored-ads-GQ4R4FR4H56JL6V8.md"
+   ],
+   "related_sops": [
+    "MAG SOPs/amazon-advertising/advertising-sop-naming-conventions-and-creation-guidelines.md"
+   ],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2026-01",
+   "review_by": "2027-10",
+   "file": "knowledge/ads/KC-0065_scaling-a-winning-ad-by-adding-more-targets-to-the-same-camp.md"
+  },
+  {
+   "id": "KC-0066",
+   "title": "Inherited campaigns with poor ROAS still live after account takeover: pause gradually, not all at once",
+   "kind": "decision-aid",
+   "topic": "ads",
+   "status": "reviewed",
+   "skills": [
+    "amazon-ads-console",
+    "amazon-ppc-weekly-management",
+    "amazon-client-onboarding"
+   ],
+   "marketplaces": [
+    "US"
+   ],
+   "surface": "Amazon Ads Console > Campaign manager > Campaigns",
+   "symptom_keywords": [
+    "old campaigns still live with bad ROAS",
+    "should we pause all inherited campaigns",
+    "account takeover pause campaigns",
+    "legacy campaigns wasting money after onboarding"
+   ],
+   "error_text": [],
+   "asked_as": [
+    "Shortly after the agency took over an existing ads account, the client pointed out that many inherited campaigns were still live with very poor ROAS and expected them to be stopped."
+   ],
+   "synonyms": [],
+   "resolution_status": "resolved",
+   "fix_source": "agency",
+   "evidence_location": "slack",
+   "confidence": "medium",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [],
+   "related_sops": [],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2026-07",
+   "review_by": "2027-10",
+   "file": "knowledge/ads/KC-0066_inherited-campaigns-with-poor-roas-still-live-after-account.md"
+  },
+  {
+   "id": "KC-0067",
+   "title": "Agency cannot open the Ads console for a newly added marketplace until a campaign exists and its user access covers that country",
+   "kind": "procedure",
+   "topic": "ads",
+   "status": "reviewed",
+   "skills": [
+    "amazon-ads-console",
+    "amazon-client-onboarding"
+   ],
+   "marketplaces": [
+    "DE"
+   ],
+   "surface": "Amazon Ads console > Administration > Account access and settings; Seller Central > Campaign Manager",
+   "symptom_keywords": [
+    "cannot access Ads console new marketplace",
+    "advertising account not showing for new country",
+    "ads access missing after marketplace launch",
+    "create placeholder campaign to activate ads account",
+    "agency user missing country access ads"
+   ],
+   "error_text": [],
+   "asked_as": [
+    "The agency could not reach the Ads console for the brand in a newly opened European marketplace and asked the brand owner to create any campaign there so the console would become accessible."
+   ],
+   "synonyms": [],
+   "resolution_status": "resolved",
+   "fix_source": "agency",
+   "evidence_location": "slack",
+   "confidence": "medium",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [
+    "Advertising Help After Login/articles/070-add-or-remove-users-from-your-account-GDQVHVQMY9F88PCA.md",
+    "Advertising Help After Login/articles/068-understand-account-permissions-GM4EFDQQPG9LGL3F.md"
+   ],
+   "related_sops": [],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2026-06",
+   "review_by": "2027-10",
+   "file": "knowledge/ads/KC-0067_agency-cannot-open-the-ads-console-for-a-newly-added-marketp.md"
   }
  ]
 }

@@ -14,37 +14,98 @@ python3 tools/search_amazon_libraries.py "<question>" --library kb --limit 5
 
 Unit format, verification states and privacy rules: `docs/knowledge-library.md`.
 
-Units: **12** (12 active, 0 retired)
+Units: **67** (67 active, 0 retired)
 
-## compliance (2)
+## compliance (3)
 
 - [KC-0001 FBA hazmat review blocks a battery-powered kit with a cosmetic liquid: battery exemption sheet plus SDS, and an SDS declaration form when the SDS brand does not match](compliance/KC-0001_fba-hazmat-review-blocks-a-battery-powered-kit-with-a-cosmet.md) · diagnosis · draft · unverified
 - [KC-0002 Cosmetic applicator listing removed as an uncleared medical device because of skin-infusion marketing language](compliance/KC-0002_cosmetic-applicator-listing-removed-as-an-uncleared-medical.md) · diagnosis · draft · unverified
+- [KC-0020 Fragrance product cannot be sent to FBA because of its dangerous goods classification: upload a Safety Data Sheet instead of the exemption sheet](compliance/KC-0020_fragrance-product-cannot-be-sent-to-fba-because-of-its-dange.md) · diagnosis · reviewed · unverified
 
-## logistics (2)
+## logistics (15)
 
 - [KC-0003 Inbound Performance defects (labeling required, unscannable barcode, wrong quantity) can be disputed and removed; an ASIN mismatch is reimbursed only in part](logistics/KC-0003_inbound-performance-defects-labeling-required-unscannable-ba.md) · diagnosis · draft · unverified
 - [KC-0004 FBA capacity limit used up for the month: submit a Capacity Manager request (reservation-fee bid) or ship to AWD](logistics/KC-0004_fba-capacity-limit-used-up-for-the-month-submit-a-capacity-m.md) · procedure · draft · unverified
+- [KC-0022 Seller-fulfilled return requests are approved automatically, even for items that come back used: can the seller stop it?](logistics/KC-0022_seller-fulfilled-return-requests-are-approved-automatically.md) · rule · reviewed · unverified
+- [KC-0023 Is the carrier tracking number required for a non-partnered inbound shipment](logistics/KC-0023_is-the-carrier-tracking-number-required-for-a-non-partnered.md) · rule · reviewed · unverified
+- [KC-0024 When long-term storage fees start on aged FBA inventory and how to estimate them](logistics/KC-0024_when-long-term-storage-fees-start-on-aged-fba-inventory-and.md) · reference · reviewed · unverified
+- [KC-0025 Can one package carry both the FNSKU and the UPC? No: keep one scannable barcode and print the UPC alone when the offer uses the manufacturer barcode](logistics/KC-0025_can-one-package-carry-both-the-fnsku-and-the-upc-no-keep-one.md) · rule · reviewed · unverified
+- [KC-0026 Want to match an off-Amazon single-unit price by charging shipping: FBA offers cannot add a shipping fee, so price a multipack per unit instead](logistics/KC-0026_want-to-match-an-off-amazon-single-unit-price-by-charging-sh.md) · decision-aid · reviewed · unverified
+- [KC-0027 Send to Amazon will not create a large inbound shipment because of the FBA capacity limit: split it, request capacity or wait for removals to clear](logistics/KC-0027_send-to-amazon-will-not-create-a-large-inbound-shipment-beca.md) · procedure · reviewed · unverified
+- [KC-0028 Stranded inventory still showing after a removal order: Amazon cancelled part of the removal](logistics/KC-0028_stranded-inventory-still-showing-after-a-removal-order-amazo.md) · diagnosis · reviewed · unverified
+- [KC-0029 Lost inbound units: a tracking number alone does not prove how many units were sent](logistics/KC-0029_lost-inbound-units-a-tracking-number-alone-does-not-prove-ho.md) · procedure · reviewed · unverified
+- [KC-0030 Orders are fulfilled by the merchant or 3PL offer instead of FBA even though FBA stock exists](logistics/KC-0030_orders-are-fulfilled-by-the-merchant-or-3pl-offer-instead-of.md) · diagnosis · reviewed · unverified
+- [KC-0031 Send to Amazon shipment lists an auto-generated SKU that the warehouse does not recognise](logistics/KC-0031_send-to-amazon-shipment-lists-an-auto-generated-sku-that-the.md) · procedure · reviewed · unverified
+- [KC-0032 Send to Amazon blocks a new-SKU shipment with 'Please review SKUs with errors or unconfirmed SKUs' because FBA capacity is used up](logistics/KC-0032_send-to-amazon-blocks-a-new-sku-shipment-with-please-review.md) · diagnosis · reviewed · unverified
+- [KC-0033 Choosing FBA over FBM when worried that FBA customer returns are not restocked](logistics/KC-0033_choosing-fba-over-fbm-when-worried-that-fba-customer-returns.md) · decision-aid · reviewed · unverified
+- [KC-0034 Do FBM products need Amazon barcode (FNSKU) labels? Only for FBA; a 3PL may set its own identifier](logistics/KC-0034_do-fbm-products-need-amazon-barcode-fnsku-labels-only-for-fb.md) · rule · reviewed · unverified
 
-## catalog (1)
+## catalog (11)
 
 - [KC-0006 Variation children vanish from a family: check FBM offer deactivation for Valid Tracking Rate before fixing images or parentage](catalog/KC-0006_variation-children-vanish-from-a-family-check-fbm-offer-deac.md) · diagnosis · draft · unverified
+- [KC-0035 Same image set needed on every size child of a variation: how to avoid uploading images one listing at a time](catalog/KC-0035_same-image-set-needed-on-every-size-child-of-a-variation-how.md) · procedure · reviewed · unverified
+- [KC-0036 Amazon new-item email suggests Vine and A+ but Vine is unavailable without an FBA offer](catalog/KC-0036_amazon-new-item-email-suggests-vine-and-a-but-vine-is-unavai.md) · rule · reviewed · unverified
+- [KC-0037 Where to show product usage instructions or a how-to video on the listing, and why the A+ video module is not available](catalog/KC-0037_where-to-show-product-usage-instructions-or-a-how-to-video-o.md) · rule · reviewed · unverified
+- [KC-0038 FBA stock running low: keep a backup FBM offer priced slightly above FBA](catalog/KC-0038_fba-stock-running-low-keep-a-backup-fbm-offer-priced-slightl.md) · decision-aid · reviewed · unverified
+- [KC-0039 Image A/B test result is unclear: keep the main image identical when testing the secondary images](catalog/KC-0039_image-a-b-test-result-is-unclear-keep-the-main-image-identic.md) · rule · reviewed · unverified
+- [KC-0040 Can a seller set the default Subscribe & Save delivery frequency?](catalog/KC-0040_can-a-seller-set-the-default-subscribe-save-delivery-frequen.md) · rule · reviewed · unverified
+- [KC-0041 Does deleting a parent ASIN remove reviews or Subscribe & Save from the child ASINs?](catalog/KC-0041_does-deleting-a-parent-asin-remove-reviews-or-subscribe-save.md) · rule · reviewed · unverified
+- [KC-0042 Scheduled sale discount does not show on the detail page; the listing's minimum price sits above the deal price, or Amazon wants a deeper discount](catalog/KC-0042_scheduled-sale-discount-does-not-show-on-the-detail-page-the.md) · diagnosis · reviewed · unverified
+- [KC-0043 Listing price set at the lowest acceptable price leaves no room for event deals](catalog/KC-0043_listing-price-set-at-the-lowest-acceptable-price-leaves-no-r.md) · decision-aid · reviewed · unverified
+- [KC-0044 Detail page shows seller-fulfilled although FBA stock exists: a cheaper FBM offer on the same ASIN wins the Featured Offer](catalog/KC-0044_detail-page-shows-seller-fulfilled-although-fba-stock-exists.md) · diagnosis · reviewed · unverified
 
-## support-cases (2)
+## support-cases (3)
 
 - [KC-0007 Cancel an Amazon-initiated disposal of stranded FBA inventory through Seller Support and harden automated removal settings](support-cases/KC-0007_cancel-an-amazon-initiated-disposal-of-stranded-fba-inventor.md) · procedure · draft · unverified
 - [KC-0008 Dispute invalid FBA inbound 'Labeling required' defects: one case per shipment, escalate disagreements to SAS, triage by defect type](support-cases/KC-0008_dispute-invalid-fba-inbound-labeling-required-defects-one-ca.md) · diagnosis · draft · unverified
+- [KC-0021 FBA order not received, lost or damaged: who handles the customer](support-cases/KC-0021_fba-order-not-received-lost-or-damaged-who-handles-the-custo.md) · rule · reviewed · unverified
 
-## ads (2)
+## ads (13)
 
 - [KC-0009 Sponsored Products campaigns suddenly stop delivering impressions despite healthy bids, stock and Buy Box](ads/KC-0009_sponsored-products-campaigns-suddenly-stop-delivering-impres.md) · diagnosis · draft · unverified
 - [KC-0010 Competitor product appears in own Sponsored Brands Product Collection ad](ads/KC-0010_competitor-product-appears-in-own-sponsored-brands-product-c.md) · diagnosis · draft · unverified
+- [KC-0057 Ads stop running after the payment card fails and switching to seller balance does not help](ads/KC-0057_ads-stop-running-after-the-payment-card-fails-and-switching.md) · diagnosis · reviewed · unverified
+- [KC-0058 Daily ad spend lands far below the campaign budget even though nothing was changed](ads/KC-0058_daily-ad-spend-lands-far-below-the-campaign-budget-even-thou.md) · rule · reviewed · unverified
+- [KC-0059 Agency cannot switch to the client account directly in the Ads console: manager account link request needs advertiser approval](ads/KC-0059_agency-cannot-switch-to-the-client-account-directly-in-the-a.md) · procedure · reviewed · unverified
+- [KC-0060 Ads stopped spending with a Payment failure: card issuer blocked the Amazon Ads charge](ads/KC-0060_ads-stopped-spending-with-a-payment-failure-card-issuer-bloc.md) · diagnosis · reviewed · unverified
+- [KC-0061 All ads stopped spending for a day because the ads payment card was rejected](ads/KC-0061_all-ads-stopped-spending-for-a-day-because-the-ads-payment-c.md) · diagnosis · reviewed · unverified
+- [KC-0062 Agency still lacks advertising access after the client adds a user; invite the right email under Settings > User Permissions](ads/KC-0062_agency-still-lacks-advertising-access-after-the-client-adds.md) · procedure · reviewed · unverified
+- [KC-0063 Ads console keeps showing Payment Failure and card charges are reversed although the account is active](ads/KC-0063_ads-console-keeps-showing-payment-failure-and-card-charges-a.md) · diagnosis · reviewed · unverified
+- [KC-0064 Revenue and profit both fell in a month: split stock-outs from bid pushes and use search-query conversion versus market to place budget](ads/KC-0064_revenue-and-profit-both-fell-in-a-month-split-stock-outs-fro.md) · decision-aid · reviewed · unverified
+- [KC-0065 Scaling a winning ad by adding more targets to the same campaign](ads/KC-0065_scaling-a-winning-ad-by-adding-more-targets-to-the-same-camp.md) · decision-aid · reviewed · unverified
+- [KC-0066 Inherited campaigns with poor ROAS still live after account takeover: pause gradually, not all at once](ads/KC-0066_inherited-campaigns-with-poor-roas-still-live-after-account.md) · decision-aid · reviewed · unverified
+- [KC-0067 Agency cannot open the Ads console for a newly added marketplace until a campaign exists and its user access covers that country](ads/KC-0067_agency-cannot-open-the-ads-console-for-a-newly-added-marketp.md) · procedure · reviewed · unverified
 
-## account-health (2)
+## account-health (9)
 
 - [KC-0011 Buy Box (Featured Offer) lost to a Pricing Health 'uncompetitive price' flag; restored by pricing at or below Amazon's competitive-price threshold](account-health/KC-0011_buy-box-featured-offer-lost-to-a-pricing-health-uncompetitiv.md) · diagnosis · draft · unverified
 - [KC-0012 FBM offer not selling because the account is in vacation mode; reactivate listings, set a shipping template and confirm the 3PL uploads tracking](account-health/KC-0012_fbm-offer-not-selling-because-the-account-is-in-vacation-mod.md) · diagnosis · draft · unverified
+- [KC-0013 Offers keep reappearing in Pricing Health as above the Featured Offer or uncompetitive: which to price-match and which need a margin check](account-health/KC-0013_offers-keep-reappearing-in-pricing-health-as-above-the-featu.md) · decision-aid · reviewed · unverified
+- [KC-0014 Low valid tracking rate on FBM orders shipped by a 3PL: tracking uses the 3PL as carrier](account-health/KC-0014_low-valid-tracking-rate-on-fbm-orders-shipped-by-a-3pl-track.md) · diagnosis · reviewed · unverified
+- [KC-0015 Late shipment rate far above the 4% target on a new FBM program: write a Plan of Action, raise handling time and move volume to FBA](account-health/KC-0015_late-shipment-rate-far-above-the-4-target-on-a-new-fbm-progr.md) · procedure · reviewed · unverified
+- [KC-0016 FBM late shipment rate jumps above target although packages left the warehouse on time](account-health/KC-0016_fbm-late-shipment-rate-jumps-above-target-although-packages.md) · diagnosis · reviewed · unverified
+- [KC-0017 Where to monitor seller-fulfilled (FBM) shipping performance: late shipment, cancellation and tracking metrics](account-health/KC-0017_where-to-monitor-seller-fulfilled-fbm-shipping-performance-l.md) · reference · reviewed · unverified
+- [KC-0018 Seller Central registration: which company's bank statement to upload when the IP owner and the paying company differ, and whether the store name must match the brand](account-health/KC-0018_seller-central-registration-which-company-s-bank-statement-t.md) · rule · reviewed · unverified
+- [KC-0019 Dormant seller account redirects to inactiveAccount and the billing page after Continue: re-add the card](account-health/KC-0019_dormant-seller-account-redirects-to-inactiveaccount-and-the.md) · diagnosis · reviewed · unverified
 
-## brand-registry (1)
+## seo (2)
+
+- [KC-0054 Titles had to be shortened for the new title rules, and a new Item Highlights field appeared](seo/KC-0054_titles-had-to-be-shortened-for-the-new-title-rules-and-a-new.md) · rule · reviewed · unverified
+- [KC-0055 Client rejects the optimized title and proposes a longer one with more phrases: how to decide which ranks better](seo/KC-0055_client-rejects-the-optimized-title-and-proposes-a-longer-one.md) · decision-aid · reviewed · unverified
+
+## brand-registry (10)
 
 - [KC-0005 Brand visible in Brand Registry but listing creation still blocked: separate protection roles, selling roles and the brand-category listing approval (error 5461)](brand-registry/KC-0005_brand-visible-in-brand-registry-but-listing-creation-still-b.md) · diagnosis · draft · unverified
+- [KC-0045 Brand shows as registered in Brand Registry but cannot be connected to Seller Central because its trademark sits under another brand's profile](brand-registry/KC-0045_brand-shows-as-registered-in-brand-registry-but-cannot-be-co.md) · diagnosis · reviewed · unverified
+- [KC-0046 Do FBM units of a Transparency-enrolled product need Transparency codes too, or only FBA units?](brand-registry/KC-0046_do-fbm-units-of-a-transparency-enrolled-product-need-transpa.md) · rule · reviewed · unverified
+- [KC-0047 Brand Registry asks us to confirm ownership of an added trademark and shows only a verification code: who has to use it?](brand-registry/KC-0047_brand-registry-asks-us-to-confirm-ownership-of-an-added-trad.md) · procedure · reviewed · unverified
+- [KC-0048 Brand owner offers to share Brand Registry login: have them add the agency as a user under User Permissions instead](brand-registry/KC-0048_brand-owner-offers-to-share-brand-registry-login-have-them-a.md) · procedure · reviewed · unverified
+- [KC-0049 Brand Registry application asks for a selling account that is still under review: you can enroll the brand without it](brand-registry/KC-0049_brand-registry-application-asks-for-a-selling-account-that-i.md) · rule · reviewed · unverified
+- [KC-0050 Brand Store will not submit for publishing and still shows an outdated brand logo](brand-registry/KC-0050_brand-store-will-not-submit-for-publishing-and-still-shows-a.md) · procedure · reviewed · unverified
+- [KC-0051 Counterfeit copies of a branded listing found: what evidence to collect before reporting them](brand-registry/KC-0051_counterfeit-copies-of-a-branded-listing-found-what-evidence.md) · procedure · reviewed · unverified
+- [KC-0052 Agency user cannot open Brand Analytics after the brand was connected to the account](brand-registry/KC-0052_agency-user-cannot-open-brand-analytics-after-the-brand-was.md) · diagnosis · reviewed · unverified
+- [KC-0053 Brand Store banners and images are not clickable](brand-registry/KC-0053_brand-store-banners-and-images-are-not-clickable.md) · procedure · reviewed · unverified
+
+## reporting (1)
+
+- [KC-0056 Profit and weekly KPIs wrong because product COGS were never entered in the profit analytics tool](reporting/KC-0056_profit-and-weekly-kpis-wrong-because-product-cogs-were-never.md) · diagnosis · reviewed · unverified
