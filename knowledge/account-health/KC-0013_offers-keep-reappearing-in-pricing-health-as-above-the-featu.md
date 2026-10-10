@@ -8,7 +8,7 @@ skills: [amazon-account-health-check]
 marketplaces: [DE]
 marketplace_inferred: true
 surface: "Seller Central > Pricing > Pricing Health"
-surface_verified: false
+surface_verified: true
 symptom_keywords: ["recurring pricing health alerts", "price above featured offer", "uncompetitive price competitive price threshold", "FBM offer flagged pricing health", "automated pricing not clearing pricing health"]
 error_text: [uncompetitive, "Competitive Price Threshold", "Featured Offer"]
 asked_as: ["Several offers had been recurring in Pricing Health for weeks."]

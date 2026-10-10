@@ -8,7 +8,7 @@ skills: [amazon-logistics, amazon-fba-inventory-planning]
 marketplaces: [US]
 marketplace_inferred: true
 surface: "Seller Central > Send to Amazon > Step 2: Confirm shipping"
-surface_verified: false
+surface_verified: true
 symptom_keywords: ["shipment split into multiple fulfillment centers", "ship to one FBA warehouse instead of five", "customs cost per destination address", "inbound placement fee single location", "Amazon-optimized split vs minimal split"]
 error_text: []
 asked_as: ["For a heavy sea shipment, the client asked whether the inventory had to go to several different Amazon addresses or could go to one, because customs costs were paid per destination and would multiply "]

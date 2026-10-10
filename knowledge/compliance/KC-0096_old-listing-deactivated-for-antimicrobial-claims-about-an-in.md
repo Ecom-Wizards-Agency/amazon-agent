@@ -8,7 +8,7 @@ skills: [amazon-seo, amazon-regulated-product-appeals]
 marketplaces: [all]
 marketplace_inferred: true
 surface: "Seller Central > Account Health policy notice; listing copy"
-surface_verified: false
+surface_verified: true
 symptom_keywords: ["listing deactivated antimicrobial claims", "antimicrobial claim ingredient", "pesticide claim ingredient other listings", "old listing removed claims check main listing"]
 error_text: []
 asked_as: ["An old, long-inactive listing was deactivated for antimicrobial claims."]
