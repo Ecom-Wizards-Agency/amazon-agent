@@ -54,6 +54,7 @@ For automation runs, fetch active profiles from `{account_profile_source}`.
 Required profile fields:
 
 - `Profile Name`
+- `profile_key`: the profile's stable key in the account source; it keys the profile's observation block in coverage
 - `{seller_central_name_field}`; recommended: `Seller Central Name`
 - `{marketplace_field}`; recommended: `Marketplace`
 - `Status`

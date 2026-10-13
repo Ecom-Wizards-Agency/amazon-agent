@@ -9,7 +9,7 @@ Maintain a private findings ledger at `{findings_ledger_path}`, stored locally n
 - Entry fields: key, account, marketplace, scope, asin, case_id, issue_type, summary, severity (critical/high/medium/low), disposition, owner, task URL, first_seen, last_verified, last_status, last_movement, last_reported, deadline, waiting_on, waiting_since, resolved_date, impact, current_state, next_step.
 - If an account is skipped or blocked today, carry its entries forward unchanged. Never infer resolved from a missed check.
 - Set resolved_date only after Seller Central verification. Keep resolved entries 30 days for dedup, then prune.
-- Write the full updated ledger exactly once, at the end of the run, including degraded runs.
+- Write the full updated ledger exactly once, at the end of the run, including degraded runs. The coverage entry it writes carries a per-profile observation for every checked profile (see Per-Profile Observations).
 - First run: seed the ledger by sweeping the open follow-up tasks in `{follow_up_task_database}` for in-scope accounts, keeping their current assignees.
 
 ## Fields The Digest Depends On
@@ -20,6 +20,50 @@ The run posts nothing, so the digest is only as honest as what the ledger says. 
 - `impact`, `current_state`, `next_step`: the three narrative fields behind the digest's approved card layout (`• *Issue:* / *Impact:* / *Current state:* / *Next step:*`; `summary` is the Issue). `impact` says why it matters in money or risk terms. `current_state` says exactly what the page showed THIS run, dated; refresh it on every run that verifies the finding. `next_step` is the single concrete action with a named owner (`<@slack-id>: do X by date`); touch `impact` and `next_step` only when they actually change. A finding without these fields renders as a compact one-liner instead of a card, so writing them is what upgrades the finding's visibility.
 - `last_reported`: the date the finding last appeared in a digest or in an immediate escalation. Set it yourself when you post an immediate escalation; the digest pass maintains it otherwise. It re-arms the stall timer, so a stuck item nags on a cadence instead of repeating itself every single morning until the reader stops reading.
 - `coverage[YYYY-MM-DD][<region>]`: a TOP-LEVEL ledger key, not a field on a finding. Each region run writes one object with `checked`, `in_scope` and `skipped` (a list of `Account MKT (reason)` strings). Write it even when the run failed, with `checked: 0`, because this entry is also the run's claim: `guard.py` reads exactly this key to decide whether the region already ran today, and a missing entry gets the run retried into a loop. A region with no entry is reported as **pending** and is never folded into the checked count. Do not skip the write to keep the numbers tidy. On 12.08.2026 a run that read zero of nine accounts still produced a post that implied full coverage, which is the failure this field exists to make impossible.
+
+## Per-Profile Observations
+
+Added 13.10.2026. The coverage entry says which profiles a run checked, not what their Account Health looked like. Before this block no run recorded the Account Health Rating or the order metrics anywhere, so the Account Health board showed every account with an empty rating and empty metrics. Write one observation per checked profile, on every run, inside the run's coverage entry:
+
+```text
+coverage[YYYY-MM-DD][<region>].profile_observations[<profile_key>] = {
+  observed_at, ahr_score, ahr_status, account_status,
+  odr_pct, late_shipment_pct, late_shipment_window_days,
+  cancellation_pct, cancellation_window_days,
+  valid_tracking_pct, valid_tracking_window_days,
+  on_time_delivery_pct, on_time_delivery_window_days,
+  featured_offer_pct, suppressed_listings, inactive_listings, evidence_ref
+}
+```
+
+- `<profile_key>` is the profile's stable key from `{account_profile_source}` (`profile_key` in a profile registry), not the Seller Central name and not the finding key.
+- Every profile the run counts in `checked` gets a block, also when part of its pages could not be read. A skipped profile gets none.
+- All seventeen fields are present in every block. A metric Amazon does not show, or shows as `N/A`, is `null`, never `0`: `0` means the page printed 0. A value that did not load is `null` too, and the reason goes in the finish note's blockers.
+- Percentages are numbers on Amazon's 0 to 100 scale: the page's `0.12%` is written `0.12`, not `0.0012` and not the string. Counts are whole numbers.
+- One block per profile per day, the newest. A second check of the same profile on the same day, such as a recovery run, replaces the block when its `observed_at` is later. Never merge two readings into one block.
+- The block records readings, not findings. A metric above target is still a finding of its own type under the tables below, and the block's values never set a disposition.
+- Use exactly these field names. Spellings older runs used (`account_health_rating`, `lsr_30_days_pct` and others) are read for history only.
+- Status labels match the Account Health board. `ahr_status` is `Healthy`, `At risk` or `Critical`; Amazon's report words GREAT, GOOD and FAIR are written `Healthy`, and UNHEALTHY is written `Critical`. `account_status` is `Normal`, `At risk` or `Deactivated`; Active is written `Normal` and Suspended `Deactivated`. Deactivation is an account status, not a rating band: when the rating card says the account is deactivated, write `account_status: Deactivated` and `ahr_status: null`.
+
+| Field | Value | Where to read it |
+|---|---|---|
+| `observed_at` | ISO 8601 time with UTC offset, such as `2026-10-13T08:15:00+07:00` | The moment the Account Health page was read for this profile: the time of its screenshot. |
+| `ahr_score` | whole number 0 to 1000, or null | Account Health page (`Performance` > `Account Health`), `Account Health Rating` card: the number on the rating gauge. |
+| `ahr_status` | `Healthy`, `At risk`, `Critical`, or null | The same card: the status label printed with the rating. |
+| `account_status` | `Normal`, `At risk`, `Deactivated`, or null | The Account Health page header: the account status Amazon prints there, when it prints one. When it prints none, read the page's banners: `Deactivated` when the page shows a deactivation notice, `At risk` when it shows an at-risk (of deactivation) banner, `Normal` when `ahr_status` is `Healthy` and no deactivation or at-risk notice is shown. Anything else, or any doubt, is null. |
+| `odr_pct` | percent or null | Account Health page, `Customer Service Performance`, `Order Defect Rate`: the higher of the `Seller Fulfilled` and `Fulfilled by Amazon` columns that show a rate. |
+| `late_shipment_pct` | percent or null | Account Health page, `Shipping Performance`, `Late Shipment Rate`, the 30-day period when the page offers a choice. Seller-fulfilled only: an account without seller-fulfilled orders shows none, so null. |
+| `late_shipment_window_days` | whole number of days, or null | The period the page states for the Late Shipment Rate you read, such as 10 or 30. |
+| `cancellation_pct` | percent or null | `Shipping Performance`, `Pre-fulfillment Cancel Rate`. |
+| `cancellation_window_days` | whole number of days, or null | The period the page states for that rate, such as 7. |
+| `valid_tracking_pct` | percent or null | `Shipping Performance`, `Valid Tracking Rate`. |
+| `valid_tracking_window_days` | whole number of days, or null | The period the page states for that rate, such as 30. |
+| `on_time_delivery_pct` | percent or null | `Shipping Performance`, `On-Time Delivery Rate`. |
+| `on_time_delivery_window_days` | whole number of days, or null | The period the page states for that rate, such as 14. A window is null whenever its rate is null. |
+| `featured_offer_pct` | percent or null | Seller Central home page: the account-wide `Featured Offer %` figure, never one ASIN's. |
+| `suppressed_listings` | whole number or null | `Inventory` > `Manage All Inventory`: the count beside the `Search suppressed` status filter. |
+| `inactive_listings` | whole number or null | The same page: the count beside the `Inactive` status filter. |
+| `evidence_ref` | text or null | The task-evidence screenshot reference of the Account Health page read at `observed_at`. |
 
 ## Disposition and Routing
 
@@ -239,4 +283,4 @@ For an issue type the tables do not list, severity maps to default routing: Crit
 
 ### Degraded Run
 
-Degraded run (Seller Central login blocked in the resolved CDP session): write the ledger under the carry-forward rule and write the coverage entry for the region with `checked: 0` and the blocked accounts in `skipped`. Carry every unverified finding forward untouched: never re-dispose it, never mark it resolved, and never restate it as verified today. Report the login blocker in the finish note, and post nothing beyond an immediate escalation if the blocker itself meets that bar. There is no queue post to fall back on, so a degraded run is visible through its coverage entry and the digest's pending count, not through a post.
+Degraded run (Seller Central login blocked in the resolved CDP session): write the ledger under the carry-forward rule and write the coverage entry for the region with `checked: 0`, the blocked accounts in `skipped`, and no profile observations. Carry every unverified finding forward untouched: never re-dispose it, never mark it resolved, and never restate it as verified today. Report the login blocker in the finish note, and post nothing beyond an immediate escalation if the blocker itself meets that bar. There is no queue post to fall back on, so a degraded run is visible through its coverage entry and the digest's pending count, not through a post.
