@@ -39,15 +39,18 @@ For each account-marketplace:
    - Policy Compliance categories and `View all`
    - `Review details` for any nonzero policy row when present
    - affected ASIN/SKU, reason, date, status, deadline, Account Health Rating impact, and next-step labels
+   - record the rating, its status and the account status in this profile's observation block, with `observed_at` and the screenshot reference (fields and page elements: `dispositions-and-ledger.md`, Per-Profile Observations)
 6. Check Performance Notifications since the last run.
 7. Check order/shipping metrics:
    - ODR, A-to-z, chargebacks
    - cancellation, late shipment, valid tracking, on-time delivery
+   - record ODR and these four rates in the observation block; a rate the page does not show is null, never 0
 8. Check homepage action indicators and product/listing health:
    - Actions tab
    - Product Performance status
    - Featured Offer %
    - active/suppressed/inactive/pricing issue states
+   - record Featured Offer % and the search-suppressed and inactive counts in the observation block
 
 ## Policy Issue Deep Dive
 
