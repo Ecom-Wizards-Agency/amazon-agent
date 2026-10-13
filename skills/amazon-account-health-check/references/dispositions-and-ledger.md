@@ -28,31 +28,38 @@ Added 13.10.2026. The coverage entry says which profiles a run checked, not what
 ```text
 coverage[YYYY-MM-DD][<region>].profile_observations[<profile_key>] = {
   observed_at, ahr_score, ahr_status, account_status,
-  odr_pct, late_shipment_pct, cancellation_pct, valid_tracking_pct,
-  on_time_delivery_pct, featured_offer_pct,
-  suppressed_listings, inactive_listings, evidence_ref
+  odr_pct, late_shipment_pct, late_shipment_window_days,
+  cancellation_pct, cancellation_window_days,
+  valid_tracking_pct, valid_tracking_window_days,
+  on_time_delivery_pct, on_time_delivery_window_days,
+  featured_offer_pct, suppressed_listings, inactive_listings, evidence_ref
 }
 ```
 
 - `<profile_key>` is the profile's stable key from `{account_profile_source}` (`profile_key` in a profile registry), not the Seller Central name and not the finding key.
 - Every profile the run counts in `checked` gets a block, also when part of its pages could not be read. A skipped profile gets none.
-- All thirteen fields are present in every block. A metric Amazon does not show, or shows as `N/A`, is `null`, never `0`: `0` means the page printed 0. A value that did not load is `null` too, and the reason goes in the finish note's blockers.
+- All seventeen fields are present in every block. A metric Amazon does not show, or shows as `N/A`, is `null`, never `0`: `0` means the page printed 0. A value that did not load is `null` too, and the reason goes in the finish note's blockers.
 - Percentages are numbers on Amazon's 0 to 100 scale: the page's `0.12%` is written `0.12`, not `0.0012` and not the string. Counts are whole numbers.
 - One block per profile per day, the newest. A second check of the same profile on the same day, such as a recovery run, replaces the block when its `observed_at` is later. Never merge two readings into one block.
 - The block records readings, not findings. A metric above target is still a finding of its own type under the tables below, and the block's values never set a disposition.
 - Use exactly these field names. Spellings older runs used (`account_health_rating`, `lsr_30_days_pct` and others) are read for history only.
+- Status labels match the Account Health board. `ahr_status` is `Healthy`, `At risk` or `Critical`; Amazon's report words GREAT, GOOD and FAIR are written `Healthy`, and UNHEALTHY is written `Critical`. `account_status` is `Normal`, `At risk` or `Deactivated`; Active is written `Normal` and Suspended `Deactivated`. Deactivation is an account status, not a rating band: when the rating card says the account is deactivated, write `account_status: Deactivated` and `ahr_status: null`.
 
 | Field | Value | Where to read it |
 |---|---|---|
 | `observed_at` | ISO 8601 time with UTC offset, such as `2026-10-13T08:15:00+07:00` | The moment the Account Health page was read for this profile: the time of its screenshot. |
 | `ahr_score` | whole number 0 to 1000, or null | Account Health page (`Performance` > `Account Health`), `Account Health Rating` card: the number on the rating gauge. |
-| `ahr_status` | `Healthy`, `At risk`, `Critical`, `Deactivated`, or null | The same card: the status label printed with the rating. |
-| `account_status` | `Normal`, `At risk`, `Deactivated`, or null | The status Seller Central states for the selling account itself. A deactivation or at-risk-of-deactivation banner sets `Deactivated` or `At risk`; write `Normal` only where the page prints a normal account status. Never derive it from the rating. |
+| `ahr_status` | `Healthy`, `At risk`, `Critical`, or null | The same card: the status label printed with the rating. |
+| `account_status` | `Normal`, `At risk`, `Deactivated`, or null | The Account Health page header: the account status Amazon prints there, when it prints one. When it prints none, read the page's banners: `Deactivated` when the page shows a deactivation notice, `At risk` when it shows an at-risk (of deactivation) banner, `Normal` when `ahr_status` is `Healthy` and no deactivation or at-risk notice is shown. Anything else, or any doubt, is null. |
 | `odr_pct` | percent or null | Account Health page, `Customer Service Performance`, `Order Defect Rate`: the higher of the `Seller Fulfilled` and `Fulfilled by Amazon` columns that show a rate. |
-| `late_shipment_pct` | percent or null | Account Health page, `Shipping Performance`, `Late Shipment Rate`, 30-day period. Seller-fulfilled only: an account without seller-fulfilled orders shows none, so null. |
+| `late_shipment_pct` | percent or null | Account Health page, `Shipping Performance`, `Late Shipment Rate`, the 30-day period when the page offers a choice. Seller-fulfilled only: an account without seller-fulfilled orders shows none, so null. |
+| `late_shipment_window_days` | whole number of days, or null | The period the page states for the Late Shipment Rate you read, such as 10 or 30. |
 | `cancellation_pct` | percent or null | `Shipping Performance`, `Pre-fulfillment Cancel Rate`. |
+| `cancellation_window_days` | whole number of days, or null | The period the page states for that rate, such as 7. |
 | `valid_tracking_pct` | percent or null | `Shipping Performance`, `Valid Tracking Rate`. |
+| `valid_tracking_window_days` | whole number of days, or null | The period the page states for that rate, such as 30. |
 | `on_time_delivery_pct` | percent or null | `Shipping Performance`, `On-Time Delivery Rate`. |
+| `on_time_delivery_window_days` | whole number of days, or null | The period the page states for that rate, such as 14. A window is null whenever its rate is null. |
 | `featured_offer_pct` | percent or null | Seller Central home page: the account-wide `Featured Offer %` figure, never one ASIN's. |
 | `suppressed_listings` | whole number or null | `Inventory` > `Manage All Inventory`: the count beside the `Search suppressed` status filter. |
 | `inactive_listings` | whole number or null | The same page: the count beside the `Inactive` status filter. |

@@ -44,7 +44,7 @@ For each account-marketplace:
 7. Check order/shipping metrics:
    - ODR, A-to-z, chargebacks
    - cancellation, late shipment, valid tracking, on-time delivery
-   - record ODR and these four rates in the observation block; a rate the page does not show is null, never 0
+   - record ODR and these four rates in the observation block, each shipping rate with the period in days the page shows for it; a rate the page does not show is null, never 0
 8. Check homepage action indicators and product/listing health:
    - Actions tab
    - Product Performance status

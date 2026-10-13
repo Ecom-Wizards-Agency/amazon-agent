@@ -47,7 +47,7 @@ The digest can only be as honest as the ledger, so per finding:
 And once per run, at the top level of the ledger:
 
 - `coverage[YYYY-MM-DD][<region>]` with `checked`, `in_scope` and `skipped`, written even when the run failed, with `checked: 0`
-- inside it, `profile_observations[<profile_key>]` for every profile counted in `checked`: `observed_at`, the Account Health Rating (`ahr_score`, `ahr_status`), `account_status`, the order metrics (`odr_pct`, `late_shipment_pct`, `cancellation_pct`, `valid_tracking_pct`, `on_time_delivery_pct`), `featured_offer_pct`, `suppressed_listings`, `inactive_listings` and `evidence_ref`. A metric the page does not show is null, never 0. This block is the only place the rating and the metrics are recorded; without it the Account Health board shows the account empty
+- inside it, `profile_observations[<profile_key>]` for every profile counted in `checked`: `observed_at`, the Account Health Rating (`ahr_score`, `ahr_status`), `account_status`, the order metrics (`odr_pct`, `late_shipment_pct`, `cancellation_pct`, `valid_tracking_pct`, `on_time_delivery_pct`) with the period in days the page showed for each shipping rate, `featured_offer_pct`, `suppressed_listings`, `inactive_listings` and `evidence_ref`. A metric the page does not show is null, never 0. This block is the only place the rating and the metrics are recorded; without it the Account Health board shows the account empty
 
 Field semantics and the reasons behind them are in `dispositions-and-ledger.md`.
 
