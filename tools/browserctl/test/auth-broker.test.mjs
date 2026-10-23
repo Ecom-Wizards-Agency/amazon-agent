@@ -148,6 +148,7 @@ function fakeLogin(pages, {
       }
       const enter = method === "Input.dispatchKeyEvent" && params.type === "rawKeyDown";
       const click = method === "Input.dispatchMouseEvent" && params.type === "mousePressed";
+      if (background && enter && !page.foreground) return {};
       if (background && click && (!page.foreground || page.pointer?.x !== params.x
           || page.pointer?.y !== params.y || !controls.some(({ x = 0 }) =>
             params.x === x + foregroundOffset + 10))) return {};
@@ -179,6 +180,11 @@ function fakeLogin(pages, {
         return runInNewContext(expression, { document: fakeDocument(positioned) });
       }
       if (expression.includes("scrollIntoView")) return { x: 10, y: 20 };
+      if (expression.includes("form.requestSubmit")) {
+        page.events.push([page.index, "requestSubmit"]);
+        advanceOn("requestSubmit");
+        return true;
+      }
       if (expression.startsWith("JSON.stringify({url:location.href")) {
         page.preparation.push("snapshot");
         if (page.clicked.length && page.snapshotFailures < snapshotErrors) {
@@ -196,9 +202,12 @@ function fakeLogin(pages, {
 }
 
 // The broker's 250 ms polls run immediately so a full wait takes no real time.
-async function withFastPolls(run) {
+async function withFastPolls(run, onWait = () => {}) {
   const realTimeout = globalThis.setTimeout;
-  globalThis.setTimeout = (callback, _ms, ...args) => realTimeout(callback, 0, ...args);
+  globalThis.setTimeout = (callback, ms, ...args) => {
+    onWait(ms);
+    return realTimeout(callback, 0, ...args);
+  };
   try { return await run(); } finally { globalThis.setTimeout = realTimeout; }
 }
 
@@ -361,6 +370,39 @@ test("with the code options, a hidden form is foregrounded before coordinates an
   assert.deepEqual(page.mouse, ["mouseMoved", "mousePressed", "mouseReleased"]);
   assert.deepEqual(page.events, [[0, "click"]]);
   assert.deepEqual(page.clicked, [360]);
+});
+
+test("with the code options, hidden initial email and password forms do not exhaust the prefetched code", async () => {
+  let now = FETCHED.otpFetchedAt;
+  const { result, page } = await withFastPolls(() => login([
+    { email: true }, { password: true }, { ...CODE, advance: "click" }, APP,
+  ], "123456", { ...FETCHED, clock: () => now }, { background: true }), (ms) => { now += ms; });
+  assert.equal(result.status, "authenticated");
+  assert.equal(result.otp_submitted, true);
+  assert.deepEqual(page.preparation.slice(0, 2), ["foreground", "type"]);
+  assert.deepEqual(page.typed, ["user@example.test", "password-secret", "123456"]);
+  assert.deepEqual(page.events, [[0, "enter"], [1, "enter"], [2, "click"]]);
+  assert.ok(now - FETCHED.otpFetchedAt < 1000, "no ten-second submit fallback waits");
+});
+
+test("with the code options, an initial foreground failure stops before reading or typing login fields", async () => {
+  const page = fakeLogin([{ email: true }, PASSWORD, CODE, APP], {
+    background: true, focusError: "initial foreground failed",
+  });
+  page.targetId = `T${++targetCount}`;
+  let calls = 0;
+  await assert.rejects(authenticateTarget({
+    port: 9223, targetId: page.targetId, policy: loadBrowserPolicy(), cdp: page.cdp,
+    config: { authentication: { mode: "interactive" } }, authProvider: {
+      ...provider("123456"),
+      loadRouteLogin: () => assert.fail("login fields requested after failed foreground"),
+    },
+    ...FETCHED, onOtpSubmitted: () => { calls++; },
+  }), /initial foreground failed/);
+  assert.equal(calls, 0);
+  assert.deepEqual(page.typed, []);
+  assert.deepEqual(page.events, []);
+  assert.deepEqual(page.mouse, []);
 });
 
 test("with the code options, failed foreground or pointer preparation never marks or submits a code", async () => {
