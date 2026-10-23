@@ -236,6 +236,9 @@ async function submitForm(cdp, session, { once = false, onDispatch = () => {}, a
       throw new Error(`AUTH_CODE_SUBMIT_AMBIGUOUS: the code form has ${Number(control?.candidates) || 0} `
         + "eligible submit controls; nothing was clicked and the code was not submitted");
     }
+    await session.send("Input.dispatchMouseEvent", {
+      type: "mouseMoved", x: control.x, y: control.y, button: "left", clickCount: 1,
+    }, { timeoutMs: 10000 });
     // From here the code counts as submitted, also when the click itself throws.
     onDispatch();
     try {
@@ -280,6 +283,9 @@ async function fillStep(cdp, session, state, login, getOtp, beforeOtpSubmit = ()
       'input[type="email"],input[name="email"],input[autocomplete="username"],#ap_email,#ap_email_login',
       login.username, "login username");
   } else if (state.status === "totp_required") {
+    // Restored headed tabs can be hidden. Activate this exact target before
+    // typing the code and resolving its submit control's current coordinates.
+    if (codeOptions) await session.send("Page.bringToFront", {}, { timeoutMs: 10000 });
     const otp = await getOtp();
     await replaceInput(cdp, session,
       'input[name="otpCode"],input[name="code"],input[autocomplete="one-time-code"]',
