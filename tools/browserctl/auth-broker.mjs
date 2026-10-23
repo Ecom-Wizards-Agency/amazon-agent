@@ -283,9 +283,6 @@ async function fillStep(cdp, session, state, login, getOtp, beforeOtpSubmit = ()
       'input[type="email"],input[name="email"],input[autocomplete="username"],#ap_email,#ap_email_login',
       login.username, "login username");
   } else if (state.status === "totp_required") {
-    // Restored headed tabs can be hidden. Activate this exact target before
-    // typing the code and resolving its submit control's current coordinates.
-    if (codeOptions) await session.send("Page.bringToFront", {}, { timeoutMs: 10000 });
     const otp = await getOtp();
     await replaceInput(cdp, session,
       'input[name="otpCode"],input[name="code"],input[autocomplete="one-time-code"]',
@@ -363,6 +360,10 @@ export async function authenticateTarget({
       return output("cooldown", initial.origin, cooldown.retryAt);
     }
     await recordAuthAttempt({ port, targetId, routeId: route.id });
+    // Hidden headed tabs can ignore the initial email/password submit too.
+    // Activate the validated target before typing, so fallback waits do not
+    // consume the lifetime of the code fetched before this worker started.
+    if (codeOptions) await session.send("Page.bringToFront", {}, { timeoutMs: 10000 });
     let login;
     const getLogin = () => {
       login ||= auth.loadRouteLogin(config, route);
