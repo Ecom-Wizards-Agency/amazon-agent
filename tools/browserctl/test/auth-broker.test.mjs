@@ -117,8 +117,10 @@ const LIVE_CONTROLS = [
 // snapshots after the first click throw a destroyed-context error.
 function fakeLogin(pages, {
   failSubmit = false, releaseError = null, snapshotErrors = 0, controls = LIVE_CONTROLS,
+  background = false, foregroundOffset = 0, focusError = null, moveError = null,
 } = {}) {
-  const page = { index: 0, typed: [], submits: 0, events: [], clicked: [], snapshotFailures: 0 };
+  const page = { index: 0, typed: [], submits: 0, events: [], clicked: [], snapshotFailures: 0,
+    foreground: !background, pointer: null, preparation: [], mouse: [] };
   const advanceOn = (method) => {
     const advance = pages[page.index].advance || "any";
     if (advance === method || advance === "any") {
@@ -127,9 +129,28 @@ function fakeLogin(pages, {
   };
   const session = {
     async send(method, params) {
-      if (method === "Input.insertText") page.typed.push(params.text);
+      if (method === "Page.bringToFront") {
+        page.preparation.push("foreground");
+        if (focusError) throw new Error(focusError);
+        page.foreground = true;
+      }
+      if (method === "Input.insertText") {
+        page.preparation.push("type");
+        page.typed.push(params.text);
+      }
+      if (method === "Input.dispatchMouseEvent") {
+        page.mouse.push(params.type);
+        if (params.type === "mouseMoved") {
+          page.preparation.push("move");
+          if (moveError) throw new Error(moveError);
+          page.pointer = { x: params.x, y: params.y };
+        }
+      }
       const enter = method === "Input.dispatchKeyEvent" && params.type === "rawKeyDown";
       const click = method === "Input.dispatchMouseEvent" && params.type === "mousePressed";
+      if (background && click && (!page.foreground || page.pointer?.x !== params.x
+          || page.pointer?.y !== params.y || !controls.some(({ x = 0 }) =>
+            params.x === x + foregroundOffset + 10))) return {};
       if (enter || click) {
         if (failSubmit) throw new Error(failSubmit === true ? "Inspected target navigated or closed" : failSubmit);
         page.submits++;
@@ -152,10 +173,14 @@ function fakeLogin(pages, {
       if (expression === "({origin:location.origin})") return { origin: ORIGIN };
       if (expression.includes("e.focus()")) return { focused: true, start: 0, end: 0, length: 0 };
       if (expression.includes("candidates:")) {
-        return runInNewContext(expression, { document: fakeDocument(controls) });
+        page.preparation.push("control");
+        const positioned = controls.map((control) => ({ ...control,
+          x: (control.x ?? 0) + (page.foreground ? foregroundOffset : 0) }));
+        return runInNewContext(expression, { document: fakeDocument(positioned) });
       }
       if (expression.includes("scrollIntoView")) return { x: 10, y: 20 };
       if (expression.startsWith("JSON.stringify({url:location.href")) {
+        page.preparation.push("snapshot");
         if (page.clicked.length && page.snapshotFailures < snapshotErrors) {
           page.snapshotFailures++;
           throw new Error("Execution context was destroyed.");
@@ -322,6 +347,38 @@ test("with the code options, the code is submitted by one click on #auth-signin-
   assert.deepEqual(codeStep(page, 0), ["enter"]);
   assert.deepEqual(codeStep(page, 1), ["click"]);
   assert.deepEqual(page.clicked, [110]);
+});
+
+test("with the code options, a hidden form is foregrounded before coordinates and pointer dispatch", async () => {
+  let calls = 0;
+  const { result, page } = await withFastPolls(() => login([{ ...CODE, advance: "click" }, APP],
+    "123456", { ...FETCHED, onOtpSubmitted: () => { calls++; } },
+    { background: true, foregroundOffset: 250 }));
+  assert.equal(result.status, "authenticated");
+  assert.equal(result.otp_submitted, true);
+  assert.equal(calls, 1);
+  assert.deepEqual(page.preparation.slice(0, 5), ["foreground", "type", "snapshot", "control", "move"]);
+  assert.deepEqual(page.mouse, ["mouseMoved", "mousePressed", "mouseReleased"]);
+  assert.deepEqual(page.events, [[0, "click"]]);
+  assert.deepEqual(page.clicked, [360]);
+});
+
+test("with the code options, failed foreground or pointer preparation never marks or submits a code", async () => {
+  for (const fixture of [{ focusError: "foreground failed" }, { moveError: "pointer failed" }]) {
+    let calls = 0;
+    const page = fakeLogin([{ ...CODE, advance: "click" }, APP], { background: true, ...fixture });
+    page.targetId = `T${++targetCount}`;
+    await assert.rejects(authenticateTarget({
+      port: 9223, targetId: page.targetId, policy: loadBrowserPolicy(), cdp: page.cdp,
+      config: { authentication: { mode: "interactive" } }, authProvider: provider("123456"),
+      ...FETCHED, onOtpSubmitted: () => { calls++; },
+    }), /foreground failed|pointer failed/);
+    assert.equal(calls, 0);
+    assert.deepEqual(page.events, []);
+    assert.ok(!page.mouse.includes("mousePressed"));
+    assert.ok(!page.mouse.includes("mouseReleased"));
+    assert.deepEqual(page.typed, fixture.focusError ? [] : ["123456"]);
+  }
 });
 
 test("with the code options, email and password steps keep the full submit sequence", async () => {
