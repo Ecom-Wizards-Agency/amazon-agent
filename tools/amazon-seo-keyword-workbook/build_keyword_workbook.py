@@ -54,6 +54,9 @@ from typing import Any
 from openpyxl import load_workbook
 from openpyxl.worksheet.worksheet import Worksheet
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import ranking_score as rscore  # noqa: E402  (sibling module; shared tokenizer + scoring)
+
 # --------------------------------------------------------------------------- #
 # Repo + default paths
 # --------------------------------------------------------------------------- #
@@ -200,6 +203,60 @@ def write_matrix(ws: Worksheet, rows: list[list[Any]], snap: list[list[dict]]) -
             cell = ws.cell(i, j, value=val)
             apply_style(cell, snap, i, j)
     return len(rows)
+
+
+def keyword_source_label(cfg: dict) -> str:
+    """Client-visible name of the keyword data source (default "DataDive")."""
+    value = cfg.get("keyword_source")
+    if isinstance(value, str) and value.strip():
+        return value.strip()
+    return "DataDive"
+
+
+def apply_template_renames(wb, cfg: dict, warnings: list[str]) -> list[dict]:
+    """Rename template sheets in place per tabs.template_renames {old: new}."""
+    renames = (cfg.get("tabs") or {}).get("template_renames") or {}
+    applied: list[dict] = []
+    for old, new in renames.items():
+        if old == new:
+            continue
+        if old not in wb.sheetnames:
+            warnings.append(f"Template rename skipped: '{old}' is not a sheet in the template.")
+            continue
+        # openpyxl compares sheet titles case-insensitively and silently suffixes a digit.
+        if any(s.lower() == str(new).lower() and s != old for s in wb.sheetnames):
+            warnings.append(f"Template rename refused: '{new}' already exists; '{old}' kept.")
+            continue
+        ws = wb[old]
+        if old.lower() == str(new).lower():
+            ws.title = f"__rename_{len(applied)}__"  # a case-only rename would otherwise get a digit suffix
+        ws.title = new
+        applied.append({"from": old, "to": ws.title})
+    return applied
+
+
+def stale_rename_references(cfg: dict, applied: list[dict]) -> list[str]:
+    """Warn when a renamed template tab is still named by its old title elsewhere in the config."""
+    tabs = cfg.get("tabs") or {}
+    lists = {
+        "tabs.exact_paste": list((tabs.get("exact_paste") or {}).keys()),
+        "tabs.rebuild": list(tabs.get("rebuild") or []),
+        "tabs.carry_forward": list(tabs.get("carry_forward") or []),
+        "tabs.carry_forward_clear": list(tabs.get("carry_forward_clear") or []),
+        "tabs.generated_blank": list((tabs.get("generated_blank") or {}).keys()),
+        "tab_order": list(cfg.get("tab_order") or []),
+        "required_current_tabs": list(cfg.get("required_current_tabs") or []),
+        "stale_data_guard.tabs": list((cfg.get("stale_data_guard") or {}).get("tabs") or []),
+    }
+    out: list[str] = []
+    for r in applied:
+        for key, names in lists.items():
+            if r["from"] in names:
+                out.append(
+                    f"Template rename '{r['from']}' -> '{r['to']}': {key} still names '{r['from']}'; "
+                    f"use '{r['to']}' or the old tab is recreated as a new sheet."
+                )
+    return out
 
 
 def ensure_sheet(wb, title: str, after: Any = None) -> Worksheet:
@@ -860,6 +917,7 @@ def build_outlier(
     warnings: list[str],
 ) -> dict:
     tcfg = copy.deepcopy(cfg["triage"])
+    src = keyword_source_label(cfg)
     ranks_unavailable = (cfg.get("ranking_context") or {}).get("mode") == "unavailable"
     if ranks_unavailable:
         tcfg["semantic_opportunity"]["include_if_anchor_not_ranking"] = False
@@ -911,7 +969,7 @@ def build_outlier(
     ]
 
     out_header = [
-        "Keyword", "Search Volume", "DataDive Relevancy", f"{anchor_label} Rank",
+        "Keyword", "Search Volume", f"{src} Relevancy", f"{anchor_label} Rank",
         "Best Competitor Rank", "Competitors Top 50", "POE Signal",
         "Classification", "Reason", "Recommended Use", "Source", "Final Action",
     ]
@@ -952,7 +1010,7 @@ def build_outlier(
                 kw, sv, relev, "Not available" if ranks_unavailable else (anchor_rank if anchor_rank is not None else ""),
                 best_comp if best_comp is not None else "", comps_top50, poe_signal,
                 cls, REASONS.get(cls, ""), RECOMMENDED_USE.get(cls, ""),
-                "DataDive Master List", action,
+                f"{src} Master List", action,
             ]
         )
         by_class[cls] = by_class.get(cls, 0) + 1
@@ -976,7 +1034,7 @@ def build_outlier(
             [
                 kw, sv, relev, "Not available" if ranks_unavailable else "", "", "", poe_signal,
                 cls, REASONS.get(cls, ""), RECOMMENDED_USE.get(cls, ""),
-                "DataDive Expanded MKL 1%", action,
+                f"{src} Expanded MKL 1%", action,
             ]
         )
         by_class[cls] = by_class.get(cls, 0) + 1
@@ -1098,6 +1156,170 @@ def build_seo_text(ws: Worksheet, seo_path: str, result: dict, warnings: list[st
 
     result.update({"rows_written": len(rows), "skipped": False})
     return result
+
+
+# --------------------------------------------------------------------------- #
+# Calculated keyword ranking score (ranking_score.py), appended to SEO Text
+# --------------------------------------------------------------------------- #
+RANKING_SCORE_LABEL = "Keyword Ranking Score (calculated)"
+_HIGHLIGHTS_LABEL = {
+    "title": "Item Highlights counted with the title",
+    "bullets": "Item Highlights counted with the bullets",
+    "description": "Item Highlights counted with the description",
+    "none": "Item Highlights not scored",
+}
+
+
+def ranking_score_settings(cfg: dict, warnings: list[str] | None = None) -> dict:
+    """config.ranking_score with defaults: enabled, weights 3/2/1, Item Highlights in the title.
+    Invalid weights fall back to the defaults with a warning instead of stopping the build."""
+    raw = cfg.get("ranking_score") or {}
+    field = raw.get("item_highlights_field") or "title"
+    try:
+        weights = rscore.resolve_weights(raw.get("weights"))
+    except (TypeError, ValueError, AttributeError):
+        weights = dict(rscore.DEFAULT_WEIGHTS)
+        if warnings is not None:
+            warnings.append(
+                f"ranking_score.weights={raw.get('weights')!r} is not a map of numbers; "
+                f"default weights {weights} used."
+            )
+    return {
+        "enabled": raw.get("enabled", True) is not False,
+        "weights": weights,
+        "item_highlights_field": field,
+    }
+
+
+def _rounded_score(score: dict) -> dict:
+    return {
+        "title": round(score["title"]), "bullets": round(score["bullets"]),
+        "description": round(score["description"]), "total": round(score["total"]),
+        "max_possible": round(score["max_possible"]), "pct_of_max": score["pct_of_max"],
+        "keywords_credited": score["keywords_credited"],
+    }
+
+
+def compute_ranking_scores(
+    cfg: dict, master_rows: list[list[str]], seo_path: str, listing_path: str, warnings: list[str]
+) -> dict:
+    """Score the seo_content draft and the listing-reference competitors
+    (anchor excluded) against the Core MKL (keyword + SV)."""
+    settings = ranking_score_settings(cfg, warnings)
+    result: dict[str, Any] = {**settings, "computed": False}
+    if not settings["enabled"]:
+        return result
+    if settings["item_highlights_field"] not in rscore.HIGHLIGHT_FIELDS:
+        warnings.append(
+            f"ranking_score.item_highlights_field={settings['item_highlights_field']!r} is not one of "
+            f"{list(rscore.HIGHLIGHT_FIELDS)}; Item Highlights scored with the title."
+        )
+        settings["item_highlights_field"] = result["item_highlights_field"] = "title"
+    keywords = rscore.keywords_from_rows(master_rows)
+    result["keywords"] = len(keywords)
+    if not any(sv > 0 for _, sv in keywords):
+        warnings.append("Keyword ranking score skipped: the Core MKL has no keywords with SV.")
+        result["not_computed_reason"] = "Core MKL has no keywords with SV"
+        return result
+
+    def score(listing: dict) -> dict:
+        return _rounded_score(rscore.score_entry(
+            keywords, listing, settings["weights"], settings["item_highlights_field"]))
+
+    seo_rows = (load_json(seo_path).get("rows") or []) if seo_path and os.path.exists(seo_path) else []
+    draft = rscore.draft_from_seo_rows(seo_rows, "new")
+    if rscore.has_copy(draft):
+        result["draft"] = score(draft)
+        result["computed"] = True
+    else:
+        result["not_computed_reason"] = "no draft copy in seo_content"
+
+    anchor = str(cfg.get("product_anchor", {}).get("asin") or "").strip().upper()
+    competitors = []
+    if listing_path and os.path.exists(listing_path):
+        for item in rscore.listings_from_data(load_json(listing_path)):
+            if item["asin"].upper() == anchor or not rscore.has_copy(item):
+                continue
+            competitors.append({"asin": item["asin"], **score(item)})
+    competitors.sort(key=lambda c: -c["total"])
+    result["competitors"] = competitors
+    result["competitor_median"] = rscore.median([c["total"] for c in competitors])
+    return result
+
+
+def ranking_score_row(result: dict) -> list[str]:
+    """[Section, Old Listing, New Listing, Notes] for the SEO Text tab (client-visible)."""
+    w = result["weights"]
+
+    def wt(value: float) -> str:
+        return f"{value:g}"
+
+    def summary(prefix: str, s: dict) -> str:
+        return (
+            f"{prefix}: {s['total']:,} ({s['pct_of_max']:.1f}% of max {s['max_possible']:,})\n"
+            f"Title {s['title']:,} x{wt(w['title'])} | Bullets {s['bullets']:,} x{wt(w['bullets'])} | "
+            f"Description {s['description']:,} x{wt(w['description'])}"
+        )
+
+    draft = result.get("draft")
+    new_cell = summary("Draft", draft) if draft else "Draft: not scored (no draft copy)"
+    competitors = result.get("competitors") or []
+    if competitors:
+        new_cell += "\nCompetitors (total, highest first):\n" + "\n".join(
+            f"{c['asin']}: {c['total']:,}" for c in competitors
+        )
+    notes = (
+        "Calculated estimate of keyword ranking strength from search volume and match quality; not a third-party tool's own score. "
+        f"Keywords: Core MKL with search volume ({result.get('keywords', 0)} keywords). "
+        f"Total = title x{wt(w['title'])} + bullets x{wt(w['bullets'])} + description x{wt(w['description'])}. "
+        "Each field earns a keyword's search volume only for the match quality it adds over the fields "
+        "before it (title, then bullets, then description). Match tiers: exact phrase 1.0, exact phrase "
+        "after plural folding 0.75, all words in any order 0.5, all words after plural folding 0.25. "
+        f"{_HIGHLIGHTS_LABEL.get(result.get('item_highlights_field', 'title'), _HIGHLIGHTS_LABEL['title'])}. "
+        "Backend search terms not scored."
+    )
+    return [RANKING_SCORE_LABEL, "", new_cell, notes]
+
+
+def append_ranking_score_row(ws: Worksheet, result: dict) -> int:
+    """Append the score row under the SEO Text rows, styled like the data rows above it."""
+    row = ranking_score_row(result)
+    r = ws.max_row + 1
+    style_row = r - 1 if r > 2 else None
+    for c, val in enumerate(row, start=1):
+        cell = ws.cell(r, c, value=val)
+        if style_row:
+            src = ws.cell(style_row, c)
+            cell.font = copy.copy(src.font)
+            cell.border = copy.copy(src.border)
+            cell.alignment = copy.copy(src.alignment)
+    return r
+
+
+def ranking_score_checks(result: dict, warnings: list[str]) -> list[dict]:
+    """Informational validation row (always passes, so a missing score never fails the
+    build) + a WARNING when the draft trails the competitor median."""
+    if not result.get("enabled"):
+        return []
+    draft = result.get("draft")
+    med = result.get("competitor_median")
+    n = len(result.get("competitors") or [])
+    if draft:
+        detail = (
+            f"draft={draft['total']:,} ({draft['pct_of_max']}% of max) | competitor median="
+            + (f"{round(med):,} (n={n})" if med is not None else "n/a (no competitor copy)")
+        )
+    else:
+        detail = (
+            f"not computed: {result.get('not_computed_reason', 'no draft copy in seo_content')} "
+            f"(keywords={result.get('keywords', 0)})"
+        )
+    if draft and med is not None and draft["total"] < med:
+        warnings.append(
+            f"Keyword ranking score: draft {draft['total']:,} is below the competitor median {round(med):,} "
+            f"(n={n}); move higher-SV phrases into the title or Item Highlights."
+        )
+    return [{"check": "Keyword ranking score computed", "pass": True, "detail": detail}]
 
 
 def build_seo_variations(wb, seo_path: str, result: dict, warnings: list[str]) -> dict:
@@ -2468,7 +2690,7 @@ def write_handoff_note(path: str, cfg: dict, args: dict, manifest: dict) -> str:
         f"- Manifest: `{manifest['outputs']['manifest']}`",
         f"- Drive copy: `{manifest['outputs'].get('drive_copy') or 'not copied in this run'}`",
         "",
-        "## DataDive Exports",
+        f"## {keyword_source_label(cfg)} Exports",
         "",
     ]
     for key, value in (cfg.get("datadive_exports") or {}).items():
@@ -2738,6 +2960,8 @@ def main() -> int:
 
     print(f"Loading template: {args['template']}")
     wb = load_workbook(args["template"])
+    template_renames = apply_template_renames(wb, cfg, warnings)
+    warnings.extend(stale_rename_references(cfg, template_renames))
 
     counts: dict[str, Any] = {}
 
@@ -2873,6 +3097,18 @@ def main() -> int:
     else:
         warnings.append("SEO Text tab not in template; skipped.")
 
+    # Calculated keyword ranking score: one auto row under the SEO Text rows.
+    ranking_result: dict = {}
+    if seo_sheet and not seo_result.get("skipped"):
+        ranking_result = compute_ranking_scores(
+            cfg, master, args["seo_content"], args.get("listing_reference_json", ""), warnings
+        )
+        if ranking_result.get("enabled"):
+            append_ranking_score_row(wb[seo_sheet], ranking_result)
+            counts[seo_sheet] = seo_result["rows_written"] = seo_result.get("rows_written", 0) + 1
+            draft_total = (ranking_result.get("draft") or {}).get("total")
+            print(f"  keyword ranking score: draft={draft_total} competitors={len(ranking_result.get('competitors') or [])}")
+
     # Optional per-supply 'SEO Variations' tab (only if seo_content defines it).
     seo_var_result: dict = {}
     build_seo_variations(wb, args["seo_content"], seo_var_result, warnings)
@@ -2953,6 +3189,7 @@ def main() -> int:
 
     # --- Validations -------------------------------------------------------- #
     checks = run_validations(wb, cfg, counts, related_result, args, warnings)
+    checks.extend(ranking_score_checks(ranking_result, warnings))
 
     # --- Save workbook ------------------------------------------------------ #
     os.makedirs(os.path.dirname(args["out"]), exist_ok=True)
@@ -2988,6 +3225,7 @@ def main() -> int:
             ),
         },
         "template": args["template"],
+        **({"template_renames": template_renames} if template_renames else {}),
         "sources": {
             "roots_csv": {"path": args["roots_csv"], "rows": counts["_roots_csv"]},
             "master_csv": {"path": args["master_csv"], "rows": counts["_master_csv"]},
@@ -3037,6 +3275,7 @@ def main() -> int:
                 if os.path.exists(args["seo_content"]) else {}
             ),
         },
+        **({"ranking_score": ranking_result} if ranking_result.get("enabled") else {}),
         "poe_reviews": reviews_result,
         "poe_returns": returns_result,
         "poe_semantic_insights": semantic_result,

@@ -79,6 +79,35 @@ The builder tokenizes keywords into single words, calculates frequency, and adds
 
 Only one-word rows classified as `Never Ever` are written to the final tab. Misspellings and grammar variants stay out of Never Ever when they still represent relevant product intent.
 
+## Keyword Ranking Score
+
+`ranking_score.py` calculates a Ranking Juice equivalent (title x3 + bullets x2 + description x1, incremental credit per field, tiered phrase matching) from any keyword list with search volume. Method and calibration: `skills/amazon-seo/references/seo-writing-methodology.md` section 2.
+
+```bash
+.venv/bin/python tools/amazon-seo-keyword-workbook/ranking_score.py \
+  --keywords <core-mkl.csv | get_niche_keywords.json> \
+  [--listing <listing-reference.json>] [--seo-content <seo_content.json>] \
+  [--compare-datadive <get_ranking_juice.json>] [--weights '{"title":3,"bullets":2,"description":1}'] \
+  [--highlights-field title|bullets|description|none] [--json]
+```
+
+- `--keywords`: a Core MKL CSV in the builder format (optional blank leading column; `Search Terms` and `SV` columns found by name, falling back to columns 2 and 3 like the builder) or a DataDive `get_niche_keywords` JSON. Every row is scored with its own SV, including variants that tokenize identically, as DataDive does.
+- `--listing`: listing-reference or listing-capture JSON (`{"listings": [{"asin", "title", "bullets", "description"}]}`); one row per ASIN.
+- `--seo-content`: scores the New Listing copy as `Draft` (Title + Item Highlights + Bullet 1-5 + Description, first line of each cell).
+- `--compare-datadive`: prints ours vs DataDive per ASIN with the title and total ratios and both rank orders.
+
+The builder runs the same score after the SEO Text tab is written. It appends one `Keyword Ranking Score (calculated)` row (draft total, per-field breakdown and % of max, then competitor totals from `listing_reference_json`, highest first, anchor excluded), records draft and competitor scores under `ranking_score` in the manifest, adds the informational validation row `Keyword ranking score computed` (it never fails the build; it shows why when no score was computed), and warns when the draft total is below the competitor median. The keyword list is the Core MKL (`master_csv`). Config, all keys optional:
+
+```json
+"ranking_score": {
+  "enabled": true,
+  "weights": {"title": 3, "bullets": 2, "description": 1},
+  "item_highlights_field": "title"
+}
+```
+
+With `"enabled": false` the build output is unchanged from a build without the feature.
+
 ## Outputs
 
 - Styled workbook `.xlsx`
