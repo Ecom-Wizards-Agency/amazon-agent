@@ -26,7 +26,7 @@ hand off only the blocked checklist and exact contract paths to any capable agen
 - DataDive Core MKL CSV at `30% Min Rel.`. **(MCP-generatable.)**
 - DataDive complete keyword-pool CSV filtered locally at `1% Min Rel.` from the three read-only endpoints below.
 - DataDive competitors CSV or MCP-derived competitor export. **(MCP-generatable.)**
-- Ranking Juice snapshot from DataDive MCP in the SEO content JSON.
+- Ranking Juice snapshot from DataDive MCP in the SEO content JSON, when the niche is in DataDive. Runs on another keyword source rely on the calculated score row below.
 - POE Products/Search Terms CSVs.
 - POE Reviews, Returns, Related Niches, and structured overview JSON.
 - Listing reference JSON with product family, ASINs, listing status, title/bullets/description, ingredients, and pack size.
@@ -160,6 +160,7 @@ Use `--preflight` first. If a DataDive `1%` export or metadata is missing, stop 
 - `seo_identity` block present with the consumer-facing brand and recognizable product name. Both phrases must appear in the <=75-character title and description. Client/account name is never accepted as an implicit consumer brand.
 - The ≤75 title **leads with a tracked MKL keyword, not a root**: the title covers at least one Master-List keyword and its lead (non-brand) token exists in the MKL vocabulary. See [[seo-title-ranking-juice-rules]].
 - **Ranking-Juice coverage is computed and reported** (covered SV / total + addressable %) in the validation/manifest output. Covered SV must be > 0; a warning fires below 60% addressable. No new workbook tab; the human-facing RJ stays in the SEO-content `rj`/compliance columns.
+- **Keyword ranking score row is appended to the SEO Text tab** (`Keyword Ranking Score (calculated)`), a Ranking Juice equivalent from `tools/amazon-seo-keyword-workbook/ranking_score.py`. It scores the draft and the listing-reference competitors (anchor excluded) against the Core MKL with its SV, so it works with any keyword source (DataDive or SoldScope). The validation row `Keyword ranking score computed` is informational and never fails the build (it reports draft vs competitor median, or why no score was computed); a warning fires when the draft total is below the competitor median. Client-visible cells never use DataDive's metric name. Method and calibration: `skills/amazon-seo/references/seo-writing-methodology.md` section 2. Turn it off with `"ranking_score": {"enabled": false}`.
 - **Semantic / Alexa AI direction row present and non-empty, with traceable POE use**: its `poe_evidence` must include at least one POE Search Terms signal and at least one POE Reviews or Returns signal, each tied to a copy decision. Importing POE tabs without using them in the SEO does not pass.
 - **Compliance tax reported** when `triage.claim_tokens` exist: claim-gated SV vs addressable SV is a validation row, so the RJ cost of compliance is visible instead of silently deflating the addressable %; recover it via the rewrite ladder in `skills/amazon-seo/references/health-claims-compliance.md`.
 - **Regulated-category evidence gate**: `checked=true` alone does not pass. Require a review date, a readable claims-check evidence file, non-empty per-claim decisions, and a visible Claim Guardrail row. `compliance.claims_audit` verdict=`prohibited` terms auto-merge into `triage.claim_tokens`.

@@ -141,6 +141,46 @@ word is.
 - The builder's `4.1 SEO Text` tab carries the DataDive **Ranking Juice** snapshot
   (current vs optimized target, per element) so you write toward the biggest gaps.
 
+### Calculating it ourselves
+
+`tools/amazon-seo-keyword-workbook/ranking_score.py` calculates a Ranking Juice
+equivalent from any keyword list with search volume, so copy built on SoldScope
+keywords is scored the same way a DataDive niche scores it. The coverage % above
+stays the QA gate; this score ranks a draft against competitors on DataDive's scale.
+
+- **Weights:** total = 3 x title + 2 x bullets + 1 x description.
+- **Incremental credit:** each field earns a keyword's SV only for the match quality
+  it adds over the higher-priority fields (title, then bullets, then description):
+  credit = SV x max(0, tier in this field - best tier in the fields before it).
+- **Match tiers** (tokens lowercased, accents folded, HTML entities unescaped,
+  U+FFFC removed, tokens = `[a-z0-9]+`): exact phrase 1.0; exact phrase after simple singularizing
+  (drop a trailing "s" from words over 3 characters not ending in "ss") 0.75; all
+  keyword words in any order 0.5; all words after singularizing 0.25; else 0.
+- **Item Highlights** are scored with the title by default, because Amazon renders
+  them joined to the title and this methodology treats them as title-tier
+  (`ranking_score.item_highlights_field` in the builder config changes it). DataDive
+  predates the field. Backend search terms are not scored; DataDive does not score
+  them either.
+- **Calibration** (8-competitor US niche, 2026-10-24): 3/2/1 reproduced all eight
+  DataDive totals exactly from DataDive's own field scores. With this formula our
+  titles landed within 4% of DataDive, totals within 1-5%, and competitor order
+  matched except two near-ties. Bullet scores are approximate (DataDive's bullet
+  rule sits between tiered matching on the joined bullet text and exact-only
+  matching), but bullets are only 1-3% of a total. Every MKL row was scored, including
+  variants that tokenize the same (a U+FFFC-prefixed or hyphenated twin keeps its own SV);
+  the calculator does the same and does not dedupe.
+
+```bash
+python3 tools/amazon-seo-keyword-workbook/ranking_score.py \
+  --keywords <core-mkl.csv or get_niche_keywords.json> \
+  [--listing <listing-reference.json>] [--seo-content <seo_content.json>] \
+  [--compare-datadive <get_ranking_juice.json>] [--json]
+```
+
+When a DataDive niche exists, `--compare-datadive` prints ours vs DataDive per ASIN
+with the ratio, so each run can re-check the calibration. The workbook builder adds
+the same score as an auto row in the SEO Text tab.
+
 ## 3. Writing rules
 
 - **Identity is a ranking and conversion requirement, not expendable copy.** Start the
