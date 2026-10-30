@@ -99,7 +99,7 @@ the feed URL:
    then run the toolkit against it. If the inbox holds both a delivered
    7d and a 30d export, use the 7d one for the daily brief and the 30d
    one only if the 7d one is missing or blank. The fetcher pulls only the
-   one feed URL configured for the slug:
+   one feed URL configured for the slug. Then run:
 
    ```bash
    python3 tools/amazon-ads-monitor/run_monitor.py \
