@@ -37,12 +37,13 @@ Use the document and spreadsheet inspection tools available in the environment. 
 
 ## Native Google delivery
 
-Deliver only after local validation:
+Deliver only after local validation and after the operator approves the exact destination folder and the two `[deliver-plan]` file names, in the current session or through a matching scoped entry in `_local/local-permissions.md`:
 
 ```bash
 python3 tools/amazon-client-offboarding/build_handover.py \
   --config <run-config.json> \
-  --deliver
+  --deliver \
+  --approved-destination <approved destination.folder>
 ```
 
 The builder calls `tools/gdrive-deliver/deliver.py` for DOCX to Google Doc and XLSX to Google Sheet conversion. It never creates the destination. Do not use `--keep-upload` for the Office intermediaries.
