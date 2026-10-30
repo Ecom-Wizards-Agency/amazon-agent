@@ -96,8 +96,10 @@ the feed URL:
 ## Flow (per brand)
 
 1. **Obtain the CSV** per the delivered-file/local-fetch rule above,
-   then run the toolkit against it (pick the 7d window for the daily
-   brief; use the 30d feed only if the 7d one is missing/blank):
+   then run the toolkit against it. If the inbox holds both a delivered
+   7d and a 30d export, use the 7d one for the daily brief and the 30d
+   one only if the 7d one is missing or blank. The fetcher pulls only the
+   one feed URL configured for the slug:
 
    ```bash
    python3 tools/amazon-ads-monitor/run_monitor.py \
@@ -242,8 +244,9 @@ docstring for exact signatures.
 
 1. **Aggregate the week from Sellerboard.** Get the brand's Sellerboard
    CSV the same delivered-file/local-fetch way as the daily brief
-   (prefer the 30d feed so both this week and last week are covered),
-   then run:
+   (prefer a delivered 30d export so both this week and last week are
+   covered; a fetched file is the one feed configured for the slug, so
+   check that its dates span both weeks), then run:
 
    ```bash
    python3 tools/amazon-ads-monitor/run_weekly.py \
