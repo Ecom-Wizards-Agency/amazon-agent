@@ -54,35 +54,48 @@ Note: today's AdLabs figures are known to be slightly off and correct
 themselves tomorrow -- caveat this for the **report date only**, not
 older days.
 
-## Getting the Sellerboard CSV: two ways, file-first
+## Getting the Sellerboard CSV: delivered file, then local fetch
 
-Each brand's feed is fetched **file-first (credit-free)**, with a
-firecrawl fallback that costs Firecrawl credits:
+Each brand's feed comes from a delivered file first. On a miss, a local
+fetcher on this machine downloads it. No third-party service ever sees
+the feed URL:
 
-1. **PRIMARY -- delivered file, no credits.** Check
+1. **PRIMARY -- delivered file.** Check
    `_local/ads-monitor/inbox/<brand>/` for a CSV already there (Sellerboard
-   can email/auto-export the report to a synced folder that lands here).
-   A file counts as fresh if its date/window covers the report date (7d
-   feed for the daily brief). If a fresh file exists, use it directly --
-   no MCP call needed for this brand.
-2. **FALLBACK -- firecrawl fetch, ~1 credit per feed.** If no fresh
-   delivered file exists, look up the brand's feed URL(s) in
-   `_local/ads-monitor/sellerboard-feeds.json` (SECRET -- never echo the
-   full URL/token in chat or commit it) and call **`firecrawl_scrape`**
-   with `formats: ["markdown"]` (this endpoint returns the raw CSV text
-   in the markdown field). Save the returned text to
-   `_local/ads-monitor/inbox/<brand>/` (so the next run can use it
-   file-first) before handing it to the toolkit. Note in the operator
-   note that this brand cost a Firecrawl credit.
+   can email/auto-export the report to a synced folder that lands here),
+   and `_local/ads-monitor/inbox/<brand>/fetched/` for one the fetcher
+   saved earlier. A file counts as fresh if its date/window covers the
+   report date (7d feed for the daily brief). If a fresh file exists, use
+   it directly.
+2. **FALLBACK -- local fetch, no third party.** If no fresh file exists,
+   run from the repo root:
+
+   ```bash
+   python3 tools/amazon-ads-monitor/fetch_sellerboard.py --account <brand-slug>
+   ```
+
+   It reads the brand's feed URL from
+   `_local/ads-monitor/sellerboard-feeds.json` (SECRET), sends one https
+   GET to the feed's own host, saves the CSV into
+   `_local/ads-monitor/inbox/<brand>/fetched/` with mode 0600 and prints
+   the saved path. It never prints the URL or token. Never open the
+   manifest yourself, and never pass a feed URL to Firecrawl, Monid, a
+   browser, a web-fetch tool or any other third-party fetcher: the URL
+   carries the access token. If the fetcher exits non-zero, do not retry
+   through another service. Use the AdLabs-only fallback below and say
+   so in the operator note. Exit 6 means the brand has no feed URL
+   configured; a runtime without shell network access gets exit 4 and
+   takes the same AdLabs-only route.
    - A just-requested Sellerboard report can come back **blank** -- that
-     is not an error (`parse_sellerboard_csv` returns `[]`); per
+     is not an error (the fetcher exits 3 and saves nothing;
+     `parse_sellerboard_csv` returns `[]` for a blank delivered file); per
      `sellerboard-feeds.json`'s `"fallback": "if_sellerboard_blank_use_adlabs"`,
      fall back to AdLabs entirely for that brand/day and label the report
      accordingly.
 
 ## Flow (per brand)
 
-1. **Obtain the CSV** per the file-first/firecrawl-fallback rule above,
+1. **Obtain the CSV** per the delivered-file/local-fetch rule above,
    then run the toolkit against it (pick the 7d window for the daily
    brief; use the 30d feed only if the 7d one is missing/blank):
 
@@ -189,14 +202,13 @@ firecrawl fallback that costs Firecrawl credits:
      `output/{brand}/ads-monitor/{date}_daily.md`. Do not duplicate it
      elsewhere.
 6. **Finish with a short operator note per brand**: data source used
-   (sellerboard file/firecrawl/AdLabs-fallback/mock-PREVIEW), goal lens
+   (sellerboard file/local fetch/AdLabs-fallback/mock-PREVIEW), goal lens
    applied, cross-check verdict, report date, critical/alert/warn/info
    counts, what context enrichment changed (if anything), and the Slack
    message link.
 
 ## Exact MCP tools this flow uses
 
-- `firecrawl_scrape` (fallback CSV fetch only, formats `["markdown"]`).
 - AdLabs: `start_chat_session`, `read_resource`, `get_entity_data`
   (and `query` for anything the entity-data shape doesn't cover).
 - Notion: `search`, `fetch` (meeting-note context).
@@ -204,6 +216,8 @@ firecrawl fallback that costs Firecrawl credits:
   the supervising operator's verified native Slack MCP `send_message`; a
   scheduled/background Evo run posts through the guarded Wizards AI helper.
   Missing access never falls back across identities.
+
+Sellerboard feeds use no MCP tool; see the local fetcher above.
 
 ## Weekly variant
 
@@ -227,7 +241,7 @@ docstring for exact signatures.
 ### Flow (per brand, weekly)
 
 1. **Aggregate the week from Sellerboard.** Get the brand's Sellerboard
-   CSV the same file-first/firecrawl-fallback way as the daily brief
+   CSV the same delivered-file/local-fetch way as the daily brief
    (prefer the 30d feed so both this week and last week are covered),
    then run:
 
@@ -446,12 +460,14 @@ specific change named, never execute it from this skill.
   (`#<brand>-ew-amazon` + `#amazon-check`), the shared team-vault Amazon
   Ops profile, and Notion meeting notes. A stale durable situation must
   never override what the live channels/meeting notes say today.
-- **Never echo Sellerboard feed tokens.** `sellerboard-feeds.json` is
-  SECRET; reference a brand's feed by slug/name in chat, never paste the
-  full URL with its embedded token.
-- **File-first, firecrawl only on a miss.** Always check
-  `_local/ads-monitor/inbox/<brand>/` before calling `firecrawl_scrape` --
-  every avoidable fallback call is a wasted Firecrawl credit.
+- **Sellerboard feed URLs stay on this machine.** `sellerboard-feeds.json`
+  is SECRET. Refer to a feed by brand slug only. Never echo its URL or
+  token, and never pass it to Firecrawl, Monid, a browser, a web-fetch
+  tool or any other third-party service: a URL that carries a token goes
+  to no third-party fetcher. Only `fetch_sellerboard.py` reads it.
+- **Delivered file first, local fetch on a miss.** Check
+  `_local/ads-monitor/inbox/<brand>/` (and its `fetched/` subfolder)
+  before running the fetcher.
 - **Mock output must say PREVIEW.** Never present synthetic data as if
   it were the real account.
 - **Weekly proposals never fabricate.** The Test list only ever contains

@@ -4,9 +4,10 @@ Client-agnostic, read-only Python toolkit that produces a **daily previous-day
 Amazon Ads performance report** with trends, % changes, a Sellerboard-vs-AdLabs
 data cross-check, and goal-lens-aware flags, plus a compact Slack payload.
 Pure stdlib + `requests` (no MCP calls in this toolkit; MCP enrichment --
-fetching the Sellerboard feed via firecrawl, pulling AdLabs figures, Notion/
-Slack context -- happens at the skill/runtime layer). **Never changes
-campaigns.**
+pulling AdLabs figures, Notion/Slack context -- happens at the skill/runtime
+layer). The Sellerboard feed is fetched locally by `fetch_sellerboard.py`
+(stdlib, the feed's own host only), never through a third-party scraper.
+**Never changes campaigns.**
 
 ## Files
 
@@ -23,6 +24,17 @@ campaigns.**
   plus the Sellerboard-only fields real_acos/margin/units/refunds/
   sessions/etc.) and `classify_campaign_category` (Rank/Discovery/
   Profit/Shield, from the EW naming convention).
+- `fetch_sellerboard.py` -- saves one brand's Sellerboard feed CSV from
+  the secret `_local/ads-monitor/sellerboard-feeds.json` into
+  `_local/ads-monitor/inbox/<brand>/fetched/` (mode 0600). One https GET
+  to the configured URL's own host, plus any hostnames in an optional
+  `allowed_hosts` list (per feed or top level); redirects stay inside
+  that set. It never prints the URL or token. The `fetched/` subfolder
+  keeps these files out of the Wizards AI weekly reporter, which reads
+  every top-level `*.csv` in `inbox/<brand>/`. Exit codes: 0 saved,
+  1 manifest missing or unreadable, 2 usage error, 3 blank feed (nothing
+  saved), 4 fetch failed, 5 refused (not https or a host outside the
+  allowed set), 6 feed not configured (empty `url`, no request).
 - `analyze.py` -- pure delta/trend math: value vs prior day and vs
   trailing-7-day average (absolute + %), plus an up/down/flat trend
   classification over the trailing week. Metric set is pluggable
@@ -139,9 +151,9 @@ python3 tools/amazon-ads-monitor/run_monitor.py --source sellerboard \
 
 The CSV comes from the brand's Sellerboard "Dashboard Totals" feed --
 see `_local/ads-monitor/SELLERBOARD-FORMAT.md` for the column mapping and
-the `amazon-ads-performance-briefs` skill for the file-first (delivered to
-`_local/ads-monitor/inbox/<brand>/`) / firecrawl-fallback flow that
-obtains the file. `--goal` and `--adlabs-json` are both optional: omit
+the `amazon-ads-performance-briefs` skill for the delivered-file (in
+`_local/ads-monitor/inbox/<brand>/`) / local-fetch fallback
+(`fetch_sellerboard.py`) flow that obtains the file. `--goal` and `--adlabs-json` are both optional: omit
 `--goal` for the neutral lens; omit `--adlabs-json` to skip the
 cross-check (the report just won't show a verdict line). If the CSV is
 blank/missing (a just-requested Sellerboard report can come back empty),
@@ -249,8 +261,10 @@ vs-AdLabs cross-check verdicts; goal-lens severity differences (e.g. a
 near-zero-impressions Rank/SKW flag is ALERT under the neutral lens but
 CRITICAL under rank-launch; an account-level TACOS-rise/margin-drop read
 is suppressed as expected under rank-launch but an active ALERT under
-profit-maintain); and a full `--source mock` CLI run that writes real
-files with no credentials.
+profit-maintain); a full `--source mock` CLI run that writes real
+files with no credentials; and `fetch_sellerboard.py` against a fake
+HTTPS handler with sockets blocked (save path and mode, host and redirect
+refusals, blank and not-configured feeds, no URL or token in any output).
 
 ## Rules
 
@@ -259,7 +273,9 @@ files with no credentials.
 - Secrets (Sellerboard feed URLs/tokens in `sellerboard-feeds.json`; LWA
   client_id/secret/refresh_token, profile IDs in `config.json`) live only
   in gitignored `_local/ads-monitor/`; only `config.TEMPLATE.json` is
-  committed. Never echo a full feed URL/token in chat or a commit.
+  committed. Never echo a full feed URL/token in chat or a commit, and
+  never send a feed URL to a third-party service (Firecrawl, Monid, a
+  browser or any other fetcher); only `fetch_sellerboard.py` requests it.
 - Dependency-light: stdlib + `requests` (already used elsewhere in this
   repo; no new pip install needed in this environment).
 - Extend the toolkit, never hand-edit it per client -- everything

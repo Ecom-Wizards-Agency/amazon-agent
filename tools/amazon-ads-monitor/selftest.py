@@ -27,16 +27,27 @@ Covers:
 - flags.py goal lenses: the same underlying metrics produce different
   flag severities under different `goal=` lenses (rank-launch vs
   profit-maintain vs neutral).
+- fetch_sellerboard.py: offline only (a fake HTTPS handler, sockets
+  blocked). Saves into `inbox/<slug>/fetched/` with mode 0600, refuses
+  non-https URLs and redirects outside the allowed hosts, treats an empty
+  url as not configured with no request, and never prints the feed URL or
+  token, including on HTTP and network errors.
 """
 
 from __future__ import annotations
 
 import datetime as dt
+import email.message
 import io
 import json
+import socket
+import stat
 import sys
 import tempfile
-from contextlib import redirect_stdout
+import urllib.error
+import urllib.request
+import urllib.response
+from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 
 from analyze import analyze_account, classify_trend, TREND_UP, TREND_DOWN, TREND_FLAT, aggregate_week
@@ -49,6 +60,7 @@ from crosscheck import cross_check, render_verdict_line, render_verdict_emoji_li
 from pacing import compute_pacing, pacing_flag, CUT_ORDER_GUIDANCE, UNDERPACE_GUIDANCE
 from recommendations import build_recommendations, parse_signal_digest_markdown
 from report import render_markdown, render_slack, render_weekly_markdown, render_weekly_slack
+import fetch_sellerboard
 import run_monitor
 import run_weekly
 
@@ -1024,6 +1036,201 @@ def test_pacing_and_graduate_rendering(weekly, over_pacing, radar_result):
     check("render_md_no_graduate_when_empty", "GRADUATE" not in md_plain)
 
 
+# ---------------------------------------------------------------------------
+# fetch_sellerboard.py: offline. A fake HTTPS handler stands in for the
+# network and sockets are blocked, so no request can leave the machine.
+
+_FEED_SECRET = "SECRET123"
+_FEED_URL = f"https://feeds.example.test/export/dashboard?token={_FEED_SECRET}"
+_FEED_CSV = b"Date,SalesOrganic,SalesPPC\n13/07/2026,10,5\n"
+
+
+class _FakeSellerboardHTTPS(urllib.request.HTTPSHandler):
+    """Answers https requests from a route table: url -> (status, headers, body).
+
+    A body that is an exception instance is raised instead."""
+
+    def __init__(self, routes):
+        super().__init__()
+        self.routes = routes
+        self.calls = []
+
+    def https_open(self, req):
+        url = req.full_url
+        self.calls.append(url)
+        status, headers, body = self.routes[url]
+        if isinstance(body, BaseException):
+            raise body
+        msg = email.message.Message()
+        for key, value in headers.items():
+            msg[key] = value
+        response = urllib.response.addinfourl(io.BytesIO(body), msg, url, status)
+        response.msg = "OK" if status == 200 else "Redirect"
+        return response
+
+
+_FETCH_TMP_ROOT = []
+
+
+def _run_fetch(argv, routes, manifest):
+    """Run fetch_sellerboard.main offline; return (exit, output, calls, tmp)."""
+    tmp = Path(tempfile.mkdtemp(dir=_FETCH_TMP_ROOT[0]))
+    manifest_path = tmp / "sellerboard-feeds.json"
+    if manifest is not None:
+        manifest_path.write_text(manifest if isinstance(manifest, str) else json.dumps(manifest),
+                                 encoding="utf-8")
+    fake = _FakeSellerboardHTTPS(routes)
+    saved_handlers = fetch_sellerboard._EXTRA_HANDLERS
+    saved_create = socket.create_connection
+    saved_connect = socket.socket.connect
+
+    def _no_network(*_args, **_kwargs):
+        raise AssertionError("selftest attempted a real network connection")
+
+    fetch_sellerboard._EXTRA_HANDLERS = (urllib.request.ProxyHandler({}), fake)
+    socket.create_connection = _no_network
+    socket.socket.connect = _no_network
+    out, err = io.StringIO(), io.StringIO()
+    try:
+        with redirect_stdout(out), redirect_stderr(err):
+            try:
+                code = fetch_sellerboard.main(
+                    list(argv) + ["--manifest", str(manifest_path), "--inbox", str(tmp / "inbox"),
+                                  "--date", "2026-07-13"])
+            except SystemExit as exc:
+                code = exc.code
+    finally:
+        fetch_sellerboard._EXTRA_HANDLERS = saved_handlers
+        socket.create_connection = saved_create
+        socket.socket.connect = saved_connect
+    return code, out.getvalue() + err.getvalue(), fake.calls, tmp
+
+
+def _no_leak(name, output):
+    lower = output.lower()
+    check(name, _FEED_SECRET.lower() not in lower and "token" not in lower
+          and "http://" not in lower and "https://" not in lower
+          and "example.test" not in lower, output)
+
+
+def test_fetch_sellerboard_offline():
+    with tempfile.TemporaryDirectory(prefix="fetch-sellerboard-selftest-") as root:
+        _FETCH_TMP_ROOT[:] = [root]
+        _fetch_sellerboard_cases()
+
+
+def _fetch_sellerboard_cases():
+    ok_route = {_FEED_URL: (200, {}, _FEED_CSV)}
+    saved_name = Path("acme", "fetched", "acme_dashboardtotals_2026-07-13.csv")
+
+    # (a) {url} shape: saved under fetched/, mode 0600, exact bytes, no leak.
+    manifest = {"feeds": {"acme": {"url": _FEED_URL, "currency": "USD"}}}
+    code, output, calls, tmp = _run_fetch(["--account", "acme"], ok_route, manifest)
+    target = tmp / "inbox" / saved_name
+    check("fetch_sb_saved_exit_zero", code == 0, (code, output))
+    check("fetch_sb_saved_one_request", len(calls) == 1, len(calls))
+    check("fetch_sb_saved_file", target.exists() and target.read_bytes() == _FEED_CSV, output)
+    if target.exists():
+        check("fetch_sb_saved_mode_0600", stat.S_IMODE(target.stat().st_mode) == 0o600,
+              oct(target.stat().st_mode))
+    # wizards-ai globs inbox/<slug>/*.csv (not recursive) as weekly input.
+    check("fetch_sb_not_in_wizards_ai_glob", not list((tmp / "inbox" / "acme").glob("*.csv")))
+    check("fetch_sb_saved_prints_path", str(target) in output, output)
+    _no_leak("fetch_sb_saved_no_leak", output)
+
+    # (b) string shape, with and without the "feeds" wrapper.
+    for label, manifest in (("wrapped", {"feeds": {"acme": _FEED_URL}}), ("flat", {"acme": _FEED_URL})):
+        code, output, calls, _ = _run_fetch(["--account", "acme"], ok_route, manifest)
+        check(f"fetch_sb_string_shape_{label}", code == 0 and len(calls) == 1, (code, output))
+
+    # (c) empty url and unknown slug: not configured, no request.
+    for label, manifest in (("empty_url", {"feeds": {"acme": {"url": "", "currency": "USD"}}}),
+                            ("empty_string", {"feeds": {"acme": ""}}),
+                            ("unknown_slug", {"feeds": {"other": _FEED_URL}})):
+        code, output, calls, _ = _run_fetch(["--account", "acme"], ok_route, manifest)
+        check(f"fetch_sb_not_configured_{label}", code == 6 and not calls, (code, output, len(calls)))
+        _no_leak(f"fetch_sb_not_configured_{label}_no_leak", output)
+
+    # (d) a non-https feed URL is refused before any request.
+    http_url = _FEED_URL.replace("https://", "http://")
+    code, output, calls, _ = _run_fetch(["--account", "acme"], {http_url: (200, {}, _FEED_CSV)},
+                                        {"feeds": {"acme": http_url}})
+    check("fetch_sb_http_refused", code == 5 and not calls, (code, output, len(calls)))
+    _no_leak("fetch_sb_http_refused_no_leak", output)
+
+    # (e) blank body: exit 3, nothing written.
+    code, output, calls, tmp = _run_fetch(["--account", "acme"], {_FEED_URL: (200, {}, b" \n\n")},
+                                          {"feeds": {"acme": _FEED_URL}})
+    check("fetch_sb_blank_exit_3", code == 3, (code, output))
+    check("fetch_sb_blank_no_file", not (tmp / "inbox" / saved_name).exists())
+
+    # (f) HTTP and network errors whose text carries the URL print the class only.
+    for label, body, expected in (
+        ("http_error", urllib.error.HTTPError(_FEED_URL, 403, f"Forbidden {_FEED_URL}", None, None),
+         "HTTPError HTTP 403"),
+        ("url_error", urllib.error.URLError(f"cannot reach {_FEED_URL}"), "URLError"),
+        ("timeout", TimeoutError(f"timed out {_FEED_URL}"), "TimeoutError"),
+    ):
+        code, output, calls, tmp = _run_fetch(["--account", "acme"], {_FEED_URL: (200, {}, body)},
+                                              {"feeds": {"acme": _FEED_URL}})
+        check(f"fetch_sb_{label}_exit_4", code == 4 and expected in output, (code, output))
+        check(f"fetch_sb_{label}_no_file", not (tmp / "inbox" / saved_name).exists())
+        _no_leak(f"fetch_sb_{label}_no_leak", output)
+
+    # (g) redirects: off-host refused; allowed_hosts (top level or per feed) followed.
+    cdn_url = f"https://cdn.example.test/file.csv?token={_FEED_SECRET}"
+    redirect_routes = {
+        _FEED_URL: (302, {"Location": cdn_url}, b""),
+        cdn_url: (200, {}, _FEED_CSV),
+    }
+    code, output, calls, tmp = _run_fetch(["--account", "acme"], redirect_routes,
+                                          {"feeds": {"acme": _FEED_URL}})
+    check("fetch_sb_redirect_off_host_refused", code == 5 and calls == [_FEED_URL], (code, output, calls))
+    check("fetch_sb_redirect_off_host_no_file", not (tmp / "inbox" / saved_name).exists())
+    _no_leak("fetch_sb_redirect_off_host_no_leak", output)
+
+    for label, manifest in (
+        ("top_level", {"allowed_hosts": ["CDN.example.test"], "feeds": {"acme": _FEED_URL}}),
+        ("per_feed", {"feeds": {"acme": {"url": _FEED_URL, "allowed_hosts": ["cdn.example.test"]}}}),
+    ):
+        code, output, calls, tmp = _run_fetch(["--account", "acme"], redirect_routes, manifest)
+        saved = tmp / "inbox" / saved_name
+        check(f"fetch_sb_redirect_allowed_{label}", code == 0 and len(calls) == 2
+              and saved.exists() and saved.read_bytes() == _FEED_CSV, (code, output, len(calls)))
+        _no_leak(f"fetch_sb_redirect_allowed_{label}_no_leak", output)
+
+    downgrade = _FEED_URL.replace("https://", "http://")
+    code, output, calls, _ = _run_fetch(
+        ["--account", "acme"], {_FEED_URL: (302, {"Location": downgrade}, b"")},
+        {"feeds": {"acme": _FEED_URL}})
+    check("fetch_sb_redirect_http_downgrade_refused", code == 5 and len(calls) == 1, (code, output))
+
+    # (h) an HTML page (e.g. a login page) is not saved as CSV.
+    code, output, calls, tmp = _run_fetch(
+        ["--account", "acme"], {_FEED_URL: (200, {}, b"<!doctype html><p>sign in</p>")},
+        {"feeds": {"acme": _FEED_URL}})
+    check("fetch_sb_html_refused", code == 4 and not (tmp / "inbox" / saved_name).exists(), (code, output))
+
+    # (i) oversize body: refused, nothing written.
+    saved_max = fetch_sellerboard.MAX_BYTES
+    fetch_sellerboard.MAX_BYTES = 8
+    try:
+        code, output, calls, tmp = _run_fetch(["--account", "acme"], ok_route, {"feeds": {"acme": _FEED_URL}})
+    finally:
+        fetch_sellerboard.MAX_BYTES = saved_max
+    check("fetch_sb_oversize_refused", code == 4 and not (tmp / "inbox" / saved_name).exists(), (code, output))
+
+    # (j) missing or invalid manifest: exit 1, no request.
+    code, output, calls, _ = _run_fetch(["--account", "acme"], ok_route, None)
+    check("fetch_sb_manifest_missing", code == 1 and not calls, (code, output))
+    code, output, calls, _ = _run_fetch(["--account", "acme"], ok_route, "{not json")
+    check("fetch_sb_manifest_invalid", code == 1 and not calls, (code, output))
+
+    # (k) a slug that would escape the inbox is a usage error.
+    code, output, calls, _ = _run_fetch(["--account", "../acme"], ok_route, {"feeds": {"../acme": _FEED_URL}})
+    check("fetch_sb_bad_slug_usage_error", code == 2 and not calls, (code, output))
+
+
 def main() -> int:
     account_rows, campaign_rows = build_fixture()
     analysis = analyze_account("test-acct", REPORT_DATE, account_rows, campaign_rows)
@@ -1049,6 +1256,7 @@ def main() -> int:
     test_cli_end_to_end_weekly()
     test_cli_end_to_end_weekly_csv_only()
     test_weekly_metrics_json_contract()
+    test_fetch_sellerboard_offline()
 
     print(f"\n{len(PASSES)} passed, {len(FAILURES)} failed")
     if FAILURES:
