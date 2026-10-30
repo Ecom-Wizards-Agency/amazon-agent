@@ -2956,8 +2956,10 @@ def run_drive_delivery(delivery: dict, args: dict, manifest: dict, checks: list[
     """
     mode, target, status = delivery["mode"], delivery["target"], delivery["status"]
     if status == "not_requested":
-        print(f"\nDrive {mode} not requested (target {target}). Confirm the destination with the operator, "
-              "then rerun with --deliver 1.")
+        has_fail = any(not c["pass"] for c in checks)
+        print(f"\nDrive {mode} not requested (target {target}). "
+              + ("Fix the FAIL checks listed above first, then confirm" if has_fail else "Confirm")
+              + " the destination with the operator and rerun with --deliver 1.")
         if mode == "in-place update":
             print(f'Preview first: python3 tools/gdrive-deliver/update_sheet.py "{args["out"]}" {target} --dry-run')
     elif status == "skipped_validation_fail":
@@ -2986,6 +2988,9 @@ def run_drive_delivery(delivery: dict, args: dict, manifest: dict, checks: list[
     proc = subprocess.run(cmd, cwd=REPO, text=True, capture_output=True)
     sys.stdout.write(proc.stdout)
     receipt = json.load(open(receipt_path, encoding="utf-8")) if os.path.exists(receipt_path) else None
+    if isinstance(manifest["outputs"].get("drive_delivery"), dict):
+        manifest["outputs"]["drive_delivery"]["status"] = (
+            "delivered" if proc.returncode == 0 and receipt else "failed")
     if proc.returncode == 0 and receipt:
         manifest["outputs"]["drive_native"] = receipt
         manifest["outputs"]["drive_receipt"] = receipt_path
