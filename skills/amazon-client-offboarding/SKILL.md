@@ -55,7 +55,7 @@ python3 tools/amazon-client-offboarding/build_handover.py \
   --config <run-config.json>
 ```
 
-This renders a no-cover A4 DOCX with `doc_label: Amazon Account Handover` through the canonical branded renderer and builds the exact five-tab XLSX through the canonical branding loader and workbook style helpers.
+This renders a no-cover A4 DOCX with `doc_label: Amazon Account Handover` through the canonical branded renderer and builds the exact five-tab XLSX through the canonical branding loader and workbook style helpers. It also prints a `[deliver-plan]` block with the destination folder and the two Drive file names that step 5 asks the operator to approve.
 
 Inspect both files using `references/branding-delivery-and-qa.md`. The Doc owns the change history and client asset/link index. The workbook must contain no change-log or asset-index tab.
 
