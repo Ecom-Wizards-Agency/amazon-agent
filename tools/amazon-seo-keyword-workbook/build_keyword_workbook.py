@@ -87,8 +87,9 @@ DEFAULTS = {
     "seo_content": "",
     "curated_tabs": "",  # optional: JSON of curated tab content to write deterministically.
     "drive_dir": "",  # optional: folder to copy the finished .xlsx into (e.g. the synced Drive folder). Off by default.
-    "drive_folder": "",  # Drive destination for NATIVE delivery: a folder id, a Drive URL, or a mounted folder path. When set (config inputs.drive_folder or --drive-folder) the build delivers the QA-passed workbook as a Google Sheet through tools/gdrive-deliver/deliver.py.
-    "drive_sheet_id": "",  # the ALREADY-DELIVERED native Google Sheet (id or URL). When set (config inputs.drive_sheet_id or --drive-sheet-id) a QA-passed build updates that Sheet IN PLACE through tools/gdrive-deliver/update_sheet.py (same file id, comments and links preserved) instead of creating a new Sheet in drive_folder. Leave empty for the first delivery, then paste the receipt's remote_id.
+    "drive_folder": "",  # Drive destination for NATIVE delivery: a folder id, a Drive URL, or a mounted folder path. When set (config inputs.drive_folder or --drive-folder), a QA-passed build run with --deliver 1 delivers the workbook as a Google Sheet through tools/gdrive-deliver/deliver.py.
+    "drive_sheet_id": "",  # the ALREADY-DELIVERED native Google Sheet (id or URL). When set (config inputs.drive_sheet_id or --drive-sheet-id), a QA-passed build run with --deliver 1 updates that Sheet IN PLACE through tools/gdrive-deliver/update_sheet.py (same file id, comments and links preserved) instead of creating a new Sheet in drive_folder. Leave empty for the first delivery, then paste the receipt's remote_id.
+    "deliver": "",  # CLI only: pass --deliver 1 after the operator confirms the Drive target. Without it a build never creates or updates a Drive file, even when drive_folder / drive_sheet_id is set. Ignored in config inputs{}.
     "no_deliver": "",  # set to any non-empty value (or pass --no-deliver 1) to build without delivering or updating even when drive_folder / drive_sheet_id is set.
     "handoff_note": "",
     "artifact_run": "",  # active artifactctl run; workbook waits for a Drive receipt, manifest is reproducible.
@@ -2879,6 +2880,138 @@ def run_preflight(cfg: dict, args: dict) -> int:
     return 0
 
 
+# Drive delivery is confirmed per run, so these keys are read from the command
+# line only. A config file can name the target but can never trigger the write.
+CLI_ONLY_INPUTS = {"deliver"}
+
+
+def _flag(v: Any) -> bool:
+    return str(v or "").strip().lower() in {"1", "true", "yes"}
+
+
+def apply_config_inputs(args: dict, cfg: dict, explicit: set, warnings: list[str]) -> None:
+    """Fill args from config `inputs{}`: explicit CLI flag > config inputs > built-in default."""
+    def _resolve(p: str) -> str:
+        p = os.path.expanduser(str(p))
+        return p if os.path.isabs(p) else os.path.join(REPO, p)
+
+    for k, v in (cfg.get("inputs") or {}).items():
+        if k in CLI_ONLY_INPUTS:
+            warnings.append(f"inputs.{k} ignored: Drive delivery is confirmed per run with --{k.replace('_', '-')} 1 on the command line")
+            continue
+        if k in DEFAULTS and k not in explicit:
+            # drive_folder may be a Drive folder id or URL rather than a path;
+            # only resolve it when it names something on this machine.
+            if k == "drive_folder":
+                raw = os.path.expanduser(str(v or "")).strip()
+                if raw.startswith("<"):  # untouched template placeholder means unset
+                    raw = ""
+                args[k] = _resolve(raw) if raw and (os.sep in raw or os.path.exists(raw)) and not raw.startswith("http") else raw
+            elif k == "drive_sheet_id":
+                # A Sheet id or URL, never a path. The template's "<...>" placeholder means unset.
+                raw = str(v or "").strip()
+                args[k] = "" if raw.startswith("<") else raw
+            else:
+                args[k] = _resolve(v)
+
+
+def delivery_decision(args: dict, all_pass: bool) -> dict:
+    """Decide the Drive step for this build without touching Drive.
+
+    action is 'none' (no target), 'skip' or 'deliver'; status records why.
+    """
+    drive_sheet_id = str(args.get("drive_sheet_id") or "").strip()
+    if drive_sheet_id.startswith("<"):  # untouched template placeholder
+        drive_sheet_id = ""
+    drive_folder = str(args.get("drive_folder") or "").strip()
+    if drive_folder.startswith("<"):
+        drive_folder = ""
+    if not (drive_sheet_id or drive_folder):
+        return {"action": "none", "status": "no_target", "mode": "", "target": ""}
+    mode = "in-place update" if drive_sheet_id else "delivery"
+    target = drive_sheet_id or drive_folder
+    if args.get("no_deliver"):
+        status = "skipped_no_deliver"
+    elif not _flag(args.get("deliver")):
+        status = "not_requested"
+    elif not all_pass:
+        status = "skipped_validation_fail"
+    else:
+        return {"action": "deliver", "status": "requested", "mode": mode, "target": target}
+    return {"action": "skip", "status": status, "mode": mode, "target": target}
+
+
+def run_drive_delivery(delivery: dict, args: dict, manifest: dict, checks: list[dict], warnings: list[str]) -> None:
+    """Native Google Sheet delivery, opt-in per run with --deliver 1.
+
+    Deliverables are native Google files, never .xlsx in Drive (AGENTS.md,
+    Google Drive Delivery). Two routes, chosen by the config:
+      inputs.drive_sheet_id set -> the Sheet already exists: update it IN PLACE
+          through tools/gdrive-deliver/update_sheet.py (same file id, comments
+          and links preserved, formatting kept, tabs cleared and rewritten).
+      inputs.drive_folder set   -> first delivery: create a new native Sheet
+          through tools/gdrive-deliver/deliver.py.
+    Neither route runs without --deliver 1 on the command line, and a build
+    with any FAIL is never delivered or updated; the workbook stays local.
+    """
+    mode, target, status = delivery["mode"], delivery["target"], delivery["status"]
+    if status == "not_requested":
+        print(f"\nDrive {mode} not requested (target {target}). Confirm the destination with the operator, "
+              "then rerun with --deliver 1.")
+        if mode == "in-place update":
+            print(f'Preview first: python3 tools/gdrive-deliver/update_sheet.py "{args["out"]}" {target} --dry-run')
+    elif status == "skipped_validation_fail":
+        failed = [c["check"] for c in checks if not c["pass"]]
+        warnings.append(f"Drive delivery/update skipped: {len(failed)} validation FAIL(s): {failed[:4]}")
+        print(f"Drive delivery/update skipped because the build has FAIL checks: {failed[:4]}")
+    if delivery["action"] == "skip" and args.get("artifact_run"):
+        print(f"Artifact run {args['artifact_run']} stays open: the workbook waits for a Drive receipt "
+              "until a confirmed --deliver 1 rerun"
+              + (" of a build without FAIL checks." if status == "skipped_validation_fail" else "."))
+    if delivery["action"] != "deliver":
+        return
+
+    stem = os.path.splitext(os.path.basename(args["out"]))[0]
+    receipt_path = os.path.join(os.path.dirname(args["manifest"]), f"{stem}.drive-receipt.json")
+    if mode == "in-place update":
+        cmd = [sys.executable, os.path.join(REPO, "tools", "gdrive-deliver", "update_sheet.py"),
+               args["out"], target, "--receipt-file", receipt_path]
+        print(f"\nUpdating the delivered native Google Sheet in place: {target}")
+    else:
+        cmd = [sys.executable, os.path.join(REPO, "tools", "gdrive-deliver", "deliver.py"),
+               args["out"], target, "--name", stem, "--receipt-file", receipt_path]
+        print(f"\nDelivering to Drive as a native Google Sheet: {target}")
+    if args.get("artifact_run"):
+        cmd += ["--artifact-run", args["artifact_run"]]
+    proc = subprocess.run(cmd, cwd=REPO, text=True, capture_output=True)
+    sys.stdout.write(proc.stdout)
+    receipt = json.load(open(receipt_path, encoding="utf-8")) if os.path.exists(receipt_path) else None
+    if proc.returncode == 0 and receipt:
+        manifest["outputs"]["drive_native"] = receipt
+        manifest["outputs"]["drive_receipt"] = receipt_path
+        link = (receipt.get("web_view_link") or receipt.get("webViewLink")
+                or receipt.get("url") or receipt.get("remote_id") or receipt)
+        if mode == "in-place update":
+            print(f"Updated native Google Sheet in place: {link}")
+        else:
+            print(f"Delivered native Google Sheet: {link}")
+            if receipt.get("remote_id"):
+                print(f"Hint: set inputs.drive_sheet_id to {receipt['remote_id']} in the config so "
+                      "future builds run with --deliver 1 update this Sheet in place (same file id, "
+                      "comments and links preserved) instead of creating a new one.")
+    else:
+        sys.stderr.write(proc.stderr)
+        if receipt:
+            # update_sheet.py leaves a receipt with verified=false when the
+            # read-back mismatched: the Sheet was written, so keep the evidence.
+            manifest["outputs"]["drive_native"] = receipt
+            manifest["outputs"]["drive_receipt"] = receipt_path
+        warnings.append(f"Drive {mode} FAILED (exit {proc.returncode}); the local .xlsx is intact: {args['out']}")
+        manifest["warnings"] = warnings
+        print(f"WARNING: Drive {mode} failed (exit {proc.returncode}); see stderr above.")
+    json.dump(manifest, open(args["manifest"], "w", encoding="utf-8"), ensure_ascii=False, indent=2)
+
+
 # --------------------------------------------------------------------------- #
 # Main
 # --------------------------------------------------------------------------- #
@@ -2915,23 +3048,7 @@ def main() -> int:
         for a in sys.argv[1:] if a.startswith("--")
     }
 
-    def _resolve(p: str) -> str:
-        p = os.path.expanduser(str(p))
-        return p if os.path.isabs(p) else os.path.join(REPO, p)
-
-    for k, v in (cfg.get("inputs") or {}).items():
-        if k in DEFAULTS and k not in explicit:
-            # drive_folder may be a Drive folder id or URL rather than a path;
-            # only resolve it when it names something on this machine.
-            if k == "drive_folder":
-                raw = os.path.expanduser(str(v or "")).strip()
-                args[k] = _resolve(raw) if raw and (os.sep in raw or os.path.exists(raw)) and not raw.startswith("http") else raw
-            elif k == "drive_sheet_id":
-                # A Sheet id or URL, never a path. The template's "<...>" placeholder means unset.
-                raw = str(v or "").strip()
-                args[k] = "" if raw.startswith("<") else raw
-            else:
-                args[k] = _resolve(v)
+    apply_config_inputs(args, cfg, explicit, warnings)
 
     if args.get("preflight"):
         return run_preflight(cfg, args)
@@ -3220,8 +3337,9 @@ def main() -> int:
             "manifest": args["manifest"],
             "drive_copy": delivered_to,
             "drive_target_note": (
-                "Use --drive-dir to copy the finished .xlsx into the synced Drive folder, "
-                "or copy the reviewed local workbook there after confirmation."
+                "Native Drive delivery runs only with --deliver 1 after the operator confirms the "
+                "<Client> - Shared/ destination; see skills/amazon-seo/references/"
+                "keyword-research-workbook.md Delivery Rule."
             ),
         },
         "template": args["template"],
@@ -3283,6 +3401,11 @@ def main() -> int:
         "validations_all_pass": all(c["pass"] for c in checks),
         "warnings": warnings,
     }
+    delivery = delivery_decision(args, manifest["validations_all_pass"])
+    if delivery["action"] != "none":
+        manifest["outputs"]["drive_delivery"] = {
+            k: delivery[k] for k in ("status", "mode", "target")
+        }
     handoff_path = write_handoff_note(
         resolve_handoff_path(args.get("handoff_note", ""), cfg, args, warnings),
         cfg, args, manifest,
@@ -3323,67 +3446,8 @@ def main() -> int:
         for w in warnings:
             print("  -", w)
 
-    # --- Native Google Sheet delivery (opt-in per config) ------------------- #
-    # Deliverables are native Google files, never .xlsx in Drive (AGENTS.md,
-    # Google Drive Delivery). Two routes, chosen by the config:
-    #   inputs.drive_sheet_id set -> the Sheet already exists: update it IN PLACE
-    #       through tools/gdrive-deliver/update_sheet.py (same file id, comments
-    #       and links preserved, formatting kept, tabs cleared and rewritten).
-    #   inputs.drive_folder set   -> first delivery: create a new native Sheet
-    #       through tools/gdrive-deliver/deliver.py.
-    # Either way a build with any FAIL is never delivered or updated; the
-    # workbook stays local for the fix.
-    drive_sheet_id = str(args.get("drive_sheet_id") or "").strip()
-    if drive_sheet_id.startswith("<"):  # untouched template placeholder
-        drive_sheet_id = ""
-    drive_folder = str(args.get("drive_folder") or "").strip()
-    if (drive_sheet_id or drive_folder) and not args.get("no_deliver"):
-        if manifest["validations_all_pass"]:
-            stem = os.path.splitext(os.path.basename(args["out"]))[0]
-            receipt_path = os.path.join(os.path.dirname(args["manifest"]), f"{stem}.drive-receipt.json")
-            if drive_sheet_id:
-                mode = "in-place update"
-                cmd = [sys.executable, os.path.join(REPO, "tools", "gdrive-deliver", "update_sheet.py"),
-                       args["out"], drive_sheet_id, "--receipt-file", receipt_path]
-                print(f"\nUpdating the delivered native Google Sheet in place: {drive_sheet_id}")
-            else:
-                mode = "delivery"
-                cmd = [sys.executable, os.path.join(REPO, "tools", "gdrive-deliver", "deliver.py"),
-                       args["out"], drive_folder, "--name", stem, "--receipt-file", receipt_path]
-                print(f"\nDelivering to Drive as a native Google Sheet: {drive_folder}")
-            if args.get("artifact_run"):
-                cmd += ["--artifact-run", args["artifact_run"]]
-            proc = subprocess.run(cmd, cwd=REPO, text=True, capture_output=True)
-            sys.stdout.write(proc.stdout)
-            receipt = json.load(open(receipt_path, encoding="utf-8")) if os.path.exists(receipt_path) else None
-            if proc.returncode == 0 and receipt:
-                manifest["outputs"]["drive_native"] = receipt
-                manifest["outputs"]["drive_receipt"] = receipt_path
-                link = (receipt.get("web_view_link") or receipt.get("webViewLink")
-                        or receipt.get("url") or receipt.get("remote_id") or receipt)
-                if drive_sheet_id:
-                    print(f"Updated native Google Sheet in place: {link}")
-                else:
-                    print(f"Delivered native Google Sheet: {link}")
-                    if receipt.get("remote_id"):
-                        print(f"Hint: set inputs.drive_sheet_id to {receipt['remote_id']} in the config so "
-                              "future builds update this Sheet in place (same file id, comments and "
-                              "links preserved) instead of creating a new one.")
-            else:
-                sys.stderr.write(proc.stderr)
-                if receipt:
-                    # update_sheet.py leaves a receipt with verified=false when the
-                    # read-back mismatched: the Sheet was written, so keep the evidence.
-                    manifest["outputs"]["drive_native"] = receipt
-                    manifest["outputs"]["drive_receipt"] = receipt_path
-                warnings.append(f"Drive {mode} FAILED (exit {proc.returncode}); the local .xlsx is intact: {args['out']}")
-                manifest["warnings"] = warnings
-                print(f"WARNING: Drive {mode} failed (exit {proc.returncode}); see stderr above.")
-            json.dump(manifest, open(args["manifest"], "w", encoding="utf-8"), ensure_ascii=False, indent=2)
-        else:
-            failed = [c["check"] for c in checks if not c["pass"]]
-            warnings.append(f"Drive delivery/update skipped: {len(failed)} validation FAIL(s): {failed[:4]}")
-            print(f"Drive delivery/update skipped because the build has FAIL checks: {failed[:4]}")
+    # --- Native Google Sheet delivery (opt-in per run: --deliver 1) --------- #
+    run_drive_delivery(delivery, args, manifest, checks, warnings)
 
     return 0 if manifest["validations_all_pass"] else 1
 

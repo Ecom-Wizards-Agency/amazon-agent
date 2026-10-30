@@ -232,8 +232,8 @@
     "out": "output/<client>/seo/<Client> <Product> Keyword Research <date> v1.xlsx",
     "manifest": "output/<client>/seo/<date>_<client>_keyword_research_v1_summary.json",
     "handoff_note": "",
-    "drive_folder": "<Drive folder id, Drive URL, or mounted path of <Client> - Shared/<Keyword Research>/<Country>; when set, a QA-passed build is delivered as a native Google Sheet automatically. Leave empty to build only.>",
-    "drive_sheet_id": "<leave empty for the first delivery; then paste the delivered Sheet id so rebuilds update it in place>"
+    "drive_folder": "<Drive folder id, Drive URL, or mounted path of <Client> - Shared/<Keyword Research>/<Country>; when set, a QA-passed build run with --deliver 1 is delivered as a native Google Sheet. Leave empty to build only.>",
+    "drive_sheet_id": "<leave empty for the first delivery; then paste the delivered Sheet id so rebuilds run with --deliver 1 update it in place>"
   },
   "required_current_tabs": [
     "POE Raw - Reviews",
