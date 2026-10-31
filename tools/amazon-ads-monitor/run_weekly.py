@@ -10,7 +10,7 @@ connector (this CLI never posts to Slack itself).
 Flow
 ----
 1. Parse the brand's Sellerboard "Dashboard Totals" CSV(s) via
-   `SellerboardDataSource` (same file-first/firecrawl-fallback convention
+   `SellerboardDataSource` (same delivered-file/local-fetch convention
    as the daily CLI -- see run_monitor.py and
    _local/ads-monitor/SELLERBOARD-FORMAT.md).
 2. `analyze.aggregate_week(account_rows, week_end)` -- this-week vs
