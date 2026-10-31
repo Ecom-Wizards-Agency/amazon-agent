@@ -2,11 +2,15 @@
 """Synthetic contract tests for the Amazon client offboarding builder."""
 from __future__ import annotations
 
+import argparse
+import contextlib
 import copy
 import importlib.util
+import io
 import json
 import shutil
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 
@@ -179,12 +183,124 @@ def expect_failure(config_path: Path, config: dict, evidence: dict, mutate, labe
     raise AssertionError(f"expected preflight failure: {label}")
 
 
+def run_main(argv: list[str], build, deliver) -> tuple[int, str]:
+    saved = (sys.argv, builder.build, builder.deliver)
+    sys.argv = ["build_handover.py", *argv]
+    builder.build, builder.deliver = build, deliver
+    out = io.StringIO()
+    try:
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(io.StringIO()):
+            try:
+                code = builder.main()
+            except SystemExit as exc:
+                code = exc.code
+    finally:
+        sys.argv, builder.build, builder.deliver = saved
+    return code, out.getvalue()
+
+
+def delivery_gate_cases(config_path: Path, config: dict, ctx: dict) -> None:
+    """Check the --deliver approval gate without rendering or delivering anything."""
+    folder = config["destination"]["folder"]
+    expected_names = [
+        "2026-08-07_Synthetic_Brand_DE-FR_Amazon_Account_Handover_v1",
+        "2026-08-07_Synthetic_Brand_DE-FR_Handover_Evidence_Workbook_v1",
+    ]
+    calls: list[str] = []
+
+    def must_not_build(_ctx):
+        calls.append("build")
+        raise AssertionError("build ran although delivery was not approved")
+
+    def must_not_deliver(_ctx, _outputs):
+        calls.append("deliver")
+        raise AssertionError("deliver ran although delivery was not approved")
+
+    def fake_build(_ctx):
+        calls.append("build")
+        return {"docx": Path("x.docx"), "xlsx": Path("x.xlsx"), "manifest": Path("m.json")}
+
+    def fake_deliver(_ctx, _outputs):
+        calls.append("deliver")
+
+    def refuses_missing():
+        try:
+            builder.check_delivery_approval(ctx, None)
+        except builder.PreflightError:
+            return
+        raise AssertionError("missing approval was accepted")
+
+    def refuses_mismatch():
+        for wrong in ("some-other-folder-id", folder + "/", " " + folder):
+            try:
+                builder.check_delivery_approval(ctx, wrong)
+            except builder.PreflightError:
+                continue
+            raise AssertionError(f"mismatched approval was accepted: {wrong!r}")
+
+    def accepts_exact():
+        assert builder.check_delivery_approval(ctx, folder) is None
+
+    def plan_names():
+        plan = builder.delivery_plan(ctx)
+        assert plan == {"destination": folder, "names": expected_names}, plan
+
+    def main_refuses_without_approval():
+        calls.clear()
+        code, _ = run_main(["--config", str(config_path), "--deliver"], must_not_build, must_not_deliver)
+        assert code == 1 and not calls, (code, calls)
+
+    def main_refuses_wrong_approval():
+        calls.clear()
+        argv = ["--config", str(config_path), "--deliver", "--approved-destination", "some-other-folder-id"]
+        code, _ = run_main(argv, must_not_build, must_not_deliver)
+        assert code == 1 and not calls, (code, calls)
+
+    def main_rejects_approval_without_deliver():
+        calls.clear()
+        argv = ["--config", str(config_path), "--approved-destination", folder]
+        code, _ = run_main(argv, must_not_build, must_not_deliver)
+        assert code == 2 and not calls, (code, calls)
+
+    def plain_build_prints_plan():
+        calls.clear()
+        code, out = run_main(["--config", str(config_path)], fake_build, must_not_deliver)
+        assert code == 0 and calls == ["build"], (code, calls)
+        assert f"[deliver-plan] destination: {folder}" in out, out
+        for name in expected_names:
+            assert f"[deliver-plan] file: {name}" in out, out
+
+    def main_delivers_with_approval():
+        calls.clear()
+        argv = ["--config", str(config_path), "--deliver", "--approved-destination", folder]
+        code, _ = run_main(argv, fake_build, fake_deliver)
+        assert code == 0 and calls == ["build", "deliver"], (code, calls)
+
+    gate_cases = [
+        refuses_missing, refuses_mismatch, accepts_exact, plan_names,
+        main_refuses_without_approval, main_refuses_wrong_approval,
+        main_rejects_approval_without_deliver, plain_build_prints_plan,
+        main_delivers_with_approval,
+    ]
+    for case in gate_cases:
+        case()
+    print(f"[selftest] PASS: {len(gate_cases)} delivery-gate cases")
+
+
+def run_gate_only() -> None:
+    with tempfile.TemporaryDirectory(prefix="offboarding-selftest-") as tmp:
+        config_path, config, _ = fixture(Path(tmp))
+        delivery_gate_cases(config_path, config, builder.preflight(config_path))
+
+
 def run() -> None:
     with tempfile.TemporaryDirectory(prefix="offboarding-selftest-") as tmp:
         root = Path(tmp)
         config_path, config, evidence = fixture(root)
         ctx = builder.preflight(config_path)
+        delivery_gate_cases(config_path, config, ctx)
         outputs = builder.build(ctx)
+        assert builder.delivery_plan(ctx)["names"] == [outputs["docx"].stem, outputs["xlsx"].stem]
         soffice = shutil.which("soffice") or shutil.which("libreoffice")
         if not soffice:
             raise RuntimeError("self-test needs LibreOffice for visual-layout preflight")
@@ -239,4 +355,12 @@ def run() -> None:
 
 
 if __name__ == "__main__":
-    run()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--gate-only", action="store_true",
+        help="run only the delivery-gate cases, which need no LibreOffice",
+    )
+    if parser.parse_args().gate_only:
+        run_gate_only()
+    else:
+        run()
