@@ -17,7 +17,27 @@ export function listingLocation(account,target){
  const sku=encodeURIComponent(target.sku),market=account.marketplace_id,seller=account.seller_id;
  return {url:`https://app.flatfile.pro/amazon-listings-item/${market}/${seller}/${sku}/edit`,endpoint:`https://api.flatfile.pro/amazon-listings/item-detail?marketplace_id=${market}&seller_id=${seller}&sku=${sku}`};
 }
-export function normalizeListing(data,account,target,observedAt,sourceId){
+// FlatFilePro EXPORT spelling: occurrence or array index i becomes __{i+1}__ and the next key follows
+// directly; nested object keys join with one underscore; a scalar array element ends on its index
+// segment (color__1__standardized_values__1__). Canonical spelling is the same walk with .{i}. segments,
+// which is exactly the export header with every __N__ replaced by .{N-1}. (prepare canonical_attribute).
+const headerSegments={canonical:i=>`.${i}.`,export:i=>`__${i+1}__`};
+function flattenValue(out,path,value,afterIndex,segment){
+ if(Array.isArray(value)){value.forEach((item,i)=>flattenValue(out,path+segment(i),item,true,segment));return;}
+ if(value!==null&&typeof value==='object'){for(const [key,item] of Object.entries(value))flattenValue(out,path+(afterIndex?'':'_')+key,item,false,segment);return;}
+ ui.check(!Object.hasOwn(out,path),'Ambiguous flattened attribute header: '+path);
+ out[path]=value===null||value===undefined?'':String(value);
+}
+export function flattenAttributes(attributes,{style='canonical'}={}){
+ const segment=headerSegments[style];ui.check(segment,'Unknown attribute header style: '+style);
+ ui.check(attributes&&typeof attributes==='object'&&!Array.isArray(attributes),'Complete listing attributes unavailable');
+ const out={};
+ for(const [field,values] of Object.entries(attributes)){if(['parentAsins','childAsins'].includes(field))continue;ui.check(Array.isArray(values),'Unexpected listing attribute structure');flattenValue(out,field,values,false,segment);}
+ return out;
+}
+// options.nested (default false) adds canonical keys for nested occurrence values. The default row is
+// unchanged for existing CDP consumers; MCP readers opt in.
+export function normalizeListing(data,account,target,observedAt,sourceId,{nested=false}={}){
  ui.check(data?.seller_id===account.seller_id&&data.marketplace_id===account.marketplace_id&&data.sku===target.sku&&data.asin===target.asin,'Listing response identity mismatch');
  ui.check(data.attributes&&typeof data.attributes==='object'&&!Array.isArray(data.attributes),'Complete listing attributes unavailable');
  ui.check(Number.isFinite(Date.parse(observedAt)),'Listing read timestamp unavailable');
@@ -28,7 +48,7 @@ export function normalizeListing(data,account,target,observedAt,sourceId){
    ui.check(values.every(value=>typeof value==='string'&&/^[A-Z0-9]{10}$/.test(value))&&new Set(values).size===values.length,'Invalid related listing ASINs');
    relatedAsins[field]=[...values];continue;
   }
-  values.forEach((value,index)=>{ui.check(value&&typeof value==='object'&&!Array.isArray(value),'Unexpected attribute occurrence');ui.check(!value.marketplace_id||value.marketplace_id===account.marketplace_id,'Listing attribute marketplace mismatch');for(const [key,item] of Object.entries(value))if(item===null||['string','number','boolean'].includes(typeof item))row[`${field}.${index}.${key}`]=item===null?'':String(item);});
+  values.forEach((value,index)=>{ui.check(value&&typeof value==='object'&&!Array.isArray(value),'Unexpected attribute occurrence');ui.check(!value.marketplace_id||value.marketplace_id===account.marketplace_id,'Listing attribute marketplace mismatch');for(const [key,item] of Object.entries(value))if(item===null||['string','number','boolean'].includes(typeof item))row[`${field}.${index}.${key}`]=item===null?'':String(item);else if(nested&&item&&typeof item==='object')flattenValue(row,`${field}.${index}.${key}`,item,false,headerSegments.canonical);});
  }
  // Absence is established from the full item-detail attributes object, never a partial table.
  for(const field of imageFields)if(!Object.hasOwn(row,field))row[field]='';

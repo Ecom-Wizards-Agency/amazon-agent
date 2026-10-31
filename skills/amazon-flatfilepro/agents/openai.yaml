@@ -1,4 +1,4 @@
 interface:
   display_name: "Amazon FlatFilePro"
-  short_description: "Prepare and map FlatFilePro upload workbooks"
-  default_prompt: "Use $amazon-flatfilepro to prepare and map FlatFilePro upload workbooks for this request."
+  short_description: "Prepare, map and update FlatFilePro listings and images"
+  default_prompt: "Use $amazon-flatfilepro to update existing listings directly through the FlatFilePro connector, or to prepare and map FlatFilePro workbooks for what it cannot write, for this request."

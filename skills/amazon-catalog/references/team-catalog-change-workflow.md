@@ -2,6 +2,10 @@
 
 Use this workflow for variation and parentage changes. Routine listing-content updates belong in FlatFilePro.
 
+Attribute fixes on an existing listing (copy, structured attributes, images) go to the attended `direct-update` mode of `amazon-flatfilepro` (`skills/amazon-flatfilepro/references/direct-update-mode.md`). Relationships and variations, new listings and identifier changes stay on flat files through this workflow.
+
+In an attended session, the FlatFilePro connector can show a SKU's saved attributes, including the parent SKU it names, before you plan (`skills/amazon-flatfilepro/references/mcp-reads.md`). It does not replace the fresh Category Listings Report this workflow requires; it carries no Amazon relationships record and is not live Amazon state.
+
 ## Entry Points
 
 ### Start catalog variation change

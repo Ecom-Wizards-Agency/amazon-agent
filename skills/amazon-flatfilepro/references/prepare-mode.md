@@ -1,6 +1,10 @@
 # Prepare Mode
 
-Mode browser: None (local build from export and label evidence).
+Mode browser: None (connector reads and a local build from the export grid and label evidence).
+
+**Scope.** The workbook route is for what the direct update cannot do: relationships and variations, clearing a value, price, offer and stock fields, brand and identifiers, new listings, an attended session without the FlatFilePro connector, and Grimoire or scheduled runs.
+Copy, backend terms, structured attributes and MAIN or PT images on an existing
+listing go through `references/direct-update-mode.md` instead.
 
 ## Upload format: .xlsx, not CSV
 
@@ -16,6 +20,26 @@ the Item Highlights' middot ` · `), and that no numeric-looking value was reint
 (a leading-zero UPC, a SKU that looks like a number, a date-like string). The script
 writes every cell as text to prevent the second one.
 
+## Current values: connector export grid first
+
+In an attended session with the FlatFilePro connector, take current values from its
+export, not from a manual download (`references/mcp-reads.md`):
+
+1. `ffp-mcp.mjs binding` resolves the seller and marketplace IDs.
+2. Export through the connector, then `ffp-mcp.mjs fetch-export` verifies and saves it
+   under `downloads/{client}/catalog/`.
+3. `ffp-mcp.mjs resolve --export FILE --asin A ...` lists every non-archived SKU of each
+   ASIN, including `-1` contribution SKUs. Report `excluded_archived` and any missing SKU
+   by name.
+4. `ffp-mcp.mjs gaps --export FILE --sku S ... --touch <attributes>` before the build;
+   exit 3 means a touched group has saved members the change does not supply.
+5. `ffp-mcp.mjs grid --export FILE --sku S ... --out output/{client}/catalog/<name>.csv`
+   writes the source grid in FlatFilePro's export spelling (`item_name__1__value`).
+
+The grid is the `--source` for the build. When the connector is unavailable, or the
+operator hands over a file, use a FlatFilePro XLSX export or the target account's
+Amazon template as before. A saved `get_listings` result never becomes the source.
+
 ## Column names: exports lie, uploads want the canonical form
 
 **Not every FlatFilePro export names its columns the way an upload expects.** Two
@@ -24,11 +48,12 @@ conventions are in circulation for repeat-group attributes:
 | Convention | Example | Where it shows up |
 |---|---|---|
 | Canonical (dot, **0-based**) | `item_name.0.value`, `bullet_point.4.value` | what FlatFilePro expects **on upload** |
-| Mangled (double underscore, **1-based**) | `item_name__1__value`, `bullet_point__5__value` | some exports, e.g. the `<Client>-<MKT>-all-<timestamp>.xlsx` flavour |
+| Mangled (double underscore, **1-based**) | `item_name__1__value`, `bullet_point__5__value` | some exports, e.g. the `<Client>-<MKT>-all-<timestamp>.xlsx` flavour, and every connector grid |
 
 Copying export headers straight into the upload file is therefore **not** always right,
 even though the prepare script requires `--changes` attributes to match the export
-verbatim. Author the changes file against the **export's** spelling (whatever it is);
+verbatim. Author the changes file against the **source's** headers verbatim (the
+connector grid always uses `__N__`, so `item_name__1__value`, not `item_name.0.value`);
 the script now rewrites headers to the canonical form on write and prints what it
 renamed. Verified 2026-07-26: a mangled export had **zero** headers matching the
 canonical vocabulary, so an un-normalised upload means renaming every column by hand at
@@ -43,7 +68,7 @@ Use the physical product label or approved packaging PDF as the source of truth.
 
 If required inputs are missing, answer briefly with only what is needed. Typical minimum inputs are:
 
-- FlatFilePro export or Amazon template
+- FlatFilePro export (connector grid or XLSX) or Amazon template
 - product label, packaging PDF, or clear label images
 - affected marketplace(s)
 - affected ASINs/SKUs
@@ -52,13 +77,13 @@ If required inputs are missing, answer briefly with only what is needed. Typical
 ## Workflow
 
 1. Identify the marketplace, ASINs, SKUs, product type, and case issue.
-2. Read the export/template headers before deciding which fields can be updated.
+2. Read the grid, export or template headers before deciding which fields can be updated.
 3. Compare current backend values against the physical label.
 4. Review consistency at ASIN level, but write updates at SKU level, including duplicate contribution SKUs such as `-1` variants when they may control the frontend.
 5. Create narrow upload files with only `sku` plus relevant existing FlatFilePro headers. **Default to full-grid output** (`--fill-unchanged` on the script): every included column is filled for every included SKU: the new value where changed, the SKU's current source value otherwise. A mapped-but-empty cell risks clearing a live value at upload time; a cell may only stay empty when the field is also empty in the source. Sparse output (changed cells only) is acceptable only when the operator explicitly wants it.
-6. **Complete every touched attribute group** (Amazon error 99022 otherwise, per SKU): when the file touches any member of a grouped attribute, include the whole group's required members in the same file: nutrition macros (`energy`/`protein`/`carbohydrate`/`fat`: value **and** unit), vitamins rows (`nutrient` + `value` + `unit`), any `nutritional_info` touch also requires `serving_quantity` + `serving_unit` (+ `serving_description`), `unit_count.0.value` ↔ `unit_count.0.type.value`, and every weight value with its unit. Source companion values current-export-first, reviewed-baseline-second. See `references/flatfilepro-prep-rules.md` § Attribute-group completeness.
-6. Produce an audit note or workbook showing included SKUs, excluded SKUs, changed fields, unchanged matching values, and manual-review fields.
-7. Stop before uploading files, saving Seller Central changes, or submitting cases.
+6. **Complete every touched attribute group** (Amazon error 99022 otherwise, per SKU): when the file touches any member of a grouped attribute, include the whole group's required members in the same file: nutrition macros (`energy`/`protein`/`carbohydrate`/`fat`: value **and** unit), vitamins rows (`nutrient` + `value` + `unit`), any `nutritional_info` touch also requires `serving_quantity` + `serving_unit` (+ `serving_description`), `unit_count.0.value` ↔ `unit_count.0.type.value`, and every weight value with its unit. Source companion values current-export-first, reviewed-baseline-second. Run `ffp-mcp.mjs gaps` on the touched attributes when the source is a connector export. See `references/flatfilepro-prep-rules.md` § Attribute-group completeness.
+7. Produce an audit note or workbook showing included SKUs, excluded SKUs, changed fields, unchanged matching values, and manual-review fields.
+8. Stop before uploading files, saving Seller Central changes, or submitting cases.
 
 Do not touch title, bullets, images, price, offer, variation, claims, browse node, or unrelated fields unless the user explicitly asks.
 
@@ -113,7 +138,7 @@ Prefer these outputs:
 - **upload-ready `.xlsx`** split by product type/template when needed
 - validation note with assumptions, source files, excluded rows, and manual-review items
 
-For upload-file creation from reviewed changes, use `scripts/prepare_flatfilepro_upload.py` with an `.xlsx` `--output` (it writes either format; the extension decides). Read `references/flatfilepro-prep-rules.md` before building complex upload files. When reading physical labels or packaging, map label sections to backend fields with `references/label-to-backend-mapping.md`.
+For upload-file creation from reviewed changes, use `scripts/prepare_flatfilepro_upload.py` with an `.xlsx` `--output` (it writes either format; the extension decides). It exits 2 and names the SKUs when a changed SKU has no source row or the source repeats a SKU. Read `references/flatfilepro-prep-rules.md` before building complex upload files. When reading physical labels or packaging, map label sections to backend fields with `references/label-to-backend-mapping.md`.
 
 After the `.xlsx` is created, use the `upload-map` mode in `amazon-flatfilepro` when the operator asks to upload the file in Chrome, match by SKU, map columns in FlatFilePro, or leave the flow ready for the operator's final click.
 

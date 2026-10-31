@@ -16,8 +16,14 @@ skills/amazon-seo/references/seo-writing-methodology.md section 2):
 * Match tiers: exact contiguous phrase 1.0; exact phrase after simple
   singularization 0.75; all keyword tokens in any order 0.5; all tokens after
   singularization 0.25; else 0.
-* Item Highlights count with the title by default (configurable). Backend
-  search terms are not scored.
+* Item Highlights count with the title by default (configurable).
+* Backend search terms (generic_keyword) are optional. When a listing carries
+  them they are scored as a fourth field below the description, with the same
+  incremental credit and weight key ``backend`` (default 1). DataDive does not
+  score backend terms, so ``total`` and ``pct_of_max`` stay visible-copy scores;
+  the backend result is reported separately as ``backend``,
+  ``backend_weighted``, ``total_with_backend`` and ``pct_of_max_with_backend``.
+  Listings without backend terms produce exactly the pre-backend output.
 
 CLI
 ---
@@ -39,6 +45,7 @@ import unicodedata
 from typing import Any, Iterable
 
 DEFAULT_WEIGHTS = {"title": 3.0, "bullets": 2.0, "description": 1.0}
+DEFAULT_BACKEND_WEIGHT = 1.0
 FIELDS = ("title", "bullets", "description")
 HIGHLIGHT_FIELDS = ("title", "bullets", "description", "none")
 TIER_EXACT = 1.0
@@ -114,6 +121,11 @@ def _join(value: Any) -> str:
     return str(value)
 
 
+def _backend_weight(weights: dict | None) -> float:
+    value = (weights or {}).get("backend")
+    return DEFAULT_BACKEND_WEIGHT if value is None else float(value)
+
+
 def resolve_weights(weights: dict | None) -> dict:
     out = dict(DEFAULT_WEIGHTS)
     for key, value in (weights or {}).items():
@@ -130,11 +142,15 @@ def score_listing(
     item_highlights: Any = "",
     weights: dict | None = None,
     highlights_field: str = "title",
+    backend: Any = None,
 ) -> dict:
     """Score one listing against [(keyword, sv), ...].
 
     Returns per-field scores (unweighted SV credit), the weighted total,
     max_possible (= weight_title x sum SV), pct_of_max and keywords_credited.
+    When ``backend`` (the generic_keyword string) is non-empty, the result also
+    carries the backend fields described in the module docstring; otherwise it
+    is unchanged.
     """
     w = resolve_weights(weights)
     if highlights_field not in HIGHLIGHT_FIELDS:
@@ -144,8 +160,13 @@ def score_listing(
     if highlights and highlights_field != "none":
         texts[highlights_field] = (texts[highlights_field] + " " + highlights).strip()
     parsed = {f: _Text(texts[f]) for f in FIELDS}
+    backend_text = _join(backend).strip()
+    w_backend = _backend_weight(weights) if backend_text else None
+    parsed_backend = _Text(backend_text) if backend_text else None
 
     field_scores = {f: 0.0 for f in FIELDS}
+    backend_score = 0.0
+    backend_credited = 0
     sv_total = 0.0
     credited = scored = 0
     for keyword, sv in keywords:
@@ -166,10 +187,15 @@ def score_listing(
                 any_credit = True
             best = max(best, tier)
         credited += any_credit
+        if parsed_backend is not None:
+            gain = max(0.0, parsed_backend.tier(toks, toks_s) - best)
+            if gain > 0:
+                backend_score += sv * gain
+                backend_credited += 1
 
     total = sum(w[f] * field_scores[f] for f in FIELDS)
     max_possible = w["title"] * sv_total
-    return {
+    out = {
         "title": field_scores["title"],
         "bullets": field_scores["bullets"],
         "description": field_scores["description"],
@@ -181,6 +207,18 @@ def score_listing(
         "weights": w,
         "highlights_field": highlights_field,
     }
+    if parsed_backend is not None:
+        weighted = w_backend * backend_score
+        with_backend = total + weighted
+        out.update({
+            "backend": backend_score,
+            "backend_weight": w_backend,
+            "backend_weighted": weighted,
+            "backend_keywords_credited": backend_credited,
+            "total_with_backend": with_backend,
+            "pct_of_max_with_backend": round(100.0 * with_backend / max_possible, 2) if max_possible else 0.0,
+        })
+    return out
 
 
 # --------------------------------------------------------------------------- #
@@ -232,8 +270,21 @@ def load_keywords(path: str) -> list[tuple[str, float]]:
         return keywords_from_rows(list(csv.reader(f)))
 
 
+def _backend_text(value: Any) -> str:
+    """generic_keyword as a plain string: a string, a list of strings, or SP-API
+    occurrences such as [{"value": "..."}]."""
+    if isinstance(value, dict):
+        value = value.get("value")
+    if isinstance(value, (list, tuple)):
+        return " ".join(t for t in (_backend_text(v) for v in value) if t)
+    return str(value).strip() if value is not None else ""
+
+
 def listings_from_data(data: Any) -> list[dict]:
-    """Listing-reference / capture JSON -> [{asin, title, bullets, description, item_highlights}]."""
+    """Listing-reference / capture JSON -> [{asin, title, bullets, description, item_highlights}].
+
+    A ``backend`` (or ``generic_keyword``) value is passed through as ``backend``
+    only when it is non-empty, so listings without one keep the same keys."""
     if isinstance(data, dict):
         items = data.get("listings") or ([data] if data.get("asin") else [])
     elif isinstance(data, list):
@@ -254,6 +305,9 @@ def listings_from_data(data: Any) -> list[dict]:
             "description": it.get("description") or "",
             "item_highlights": it.get("item_highlights") or it.get("itemHighlights") or "",
         })
+        backend = _backend_text(it.get("backend") or it.get("generic_keyword"))
+        if backend:
+            out[-1]["backend"] = backend
     return out
 
 
@@ -292,6 +346,7 @@ def score_entry(keywords, listing: dict, weights=None, highlights_field="title")
     return score_listing(
         keywords, listing.get("title"), listing.get("bullets"), listing.get("description", ""),
         listing.get("item_highlights", ""), weights=weights, highlights_field=highlights_field,
+        backend=listing.get("backend"),
     )
 
 
@@ -376,6 +431,15 @@ def print_table(out: dict) -> None:
     for r in sorted(out["rows"], key=lambda r: -r["total"]):
         print(f"{r['name']:<14} {_fmt(r['title']):>12} {_fmt(r['bullets']):>12} "
               f"{_fmt(r['description']):>12} {_fmt(r['total']):>14} {r['pct_of_max']:>8.2f}%")
+    backend_rows = [r for r in out["rows"] if "backend" in r]
+    if backend_rows:
+        print("\nBackend search terms (not part of Total; DataDive does not score them)")
+        header = f"{'Listing':<14} {'Backend':>12} {'Weight':>7} {'Weighted':>12} {'Total+backend':>14} {'% of max':>9}"
+        print(header)
+        print("-" * len(header))
+        for r in sorted(backend_rows, key=lambda r: -r["total_with_backend"]):
+            print(f"{r['name']:<14} {_fmt(r['backend']):>12} {r['backend_weight']:>7g} {_fmt(r['backend_weighted']):>12} "
+                  f"{_fmt(r['total_with_backend']):>14} {r['pct_of_max_with_backend']:>8.2f}%")
     cmp_ = out.get("datadive_comparison")
     if not cmp_:
         return
@@ -400,10 +464,12 @@ def print_table(out: dict) -> None:
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description="Calculate a keyword ranking score (Ranking Juice equivalent).")
     p.add_argument("--keywords", required=True, help="Core MKL CSV or DataDive get_niche_keywords JSON")
-    p.add_argument("--listing", help="listing-reference or capture JSON ({listings:[{asin,title,bullets,description}]})")
+    p.add_argument("--listing", help="listing-reference or capture JSON ({listings:[{asin,title,bullets,description}]}); "
+                   "an optional backend or generic_keyword value is scored separately")
     p.add_argument("--seo-content", help="seo_content JSON; its New Listing copy is scored as 'Draft'")
     p.add_argument("--compare-datadive", help="DataDive get_ranking_juice JSON to compare per ASIN")
-    p.add_argument("--weights", help='JSON weights, e.g. \'{"title":3,"bullets":2,"description":1}\'')
+    p.add_argument("--weights", help='JSON weights, e.g. \'{"title":3,"bullets":2,"description":1,"backend":1}\' '
+                   '(backend applies only to listings that carry backend terms)')
     p.add_argument("--highlights-field", default="title", choices=HIGHLIGHT_FIELDS,
                    help="field that Item Highlights are scored with (default: title)")
     p.add_argument("--json", action="store_true", help="print JSON instead of a table")

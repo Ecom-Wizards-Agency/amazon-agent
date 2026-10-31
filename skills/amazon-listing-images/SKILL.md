@@ -179,3 +179,6 @@ does not authorize listing uploads, campaigns, messages or publishing.
 - `amazon-product-photography` owns photo assets, retouching and photo prompts.
 - `amazon-image-production` owns listing graphics and editable Figma layouts from
   this accepted brief and the supplied or selected photos.
+- Publishing finished images to existing listings is the optional `direct-update`
+  mode of `amazon-flatfilepro` (scope `images`) in a full operator install, with its
+  FlatFilePro connector. This skill never needs it.

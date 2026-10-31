@@ -11,10 +11,11 @@ import { evaluate } from '../report-fetcher/cdp.mjs';
 import { acquireTaskPage,releaseTaskPage,closeReleasedTaskPage,completeBrowserTask,taskIdFor } from '../browserctl/task-tabs.mjs';
 import * as ui from './browser-ui.mjs';
 import { releaseLauncherSessionLock } from '../browserctl/session-lock.mjs';
+import { wizardsAiMode } from '../browserctl/session.mjs';
 import { collect as collectListings } from './flatfilepro-listings.mjs';
 import { verifyListingIdentities } from './image-identity.mjs';
 import { submitAttended, submittedRunIdentity } from './flatfilepro-submit.mjs';
-import { collectPreview, readPreviewState, normalizePreviewState, destinationSearchField, durableReceipt, exactDestination, importIdentity, readAttempt, recoveryStatus, reserveSubmission, sameUploadedFile, uploadedFileIdentity, verifyImagePreflight, verifySelectedDestination } from './flatfilepro-contracts.mjs';
+import { collectPreview, readPreviewState, normalizePreviewState, destinationSearchField, durableReceipt, exactDestination, guardedImagePolicy, importIdentity, readAttempt, recoveryStatus, reserveSubmission, sameUploadedFile, uploadedFileIdentity, verifyImagePreflight, verifySelectedDestination } from './flatfilepro-contracts.mjs';
 
 async function importForm(session,account) {
   const state=await ui.context(session,account,'ffp');
@@ -213,7 +214,9 @@ async function execute(input) {
 
   const result=data=>({schema_version:1,plan_hash:input.plan_hash,...data});
   try {
-    if(body.image_policy==='secondary_slots_only')verifyListingIdentities(body.image_identity_rows,body.image_identity_rows||{},plan.targets);
+    // operations.py already refuses attended_gallery under Grimoire; a direct adapter run stops here too.
+    ui.check(body.image_policy!=='attended_gallery'||!wizardsAiMode(),'attended_only: the attended_gallery image policy is refused under WIZARDS_AI_MODE');
+    if(guardedImagePolicy(body))verifyListingIdentities(body.image_identity_rows,body.image_identity_rows||{},plan.targets);
     await releaseLauncherSessionLock(Number(process.env.CDP_PORT||9223));
     const staged=await stageWorkbook(input);
     page=await acquireTaskPage({closeOnFailure:input.close_tab_after===true,taskId:taskIdFor('amazon-operations',input.task_key || plan.operation_id),workflow:'amazon-flatfilepro',initialUrl:'https://app.flatfile.pro/import',exclusiveContext:true});
@@ -256,7 +259,7 @@ async function execute(input) {
     sameUploadedFile(uploadIdentity,uploadedFileIdentity(state.url,currentUpload.file_labels,plan.account,uploadIdentity.upload_filename));
     let identity;
     try{identity=importIdentity(state.url);}catch{
-      if(body.image_policy==='secondary_slots_only'&&(input.allow_attended_canary===true||input.allow_validated_image_adapter===true))identity=uploadIdentity;
+      if(guardedImagePolicy(body)&&(input.allow_attended_canary===true||input.allow_validated_image_adapter===true))identity=uploadIdentity;
       else throw new Error('ffp_submission_recovery_unverified: exact uploaded workbook '+uploadIdentity.upload_key+' is recorded, but /import exposes no verified submission-history reference; the adapter stopped before Update Listings');
     }
     phase='pre_submit_verification';
@@ -308,7 +311,7 @@ async function execute(input) {
       await durableReceipt(diagnostic_path,{schema_version:1,account:plan.account,plan_hash:input.plan_hash,phase,
         observed_at:new Date().toISOString(),url:visible.url,text:visible.text,controls:visible.controls});
     } catch {} // Do not record or label a page whose account cannot be verified.
-    const specific=['ffp_image_slot_unverifiable','ffp_submission_recovery_unverified'].find(code=>error.message.startsWith(code+':'));
+    const specific=['ffp_image_slot_unverifiable','ffp_submission_recovery_unverified','attended_only'].find(code=>error.message.startsWith(code+':'));
     const answer=result({status:attempted?'uncertain':'blocked',attempted,reason:attempted?'apply_outcome_uncertain':specific||'ui_contract_unavailable',message:error.message,phase,...(diagnostic_path?{diagnostic_path}:{})});
     await ui.receipt(input.receipt_path,answer);return answer;
   } finally {process.removeListener('SIGTERM',onSigterm);if(page)await releaseTaskPage(page,{outcome,closeTarget:input.close_tab_after===true});}

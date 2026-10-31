@@ -284,5 +284,28 @@ class OperationsTests(unittest.TestCase):
         self.assertCode('plan_mismatch',lambda:self.service.execute(self.execute_request(result)))
     def test_client_ready_capabilities_are_honest(self):
         self.assertTrue(all(not c['production_ready'] for c in op.capabilities()['operations'].values()))
+    def test_mcp_listing_read_is_never_live_evidence(self):
+        for operation in ('seo.apply','flatfilepro.update'):
+            with self.subTest(operation=operation):
+                self.request.update(operation_id='mcp-'+operation.replace('.','-'),operation=operation)
+                if operation=='flatfilepro.update':self.request['inputs'].update(desired_rows={'a':{'item_name.0.value':'New A'}},scope_fields=['item_name.0.value'])
+                self.request['inputs']['live']['source_kind']='flatfilepro_mcp_listing_read'
+                self.assertCode('invalid_source',lambda:self.prepare())
+        self.health();self.request['operation_id']='mcp-health';self.request['inputs']['live']['source_kind']='flatfilepro_mcp_listing_read'
+        self.assertCode('invalid_source',lambda:self.prepare())
+    def test_item_detail_live_read_is_still_accepted(self):
+        self.request['inputs']['live']['source_kind']='flatfilepro_listing_read'
+        self.assertEqual(self.prepare()['status'],'prepared')
+    def test_source_export_kind_is_recorded_only_when_supplied(self):
+        self.prepare();self.assertNotIn('source_export_kind',self.plan['body'])
+        for index,kind in enumerate(['ffp_mcp_export_grid','ffp_export']):
+            with self.subTest(kind=kind):
+                self.request['operation_id']=f'kind-{index}';self.request['inputs']['source_export']['kind']=kind
+                self.prepare();self.assertEqual(self.plan['body']['source_export_kind'],kind)
+                self.assertEqual(self.plan['body']['expected_rows'],{'a':{'item_name.0.value':'New A','bullet_point.0.value':'Keep A'},'b':{'item_name.0.value':'Old B','bullet_point.0.value':'New B'}})
+        for index,kind in enumerate(['mcp_get_listings','',['ffp_export']]):
+            with self.subTest(kind=kind):
+                self.request['operation_id']=f'bad-kind-{index}';self.request['inputs']['source_export']['kind']=kind
+                self.assertCode('invalid_source',lambda:self.prepare())
 
 if __name__=='__main__':unittest.main()

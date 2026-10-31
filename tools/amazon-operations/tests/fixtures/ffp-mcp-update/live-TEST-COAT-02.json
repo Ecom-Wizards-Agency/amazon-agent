@@ -1,0 +1,141 @@
+{
+ "source": "AMAZON_SP_API",
+ "sellerId": "A1TESTSELLER01",
+ "marketplaceId": "A1PA6795UKMFR9",
+ "item": {
+  "sku": "TEST-COAT-02",
+  "summaries": [
+   {
+    "marketplaceId": "A1PA6795UKMFR9",
+    "asin": "B0TESTCT02",
+    "productType": "COAT",
+    "conditionType": "new_new",
+    "status": [
+     "BUYABLE",
+     "DISCOVERABLE"
+    ],
+    "itemName": "Testmantel Herren Parka Blau",
+    "createdDate": "2025-03-01T10:00:00.000Z",
+    "lastUpdatedDate": "2026-10-20T08:00:00.000Z",
+    "mainImage": {
+     "link": "https://m.media-amazon.com/images/I/61TESTMAIN02.jpg",
+     "height": 1500,
+     "width": 1200
+    }
+   }
+  ],
+  "relationships": [
+   {
+    "marketplaceId": "A1PA6795UKMFR9",
+    "relationships": [
+     {
+      "type": "VARIATION",
+      "parentSkus": [
+       "TEST-COAT-PARENT"
+      ],
+      "variationTheme": {
+       "attributes": [
+        "size",
+        "color"
+       ],
+       "theme": "SIZE/COLOR"
+      }
+     }
+    ]
+   }
+  ],
+  "attributes": {
+   "other_product_image_locator_1": [
+    {
+     "marketplace_id": "A1PA6795UKMFR9",
+     "media_location": "https://m.media-amazon.com/images/I/61TESTPT0102.jpg"
+    }
+   ],
+   "main_product_image_locator": [
+    {
+     "marketplace_id": "A1PA6795UKMFR9",
+     "media_location": "https://m.media-amazon.com/images/I/61TESTMAIN02.jpg"
+    }
+   ],
+   "item_package_weight": [
+    {
+     "marketplace_id": "A1PA6795UKMFR9",
+     "value": "0.30",
+     "unit": "kilograms"
+    }
+   ],
+   "unit_count": [
+    {
+     "marketplace_id": "A1PA6795UKMFR9",
+     "type": {
+      "language_tag": "de_DE",
+      "value": "Stück"
+     },
+     "value": "1"
+    }
+   ],
+   "generic_keyword": [
+    {
+     "marketplace_id": "A1PA6795UKMFR9",
+     "language_tag": "de_DE",
+     "value": "parka herren winterjacke"
+    }
+   ],
+   "bullet_point": [
+    {
+     "marketplace_id": "A1PA6795UKMFR9",
+     "language_tag": "de_DE",
+     "value": "WASSERDICHT: Erster Punkt"
+    },
+    {
+     "marketplace_id": "A1PA6795UKMFR9",
+     "language_tag": "de_DE",
+     "value": "KAPUZE: Zweiter Punkt"
+    },
+    {
+     "marketplace_id": "A1PA6795UKMFR9",
+     "language_tag": "de_DE",
+     "value": "TASCHEN: Dritter Punkt"
+    },
+    {
+     "marketplace_id": "A1PA6795UKMFR9",
+     "language_tag": "de_DE",
+     "value": "FUTTER: Vierter Punkt"
+    },
+    {
+     "marketplace_id": "A1PA6795UKMFR9",
+     "language_tag": "de_DE",
+     "value": "GRÖSSE: Fünfter Punkt"
+    }
+   ],
+   "item_name": [
+    {
+     "marketplace_id": "A1PA6795UKMFR9",
+     "language_tag": "de_DE",
+     "value": "Testmantel Herren Parka Blau"
+    }
+   ]
+  },
+  "issues": [
+   {
+    "code": "18027",
+    "message": "Das Bild entspricht nicht den Bildanforderungen. Siehe https://sellercentral.amazon.de/help/hub/reference/G1881",
+    "severity": "WARNING",
+    "attributeNames": [
+     "media_locator"
+    ],
+    "categories": [
+     "INVALID_IMAGE"
+    ]
+   }
+  ],
+  "offers": [],
+  "fulfillmentAvailability": [
+   {
+    "fulfillmentChannelCode": "DEFAULT",
+    "quantity": 0
+   }
+  ],
+  "procurement": []
+ }
+}

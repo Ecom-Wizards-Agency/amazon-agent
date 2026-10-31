@@ -10,7 +10,9 @@ Inputs:
             inspection or diffing, but that is not the upload artifact.
 
 The script validates that every requested attribute exists in the source
-headers and writes only sku plus changed attributes. It does not decide which
+headers, that every changed SKU has exactly one source row (a missing SKU or a
+duplicated source SKU exits 2 and names each one), and writes only sku plus
+changed attributes. It does not decide which
 values are compliant; that review must happen before this script is used.
 """
 
@@ -70,8 +72,8 @@ def read_changes(path: Path) -> OrderedDict[str, dict[str, str]]:
     return by_sku
 
 
-def read_source_rows(path: Path, headers: list[str]) -> dict[str, dict[str, str]]:
-    """Read full source data rows keyed by sku (csv/tsv/xlsx), using the located header row."""
+def _read_source_table(path: Path) -> tuple[list[str], list[list[str]]]:
+    """Return (header row, data rows) of a csv/tsv/xlsx source; the header row is the first containing 'sku'."""
     suffix = path.suffix.lower()
     raw_rows: list[list[str]] = []
     if suffix in {".xlsx", ".xlsm"}:
@@ -94,18 +96,33 @@ def read_source_rows(path: Path, headers: list[str]) -> dict[str, dict[str, str]
             break
     if header_idx is None:
         raise SystemExit("Could not locate the header row while reading source data rows.")
+    return raw_rows[header_idx], raw_rows[header_idx + 1 :]
 
-    sku_pos = raw_rows[header_idx].index("sku")
+
+def read_source_rows(path: Path, headers: list[str]) -> dict[str, dict[str, str]]:
+    """Read full source data rows keyed by sku (csv/tsv/xlsx), using the located header row.
+
+    A SKU that appears on several rows keeps its last row; ``main`` refuses such
+    a source before reading values (see ``read_source_skus``)."""
+    header_row, data_rows = _read_source_table(path)
+    sku_pos = header_row.index("sku")
     out: dict[str, dict[str, str]] = {}
-    for row in raw_rows[header_idx + 1 :]:
+    for row in data_rows:
         if sku_pos >= len(row) or not row[sku_pos]:
             continue
         rec = {}
-        for i, header in enumerate(raw_rows[header_idx]):
+        for i, header in enumerate(header_row):
             if header and i < len(row):
                 rec[header] = row[i]
         out[row[sku_pos]] = rec
     return out
+
+
+def read_source_skus(path: Path) -> list[str]:
+    """Every non-empty source SKU in row order, duplicates included."""
+    header_row, data_rows = _read_source_table(path)
+    sku_pos = header_row.index("sku")
+    return [row[sku_pos] for row in data_rows if sku_pos < len(row) and row[sku_pos]]
 
 
 _INDEXED_SEGMENT = re.compile(r"__(\d+)__")
@@ -229,6 +246,27 @@ def main(argv: list[str]) -> int:
     if missing_attrs:
         for attr, skus in sorted(missing_attrs.items()):
             print(f"Missing source header: {attr} (SKUs: {', '.join(skus)})", file=sys.stderr)
+        return 2
+
+    # Every changed SKU needs exactly one source row: a missing row means the
+    # export does not cover the change, and duplicate rows make the carried
+    # values ambiguous.
+    source_skus = read_source_skus(args.source)
+    present = set(source_skus)
+    missing_skus = [sku for sku in rows_by_sku if sku not in present]
+    counts: dict[str, int] = defaultdict(int)
+    for sku in source_skus:
+        counts[sku] += 1
+    duplicate_skus = [sku for sku in dict.fromkeys(source_skus) if counts[sku] > 1]
+    if missing_skus:
+        print(f"Changed SKU(s) missing from source: {', '.join(missing_skus)}", file=sys.stderr)
+    if duplicate_skus:
+        print(
+            "Duplicate source SKU row(s): "
+            + ", ".join(f"{sku} ({counts[sku]} rows)" for sku in duplicate_skus),
+            file=sys.stderr,
+        )
+    if missing_skus or duplicate_skus:
         return 2
 
     source_rows = read_source_rows(args.source, headers) if args.fill_unchanged else None

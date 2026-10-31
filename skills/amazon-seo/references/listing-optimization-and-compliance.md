@@ -51,6 +51,7 @@ Naming note: the operator noted that Amazon's Rufus AI naming is moving/has move
 4. Use MAG SEO SOPs when the user needs the step-by-step agency workflow or Seller Central movement.
 5. For regulated categories (supplements, foods with claims, health & beauty, medical-adjacent), apply `references/health-claims-compliance.md`: check restricted claims against `references/eu-compliance-matrix.md` (EU) or the US regime section, run the SAS-style self-check before delivery, and fix findings via the RJ-preserving rewrite ladder (never bare deletion) so Ranking Juice and semantic coverage survive the compliance pass. Standard-tier categories (household/general) get the claims-lite pass and may keep more aggressive wording.
 6. Stop before saving or publishing listing changes, uploading flat files, or editing live catalog content.
+7. Approved copy for an existing listing goes to the `direct-update` mode of `amazon-flatfilepro`, scope `seo` (`skills/amazon-flatfilepro/references/direct-update-mode.md`). The claims self-check in step 5 is finished before the operator approves the batch, and the write needs that approval of the exact batch. New listings stay on the workbook route.
 
 ## Listing Field Terminology
 
@@ -104,7 +105,20 @@ compliance, and skipping them is what produces wrong titles:
    (organic/Bio, vegan, gluten-free), and key attributes. A **blend must not lead the
    title with one ingredient**. Use a generic blend signal and recover the names in
    Item Highlights/bullets.
-4. **Any intended benefit/claim angle**: screen it against
+4. **Current backend copy** for our own SKUs, in an attended session with the
+   FlatFilePro connector: `node tools/amazon-operations/ffp-mcp.mjs listing-json`
+   on a verified export (or a saved `get_listings` result, which is planning only)
+   returns title, bullets, Item Highlights, description and backend terms per SKU,
+   labelled `ffp-saved-backend`. Label it "FFP saved backend" in the work. It shows
+   what FlatFilePro last saved, not what Amazon displays: the PDP capture from
+   `amazon-listing-capture` stays the live truth and is the only source for
+   competitors. Pass the file to `ranking_score.py --listing`; backend terms get their own
+   `backend_weighted` and `total_with_backend` scores and never change `total`, which
+   stays comparable with DataDive Ranking Juice. Once the operator has started the
+   `direct-update` route of `amazon-flatfilepro`, its saved live Amazon read
+   (`get_listings_item_from_amazon`) shows what Amazon holds for the SKU and can serve
+   as the current-copy input instead.
+5. **Any intended benefit/claim angle**: screen it against
    `references/eu-compliance-matrix.md` before it reaches copy (ingredient **names**
    are factual; ingredient **effects** are health claims).
 

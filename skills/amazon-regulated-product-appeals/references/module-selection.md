@@ -38,6 +38,8 @@ Build requirements from Amazon's exact notice and current first-party policy. Ad
 ## Routing
 
 - Catalog correction file: `amazon-catalog` or the `prepare` mode in `amazon-flatfilepro`
+- Current saved attributes for affected SKUs, in an attended session: the FlatFilePro connector read in `skills/amazon-flatfilepro/references/mcp-reads.md`. Amazon's notice, the listing issue and the detail page stay the evidence of what Amazon holds.
+- Live listing issues, when the operator asks: the connector's live listing read (`flatfilepro_get_listings_item_from_amazon`) is the first read and returns Amazon's `issues` with `code`, `severity`, `message` and `attributeNames`; image issues name `media_locator`, not a slot.
 - FlatFilePro browser mapping: the `upload-map` mode in `amazon-flatfilepro`
 - Seller Support or Account Health wording: `amazon-communications`
 - General error diagnosis: `amazon-troubleshooting`

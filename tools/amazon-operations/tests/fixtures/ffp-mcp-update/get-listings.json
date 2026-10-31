@@ -1,0 +1,198 @@
+{
+ "listings": [
+  {
+   "seller_id": "A1TESTSELLER01",
+   "marketplace_id": "A1PA6795UKMFR9",
+   "asin": "B0TESTCT01",
+   "sku": "TEST-COAT-01",
+   "attributes": {
+    "bullet_point": [
+     {
+      "language_tag": "de_DE",
+      "marketplace_id": "A1PA6795UKMFR9",
+      "value": "WARM: Erster Punkt aus Wolle"
+     },
+     {
+      "language_tag": "de_DE",
+      "marketplace_id": "A1PA6795UKMFR9",
+      "value": "LEICHT: Zweiter Punkt"
+     },
+     {
+      "language_tag": "de_DE",
+      "marketplace_id": "A1PA6795UKMFR9",
+      "value": "PFLEGE: Dritter Punkt"
+     },
+     {
+      "language_tag": "de_DE",
+      "marketplace_id": "A1PA6795UKMFR9",
+      "value": "PASSFORM: Vierter Punkt"
+     },
+     {
+      "language_tag": "de_DE",
+      "marketplace_id": "A1PA6795UKMFR9",
+      "value": "GESCHENK: Fünfter Punkt | mit Pipe"
+     }
+    ],
+    "generic_keyword": [
+     {
+      "language_tag": "de_DE",
+      "marketplace_id": "A1PA6795UKMFR9",
+      "value": "mantel wolle winter damen"
+     }
+    ],
+    "is_fragile": [
+     {
+      "marketplace_id": "A1PA6795UKMFR9",
+      "value": "false"
+     }
+    ],
+    "item_name": [
+     {
+      "language_tag": "de_DE",
+      "marketplace_id": "A1PA6795UKMFR9",
+      "value": "Testmantel Damen Wolle Grau"
+     }
+    ],
+    "item_package_weight": [
+     {
+      "marketplace_id": "A1PA6795UKMFR9",
+      "unit": "kilograms",
+      "value": "0.26"
+     }
+    ],
+    "main_product_image_locator": [
+     {
+      "marketplace_id": "A1PA6795UKMFR9",
+      "media_location": "https://m.media-amazon.com/images/I/61TESTMAIN01.jpg"
+     }
+    ],
+    "other_product_image_locator_1": [
+     {
+      "marketplace_id": "A1PA6795UKMFR9",
+      "media_location": "https://m.media-amazon.com/images/I/61TESTPT0101.jpg"
+     }
+    ],
+    "other_product_image_locator_2": [
+     {
+      "marketplace_id": "A1PA6795UKMFR9",
+      "media_location": "https://m.media-amazon.com/images/I/61TESTPT0201.jpg"
+     }
+    ],
+    "parentAsins": [
+     "B0TESTPAR1"
+    ],
+    "target_gender": [
+     {
+      "marketplace_id": "A1PA6795UKMFR9",
+      "value": "female"
+     }
+    ],
+    "unit_count": [
+     {
+      "marketplace_id": "A1PA6795UKMFR9",
+      "type": {
+       "language_tag": "de_DE",
+       "value": "Stück"
+      },
+      "value": "1"
+     }
+    ],
+    "variation_theme": [
+     {
+      "name": "SIZE/COLOR"
+     }
+    ]
+   },
+   "productType": "COAT",
+   "blankAttributes": [
+    "material"
+   ]
+  },
+  {
+   "seller_id": "A1TESTSELLER01",
+   "marketplace_id": "A1PA6795UKMFR9",
+   "asin": "B0TESTCT02",
+   "sku": "TEST-COAT-02",
+   "attributes": {
+    "bullet_point": [
+     {
+      "language_tag": "de_DE",
+      "marketplace_id": "A1PA6795UKMFR9",
+      "value": "WASSERDICHT: Erster Punkt"
+     },
+     {
+      "language_tag": "de_DE",
+      "marketplace_id": "A1PA6795UKMFR9",
+      "value": "KAPUZE: Zweiter Punkt"
+     },
+     {
+      "language_tag": "de_DE",
+      "marketplace_id": "A1PA6795UKMFR9",
+      "value": "TASCHEN: Dritter Punkt"
+     },
+     {
+      "language_tag": "de_DE",
+      "marketplace_id": "A1PA6795UKMFR9",
+      "value": "FUTTER: Vierter Punkt"
+     },
+     {
+      "language_tag": "de_DE",
+      "marketplace_id": "A1PA6795UKMFR9",
+      "value": "GRÖSSE: Fünfter Punkt"
+     }
+    ],
+    "generic_keyword": [
+     {
+      "language_tag": "de_DE",
+      "marketplace_id": "A1PA6795UKMFR9",
+      "value": "parka herren winterjacke"
+     }
+    ],
+    "item_name": [
+     {
+      "language_tag": "de_DE",
+      "marketplace_id": "A1PA6795UKMFR9",
+      "value": "Testmantel Herren Parka Blau"
+     }
+    ],
+    "item_package_weight": [
+     {
+      "marketplace_id": "A1PA6795UKMFR9",
+      "unit": "kilograms",
+      "value": "0.30"
+     }
+    ],
+    "main_product_image_locator": [
+     {
+      "marketplace_id": "A1PA6795UKMFR9",
+      "media_location": "https://m.media-amazon.com/images/I/61TESTMAIN02.jpg"
+     }
+    ],
+    "other_product_image_locator_1": [
+     {
+      "marketplace_id": "A1PA6795UKMFR9",
+      "media_location": "https://m.media-amazon.com/images/I/61TESTPT0102.jpg"
+     }
+    ],
+    "parentAsins": [
+     "B0TESTPAR1"
+    ],
+    "unit_count": [
+     {
+      "marketplace_id": "A1PA6795UKMFR9",
+      "type": {
+       "language_tag": "de_DE",
+       "value": "Stück"
+      },
+      "value": "1"
+     }
+    ]
+   },
+   "productType": "COAT",
+   "blankAttributes": [
+    "material"
+   ]
+  }
+ ],
+ "missingSkus": []
+}

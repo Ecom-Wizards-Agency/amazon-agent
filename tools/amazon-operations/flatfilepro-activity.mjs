@@ -10,8 +10,8 @@ import {submittedRunIdentity} from './flatfilepro-submit.mjs';
 
 const states=new Set(['pending','in_progress','rejected','failed','reflected']);
 function canonical(field) {
-  return String(field).replace(/^\/(other_product_image_locator_[1-8])\/0\/media_location$/,'$1.0.media_location')
-    .replace(/^(other_product_image_locator_[1-8])__1__media_location$/,'$1.0.media_location');
+  return String(field).replace(/^\/(main_product_image_locator|other_product_image_locator_[1-9])\/0\/media_location$/,'$1.0.media_location')
+    .replace(/^(main_product_image_locator|other_product_image_locator_[1-9])__1__media_location$/,'$1.0.media_location');
 }
 
 export function activityRequestMatch(url,input,cursor) {

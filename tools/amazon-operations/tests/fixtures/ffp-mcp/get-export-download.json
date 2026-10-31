@@ -1,0 +1,23 @@
+{
+ "jobId": "job-test-0001",
+ "sellerId": "A1TESTSELLER01",
+ "marketplaceId": "ATVPDKIKX0DER",
+ "archiveStatus": "ALL",
+ "schemaVersion": 2,
+ "blankAnalyzerVersion": "test-1",
+ "original_fetched_listings_count": 6,
+ "export_count": 6,
+ "counts_match": true,
+ "snapshotAt": "2026-10-28T09:00:00.000Z",
+ "completedAt": "2026-10-28T09:00:01.000Z",
+ "expiresAt": "2026-10-29T09:00:01.000Z",
+ "fileName": "catalog-export-test.jsonl.gz",
+ "format": "JSONL",
+ "compression": "GZIP",
+ "compressedBytes": 1190,
+ "uncompressedBytes": 5642,
+ "checksumAlgorithm": "SHA-256",
+ "sha256": "fea9ce0a37e25713e24547971207386a146c7e04580ce993cf3ff2b98f86f343",
+ "downloadUrl": "https://ffp-mcp-export.s3.us-east-2.amazonaws.com/catalog-exports/A1TESTSELLER01/job-test-0001.jsonl.gz?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=TESTCREDENTIALFAKE&X-Amz-Expires=1800&X-Amz-Signature=fakesignaturedeadbeef0123456789",
+ "urlExpiresAt": "2026-10-28T09:31:00.000Z"
+}

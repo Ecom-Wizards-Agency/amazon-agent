@@ -26,7 +26,8 @@ export const IMAGE_IDENTITY_KEYS=Object.freeze([
     'merchant_suggested_asin.0.value',
 ]);
 const aliases=new Set(IMAGE_IDENTITY_KEYS);
-const attributes=/^(?:item_name|model_name|model_number|part_number|color|size|parentage_level|child_parent_sku_relationship|externally_assigned_product_identifier|merchant_suggested_asin)\./;
+// Exact field.index.key paths only, so nested flattened keys (color.0.standardized_values.0.) never enter identity.
+const attributes=/^(?:item_name|model_name|model_number|part_number|color|size|parentage_level|child_parent_sku_relationship|externally_assigned_product_identifier|merchant_suggested_asin)\.\d+\.[^.]+$/;
 export function listingIdentity(row){
  return Object.fromEntries(Object.entries(row).filter(([key])=>aliases.has(key)||attributes.test(key)).sort(([a],[b])=>a<b?-1:a>b?1:0));
 }

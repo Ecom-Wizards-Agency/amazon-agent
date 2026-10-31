@@ -3,7 +3,11 @@ import csv
 import importlib.util
 import json
 from pathlib import Path
+import re
+import shutil
+import subprocess
 import tempfile
+from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock, patch
 
@@ -919,6 +923,295 @@ class ImageSafetyTests(unittest.TestCase):
         self.assertIn('image-evidence.mjs', [call.args[1] for call in collector.call_args_list])
         self.assertNotIn('evidence_skipped', result)
 
+    # attended_gallery: attended MAIN plus secondary updates.
+
+    def attended(self, main=True):
+        """Switch the fixture to attended_gallery; main=True also replaces MAIN."""
+        from PIL import Image
+        inputs = self.request['inputs']
+        inputs['image_policy'] = 'attended_gallery'
+        if main:
+            asset = self.root / 'main-asset.png'
+            Image.new('RGB', (900, 900), 'white').save(asset)
+            inputs['images'].append({'sku': 'a', 'slot': 'MAIN', 'artifact': {'path': str(asset), 'sha256': op.file_hash(asset)},
+                                     'url': 'https://example.com/new-main.png'})
+            inputs['image_fields']['MAIN'] = MAIN
+
+    def main_review(self, **changes):
+        main = [image['sha256'] for image in self.plan['body']['images'] if image['slot'] == 'MAIN']
+        return {'approved_by': 'Attended Operator', 'approved_at': op.now(), 'image_sha256': main, **changes}
+
+    def rewrite_source(self):
+        with self.source.open('w') as stream:
+            writer = csv.DictWriter(stream, fieldnames=['sku', MAIN, PT1, PT2, SWATCH])
+            writer.writeheader()
+            writer.writerow({'sku': 'a', **{field: self.rows['a'][field] for field in (MAIN, PT1, PT2, SWATCH)}})
+        self.request['inputs']['source_export']['sha256'] = op.file_hash(self.source)
+
+    def processing(self):
+        return SimpleNamespace(stdout=json.dumps({'plan_hash': self.execute['plan_hash'], 'status': 'processing',
+                                                  'attempted': True, 'submission_id': 'run-1'}))
+
+    def code(self, call):
+        with self.assertRaises(op.OperationError) as raised:
+            call()
+        return raised.exception.code
+
+    def test_attended_gallery_prepares_main_and_secondary_and_freezes_the_rest(self):
+        self.attended()
+        self.prepare()
+        body = self.plan['body']
+        self.assertEqual(body['image_policy'], 'attended_gallery')
+        self.assertEqual([image['slot'] for image in body['images']], ['PT01', 'MAIN'])
+        self.assertEqual(body['expected_rows'], {'a': {PT1: 'https://example.com/new.png', MAIN: 'https://example.com/new-main.png'}})
+        self.assertEqual(sorted(body['mapping']), sorted([MAIN, PT1]))
+        before = body['image_before_rows']['a']
+        self.assertEqual(before[MAIN], self.rows['a'][MAIN])
+        self.assertEqual(before[SWATCH], self.rows['a'][SWATCH])
+        self.assertEqual(before[PT2], self.rows['a'][PT2])
+        self.assertEqual(set(self.service.public_protected_images(self.plan)), {('a', 'PT02')})
+        self.assertNotIn('source_export_kind', body)
+
+    def test_attended_gallery_never_changes_swatches(self):
+        self.attended(main=False)
+        for index, (slot, fields) in enumerate([('SWCH', {'SWCH': SWATCH}), ('PT01', {'PT01': PT1, 'SWCH': SWATCH})]):
+            with self.subTest(slot=slot, fields=sorted(fields)):
+                self.request['operation_id'] = f'swatch-{index}'
+                self.request['inputs']['images'][0]['slot'] = slot
+                self.request['inputs']['image_fields'] = fields
+                self.assertEqual(self.code(self.prepare), 'scope_violation')
+
+    def test_attended_gallery_prepare_is_refused_in_grimoire_before_any_read(self):
+        self.attended()
+        for value in ('1', 'true', ' YES '):
+            with self.subTest(value=value), patch.dict('os.environ', {'WIZARDS_AI_MODE': value}), \
+                    patch.object(op, 'verify_hosted_asset', side_effect=AssertionError('no hosted read')):
+                self.assertEqual(self.code(self.prepare), 'attended_only')
+        self.assertFalse((self.root / 'state/image-test/plan.json').exists())
+        # Grimoire's own secondary route keeps working under the same flag.
+        self.request.update(operation_id='grimoire-secondary')
+        self.request['inputs'].update(image_policy='secondary_slots_only')
+        self.request['inputs']['images'].pop()
+        del self.request['inputs']['image_fields']['MAIN']
+        with patch.dict('os.environ', {'WIZARDS_AI_MODE': '1'}):
+            self.assertEqual(self.service.prepare(self.request)['status'], 'prepared')
+
+    def test_attended_gallery_execute_is_refused_in_grimoire(self):
+        self.attended()
+        self.prepare()
+        self.execute['grant']['main_image_review'] = self.main_review()
+        with patch.dict('os.environ', {'WIZARDS_AI_MODE': '1'}), \
+                patch.object(self.service, 'collect_export', side_effect=AssertionError('no read')), \
+                patch.object(op.subprocess, 'run', side_effect=AssertionError('no adapter')):
+            self.assertEqual(self.code(lambda: self.service.execute(self.execute)), 'attended_only')
+        state = self.service.view(self.root / 'state/image-test')
+        self.assertEqual(state['status'], 'prepared')
+        self.assertNotIn('effects_started', state)
+
+    def test_main_change_requires_review_of_the_exact_main_pixels(self):
+        self.attended()
+        self.prepare()
+        main = self.main_review()['image_sha256']
+        secondary = self.plan['body']['images'][0]['sha256']
+        future = (op.timestamp(op.now()) + op.dt.timedelta(hours=1)).isoformat()
+        invalid = [None, {}, 'approved', self.main_review(approved_by=''), self.main_review(approved_by='   '),
+                   self.main_review(approved_by=None), self.main_review(image_sha256=[secondary]),
+                   self.main_review(image_sha256=main + [secondary]), self.main_review(image_sha256=[]),
+                   self.main_review(image_sha256=main[0]), self.main_review(approved_at='yesterday'),
+                   self.main_review(approved_at='2026-10-28T10:00:00'), self.main_review(approved_at=future),
+                   self.main_review(note='extra keys are not part of the review')]
+        for review in invalid:
+            request = copy.deepcopy(self.execute)
+            if review is not None:
+                request['grant']['main_image_review'] = review
+            with self.subTest(review=review), \
+                    patch.object(self.service, 'collect_export', side_effect=AssertionError('no read')), \
+                    patch.object(op.subprocess, 'run', side_effect=AssertionError('no adapter')):
+                self.assertEqual(self.code(lambda: self.service.execute(request)), 'main_review_required')
+        review = self.main_review()
+        self.execute['grant']['main_image_review'] = review
+        with patch.object(self.service, 'collect_export', return_value=self.fresh()) as collector, \
+                patch.object(op.subprocess, 'run', return_value=self.processing()) as adapter:
+            state = self.service.execute(self.execute)
+        collector.assert_called_once()
+        adapter.assert_called_once()
+        self.assertEqual(state['status'], 'processing')
+        self.assertEqual(state['main_image_review'], review)
+        envelope = json.loads((self.root / 'state/image-test/adapter-input.json').read_text())
+        self.assertIn('image_preflight', envelope)
+        self.assertTrue(envelope['allow_attended_canary'])
+
+    def test_attended_gallery_without_main_protects_main(self):
+        self.attended(main=False)
+        self.prepare()
+        self.assertEqual(set(self.service.public_protected_images(self.plan)), {('a', 'MAIN'), ('a', 'PT02')})
+        rows = copy.deepcopy(self.rows)
+        rows['a'][PT1] = 'https://example.com/new.png'
+        self.service.validate_image_baseline(self.plan, rows, protected_only=True)
+        rows['a'][MAIN] = 'https://example.com/other-main.png'
+        with self.assertRaisesRegex(op.OperationError, 'protected image changed'):
+            self.service.validate_image_baseline(self.plan, rows, protected_only=True)
+        fresh = self.fresh()
+        fresh['rows']['a'][MAIN] = 'https://example.com/other-main.png'
+        with patch.object(self.service, 'collect_export', return_value=fresh), \
+                patch.object(op.subprocess, 'run', side_effect=AssertionError('no adapter')):
+            with self.assertRaisesRegex(op.OperationError, 'protected image changed'):
+                self.service.execute(self.execute)
+        # No MAIN review is needed while MAIN stays unchanged.
+        with patch.object(self.service, 'collect_export', return_value=self.fresh()), \
+                patch.object(op.subprocess, 'run', return_value=self.processing()) as adapter:
+            state = self.service.execute(self.execute)
+        adapter.assert_called_once()
+        self.assertEqual(state['status'], 'processing')
+        self.assertNotIn('main_image_review', state)
+
+    def test_main_change_exempts_only_main_from_preservation(self):
+        self.attended()
+        self.prepare()
+        rows = copy.deepcopy(self.rows)
+        rows['a'].update({MAIN: 'https://example.com/new-main.png', PT1: 'https://example.com/new.png'})
+        self.service.validate_image_baseline(self.plan, rows, protected_only=True)
+        for field in (SWATCH, PT2):
+            changed = copy.deepcopy(rows)
+            changed['a'][field] = 'https://example.com/changed.png'
+            with self.subTest(field=field), self.assertRaisesRegex(op.OperationError, 'protected image changed'):
+                self.service.validate_image_baseline(self.plan, changed, protected_only=True)
+        # A fresh pre-submit read still requires the frozen previous MAIN.
+        fresh = self.fresh()
+        fresh['rows']['a'][MAIN] = 'https://example.com/new-main.png'
+        self.execute['grant']['main_image_review'] = self.main_review()
+        with patch.object(self.service, 'collect_export', return_value=fresh), \
+                patch.object(op.subprocess, 'run', side_effect=AssertionError('no adapter')):
+            with self.assertRaisesRegex(op.OperationError, 'protected image changed'):
+                self.service.execute(self.execute)
+
+    def test_existing_main_is_required_only_when_main_is_unchanged(self):
+        self.rows['a'][MAIN] = ''
+        self.rewrite_source()
+        self.assertEqual(self.code(self.prepare), 'missing_main_image')
+        self.request['operation_id'] = 'attended-secondary'
+        self.attended(main=False)
+        self.assertEqual(self.code(self.prepare), 'missing_main_image')
+        self.request['operation_id'] = 'attended-main'
+        self.attended()
+        self.prepare()
+        self.assertEqual(self.plan['body']['image_before_rows']['a'][MAIN], '')
+        self.assertEqual(self.plan['body']['expected_rows']['a'][MAIN], 'https://example.com/new-main.png')
+
+    def test_main_processing_status_maps_to_the_main_attribute(self):
+        self.attended()
+        self.prepare()
+        directory = self.root / 'state/image-test'
+        state = self.service.view(directory)
+        state.update(submission_id='run-1', execution_started_at=op.now(), effects_started=True)
+        self.service.persist(directory, state, 'processing')
+        evidence = {'account': self.account, 'plan_hash': self.execute['plan_hash'], 'submission_id': 'run-1',
+                    'observed_at': op.now(), 'images': [], 'ffp_processing': {
+                        'status': 'collected', 'complete': True, 'account': self.account, 'plan_hash': self.execute['plan_hash'],
+                        'submission_id': 'run-1', 'observed_at': op.now(), 'attributes': [
+                            {'sku': 'a', 'field': MAIN, 'status': 'rejected', 'submitted_value': 'https://example.com/new-main.png'},
+                            {'sku': 'a', 'field': PT1, 'status': 'in_progress', 'submitted_value': 'https://example.com/new.png'}]}}
+        completion = self.service.image_completion(directory, state, self.plan, evidence)
+        self.assertEqual(completion['processing'], 'failed')
+        self.assertEqual(completion['failures'], ['a/MAIN: rejected'])
+        self.assertFalse(completion['release_eligible'])
+
+    def test_mcp_listing_read_is_never_live_image_evidence(self):
+        for policy in ('secondary_slots_only', 'attended_gallery', None):
+            with self.subTest(policy=policy), patch.object(op, 'verify_hosted_asset', side_effect=AssertionError('no hosted read')):
+                self.request['operation_id'] = f'mcp-{policy}'
+                self.request['inputs']['image_policy'] = policy
+                self.request['inputs']['live']['source_kind'] = 'flatfilepro_mcp_listing_read'
+                self.assertEqual(self.code(self.prepare), 'invalid_source')
+
+    def test_source_export_kind_is_recorded_only_when_supplied(self):
+        self.request['inputs']['source_export']['kind'] = 'ffp_mcp_export_grid'
+        self.prepare()
+        self.assertEqual(self.plan['body']['source_export_kind'], 'ffp_mcp_export_grid')
+        self.request['operation_id'] = 'unknown-kind'
+        self.request['inputs']['source_export']['kind'] = 'mcp_get_listings'
+        self.assertEqual(self.code(self.prepare), 'invalid_source')
+
+    def identity_row(self):
+        return {**dict.fromkeys(op.IMAGE_IDENTITY_KEYS, ''), 'sku': 'a', 'asin': 'B0TEST0001',
+                'item_name.0.value': 'Synthetic Item', 'item_name.0.language_tag': 'en_US',
+                'item_name.0.marketplace_id': 'ATVPDKIKX0DER', 'color.0.value': 'Blue', 'color.1.value': 'Navy',
+                'size.0.value': 'M', 'model_number.0.value': 'M-1', 'part_number.0.value': 'P-1',
+                'externally_assigned_product_identifier.0.type': 'ean',
+                'child_parent_sku_relationship.0.child_relationship_type': 'variation',
+                'parentage_level.0.value': 'child', 'unit_count.0.value': '60', MAIN: 'https://example.com/main.png', 'price': '10'}
+
+    NESTED = {'color.0.standardized_values.0.': 'Blau', 'color.0.standardized_values.0': 'Blau', 'size.0.type.value': 'alpha',
+              'item_name.0.value.extra': 'x', 'model_name.0.': '', 'part_number.0': '', 'model_number..value': '',
+              'externally_assigned_product_identifier.0.value.0.': '', 'merchant_suggested_asin.0.value.value': 'B0TEST0002'}
+
+    def test_identity_keeps_todays_rows_and_ignores_nested_paths(self):
+        row = self.identity_row()
+        legacy = re.compile(r'^(?:item_name|model_name|model_number|part_number|color|size|parentage_level|'
+                            r'child_parent_sku_relationship|externally_assigned_product_identifier|merchant_suggested_asin)\.')
+        before = {k: v for k, v in row.items() if k in op.IMAGE_IDENTITY_KEYS or legacy.match(k)}
+        self.assertEqual(op.image_listing_identity(row), before)
+        self.assertEqual(op.image_listing_identity({**row, **self.NESTED}), before)
+        # A fresh read that adds nested companions keeps a frozen plan's identity.
+        self.prepare()
+        rows = copy.deepcopy(self.rows)
+        rows['a'].update(self.NESTED)
+        self.service.validate_image_baseline(self.plan, rows)
+        rows['a']['color.0.value'] = 'Changed'
+        with self.assertRaisesRegex(op.OperationError, 'identity'):
+            self.service.validate_image_baseline(self.plan, rows)
+
+    def test_identity_pattern_matches_the_adapter(self):
+        node = shutil.which('node')
+        if not node:
+            self.skipTest('node is unavailable')
+        row = {**self.identity_row(), **self.NESTED}
+        module = (Path(op.__file__).resolve().parent / 'image-identity.mjs').as_uri()
+        script = (f'import {{listingIdentity}} from {json.dumps(module)};let s="";process.stdin.on("data",d=>s+=d)'
+                  '.on("end",()=>console.log(JSON.stringify(listingIdentity(JSON.parse(s)))));')
+        result = subprocess.run([node, '--input-type=module', '-e', script], input=json.dumps(row),
+                                capture_output=True, text=True, timeout=60, check=True)
+        self.assertEqual(json.loads(result.stdout), op.image_listing_identity(row))
+
+
+    def test_plan_identity_from_before_the_exact_pattern_still_verifies(self):
+        # A plan prepared under the old prefix match may hold nested identity keys;
+        # both sides are filtered, as listingIdentity does in image-identity.mjs.
+        self.prepare()
+        nested = {'color.0.standardized_values.0.': 'Blau'}
+        self.plan['body']['image_identity_rows']['a'].update(nested)
+        rows = copy.deepcopy(self.rows)
+        rows['a'].update(nested)
+        self.service.validate_image_baseline(self.plan, rows)
+        rows['a']['size.0.value'] = 'Changed'
+        with self.assertRaisesRegex(op.OperationError, 'identity'):
+            self.service.validate_image_baseline(self.plan, rows)
+
+    def test_existing_main_is_checked_per_sku_in_a_multi_sku_gallery(self):
+        # SKU a replaces MAIN; SKU b only gets PT01 and has no MAIN, so b is refused.
+        self.rows['b'] = {**copy.deepcopy(self.rows['a']), MAIN: '', 'asin': 'B000000002'}
+        with self.source.open('w') as stream:
+            writer = csv.DictWriter(stream, fieldnames=['sku', MAIN, PT1, PT2, SWATCH])
+            writer.writeheader()
+            for sku in ('a', 'b'):
+                writer.writerow({'sku': sku, **{field: self.rows[sku][field] for field in (MAIN, PT1, PT2, SWATCH)}})
+        inputs = self.request['inputs']
+        inputs['source_export']['sha256'] = op.file_hash(self.source)
+        inputs['sku_asins']['b'] = 'B000000002'
+        self.request['targets'] = ['a', 'b']
+        self.attended()
+        inputs['images'].append({**inputs['images'][0], 'sku': 'b'})
+        self.assertEqual(self.code(self.prepare), 'missing_main_image')
+        self.rows['b'][MAIN] = 'https://example.com/main-b.png'
+        with self.source.open('w') as stream:
+            writer = csv.DictWriter(stream, fieldnames=['sku', MAIN, PT1, PT2, SWATCH])
+            writer.writeheader()
+            for sku in ('a', 'b'):
+                writer.writerow({'sku': sku, **{field: self.rows[sku][field] for field in (MAIN, PT1, PT2, SWATCH)}})
+        inputs['source_export']['sha256'] = op.file_hash(self.source)
+        self.request['operation_id'] = 'image-test-b-main'
+        self.prepare()
+        self.assertEqual(self.plan['body']['image_before_rows']['b'][MAIN], 'https://example.com/main-b.png')
 
 if __name__ == '__main__':
     unittest.main()

@@ -1,0 +1,164 @@
+{
+ "source": "AMAZON_SP_API",
+ "sellerId": "A1TESTSELLER01",
+ "marketplaceId": "A1PA6795UKMFR9",
+ "item": {
+  "sku": "TEST-COAT-01",
+  "summaries": [
+   {
+    "marketplaceId": "A1PA6795UKMFR9",
+    "asin": "B0TESTCT01",
+    "productType": "COAT",
+    "conditionType": "new_new",
+    "status": [
+     "BUYABLE",
+     "DISCOVERABLE"
+    ],
+    "itemName": "Testmantel Damen Wolle Grau",
+    "createdDate": "2025-03-01T10:00:00.000Z",
+    "lastUpdatedDate": "2026-10-20T08:00:00.000Z",
+    "mainImage": {
+     "link": "https://m.media-amazon.com/images/I/61TESTMAIN01.jpg",
+     "height": 1500,
+     "width": 1200
+    }
+   }
+  ],
+  "relationships": [
+   {
+    "marketplaceId": "A1PA6795UKMFR9",
+    "relationships": [
+     {
+      "type": "VARIATION",
+      "parentSkus": [
+       "TEST-COAT-PARENT"
+      ],
+      "variationTheme": {
+       "attributes": [
+        "size",
+        "color"
+       ],
+       "theme": "SIZE/COLOR"
+      }
+     }
+    ]
+   }
+  ],
+  "attributes": {
+   "variation_theme": [
+    {
+     "name": "SIZE/COLOR"
+    }
+   ],
+   "other_product_image_locator_2": [
+    {
+     "marketplace_id": "A1PA6795UKMFR9",
+     "media_location": "https://m.media-amazon.com/images/I/61TESTPT0201.jpg"
+    }
+   ],
+   "other_product_image_locator_1": [
+    {
+     "marketplace_id": "A1PA6795UKMFR9",
+     "media_location": "https://m.media-amazon.com/images/I/61TESTPT0101.jpg"
+    }
+   ],
+   "main_product_image_locator": [
+    {
+     "marketplace_id": "A1PA6795UKMFR9",
+     "media_location": "https://m.media-amazon.com/images/I/61TESTMAIN01.jpg"
+    }
+   ],
+   "is_fragile": [
+    {
+     "marketplace_id": "A1PA6795UKMFR9",
+     "value": "false"
+    }
+   ],
+   "target_gender": [
+    {
+     "marketplace_id": "A1PA6795UKMFR9",
+     "value": "female"
+    }
+   ],
+   "item_package_weight": [
+    {
+     "marketplace_id": "A1PA6795UKMFR9",
+     "value": "0.26",
+     "unit": "kilograms"
+    }
+   ],
+   "unit_count": [
+    {
+     "marketplace_id": "A1PA6795UKMFR9",
+     "type": {
+      "language_tag": "de_DE",
+      "value": "Stück"
+     },
+     "value": "1"
+    }
+   ],
+   "generic_keyword": [
+    {
+     "marketplace_id": "A1PA6795UKMFR9",
+     "language_tag": "de_DE",
+     "value": "mantel wolle winter damen"
+    }
+   ],
+   "bullet_point": [
+    {
+     "marketplace_id": "A1PA6795UKMFR9",
+     "language_tag": "de_DE",
+     "value": "WARM: Erster Punkt aus Wolle"
+    },
+    {
+     "marketplace_id": "A1PA6795UKMFR9",
+     "language_tag": "de_DE",
+     "value": "LEICHT: Zweiter Punkt"
+    },
+    {
+     "marketplace_id": "A1PA6795UKMFR9",
+     "language_tag": "de_DE",
+     "value": "PFLEGE: Dritter Punkt"
+    },
+    {
+     "marketplace_id": "A1PA6795UKMFR9",
+     "language_tag": "de_DE",
+     "value": "PASSFORM: Vierter Punkt"
+    },
+    {
+     "marketplace_id": "A1PA6795UKMFR9",
+     "language_tag": "de_DE",
+     "value": "GESCHENK: Fünfter Punkt | mit Pipe"
+    }
+   ],
+   "item_name": [
+    {
+     "marketplace_id": "A1PA6795UKMFR9",
+     "language_tag": "de_DE",
+     "value": "Testmantel Damen Wolle Grau"
+    }
+   ]
+  },
+  "issues": [
+   {
+    "code": "90220",
+    "message": "Ein empfohlenes Attribut fehlt: Material.",
+    "severity": "WARNING",
+    "attributeNames": [
+     "material"
+    ],
+    "categories": [
+     "MISSING_ATTRIBUTE"
+    ]
+   }
+  ],
+  "offers": [],
+  "fulfillmentAvailability": [
+   {
+    "fulfillmentChannelCode": "DEFAULT",
+    "quantity": 0
+   }
+  ],
+  "procurement": []
+ }
+}
