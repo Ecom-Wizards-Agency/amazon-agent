@@ -1,0 +1,28 @@
+{
+ "marketplaces": [
+  {
+   "selling_partner_id": "A1TESTSELLER01",
+   "marketplace_id": "ATVPDKIKX0DER",
+   "seller_name": "Test Seller",
+   "marketplace_name": "United States"
+  },
+  {
+   "selling_partner_id": "A1TESTSELLER01",
+   "marketplace_id": "A1PA6795UKMFR9",
+   "seller_name": "Test Seller",
+   "marketplace_name": "Germany"
+  },
+  {
+   "selling_partner_id": "A2TESTSELLER02",
+   "marketplace_id": "ATVPDKIKX0DER",
+   "seller_name": "Twin Seller",
+   "marketplace_name": "United States"
+  },
+  {
+   "selling_partner_id": "A3TESTSELLER03",
+   "marketplace_id": "ATVPDKIKX0DER",
+   "seller_name": "twin seller ",
+   "marketplace_name": "united states"
+  }
+ ]
+}

@@ -38,6 +38,13 @@ TERMINAL = {'verified', 'failed', 'stalled'}
 _CLOSE_RECONCILE_TABS = contextvars.ContextVar('close_reconcile_tabs', default=False)
 IMAGE_FULL_VERIFY_SECONDS = 3600
 SEO_FIELDS = re.compile(r'^(item_name|bullet_point|product_description|generic_keyword|title_differentiation)([._]|$)|^itemName$')
+# Image policies whose plans freeze identity and every untouched slot, need a
+# fresh pre-submit read and submit through the guarded path. The adapter keeps
+# the same list as GUARDED_IMAGE_POLICIES in flatfilepro-contracts.mjs.
+GUARDED_IMAGE_POLICIES = frozenset({'secondary_slots_only', 'attended_gallery'})
+# A get_listings result saved from an MCP transcript; planning input only.
+MCP_LISTING_READ = 'flatfilepro_mcp_listing_read'
+SOURCE_EXPORT_KINDS = frozenset({'ffp_mcp_export_grid', 'ffp_export'})
 
 class OperationError(ValueError):
     def __init__(self, code, message):
@@ -48,6 +55,39 @@ class OperationError(ValueError):
 def require(condition, code, message):
     if not condition:
         raise OperationError(code, message)
+
+
+def wizards_ai_mode():
+    # Same spellings as wizardsAiMode() in tools/browserctl/session.mjs.
+    return str(os.environ.get('WIZARDS_AI_MODE', '')).strip().lower() in {'1', 'true', 'yes', 'on'}
+
+
+def require_attended(label):
+    require(not wizards_ai_mode(), 'attended_only', f'{label} is attended only; refused because WIZARDS_AI_MODE is set')
+
+
+def live_listing_evidence(inputs):
+    """Return inputs.live, refusing an MCP get_listings copy as live evidence."""
+    live = inputs.get('live')
+    require(not (isinstance(live, dict) and live.get('source_kind') == MCP_LISTING_READ), 'invalid_source',
+            'An MCP get_listings read is planning input only; live evidence must come from the FlatFilePro item-detail read or a report')
+    return live
+
+
+def source_export_kind(inputs):
+    spec = inputs.get('source_export')
+    kind = spec.get('kind') if isinstance(spec, dict) else None
+    require(kind is None or isinstance(kind, str) and kind in SOURCE_EXPORT_KINDS, 'invalid_source', 'Unknown source export kind')
+    return kind
+
+
+def image_slot_field(slot):
+    """Canonical media_location attribute of one MAIN, SWCH or PT01..PT09 slot."""
+    if slot == 'MAIN':
+        return 'main_product_image_locator.0.media_location'
+    if slot == 'SWCH':
+        return 'swatch_product_image_locator.0.media_location'
+    return f'other_product_image_locator_{int(slot[2:])}.0.media_location'
 
 
 def canonical(value):
@@ -126,7 +166,7 @@ def health_request(request):
     require(approved.get('approved') is True and approved.get('verified') is True and approved.get('source_id') and approved.get('approved_by'), 'unapproved_product_data', 'Routine restoration requires approved verified product data and provenance')
     timestamp(approved.get('verified_at'))
     require(inputs.get('finding_id') and isinstance(inputs.get('required_missing'), dict) and set(inputs['required_missing']) == set(request['targets']), 'missing_health_scope', 'Account Health finding and exact required-missing field scope are required')
-    live = inputs.get('live')
+    live = live_listing_evidence(inputs)
     scoped(live, acct, 'live missing-field evidence')
     desired = {}
     for sku, fields in inputs['required_missing'].items():
@@ -201,7 +241,8 @@ def changed_fields(desired, live, targets, fields):
 
 def prepare_copy(request, directory):
     inputs, acct = request['inputs'], request['account']
-    live = inputs.get('live')
+    live = live_listing_evidence(inputs)
+    export_kind = source_export_kind(inputs)
     scoped(live, acct, 'live listing evidence')
     timestamp(live.get('observed_at'))
     require(timestamp(live['observed_at']) <= timestamp(now()) + dt.timedelta(minutes=5), 'invalid_time', 'Live evidence cannot be future dated')
@@ -256,7 +297,7 @@ def prepare_copy(request, directory):
     with contextlib.redirect_stdout(io.StringIO()):
         result = prep.main(['--source', str(source), '--changes', str(changes_path), '--output', str(output), '--fill-unchanged'])
     require(result == 0, 'preparation_failed', 'FlatFilePro preparation failed')
-    preserve_headers = inputs.get('image_policy') == 'secondary_slots_only'
+    preserve_headers = inputs.get('image_policy') in GUARDED_IMAGE_POLICIES
     if preserve_headers:
         # The current FFP image selector exposes the export's __1__ spelling.
         # Preserve this narrow batch's exact template headers; legacy copy
@@ -282,11 +323,18 @@ def prepare_copy(request, directory):
         expected[c['sku']][output_field(c['field'])] = c['after']
     for sku, row in expected.items():
         require({k: v for k, v in upload_rows[sku].items() if k != 'sku'} == row, 'artifact_mismatch', 'Reopened upload does not match full-grid expected values')
-    return {'status': 'prepared', 'changes': changes, 'expected_rows': expected, 'upload': str(output), 'mapping': [h for h in upload_headers if h != 'sku'], 'adapter': 'flatfilepro.cdp', 'requires_live_canary': True, 'sku_asins': inputs.get('sku_asins', {}), 'restore_missing_only': request['operation'].startswith('account_health.'), 'finding_id': inputs.get('finding_id')}
+    prepared = {'status': 'prepared', 'changes': changes, 'expected_rows': expected, 'upload': str(output), 'mapping': [h for h in upload_headers if h != 'sku'], 'adapter': 'flatfilepro.cdp', 'requires_live_canary': True, 'sku_asins': inputs.get('sku_asins', {}), 'restore_missing_only': request['operation'].startswith('account_health.'), 'finding_id': inputs.get('finding_id')}
+    if export_kind:
+        # Recorded only when supplied, so existing plan bodies and hashes keep their bytes.
+        prepared['source_export_kind'] = export_kind
+    return prepared
 
 
 def prepare_images(request, directory):
     inputs = request['inputs']
+    live_listing_evidence(inputs)
+    if inputs.get('image_policy') == 'attended_gallery':
+        require_attended('The attended_gallery image policy')
     manifest = inputs.get('images')
     require(isinstance(manifest, list) and manifest, 'missing_images', 'images manifest is required')
     changes, seen = [], set()
@@ -316,9 +364,11 @@ def prepare_images(request, directory):
         prefix = {'MAIN': 'main_product_image_locator', 'SWCH': 'swatch_product_image_locator'}.get(slot, f'other_product_image_locator_{int(slot[2:])}' if slot.startswith('PT') else '')
         require(evidence_tools().canonical_header(field) == prefix + '.0.media_location', 'scope_violation', 'Image slot must map to its exact supported template media_location attribute')
     policy = inputs.get('image_policy')
-    require(policy in {None, 'secondary_slots_only'}, 'scope_violation', 'Unknown image policy')
-    if policy:
+    require(policy is None or isinstance(policy, str) and policy in GUARDED_IMAGE_POLICIES, 'scope_violation', 'Unknown image policy')
+    if policy == 'secondary_slots_only':
         require(all(image['slot'].startswith('PT') for image in changes) and all(slot.startswith('PT') for slot in fields), 'scope_violation', 'Secondary image updates cannot change MAIN or swatches')
+    elif policy == 'attended_gallery':
+        require(all(image['slot'] != 'SWCH' for image in changes) and 'SWCH' not in fields, 'scope_violation', 'Attended gallery updates cannot change swatches')
     copy_request = json.loads(json.dumps(request))
     copy_request['operation'] = 'flatfilepro.update'
     # FFP can export mangled headers while the current catalog uses canonical ones.
@@ -338,9 +388,12 @@ def prepare_images(request, directory):
     prepared['images'] = changes
     prepared['restore_missing_only'] = request['operation'].startswith('account_health.')
     prepared['sku_asins'] = inputs.get('sku_asins', {})
+    export_kind = source_export_kind(inputs)
+    if export_kind:
+        prepared['source_export_kind'] = export_kind
     if policy:
         prepared['image_policy'] = policy
-        prepared['image_before_rows'] = image_before_rows(request, directory)
+        prepared['image_before_rows'] = image_before_rows(request, directory, main_changed={image['sku'] for image in changes if image['slot'] == 'MAIN'})
         prepared['image_identity_rows'] = {sku: {**dict.fromkeys(IMAGE_IDENTITY_KEYS, ''), **image_listing_identity(inputs['live']['rows'][sku])} for sku in request['targets']}
         source_kind = inputs.get('image_catalog_source')
         require(source_kind in {None, 'flatfilepro_listing_read'}, 'invalid_source', 'Unknown image catalog source')
@@ -380,15 +433,22 @@ IMAGE_IDENTITY_KEYS = [
 
 
 def image_listing_identity(row):
-    """Freeze every observed identity field, preserving blank optional values."""
-    attributes = re.compile(r'^(?:item_name|model_name|model_number|part_number|color|size|'
+    """Freeze every observed identity field, preserving blank optional values.
+
+    Only attribute paths of the exact form field.index.key count, so nested
+    companions such as unit_count.0.type.value never enter identity. listingIdentity
+    in image-identity.mjs applies the same pattern."""
+    attributes = re.compile(r'(?:item_name|model_name|model_number|part_number|color|size|'
                             r'parentage_level|child_parent_sku_relationship|'
-                            r'externally_assigned_product_identifier|merchant_suggested_asin)\.')
-    return {k: v for k, v in row.items() if k in IMAGE_IDENTITY_KEYS or attributes.match(k)}
+                            r'externally_assigned_product_identifier|merchant_suggested_asin)\.[0-9]+\.[^.]+')
+    return {k: v for k, v in row.items() if k in IMAGE_IDENTITY_KEYS or attributes.fullmatch(k)}
 
 
-def image_before_rows(request, directory):
-    """Freeze all exported image attributes, including untouched slots and MAIN."""
+def image_before_rows(request, directory, *, main_changed=frozenset()):
+    """Freeze all exported image attributes, including untouched slots and MAIN.
+
+    An existing MAIN is required on every SKU whose MAIN the plan does not replace;
+    main_changed holds the SKUs that do."""
     inputs = request['inputs']
     source = input_artifact(inputs.get('source_export'), directory, 'image-baseline-export')
     evidence = evidence_tools()
@@ -399,7 +459,7 @@ def image_before_rows(request, directory):
         live = inputs['live']['rows'].get(sku, {})
         image_fields = {field: as_text(value) for field, value in row.items()
                         if re.fullmatch(r'(?:main_product_image_locator|swatch_product_image_locator|other_product_image_locator_[1-9])\.0\.media_location', field)}
-        require(image_fields.get('main_product_image_locator.0.media_location'), 'missing_main_image', 'Secondary updates require an observed existing MAIN image')
+        require(sku in main_changed or image_fields.get('main_product_image_locator.0.media_location'), 'missing_main_image', 'Secondary updates require an observed existing MAIN image')
         require(all(field in live and as_text(live[field]) == value for field, value in image_fields.items()), 'stale_source', 'Complete live image evidence must match the source export, including protected slots')
         asin = inputs.get('sku_asins', {}).get(sku)
         require(isinstance(asin, str) and re.fullmatch(r'[A-Z0-9]{10}', asin) and (live.get('asin') or live.get('ASIN')) == asin, 'image_identity_mismatch', 'Live catalog evidence must bind every seller SKU to its exact ASIN')
@@ -674,7 +734,8 @@ class Operations:
                 self.case_adapter_session()
             target_match = grant.get('targets') == plan['targets'] if case_operation else set(x.get('sku') if isinstance(x, dict) else x for x in grant.get('targets', [])) == set(plan['targets'])
             require(grant.get('execute') is True and grant.get('account') == plan['account'] and grant.get('operation') == plan['operation'] and grant.get('plan_hash') == state['plan_hash'] and target_match, 'grant_mismatch', 'Execution grant must bind exact account, operation, targets and plan hash')
-            if plan['body'].get('image_policy') == 'secondary_slots_only' and not state.get('effects_started'):
+            main_review = self.attended_gallery_grant(plan, grant) if plan['body'].get('image_policy') == 'attended_gallery' else None
+            if plan['body'].get('image_policy') in GUARDED_IMAGE_POLICIES and not state.get('effects_started'):
                 try:
                     self.validate_image_baseline(plan, None)
                 except OperationError as exc:
@@ -695,7 +756,7 @@ class Operations:
                 return self.persist(directory, state, 'blocked', reason='adapter_unavailable', message='Preparation is complete. No verified submission adapter is installed for this operation.')
             require(grant.get('allow_live_canary') is True or grant.get('allow_validated_adapter') is True, 'canary_required', 'This adapter needs an explicitly scoped live canary before production enablement')
             image_preflight = None
-            if plan['body'].get('image_policy') == 'secondary_slots_only':
+            if plan['body'].get('image_policy') in GUARDED_IMAGE_POLICIES:
                 ffp_source = plan['body'].get('image_catalog_source') == 'flatfilepro_listing_read'
                 fresh = self.collect_image_catalog(directory, state, plan, purpose='preflight') if ffp_source else self.collect_export(directory, state, plan, purpose='preflight')
                 if fresh is None:
@@ -727,7 +788,8 @@ class Operations:
             for image in plan['body'].get('images', []):
                 verify_hosted_asset(image['path'], image['url'])
             # Journal intent before spawning; loss of response can never cause blind replay.
-            self.persist(directory, state, 'uncertain', execution_started_at=now(), reason='submission_attempt_started', execution_stage=state.pop('next_stage', state.get('execution_stage', 1)), submission_id=None, effects_started=True, phase='executing', next_action=None)
+            self.persist(directory, state, 'uncertain', execution_started_at=now(), reason='submission_attempt_started', execution_stage=state.pop('next_stage', state.get('execution_stage', 1)), submission_id=None, effects_started=True, phase='executing', next_action=None,
+                         **({'main_image_review': main_review} if main_review else {}))
             envelope = {'schema_version': 1, 'plan': plan, 'plan_path': str(directory / 'plan.json'), 'plan_hash': state['plan_hash'], 'receipt_path': str(directory / 'adapter-receipt.json'), 'stage': state['execution_stage'], 'mode': 'execute', 'task_key': state.get('task_key'), 'complete_task': False}
             if image_preflight:
                 envelope['image_preflight'] = image_preflight
@@ -746,6 +808,29 @@ class Operations:
                 return self.persist(directory, state, status, adapter_result=response, submission_id=response.get('submission_id'), reason=response.get('reason'), effects_started=response.get('attempted', True) if guarded_submission else True)
             except (subprocess.TimeoutExpired, json.JSONDecodeError, OSError, OperationError) as exc:
                 return self.persist(directory, state, 'uncertain', reason='adapter_result_uncertain', message=str(exc))
+
+    def attended_gallery_grant(self, plan, grant):
+        """Refuse Grimoire; a MAIN change also needs the operator's review of its exact pixels.
+
+        Returns the bound review for the journal, or None when MAIN is unchanged."""
+        require_attended('attended_gallery execution')
+        main = sorted(image['sha256'] for image in plan['body']['images'] if image['slot'] == 'MAIN')
+        if not main:
+            return None
+        review = grant.get('main_image_review')
+        bound = (isinstance(review, dict) and set(review) == {'approved_by', 'approved_at', 'image_sha256'} and
+                 isinstance(review['approved_by'], str) and bool(review['approved_by'].strip()) and
+                 isinstance(review['image_sha256'], list) and all(isinstance(value, str) for value in review['image_sha256']) and
+                 sorted(review['image_sha256']) == main)
+        require(bound, 'main_review_required', 'A MAIN change requires grant.main_image_review with approved_by, approved_at '
+                'and the exact SHA-256 of every MAIN image in this plan')
+        try:
+            approved = timestamp(review['approved_at'])
+        except OperationError:
+            approved = None
+        require(approved is not None and approved <= timestamp(now()) + dt.timedelta(minutes=5), 'main_review_required',
+                'MAIN review approved_at must be an ISO timestamp with timezone that is not future dated')
+        return review
 
     def validate_image_baseline(self, plan, rows, *, protected_only=False):
         evidence = evidence_tools()
@@ -768,8 +853,8 @@ class Operations:
                     f'IDENTITY_MAP_INCOMPLETE: {legacy}missing or incomplete identity for SKUs: {", ".join(missing)}; re-prepare the plan')
             if rows is None:
                 return
-        touched = {(image['sku'], f"other_product_image_locator_{int(image['slot'][2:])}.0.media_location")
-                   for image in plan['body']['images'] if image['slot'].startswith('PT')}
+        # Every submitted slot is exempt from preservation, MAIN included when a plan replaces it.
+        touched = {(image['sku'], image_slot_field(image['slot'])) for image in plan['body']['images']}
         for sku, baseline in plan['body']['image_before_rows'].items():
             for field, value in baseline.items():
                 if protected_only and (sku, field) in touched:
@@ -778,7 +863,7 @@ class Operations:
                 require(observed is not None and observed == value, 'image_state_conflict', f'Current child identity or protected image changed: {sku}/{field}')
         if not protected_only:
             for sku in plan['targets']:
-                require(image_listing_identity(rows.get(sku, {})) == expected[sku], 'image_state_conflict',
+                require(image_listing_identity(rows.get(sku, {})) == image_listing_identity(expected[sku]), 'image_state_conflict',
                         f'Current listing model, color, size or identity changed: {sku}')
 
     def record_image_review(self, request):
@@ -941,7 +1026,7 @@ class Operations:
             except (OSError, ValueError, KeyError):
                 verified = False
             (matched if verified else pending).append(label)
-            field = f'other_product_image_locator_{int(image["slot"][2:])}.0.media_location'
+            field = image_slot_field(image['slot'])
             attribute = indexed.get((image['sku'], field), {})
             if processing_valid and attribute.get('status') in {'failed', 'rejected'}:
                 failures.append(f'{label}: {attribute["status"]}')
@@ -1321,7 +1406,7 @@ class Operations:
         if body.get('image_policy'):
             try:
                 ffp_source = (body.get('image_catalog_source') == 'flatfilepro_listing_read' or
-                              (body.get('image_policy') == 'secondary_slots_only' and body.get('adapter') == 'flatfilepro.cdp'))
+                              (body.get('image_policy') in GUARDED_IMAGE_POLICIES and body.get('adapter') == 'flatfilepro.cdp'))
                 fresh = self.collect_image_catalog(directory, state, plan, complete_task=False) if ffp_source else self.collect_export(directory, state, plan, complete_task=False)
                 if fresh is not None:
                     protected = {'protected_rows': fresh['rows'], 'preservation_source':
@@ -1547,7 +1632,7 @@ class Operations:
                 processing_failures = []
                 for image in body['images']:
                     item = observed.get((image['sku'], image['slot']), {})
-                    field = ('other_product_image_locator_' + str(int(image['slot'][2:])) + '.0.media_location') if image['slot'].startswith('PT') else None
+                    field = image_slot_field(image['slot'])
                     attribute_status = processing_attributes.get((image['sku'], field))
                     if attribute_status in {'failed', 'rejected'}:
                         processing_failures.append(f"{image['sku']}/{image['slot']}: {attribute_status}")

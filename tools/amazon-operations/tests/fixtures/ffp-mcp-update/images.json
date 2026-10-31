@@ -1,0 +1,20 @@
+[
+ {
+  "sku": "TEST-COAT-01",
+  "slot": "PT02",
+  "artifact": {
+   "path": "/archive/source-archive/34dd4bf169e07dc949be353a6ba9578f2877d3d2a1edc799f3141717cbf285b5.png",
+   "sha256": "34dd4bf169e07dc949be353a6ba9578f2877d3d2a1edc799f3141717cbf285b5"
+  },
+  "url": "https://res.cloudinary.com/testcloud/image/upload/v1761739200/ffp-test/listing/34dd4bf169e07dc949be353a6ba9578f2877d3d2a1edc799f3141717cbf285b5.png"
+ },
+ {
+  "sku": "TEST-COAT-02",
+  "slot": "MAIN",
+  "artifact": {
+   "path": "/archive/source-archive/e763d5072ff28f9b083db195ff121273015c44c4ea66dec3df77f83fd9a86e2d.png",
+   "sha256": "e763d5072ff28f9b083db195ff121273015c44c4ea66dec3df77f83fd9a86e2d"
+  },
+  "url": "https://res.cloudinary.com/testcloud/image/upload/v1761739200/ffp-test/listing/e763d5072ff28f9b083db195ff121273015c44c4ea66dec3df77f83fd9a86e2d.png"
+ }
+]

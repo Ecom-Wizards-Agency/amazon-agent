@@ -43,7 +43,7 @@ Amazon was requesting a missing attribute value on the child listing, and the ag
 
 ## Fix
 
-1. Open the missing child in Manage All Inventory and read the listing issue or the attribute Amazon is requesting.
+1. Open the missing child in Manage All Inventory and read the listing issue or the attribute Amazon is requesting. In an attended session with the FlatFilePro connector, `ffp-mcp.mjs rows` lists every attribute FlatFilePro has saved as blank for that SKU in `records[].blank_attributes`; the listing issue stays the authority on what Amazon asks for.
 2. Get the actual value from the brand owner or the product packaging. Do not guess; listing data must accurately describe the product.
 3. Fill in the requested attribute and save or resubmit.
 4. Recheck the detail page after processing to confirm the child is back in the family.

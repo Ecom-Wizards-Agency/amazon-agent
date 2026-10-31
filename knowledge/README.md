@@ -14,7 +14,7 @@ python3 tools/search_amazon_libraries.py "<question>" --library kb --limit 5
 
 Unit format, verification states and privacy rules: `docs/knowledge-library.md`.
 
-Units: **322** (322 active, 0 retired)
+Units: **324** (324 active, 0 retired)
 
 ## compliance (27)
 
@@ -148,7 +148,7 @@ Units: **322** (322 active, 0 retired)
 - [KC-0317 Planning a first inbound from China to the US: how to split air and sea, and where to book ocean freight with Amazon](logistics/KC-0317_planning-a-first-inbound-from-china-to-the-us-how-to-split-a.md) · decision-aid · reviewed · verified
 - [KC-0318 Need to drop a near-expiry SKU from an FBA shipment confirmed more than a day ago: rebuild it, or keep the shipment and labels and leave the item out](logistics/KC-0318_need-to-drop-a-near-expiry-sku-from-an-fba-shipment-confirme.md) · decision-aid · reviewed · unverified
 
-## catalog (62)
+## catalog (64)
 
 - [KC-0006 Variation children vanish from a family: check FBM offer deactivation for Valid Tracking Rate before fixing images or parentage](catalog/KC-0006_variation-children-vanish-from-a-family-check-fbm-offer-deac.md) · diagnosis · draft · unverified
 - [KC-0035 Same image set needed on every size child of a variation: how to avoid uploading images one listing at a time](catalog/KC-0035_same-image-set-needed-on-every-size-child-of-a-variation-how.md) · procedure · reviewed · unverified
@@ -212,6 +212,8 @@ Units: **322** (322 active, 0 retired)
 - [KC-0238 Unknown non-buyable "-Parent" SKU in inventory: it is the variation parent and should not be deleted](catalog/KC-0238_unknown-non-buyable-parent-sku-in-inventory-it-is-the-variat.md) · rule · reviewed · unverified
 - [KC-0319 New listing blocked pending a GS1 certificate: the UPCs' company prefix does not match the prefix certificate](catalog/KC-0319_new-listing-blocked-pending-a-gs1-certificate-the-upcs-compa.md) · diagnosis · reviewed · verified
 - [KC-0322 Brand name change on an existing ASIN rejected as rebranding by Selling Partner Support](catalog/KC-0322_brand-name-change-on-an-existing-asin-rejected-as-rebranding.md) · rule · reviewed · unverified
+- [KC-0329 FlatFilePro connector read versus the FlatFilePro item-detail read: are the listing values the same, and what does the connector leave out?](catalog/KC-0329_flatfilepro-connector-read-versus-the-flatfilepro-item-detai.md) · reference · draft · unverified
+- [KC-0332 FlatFilePro direct listing update: what does a write replace, and how do live reads differ from the saved copy?](catalog/KC-0332_flatfilepro-direct-listing-update-what-does-a-write-replace.md) · reference · draft · unverified
 
 ## support-cases (8)
 

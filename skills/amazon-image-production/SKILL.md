@@ -50,6 +50,11 @@ layout handoff with assets, exact copy and composition instructions; call it a
 handoff rather than an implemented design. Follow workspace storage and artifact
 rules. Listing publication and messages remain separate actions.
 
+Publishing finished files to existing listings is the `direct-update` mode of
+`amazon-flatfilepro` (scope `images`) when that skill and its FlatFilePro connector
+are installed; otherwise hand the files to the operator. Neither is needed for
+design work.
+
 ## References
 
 - `references/figma-production.md`: editable layout workflow and visual checks.

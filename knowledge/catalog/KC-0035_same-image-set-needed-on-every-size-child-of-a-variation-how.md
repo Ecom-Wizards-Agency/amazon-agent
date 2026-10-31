@@ -46,7 +46,7 @@ Each size is its own child ASIN with its own image set, so the listing editor ne
 1. Option A, bulk image upload: rename each image as ASIN.VARIANT plus extension (for example ASIN.MAIN.jpg, ASIN.PT01.jpg, ASIN.PT02.jpg) for every child ASIN, with no spaces or extra characters.
 2. Zip the renamed files and drag the zip into the Bulk Image Upload tool under Upload Images; check the upload status for rejected files.
 3. Option B, copy URLs: upload the images to one child per colour in the listing editor and wait until Amazon accepts them.
-4. Export that child's listing data, copy its main and other image URLs into the rows of the sibling sizes in a category inventory file, and upload it as a partial update (upload needs operator approval).
+4. Export that child's listing data, copy its main and other image URLs into the rows of the sibling sizes in a category inventory file, and upload it as a partial update (upload needs operator approval). In an attended session with the FlatFilePro connector, `ffp-mcp.mjs survey` on a verified connector export lists each child's MAIN and PT image URLs without a download; the accepted child's detail page stays the proof that Amazon took the images.
 5. Check every child's detail page shows the new images in the intended order.
 
 ## Verify

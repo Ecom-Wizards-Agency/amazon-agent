@@ -28,6 +28,10 @@ Knowledge topics are the folders under `knowledge/`. MAG SOP categories are the 
 
 When no row fits, search `--library all` and classify the symptom with step 3 of the skill.
 
+For a listing or flat-file symptom in an attended session, the FlatFilePro connector reads a SKU's saved attributes, blank attributes and image slots without an export download (`node tools/amazon-operations/ffp-mcp.mjs rows`, `gaps` or `survey`; see `skills/amazon-flatfilepro/references/mcp-reads.md`). That is FlatFilePro's saved copy; the listing issue, Category Listings Report and detail page stay the authority on what Amazon holds.
+
+When the operator asks, the connector's live listing read (`flatfilepro_get_listings_item_from_amazon`) is the first read for a listing issue: it returns Amazon's current attributes and its `issues` with `code`, `severity`, `message` and `attributeNames`. Image issues name `media_locator`, not a slot.
+
 ## Error-text search recipe
 
 1. Search the verbatim notice first, in quotes as one argument: `python3 tools/search_amazon_libraries.py "<verbatim notice or code>" --library kb --limit 5`. Units store notices in `error_text`, and the helper boosts exact hits.

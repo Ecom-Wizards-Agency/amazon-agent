@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_on": "2026-10-03",
+  "updated_on": "2026-10-29",
   "rows": [
     {
       "id": "seller-central.read",
@@ -74,6 +74,92 @@
       ],
       "verified_on": "2026-09-15",
       "notes": "SPP Edit is capability evidence, not runtime authorization."
+    },
+    {
+      "id": "flatfilepro.read",
+      "domain": "amazon",
+      "capability": "FlatFilePro connector reads (saved listings, catalog export, live Amazon listing and catalog reads, product-type field definitions)",
+      "grimoire": {
+        "state": "forbidden",
+        "how": "claude.ai account connectors are attended-only, so Grimoire cannot load this connector. Its CDP collectors remain its FlatFilePro read path."
+      },
+      "amazon_agent": {
+        "state": "allowed",
+        "how": "Read in an attended session after the connector-resolved seller and marketplace IDs match the target account. A saved get_listings result is planning input only; workbook values come from a byte-verified export.",
+        "identity": "Team FlatFilePro account through the claude.ai FlatFilePro connector"
+      },
+      "identity": "Team FlatFilePro account through the claude.ai FlatFilePro connector",
+      "port": null,
+      "spp_rows": [],
+      "gates": [
+        {
+          "kind": "file_literal",
+          "repo": "wizards-ai",
+          "file": "agent_runner.py",
+          "literal": "claude.ai connectors are attended-only"
+        },
+        {
+          "kind": "file_literal",
+          "repo": "amazon-agent",
+          "file": "tools/amazon-operations/ffp-mcp.mjs",
+          "literal": "planning_only_source"
+        },
+        {
+          "kind": "file_literal",
+          "repo": "amazon-agent",
+          "file": "tools/amazon-operations/operations.py",
+          "literal": "MCP_LISTING_READ = 'flatfilepro_mcp_listing_read'"
+        }
+      ],
+      "docs": [
+        {
+          "repo": "amazon-agent",
+          "path": "skills/amazon-flatfilepro/references/mcp-reads.md",
+          "note": "Connector read route, planning-only rule and bearer URL handling."
+        }
+      ],
+      "verified_on": "2026-10-29",
+      "notes": "get_listings and the export show FlatFilePro's saved copy, not live Amazon, and get_listings does not flag archived SKUs. get_listings_item_from_amazon and get_catalog_item_from_amazon read live Amazon; the catalog read is the ASIN view with Amazon's merged values, not the seller's listing. The direct-update route reads live before and after every write as a standard step, and starting that route counts as the operator's request for those reads. Saved reads are never live evidence for operations.py. Writes are row flatfilepro.mcp_update. Export download URLs are short-lived bearer values: read from stdin only and never logged, stored or repeated."
+    },
+    {
+      "id": "flatfilepro.mcp_update",
+      "domain": "amazon",
+      "capability": "FlatFilePro connector direct listing update (one existing SKU per call)",
+      "grimoire": {
+        "state": "forbidden",
+        "how": "claude.ai account connectors are attended-only, so Grimoire cannot load this connector, and ffp-mcp-update.mjs refuses with attended_only when WIZARDS_AI_MODE is set. Grimoire keeps the workbook pipeline and listing.images.bulk."
+      },
+      "amazon_agent": {
+        "state": "approval-gated",
+        "how": "The operator approves the exact batch review (review.md and batch SHA-256) in the current chat before the first write. The approval expires after 12 hours; a batch from an earlier session needs the operator's fresh approval in the current chat. A MAIN image change also needs approve --main-review FILE (approved_by, approved_at, image_sha256) binding the exact SHA-256 of every MAIN image. Every write starts with a fresh live read of the SKU taken right before it (next --live FILE), refused when the listing changed since the build. A recorded payload is never resubmitted, including after a timeout.",
+        "identity": "Team FlatFilePro account through the claude.ai FlatFilePro connector"
+      },
+      "identity": "Team FlatFilePro account through the claude.ai FlatFilePro connector",
+      "port": null,
+      "spp_rows": [],
+      "gates": [
+        {
+          "kind": "file_literal",
+          "repo": "wizards-ai",
+          "file": "agent_runner.py",
+          "literal": "claude.ai connectors are attended-only"
+        },
+        {
+          "kind": "file_literal",
+          "repo": "amazon-agent",
+          "file": "tools/amazon-operations/ffp-mcp-update.mjs",
+          "literal": "attended_only"
+        }
+      ],
+      "docs": [
+        {
+          "repo": "amazon-agent",
+          "path": "skills/amazon-flatfilepro/references/direct-update-mode.md",
+          "note": "Direct-update route: live reads, build, approval, submit loop, status and verify."
+        }
+      ],
+      "verified_on": "2026-10-29",
+      "notes": "Each supplied attribute's whole array is replaced; there is no preview, clearing or idempotency key. ACCEPTED is not live: only SUCCEEDED plus a matching live read-back confirms, and image slots also need the pixel check. Relationships and variations, clearing a value, price/offer/stock fields, brand and identifiers, new listings and SWCH stay on the workbook route (flatfilepro.submit). A rollback is a new approval-gated batch built from the before-read."
     },
     {
       "id": "flatfilepro.submit",
@@ -154,6 +240,60 @@
       ],
       "verified_on": "2026-09-16",
       "notes": "MAIN, swatches and unspecified slots remain unchanged. Authenticate sources, freeze revisions and assets, verify complete requested coverage and prevent overlapping submissions. Existing submitted operations reconcile without resubmission. The legacy Seller Central gallery executor remains disabled."
+    },
+    {
+      "id": "listing.images.attended",
+      "domain": "amazon",
+      "capability": "Attended FlatFilePro gallery image update (MAIN and PT slots)",
+      "grimoire": {
+        "state": "forbidden",
+        "how": "operations.py and the FlatFilePro adapter refuse the attended_gallery policy when WIZARDS_AI_MODE is set. Grimoire keeps listing.images.bulk, which never changes MAIN."
+      },
+      "amazon_agent": {
+        "state": "approval-gated",
+        "how": "Primary route: the direct update in row flatfilepro.mcp_update. The workbook attended_gallery path is the fallback when the connector is unavailable; each fallback run needs the operator's in-chat approval of the exact plan, SKUs, slots and preview before Update Listings. A MAIN change also needs grant.main_image_review binding the exact SHA-256 of every MAIN image.",
+        "identity": "Team FlatFilePro login, brokered on both ports, on the machine's attended default session",
+        "port": "attended-default"
+      },
+      "identity": "Grimoire delegated Seller Central login (shared Grimoire session)",
+      "port": 9223,
+      "spp_rows": [
+        "Image upload / listing images"
+      ],
+      "gates": [
+        {
+          "kind": "file_literal",
+          "repo": "amazon-agent",
+          "file": "tools/amazon-operations/operations.py",
+          "literal": "require_attended('The attended_gallery image policy')"
+        },
+        {
+          "kind": "file_literal",
+          "repo": "amazon-agent",
+          "file": "tools/amazon-operations/operations.py",
+          "literal": "'main_review_required'"
+        },
+        {
+          "kind": "file_literal",
+          "repo": "amazon-agent",
+          "file": "tools/amazon-operations/flatfilepro.mjs",
+          "literal": "body.image_policy!=='attended_gallery'||!wizardsAiMode()"
+        }
+      ],
+      "docs": [
+        {
+          "repo": "amazon-agent",
+          "path": "skills/amazon-flatfilepro/references/attended-images-mode.md",
+          "note": "Intake, hosting, MAIN checks, approval and reconcile route."
+        },
+        {
+          "repo": "amazon-agent",
+          "path": "skills/amazon-flatfilepro/references/direct-update-mode.md",
+          "note": "Primary image route: direct update with live read-back and pixel check."
+        }
+      ],
+      "verified_on": "2026-10-29",
+      "notes": "SWCH is never changed; every slot outside the plan stays frozen and is verified unchanged. In the workbook fallback, MAIN mapping in the live import screen is not yet proven, and a first MAIN run stops at the preview for that check. A rollback is a new approval-gated plan, never a replay."
     },
     {
       "id": "cases.create-reply",

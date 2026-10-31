@@ -2,6 +2,10 @@
 
 Mode browser: CDP (logged-in FlatFilePro session; hidden native file input, MUI autocomplete mapping; stop before Update Listings).
 
+**Scope.** The workbook route is for what the direct update cannot do: relationships and variations, clearing a value, price, offer and stock fields, brand and identifiers, new listings, an attended session without the FlatFilePro connector, and Grimoire or scheduled runs.
+Copy, backend terms, structured attributes and MAIN or PT images on an existing
+listing go through `references/direct-update-mode.md` instead.
+
 ## Core Rule
 
 Use the machine's attended default browser with its logged-in FlatFilePro session, per the Browser Standard in `AGENTS.md`. This mode operates the FlatFilePro upload/mapping UI after the upload file already exists. **FlatFilePro expects `.xlsx`** (operator, 2026-07-26); if you are handed a `.csv`, convert it to `.xlsx` before uploading rather than uploading the CSV. If the file still needs to be created from labels or backend exports, use the `prepare` mode first.
@@ -37,16 +41,17 @@ Before asking for repeated account or mapping details, check `_local/flatfilepro
    copying, or downloading a local file.
 3. Check the visible FlatFilePro `Seller & Marketplace` whenever possible.
 4. If the wrong account or marketplace is selected, switch to the target Seller & Marketplace and verify the page updates.
-5. Open FlatFilePro `Upload` only if not already on the upload flow.
-6. Click `UPLOAD FILE` and select the prepared `.xlsx` if no file is already selected.
-7. If file picker navigation is awkward, copying the `.xlsx` to Downloads is allowed as an optional convenience step. Register that new exact copy as `reproducible`; do not adopt the pre-existing source file.
-8. Register any export downloaded from the exact `https://app.flatfile.pro` origin as `source-backed` with that origin. Files supplied manually by the operator remain `preserve`.
-9. In the matching step, use `SKU` as the default match basis.
-10. Select the file's SKU column unless the operator already matched it.
-11. Map remaining columns one by one.
-12. Run the mandatory pre-handoff verification below.
-13. Capture validation issues and stop at the final review/confirmation screen.
-14. Complete the artifact run as `success` only when the mapping run itself completed. Use `blocked` or `failed` otherwise. The handoff lists registered paths, dispositions, and the seven-day eligibility date.
+5. When the IDs were resolved with `ffp-mcp.mjs binding` (`references/mcp-reads.md`), read the selected account's seller and marketplace IDs from the app (`tools/amazon-operations/flatfilepro-account.mjs` proves them) and check both equal the binding's `seller_id` and `marketplace_id`. A mismatch stops the run before `UPLOAD FILE`.
+6. Open FlatFilePro `Upload` only if not already on the upload flow.
+7. Click `UPLOAD FILE` and select the prepared `.xlsx` if no file is already selected.
+8. If file picker navigation is awkward, copying the `.xlsx` to Downloads is allowed as an optional convenience step. Register that new exact copy as `reproducible`; do not adopt the pre-existing source file.
+9. Register any export downloaded from the exact `https://app.flatfile.pro` origin as `source-backed` with that origin. Files supplied manually by the operator remain `preserve`.
+10. In the matching step, use `SKU` as the default match basis.
+11. Select the file's SKU column unless the operator already matched it.
+12. Map remaining columns one by one.
+13. Run the mandatory pre-handoff verification below.
+14. Capture validation issues and stop at the final review/confirmation screen.
+15. Complete the artifact run as `success` only when the mapping run itself completed. Use `blocked` or `failed` otherwise. The handoff lists registered paths, dispositions, and the seven-day eligibility date.
 
 ## Mandatory Pre-Handoff Verification
 
@@ -70,6 +75,8 @@ If the `.xlsx` was created or revised in the current run:
 If any staged preview value differs from the saved `.xlsx`, fail closed. Do not report the file as ready. Reload the Imports page, upload a uniquely named revision, remap it, and repeat the preview comparison.
 
 The public Amazon detail page is not a pre-submit validation source. It keeps showing the existing catalog contribution until the operator completes the final update and Amazon processes it. Live-page verification is a separate post-submit check.
+
+Optional advisory check after an approved submit: `ffp-mcp.mjs rows` on the changed SKUs, from a new connector read, shows whether FlatFilePro's saved copy now carries the submitted values. It never counts as completion. Completion still needs the Activity run result and the Amazon-side source (detail page, listing issue or Category Listings Report).
 
 ## Column Mapping
 
@@ -103,4 +110,4 @@ Keep the report concise.
 
 ## References
 
-Read `references/upload-mapping-workflow.md` for the detailed UI workflow and `references/failure-handling.md` for skip/report behavior.
+Read `references/upload-mapping-workflow.md` for the detailed UI workflow and `references/upload-failure-handling.md` for skip/report behavior.

@@ -1,13 +1,13 @@
 {
  "library": "Amazon Knowledge",
  "generated_by": "tools/knowledge/build_knowledge_index.py",
- "unit_count": 322,
- "active_count": 322,
+ "unit_count": 324,
+ "active_count": 324,
  "retired_count": 0,
  "topics": {
   "compliance": 27,
   "logistics": 99,
-  "catalog": 62,
+  "catalog": 64,
   "support-cases": 8,
   "ads": 41,
   "account-health": 25,
@@ -14071,6 +14071,105 @@
    "observed": "2026-08",
    "review_by": "2027-10",
    "file": "knowledge/catalog/KC-0322_brand-name-change-on-an-existing-asin-rejected-as-rebranding.md"
+  },
+  {
+   "id": "KC-0329",
+   "title": "FlatFilePro connector read versus the FlatFilePro item-detail read: are the listing values the same, and what does the connector leave out?",
+   "kind": "reference",
+   "topic": "catalog",
+   "status": "draft",
+   "skills": [
+    "amazon-flatfilepro",
+    "amazon-seo"
+   ],
+   "marketplaces": [
+    "all"
+   ],
+   "surface": "FlatFilePro connector (get_listings, listings export) and FlatFilePro item-detail read",
+   "symptom_keywords": [
+    "flatfilepro mcp same as export",
+    "ffp connector archived sku",
+    "get_listings archived",
+    "ffp export header spelling",
+    "unit_count type_value header",
+    "can I build an upload from the ffp connector"
+   ],
+   "error_text": [],
+   "asked_as": [
+    "Before switching the FlatFilePro workflows to the new connector, we compared its read of one supplement SKU with the browser item-detail read to see whether the values match."
+   ],
+   "synonyms": [
+    "FFP MCP",
+    "Flatfile Pro connector",
+    "FlatFilePro export"
+   ],
+   "resolution_status": "resolved",
+   "fix_source": "agency",
+   "evidence_location": "run-note",
+   "confidence": "high",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [],
+   "related_sops": [
+    "skills/amazon-flatfilepro/references/mcp-reads.md",
+    "skills/amazon-flatfilepro/references/direct-update-mode.md"
+   ],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2026-10",
+   "review_by": "2027-10",
+   "file": "knowledge/catalog/KC-0329_flatfilepro-connector-read-versus-the-flatfilepro-item-detai.md"
+  },
+  {
+   "id": "KC-0332",
+   "title": "FlatFilePro direct listing update: what does a write replace, and how do live reads differ from the saved copy?",
+   "kind": "reference",
+   "topic": "catalog",
+   "status": "draft",
+   "skills": [
+    "amazon-flatfilepro",
+    "amazon-seo",
+    "amazon-catalog"
+   ],
+   "marketplaces": [
+    "all"
+   ],
+   "surface": "FlatFilePro connector (update_listing_on_amazon, get_listings_item_from_amazon, get_product_type_fields, get_listings)",
+   "symptom_keywords": [
+    "ffp update replaces bullets",
+    "flatfilepro direct update whole array",
+    "image url changed after upload",
+    "media_locator issue",
+    "selectOptions free text",
+    "live listing values are strings",
+    "parentAsins in ffp listing"
+   ],
+   "error_text": [],
+   "asked_as": [
+    "Before the first direct write through the FlatFilePro connector we read one coat listing live and saved, plus its field definitions, to see what a write replaces and how to check it landed."
+   ],
+   "synonyms": [
+    "FFP MCP V2",
+    "FlatFilePro direct write",
+    "getListingsItem",
+    "patchListingsItem"
+   ],
+   "resolution_status": "resolved",
+   "fix_source": "agency",
+   "evidence_location": "run-note",
+   "confidence": "medium",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [],
+   "related_sops": [
+    "skills/amazon-flatfilepro/references/direct-update-mode.md",
+    "skills/amazon-flatfilepro/references/mcp-reads.md"
+   ],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2026-10",
+   "review_by": "2027-10",
+   "file": "knowledge/catalog/KC-0332_flatfilepro-direct-listing-update-what-does-a-write-replace.md"
   }
  ]
 }

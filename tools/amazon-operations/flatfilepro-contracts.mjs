@@ -5,6 +5,11 @@ import { createHash } from 'node:crypto';
 import { check } from './browser-ui.mjs';
 import { evaluate } from '../report-fetcher/cdp.mjs';
 
+// Same list as GUARDED_IMAGE_POLICIES in operations.py: plans that freeze identity
+// and untouched slots and need a fresh pre-submit read before Update Listings.
+export const GUARDED_IMAGE_POLICIES=Object.freeze(['secondary_slots_only','attended_gallery']);
+export const guardedImagePolicy=body=>GUARDED_IMAGE_POLICIES.includes(body?.image_policy);
+
 export function importIdentity(url) {
   const parsed = new URL(url);
   check(parsed.origin === 'https://app.flatfile.pro', 'Import identity must belong to FlatFilePro');
@@ -173,8 +178,10 @@ export async function readAttempt(path, input) {
 }
 
 export async function verifyImagePreflight(input, at = Date.now()) {
-  if (input.plan.body.image_policy !== 'secondary_slots_only') return;
+  if (!guardedImagePolicy(input.plan.body)) return;
   const receipt = input.image_preflight;
+  // A report or the item-detail read; an MCP get_listings copy is never pre-submit evidence.
+  check(receipt?.source_kind===undefined || receipt.source_kind==='flatfilepro_listing_read', 'Image preflight must be a FlatFilePro item-detail read or a report');
   check(receipt?.path && receipt.sha256 && (receipt.source_kind==='flatfilepro_listing_read'?receipt.observed_at:receipt.report_generated_at), 'Fresh image preflight evidence is required before submit');
   const age = at - Date.parse(receipt.source_kind==='flatfilepro_listing_read'?receipt.observed_at:receipt.report_generated_at);
   check(Number.isFinite(age) && age >= 0 && age <= 300000, 'Image preflight expired before submit');

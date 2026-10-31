@@ -1,0 +1,84 @@
+{
+ "source": "AMAZON_SP_API",
+ "sellerId": "A1TESTSELLER01",
+ "marketplaceId": "A1PA6795UKMFR9",
+ "item": {
+  "sku": "-TEST-COAT-03",
+  "summaries": [
+   {
+    "marketplaceId": "A1PA6795UKMFR9",
+    "asin": "B0TESTCT03",
+    "productType": "COAT",
+    "conditionType": "new_new",
+    "status": [
+     "BUYABLE",
+     "DISCOVERABLE"
+    ],
+    "itemName": "Testmantel Kinder Rot",
+    "createdDate": "2025-03-01T10:00:00.000Z",
+    "lastUpdatedDate": "2026-10-20T08:00:00.000Z",
+    "mainImage": {
+     "link": "https://m.media-amazon.com/images/I/61TESTMAIN03.jpg",
+     "height": 1500,
+     "width": 1200
+    }
+   }
+  ],
+  "relationships": [
+   {
+    "marketplaceId": "A1PA6795UKMFR9",
+    "relationships": [
+     {
+      "type": "VARIATION",
+      "parentSkus": [
+       "TEST-COAT-PARENT"
+      ],
+      "variationTheme": {
+       "attributes": [
+        "size",
+        "color"
+       ],
+       "theme": "SIZE/COLOR"
+      }
+     }
+    ]
+   }
+  ],
+  "attributes": {
+   "main_product_image_locator": [
+    {
+     "marketplace_id": "A1PA6795UKMFR9",
+     "media_location": "https://m.media-amazon.com/images/I/61TESTMAIN03.jpg"
+    }
+   ],
+   "bullet_point": [
+    {
+     "marketplace_id": "A1PA6795UKMFR9",
+     "language_tag": "de_DE",
+     "value": "Erster Punkt"
+    },
+    {
+     "marketplace_id": "A1PA6795UKMFR9",
+     "language_tag": "de_DE",
+     "value": "Zweiter Punkt"
+    }
+   ],
+   "item_name": [
+    {
+     "marketplace_id": "A1PA6795UKMFR9",
+     "language_tag": "de_DE",
+     "value": "Testmantel Kinder Rot"
+    }
+   ]
+  },
+  "issues": [],
+  "offers": [],
+  "fulfillmentAvailability": [
+   {
+    "fulfillmentChannelCode": "DEFAULT",
+    "quantity": 0
+   }
+  ],
+  "procurement": []
+ }
+}

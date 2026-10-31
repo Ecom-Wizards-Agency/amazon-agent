@@ -7,6 +7,8 @@ argument-hint: "[.xlsx path + target Seller & Marketplace, or 'continue from the
 
 Operate the FlatFilePro upload/mapping UI to push an **already-prepared** `.xlsx`. Do not duplicate logic here. Route into the `amazon-flatfilepro` skill.
 
+**Scope.** Use the workbook route only for what the direct update cannot do: relationships and variations, clearing a value, price, offer and stock fields, brand and identifiers, new listings, an attended session without the FlatFilePro connector, and Grimoire or scheduled runs. Copy, backend terms, structured attributes and images on an existing listing go to `/flatfilepro-update`.
+
 The user's target is: **$ARGUMENTS**
 
 ## Steps
@@ -16,6 +18,8 @@ The user's target is: **$ARGUMENTS**
 2. **Load the Chrome control skill first**, then the `upload-map` mode in `amazon-flatfilepro` as source of truth. Check `_local/flatfilepro/local-notes.md` for the operator's recurring Seller & Marketplace labels / mapping quirks before asking.
 
 3. **Confirm inputs.** Ask briefly only for what's missing: the `.xlsx` path and the target FlatFilePro **Seller & Marketplace** (or continue from the screen the operator already opened).
+
+3a. **Binding ID check.** When `/flatfilepro-prepare` resolved the IDs with `ffp-mcp.mjs binding`, read the selected Seller & Marketplace's seller and marketplace IDs from the app and check both equal the binding's `seller_id` and `marketplace_id` before `UPLOAD FILE`. A mismatch stops the run.
 
 4. **Upload + map**: `UPLOAD FILE`, choose **SKU** as the match basis, then map each file column to its Amazon attribute via `Search file columns` → `Search attributes` → `MAP ATTRIBUTES`. Match on the **technical header in parentheses** (e.g. `title_differentiation.0.value`), not the localized label. Skip blank helper columns; retry a transiently-hidden column by searching its family before marking it skipped.
 

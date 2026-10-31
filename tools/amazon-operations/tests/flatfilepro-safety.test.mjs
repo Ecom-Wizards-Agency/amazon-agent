@@ -205,3 +205,69 @@ test('pre-submit catalog read releases context then reacquires exact import targ
  assert.deepEqual(calls,['release','collect','acquire']);
  await assert.rejects(refreshImagePreflight(input,original,{release:async()=>{},collect:async()=>fresh,acquire:async spec=>{assert.equal(spec.expectedTargetId,original.targetId);throw new Error('EVIDENCE_TARGET_MISMATCH');}}),/EVIDENCE_TARGET_MISMATCH/);
 });
+
+test('guarded image policies are the same list in the adapter and operations.py',async()=>{
+ const {readFile}=await import('node:fs/promises');
+ const {GUARDED_IMAGE_POLICIES,guardedImagePolicy}=await import('../flatfilepro-contracts.mjs');
+ const python=await readFile(new URL('../operations.py',import.meta.url),'utf8');
+ const literal=python.match(/^GUARDED_IMAGE_POLICIES = frozenset\(\{([^}]*)\}\)$/m)[1];
+ assert.deepEqual([...literal.matchAll(/'([^']+)'/g)].map(match=>match[1]).sort(),[...GUARDED_IMAGE_POLICIES].sort());
+ for(const policy of ['secondary_slots_only','attended_gallery'])assert.equal(guardedImagePolicy({image_policy:policy}),true);
+ for(const body of [{},{image_policy:null},{image_policy:'Attended_Gallery'},undefined])assert.equal(guardedImagePolicy(body),false);
+});
+
+test('attended gallery pre-click preflight enforces the same five-minute freshness',async()=>{
+ const directory=await mkdtemp(join(tmpdir(),'ffp-attended-preflight-'));
+ try {
+  const path=join(directory,'read.json');await writeFile(path,'fresh');
+  const sha256=createHash('sha256').update('fresh').digest('hex'),at=Date.now(),stamp=new Date(at).toISOString();
+  for(const receipt of [{path,sha256,report_generated_at:stamp},{source_kind:'flatfilepro_listing_read',path,sha256,observed_at:stamp}]){
+   const input={plan:{body:{image_policy:'attended_gallery'}},image_preflight:receipt};
+   await verifyImagePreflight(input,at);
+   await assert.rejects(verifyImagePreflight(input,at+300001),/expired/);
+   await assert.rejects(verifyImagePreflight(input,at-1),/expired/);
+  }
+  await assert.rejects(verifyImagePreflight({plan:{body:{image_policy:'attended_gallery'}}},at),/Fresh image preflight evidence is required/);
+  for(const policy of ['attended_gallery','secondary_slots_only'])for(const source_kind of ['flatfilepro_mcp_listing_read',null])
+   await assert.rejects(verifyImagePreflight({plan:{body:{image_policy:policy}},image_preflight:{source_kind,path,sha256,report_generated_at:stamp,observed_at:stamp}},at),/item-detail read or a report/);
+  await writeFile(path,'changed');
+  await assert.rejects(verifyImagePreflight({plan:{body:{image_policy:'attended_gallery'}},image_preflight:{path,sha256,report_generated_at:stamp}},at),/changed/);
+  // Legacy plans without a policy keep their existing behaviour.
+  await verifyImagePreflight({plan:{body:{}}},at);
+ } finally {await rm(directory,{recursive:true,force:true});}
+});
+
+async function adapterRun(body,env={}){
+ const {readFile}=await import('node:fs/promises');
+ const directory=await mkdtemp(join(tmpdir(),'ffp-attended-adapter-'));
+ const previous=Object.fromEntries(Object.keys(env).map(key=>[key,process.env[key]]));
+ try{
+  Object.assign(process.env,env);
+  const plan={operation_id:'attended-test',account:{seller_id:'A1TESTSELLER01',marketplace_id:'ATVPDKIKX0DER'},targets:['S'],artifacts:[],body:{adapter:'flatfilepro.cdp',...body}};
+  const planPath=join(directory,'plan.json'),receiptPath=join(directory,'receipt.json');
+  await writeFile(planPath,JSON.stringify(plan));
+  const result=await run({schema_version:1,plan,plan_hash:'a'.repeat(64),plan_path:planPath,receipt_path:receiptPath,mode:'execute'});
+  assert.deepEqual(JSON.parse(await readFile(receiptPath,'utf8')),result);
+  return result;
+ }finally{
+  for(const [key,value] of Object.entries(previous))if(value===undefined)delete process.env[key];else process.env[key]=value;
+  await rm(directory,{recursive:true,force:true});
+ }
+}
+
+test('adapter applies the identity gate to attended gallery before acquiring a tab',async()=>{
+ const result=await adapterRun({image_policy:'attended_gallery',image_catalog_source:'flatfilepro_listing_read'},{WIZARDS_AI_MODE:''});
+ assert.equal(result.status,'blocked');assert.equal(result.attempted,false);assert.equal(result.phase,'account_selection');
+ assert.match(result.message,/IDENTITY_MAP_INCOMPLETE:.*Plan predates identity capture.*SKUs: S/);
+});
+
+test('adapter refuses attended gallery under WIZARDS_AI_MODE before acquiring a tab',async()=>{
+ for(const value of ['1','true']){
+  const result=await adapterRun({image_policy:'attended_gallery'},{WIZARDS_AI_MODE:value});
+  assert.equal(result.status,'blocked');assert.equal(result.attempted,false);assert.equal(result.phase,'account_selection');
+  assert.equal(result.reason,'attended_only');
+ }
+ // Grimoire's secondary route reaches its usual identity gate instead.
+ const secondary=await adapterRun({image_policy:'secondary_slots_only'},{WIZARDS_AI_MODE:'1'});
+ assert.equal(secondary.reason,'ui_contract_unavailable');assert.match(secondary.message,/IDENTITY_MAP_INCOMPLETE/);
+});

@@ -1,0 +1,16 @@
+{
+ "jobId": "job-test-0001",
+ "sellerId": "A1TESTSELLER01",
+ "marketplaceId": "ATVPDKIKX0DER",
+ "archiveStatus": "ALL",
+ "schemaVersion": 2,
+ "snapshotAt": "2026-10-28T09:00:00.000Z",
+ "completedAt": "2026-10-28T09:00:01.000Z",
+ "export_count": 6,
+ "sha256": "fea9ce0a37e25713e24547971207386a146c7e04580ce993cf3ff2b98f86f343",
+ "compressedBytes": 1190,
+ "fileName": "catalog-export-test.jsonl.gz",
+ "path": "tests/fixtures/ffp-mcp/catalog-export-test.jsonl.gz",
+ "fetched_at": "2026-10-28T09:01:00.000Z",
+ "source": "ffp-mcp-export"
+}

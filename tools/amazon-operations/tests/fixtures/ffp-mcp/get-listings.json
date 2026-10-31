@@ -1,0 +1,245 @@
+{
+ "listings": [
+  {
+   "seller_id": "A1TESTSELLER01",
+   "marketplace_id": "ATVPDKIKX0DER",
+   "asin": "B0TEST0002",
+   "sku": "TEST-CHILD-BLUE",
+   "attributes": {
+    "item_name": [
+     {
+      "value": "Test Shirt Blue",
+      "language_tag": "en_US",
+      "marketplace_id": "ATVPDKIKX0DER"
+     }
+    ],
+    "brand": [
+     {
+      "value": "TestBrand",
+      "language_tag": "en_US",
+      "marketplace_id": "ATVPDKIKX0DER"
+     }
+    ],
+    "bullet_point": [
+     {
+      "value": "First bullet",
+      "language_tag": "en_US",
+      "marketplace_id": "ATVPDKIKX0DER"
+     },
+     {
+      "value": "Second bullet, with comma",
+      "language_tag": "en_US",
+      "marketplace_id": "ATVPDKIKX0DER"
+     },
+     {
+      "value": "Third \"quoted\" bullet",
+      "language_tag": "en_US",
+      "marketplace_id": "ATVPDKIKX0DER"
+     }
+    ],
+    "product_description": [
+     {
+      "value": "A plain test description.\nSecond line.",
+      "language_tag": "en_US",
+      "marketplace_id": "ATVPDKIKX0DER"
+     }
+    ],
+    "title_differentiation": [
+     {
+      "value": "Soft cotton blend",
+      "language_tag": "en_US",
+      "marketplace_id": "ATVPDKIKX0DER"
+     }
+    ],
+    "generic_keyword": [
+     {
+      "value": "shirt tee",
+      "language_tag": "en_US",
+      "marketplace_id": "ATVPDKIKX0DER"
+     },
+     {
+      "value": "top",
+      "language_tag": "en_US",
+      "marketplace_id": "ATVPDKIKX0DER"
+     }
+    ],
+    "color": [
+     {
+      "value": "Blau",
+      "language_tag": "en_US",
+      "marketplace_id": "ATVPDKIKX0DER",
+      "standardized_values": [
+       "Blau"
+      ]
+     }
+    ],
+    "size": [
+     {
+      "value": "M",
+      "language_tag": "en_US",
+      "marketplace_id": "ATVPDKIKX0DER"
+     }
+    ],
+    "part_number": [
+     {
+      "value": "MPN-TEST-1",
+      "marketplace_id": "ATVPDKIKX0DER"
+     }
+    ],
+    "model_number": [
+     {
+      "value": "MODEL-1",
+      "marketplace_id": "ATVPDKIKX0DER"
+     }
+    ],
+    "unit_count": [
+     {
+      "value": 60,
+      "type": {
+       "value": "Count",
+       "language_tag": "en_US"
+      },
+      "marketplace_id": "ATVPDKIKX0DER"
+     }
+    ],
+    "item_dimensions": [
+     {
+      "width": {
+       "unit": "centimeters",
+       "value": 10
+      },
+      "height": {
+       "unit": "centimeters",
+       "value": 5
+      },
+      "length": {
+       "unit": "centimeters"
+      },
+      "marketplace_id": "ATVPDKIKX0DER"
+     }
+    ],
+    "item_weight": [
+     {
+      "unit": "grams",
+      "value": 120,
+      "normalized_value": {
+       "unit": "kilograms",
+       "value": 0.12
+      },
+      "marketplace_id": "ATVPDKIKX0DER"
+     }
+    ],
+    "purchasable_offer": [
+     {
+      "currency": "USD",
+      "end_at": {
+       "value": null
+      },
+      "our_price": [
+       {
+        "schedule": [
+         {
+          "value_with_tax": 49.99
+         }
+        ]
+       }
+      ],
+      "marketplace_id": "ATVPDKIKX0DER"
+     }
+    ],
+    "outer": [
+     {
+      "material": [
+       {
+        "value": "Cotton"
+       },
+       {
+        "value": "Polyester"
+       }
+      ],
+      "marketplace_id": "ATVPDKIKX0DER"
+     }
+    ],
+    "is_fragile": [
+     {
+      "value": false,
+      "marketplace_id": "ATVPDKIKX0DER"
+     }
+    ],
+    "variation_theme": [
+     {
+      "name": "COLOR"
+     }
+    ],
+    "fulfillment_availability": [
+     {
+      "fulfillment_channel_code": "DEFAULT",
+      "quantity": 5
+     }
+    ],
+    "parentage_level": [
+     {
+      "value": "child",
+      "marketplace_id": "ATVPDKIKX0DER"
+     }
+    ],
+    "child_parent_sku_relationship": [
+     {
+      "child_relationship_type": "variation",
+      "parent_sku": "TEST-PARENT-01",
+      "marketplace_id": "ATVPDKIKX0DER"
+     }
+    ],
+    "main_product_image_locator": [
+     {
+      "media_location": "https://images.example.test/main-blue.png",
+      "marketplace_id": "ATVPDKIKX0DER"
+     }
+    ],
+    "other_product_image_locator_1": [
+     {
+      "media_location": "https://images.example.test/pt01-blue.png",
+      "marketplace_id": "ATVPDKIKX0DER"
+     }
+    ],
+    "other_product_image_locator_3": [
+     {
+      "media_location": "https://images.example.test/pt03-blue.png",
+      "marketplace_id": "ATVPDKIKX0DER"
+     }
+    ],
+    "parentAsins": [
+     "B0TEST0001"
+    ]
+   },
+   "productType": "SHIRT",
+   "blankAttributes": [
+    "material",
+    "special_feature",
+    "unrelated_attribute",
+    "apparel_size[0].height_type",
+    "purchasable_offer[0].end_at.value",
+    "image_locator_ps01",
+    "other_product_image_locator_8"
+   ]
+  },
+  {
+   "seller_id": "A1TESTSELLER01",
+   "marketplace_id": "ATVPDKIKX0DER",
+   "asin": "B0TEST0003",
+   "sku": "TEST-CHILD-RED",
+   "attributes": {
+    "item_name": [
+     {
+      "value": "Test Shirt Red",
+      "language_tag": "en_US",
+      "marketplace_id": "ATVPDKIKX0DER"
+     }
+    ]
+   },
+   "productType": "SHIRT",
+   "blankAttributes": []
+  }
+ ],
+ "missingSkus": []
+}

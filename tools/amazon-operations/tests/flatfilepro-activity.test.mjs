@@ -58,3 +58,15 @@ test('Amazon rewritten media URL remains processing evidence, never image verifi
  const result=await collectActivity(input,async()=>page(rows));
  assert.equal(result.attributes[0].live_value,rows[0].attributes[0].liveValue);assert.equal(result.attributes[0].submitted_value,input.expected_rows.SKU1[field]);assert.equal(result.verified,undefined);
 });
+
+test('MAIN and PT09 attended gallery fields collect in both destination spellings and keep rejections explicit',async()=>{
+ const main='main_product_image_locator__1__media_location',pt9='other_product_image_locator_9__1__media_location';
+ const gallery={...input,expected_rows:{SKU1:{[main]:'https://images.example/main',[pt9]:'https://images.example/nine'}}};
+ const attr=(destinationPath,destinationAttribute,value,status)=>({destinationPath,destinationAttribute,submittedValue:value,liveValue:'https://m.media-amazon.com/images/I/x.jpg',status});
+ for(const [mainPath,pt9Path] of [['main_product_image_locator.0.media_location','other_product_image_locator_9.0.media_location'],['/main_product_image_locator/0/media_location','/other_product_image_locator_9/0/media_location']]){
+  const result=await collectActivity(gallery,async()=>page([{sku:'SKU1',sellerId:'SELLER',marketplaceId:'MARKET',attributes:[attr(mainPath,main,'https://images.example/main','rejected'),attr(pt9Path,pt9,'https://images.example/nine','reflected')]}]));
+  assert.equal(result.complete,true);
+  assert.deepEqual(result.attributes.map(a=>[a.field,a.status]),[[main,'rejected'],[pt9,'reflected']]);
+ }
+ await assert.rejects(collectActivity(gallery,async()=>page([{sku:'SKU1',sellerId:'SELLER',marketplaceId:'MARKET',attributes:[attr('/swatch_product_image_locator/0/media_location',null,'https://images.example/main','reflected'),attr('/other_product_image_locator_9/0/media_location',pt9,'https://images.example/nine','reflected')]}])),/field or status unavailable/);
+});

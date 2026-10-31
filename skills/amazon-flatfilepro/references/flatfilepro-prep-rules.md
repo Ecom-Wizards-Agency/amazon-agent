@@ -4,7 +4,7 @@
 
 1. Physical product label, approved packaging PDF, or compliant label artwork
 2. Amazon case message naming the non-compliant attributes
-3. Current FlatFilePro export or Amazon template headers and current values
+3. Current FlatFilePro export (connector grid or XLSX) or Amazon template headers and current values
 4. Certificates, test reports, or declarations only when they directly support the named issue
 
 Do not use certificates as the nutrition source unless they actually contain the nutrition panel Amazon is comparing.
@@ -106,3 +106,7 @@ Companion map: when ANY member on the left is in the file, include ALL fields on
 - `item_weight` / `item_package_weight` / `item_display_weight` `.0.value` ↔ `.0.unit` (always both)
 
 Fill companions current-export-value-first, reviewed-baseline-second, generic default last (`kilocalories` for energy unit, `grams` for other units). Combined with the full-grid rule, the end state is: every SKU row in the upload carries complete, self-consistent attribute groups.
+
+When the source is a connector export, `node tools/amazon-operations/ffp-mcp.mjs gaps --export FILE --sku S ... --touch <attributes>` checks these groups before the build: `unit_count`, the three weights, every `*_dimensions` attribute and the `nutritional_info` serving fields. Exit 3 lists each saved occurrence with a missing member; supply those members in the change or leave the group untouched. It does not check the nutrition macros or vitamin rows above, so check those by hand.
+
+Spelling of the unit-count type: FlatFilePro exports and the connector grid spell it `unit_count__1__type_value` (canonical `unit_count.0.type_value` after the prepare script rewrites it), while Amazon's upload error messages call the same field `unit_count.0.type.value`.

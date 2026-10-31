@@ -4,8 +4,8 @@ import assert from 'node:assert/strict';
 import {mkdtemp,rm,readFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
-import {IMAGE_IDENTITY_KEYS} from '../image-identity.mjs';
-import {collect,normalizeListing,listingLocation} from '../flatfilepro-listings.mjs';
+import {IMAGE_IDENTITY_KEYS,listingIdentity,verifyListingIdentities} from '../image-identity.mjs';
+import {collect,normalizeListing,listingLocation,flattenAttributes} from '../flatfilepro-listings.mjs';
 const account={seller_id:'SELLER',marketplace_id:'MARKET'},target={sku:'sku / 1',asin:'B000000001'},at='2026-09-14T10:00:00.000Z';
 const data=()=>({seller_id:'SELLER',marketplace_id:'MARKET',...target,attributes:{main_product_image_locator:[{media_location:'https://example.com/main.png'}]},relationships:[],productType:'SUPPLEMENT',itemName:'Blue',lastUpdatedDate:'2026-09-10T00:00:00Z',id:123});
 test('listing reader binds exact identity and distinguishes read time from Amazon update time',()=>{
@@ -54,4 +54,42 @@ test('complete listing responses emit every canonical identity key with explicit
  assert.equal(row['color.0.value'],'Blue');assert.equal(row['model_number.0.value'],'M1');
  assert.equal(row['size.0.value'],'');assert.equal(row.model_name,'');
  assert.equal(row['other_product_image_locator_9.0.media_location'],'');
+});
+
+// Golden rows were produced by normalizeListing before the nested option existed (commit 493061b).
+const fixtures=join(import.meta.dirname,'fixtures','ffp-mcp');
+const golden=JSON.parse(await readFile(join(fixtures,'normalize-default-golden.json'),'utf8'));
+const exportRecords=(await readFile(join(fixtures,'export-records.jsonl'),'utf8')).trim().split('\n').map(line=>JSON.parse(line));
+const mcpAccount={seller_id:'A1TESTSELLER01',marketplace_id:'ATVPDKIKX0DER'},goldenAt='2026-10-28T09:00:00.000Z';
+const asData=r=>({seller_id:r.sellerId,marketplace_id:r.marketplaceId,sku:r.sku,asin:r.asin,attributes:r.attributes,productType:r.productType,versionId:r.versionId,archived:r.archived});
+test('default normalizeListing output is byte-identical to the pre-change golden rows',()=>{
+ for(const r of exportRecords){
+  const target={sku:r.sku,asin:r.asin};
+  assert.equal(JSON.stringify(normalizeListing(asData(r),mcpAccount,target,goldenAt,'golden')),JSON.stringify(golden.outputs[r.sku]),r.sku);
+  assert.equal(JSON.stringify(normalizeListing(asData(r),mcpAccount,target,goldenAt,'golden',{})),JSON.stringify(golden.outputs[r.sku]),r.sku);
+ }
+ const cdp=golden.cdp_input;
+ assert.equal(JSON.stringify(normalizeListing(cdp,{seller_id:'SELLER',marketplace_id:'MARKET'},{sku:cdp.sku,asin:cdp.asin},goldenAt,'golden')),JSON.stringify(golden.outputs['cdp-item-detail']));
+ assert.ok(!Object.keys(golden.outputs['TEST-CHILD-BLUE'].row).includes('unit_count.0.type_value'));
+});
+test('nested option adds canonical nested keys and leaves every default key unchanged',()=>{
+ const r=exportRecords.find(x=>x.sku==='TEST-CHILD-BLUE'),target={sku:r.sku,asin:r.asin};
+ const plain=normalizeListing(asData(r),mcpAccount,target,goldenAt,'golden').row,nested=normalizeListing(asData(r),mcpAccount,target,goldenAt,'golden',{nested:true}).row;
+ for(const [key,value] of Object.entries(plain))assert.equal(nested[key],value,key);
+ const added=Object.keys(nested).filter(key=>!Object.hasOwn(plain,key));
+ assert.deepEqual(added.sort(),['color.0.standardized_values.0.','item_dimensions.0.height_unit','item_dimensions.0.height_value','item_dimensions.0.length_unit','item_dimensions.0.width_unit','item_dimensions.0.width_value','item_weight.0.normalized_value_unit','item_weight.0.normalized_value_value','outer.0.material.0.value','outer.0.material.1.value','purchasable_offer.0.end_at_value','purchasable_offer.0.our_price.0.schedule.0.value_with_tax','unit_count.0.type_language_tag','unit_count.0.type_value']);
+ // Every flattened attribute appears in the nested row with the same value.
+ for(const [key,value] of Object.entries(flattenAttributes(r.attributes)))assert.equal(nested[key],value,key);
+ assert.equal(nested.itemName,'');
+});
+test('nested flattened keys never enter listing identity',()=>{
+ const r=exportRecords.find(x=>x.sku==='TEST-CHILD-BLUE'),target={sku:r.sku,asin:r.asin};
+ const plain=normalizeListing(asData(r),mcpAccount,target,goldenAt,'golden').row,nested=normalizeListing(asData(r),mcpAccount,target,goldenAt,'golden',{nested:true}).row;
+ assert.deepEqual(listingIdentity(nested),listingIdentity(plain));
+ const extra={...plain,'color.0.standardized_values.0.':'Blau','item_name.0.value.0.':'x','part_number.0.nested.0.value':'y'};
+ assert.deepEqual(listingIdentity(extra),listingIdentity(plain));
+ assert.ok(Object.hasOwn(listingIdentity(plain),'color.0.value')&&Object.hasOwn(listingIdentity(plain),'color.0.language_tag'));
+ // A plan captured without nested keys still verifies against a nested fresh read, and vice versa.
+ assert.doesNotThrow(()=>verifyListingIdentities({[r.sku]:listingIdentity(plain)},{[r.sku]:nested},[r.sku]));
+ assert.doesNotThrow(()=>verifyListingIdentities({[r.sku]:listingIdentity(nested)},{[r.sku]:plain},[r.sku]));
 });
