@@ -7,8 +7,8 @@ helper to compute derived metrics (CTR, CVR, CPC, ACOS, ROAS, TACOS).
 No MCP calls live here. This module is pure Python (stdlib + requests) so
 it can be unit-tested without any live Amazon account, Slack, or Notion
 access. The runtime/skill layer decides which adapter to instantiate and
-does any MCP-backed enrichment (Notion, Slack, firecrawl, AdLabs)
-separately.
+does any MCP-backed enrichment (Notion, Slack, AdLabs) separately.
+Sellerboard feeds are saved locally by `fetch_sellerboard.py`.
 
 Adapters:
 - MockDataSource        -- fully implemented, deterministic synthetic data.
@@ -655,12 +655,12 @@ class SellerboardDataSource(DataSource):
     """PRIMARY real adapter: Sellerboard "Dashboard Totals" CSV feed.
 
     Unlike `SPAdsApiDataSource`, this adapter takes its raw CSV text (or a
-    file path) directly -- it makes NO network calls itself. Per
-    SELLERBOARD-FORMAT.md, the runtime/skill layer fetches each brand's
-    feed URL(s) via `firecrawl_scrape` (formats: ["markdown"], which
-    returns the raw CSV text for this endpoint) and hands the text to
-    this adapter with `add_feed`/`from_texts`/`from_paths`. This keeps
-    the toolkit MCP-free and unit-testable (see selftest.py).
+    file path) directly -- it makes NO network calls itself. The
+    runtime/skill layer uses a delivered inbox file or saves the brand's
+    feed with `fetch_sellerboard.py` (a local GET to the feed's own host;
+    the tokened URL never goes to a third-party service), then hands the
+    text or path to this adapter with `add_feed`/`from_texts`/`from_paths`.
+    This keeps the parser network-free and unit-testable (see selftest.py).
 
     Sellerboard gives whole-account totals only (no campaign/keyword
     breakdown) -- `get_campaign_daily` always returns `[]`. Pair with

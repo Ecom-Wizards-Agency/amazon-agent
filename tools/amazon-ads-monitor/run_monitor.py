@@ -14,9 +14,9 @@ Mock mode, no credentials needed, all sample accounts, yesterday's date:
     python3 tools/amazon-ads-monitor/run_monitor.py --source mock
 
 Sellerboard CSV (PRIMARY real source, as of 2026-07-14) -- one brand at a
-time, a delivered or firecrawl-fetched Dashboard Totals CSV (see
+time, a delivered or fetch_sellerboard.py-fetched Dashboard Totals CSV (see
 _local/ads-monitor/SELLERBOARD-FORMAT.md and the amazon-ads-performance-briefs skill
-for the file-first/firecrawl-fallback flow):
+for the delivered-file/local-fetch flow):
 
     python3 tools/amazon-ads-monitor/run_monitor.py --source sellerboard \\
         --csv _local/ads-monitor/inbox/acme/dashboardtotals_7d.csv \\
@@ -126,8 +126,8 @@ def _build_datasource(source: str, config: dict, csv_paths: list = None, account
         if not csv_paths:
             raise SPAdsApiConfigError(
                 "--source sellerboard requires --csv <path[,path...]> pointing at the delivered "
-                "Sellerboard 'Dashboard Totals' CSV (file-first) or the firecrawl-fetched copy saved "
-                "to _local/ads-monitor/inbox/<brand>/ (fallback) -- see the amazon-ads-performance-briefs skill "
+                "Sellerboard 'Dashboard Totals' CSV (file-first) or the copy fetch_sellerboard.py saved "
+                "to _local/ads-monitor/inbox/<brand>/fetched/ (fallback) -- see the amazon-ads-performance-briefs skill "
                 "and _local/ads-monitor/SELLERBOARD-FORMAT.md."
             )
         account = account_hint or _infer_account_from_csv_path(csv_paths[0])
