@@ -50,18 +50,22 @@ DataDive metadata not placeholder; Never-Ever one-word; POE tabs current-source;
 stale-data guard clean; sheet names valid; style preserved). Fix any FAIL before delivery.
 
 ## 5. Deliver
-Delivery is automatic. Set `inputs.drive_folder` in the config to the client's existing
+Delivery needs confirmation. Set `inputs.drive_folder` in the config to the client's existing
 `<Client> - Shared/<Keyword Research>/<Country>` folder (Drive folder id, Drive URL, or the
-mounted path). Every build that passes all QA gates is then delivered as a **native Google
-Sheet** through `tools/gdrive-deliver/deliver.py`, named after the workbook stem, with a
-receipt next to the manifest. A build with any FAIL stays local. Pass `--no-deliver 1` to
-build without delivering, or `--drive-folder <id>` to override the config for one run.
+mounted path). A build that passes all QA gates and is run with `--deliver 1`, after the
+operator confirms the folder, is delivered as a **native Google Sheet** through
+`tools/gdrive-deliver/deliver.py`, named after the workbook stem, with a receipt next to
+the manifest. Without `--deliver 1` the build prints the target and stops; the flag is
+read from the command line only, never from the config. A build with any FAIL stays local.
+Pass `--no-deliver 1` to build without delivering, or `--drive-folder <id>` to override the
+config for one run.
 Before the first delivery, list the client's Shared folder and reuse the existing Keyword
 Research folder; never create a spelling variant next to it.
 
 After the first delivery, paste the receipt's `remote_id` (the build prints it as a hint)
-into `inputs.drive_sheet_id`. From then on every QA-passed rebuild **updates that Sheet in
-place** through `tools/gdrive-deliver/update_sheet.py` instead of creating a new Sheet:
+into `inputs.drive_sheet_id`. From then on every QA-passed rebuild run with `--deliver 1`
+**updates that Sheet in place** through `tools/gdrive-deliver/update_sheet.py` instead of
+creating a new Sheet:
 same file id, comments and links preserved, cell formatting kept, every workbook tab
 cleared and rewritten with live formulas, tabs that exist only in the Sheet left untouched
 and listed as `tabs_orphaned` in the receipt. The FAIL rule is unchanged: a build with any

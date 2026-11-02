@@ -13,7 +13,7 @@ Use this skill for Amazon keyword research, keyword workbooks, listing optimizat
 
 ## Modes
 
-- `keyword-research`: gather DataDive, POE, and listing inputs; build, validate, and deliver the keyword-research workbook. Read `references/keyword-research-workbook.md`.
+- `keyword-research`: gather DataDive, POE, and listing inputs; build and validate the keyword-research workbook, then deliver it after operator confirmation. Read `references/keyword-research-workbook.md`.
 - `listing-optimization`: write or audit titles, Item Highlights, bullets, descriptions, and backend terms. Read `references/listing-optimization-and-compliance.md` and `references/seo-writing-methodology.md`.
 - `health-claims-check`: run the regulated or standard claims pass. Read `references/health-claims-compliance.md` and the marketplace-specific rules it routes to.
 - `campaign-structure-fill`: fill the workbook's visual PPC plan only. Read the Campaign Structure section in `references/keyword-research-workbook.md`.
