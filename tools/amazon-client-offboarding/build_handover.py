@@ -4,7 +4,8 @@
 Inputs are a run config, an evidence manifest, and operator-written Markdown.
 The builder is read-only with respect to Amazon systems. It creates local DOCX/XLSX
 intermediaries and can optionally pass validated files to the existing native Google
-Drive conversion tool when the operator explicitly adds ``--deliver``.
+Drive conversion tool when the operator explicitly adds ``--deliver`` together with
+``--approved-destination`` naming the destination they approved.
 """
 from __future__ import annotations
 
@@ -637,14 +638,18 @@ def validate_outputs(docx_path: Path, xlsx_path: Path, branding: dict) -> None:
         raise PreflightError("Artifact validation failed:\n- " + "\n- ".join(errors))
 
 
+def _stem(ctx: dict) -> str:
+    stamp = ctx["cutoff"].date().isoformat()
+    markets = "-".join(ctx["included"])
+    safe_client = re.sub(r"[^A-Za-z0-9._-]+", "_", ctx["client"]).strip("._")
+    return f"{stamp}_{safe_client}_{markets}"
+
+
 def build(ctx: dict) -> dict:
     cfg = ctx["config"]
     output_dir = _resolve(ctx["base"], cfg.get("output_dir") or f"output/{_slug(ctx['client'])}/offboarding")
     output_dir.mkdir(parents=True, exist_ok=True)
-    stamp = ctx["cutoff"].date().isoformat()
-    markets = "-".join(ctx["included"])
-    safe_client = re.sub(r"[^A-Za-z0-9._-]+", "_", ctx["client"]).strip("._")
-    stem = f"{stamp}_{safe_client}_{markets}"
+    stem = _stem(ctx)
     docx_path = output_dir / f"{stem}_Amazon_Account_Handover_v1.docx"
     xlsx_path = output_dir / f"{stem}_Handover_Evidence_Workbook_v1.xlsx"
     build_doc(ctx, output_dir, docx_path)
@@ -664,6 +669,28 @@ def build(ctx: dict) -> dict:
     return {"docx": docx_path, "xlsx": xlsx_path, "manifest": manifest_path}
 
 
+def delivery_plan(ctx: dict) -> dict:
+    stem = _stem(ctx)
+    return {
+        "destination": str(ctx["config"]["destination"]["folder"]),
+        "names": [f"{stem}_Amazon_Account_Handover_v1", f"{stem}_Handover_Evidence_Workbook_v1"],
+    }
+
+
+def check_delivery_approval(ctx: dict, approved: str | None) -> None:
+    expected = str(ctx["config"]["destination"]["folder"])
+    if approved is None:
+        raise PreflightError(
+            "--deliver requires --approved-destination: get the operator's approval of the exact "
+            "folder and files first; nothing was built or delivered"
+        )
+    if approved != expected:
+        raise PreflightError(
+            f"--approved-destination does not match destination.folder ({expected}); "
+            "nothing was built or delivered"
+        )
+
+
 def deliver(ctx: dict, outputs: dict) -> None:
     destination = str(ctx["config"]["destination"]["folder"])
     deliverer = REPO / "tools" / "gdrive-deliver" / "deliver.py"
@@ -680,16 +707,28 @@ def main() -> int:
     parser.add_argument("--config", required=True, type=Path)
     parser.add_argument("--preflight", action="store_true", help="Validate inputs without building")
     parser.add_argument("--deliver", action="store_true", help="Convert validated outputs to native Google files")
+    parser.add_argument(
+        "--approved-destination",
+        help="destination.folder value the operator approved for this delivery; required with --deliver",
+    )
     args = parser.parse_args()
+    if args.approved_destination is not None and not args.deliver:
+        parser.error("--approved-destination is only valid with --deliver")
     try:
         ctx = preflight(args.config.resolve())
         print(f"[preflight] PASS: {ctx['client']} ({', '.join(ctx['included'])})")
         if args.preflight:
             return 0
+        if args.deliver:
+            check_delivery_approval(ctx, args.approved_destination)
         outputs = build(ctx)
         print(f"[build] DOCX: {outputs['docx']}")
         print(f"[build] XLSX: {outputs['xlsx']}")
         print(f"[build] manifest: {outputs['manifest']}")
+        plan = delivery_plan(ctx)
+        print(f"[deliver-plan] destination: {plan['destination']}")
+        for name in plan["names"]:
+            print(f"[deliver-plan] file: {name}")
         if args.deliver:
             deliver(ctx, outputs)
     except (PreflightError, subprocess.CalledProcessError) as exc:
