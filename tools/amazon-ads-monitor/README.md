@@ -95,12 +95,14 @@ layer). The Sellerboard feed is fetched locally by `fetch_sellerboard.py`
   parsed external-signal digest items, `parse_signal_digest_markdown`,
   down to what this week's actual signals make pertinent -- empty when
   nothing is, never a fabricated filler test). NEW (strategy.md v3):
-  optional `rank_radar` rows (DataDive Rank Radar,
+  optional weekly organic-rank rows (`rank_rows`, from the SoldScope rank
+  tracker via `tools/soldscope/ranks.py --weekly-rows`;
+  `normalize_rank_rows`, legacy names `rank_radar` and
   `normalize_rank_radar`) add a fourth list, **graduate** (organic rank
   1-3 stable 2+ consecutive weeks -> step ToS/bid down toward break-even
   over 2-3 cycles, never cliff-drop), and a data-backed protection: a
   keyword whose organic rank is IMPROVING is never proposed for a cut,
-  whatever its category (the read moves to notes). Radar absent with Rank
+  whatever its category (the read moves to notes). Rank rows absent with Rank
   entities present = a stated note, not silence. An optional
   `pacing` result adds the cut-order note when the governor says act.
 - `run_weekly.py` -- weekly CLI: `--date` (week-end, a fully-completed
@@ -108,8 +110,9 @@ layer). The Sellerboard feed is fetched locally by `fetch_sellerboard.py`
   `--goal`, `--situation`, `--adlabs-json` (normalized weekly AdLabs
   campaign/target rows), `--signal-digest` (a
   `_local/ads-signals/<ISO-year>-W<week>/digest.md` path),
-  `--rank-radar-json` (DataDive Rank Radar rows -> GRADUATE list +
-  per-keyword rank protection), `--monthly-budget` (enables the run-rate
+  `--rank-json` (weekly organic-rank rows from
+  `tools/soldscope/ranks.py --weekly-rows` -> GRADUATE list + per-keyword
+  rank protection; `--rank-radar-json` is the legacy alias), `--monthly-budget` (enables the run-rate
   pacing section; per-brand amounts live under `monthly_budgets` in
   `_local/ads-monitor/config.json`; needs Sellerboard history back to the
   1st of the month -- raise `--window-days` late in a month), `--out`,

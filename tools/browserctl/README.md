@@ -392,9 +392,9 @@ uses the same independent lock and wait path as later reacquisitions.
 
 `browserctl session [--session grimoire|operator]` returns only the resolved non-secret environment. Python workers use `browser_session.py` as an adapter to that same resolver. The session is immutable within a process; conflicting ports or profiles fail before connection. Child workers inherit the route and a scoped lock chain. Sibling workers contend for the next link instead of bypassing serialization. Browser-independent MCP/API work needs no browser lock.
 
-The existing task controller still owns workflow IDs, regional claims, stable targets, heartbeat and cleanup. Screenshots call `captureTaskEvidence(handle, {expected})` in the owning worker. Standalone audit captures require the retained `taskId`, `workflow`, `targetId`, and expected identity; they cannot search for a matching tab or replace a missing target. Supported identities are Seller Central seller/marketplace, DataDive niche/hero keyword, and Amazon retail marketplace plus ASIN or search query. Capture receipts retain actual verified identity separately from report association.
+The existing task controller still owns workflow IDs, regional claims, stable targets, heartbeat and cleanup. Screenshots call `captureTaskEvidence(handle, {expected})` in the owning worker. Standalone audit captures require the retained `taskId`, `workflow`, `targetId`, and expected identity; they cannot search for a matching tab or replace a missing target. Supported identities are Seller Central seller/marketplace and Amazon retail marketplace plus ASIN or search query. Capture receipts retain actual verified identity separately from report association.
 
-A browser login grants no additional action rights. DataDive login recovery occurs in 9223. Extension-only capabilities must be demonstrated in that profile; missing support never redirects work to 9222.
+A browser login grants no additional action rights. Extension-only capabilities must be demonstrated in the selected profile; missing support never redirects work to 9222.
 
 
 ## Authentication and profile identity

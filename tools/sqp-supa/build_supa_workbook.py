@@ -128,16 +128,29 @@ def load_ppc(cfg):
     return ppc
 
 
+DEFAULT_RANK_SOURCE = "SoldScope rank tracker"
+
+
+def rank_source(cfg):
+    """Label for where `inputs.rank_jsons` came from, shown in Methods and the
+    build summary. New runs use the SoldScope rank tracker; a config built from
+    older DataDive Rank Radar files sets `rank_source` to say so."""
+    return str(cfg.get("rank_source") or DEFAULT_RANK_SOURCE).strip() or DEFAULT_RANK_SOURCE
+
+
 def load_rank(cfg):
     """rank[(asin, query_lower)][week] = median organic rank across that week.
 
-    Input is a DataDive Rank Radar payload per ASIN: [{keyword, searchVolume,
-    ranks:[{date, organicRank}]}]. Median, not last-day, because a single day's
-    rank is noisy and SUPA compares whole weeks.
+    Input is one rank series file per ASIN: [{keyword, searchVolume,
+    ranks:[{date, organicRank}]}], written from the SoldScope rank tracker by
+    `tools/soldscope/ranks.py` (older DataDive Rank Radar files have the same
+    shape). Median, not last-day, because a single day's rank is noisy and SUPA
+    compares whole weeks.
 
-    Entirely optional. No `inputs.rank_jsons` in the config, or a radar that does
-    not cover these weeks, and the rank column simply never renders. Radars track
-    a few dozen keywords while SQP has hundreds, so most rows stay blank by design.
+    Entirely optional. No `inputs.rank_jsons` in the config, or a rank file that
+    does not cover these weeks, and the rank column simply never renders. Rank
+    tracking covers a few dozen keywords while SQP has hundreds, so most rows stay
+    blank by design.
     """
     from datetime import timedelta
     paths = (cfg.get("inputs", {}) or {}).get("rank_jsons") or {}
@@ -513,7 +526,7 @@ def build_actions(cfg, weeks, kw):
     conversion) and rank are per ASIN, and rank is what decides whether P3 says
     "cut" or "this is rank investment, hold". So prefer an anchor we can actually
     judge: rank data first, then score. Without this the rank split silently
-    fails to fire whenever the arbitrary winner happens to lack a radar.
+    fails to fire whenever the arbitrary winner happens to lack rank data.
     """
     hits = {}
     for (asin, q), ent in kw.items():
@@ -1006,11 +1019,11 @@ def tab_methods(wb, cfg, weeks, stats):
          "the bid', P1 says check stock before restoring spend, P2 stops blaming "
          "price and competitors, O1 says do not buy demand you cannot ship, and E1 "
          "notes the winner's true ceiling is higher than it looks."),
-        ("Organic rank", "DataDive Rank Radar, median organic rank across each "
+        ("Organic rank", f"{rank_source(cfg)}, median organic rank across each "
          "Sunday-Saturday week (median, not last-day: a single day is noisy and "
-         "SUPA compares whole weeks). Optional. Radars track a few dozen keywords "
-         "while SQP carries hundreds, so most rows are blank by design and the "
-         "column disappears entirely when no radar is configured. Rank move is "
+         "SUPA compares whole weeks). Optional. Rank tracking covers a few dozen "
+         "keywords while SQP carries hundreds, so most rows are blank by design and "
+         "the column disappears entirely when no rank file is configured. Rank move is "
          "last ranked week minus first: positive means it slipped."),
         ("CVR vs market", "Our conversion minus the market's on the same query, in "
          "percentage points, focus week. Both sides come from the SQP counts, so it "
@@ -1107,7 +1120,7 @@ def build(cfg_path):
     ranked = sum(1 for e in kw.values() if any(d.get("rank") is not None for d in e["weeks"].values()))
     gapped = sum(1 for e in kw.values() if any(d.get("cvr_gap") is not None for d in e["weeks"].values()))
     print(f"  keywords: {len(kw)} (asin,query) pairs · actions: {len(actions)}")
-    print(f"  rank coverage: {ranked}/{len(kw)} keywords have Rank Radar data"
+    print(f"  rank coverage: {ranked}/{len(kw)} keywords have rank data from {rank_source(cfg)}"
           + ("" if rank else "  (no inputs.rank_jsons configured)"))
     print(f"  CVR-gap coverage: {gapped}/{len(kw)} keywords have enough clicks to compare to market")
     if stock:

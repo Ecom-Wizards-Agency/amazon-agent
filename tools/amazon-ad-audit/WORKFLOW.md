@@ -5,7 +5,7 @@ The current agent owns this workflow end to end. The config is the input contrac
 ## Capability model
 
 - **Connected/internal browser:** downloads Amazon exports to the contract paths and captures evidence and caveats.
-- **DataDive MCP:** pulls the niche, competitors, and rank inputs.
+- **SoldScope MCP:** runs the keyword research (keywords and competitors for the ASIN set) and reads the rank tracker. `tools/soldscope/keywords.py` and `tools/soldscope/ranks.py` turn the saved MCP responses into the audit inputs.
 - **Local build and writing:** runs the builder, writes the narrative, validates, and renders.
 - **Google Drive integration:** completes authorized internal delivery.
 
@@ -24,7 +24,11 @@ The active agent uses every available capability and continues through the full 
    - **Recommended extras (optional, won't block READY):** SB campaign placement report (the bulk's SB placement rows are incomplete) and the SP Search-Term Impression-Share report (ToS headroom). **Not needed:** SB/SD search-term reports. SB is intent-split by target from the bulk itself.
    - Save each to the exact `inputs{}` path and note evidence plus any caveats.
 
-4. **Pull DataDive**: via MCP (`get_niche_keywords`, `get_niche_competitors` on the `datadive_niche`), save to the `datadive_niche_json` / `datadive_competitors_json` paths. Re-run `--preflight` until READY and continue in the same run.
+4. **Pull SoldScope** (per the `MISSING SOLDSCOPE MCP INPUTS` checklist):
+   - **Keyword research:** pick the ASIN set in `research.asins` (anchor first, up to 9 competitors). SoldScope calls that spend credits need one run approval naming the ASINs, marketplace and expected credits; rank-tracker writes need exact-action approval (`tools/soldscope/README.md`). In US, CA, MX, UK, DE, ES, FR and IT run one `keyword_research_search_multi_asin` (one credit per ASIN), poll `keyword_research_get_search_progress` at most every 5 seconds, page `keyword_research_get_multi_results` until every row is read, save each page and run `tools/soldscope/keywords.py --pages`. Elsewhere run one `kr_asin_search` per ASIN, page `kr_get_results` for each `search_id` (an empty first page means it is still processing; wait at least 5 seconds and retry), save each page as `kr-<asin>-<search_id>-page-NNN.json` and run `tools/soldscope/keywords.py --asin-pages`. Its `research.json` holds keywords and competitors in one file; point `inputs.research_json` at it.
+   - **Rank series (optional, free reads):** `rank_tracker_list_groups`, `rank_tracker_list_products`, then `rank_tracker_list_phrases` with the heatmap for the window. Run `tools/soldscope/ranks.py` and point `inputs.rank_series_json` at its output. A prospect has no rank history unless one of its products is already tracked; then skip the rank-movement chart.
+   - **Evidence:** keyword data is evidenced by the MCP receipt: the saved raw JSON pages plus the sha256 list in `keywords-receipt.json`. Do not screenshot a research tool for it.
+   - Re-run `--preflight` until READY and continue in the same run.
 
 5. **Build**: `build_audit.py --config <cfg>`. Runs analyze → audit workbook → SQP workbook → master → **standard figure set** (`build_figures.py`) → narrative scaffold (which references the figures that were produced). Figures are guarded: a missing input skips the chart, never fails the build. Needs matplotlib; without it the build warns and carries on.
 
@@ -43,5 +47,6 @@ The active agent uses every available capability and continues through the full 
 - **Break-even ACOS is an assumption** until margin is confirmed; every red/amber verdict updates on the real number (single config constant → rebuild).
 - **SB double-count guard:** Sponsored Brands campaigns appear in two bulk sheets (legacy + SB-Multi); the analyzer dedupes them by Campaign ID into one SB channel. Always sanity-check total ad spend/sales against the Ads console. The spend-reconciliation gate checks internal consistency only and won't flag a double-count.
 - **Branded split** is computed from the Search Term Report (what customers typed), not keyword text. A branded Broad keyword serves generic queries.
-- **DataDive** is read-only via the local MCP; do not commit the API key or client config JSONs (gitignored).
+- **SoldScope** signs in by OAuth in the MCP client; there is no API key. Do not commit client config JSONs (gitignored).
+- **Legacy configs:** `datadive_niche`, `inputs.datadive_niche_json`, `inputs.datadive_competitors_json`, `inputs.rank_radar_json` and `windows.datadive` still build, with DataDive labels, so an older audit can be rebuilt from its saved files.
 - Outputs live under `output/<client-slug>/reporting/` (gitignored); deliverables go to Google Drive only.

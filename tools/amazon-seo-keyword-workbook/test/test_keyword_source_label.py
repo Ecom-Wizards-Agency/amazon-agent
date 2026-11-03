@@ -13,6 +13,11 @@ class KeywordSourceLabelTests(unittest.TestCase):
  def test_label_helper_defaults(self):
   for c in ({},{'keyword_source':''},{'keyword_source':'   '},{'keyword_source':None}):self.assertEqual(b.keyword_source_label(c),'DataDive')
   self.assertEqual(b.keyword_source_label({'keyword_source':' SoldScope '}),'SoldScope')
+ def test_label_inferred_from_soldscope_run_fields(self):
+  self.assertEqual(b.keyword_source_label({'keyword_exports':{'core_mkl':{}}}),'SoldScope')
+  self.assertEqual(b.keyword_source_label({'product_anchor':{'research':{'search_id':1}}}),'SoldScope')
+  self.assertEqual(b.keyword_source_label({'datadive_exports':{'core_mkl':{}},'product_anchor':{'datadive_niche':'x'}}),'DataDive')
+  self.assertEqual(b.keyword_source_label({'keyword_source':'DataDive','keyword_exports':{'x':1}}),'DataDive')
  def test_default_outlier_labels_unchanged(self):
   rows=self.outlier(self.cfg());self.assertEqual(rows[0][2],'DataDive Relevancy')
   sources={r[0]:r[10] for r in rows[1:]};self.assertEqual(sources,{'anemia':'DataDive Master List','anemia pills':'DataDive Expanded MKL 1%'})
@@ -50,4 +55,11 @@ class KeywordSourceLabelTests(unittest.TestCase):
  def test_handoff_heading_uses_label(self):
   self.assertIn('\n## DataDive Exports\n',self.handoff(self.cfg()))
   t=self.handoff(self.cfg(keyword_source='SoldScope'));self.assertIn('\n## SoldScope Exports\n',t);self.assertNotIn('DataDive',t)
+ def test_handoff_lists_soldscope_run_metadata(self):
+  run={'search_id':12345,'asins':['B0TEST0001','B0TEST0002'],'marketplace':'US','date_from':'2026-10-01','date_to':'2026-10-30','raw_rows':120,'kept_rows':40,'core_min':.3,'pool_min':.01,'relevancy_mode':'native'}
+  t=self.handoff(self.cfg(keyword_source='SoldScope',keyword_exports={'core_mkl':run}))
+  self.assertIn('- `core_mkl`: search `12345`, marketplace `US`, ASINs `B0TEST0001, B0TEST0002`',t);self.assertIn('kept rows `40` of raw `120`',t)
+ def test_handoff_reads_legacy_datadive_exports(self):
+  legacy={'core_mkl':{'min_relevancy':'30%','visible_keyword_count':'94','visible_search_volume':'9000','export_timestamp':'2026-09-04T04:08:00Z'}}
+  t=self.handoff(self.cfg(datadive_exports=legacy));self.assertIn('\n## DataDive Exports\n',t);self.assertIn('visible keywords `94`',t)
 if __name__=='__main__':unittest.main()

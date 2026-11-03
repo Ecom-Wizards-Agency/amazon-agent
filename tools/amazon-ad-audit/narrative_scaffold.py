@@ -13,7 +13,8 @@ import json, sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from branding import load_branding as _load_branding
-from analyze_audit import blended_metrics_available, blended_metrics_reason
+from analyze_audit import (PROVIDER_LABELS, blended_metrics_available, blended_metrics_reason,
+                           research_meta, research_paths, rp)
 
 
 def _prepared_by_org():
@@ -26,7 +27,7 @@ def _m(v, cur):
 
 
 # Standard figure set from build_figures.py. Referenced only when the file exists, so a
-# run without DataDive/SQP (or without matplotlib) still emits a clean scaffold.
+# run without keyword research/SQP (or without matplotlib) still emits a clean scaffold.
 FIGURES = {
     "fig_rank_distribution.png":
         "Organic rank across the category keyword set. Rank 1-4 is what sells; page 1 runs to rank 48.",
@@ -279,8 +280,10 @@ def build(config_path, outdir, force=False):
     if voice_guide:
         A(f"<!-- writing authority: {voice_guide} -->")
     A(f"**Prepared by {_prepared_by_org()} · Marketplace: {markets} · Window: {win.get('ads','')}**\n")
+    research = research_meta(cfg)
+    research_src = f", {research['source_line']}" if research["source_line"] else ""
     A(f"**Sources:** Ads bulk ({win.get('ads','')}), Business Report ({win.get('business_report','')}), "
-      f"SQP ({len(win.get('sqp_weeks',[]))} weekly snapshots), DataDive niche {cfg.get('datadive_niche','')}.\n")
+      f"SQP ({len(win.get('sqp_weeks',[]))} weekly snapshots){research_src}.\n")
     A(f"> **Break-even ACOS = {BE:.0%} is an ASSUMPTION** pending confirmed margin. Every red/amber verdict keys off it.\n")
     A("---\n")
 
@@ -411,20 +414,24 @@ def build(config_path, outdir, force=False):
               "is paying to create. That usually outranks every optimisation lever. -->\n")
         A("---\n")
 
-    # ---- DataDive ----
-    cj = cfg["inputs"].get("datadive_competitors_json")
-    if cj and Path(cj if Path(cj).is_absolute() else (Path(__file__).resolve().parents[2] / cj)).exists():
+    # ---- Keyword research (SoldScope; legacy DataDive) ----
+    cj = rp(research_paths(cfg)["competitors"])
+    if cj and cj.exists():
         from build_audit_workbook import _adapt_competitors
         client_asins = {a for asins in (cfg.get("asin_groups") or {}).values() for a in asins}
-        comp = _adapt_competitors(
-            json.loads(Path(cj if Path(cj).is_absolute() else (Path(__file__).resolve().parents[2] / cj)).read_text()),
-            client_asins)
-        A("## DataDive: category difficulty & the price/review gap\n")
-        A(f"Category median price **{_m(comp['median_price'],cur)}**, median reviews **{comp['median_reviews']:.0f}**, median rating **{comp['median_rating']}**.\n")
+        comp = _adapt_competitors(json.loads(cj.read_text()), client_asins)
+        A(f"## {research['provider']}: category difficulty & the price/review gap\n")
+        if research["legacy"]:
+            A(f"Category median price **{_m(comp['median_price'],cur)}**, median reviews **{comp['median_reviews']:.0f}**, median rating **{comp['median_rating']}**.\n")
+        else:
+            n = len(comp.get("competitors") or []) or research["n_compared"]
+            A(f"Across the {n} compared ASINs (not the whole category): median price **{_m(comp['median_price'],cur)}**, median reviews **{comp['median_reviews']:.0f}**, median rating **{comp['median_rating']}**.\n")
         for f in filter(None, [_fig(outdir, "fig_rank_distribution.png"),
                                _fig(outdir, "fig_visibility_vs_competition.png"),
                                _fig(outdir, "fig_price_vs_rating.png")]):
             A(f)
+        # Keyword data is evidenced by the MCP receipt (raw JSON + sha256), not a screenshot.
+        # The "datadive" section is read only so older evidence manifests still render.
         for visual in _evidence(outdir, "organic") + _evidence(outdir, "datadive"):
             A(visual)
         if hybrid:
@@ -475,7 +482,9 @@ def build(config_path, outdir, force=False):
     market_sizing = _market_sizing(cfg)
     if market_sizing and market_sizing.get("products"):
         A("## Directional market appendix: the two next products\n")
-        A("This is a market check, not a sales forecast. DataDive estimates category demand and competitor performance. It does not tell us what this brand will sell.\n")
+        ms_raw = market_sizing.get("provider")
+        ms_provider = PROVIDER_LABELS.get(str(ms_raw).lower(), str(ms_raw)) if ms_raw else "DataDive"
+        A(f"This is a market check, not a sales forecast. {ms_provider} estimates category demand and competitor performance. It does not tell us what this brand will sell.\n")
         for product in market_sizing["products"]:
             cov = product.get("coverage", {})
             bench = product.get("benchmark", {})
@@ -484,7 +493,8 @@ def build(config_path, outdir, force=False):
             terms = product.get("winnable_core_terms", [])[:5]
             if terms:
                 A("- **Core terms:** " + ", ".join(f"{x['keyword']} ({x['monthly_search_volume']:,.0f}/month)" for x in terms) + ".")
-            A(f"- **Commercial benchmark:** median price {_m(bench.get('median_price', 0), cur)}, rating {bench.get('median_rating', 0):.1f}, and {bench.get('median_reviews', 0):,.0f} reviews. DataDive estimates median 30-day competitor revenue at {_m(bench.get('median_estimated_revenue_30d', 0), cur)}.")
+            basis = "" if ms_provider == "DataDive" else f" ({bench.get('basis') or 'median of the compared ASINs'})"
+            A(f"- **Commercial benchmark:** median price {_m(bench.get('median_price', 0), cur)}, rating {bench.get('median_rating', 0):.1f}, and {bench.get('median_reviews', 0):,.0f} reviews{basis}. {ms_provider} estimates median 30-day competitor revenue at {_m(bench.get('median_estimated_revenue_30d', 0), cur)}.")
             A(f"- **Rankability:** {product.get('competitor_strength', '')}")
             A(f"**Decision:** {_market_decision(product)}\n")
             A(f"*Coverage note: {product.get('coverage_caveat', '')} Fresh as of {product.get('latest_research_date', '')[:10]}.*\n")
@@ -495,7 +505,10 @@ def build(config_path, outdir, force=False):
     A(f"- Ads bulk ({win.get('ads','')}): reconciles to spend {_m(T['spend'],cur)} / sales {_m(T['sales'],cur)}.")
     A(f"- Business Report ({win.get('business_report','')}): total sales {_m(T['br_total_sales'],cur)}.")
     A(f"- SQP: {len(win.get('sqp_weeks',[]))} weekly snapshots.")
-    A(f"- DataDive niche {cfg.get('datadive_niche','')}.\n")
+    if research["source_line"]:
+        A(f"- {research['source_line']}.\n")
+    else:
+        A("")
     A("## Method notes\n")
     A(f"- **Break-even ACOS = {BE:.0%} is an assumption** pending margin.")
     A(f"- **Branded split** from the Search Term Report; Branded = {', '.join(cfg.get('brand_tokens',[]))}.")

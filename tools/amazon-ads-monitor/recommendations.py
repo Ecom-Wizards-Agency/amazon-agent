@@ -49,7 +49,7 @@ DEFAULT_REC_THRESHOLDS = {
     "stalled_spend_max": 1.0,                # weekly spend below this = stalled/redundant candidate
     "stalled_impressions_max": 20,           # weekly impressions below this = stalled/redundant candidate
     "graduate_rank_max": 3,                  # organic rank at/below this ...
-    "graduate_weeks_stable": 2,              # ... for this many consecutive Rank Radar weeks = graduate
+    "graduate_weeks_stable": 2,              # ... for this many consecutive organic-rank weeks = graduate
 }
 
 # Non-rank ACOS ceiling per goal lens (mirrors flags.py's GOAL_LENSES
@@ -218,11 +218,14 @@ class RecommendationsResult:
 
 
 # ---------------------------------------------------------------------------
-# Rank Radar rows (DataDive) -- the live organic-rank signal that turns
+# Weekly organic-rank rows -- the live organic-rank signal that turns
 # "never cut Rank on ACOS alone" from a category rule into a data-backed
-# per-keyword protection, and drives GRADUATE proposals.
+# per-keyword protection, and drives GRADUATE proposals. New runs build the
+# rows from the SoldScope rank tracker with
+# `tools/soldscope/ranks.py --weekly-rows`; older DataDive Rank Radar rows in
+# the same shape still load.
 
-def normalize_rank_radar(rows: Optional[list]) -> dict:
+def normalize_rank_rows(rows: Optional[list]) -> dict:
     """`rows`: list of dicts, each roughly `{keyword, rank_now,
     rank_prev (optional), weeks_stable (optional)}`. Ranks are organic
     positions (lower = better); `weeks_stable` counts consecutive weeks
@@ -242,6 +245,10 @@ def normalize_rank_radar(rows: Optional[list]) -> dict:
             "weeks_stable": int(r.get("weeks_stable") or 0),
         }
     return out
+
+
+# Legacy name, kept for callers written against the DataDive Rank Radar input.
+normalize_rank_radar = normalize_rank_rows
 
 
 def _radar_for(radar: dict, name: Optional[str]) -> Optional[dict]:
@@ -271,7 +278,7 @@ def _generate_graduate(radar: dict, thresholds: dict) -> list:
             rank_now=row["rank_now"],
             weeks_stable=row["weeks_stable"],
             why=(
-                f"Organic rank {row['rank_now']} for {row['weeks_stable']} consecutive Rank Radar weeks "
+                f"Organic rank {row['rank_now']} for {row['weeks_stable']} consecutive tracked weeks "
                 f"-- the rank push has done its job; stop paying above break-even here."
             ),
             action=(
@@ -416,7 +423,7 @@ def _generate_pause_optimize(entities: list, goal: Optional[str], thresholds: di
     mis-classified as a pause/optimize action. `tags` is the set of
     situational signals this pass actually found (feeds TEST selection).
 
-    `radar`: normalized Rank Radar rows (see `normalize_rank_radar`). A
+    `radar`: normalized organic-rank rows (see `normalize_rank_rows`). A
     keyword whose organic rank is IMPROVING is never proposed for a cut,
     whatever its category -- we're buying position (SUPA's "P3 + rank
     improving" verdict); the read moves to notes instead."""
@@ -430,7 +437,7 @@ def _generate_pause_optimize(entities: list, goal: Optional[str], thresholds: di
         row = _radar_for(radar, e.name)
         if row and _rank_improving(row):
             return (
-                f"organic rank improving ({row['rank_prev']} -> {row['rank_now']} per Rank Radar) -- "
+                f"organic rank improving ({row['rank_prev']} -> {row['rank_now']} per the rank tracker) -- "
                 "we're buying position; don't cut on ACOS alone"
             )
         return None
@@ -443,7 +450,7 @@ def _generate_pause_optimize(entities: list, goal: Optional[str], thresholds: di
         if e.spend >= thresholds["zero_sale_spend_min_weekly"] and e.orders == 0:
             protection = _rank_protected(e)
             if e.category == CATEGORY_RANK:
-                extra = f" Rank Radar backs this up: {protection}." if protection else ""
+                extra = f" Organic-rank data backs this up: {protection}." if protection else ""
                 notes.append(
                     f"'{e.name}' (Rank/SKW, {e.campaign_name}): ${e.spend:,.2f} spend with 0 orders this "
                     "week -- NOT proposed for a cut. Rank/SKW targets may intentionally run at break-even "
@@ -721,8 +728,9 @@ def build_recommendations(
     test_candidates: Optional[list] = None,
     signal_items: Optional[list] = None,
     config: Optional[dict] = None,
-    rank_radar: Optional[list] = None,
+    rank_rows: Optional[list] = None,
     pacing=None,
+    rank_radar: Optional[list] = None,
 ) -> RecommendationsResult:
     """Top-level entry point. `raw_entities`: normalized AdLabs weekly
     campaign/target rows (see `normalize_entities`). `signal_items`: parsed
@@ -732,9 +740,11 @@ def build_recommendations(
     before surfacing them, so an unrelated signal never leaks in just
     because it survived critical review generically.
 
-    `rank_radar`: DataDive Rank Radar rows (see `normalize_rank_radar`) --
-    drives the GRADUATE list and per-keyword rank protection. Omitted =
-    prior behavior, plus a note when Rank entities are present so the gap
+    `rank_rows`: weekly organic-rank rows (see `normalize_rank_rows`), from
+    the SoldScope rank tracker via `tools/soldscope/ranks.py --weekly-rows`;
+    `rank_radar` is the legacy keyword alias for the same rows. Drives
+    the GRADUATE list and per-keyword rank protection. Omitted = prior
+    behavior, plus a note when Rank entities are present so the gap
     is stated, never silent.
 
     `pacing`: an optional `pacing.PacingResult` -- when the run-rate
@@ -744,7 +754,7 @@ def build_recommendations(
     """
     thresholds = _thresholds(config)
     entities = normalize_entities(raw_entities)
-    radar = normalize_rank_radar(rank_radar)
+    radar = normalize_rank_rows(rank_rows if rank_rows is not None else rank_radar)
 
     push = _generate_push(entities, goal, thresholds, radar)
     pause_optimize, pause_notes, pause_tags = _generate_pause_optimize(entities, goal, thresholds, radar)
@@ -757,7 +767,7 @@ def build_recommendations(
         notes.append("No AdLabs campaign/target-level rows supplied this week -- Push/Pause-Optimize lists are empty by construction, not a clean bill of health.")
     if not radar and any(e.category == CATEGORY_RANK for e in entities):
         notes.append(
-            "No Rank Radar rows supplied -- graduation and per-keyword rank protection were skipped; "
+            "No organic-rank rows supplied -- graduation and per-keyword rank protection were skipped; "
             "Rank reads above rest on the category rule alone, not live organic-rank data."
         )
     if pacing is not None and getattr(pacing, "status", None) == "act":

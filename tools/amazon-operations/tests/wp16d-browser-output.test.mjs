@@ -87,16 +87,6 @@ async function fixture(t){
  return directory;
 }
 
-outputTest('S13 DataDive writes and hashes its packs, screenshot and receipt after release',async t=>{
- const directory=await fixture(t);
- state.evaluate=async(_session,source)=>source.includes('document.body.innerText')?{text:'widget Search Terms 1 Relev.'}:{success:true,data:{nicheId:'niche',marketplace:'US',keywords:[{toJSON(){state.assertUnlocked();return {keyword:'widget'};}}]}};
- const {readNiche}=await import('../../datadive-support/read-niche.mjs');
- const result=await readNiche({nicheId:'niche',marketplace:'US',heroKeyword:'widget',outDir:directory});
- assert.equal(result.artifacts.length,5);assert.equal(result.counts.mkl,1);
- assert.deepEqual(JSON.parse(await readFile(join(directory,'receipt.json'),'utf8')),result);
- assert.deepEqual(state.events,['acquire','release:handoff']);
-});
-
 outputTest('S14 listing copy serializes its result after release',async t=>{
  const directory=await fixture(t),out=join(directory,'listings.json');
  state.evaluate=async()=>({asin:'B000000001',title:'Widget',status:'ok',toJSON(){state.assertUnlocked();return {asin:this.asin,title:this.title,status:this.status};}});

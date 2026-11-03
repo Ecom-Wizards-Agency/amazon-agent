@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_on": "2026-10-29",
+  "updated_on": "2026-11-03",
   "rows": [
     {
       "id": "seller-central.read",
@@ -1701,6 +1701,105 @@
       ],
       "verified_on": "2026-09-15",
       "notes": "No Amazon account mutation authority."
+    },
+    {
+      "id": "soldscope.read",
+      "domain": "soldscope",
+      "capability": "SoldScope free reads (keyword research results, rank tracker, history)",
+      "grimoire": {
+        "state": "allowed",
+        "how": "Free reads only, through the configured SoldScope tool allowlist; no tool that spends credits or writes."
+      },
+      "amazon_agent": {
+        "state": "allowed",
+        "how": "Use the SoldScope MCP free reads; poll search progress at most every 5 seconds."
+      },
+      "identity": "SoldScope OAuth identity in the MCP client; Slack follows the actor",
+      "port": null,
+      "spp_rows": [],
+      "gates": [
+        {
+          "kind": "file_literal",
+          "repo": "amazon-agent",
+          "file": "tools/soldscope/README.md",
+          "literal": "at most every 5 seconds"
+        }
+      ],
+      "docs": [
+        {
+          "repo": "amazon-agent",
+          "path": "docs/rights/README.md",
+          "note": "Versioned authority; the credit and approval rule lives in tools/soldscope/README.md."
+        }
+      ],
+      "verified_on": "2026-11-03",
+      "notes": "Free reads spend no credits. No Amazon account mutation authority."
+    },
+    {
+      "id": "soldscope.paid",
+      "domain": "soldscope",
+      "capability": "SoldScope calls that spend credits or start server-side work",
+      "grimoire": {
+        "state": "forbidden",
+        "how": "Grimoire never spends SoldScope credits; credit-spending tools stay outside its allowlist."
+      },
+      "amazon_agent": {
+        "state": "approval-gated",
+        "how": "One run approval naming the ASINs, the marketplace and the expected credits before the first paid call."
+      },
+      "identity": "SoldScope OAuth identity in the MCP client; Slack follows the actor",
+      "port": null,
+      "spp_rows": [],
+      "gates": [
+        {
+          "kind": "file_literal",
+          "repo": "amazon-agent",
+          "file": "tools/soldscope/README.md",
+          "literal": "one approval for the run"
+        }
+      ],
+      "docs": [
+        {
+          "repo": "amazon-agent",
+          "path": "docs/rights/README.md",
+          "note": "Versioned authority; the credit and approval rule lives in tools/soldscope/README.md."
+        }
+      ],
+      "verified_on": "2026-11-03",
+      "notes": "Multi-ASIN keyword research costs one credit per ASIN. No tool returns the credit balance; log credits in the run folder's credits-log.tsv."
+    },
+    {
+      "id": "soldscope.tracking-write",
+      "domain": "soldscope",
+      "capability": "SoldScope rank-tracker and index-checker writes",
+      "grimoire": {
+        "state": "forbidden",
+        "how": "Grimoire never creates groups, attaches products, applies or boosts phrases, or deletes index checks."
+      },
+      "amazon_agent": {
+        "state": "approval-gated",
+        "how": "Approval of that exact action in the current chat for each write."
+      },
+      "identity": "SoldScope OAuth identity in the MCP client; Slack follows the actor",
+      "port": null,
+      "spp_rows": [],
+      "gates": [
+        {
+          "kind": "file_literal",
+          "repo": "amazon-agent",
+          "file": "tools/soldscope/README.md",
+          "literal": "approval of that exact action"
+        }
+      ],
+      "docs": [
+        {
+          "repo": "amazon-agent",
+          "path": "docs/rights/README.md",
+          "note": "Versioned authority; the credit and approval rule lives in tools/soldscope/README.md."
+        }
+      ],
+      "verified_on": "2026-11-03",
+      "notes": "Covers rank_tracker_create_group, rank_tracker_attach_products, rank_tracker_apply_suggested_phrases, rank_tracker_toggle_phrases_boost and index_checker_delete."
     },
     {
       "id": "browser.anchor-refusal",

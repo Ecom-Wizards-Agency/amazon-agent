@@ -90,7 +90,7 @@ The company writing standard is `company-ai-skills/docs/writing-style.md`. The l
 
 Grimoire's Slack and scheduled runs use the `grimoire` session on CDP 9223, with the persistent `~/.amazon-agent/wizards-ai-chrome` profile. The `operator` session on 9222 is separate, backed by `~/.amazon-agent/chrome-debug`. Attended direct chat uses the machine-local attended default: `grimoire` unless the setup-owned browser policy sets `routing.attended_cdp_port` to 9222. Evo X1 sets 9222, so attended work there runs on `operator` with the operator's own Seller Central login. Browser identity does not authorize a write.
 
-Launch browser-dependent commands in attended chat through `node tools/browserctl/browserctl.mjs run -- <command>`, which resolves the session and propagates it to child tools. On `grimoire` it holds the same 9223 lock as scheduled workers; 9222 has no port-wide lock, so attended Seller Central tools take turns on their regional or global task claim. Grimoire-side and scheduled instructions keep `--session grimoire`, and `WIZARDS_AI_MODE=1`, set by every Grimoire unit, refuses `operator` or port 9222 however it is selected. Pin `--session grimoire` for work that must stay on 9223, such as DataDive web work and the retired-form case adapter. Conflicting endpoint/profile overrides fail. Direct-chat results return in that chat; the shared browser sends nothing to Slack.
+Launch browser-dependent commands in attended chat through `node tools/browserctl/browserctl.mjs run -- <command>`, which resolves the session and propagates it to child tools. On `grimoire` it holds the same 9223 lock as scheduled workers; 9222 has no port-wide lock, so attended Seller Central tools take turns on their regional or global task claim. Grimoire-side and scheduled instructions keep `--session grimoire`, and `WIZARDS_AI_MODE=1`, set by every Grimoire unit, refuses `operator` or port 9222 however it is selected. Pin `--session grimoire` for work that must stay on 9223, such as the retired-form case adapter. Conflicting endpoint/profile overrides fail. Direct-chat results return in that chat; the shared browser sends nothing to Slack.
 
 Session resolution and waits, the tab lifecycle and the login broker: `tools/browserctl/README.md`.
 
@@ -108,17 +108,11 @@ attended default without a question.
 
 Interactive UI work without a script path (FlatFilePro mapping, Creator Connections inbox) runs over the same CDP Chrome.
 
-DataDive web app navigation, read-only endpoint fetches, downloads, and
-screenshots use the shared Grimoire session on port 9223, pinned with
-`--session grimoire` even where the attended default is 9222. DataDive MCP remains
-first for supported data. Verify the browser niche against the MCP inputs.
-A missing or expired login pauses that workflow for login in 9223; never copy
-cookies or fall back to the operator profile. Extension-dependent actions must
-be verified in the selected profile separately; an unavailable extension is a
-capability blocker, not permission to use 9222.
+Extension-dependent actions must be verified in the selected profile; an
+unavailable extension is a capability blocker, not permission to use 9222.
 
 Screenshots use `tools/browserctl/task-evidence.mjs` with the owning task handle
-and expected seller/marketplace or DataDive niche. The capture records the
+and expected seller/marketplace or retail marketplace plus ASIN or query. The capture records the
 verified identity, session and exact target. Never choose the first URL/title
 match or label a screenshot with an unverified account supplied by its caller.
 
@@ -153,7 +147,7 @@ python3 tools/knowledge/ask.py "account health violation"
 
 This project uses one current agent, the main operator regardless of runtime or model, with specialist skills. Specialist skills are not permanent separate agents; they are focused playbooks the current agent loads when the request matches. In attended sessions, delegate parallel research, independent QA and large split tasks to temporary subagents when that saves time; the current agent stays the only writer to external systems. Unattended passes follow their runbook and do not delegate.
 
-**Skills are agent-neutral.** The current agent owns a workflow end to end when it has the required capabilities: data collection, local build, writing, QA, and authorized internal delivery. Describe steps by capability or surface (`connected browser`, `CDP`, `DataDive MCP`, `local build`, `Google Drive`), never by a named assistant; platform names stay only where they name a real interface or discovery mechanism. When a capability is missing, leave the standard handoff for any capable agent; a handoff is a capability fallback, not a permanent role split.
+**Skills are agent-neutral.** The current agent owns a workflow end to end when it has the required capabilities: data collection, local build, writing, QA, and authorized internal delivery. Describe steps by capability or surface (`connected browser`, `CDP`, `SoldScope MCP`, `local build`, `Google Drive`), never by a named assistant; platform names stay only where they name a real interface or discovery mechanism. When a capability is missing, leave the standard handoff for any capable agent; a handoff is a capability fallback, not a permanent role split.
 
 **One canonical copy of every Amazon skill, in this repo.** `skills/` owns the sources, and every runtime entry, including each `~/.codex/skills/amazon-*` entry, is a symlink to it; never replace a link with an independent copy. Designers may install only `amazon-listing-images` and `amazon-product-photography` per `docs/design-skills-installation.md`, without the `amazon-operator` role. SQP competitor benchmarks are a mode of `amazon-reporting`.
 
@@ -189,11 +183,12 @@ Default routing:
 - `amazon-flatfilepro`: FlatFilePro workbooks, uploads, mapping and the secondary-image pipeline.
 - `amazon-forecasting-sources`: per-client forecasting sources, assumptions and caveats.
 
-## Data Source Routing: DataDive vs POE
+## Data Source Routing: SoldScope vs POE
 
-- DataDive (MCP): niche analysis, master keyword lists, competitor ASINs, Ranking Juice, Rank Radar and indexing-issue alerts, addressed by `nicheId` (`list_niches`). Use the local `datadive` MCP server first and read-only: a tool that spends DataDive quota or changes its state needs approval of that exact action. Web-app work follows the Browser Standard. Never save the DataDive API key in this project, GitHub, SOPs or operator notes; it lives only in local MCP/client secret storage.
+- SoldScope (MCP `soldscope`): keyword research, competitor ASINs, search volume, relevancy and organic and sponsored rank tracking. Use it first and read-only by default. A keyword research run is addressed by its ASIN set (anchor first), marketplace and `search_id`; rank tracking by its rank-tracker `group_id`. SoldScope calls that spend credits need one run approval naming the ASINs, marketplace and expected credits; rank-tracker writes need exact-action approval (`tools/soldscope/README.md`). It signs in by OAuth in the MCP client; never save a SoldScope credential in this project, GitHub, SOPs or operator notes.
+- DataDive is retired: start no new DataDive work. Old DataDive exports, CSVs and workbook tabs stay readable so existing workbooks and audits can be rebuilt.
 - Product Opportunity Explorer (POE/OEI): Products, Search Terms, Customer Review Insights, Returns and Related Niches, behind the Seller Central login with no MCP. Use the API-first downloader (`skills/amazon-opportunity-explorer/references/opportunity-explorer-workflow.md`) and `skills/amazon-opportunity-explorer/references/poe-niche-export-checklist.md`. POE data has one permanent store, the client's pCloud `_Data/opportunity-data/` tree, for Amazon Agent and Grimoire; the skill owns transfer, receipt and migration rules.
-- Listing copy for anchor and competitor ASINs comes from live product pages through `amazon-listing-capture`, never from DataDive or POE.
+- Listing copy for anchor and competitor ASINs comes from live product pages through `amazon-listing-capture`, never from SoldScope or POE.
 
 Title, Item Highlights and bullets are distinct fields. Item Highlights is one short field (FlatFilePro `title_differentiation.0.value`), never mapped into `bullet_point.*.value` columns. The keyword workbook (`tools/amazon-seo-keyword-workbook/`) with its preflight, delivery and handoff rules belongs to `amazon-seo`.
 

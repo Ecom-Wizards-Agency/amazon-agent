@@ -1,6 +1,6 @@
 # Audit Workflow
 
-Mode browser: Mixed (AdLabs and DataDive over MCP; Business Report, SQP and the ads bulk over the CDP report fetcher on the download path; live creative capture over CDP on both paths; build is local).
+Mode browser: Mixed (AdLabs and SoldScope over MCP; Business Report, SQP and the ads bulk over the CDP report fetcher on the download path; live creative capture over CDP on both paths; build is local).
 
 This skill is the whole standard. It replaces the two former audit skills and the separate playbook
 doc, so nothing here points outside this directory.
@@ -29,7 +29,7 @@ straight out of it, and the second one is the part most audits get wrong.
    this as a hard gate only with a sufficient representative multi-week SQP sample. With weak or
    missing ASIN-level data, recommend only a capped validation test with explicit stop criteria.
 3. **Spend above target is not automatically waste.** It is waste only if it fails to buy
-   something. For rank campaigns, verify with DataDive Rank Radar and quote cost-per-rank in
+   something. For rank campaigns, verify with the SoldScope rank tracker and quote cost-per-rank in
    the profile currency. Holding or gaining a high-SV core term is the spend working. Flat or
    slipping core terms, or gains on tiny-SV terms, turn it back into waste.
 4. **Never cut bids where organic slips while ads carry it.** Check the rank series before any
@@ -124,7 +124,8 @@ account naming, marketplaces, ASINs, product groups, competitor tokens, and `cor
 Never carry a previous client's values as placeholders.
 
 **First-time audit** asks the full brief, because nothing is on file: client and marketplaces,
-product lines and ASINs, DataDive niche (URL or ID), break-even ACOS (real margin if known,
+product lines and ASINs, the ASIN set and marketplace for SoldScope keyword research (anchor
+first, up to 9 competitors) or an existing `research.json`, break-even ACOS (real margin if known,
 otherwise confirm we assume and flag it), brand tokens including real misspellings and which
 sub-brands count as branded, and competitor brands.
 
@@ -212,12 +213,23 @@ percentages into an AdLabs comparison; quote their currency, not their percentag
 Both paths must fill the same Lens A rows. "That is not available on this path" is only an
 acceptable answer for **margin**, and only until the client's P&L arrives.
 
-- **`deep`: download path.** Scaffold the config, preflight, gather browser downloads, pull
-  DataDive over MCP, and build locally. Never call AdLabs.
+- **`deep`: download path.** Scaffold the config, preflight, gather browser downloads, run
+  SoldScope keyword research over MCP, and build locally. Never call AdLabs.
 - **`monthly` and `actions`: AdLabs path.** Campaigns, targets, search terms, placements, per-ASIN
   SQP, the Business Report, and stock are live on the MCP. Never fall back to bulk downloads.
 
-Rank data comes from the DataDive MCP on both paths.
+Rank and keyword data come from the SoldScope MCP on both paths: the rank tracker for rank
+history, keyword research for a rank snapshot, keyword demand and competitors across the ASIN
+set. SoldScope calls that spend credits need one run approval naming the ASINs, marketplace and
+expected credits; rank-tracker writes need exact-action approval (`tools/soldscope/README.md`).
+
+- **A prospect has no rank history** unless one of its products is already in a SoldScope
+  rank-tracker group. Use the keyword research snapshot and say that movement is not measured.
+- **Brand best rank needs one search per 10 ASINs.** One keyword research run covers 2 to 10
+  ASINs, so a brand with more ASINs than fit beside its competitors needs more runs, each with
+  its own credits and approval.
+- **Medians describe the compared ASINs** (at most 10), not the whole category. Say so wherever
+  a median price, rating or review count appears.
 
 ---
 
@@ -230,10 +242,10 @@ output with the reason.
 |---|---|---|---|
 | A1 | Stock and offline days, before grading any rank campaign | Business Report + operator | `product`: `out_of_stock_days`, `days_of_cover`, `fulfillable_units`, `availability_trend` |
 | A2 | Buy Box share, seller count and price, **weekly** | `run.mjs business --start/--end` per week | `product`: `FEATURED_OFFER_PERCENT`, `BUY_BOX_VIEWS` |
-| A3 | Organic rank bands and movement; cost-per-rank on every rank campaign | DataDive niche + Rank Radar | same, DataDive MCP |
+| A3 | Organic rank bands and movement; cost-per-rank on every rank campaign | SoldScope keyword research (bands) + rank tracker (movement) | same, SoldScope MCP |
 | A4 | SQP demand and intent split; click share, purchase capture, CVR against market | SQP `.csv` per group | `search_query`, `ASIN_*` beside `TOTAL_*` |
 | A5 | **Funnel decomposition** (the tripwire) | Search Catalog Performance + SQP, per average week (see the method notes) | `search_query`: `ASIN_CTR`, `ASIN_CART_ADD_SHARE`, `ASIN_CONVERSION_RATE` |
-| A6 | Demand trajectory: is the niche draining, and is the brand draining faster | DataDive niche + SQP week series | same, plus `search_query` per week |
+| A6 | Demand trajectory: is the niche draining, and is the brand draining faster | SoldScope keyword research (demand snapshot) + SQP week series | same, plus `search_query` per week |
 | A7 | Channel mix and placement mechanism (base bid times multiplier) | ads bulk | `campaign`, `placement` entities |
 | A8 | Search-term waste and harvest, 1-gram and 2-gram | ads bulk search terms | `target` + search-term entities, profile-derived aCTC and CVR benchmarks |
 | A9 | Structure diagnosis, **enabled and spending only** | `parse_bulk` structure block | `group_by_column(campaign_group_name)` + target reads |
@@ -251,7 +263,7 @@ that was a single day (Buy Box 93.57% to 43.03%, sales $15,506 to $3,684 on one 
 a two-day warning the weekly view erased. Daily also orders the mechanism, which is what decides
 the levers: conversion fell first while sessions held, then sessions halved days later as lost
 velocity fed organic rank. Buy Box loss usually has **two** causes at once, stock and third-party
-sellers; do not settle on the first. Tells: Buy Box bottoming near but not at zero, DataDive's
+sellers; do not settle on the first. Tells: Buy Box bottoming near but not at zero, the keyword research
 scraped price sitting far above the brand's own, and `advertisedKws: 0` on the competitor payload.
 
 **A5, the tripwire.** Always compute it. It is arithmetic on data both paths already hold, and it
@@ -526,8 +538,9 @@ Each of these shipped, or nearly shipped, into a real client audit.
   it. Compare you against the market on the same query type only; the market denominator carries the
   identical bias, which is what makes it fair. Expect SQP to explain roughly a third of the business,
   and treat every capture rate as a floor.
-- **DataDive `price` is the Buy Box price at scrape time and may not be the client's.** On a hijacked
-  listing it is the reseller's. One audit reported the client priced at the category median of $26.35
+- **The keyword research `price` is the live offer at scrape time and may not be the client's.**
+  Treat it as the Buy Box price (legacy DataDive files always were). On a hijacked listing it is
+  the reseller's. One audit reported the client priced at the category median of $26.35
   when their real price was $34.95, which inverted the whole positioning read. Derive the brand's
   price from Business Report ASP (sales divided by units, checked across weeks).
 - **Pin every narrative number to the definition of the figure shipping beside it.** Several "page 1"

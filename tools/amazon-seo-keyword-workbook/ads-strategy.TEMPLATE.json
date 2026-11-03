@@ -24,8 +24,8 @@
   },
 
   "expanded_candidate_filter": {
-    "_comment": "Bounds which Expanded-MKL rows become halo candidates, to keep candidates.json readable.",
-    "min_relevancy": "<float 0-1>",
+    "_comment": "Bounds which Expanded-MKL rows become halo candidates, to keep candidates.json readable. min_relevancy is normalized relevancy (0-1), the scale of the workbook's Relev. column.",
+    "min_relevancy": "<float 0-1, normalized relevancy>",
     "max_sv": "<int>"
   },
 

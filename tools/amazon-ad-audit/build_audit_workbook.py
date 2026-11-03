@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
 Amazon Ad/Sales Audit — audit workbook builder (client-agnostic).
-Reads config + <outdir>/metrics.json + <outdir>/clean/*.csv (+ optional DataDive
-competitors JSON) and writes the EW-branded audit .xlsx. Nothing is hard-coded per
+Reads config + <outdir>/metrics.json + <outdir>/clean/*.csv (+ optional research.json
+competitors, or a legacy DataDive competitors JSON) and writes the EW-branded audit .xlsx. Nothing is hard-coded per
 client — client name, break-even, currency, windows, channels all come from config/metrics.
 """
 from __future__ import annotations
@@ -20,6 +20,8 @@ from analyze_audit import (
     blended_metrics_available,
     blended_metrics_reason,
     load_config,
+    research_meta,
+    research_paths,
     rp,
 )
 
@@ -55,7 +57,8 @@ def build(config_path, outdir):
         return f"{value:.{digits}%}" if value is not None else "n/a"
 
     comp = None
-    cj = rp(cfg["inputs"].get("datadive_competitors_json"))
+    research = research_meta(cfg)
+    cj = rp(research_paths(cfg)["competitors"])
     if cj and cj.exists():
         client_asins = {a for asins in (cfg.get("asin_groups") or {}).values() for a in asins}
         comp = _adapt_competitors(json.loads(cj.read_text()), client_asins)
@@ -79,7 +82,8 @@ def build(config_path, outdir):
     gap = _offer_gap(comp)
     # Name whichever half of the offer actually diverges from the benchmark. Silent when
     # both sit on the median, because "the offer is average" is not a finding.
-    offer_note = _price_phrase(gap) or _proof_phrase(gap)
+    MEDIAN = research["median_label"]   # "category median", or the compared-ASIN median on SoldScope
+    offer_note = _price_phrase(gap, MEDIAN) or _proof_phrase(gap)
     oneliner = ((f"The available Ads file is a directional snapshot, not a campaign grade. It shows branded ACOS at {br_acos:.0%}, "
                   f"generic ACOS at {gen_acos:.0%}, and a material placement gap that should be rechecked after relaunch.")
                  if directional_ads else
@@ -160,7 +164,7 @@ def build(config_path, outdir):
         cps = [x for x in comp["competitors"] if not x.get("is_client")]
         client_rows = [x for x in comp["competitors"] if x.get("is_client")]
         if cps and client_rows:
-            findings.append(f"5) Offer benchmark: price is {_m(min(x['price'] for x in client_rows),MONEY)}–{_m(max(x['price'] for x in client_rows),MONEY)} vs a {_m(comp['median_price'],MONEY)} category median, while ratings and reviews trail. Social proof is the larger handicap.")
+            findings.append(f"5) Offer benchmark: price is {_m(min(x['price'] for x in client_rows),MONEY)}–{_m(max(x['price'] for x in client_rows),MONEY)} vs a {_m(comp['median_price'],MONEY)} {MEDIAN}, while ratings and reviews trail. Social proof is the larger handicap.")
     for txt in findings:
         ws.merge_cells(start_row=r[0], start_column=1, end_row=r[0], end_column=3)
         ws.cell(r[0], 1, txt).font = F(10, False, C["ink"]); ws.cell(r[0], 1).alignment = WRAP
@@ -308,11 +312,24 @@ def build(config_path, outdir):
         ws.cell(rr, c).font = F(10, True)
     note(ws, rr + 2, "Where sessions are high and CVR healthy, the product converts. $0-unit ASINs are new or unlaunched. Decide whether to launch, merge, or prune.", 7)
 
-    # ================= TAB 8: DataDive Niche (only if competitors present) =================
+    # ===== TAB 8: research competitors (only if present). Legacy DataDive keeps "DataDive Niche" =====
     if comp:
-        ws = wb.create_sheet("DataDive Niche")
-        title_block(ws, "DataDive niche: competitive benchmarking", None, 9)
-        note(ws, 4, f"Niche {cfg.get('datadive_niche','')} ({comp.get('category','')}), {comp.get('num_keywords','')} keywords. Category median price {_m(comp['median_price'],MONEY)}, median reviews {comp['median_reviews']:.0f}, median rating {comp['median_rating']}.", 9)
+        if research["legacy"]:
+            ws = wb.create_sheet("DataDive Niche")
+            title_block(ws, "DataDive niche: competitive benchmarking", None, 9)
+            note(ws, 4, f"Niche {cfg.get('datadive_niche','')} ({comp.get('category','')}), {comp.get('num_keywords','')} keywords. Category median price {_m(comp['median_price'],MONEY)}, median reviews {comp['median_reviews']:.0f}, median rating {comp['median_rating']}.", 9)
+        else:
+            provider = research["provider"] or "SoldScope"
+            n = len(comp["competitors"]) or research["n_compared"]
+            ws = wb.create_sheet(f"{provider} Competitors"[:31])
+            title_block(ws, f"{provider} keyword research: competitive benchmarking", None, 9)
+            sid = research["search_id"]
+            sid = ", ".join(str(x) for x in sid) if isinstance(sid, list) else (sid or "")
+            category = f" ({comp.get('category','')})" if comp.get("category") else ""
+            note(ws, 4, f"Keyword research search_id {sid} on {n} compared ASINs{category}, "
+                        f"{comp.get('num_keywords','')} keywords. Median of the {n} compared ASINs: "
+                        f"price {_m(comp['median_price'],MONEY)}, reviews {_num0(comp['median_reviews'])}, "
+                        f"rating {comp['median_rating']}. These are not category-wide medians.", 9)
         header_row(ws, 6, ["Brand", "ASIN", "Price", "Rating", "Reviews", "Est. revenue", "Adv. kws", "% kw on P1", "Seller"], [18, 12, 10, 9, 10, 14, 10, 10, 8])
         rr = 7
         for x in comp["competitors"]:
@@ -327,10 +344,10 @@ def build(config_path, outdir):
                 elif premium >= 0.10:
                     ws.cell(rr, 3).fill = PatternFill("solid", fgColor=TL["warn"])
             rr += 1
-        reads = [p for p in (_price_phrase(gap), _proof_phrase(gap)) if p]
+        reads = [p for p in (_price_phrase(gap, MEDIAN), _proof_phrase(gap)) if p]
         offer_read = ("The " + ", and ".join(reads) + "."
                       if reads else
-                      "Price, rating and review count all sit close to the category median.")
+                      f"Price, rating and review count all sit close to the {MEDIAN}.")
         note(ws, rr + 1, "Client rows are highlighted; the price cell fills amber above a 10% premium "
                          "and red above 20%. " + offer_read, 9)
 
@@ -338,7 +355,8 @@ def build(config_path, outdir):
     ws = wb.create_sheet("Sources & Notes")
     title_block(ws, "Sources, method & caveats", None, 2)
     lines = [
-        ("Window", f"Ads {w.get('ads','')}; Business Report {w.get('business_report','')}; SQP {', '.join(w.get('sqp_weeks',[]))}; DataDive {w.get('datadive','')}."),
+        ("Window", f"Ads {w.get('ads','')}; Business Report {w.get('business_report','')}; SQP {', '.join(w.get('sqp_weeks',[]))}"
+                   + (f"; {research['provider']} {research['window']}" if research["provider"] else "") + "."),
         ("Marketplace", markets),
         ("Account scope", f"Channels present: {', '.join(channels)}." + (f" Missing: {', '.join(missing_ch)}." if missing_ch else "")),
         ("Break-even ACOS", f"{BE:.0%}. ASSUMPTION pending confirmed margin. Not a confirmed operating target; drives all red/amber verdicts."),
@@ -404,15 +422,15 @@ def _offer_gap(comp):
         review_ratio=(review / med_reviews) if review and med_reviews else None)
 
 
-def _price_phrase(gap):
+def _price_phrase(gap, median_label="category median"):
     """Where the client's price sits against the median, or None when it sits on it."""
     p = (gap or {}).get("premium")
     if p is None:
         return None
     if p >= 0.10:
-        return f"price sits {p:.0%} above the category median"
+        return f"price sits {p:.0%} above the {median_label}"
     if p <= -0.10:
-        return f"price sits {abs(p):.0%} below the category median"
+        return f"price sits {abs(p):.0%} below the {median_label}"
     return None
 
 
@@ -433,9 +451,9 @@ def _proof_phrase(gap):
 
 
 def _adapt_competitors(comp, client_asins):
-    """Accept either the derived competitors shape or the raw DataDive MCP
-    get_niche_competitors payload (the contract: the active agent saves the MCP response
-    verbatim). Raw payloads are converted; derived ones pass through."""
+    """Accept the derived competitors shape or a raw payload with a `benchmark` block:
+    the SoldScope research.json from tools/soldscope/keywords.py, or a legacy DataDive
+    niche-competitors JSON. Raw payloads are converted; derived ones pass through."""
     if not comp or "benchmark" not in comp:
         return comp
     b = comp.get("benchmark", {}) or {}
@@ -457,6 +475,10 @@ def _adapt_competitors(comp, client_asins):
                 median_price=b.get("price", b.get("median_price")),
                 median_reviews=b.get("reviewCount", b.get("median_reviews")),
                 median_rating=b.get("rating", b.get("median_rating")), competitors=rows)
+
+
+def _num0(v):
+    return f"{v:,.0f}" if isinstance(v, (int, float)) else "n/a"
 
 
 def _m(v, fmt):

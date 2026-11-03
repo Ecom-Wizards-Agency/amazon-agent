@@ -34,7 +34,7 @@ Sweep for anything that identifies the operator, a client, or internal infrastru
 
 ## 4. Secrets never ship
 
-No API keys, tokens, cookies, bearer/refresh tokens, passwords, tax IDs, payment identifiers, or private keys anywhere in tracked files or history. Third-party API keys (e.g. the DataDive MCP key) live only in local MCP/client secret storage.
+No API keys, tokens, cookies, bearer/refresh tokens, passwords, tax IDs, payment identifiers, or private keys anywhere in tracked files or history. Third-party API keys and OAuth credentials (for example a keyword-data provider's MCP key) live only in local MCP/client secret storage.
 
 ## 5. Branch → PR flow (how it goes online)
 

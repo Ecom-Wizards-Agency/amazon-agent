@@ -38,6 +38,116 @@ def rp(p):
             return alt
     return q
 
+# ----------------------------------------------------------------- research inputs
+# Keyword, competitor and rank research comes from SoldScope: tools/soldscope/keywords.py
+# writes one research.json (keywords AND competitors) and tools/soldscope/ranks.py writes
+# the rank series. Configs written before the switch name DataDive files under the old
+# keys. Those stay readable so an old audit still rebuilds with its DataDive labels.
+PROVIDER_LABELS = {"soldscope": "SoldScope", "datadive": "DataDive"}
+
+
+RESEARCH_KEYWORDS_CSV = "research_keywords.csv"
+LEGACY_KEYWORDS_CSV = "datadive_keywords.csv"
+
+
+def research_keywords_csv(clean):
+    """clean/research_keywords.csv, or the legacy datadive_keywords.csv when only it exists."""
+    clean = Path(clean)
+    new = clean / RESEARCH_KEYWORDS_CSV
+    old = clean / LEGACY_KEYWORDS_CSV
+    return new if new.exists() or not old.exists() else old
+
+
+def research_paths(cfg):
+    """Config paths for the research readers, new keys first, legacy DataDive keys second.
+
+    `inputs.research_json` feeds both the keyword and the competitor reader. The legacy
+    pair `datadive_niche_json` / `datadive_competitors_json` is read only when it is unset.
+    `inputs.rank_series_json` falls back to the legacy `rank_radar_json`."""
+    inp = cfg.get("inputs") or {}
+    research = inp.get("research_json") or None
+    legacy_kw = inp.get("datadive_niche_json") or None
+    legacy_comp = inp.get("datadive_competitors_json") or None
+    return dict(
+        research=research,
+        keywords=research or legacy_kw,
+        competitors=research or legacy_comp,
+        rank_series=inp.get("rank_series_json") or inp.get("rank_radar_json") or None,
+        rank_series_legacy=not inp.get("rank_series_json") and bool(inp.get("rank_radar_json")),
+        legacy=not research and bool(legacy_kw or legacy_comp or cfg.get("datadive_niche")),
+    )
+
+
+def _read_json(path):
+    q = rp(path)
+    if not q or not q.exists():
+        return None
+    try:
+        return json.loads(q.read_text())
+    except (OSError, ValueError):
+        return None
+
+
+def research_meta(cfg):
+    """Provider label and run identity of the research behind the audit.
+
+    The provider comes from research.json `provider`. A file without one is a legacy
+    DataDive payload. Returns provider None when no research input is configured."""
+    paths = research_paths(cfg)
+    data = _read_json(paths["keywords"]) if paths["keywords"] else None
+    if not isinstance(data, dict) and paths["competitors"]:
+        data = _read_json(paths["competitors"])
+    data = data if isinstance(data, dict) else {}
+    raw = data.get("provider")
+    if raw:
+        provider = PROVIDER_LABELS.get(str(raw).lower(), str(raw))
+    elif paths["research"] and not data:
+        provider = "SoldScope"          # declared on the new key, file not saved yet
+    elif paths["research"] or paths["legacy"]:
+        provider = "DataDive"
+    else:
+        provider = None
+    legacy = provider == "DataDive"
+    win = cfg.get("windows") or {}
+    date_from, date_to = data.get("date_from"), data.get("date_to")
+    if date_from and date_to:
+        derived = f"{date_from}..{date_to}"
+    else:
+        derived = str(data.get("created_at") or "")[:10]
+    window = win.get("research") or win.get("datadive") or derived
+    asins = [a for a in (data.get("asins") or []) if a]
+    competitors = data.get("competitors") or []
+    bench = data.get("benchmark") or {}
+    n_compared = len(competitors) or len(asins)
+    if legacy:
+        median_label = "category median"
+        source_line = f"DataDive niche {cfg.get('datadive_niche', '')}".rstrip()
+    else:
+        median_label = (f"median of the {n_compared} compared ASINs" if n_compared
+                        else "median of the compared ASINs")
+        bits = []
+        if data.get("search_id") not in (None, "", []):
+            sid = data["search_id"]
+            bits.append("search_id " + (", ".join(str(s) for s in sid) if isinstance(sid, list) else str(sid)))
+        if data.get("marketplace"):
+            bits.append(str(data["marketplace"]))
+        if asins:
+            bits.append("ASINs " + ", ".join(asins))
+        if window:
+            bits.append(window)
+        source_line = (f"{provider} keyword research" + (f" ({'; '.join(bits)})" if bits else "")
+                       if provider else "")
+    return dict(
+        provider=provider, legacy=legacy, window=window, search_id=data.get("search_id"),
+        marketplace=data.get("marketplace"), asins=asins, anchor=data.get("anchor"),
+        date_from=date_from, date_to=date_to, n_compared=n_compared,
+        benchmark_basis=bench.get("basis") or "", median_label=median_label,
+        source_line=source_line,
+        rank_provider=("DataDive" if paths["rank_series_legacy"] else
+                       ("SoldScope" if paths["rank_series"] else None)),
+    )
+
+
 def nf(x):
     if x is None:
         return 0.0
@@ -609,23 +719,36 @@ def parse_sqp(cfg, agg):
     agg["sqp"] = dict(mkt_wk=mkt_wk, grp_wk=grp_wk, grp_intent=grp_intent, grp_qtext=grp_qtext,
                       coverage=coverage, weeks=sorted(weeks))
 
-# ----------------------------------------------------------------- DataDive
-def parse_datadive(cfg, agg):
-    p = rp(cfg["inputs"].get("datadive_niche_json"))
+# ----------------------------------------------------------------- keyword research
+def research_keywords(data):
+    """Keyword rows the audit counts: the Core list of a SoldScope research.json.
+
+    research.json holds the 1% pool with origin "core" or "pool"; a legacy DataDive
+    niche file held only the visible MKL and has no origin, so it passes through."""
+    kws = (data or {}).get("keywords") or []
+    return [k for k in kws if k.get("origin", "core") == "core"]
+
+
+def parse_research(cfg, agg):
+    """Brand best rank per keyword from research.json (or a legacy DataDive niche JSON)."""
+    p = rp(research_paths(cfg)["keywords"])
     if not p or not p.exists():
         agg["dd"] = None
         return
     niche = json.loads(p.read_text())
     brand_asins = [a for asins in (cfg.get("asin_groups") or {}).values() for a in asins]
     rows = []
-    for k in niche.get("keywords", []):
+    for k in research_keywords(niche):
         ranks = k.get("asinRanks", {}) or {}
         best = None
         for a in brand_asins:
             if ranks.get(a) is not None:
                 best = ranks[a] if best is None else min(best, ranks[a])
         rows.append(dict(kw=k.get("keyword"), sv=k.get("searchVolume"), rel=k.get("relevancy"), rank=best))
-    agg["dd"] = dict(keywords=rows)
+    agg["dd"] = dict(keywords=rows, provider=research_meta(cfg)["provider"])
+
+
+parse_datadive = parse_research  # legacy name
 
 # ----------------------------------------------------------------- assemble
 def build_metrics(cfg, agg, outdir):
@@ -816,18 +939,21 @@ def build_metrics(cfg, agg, outdir):
         cart_rows.sort(key=lambda row: (-row["purchases"], -row["clicks"], row["query"].lower()))
         (clean / "cart_claim_query_averages.json").write_text(json.dumps(cart_rows, indent=2))
 
-    # DataDive summary
+    # Keyword research summary. `research` is the source-neutral key; a legacy DataDive
+    # run also keeps the old `datadive` key so readers of older metrics.json still work.
     if agg.get("dd"):
         dd = agg["dd"]["keywords"]
         advertised = set(str(r["keyword"]).lower().strip() for r in agg["kw_targets"] if r["bucket"] == "Generic")
-        metrics["datadive"] = dict(n_kw=len(dd),
+        metrics["research"] = dict(provider=agg["dd"].get("provider"), n_kw=len(dd),
                                    # Named for its actual threshold, not "p1". It was called
                                    # ranked_p1 while counting rank <=15, which invites anyone
                                    # reading metrics.json to quote it as a page-1 figure next to
                                    # a chart that bands 1-4/5-10/11-20/21-50. Page 1 is rank <=48.
                                    ranked_top15=len([d for d in dd if d["rank"] and d["rank"] <= 15]),
                                    advertised_and_ranked_top10=len([d for d in dd if d["kw"] and d["kw"].lower().strip() in advertised and d["rank"] and d["rank"] <= 10]))
-        _wcsv(clean / "datadive_keywords.csv", sorted(dd, key=lambda x: -(x["sv"] or 0)), ["kw", "sv", "rel", "rank"])
+        if agg["dd"].get("provider") == "DataDive":
+            metrics["datadive"] = {k: v for k, v in metrics["research"].items() if k != "provider"}
+        _wcsv(clean / RESEARCH_KEYWORDS_CSV, sorted(dd, key=lambda x: -(x["sv"] or 0)), ["kw", "sv", "rel", "rank"])
 
     (outdir / "metrics.json").write_text(json.dumps(metrics, indent=2, default=str))
 
@@ -872,7 +998,7 @@ def run(config_path, outdir=None):
         if p and p.exists():
             parse_business_report(cfg, market, p, agg)
     parse_sqp(cfg, agg)
-    parse_datadive(cfg, agg)
+    parse_research(cfg, agg)
     m = build_metrics(cfg, agg, outdir)
     acos_text = f"{m['totals']['acos']:.1%}" if m["totals"]["acos"] is not None else "n/a"
     print(f"[analyze] {cfg['client']}: spend {m['totals']['spend']:,.0f} sales {m['totals']['sales']:,.0f} "

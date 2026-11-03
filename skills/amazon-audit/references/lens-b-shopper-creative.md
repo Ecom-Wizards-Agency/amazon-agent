@@ -48,7 +48,9 @@ reads), is it covered, and where. The gap is usually coverage, not quality.
 
 ### The rest of Lens B
 
-- **Category difficulty**: review and price moat, Ranking Juice listing gap. Rating targets are
+- **Category difficulty**: review and price moat against the compared ASINs, and the listing gap
+  as the keyword ranking score (`tools/amazon-seo-keyword-workbook/ranking_score.py`, scored
+  against the research Core keywords) for the client and its top competitors. Rating targets are
   visual: 4.2 and 4.3 render the same star image, 4.5 is the half-star jump worth pushing toward.
 - **Listing copy and compliance**: check live titles against the 75-character rule (effective
   2026-07-27) and flag as time-critical when non-compliant; use the forced rewrite to front-load

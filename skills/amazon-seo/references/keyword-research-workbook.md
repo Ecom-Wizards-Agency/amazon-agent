@@ -1,8 +1,8 @@
 # Keyword Research Workbook
 
-In direct chat, run browser-dependent tools through `node tools/browserctl/browserctl.mjs run -- <command>`, which resolves the machine's attended default. Slack and scheduled runs keep `node tools/browserctl/browserctl.mjs run --session grimoire -- <command>`. DataDive web work pins `--session grimoire` in both (below). Screenshots inherit the owning task and verified niche.
+In direct chat, run browser-dependent tools (POE and listing capture) through `node tools/browserctl/browserctl.mjs run -- <command>`, which resolves the machine's attended default. Slack and scheduled runs keep `node tools/browserctl/browserctl.mjs run --session grimoire -- <command>`. Screenshots inherit the owning task and the verified Seller Central account or ASIN.
 
-Mode browser: Mixed (build is local; DataDive uses MCP first; DataDive web work and the full keyword pool use managed Chrome CDP in the shared Grimoire session on port 9223).
+Mode browser: Mixed (build is local; SoldScope keyword data comes from the `soldscope` MCP; POE and listing capture use managed Chrome CDP, port 9223 for Grimoire and scheduled runs).
 
 Use this when the operator asks for a full Amazon SEO keyword workbook, not only listing copy.
 
@@ -16,89 +16,58 @@ hand off only the blocked checklist and exact contract paths to any capable agen
 2. Use `amazon-opportunity-explorer` for POE/OEI data (API-first `run-poe.mjs` downloader) and evidence.
 2a. Use `amazon-listing-capture` to capture live listing copy (title/bullets/link) for the anchor + competitors into the listing-reference JSON; the builder fills the ASINs tab from it.
 3. Use the workbook builder: `tools/amazon-seo-keyword-workbook/build_keyword_workbook.py`.
-4. Use DataDive references only when terminology or UI behavior matters:
-   - `skills/amazon-seo/references/datadive-support/datadive-support-index.md`
-   - `skills/amazon-seo/references/datadive-support/datadive-seo-workflow-article-map.md`
+4. Use `tools/soldscope/README.md` for the SoldScope adapters, response shapes, the credit rule and coverage limits.
 
 ## Required Data Inputs
 
-- DataDive roots CSV. **(MCP-generatable; see below.)**
-- DataDive Core MKL CSV at `30% Min Rel.`. **(MCP-generatable.)**
-- DataDive complete keyword-pool CSV filtered locally at `1% Min Rel.` from the three read-only endpoints below.
-- DataDive competitors CSV or MCP-derived competitor export. **(MCP-generatable.)**
-- Ranking Juice snapshot from DataDive MCP in the SEO content JSON, when the niche is in DataDive. Runs on another keyword source rely on the calculated score row below.
+All four keyword files come from one SoldScope keyword research run, converted by `tools/soldscope/keywords.py`:
+
+- Roots CSV (`roots.csv`).
+- Core keyword list CSV (`core.csv`, normalized relevancy at or above `--core-min`, default 0.30).
+- Complete keyword-pool CSV (`expanded.csv`, at least one compared ASIN in the top 50, relevancy at or above `--pool-min`, default 0.01).
+- Competitors CSV (`competitors.csv`), plus `research.json` and `keywords-receipt.json` for the run identity and counts.
 - POE Products/Search Terms CSVs.
 - POE Reviews, Returns, Related Niches, and structured overview JSON.
 - Listing reference JSON with product family, ASINs, listing status, title/bullets/description, ingredients, and pack size.
 
-### DataDive: MCP-first, and the full pool needs no UI export at all
+The keyword ranking score row (below) replaces the old DataDive Ranking Juice snapshot. Legacy SEO content JSON files that still carry an `rj` snapshot keep building.
 
-The local `datadive` MCP server runs `@datadive-tools/mcp` over stdio. Use it for DataDive-owned niche, keyword, competitor, Ranking Juice, and Rank Radar data before falling back to manual exports. Treat it as read-only: its read tools need no approval, but any tool that spends DataDive quota or changes shared DataDive state needs the operator's approval of that exact action. That covers niche dives and redives, niche deletion, Rank Radar creation and deletion, pausing or resuming a Rank Radar or its search terms, adding search terms, and listing-copy generation.
+### SoldScope keyword research
 
-Generate **roots**, **Core 30% MKL**, and **competitors** from the DataDive MCP. Do NOT open the browser for them. Validated byte-for-data-identical to the UI exports on a validation run (roots 222/222, Core 257/257, 0 mismatches; a full rebuild from the generated CSVs passed all QA gates with identical Ranking-Juice coverage). See [[datadive-mcp-vs-download]].
+SoldScope has no persistent niche. A run is identified by its marketplace, its ASIN list (anchor first when there is one) and its `search_id`.
 
-**The old "Expanded 1% MKL" was a misnomer and its UI route is retired.** It was never a larger MKL export. The MKL is a capped, curated subset (500 on a capped niche; the frontend warns about a 600 ceiling in one inclusion flow), so lowering Min. Relevancy to 1% does not add rows once the niche is at the cap, and on a capped niche the UI simply cannot reach the tail. Changing that setting is also a `POST /niche_settings/{nicheId}/mkl_okl` that **mutates shared niche state for every teammate**. Do not do it.
-
-Instead pull the **complete keyword pool** with three read-only GETs in the
-logged-in DataDive session through managed Chrome CDP on port 9223, then filter
-locally. If the selected profile lacks a DataDive session, pause for login in
-9223. Do not fall back to the operator profile:
-
-Use the owned-tab extractor to wait for the loaded grid, validate niche and
-marketplace, and capture evidence from that exact task target:
-
-```bash
-node tools/browserctl/browserctl.mjs run --session grimoire -- \
-  node tools/datadive-support/read-niche.mjs <NICHE_ID> <com|de|co.uk> \
-  '<hero keyword>' <output-directory> <stable-datadive-child-task-id>
-```
-
-It writes the three JSON payloads, screenshot, verified target metadata and
-checksums. Compare its core keywords, competitor ASINs and total keyword count
-with the MCP inputs before using the pool. Keep the same child task ID on retry;
-the POE child keeps a different stable task ID in the same browser session.
-
-```
-GET https://app.datadive.tools/mkl/{nicheId}?includeAsinCatalog=true   -> data.keywords
-GET https://app.datadive.tools/outlier/{nicheId}                       -> data.keywords
-GET https://app.datadive.tools/residue-kw-list/{nicheId}               -> data.keywords
-```
-
-The three sets are a clean partition with zero overlap, and every row carries the same fields (`keyword`, `searchVolume`, `relevancy`, `cpr8dayGiveaways`, `asinRanks`, `sponsoredAsinRanks`, `amazonUrl`). Merge them and filter `relevancy >= 0.01` for the 1% equivalent, or any other threshold. **No settings change, no Dive tokens, no download-event problem.**
-
-Validated 31.07.2026 on niche `rJdlqdE49c`: 500 + 127 + 2,662 = **3,289 unique keywords**, matching `get_niche_competitors.numKeywords` exactly. Cross-check that equality every run before trusting the merge. Team vault run note: `Runs/2026-07-31-runtime-consolidation-test.md`.
-
-`Update Niche` is the separate re-dive path. It is **not** needed for the tail; treat it as quota-bearing and never trigger it for this workflow.
+**Credit rule.** Before any SoldScope call that spends credits or starts server-side work, state the ASINs, the marketplace and the expected credits, and get one approval for the run. That covers `keyword_research_search_multi_asin` (one credit per ASIN), `kr_asin_search`, `keyword_research_search_by_keyword`, `product_research_search_products`, `product_live_info_start`, `title_check_data`, `common_search_volume_batch`, `index_checker_start`, `review_analyzer_get`, `buy_box_map_start_search`, `influencer_radar_search_influencers`, `rank_tracker_get_suggested_keywords` and `rank_tracker_init_export`. Rank-tracker writes (`rank_tracker_create_group`, `rank_tracker_attach_products`, `rank_tracker_apply_suggested_phrases`, `rank_tracker_toggle_phrases_boost`) and `index_checker_delete` need approval of that exact action. Poll `keyword_research_get_search_progress` at most every 5 seconds (the route allows 30 requests per minute). Save raw result pages and log credits in `credits-log.tsv` in the run folder. The full rule and the free reads are in `tools/soldscope/README.md`.
 
 Procedure (current agent, before the build):
-1. Call `get_niche_roots`, `get_niche_keywords`, `get_niche_competitors` for the niche; save each raw JSON response to a file.
-2. **Guardrail:** confirm `len(get_niche_keywords.keywords) == get_niche_competitors.numVisibleKeywords` before trusting the Core file. If they diverge, fall back to the UI Core export.
-3. Run the generator to write the three contract CSVs:
+
+1. **Pick the ASIN set.** The anchor first when the product is live, plus up to 9 competitors, taken from POE top clicked products, the top 10 of `keyword_research_search_by_keyword` for the hero keyword, or the operator's list. Prelaunch runs have no anchor and set `ranking_context.mode: unavailable` (see below).
+2. **Pick the route by marketplace.** US, CA, MX, UK, DE, ES, FR or IT: one `keyword_research_search_multi_asin` with 2 to 10 ASINs. Other marketplaces: one `kr_asin_search` per ASIN; the adapter merges them and computes relevancy, because that route has no native relevancy.
+3. **State the credits and get the run approval** (credit rule above).
+4. **Poll and page.** Poll `keyword_research_get_search_progress` (`searchStatus` 2 = done, 13 = failed), then page `keyword_research_get_multi_results` with `per_page` 1000 until every `meta.total` row is read. Save each page as `multi-<search_id>-page-NNN.json` in the run folder.
+5. **Convert.** Run the adapter to write the builder CSVs, `research.json` and the receipt:
    ```bash
-   .venv/bin/python tools/amazon-seo-keyword-workbook/datadive_mcp_to_csv.py --anchor <ANCHOR> \
-     --roots-json <roots.json> --keywords-json <keywords.json> --competitors-json <comps.json> \
-     --out-roots "<roots_csv path>" --out-core "<master_csv path>" --out-competitors "<competitors_csv path>"
+   .venv/bin/python tools/soldscope/keywords.py --pages multi-<search_id>-page-*.json \
+     --out-dir <run folder> --anchor <ANCHOR> --asins <ANCHOR>,<ASIN>,... \
+     --marketplace <US> --search-id <search_id>
    ```
-Notes: the Core file's `Sugg. bid & range` column is left blank (the builder never reads it; it only matters for PPC builds). `--preflight` marks these three as `(MCP)` rather than `(BROWSER)`, so the browser task only asks for the full keyword pool + POE + listing capture.
+   For the single-ASIN route, pass `--asin-pages ASIN=PAGE.json[,PAGE.json] ...` instead of `--pages`. Point the config `inputs` roots, Core, pool and competitors paths at the four CSVs.
+6. **Guardrail.** `keywords.py` exits 2 unless raw rows equal `meta.total` and unique plus dropped plus merged rows equal raw rows. Never build from a run that failed that check; re-read the missing pages instead. Check that `research.json.asins` starts with the anchor.
 
-Record DataDive export metadata for both Core and Expanded MKL: Min Relevancy, Min SV/Max SV if changed, visible keyword count, visible search volume, export timestamp, niche ID, marketplace, and hero keyword. **Capture these at export time, while the grid is on screen**; do not backfill later.
+Notes:
+- Relevancy in every CSV and JSON is normalized to 0-1 (SoldScope's 0-100 score divided by 100; `--relevancy auto` falls back to the computed top-50 share). All relevancy thresholds in the builder config stay on 0-1.
+- Ranks above 100 are written as 101; not ranked is blank.
+- Competitor `seller country` stays blank: SoldScope has no source for it.
+- The Core file's `Sugg. bid & range` column is left blank (the builder never reads it; it only matters for PPC builds). `--preflight` marks the four keyword files as `(MCP)`, so the browser task only asks for POE and listing capture.
 
-DataDive UI export locations:
-- **Roots CSV**: the **Roots** grid's leftmost **Export** tab, for **Normalized Root**.
-- **Competitors CSV**: **Niche Tracker > Export Competitors**. Prefer the real UI export over MCP fallback. NOTE: the genuine UI export is TRANSPOSED (attribute rows, one column per ASIN); the builder handles both shapes.
-- Core/Expanded MKL: always record Min Rel, visible keyword count, visible search volume, and export timestamp at export time.
-- Before fallback or rank injection, confirm the Core MKL has the exact anchor ASIN as a real DataDive column.
-- Prelaunch or inactive-untracked products may use `ranking_context.mode: "unavailable"` for a research workbook. Supply a dated JSON evidence file matching the actual product ASIN (empty only before ASIN creation), marketplace and status, with existing catalog-capture paths. Set `include_if_anchor_not_ranking: false`. The builder labels own rankings unavailable and forbids rank-gap opportunity claims; competitor ASINs remain competitors. Never inject a synthetic own-ASIN column. Formula, source, copy, claims and delivery gates still apply. Return to tracked mode when the own ASIN is actually present in DataDive.
-- **Anchor not tracked in an existing niche: ADD the ASIN, do NOT re-dive.** When a niche already exists for the product's market but our anchor ASIN is not one of its tracked columns (the usual case for a niche someone dived around competitors), do not spend a full `create_niche_dive`. Instead add just our ASIN to that existing niche so it gains a rank column and the existing roots/MKL/competitor research is reused (≈1 dive token vs ~10, and one niche instead of a duplicate). The DataDive **MCP has no add-ASIN action**, so this is a connected-browser UI step: DataDive → Niche Tracker → add competitor ASIN → let it re-research; the ASIN then appears in `get_niche_keywords.asinRanks`. Only `create_niche_dive` (spending a full dive, ideally seeded on OUR ASIN) when **no** niche exists for the product yet. Verify with `get_niche_competitors`/`get_niche_keywords` that the anchor is a tracked column after the add, before rank injection. See [[keyword-research-config-scaffolding]].
-- **If you do fall back to a UI export, do not trust the download event.** In
-  CDP, set `Browser.setDownloadBehavior` to the run's registered download
-  directory, snapshot that directory before the click, then poll for a new
-  `niche-{id}-data*.zip`. Validate timestamp, size, ZIP members, headers, and row
-  counts before accepting it. Cross-check against `get_niche_competitors`
-  (`numVisibleKeywords`/`totalSvOfVisibleKeywords` for the visible set,
-  `numKeywords`/`totalSvOfKeywords` for the full pool). Prefer the three read-only
-  endpoints above, which avoid the UI download entirely. Register any downloaded
-  ZIP by exact path with `artifactctl`.
+**Run metadata.** Record the run in the config `keyword_exports` block (legacy configs keep `datadive_exports`, which the builder still reads) for both Core and pool: `search_id`, `asins`, `marketplace`, `date_from`/`date_to`, `raw_rows`/`kept_rows`, `core_min`/`pool_min` and `relevancy_mode`. Copy them from `research.json` and `keywords-receipt.json`; never type them from memory. Put the run identity in `product_anchor.research` (legacy configs keep `datadive_niche`).
+
+- Before any rank-gap analysis, confirm the anchor ASIN is a real rank column in the Core CSV (the first ASIN column).
+- Prelaunch or inactive-untracked products may use `ranking_context.mode: "unavailable"` for a research workbook. Supply a dated JSON evidence file matching the actual product ASIN (empty only before ASIN creation), marketplace and status, with existing catalog-capture paths. Set `include_if_anchor_not_ranking: false`. The builder labels own rankings unavailable and forbids rank-gap opportunity claims; competitor ASINs remain competitors. Never inject a synthetic own-ASIN column. Formula, source, copy, claims and delivery gates still apply. Return to tracked mode once the own ASIN exists and a new run includes it first in the ASIN list.
+- **Anchor missing from a finished run: start a new run with the anchor first.** A SoldScope run cannot gain an ASIN after it starts. State the new run's credits under the credit rule.
+- **Legacy DataDive builds.** Configs that still point at DataDive CSV exports rebuild unchanged and keep their DataDive tab names and labels. Without `keyword_source`, a config with `keyword_exports` or `product_anchor.research` is labelled SoldScope and any other config DataDive. Do not start new DataDive runs.
+
+### POE and listing capture
+
 - POE inputs come from the API-first downloader: `tools/opportunity-explorer/run-poe.mjs` (`search` → related-niches JSON; `niche` → Products/SearchTerms CSVs + sentiment-labeled CRI + Returns + overview JSON, all builder-ready and locale-independent). One `.de` login covers every EU marketplace (`--origin https://sellercentral.amazon.de --marketplace de|it|es|fr|…`); US uses the `.com` origin. An agent with the debug Chrome can use the CDP runner; an agent with a supported internal browser can evaluate `fetch-poe.js`. No manual tab clicking is required. Capture context (account, marketplace, niche, last-updated) comes from the overview JSON.
 - **⚠️ ALWAYS pass `--origin https://sellercentral.amazon.de` for any EU client, on `doctor` too.** `origin` DEFAULTS to `https://sellercentral.amazon.com`, so a bare `run-poe.mjs doctor` reads the account context from the `.com` page and reports whatever account is active there (typically an unrelated US account) even when a `.de` tab is open and the EU client is the selected merchant. It looks like the "wrong account", and the account-safety abort will misfire. On machines with separate profiles, switching accounts in normal Chrome does not change the port-9223 debug profile. Grimoire has a separate persistent profile; verify and, when needed, switch the merchant in the port-9223 task tab it will actually use. Then `doctor --origin https://sellercentral.amazon.de` should report the expected EU merchant, e.g. `<Merchant Name> [partnerAccountId=<partner-account-id>] marketplace=A1PA6795UKMFR9`. (Note: EU cross-market still uses the `.de` login origin with a different `--marketplace`; do NOT derive origin from the marketplace domain.) POE also requires the account to actually have Opportunity Explorer / Brand Analytics access. If `search`/`niche` hang with an "unsettled top-level await" while `readAccount` succeeds, the account likely lacks OEI access for that marketplace.
 - **POE niche selection stays in the active run.** Once the correct Seller Central account is selected, the current agent runs the POE keyword search, takes the closest matching niche, and downloads the full set in the same session. Do not pause for a second agent to choose the niche ID. The account check is the only gate that still blocks; niche choice is not. Report the chosen niche (id + label + T90 SV) and any close runners-up so it can be re-pulled cheaply if the pick was wrong. If the search returns no plausible niche at all, say so and stop.
@@ -123,9 +92,8 @@ Rebuilds update the delivered Sheet in place: after the first delivery, set `inp
 - No product-specific tab may be carried forward.
 - Rebuild every tab from current sources or generate an explicit skipped/not-exposed row.
 - Tab names/order must match the canonical `template_keyword_workbook.xlsx` (= the "(Template) Brand-Country-Product Name Keyword Research" Google Sheet). Point `--template` at that clean template, NOT a previous product workbook. Mismatched scheme-2 tab names were the root cause of silently-skipped/stale tabs.
-- Use `3.1 MKL DataDive 30%` for the Core `30%` MKL.
-- Use the legacy tab name `2.1 MKL DataDive 1%` for the complete keyword pool filtered locally at `1%`.
-- Use that complete `1%` pool to generate `2.2 Never KWs`, a sectioned audit tab: Never-Ever single-word negatives (negative-phrase on the root word), competitor brands (campaign-dependent), claim-risk words, a review-manually near-miss band, and phrase-level negative candidates. Every row carries Category, Why, max SV, max relevancy, and example phrases so a human can justify each negative.
+- The Core list (`core.csv`) fills the template's `3.1 MKL … 30%` tab and the complete pool (`expanded.csv`) fills `2.1 MKL … 1%`. `keyword_source` and `tabs.template_renames` set the visible tab names; legacy DataDive configs keep `3.1 MKL DataDive 30%` and `2.1 MKL DataDive 1%`.
+- Use that complete pool to generate `2.2 Never KWs`, a sectioned audit tab: Never-Ever single-word negatives (negative-phrase on the root word), competitor brands (campaign-dependent), claim-risk words, a review-manually near-miss band, and phrase-level negative candidates. Every row carries Category, Why, max SV, max relevancy, and example phrases so a human can justify each negative.
 - Keep misspellings/grammar variants out of Never Ever when they still represent relevant product intent.
 - Keep competitor/brand terms as PPC/context unless the operator explicitly approves another use. In the Never-KWs tab they live in their own section: negative in rank/SKW campaigns, TARGET in PAT/conquest, never blanket negatives.
 - Treat disease, cure, laxative, diagnosis, weight-loss, and unsupported health terms as compliance-risk by default.
@@ -138,15 +106,15 @@ Rebuilds update the delivered Sheet in place: after the first delivery, set `inp
   --config tools/amazon-seo-keyword-workbook/config.<client>-<product>-<market>.json
 ```
 
-Use `--preflight` first. If a DataDive `1%` export or metadata is missing, stop and ask for that exact source instead of substituting the `30%` file.
+Use `--preflight` first. If the pool CSV or the run metadata is missing, rerun `tools/soldscope/keywords.py` on the saved pages (no credits) instead of substituting the Core file. Never pass the Core file as the pool.
 
 ## QA Gates
 
-- Core MKL rows match the `30%` CSV.
-- Expanded MKL rows match the `1%` CSV.
-- Core and Expanded source paths are distinct.
-- The Core MKL has the exact anchor ASIN as a real column (verify this BEFORE any fallback/injection). Same-brand sibling ASINs are listed in `asin_roles.siblings` so they are labelled `Sibling` (not `Competitor`) and excluded from opportunity triage; the anchor is never duplicated in the ASINs tab.
-- DataDive export metadata is complete and not placeholder text.
+- Core tab rows match `core.csv`.
+- Pool tab rows match `expanded.csv`.
+- Core and pool source paths are distinct.
+- The Core list has the exact anchor ASIN as a real rank column, unless `ranking_context.mode` is `unavailable`. Same-brand sibling ASINs are listed in `asin_roles.siblings` so they are labelled `Sibling` (not `Competitor`) and excluded from opportunity triage; the anchor is never duplicated in the ASINs tab.
+- Run metadata (`keyword_exports`, or legacy `datadive_exports`) is complete and not placeholder text, and its row counts match `keywords-receipt.json`.
 - Never KWs tab is sectioned (Never Ever / brands / claim risk / review band / phrase candidates); word rows are single words; every data row has Category + Why populated (validated).
 - Every Never Ever row includes frequency, max SV, max relevancy, and example phrases as written columns.
 - POE raw tabs match current files.
@@ -159,13 +127,13 @@ Use `--preflight` first. If a DataDive `1%` export or metadata is missing, stop 
 - `product_facts` block present in config (ingredients + `blend_or_single` + certifications); the builder warns if it is missing and checks completeness when present.
 - `seo_identity` block present with the consumer-facing brand and recognizable product name. Both phrases must appear in the <=75-character title and description. Client/account name is never accepted as an implicit consumer brand.
 - The ≤75 title **leads with a tracked MKL keyword, not a root**: the title covers at least one Master-List keyword and its lead (non-brand) token exists in the MKL vocabulary. See [[seo-title-ranking-juice-rules]].
-- **Ranking-Juice coverage is computed and reported** (covered SV / total + addressable %) in the validation/manifest output. Covered SV must be > 0; a warning fires below 60% addressable. No new workbook tab; the human-facing RJ stays in the SEO-content `rj`/compliance columns.
-- **Keyword ranking score row is appended to the SEO Text tab** (`Keyword Ranking Score (calculated)`), a Ranking Juice equivalent from `tools/amazon-seo-keyword-workbook/ranking_score.py`. It scores the draft and the listing-reference competitors (anchor excluded) against the Core MKL with its SV, so it works with any keyword source (DataDive or SoldScope). The validation row `Keyword ranking score computed` is informational and never fails the build (it reports draft vs competitor median, or why no score was computed); a warning fires when the draft total is below the competitor median. Client-visible cells never use DataDive's metric name. Method and calibration: `skills/amazon-seo/references/seo-writing-methodology.md` section 2. Turn it off with `"ranking_score": {"enabled": false}`.
+- **Keyword coverage is computed and reported** (covered SV / total + addressable %) in the validation/manifest output. Covered SV must be > 0; a warning fires below 60% addressable. No new workbook tab; the human-facing coverage note stays in the SEO-content `rj`/compliance columns.
+- **Keyword ranking score row is appended to the SEO Text tab** (`Keyword Ranking Score (calculated)`), calculated by `tools/amazon-seo-keyword-workbook/ranking_score.py`. It scores the draft and the listing-reference competitors (anchor excluded) against the Core MKL with its SV, so it works with any keyword source (SoldScope, or a legacy DataDive list). The validation row `Keyword ranking score computed` is informational and never fails the build (it reports draft vs competitor median, or why no score was computed); a warning fires when the draft total is below the competitor median. Client-visible cells never say "Ranking Juice". Method and calibration: `skills/amazon-seo/references/seo-writing-methodology.md` section 2. Turn it off with `"ranking_score": {"enabled": false}`.
 - **Semantic / Alexa AI direction row present and non-empty, with traceable POE use**: its `poe_evidence` must include at least one POE Search Terms signal and at least one POE Reviews or Returns signal, each tied to a copy decision. Importing POE tabs without using them in the SEO does not pass.
-- **Compliance tax reported** when `triage.claim_tokens` exist: claim-gated SV vs addressable SV is a validation row, so the RJ cost of compliance is visible instead of silently deflating the addressable %; recover it via the rewrite ladder in `skills/amazon-seo/references/health-claims-compliance.md`.
+- **Compliance tax reported** when `triage.claim_tokens` exist: claim-gated SV vs addressable SV is a validation row, so the coverage cost of compliance is visible instead of silently deflating the addressable %; recover it via the rewrite ladder in `skills/amazon-seo/references/health-claims-compliance.md`.
 - **Regulated-category evidence gate**: `checked=true` alone does not pass. Require a review date, a readable claims-check evidence file, non-empty per-claim decisions, and a visible Claim Guardrail row. `compliance.claims_audit` verdict=`prohibited` terms auto-merge into `triage.claim_tokens`.
 - Blend guard: if `product_facts.blend_or_single == "blend"`, the title must not lead with a single ingredient name (warning).
-- `1. Root Keywords` columns are `Important | Root Keyword | Frequency | Broad Search Volume | Root Score | Category`. The Important column is the AD-TARGETING signal (operator priority): in tiered mode (`root_importance.ad_min_sv`/`ad_min_score` set) roots get ⭐⭐ when score ≥ ad_min_score AND Broad SV ≥ ad_min_sv AND Category is not Brand/Claim/Form/Off-niche. These seed the SKW/rank campaigns; ⭐ marks relevant-but-below-SV-floor roots. Category uses the same triage tokens + core/POE vocabulary as the Never-Ever ladder. Legacy configs (only `min_score`) keep the old binary ⭐.
+- `1. Root Keywords` columns are `Important | Root Keyword | Frequency | Broad Search Volume | Root Score | Category`. The Important column is the AD-TARGETING signal (operator priority): in tiered mode (`root_importance.ad_min_sv`/`ad_min_score` set) roots get ⭐⭐ when score ≥ ad_min_score AND Broad SV ≥ ad_min_sv AND Category is not Brand/Claim/Form/Off-niche. These seed the SKW/rank campaigns; ⭐ marks relevant-but-below-SV-floor roots. Category uses the same triage tokens + core/POE vocabulary as the Never-Ever ladder. Legacy configs (only `min_score`) keep the old binary ⭐. On SoldScope runs the Root Score is computed locally by `tools/soldscope/keywords.py` (0-1, see its README), so recheck `root_importance.ad_min_score` per `tools/amazon-seo-keyword-workbook/NEW-CLIENT.md` instead of reusing a DataDive-era value.
 - Final workbook style is preserved.
 - Manifest and cross-agent handoff note are generated (see Handoff Note Location for where the note lands).
 

@@ -12,8 +12,8 @@ project plan. Make each point once, in plain words, in the operator's voice.
 
 Use these, in this order. Drop a section the data does not support. Never pad.
 
-1. **Title and a one-line context block**: markets, and the report, ads, SQP and DataDive
-   windows. No motivational tagline, no reassurance paragraph. Open on the problem.
+1. **Title and a one-line context block**: markets, and the report, ads, SQP and keyword
+   research windows. No motivational tagline, no reassurance paragraph. Open on the problem.
 2. **Where you stand organically.** The audit opens on organic reality, not ads. Who outranks
    you and why, organic-position bands (1 to 3 best, 1 to 4 workable, 5+ below the sponsored
    fold), rank screenshots, plus time-critical listing flags as callouts here.
@@ -22,8 +22,12 @@ Use these, in this order. Drop a section the data does not support. Never pad.
 4. **Demand: what shoppers are actually doing (SQP).** Intent split, CTR and CVR against market,
    branded demand worth defending, which generic is and is not winnable yet, and the funnel
    decomposition. Name the diagnostic play.
-5. **DataDive: category difficulty and the SEO gap.** Market size, review and price moat,
-   Ranking Juice listing gap.
+5. **Keyword research: category difficulty and the SEO gap.** The heading names the provider
+   (SoldScope; DataDive on a legacy rebuild). Market size, review and price moat against the
+   compared ASINs, and the listing gap as the keyword ranking score from
+   `tools/amazon-seo-keyword-workbook/ranking_score.py`, the client against the top competitors.
+   Medians here are medians of the compared ASINs (at most 10); say so, never call them
+   category-wide.
 6. **Ads Summary.** The one-paragraph "what is really going on", the intent-split table, then
    ads by format and SP placement. State the single headline. The TACOS band we call solid is
    10 to 15%.
@@ -209,7 +213,7 @@ Drop rules: skip the audit's thin per-keyword search-query tab (superseded by th
 each component's own Sources tab.
 
 Tab set that earns its place on a full audit: Overview, Executive Summary, Channel Mix, Branded vs
-Generic, By Product Group, Placement, Bid Categories, Business Report, Products & Stock, Rank Radar,
+Generic, By Product Group, Placement, Bid Categories, Business Report, Products & Stock, Rank Tracker,
 SQP Query Intelligence, SQP Top Opportunities, Waste & Winners, Brand Leak, Structure Diagnosis,
 Campaigns, Discovery Campaigns, Branded Keywords, Action List, Legacy, Sources & Notes.
 
@@ -239,13 +243,17 @@ the figure, never fakes it, and never fails the audit.
 
 | Figure | Answers | Needs |
 |---|---|---|
-| `fig_rank_movement.png` | How did our rank MOVE over the window | `rank_radar_json` |
-| `fig_rank_distribution.png` | Where do we rank across the category keyword set now | DataDive niche + `asin_groups` |
-| `fig_visibility_vs_competition.png` | Versus who, in one number: share of category SV ranked top 10 | DataDive niche + competitors |
-| `fig_price_vs_rating.png` | The price and rating moat. Would a shopper pick us | DataDive competitors; `client_price` or BR ASP |
+| `fig_rank_movement.png` | How did our rank MOVE over the window | `rank_series_json` (SoldScope rank tracker via `tools/soldscope/ranks.py`) |
+| `fig_rank_distribution.png` | Where do we rank across the category keyword set now | `research_json` + `asin_groups` |
+| `fig_visibility_vs_competition.png` | Versus who, in one number: share of category SV ranked top 10 | `research_json` (keywords + competitors) |
+| `fig_price_vs_rating.png` | The price and rating moat. Would a shopper pick us | `research_json` competitors; `client_price` or BR ASP |
 | `fig_demand_segments.png` | Where demand is, across four exclusive segments | SQP + `brand_tokens`; `core_tokens` to split generic |
 | `fig_purchases_vs_market.png` | Purchases, you against the market, same measure both bars | SQP + `brand_tokens` |
-| `fig_brand_name_leak.png` | Who outranks the client on a materially searched brand-name query | DataDive niche + competitors + `brand_tokens` |
+| `fig_brand_name_leak.png` | Who outranks the client on a materially searched brand-name query | `research_json` + `brand_tokens` |
+
+Legacy configs feed the same figures from `datadive_niche_json`, `datadive_competitors_json` and
+`rank_radar_json`. A prospect has no rank series unless one of its products is already tracked,
+so `fig_rank_movement.png` is usually absent on a first audit.
 
 **The rank-movement chart** shows where each keyword's organic rank started and ended: a dumbbell
 with a direction arrow, red slipped, green gained, both endpoints labelled, on a real position axis
@@ -272,8 +280,8 @@ stands on its own and needs no leak framing.
 **Price sits against RATING, not review count.** Review count spans three orders of magnitude and
 needed a log axis that rendered as exponents, which prospects do not read; worse, plotting only
 volume hides the rating, which is usually the number doing the damage. Count is bubble size now.
-**Never plot the client at DataDive's price**: it is the Buy Box price, so during a hijack it is a
-third party's. Take it from `config.client_price`, else BR ASP.
+**Never plot the client at the keyword research price**: it is the live offer, usually the Buy Box
+price, so during a hijack it is a third party's. Take it from `config.client_price`, else BR ASP.
 
 Chart rules: one measure per chart with categories on the axis and colour as emphasis only, **never
 a dual axis**. Single series means no legend. Ordered bands take a sequential ramp, never a
@@ -397,7 +405,7 @@ A live account we already run is not a prospect before-and-after, so recommendat
 **transition, not an overhaul**. Move bids toward target over 2 to 3 steps, re-measuring between.
 Roll out negatives, harvests and budget shifts in batches, watching for collateral before the next
 batch. Keep strategic rank spend flowing while you redirect it: protect velocity and organic rank,
-verified via Rank Radar, and do not yank a rank lever the same week you tighten bids. State the
+verified in the SoldScope rank tracker, and do not yank a rank lever the same week you tighten bids. State the
 sequence explicitly and note the risk of doing it all at once. Mention bigger structural moves as
 where this is heading, staged after the quick wins, not as a same-day rebuild.
 
@@ -464,7 +472,8 @@ a table or the title is safer through the scaffold.
   Review before any bulk campaign change.
 - **RAS absence is not a finding.** It places ads on non-Amazon retailer sites and is a deliberate
   opt-in. Only SB and SD count as missing motions.
-- **DataDive MKL caps at 500 visible rows** of the full niche, so category demand totals are a floor.
-  Keep outliers visible and do not imply full coverage.
+- **Keyword research covers the compared ASINs only.** Demand totals come from the keywords at
+  least one compared ASIN ranks for (top 50), so they are a floor on the category. Legacy DataDive
+  files cap at 500 visible rows of the niche. Keep outliers visible and do not imply full coverage.
 - **AdLabs availability labels lie.** "In Stock" or "Eligible" can appear with `fulfillable_units = 0`.
   Check units before diagnosing dark campaigns.

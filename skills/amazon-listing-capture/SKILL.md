@@ -23,7 +23,7 @@ credentials.
 - The **ASINs tab `link` column** (anchor + siblings + competitors) is the input link list,
   already in the clean `amazon.<tld>/dp/<ASIN>` form the scrape expects. Or pass an ASIN list +
   marketplace.
-- Competitor ASINs also come from DataDive MCP (`get_niche_competitors`) / `competitors_csv`.
+- Competitor ASINs also come from the SoldScope `research.json` `competitors` list or the keyword workbook `competitors_csv`.
 
 ## Routine (per ASIN)
 1. **Force local language.** Navigate to the locale path `https://www.amazon.<tld>/-/<lang>/dp/<ASIN>`

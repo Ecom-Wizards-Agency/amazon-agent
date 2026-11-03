@@ -5,7 +5,7 @@ description: "Run Amazon keyword research, build keyword workbooks, write and au
 
 # Amazon SEO
 
-Browser: Mixed (listing writing and workbook builds are local; DataDive and POE inputs use their owning MCP or browser workflows).
+Browser: Mixed (listing writing and workbook builds are local; SoldScope keyword data comes from its MCP; POE and listing capture use their owning browser workflows).
 
 Knowledge units for this area live in knowledge/seo/ and knowledge/compliance/; search them first with python3 tools/search_amazon_libraries.py "<symptom>" --library kb.
 
@@ -13,7 +13,7 @@ Use this skill for Amazon keyword research, keyword workbooks, listing optimizat
 
 ## Modes
 
-- `keyword-research`: gather DataDive, POE, and listing inputs; build and validate the keyword-research workbook, then deliver it after operator confirmation. Read `references/keyword-research-workbook.md`.
+- `keyword-research`: gather SoldScope keyword research, POE, and listing inputs; build and validate the keyword-research workbook, then deliver it after operator confirmation. Read `references/keyword-research-workbook.md`.
 - `listing-optimization`: write or audit titles, Item Highlights, bullets, descriptions, and backend terms. Read `references/listing-optimization-and-compliance.md` and `references/seo-writing-methodology.md`.
 - `health-claims-check`: run the regulated or standard claims pass. Read `references/health-claims-compliance.md` and the marketplace-specific rules it routes to.
 - `campaign-structure-fill`: fill the workbook's visual PPC plan only. Read the Campaign Structure section in `references/keyword-research-workbook.md`.
@@ -25,7 +25,8 @@ Use this skill for Amazon keyword research, keyword workbooks, listing optimizat
 - For our own listings in an attended session, `node tools/amazon-operations/ffp-mcp.mjs listing-json` gives the current backend copy (title, bullets, Item Highlights, description, `generic_keyword`) from the FlatFilePro connector, labelled FFP saved backend. It is FlatFilePro's saved copy, not the live page; live copy and competitors stay on `amazon-listing-capture`.
 - Approved copy for an existing listing (title, bullets, Item Highlights, description, backend terms) goes live through the `direct-update` mode of `amazon-flatfilepro`, scope `seo` (`skills/amazon-flatfilepro/references/direct-update-mode.md`). The claims self-check runs before the operator approves the batch. Once the operator starts that route, its live Amazon read can serve as the current-copy input. New listings and an unavailable connector stay on the workbook route.
 - Keep title, Item Highlights, and bullet fields distinct.
-- To score listing copy on the Ranking Juice scale from any keyword source, use `tools/amazon-seo-keyword-workbook/ranking_score.py` (method in `references/seo-writing-methodology.md` section 2). Backend terms are scored separately (`backend_weighted`, `total_with_backend`); `total` stays visible copy only.
+- Keyword data comes from one SoldScope keyword research run per ASIN set and marketplace, converted by `tools/soldscope/keywords.py` (`tools/soldscope/README.md`). SoldScope calls that spend credits need one run approval naming the ASINs, marketplace and expected credits; rank-tracker writes need exact-action approval (`tools/soldscope/README.md`).
+- To calculate the keyword ranking score of listing copy from any keyword source, use `tools/amazon-seo-keyword-workbook/ranking_score.py` (method in `references/seo-writing-methodology.md` section 2). Backend terms are scored separately (`backend_weighted`, `total_with_backend`); `total` stays visible copy only.
 - For an SEO audit, major SEO change, or Rank-readiness check, run `python3 tools/ads_recall.py seo-rank-gate` and read the returned decision and Research files in order. Continue quietly when it returns no paths.
 - Before approving a major SEO change or a full Rank push, verify Product Type, browse-node assignment, and required category attributes for every relevant child ASIN using backend catalog evidence. Page source alone is insufficient. Fix child-level classification drift first; any intentional browse-node change needs a documented expected outcome, monitoring plan, and rollback criteria.
 - Run the mandatory claims self-check before delivering regulated-category SEO work.

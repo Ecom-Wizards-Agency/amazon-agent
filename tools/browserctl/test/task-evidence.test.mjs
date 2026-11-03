@@ -5,19 +5,19 @@ import test from 'node:test';
 import {captureTaskEvidence,verifyEvidenceIdentity} from '../task-evidence.mjs';
 const handle={port:9223,taskId:'capture:test',workflow:'amazon-seo',slot:'primary',targetId:'owned-target',
  session:{assertTaskControl:async()=>true,send:async()=>({data:Buffer.from('png').toString('base64')})}};
-const expected={kind:'datadive',nicheId:'niche-a',heroKeyword:'iron supplement'};
+const expected={kind:'amazon-retail',marketplace:'US',asin:'B0TEST0001'};
+const postcode={assertDeliveryPostcode:async()=>true};
 test('capture records owned target and verified identity',async()=>{
- const r=await captureTaskEvidence(handle,{expected},{evaluate:async()=>({url:'https://2.datadive.tools/niche/niche-a/niche-analysis/mkl',text:'iron supplement',login:false})});
+ const r=await captureTaskEvidence(handle,{expected},{...postcode,evaluate:async()=>({url:'https://www.amazon.com/dp/B0TEST0001',text:'Product',login:false})});
  assert.equal(r.evidence.target_id,'owned-target');assert.equal(r.evidence.session,'grimoire');
- assert.equal(r.evidence.verified_identity.nicheId,'niche-a');
+ assert.equal(r.evidence.verified_identity.asin,'B0TEST0001');
 });
-test('wrong niche and missing login fail before capture',async()=>{
- await assert.rejects(verifyEvidenceIdentity(handle,expected,{evaluate:async()=>({url:'https://2.datadive.tools/niche/niche-b/niche-analysis/mkl',text:'iron supplement'})}),/IDENTITY_MISMATCH/);
- await assert.rejects(verifyEvidenceIdentity(handle,expected,{evaluate:async()=>({url:'https://2.datadive.tools/sign-in',login:true})}),/LOGIN_REQUIRED/);
+test('missing login fails before capture',async()=>{
+ await assert.rejects(verifyEvidenceIdentity(handle,expected,{...postcode,evaluate:async()=>({url:'https://www.amazon.com/ap/signin',login:true})}),/LOGIN_REQUIRED/);
 });
 test('account drift during capture discards image',async()=>{
  let calls=0;
- await assert.rejects(captureTaskEvidence(handle,{expected},{verify:async()=>({nicheId:++calls===1?'a':'b'})}),/IDENTITY_CHANGED/);
+ await assert.rejects(captureTaskEvidence(handle,{expected},{verify:async()=>({asin:++calls===1?'B0TEST0001':'B0TEST0002'})}),/IDENTITY_CHANGED/);
 });
 
 test('retail evidence verifies the exact product, market and delivery postcode',async()=>{
@@ -40,6 +40,6 @@ test('ambiguous visible screenshot selectors fail before capture',async()=>{
  let captured=false;
  const task={...handle,session:{...handle.session,send:async()=>{captured=true;}}};
  await assert.rejects(captureTaskEvidence(task,{expected,selector:'.grid'},
-  {verify:async()=>({nicheId:'a'}),evaluate:async()=>{throw new Error('EVIDENCE_SELECTOR_AMBIGUOUS_OR_MISSING');}}),/SELECTOR_AMBIGUOUS/);
+  {verify:async()=>({asin:'B0TEST0001'}),evaluate:async()=>{throw new Error('EVIDENCE_SELECTOR_AMBIGUOUS_OR_MISSING');}}),/SELECTOR_AMBIGUOUS/);
  assert.equal(captured,false);
 });

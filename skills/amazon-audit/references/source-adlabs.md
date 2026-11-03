@@ -5,7 +5,8 @@ filled from here. "Not available on this path" is only an acceptable answer for 
 
 
 **No downloads. No handoff. Do not ask for exports.** Every metric comes live from the AdLabs
-MCP and rank comes from the DataDive MCP. The only external input is human context.
+MCP and rank comes from the SoldScope rank tracker over the SoldScope MCP (free reads). The only
+external input is human context.
 
 Read the audit methodology once per session: `read_resource(adlabs://guides/account_audit)`.
 Read each target profile's `adlabs://profiles/<slug>` resource for profile_id, Target ACOS and
@@ -44,8 +45,9 @@ returns only ENABLED and PAUSED, **never ARCHIVED**, so archived spend is invisi
 than reconciling to it. **Delta conventions differ**: the profile entity returns `*_delta_percent` as
 a ratio while the product aggregate returns a true percent. `analyze(brand_spend_leak_detection)`
 substring-matches `brand_name`, so it silently misses misspellings that do not contain the root; scan
-variants manually before trusting its total. Big Rank Radar payloads overflow, so parse the saved
-tool-result file with python.
+variants manually before trusting its total. Big rank-tracker `rank_tracker_list_phrases` pages
+overflow, so save every page and convert them with `tools/soldscope/ranks.py` instead of reading
+them inline.
 
 ## Completeness statement
 

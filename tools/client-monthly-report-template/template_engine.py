@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable, Iterable, Mapping, Sequence
+from typing import Any, Callable, Iterable, Mapping, Optional, Sequence
 
 # A4 in points (210mm x 297mm); kept local so the engine needs no PDF library.
 A4 = (595.2755905511812, 841.8897637795276)
@@ -23,6 +23,41 @@ A4 = (595.2755905511812, 841.8897637795276)
 PageRenderer = Callable[[Any, int], None]
 CoverRenderer = Callable[[Any, Sequence["PageModule"], int, frozenset[str]], None]
 TotalConfigurator = Callable[[int], None]
+
+# Marketplaces the SoldScope rank tracker covers. Japan is not one of them.
+RANK_TRACKER_MARKETPLACES = frozenset(
+    {
+        "US", "CA", "MX", "BR", "DE", "ES", "FR", "IT",
+        "UK", "NL", "SE", "IN", "TR", "AE", "SA", "AU",
+    }
+)
+RANK_TRACKER_URL = "https://app.soldscope.com/rank-tracker/{group_id}"
+
+
+def rank_tracker_marketplace_supported(marketplace: str) -> bool:
+    """True when the SoldScope rank tracker covers the marketplace code."""
+
+    code = marketplace.strip().upper()
+    if code == "GB":
+        code = "UK"
+    return code in RANK_TRACKER_MARKETPLACES
+
+
+def _resolve_rank_support(
+    explicit: Optional[bool],
+    marketplace: str,
+    legacy: Optional[bool],
+) -> bool:
+    """Explicit rank-tracker flag first, then the marketplace list, then the
+    legacy DataDive flag. With none of them, keep the old default (supported)."""
+
+    if explicit is not None:
+        return bool(explicit)
+    if marketplace.strip():
+        return rank_tracker_marketplace_supported(marketplace)
+    if legacy is not None:
+        return bool(legacy)
+    return True
 
 
 @dataclass(frozen=True)
@@ -120,7 +155,14 @@ class MarketplacePart:
     sellerboard_account: str
     adlabs_profile: str
     adlabs_dashboard: str
-    datadive_supported: bool = True
+    rank_tracker_supported: Optional[bool] = None
+    datadive_supported: Optional[bool] = None  # legacy flag, read as a fallback
+
+    @property
+    def rank_tracking_supported(self) -> bool:
+        return _resolve_rank_support(
+            self.rank_tracker_supported, self.code, self.datadive_supported
+        )
 
     def validate(self) -> None:
         required = {
@@ -146,8 +188,66 @@ class MonthlySourceRegistry:
     adlabs_dashboard: str
     focus_products: tuple[str, ...]
     slack_channel: str = ""
+    marketplace: str = ""
+    rank_tracker_group_ids: Mapping[str, str] = field(default_factory=dict)
+    rank_tracker_urls: Mapping[str, str] = field(default_factory=dict)
+    rank_tracker_supported: Optional[bool] = None
+    # Legacy DataDive fields, read only as fallbacks.
     rank_radar_ids: Mapping[str, str] = field(default_factory=dict)
-    datadive_supported: bool = True
+    datadive_supported: Optional[bool] = None
+
+    @property
+    def rank_tracking_supported(self) -> bool:
+        return _resolve_rank_support(
+            self.rank_tracker_supported, self.marketplace, self.datadive_supported
+        )
+
+    @classmethod
+    def from_brand_config(cls, config: Mapping[str, Any]) -> "MonthlySourceRegistry":
+        """Build the registry from a brand config shaped like
+        `brand-config.example.json`. Each rank-tracker key falls back to its
+        DataDive predecessor: `rank_tracker_group_id` to `rank_radar_id`,
+        `rank_tracker_url` to `rank_radar_url`, and
+        `sources.rank_tracker_marketplace_supported` to
+        `sources.datadive_marketplace_supported` or `sources.datadive_supported`."""
+
+        sources = config.get("sources") or {}
+        brand = config.get("brand") or {}
+        names: list[str] = []
+        group_ids: dict[str, str] = {}
+        urls: dict[str, str] = {}
+        for product in config.get("focus_products") or []:
+            name = str(product.get("name") or "")
+            names.append(name)
+            group_id = product.get("rank_tracker_group_id")
+            if group_id in (None, ""):
+                group_id = product.get("rank_radar_id")
+            if group_id not in (None, ""):
+                group_ids[name] = str(group_id)
+            url = product.get("rank_tracker_url")
+            if not url and product.get("rank_tracker_group_id") not in (None, ""):
+                url = RANK_TRACKER_URL.format(group_id=product["rank_tracker_group_id"])
+            if not url:
+                url = product.get("rank_radar_url")
+            if url:
+                urls[name] = str(url)
+
+        legacy_supported = sources.get("datadive_marketplace_supported")
+        if legacy_supported is None:
+            legacy_supported = sources.get("datadive_supported")
+        return cls(
+            sellerboard_account=str(sources.get("sellerboard_account") or ""),
+            sellerboard_grouping=str(sources.get("sellerboard_grouping") or ""),
+            adlabs_profile=str(sources.get("adlabs_profile") or ""),
+            adlabs_dashboard=str(sources.get("adlabs_dashboard") or ""),
+            focus_products=tuple(names),
+            slack_channel=str(sources.get("slack_channel") or ""),
+            marketplace=str(brand.get("marketplace") or ""),
+            rank_tracker_group_ids=group_ids,
+            rank_tracker_urls=urls,
+            rank_tracker_supported=sources.get("rank_tracker_marketplace_supported"),
+            datadive_supported=legacy_supported,
+        )
 
     def validate(self) -> None:
         required = {
@@ -181,7 +281,8 @@ class MonthlyRunEvidence:
     sellerboard_parent_grouping_verified: bool = False
     adlabs_dashboard_current_month: bool = False
     adlabs_dashboard_previous_month: bool = False
-    rank_radar_products: frozenset[str] = field(default_factory=frozenset)
+    rank_tracker_products: frozenset[str] = field(default_factory=frozenset)
+    rank_radar_products: frozenset[str] = field(default_factory=frozenset)  # legacy
     meeting_notes_status: str = "missing"
     slack_accessible: bool = True
 
@@ -228,8 +329,11 @@ def missing_operator_inputs(
             + " on the saved dashboard."
         )
 
-    if registry.datadive_supported:
-        received = {product.strip().casefold() for product in evidence.rank_radar_products}
+    if registry.rank_tracking_supported:
+        received = {
+            product.strip().casefold()
+            for product in evidence.rank_tracker_products | evidence.rank_radar_products
+        }
         missing_products = [
             product
             for product in registry.focus_products
@@ -237,7 +341,7 @@ def missing_operator_inputs(
         ]
         if missing_products:
             requests.append(
-                "Full-month DataDive Rank Radar screenshot for: "
+                "Full-month SoldScope rank tracker heatmap screenshot for: "
                 + ", ".join(missing_products)
                 + "."
             )

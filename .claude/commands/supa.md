@@ -34,13 +34,22 @@ Reference: `tools/sqp-supa/README.md`. Data source is the AdLabs MCP, not Seller
      Saturday has not passed is partial and reads as a collapse in every WoW comparison.
    - 3-4 complete weeks is the useful default.
 
-3. **Optional but high value: wire organic rank.** For each ASIN that has a Rank Radar on the
-   RIGHT marketplace, add `inputs.rank_jsons: {"<ASIN>": "downloads/<client>/reporting/rank_<ASIN>.json"}`
-   and save the `get_rank_radar_data` payload there (`list_rank_radars` to find IDs; the payload
-   overflows context, so read it from the saved tool-result file rather than inline).
+3. **Optional but high value: wire organic rank.** For each ASIN tracked in a SoldScope rank
+   tracker group on the RIGHT marketplace, build its rank file and add
+   `inputs.rank_jsons: {"<ASIN>": "downloads/<client>/reporting/rank_<ASIN>.json"}`. The reads are
+   free (no credits):
+   - `rank_tracker_list_groups` (filter by marketplace and ASIN) gives the `group_id`;
+     `rank_tracker_list_products(group_id)` gives the own `product_id`.
+   - `rank_tracker_list_phrases(group_id, product_id, heatmap=true, heatmap_date_from,
+     heatmap_date_to, results_type=organic, per_page=100)`, every page, covering the config's
+     weeks (at most 92 days). Save each page; large pages overflow context, so read them from the
+     saved files rather than inline.
+   - `python3 tools/soldscope/ranks.py --organic <pages> --asin <ASIN> --marketplace <code>
+     --out downloads/<client>/reporting/rank_<ASIN>.json` writes the series SUPA reads.
 
-   **Check the radar's marketplace.** A client can have a radar that tracks another country's
-   listing of the same product (seen live 2026-07): using it would silently score the wrong country.
+   **Check the group's marketplace.** A client can have a group that tracks another country's
+   listing of the same product (seen live 2026-07): using it would silently score the wrong
+   country. `ranks.py --marketplace` fails on a mismatch.
 
    Rank is what makes P3 useful: paying over target while rank IMPROVES is rank investment, not
    waste. Without it, P3 can only say "cut". With no `rank_jsons` the column never renders and every
@@ -69,8 +78,8 @@ Reference: `tools/sqp-supa/README.md`. Data source is the AdLabs MCP, not Seller
 5. **Build:** `python3 tools/sqp-supa/build_supa_workbook.py --config config.<client>-<market>.json --validate`
    (`--validate` rebuilds first, then checks.) It verifies the tab set, every block's column geometry
    against `asin_layout()`, raw-CSV spot checks, and that no >100% ACOS renders green. Exit 1 on failure.
-   The build prints rank and CVR-gap coverage: low coverage is normal (radars track dozens of keywords,
-   SQP carries hundreds), zero coverage where you configured a radar is not.
+   The build prints rank and CVR-gap coverage: low coverage is normal (rank tracking covers dozens of keywords,
+   SQP carries hundreds), zero coverage where you configured a rank file is not.
 
 6. **Read the output.** Tabs: `① Dashboard` (per-ASIN weekly rollup + account block), one tab per
    ASIN, `Action Plan` (P1/P2/P3 ranked), `Methods & Sources` (provenance, caps, verbatim flag rules,

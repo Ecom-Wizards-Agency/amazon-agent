@@ -7,7 +7,7 @@ description: "Run the weekly AdLabs-managed PPC loop from stock and pacing gates
 
 For Sponsored Brands video concept tests, use `<vault>/Playbooks/amazon-sb-video-concept-testing-playbook.md` (team vault, resolved via `AMAZON_AGENT_TEAM_VAULT` or `_local/team-vault-path.txt`) as the canonical test-cell, confidence, verdict, and learning method. PPC management owns scaling decisions under the account strategy. The editor brief and Creative Reference do not contain performance methodology.
 
-Browser: None (AdLabs MCP + DataDive MCP; Sellerboard CSV via the ads-monitor inbox convention).
+Browser: None (AdLabs MCP + SoldScope MCP rank tracker reads; Sellerboard CSV via the ads-monitor inbox convention).
 
 Use this when the operator asks to RUN a managed account's week: adjust bids, budgets, opt-groups, harvests. It is the operating counterpart to `amazon-audit` (diagnose) and `amazon-ads-performance-briefs` (observe). Prospects and bulk-file accounts also route to `amazon-audit`; this skill requires a live AdLabs connection.
 
@@ -47,7 +47,7 @@ Pull `product` stock fields (`out_of_stock_days`, `days_of_cover`, `fulfillable_
 
 ## Standing conventions (apply to every step below)
 
-- **Four-axis keyword read** for every Rank keyword, in order: 1. organic rank (Rank Radar), 2. ad ToS impression share (AdLabs target `top_of_search_impression_share`), 3. SQP impression share, 4. SQP purchase share (the client KPI). Diagnosis: ToS saturated (>20%) + SQP impressions low = organic gap, keep pushing. SQP impressions high + purchases low = listing problem, not bids. All low = fund it.
+- **Four-axis keyword read** for every Rank keyword, in order: 1. organic rank (SoldScope rank tracker), 2. ad ToS impression share (AdLabs target `top_of_search_impression_share`), 3. SQP impression share, 4. SQP purchase share (the client KPI). Diagnosis: ToS saturated (>20%) + SQP impressions low = organic gap, keep pushing. SQP impressions high + purchases low = listing problem, not bids. All low = fund it.
 - **Weekly SQP is a signal, not a verdict.** A decision needs a sufficient representative multi-week sample with meaningful impression share, click share, absolute impressions, and clicks. Confirm any movement against sales, CVR, PPC delivery, rank, promotions, and the longer trend. Never act from one noisy week or one-sale CVR.
 - **Full Rank pushes need an entry gate.** Compare the ASIN's SQP purchase CVR with the market on the same query and period. Reliably at or above market with sufficient data is eligible. Reliably below market means fix the offer before above-break-even spend. Insufficient data permits only a capped validation test with explicit spend, time, and stop criteria. Any strategic exception needs operator approval.
 - **Catalog structure is a pre-spend gate.** Verify Product Type, browse node, and required category attributes for every relevant child ASIN from backend catalog evidence before a full Rank push. Fix child-level drift before spending to force rank.
@@ -80,11 +80,16 @@ Run the ads-monitor weekly brief with the full v3 inputs:
 python3 tools/amazon-ads-monitor/run_weekly.py \
   --csv <sellerboard 30d csv> --account <slug> --goal <lens> \
   --adlabs-json <normalized weekly entities> \
-  --rank-radar-json <radar rows> --monthly-budget <amount> \
+  --rank-json <weekly rank rows> --monthly-budget <amount> \
   --out output --slack-json -
 ```
 
-- Rank Radar rows come from the DataDive MCP (`list_rank_radars` -> `get_rank_radar_data`), shaped to `{keyword, rank_now, rank_prev, weeks_stable}` per tracked keyword. Big radar payloads overflow; parse the saved tool-result file with python.
+- Weekly rank rows come from the SoldScope rank tracker. All four steps are free reads (no credits):
+  1. `rank_tracker_list_groups` (filter by marketplace and ASIN) gives the `group_id`. **Check the group's marketplace matches the account's**: a client can track another country's listing of the same product, and using it scores the wrong country silently.
+  2. `rank_tracker_list_products(group_id)` gives the own `product_id` (the primary product, or the one whose ASIN matches).
+  3. `rank_tracker_list_phrases(group_id, product_id, heatmap=true, heatmap_date_from, heatmap_date_to, results_type=organic, per_page=100)`, every page, covering at least the last 8 complete Sunday-Saturday weeks (at most 92 days). Save each page; large pages overflow context, so read them from the saved files.
+  4. `python3 tools/soldscope/ranks.py --organic <pages> --asin <ASIN> --marketplace <code> --weekly-rows --graduate-rank-max <strategy.json value> --out <rank rows JSON>` writes `{keyword, rank_now, rank_prev, weeks_stable}` per tracked keyword. It fails when the group marketplace differs from `--marketplace`. Pass the file to `--rank-json` (`--rank-radar-json` is the legacy alias).
+- Rank-tracker writes (`rank_tracker_create_group`, `rank_tracker_attach_products`, `rank_tracker_apply_suggested_phrases`, `rank_tracker_toggle_phrases_boost`) need approval of that exact action; `rank_tracker_init_export` and `rank_tracker_get_suggested_keywords` spend credits and need a run approval (`tools/soldscope/README.md`).
 - `--monthly-budget` from the client config (`_local/ads-monitor/`); needs Sellerboard history back to the 1st of the month (raise `--window-days` late in the month).
 - The brief now carries: Run-rate pacing (on_pace / warn / act / underpace), PUSH, **GRADUATE** (rank 1-3 stable 2+ weeks -> step down), PAUSE/OPTIMIZE with rank-improving keywords protected into notes.
 - When the question is "did click share fall because spend fell", run `/supa` for the per-keyword SQP x PPC read, or call `tools/sqp-supa/build_supa_workbook.py` directly where no slash command exists (method: `tools/sqp-supa/README.md`); its P/O/E flags feed the same decisions.
@@ -101,7 +106,7 @@ python3 tools/amazon-ads-monitor/run_weekly.py \
 
 Per opt-group: `optimizer(preview_optimization, reference=<campaign reference>, start_date/end_date=<operator dates>, tacos=<group target>)` -> `query` the preview reference and read `change_reasons` per entity. Veto before proposing:
 
-- Protect any keyword whose Rank Radar rank is improving or that sits in a mid-flight push; cross out its decreases.
+- Protect any keyword whose organic rank (SoldScope rank tracker) is improving or that sits in a mid-flight push; cross out its decreases.
 - If pacing says **act**, present the cuts in the fixed order: waste (high-spend-no-sales) -> discovery -> profit trims. Rank cuts only with an explicit operator decision, never bundled into the batch.
 - If pacing says **underpace**, lead with the PUSH list and capped Rank budgets instead.
 

@@ -30,7 +30,8 @@ The user's target is: **$ARGUMENTS**
 4. **Ask only what step 3 did not resolve, with a second AskUserQuestion.** Never carry a prior
    client's values as placeholders.
    - **First-time audit:** the full brief. Client and marketplaces, product lines and ASINs,
-     DataDive niche (URL or ID), break-even ACOS (real margin if known, else confirm we assume and
+     the ASIN set and marketplace for SoldScope keyword research (anchor first, up to 9
+     competitors) or the path to an existing `research.json`, break-even ACOS (real margin if known, else confirm we assume and
      flag), brand tokens including real misspellings and sub-brand treatment, competitor brands.
    - **Monthly review:** three fields only. Marketplaces this cycle (default all profiles found),
      date window (default last 30 days against the preceding period), and anything not in the
@@ -45,7 +46,9 @@ The user's target is: **$ARGUMENTS**
    Every Lens A row must produce a number or be named with its reason.
 
 7. **Build.** On the download path: scaffold the config, run `--preflight`, gather the browser and
-   DataDive MCP inputs, then build and `--validate` until every gate passes. If one capability is
+   SoldScope MCP inputs, then build and `--validate` until every gate passes. SoldScope calls
+   that spend credits need one run approval naming the ASINs, marketplace and expected credits;
+   rank-tracker writes need exact-action approval (`tools/soldscope/README.md`). If one capability is
    unavailable, hand off only that checklist to any capable agent. On the MCP path, build to the
    same depth without `build_audit.py`.
 

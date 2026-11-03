@@ -1,5 +1,5 @@
 ---
-description: Run an Amazon SEO keyword research workbook (DataDive + POE → styled XLSX)
+description: Run an Amazon SEO keyword research workbook (SoldScope + POE → styled XLSX)
 argument-hint: "[brand-product-market] (new run each time, e.g. acme-fiberpowder-it)"
 ---
 
@@ -16,17 +16,18 @@ The user's target is: **$ARGUMENTS**
    **Required (only the user can give these):**
    - **Brand / client**
    - **Marketplace** (e.g. amazon.it / Italy)
-   - **DataDive niche** (URL or ID)
-   - **Anchor ASIN**: must be a DataDive-tracked column in the niche, or available via the `datadive` MCP (`get_niche_keywords`) so its rank column can be injected
+   - **ASIN set**: the anchor ASIN first (leave it out for a prelaunch product), plus up to 9 competitor ASINs, or "pick competitors for me". Instead of an ASIN set the user may give an existing SoldScope `search_id` to reuse a finished run without new credits.
 
-   **Do NOT ask for the Product. Derive it, then confirm.** Once the niche + anchor ASIN are known the product is derivable, so it is not a question. After the required fields are in, resolve the product from the DataDive niche label (`list_niches` → `nicheLabel` / `heroKeyword`) plus the anchor ASIN's PDP (via the listing capture), then **show the derived product name back to the user for a one-line yes/no** before scaffolding. Keep the safety check: a terse niche label ("manuka cream") is not a full product name, and one niche can contain several of the client's own ASINs (or multiple forms / size-variants under the given anchors). So confirm form and variant grouping rather than assuming. If the derivation is ambiguous, ask a single targeted follow-up.
+   **Do NOT ask for the Product. Derive it, then confirm.** Once the anchor ASIN is known the product is derivable, so it is not a question. Resolve it from the anchor ASIN's PDP (via the listing capture), then **show the derived product name back to the user for a one-line yes/no** before scaffolding. The ASIN set can contain several of the client's own ASINs (or multiple forms / size-variants), so confirm form and variant grouping rather than assuming. If the derivation is ambiguous, or the product is prelaunch with no anchor, ask a single targeted follow-up.
+
+   **Credits.** Before starting a new SoldScope run, state the ASINs, the marketplace and the expected credits and get one approval (`tools/soldscope/README.md`). Reusing a `search_id` reads saved results for free.
 
    **Optional (sensible defaults if unspecified; state the default you used):**
    - Seller Central account (default: same as the client's other runs)
    - PPC / Campaign Structure tab (default: skip, SEO only)
    - Pack size / listing status (else captured from the listing reference)
 
-   Everything else (DataDive CSVs, POE exports, competitor + anchor listing copy) is gathered by the current agent through the available MCP and connected-browser capabilities, not something the user hand-provides.
+   Everything else (SoldScope keyword CSVs from `tools/soldscope/keywords.py`, competitor picks when asked, POE exports, competitor + anchor listing copy) is gathered by the current agent through the available MCP and connected-browser capabilities, not something the user hand-provides.
 
 2. **Load the workflow.** Use the `keyword-research` mode in `amazon-seo` as the source of truth for load order, data inputs, workbook rules, and QA gates. Pull in `amazon-opportunity-explorer` (POE/OEI) and `amazon-listing-capture` (live title/bullets/link for anchor + competitors) as that mode directs.
 

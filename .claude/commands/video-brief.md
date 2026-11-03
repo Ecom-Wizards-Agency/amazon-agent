@@ -1,5 +1,5 @@
 ---
-description: Build Sponsored Brands video editor briefs from search data (POE/DataDive clusters -> branded .docx briefing)
+description: Build Sponsored Brands video editor briefs from search data (POE/SoldScope clusters -> branded .docx briefing)
 argument-hint: "[client-marketplace] (e.g. acme-de), optionally 'learnings' to run the post-test loop"
 ---
 
@@ -11,9 +11,9 @@ The user's target is: **$ARGUMENTS**
 
 ## Steps
 
-1. **Confirm the brief intake first.** Before reading files or pulling data, collect with a single AskUserQuestion whatever `$ARGUMENTS` and the conversation do not already supply: client, marketplace, product line, target ASIN(s), break-even ACOS (or margin), on-screen text language, whether product footage exists, and the client's Drive creative folder. Never carry values over from another client. When the client already has keyword-research configs, a POE designer pack, or DataDive data on disk, reuse them instead of fresh pulls.
+1. **Confirm the brief intake first.** Before reading files or pulling data, collect with a single AskUserQuestion whatever `$ARGUMENTS` and the conversation do not already supply: client, marketplace, product line, target ASIN(s), break-even ACOS (or margin), on-screen text language, whether product footage exists, and the client's Drive creative folder. Never carry values over from another client. When the client already has keyword-research configs, a POE designer pack, or SoldScope research on disk, reuse them instead of fresh pulls. Older DataDive data on disk may be reused as dated evidence, labelled with its capture date.
 2. **Load the skill.** `skills/amazon-sponsored-brands-video-briefs/SKILL.md` is the source of truth. Read its three references before scripting. Copy `tools/sb-video-briefs/config.TEMPLATE.json` to a local `config.<client>-<market>-<product-line>.json` on first run (client configs stay local, gitignored).
-3. **Data layer.** Pull POE (account-safety rules apply, `--expect-account`), DataDive MCP, SQP and current ads performance via the AdLabs MCP as the skill directs. Build the candidate cluster table.
+3. **Data layer.** Pull POE (account-safety rules apply, `--expect-account`), SoldScope keyword research (one run approval naming the ASINs, marketplace and expected credits), SQP and current ads performance via the AdLabs MCP as the skill directs. Build the candidate cluster table.
 4. **Shortlist and stop.** Present 3 to 5 scored clusters with one line of evidence each, and name any cluster that is not a creative problem so it is not briefed by mistake. Wait for operator confirmation before any scripting.
 5. **Creative Reference doc.** Build or refresh the per-product-line reference per `references/creative-reference-doc.md` before scripting. The brief draws its claims and differentiation from it.
 6. **Script + claims pass.** Build the brief per `references/editor-brief-template.md`: three named angles over one shared Part 2 per video, each angle leading on a different buying criterion. Then run the health-claims-check flow over every on-screen card and VO line. Advisory mode: present MEDIUM and HIGH lines with suggested rewrites for per-line operator decisions.

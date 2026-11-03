@@ -15,7 +15,7 @@ Two phases run in order: **classify keywords → write copy → audit coverage.*
 Every rule below optimises *how* a claim is worded. None of them catches a claim that is
 simply **not true of the product**, and that is the failure that survives longest: it passes
 the separator gate, the caps gate, the character caps and the compliance ladder, because all
-of those inspect wording. Ranking Juice even rewards it, since the false attribute is usually
+of those inspect wording. Keyword coverage and the keyword ranking score even reward it, since the false attribute is usually
 a high-SV head term. It surfaces months later in the reviews, which is the most expensive
 place to find it.
 
@@ -83,7 +83,8 @@ In the keyword-workbook builder this maps to: the **`2 Never KWs`** tab (generat
 from the complete keyword pool filtered at 1%) and the **Outlier triage** categories
 (`Competitor/brand term`=B, `Wrong product form`/`Negative candidate`=X/C).
 Protect real product intent: a high-frequency word is only `Never Ever` when it's
-genuinely irrelevant/wrong-form/unsafe after checking examples + relevancy.
+genuinely irrelevant/wrong-form/unsafe after checking examples + normalized relevancy
+(0-1; the SoldScope adapter divides its 0-100 score by 100).
 
 The Never-KWs tab is a **sectioned audit view**, protection-first ladder: a word is
 protected if it appears in the Core-30% vocabulary, the product/listing language,
@@ -99,17 +100,22 @@ Every row carries Category, Why, max SV, max relevancy, and example phrases so a
 human can justify each call.
 
 The **`1. Root Keywords`** tab carries the ad-targeting signal: ⭐⭐ ad roots
-(DataDive root score ≥ `ad_min_score` AND Broad SV ≥ `ad_min_sv` AND not
+(root score ≥ `ad_min_score` AND Broad SV ≥ `ad_min_sv` AND not
 Brand/Claim/Form/Off-niche) are the roots that seed SKW/rank campaigns; ⭐ marks
 relevant-but-below-SV-floor roots. The Category column uses the same token sets as
 the Never-Ever ladder, so the two tabs never disagree about what a brand or claim
-word is.
+word is. On SoldScope runs the root score is computed locally by
+`tools/soldscope/keywords.py` (0-1); older workbooks used DataDive's root score.
 
-## 2. Ranking Juice (the optimization metric)
+## 2. Keyword coverage and the keyword ranking score (the optimization metrics)
 
-- Each master keyword has a search volume. A keyword counts toward Ranking Juice
+DataDive called this idea Ranking Juice, and older notes still say RJ. Our tools calculate it
+locally, so it no longer depends on a keyword provider. Client-visible text never says
+"Ranking Juice".
+
+- Each master keyword has a search volume. A keyword counts toward coverage
   if it appears **once anywhere** in the listing.
-- **Ranking Juice % = covered keyword SV ÷ total master SV × 100.** Maximize while
+- **Coverage % = covered keyword SV ÷ total master SV × 100.** Maximize while
   keeping copy natural + compliant.
 - **Placement priority (indexing weight): Title ≳ Item Highlights > Bullets >
   Description > Backend.** (Amazon hasn't published Item Highlights' exact weight,
@@ -117,36 +123,36 @@ word is.
   it as title-tier, not bullet-tier.)
 - Individual tokens combine across fields (Amazon indexes tokens), so you don't
   need to repeat a phrase; cover its words once across the listing.
-- **RJ is a coverage-allocation problem, not a stuffing problem.** Because a
+- **Coverage is an allocation problem, not a stuffing problem.** Because a
   keyword counts once anywhere, the goal is to cover as many high-SV master
   keywords as possible, once each, across the searchable fields, without repeats
   and without stuffing. Front-load the highest-SV head cluster across **Title +
   Item Highlights** (the two fields shown in search), then let bullets/description
   mop up the rest.
-- **Front-load the highest-SV _tracked_ keyword, not a _root_.** RJ only counts
-  coverage of the **Master Keyword List** (the tracked keywords with per-keyword SV).
+- **Front-load the highest-SV _tracked_ keyword, not a _root_.** Coverage only counts
+  the **Master Keyword List** (the tracked keywords with per-keyword SV).
   A term from the **Roots** tab can show enormous *broad* SV yet not exist as a
   tracked MKL keyword. Front-loading it spends the title on volume that does not
   score. **Before you lead the title with a term, confirm it appears in the MKL with
-  its own SV** (pull the niche's master keyword list, e.g. DataDive MCP
-  `get_niche_keywords`). Worked case: `akazienfaser` looked like the #1 term (≈103k
-  root SV) but was a root, not a tracked keyword. The RJ-scoring volume lived in the
+  its own SV** (check the run's `core.csv` or `research.json`). Worked case: `akazienfaser` looked like the #1 term (≈103k
+  root SV) but was a root, not a tracked keyword. The scoring volume lived in the
   generic head (`ballaststoffe` 9,969 + `ballaststoffe pulver` 4,798), so the title
   led with those instead.
 - **Dual objective: traditional SEO _and_ semantic/Alexa, together, not a trade-off.**
   Every searchable field must simultaneously (a) front-load high-SV **tracked** tokens
-  for Ranking Juice and (b) read as natural noun-phrase stacking that Rufus/Alexa can
+  for keyword coverage and (b) read as natural noun-phrase stacking that Rufus/Alexa can
   parse (see §4). Write the exact-match head cluster *as* a natural phrase. Don't
   choose one goal over the other.
-- The builder's `4.1 SEO Text` tab carries the DataDive **Ranking Juice** snapshot
-  (current vs optimized target, per element) so you write toward the biggest gaps.
+- The builder's SEO Text tab carries the calculated **keyword ranking score** row
+  (draft vs competitors, per field) so you write toward the biggest gaps. Legacy SEO
+  content files with a DataDive `rj` snapshot still render it.
 
 ### Calculating it ourselves
 
-`tools/amazon-seo-keyword-workbook/ranking_score.py` calculates a Ranking Juice
-equivalent from any keyword list with search volume, so copy built on SoldScope
-keywords is scored the same way a DataDive niche scores it. The coverage % above
-stays the QA gate; this score ranks a draft against competitors on DataDive's scale.
+`tools/amazon-seo-keyword-workbook/ranking_score.py` calculates the keyword ranking
+score from any keyword list with search volume (SoldScope `core.csv` or `research.json`,
+or a legacy DataDive list). The coverage % above stays the QA gate; this score ranks a
+draft against competitors on one scale.
 
 - **Weights:** total = 3 x title + 2 x bullets + 1 x description.
 - **Incremental credit:** each field earns a keyword's SV only for the match quality
@@ -158,10 +164,10 @@ stays the QA gate; this score ranks a draft against competitors on DataDive's sc
   keyword words in any order 0.5; all words after singularizing 0.25; else 0.
 - **Item Highlights** are scored with the title by default, because Amazon renders
   them joined to the title and this methodology treats them as title-tier
-  (`ranking_score.item_highlights_field` in the builder config changes it). DataDive
-  predates the field. Backend search terms are not scored; DataDive does not score
-  them either.
-- **Calibration** (8-competitor US niche, 2026-10-24): 3/2/1 reproduced all eight
+  (`ranking_score.item_highlights_field` in the builder config changes it). Backend
+  search terms are not in `total`; they get their own `backend_weighted` and
+  `total_with_backend` scores.
+- **Historical calibration** (DataDive era, 8-competitor US niche, 2026-10-24): 3/2/1 reproduced all eight
   DataDive totals exactly from DataDive's own field scores. With this formula our
   titles landed within 4% of DataDive, totals within 1-5%, and competitor order
   matched except two near-ties. Bullet scores are approximate (DataDive's bullet
@@ -172,13 +178,13 @@ stays the QA gate; this score ranks a draft against competitors on DataDive's sc
 
 ```bash
 python3 tools/amazon-seo-keyword-workbook/ranking_score.py \
-  --keywords <core-mkl.csv or get_niche_keywords.json> \
+  --keywords <core.csv or research.json> \
   [--listing <listing-reference.json>] [--seo-content <seo_content.json>] \
-  [--compare-datadive <get_ranking_juice.json>] [--json]
+  [--compare-datadive <legacy-ranking-juice.json>] [--json]
 ```
 
-When a DataDive niche exists, `--compare-datadive` prints ours vs DataDive per ASIN
-with the ratio, so each run can re-check the calibration. The workbook builder adds
+`--compare-datadive` is a legacy option: it compares against a saved DataDive Ranking
+Juice JSON, which is how the historical calibration was checked. The workbook builder adds
 the same score as an auto row in the SEO Text tab.
 
 ## 3. Writing rules
@@ -339,7 +345,7 @@ the same score as an auto row in the SEO Text tab.
   that is *not* a real attribute of the item is forbidden here: shown in search
   it erodes trust and CTR (and risks accuracy/compliance), the opposite of the
   field's purpose. Among the terms that *are* genuinely connected, prioritise
-  high-SV ones the anchor ranks **weakly** on (most RJ headroom).
+  high-SV ones the anchor ranks **weakly** on (most coverage headroom).
 
   **Formatting (apply every time):**
   - **Title Case each highlight**: capitalize the principal words, e.g.

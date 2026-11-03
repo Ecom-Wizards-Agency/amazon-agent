@@ -29,7 +29,7 @@ Three consequences:
 
 | Evolve (Meta) | Amazon SB replacement |
 |---|---|
-| Avatar research from Reddit, TikTok, ad comments | Query-cluster research from POE, DataDive, SQP, plus review mining for language |
+| Avatar research from Reddit, TikTok, ad comments | Query-cluster research from POE, SoldScope keyword research, SQP, plus review mining for language |
 | 5 awareness levels, walk them all in one ad | Query type sets the entry stage; only stages 3 to 5 exist |
 | Hook fights for attention against entertainment | Hook fights for relevance against 5 competing tiles |
 | 43 to 45 seconds, VO-led, sound on | 15 to 30 seconds, text-led, designed for mute; audio is a bonus layer |
@@ -61,7 +61,7 @@ This is the part the playbook cannot give you. Build the shortlist from data, no
 Inputs, in priority order:
 
 1. POE (niche level): top search terms, search volume, click share and conversion share of the top ASINs. Find queries with high volume where the top 3 do not dominate click share: those are winnable shelves.
-2. DataDive (niche keyword grid): relevancy, our rank per query, root aggregation. Use it to draw cluster boundaries and to check whether we have organic support (a video that clicks to a listing that does not mention the criterion will not convert).
+2. SoldScope keyword research (`research.json` and `roots.csv` for our ASINs and competitors): relevancy, our rank per query, root aggregation. Use it to draw cluster boundaries and to check whether we have organic support (a video that clicks to a listing that does not mention the criterion will not convert).
 3. SQP (per-ASIN): our real impression, click, and purchase share per query. The video shortlist lives where impression share is meaningful but click share underperforms: we are seen and not chosen. That is a creative problem, which a video can fix.
 4. AdLabs or bulk ads data: where we already spend on the cluster and what SB or SP CTR and CVR look like today. An existing high-spend, low-CTR SB target is the single best video candidate in the account.
 

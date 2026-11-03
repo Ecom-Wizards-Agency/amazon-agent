@@ -2,7 +2,8 @@
 """
 Amazon SEO keyword-research workbook builder.
 
-Deterministically rebuilds a keyword workbook from raw DataDive +
+Deterministically rebuilds a keyword workbook from keyword-research CSVs
+(SoldScope via tools/soldscope/keywords.py; legacy DataDive files still read) +
 Amazon Product Opportunity Explorer (POE) exports, while preserving the style
 and structure of an existing template workbook.
 
@@ -10,7 +11,7 @@ Design
 ------
 * Template-base: an existing .xlsx is loaded as the styled base, so column
   widths, freeze panes, tab colors, and formulas can be reused.
-* Exact-paste tabs (DataDive roots/core MKL/expanded MKL, POE products/search terms) are
+* Exact-paste tabs (keyword roots/core MKL/expanded MKL, POE products/search terms) are
   cleared and re-pasted 1:1 from their source CSVs. They are NEVER transformed.
 * Rebuilt tabs:
     - "ASINs", "2.2 Never KWs", "3.2 Outlier KWs", "POE Raw - Reviews",
@@ -107,7 +108,7 @@ def read_csv(path: str) -> list[list[str]]:
 def drop_leading_empty_columns(rows: list[list[str]]) -> list[list[str]]:
     """Strip leading column(s) that are blank in the header AND every data row.
 
-    DataDive's Core and complete-pool MKL CSV inputs prepend a blank column (empty
+    Core and complete-pool MKL CSV inputs may prepend a blank column (empty
     header + empty cells, the UI's select/checkbox gutter). Pasted 1:1 it shows
     up as an empty column A in the Master List / Expanded MKL tabs. This removes
     only fully-blank leading columns, so CSVs without the gutter (roots,
@@ -207,11 +208,91 @@ def write_matrix(ws: Worksheet, rows: list[list[Any]], snap: list[list[dict]]) -
 
 
 def keyword_source_label(cfg: dict) -> str:
-    """Client-visible name of the keyword data source (default "DataDive")."""
+    """Client-visible name of the keyword data source.
+
+    An explicit keyword_source wins. Without one, a config that carries SoldScope run
+    fields (keyword_exports or product_anchor.research) is SoldScope; anything else is a
+    legacy DataDive config and keeps its DataDive labels."""
     value = cfg.get("keyword_source")
     if isinstance(value, str) and value.strip():
         return value.strip()
+    pa = cfg.get("product_anchor") or {}
+    if cfg.get("keyword_exports") or (isinstance(pa, dict) and isinstance(pa.get("research"), dict)):
+        return "SoldScope"
     return "DataDive"
+
+
+def keyword_exports(cfg: dict) -> dict:
+    """Core/Expanded MKL run metadata: `keyword_exports`, else legacy `datadive_exports`."""
+    value = cfg.get("keyword_exports")
+    if isinstance(value, dict) and value:
+        return value
+    legacy = cfg.get("datadive_exports")
+    return legacy if isinstance(legacy, dict) else {}
+
+
+def research_identity(cfg: dict) -> str:
+    """One-line run identity: `product_anchor.research` (SoldScope), else legacy `datadive_niche`."""
+    pa = cfg.get("product_anchor") or {}
+    research = pa.get("research")
+    if isinstance(research, dict) and research:
+        asins = research.get("asins") or []
+        if isinstance(asins, (list, tuple)):
+            asins = ",".join(str(a) for a in asins)
+        window = ""
+        if research.get("date_from") or research.get("date_to"):
+            window = f" {research.get('date_from', '')}..{research.get('date_to', '')}"
+        return (
+            f"SoldScope search {research.get('search_id', '<SEARCH_ID>')} "
+            f"({research.get('marketplace') or pa.get('marketplace', '')}, ASINs {asins or '<ASINS>'}{window})"
+        )
+    niche = pa.get("datadive_niche")
+    if niche:
+        return f"DataDive niche {niche}"
+    return "<keyword research run not recorded>"
+
+
+# Metadata each MKL group (core_mkl, expanded_mkl) must carry. A group passes when
+# every field of either set is filled; placeholders (TO_RECORD_*, <...>) never count.
+LEGACY_EXPORT_FIELDS = (
+    "min_relevancy", "visible_keyword_count", "visible_search_volume",
+    "export_timestamp", "niche_id", "marketplace", "hero_keyword",
+)
+SOLDSCOPE_EXPORT_FIELDS = (
+    "search_id", "asins", "marketplace", "date_from", "date_to",
+    "raw_rows", "kept_rows", "core_min", "pool_min", "relevancy_mode",
+)
+
+
+def _meta_value_missing(value: Any) -> bool:
+    if isinstance(value, (list, tuple)):
+        return not value or any(_meta_value_missing(v) for v in value)
+    text = "" if value is None else str(value).strip()
+    return (
+        not text
+        or text.upper().startswith("TO_RECORD")
+        or (text.startswith("<") and text.endswith(">"))
+    )
+
+
+def export_metadata_missing(cfg: dict) -> list[str]:
+    """Missing or placeholder `<group>.<field>` entries of the MKL run metadata."""
+    metadata = keyword_exports(cfg)
+    missing: list[str] = []
+    for group in ("core_mkl", "expanded_mkl"):
+        item = metadata.get(group) or {}
+        if not isinstance(item, dict):
+            item = {}
+        gaps = {
+            name: [f for f in fields if _meta_value_missing(item.get(f))]
+            for name, fields in (("legacy", LEGACY_EXPORT_FIELDS), ("soldscope", SOLDSCOPE_EXPORT_FIELDS))
+        }
+        if not gaps["legacy"] or not gaps["soldscope"]:
+            continue
+        # Report against the set the group is closest to (SoldScope once it names a search).
+        report = "soldscope" if "search_id" in item or len(gaps["soldscope"]) < len(gaps["legacy"]) else "legacy"
+        missing.extend(f"{group}.{field}" for field in gaps[report])
+    return missing
 
 
 def apply_template_renames(wb, cfg: dict, warnings: list[str]) -> list[dict]:
@@ -322,7 +403,7 @@ def _root_category(root: str, vocab: dict) -> str:
 
 
 def transform_roots(rows: list[list[str]], cfg: dict, vocab: dict | None = None) -> list[list[Any]]:
-    """Clean up the DataDive roots CSV for the '1. Root Keywords' tab.
+    """Clean up the keyword roots CSV for the '1. Root Keywords' tab.
 
     The raw export is `(empty) | Normalized Root | Frequency | Broad Search
     Volume | (unnamed 0-1 relevance score)`. Output columns: `Important | Root
@@ -1064,9 +1145,13 @@ def build_outlier(
     return result
 
 
+# Notes-column label for a seo_content row's `rj` value (the key name stays for old files).
+RJ_NOTE_LABEL = "Keyword ranking score note"
+
+
 def build_seo_text(ws: Worksheet, seo_path: str, result: dict, warnings: list[str]) -> dict:
     """Rebuild the '4. SEO Text' tab from the curated seo_content.json, adding
-    a DataDive Ranking Juice column. 'Current Listing Text' is sourced from the
+    a keyword ranking score note per row. 'Current Listing Text' is sourced from the
     existing tab (the live listing copy) unless overridden in the JSON."""
     if not os.path.exists(seo_path):
         warnings.append(f"SEO content file not found ({seo_path}); SEO tab left as-is.")
@@ -1078,7 +1163,7 @@ def build_seo_text(ws: Worksheet, seo_path: str, result: dict, warnings: list[st
     # Columns: Section | Old Listing | New Listing | Notes / Compliance.
     # Col A states what the row is (the section label) in its own column; Col B is
     # the current/old copy; Col C holds ONLY the publishable new copy (no notes);
-    # Col D carries the compliance + Ranking Juice notes, kept out of the copy
+    # Col D carries the compliance + keyword ranking score notes, kept out of the copy
     # column so the brand-token QA gate scans pure copy only.
     rows: list[list[Any]] = [["Section", "Old Listing", "New Listing", "Notes / Compliance"]]
     for item in seo["rows"]:
@@ -1089,7 +1174,8 @@ def build_seo_text(ws: Worksheet, seo_path: str, result: dict, warnings: list[st
         if item.get("compliance"):
             notes.append(f"Compliance: {item['compliance']}")
         if item.get("rj"):
-            notes.append(f"Ranking Juice: {item['rj']}")
+            # Client-visible cell: always the neutral label, never a vendor metric name.
+            notes.append(f"{RJ_NOTE_LABEL}: {item['rj']}")
         poe_evidence = item.get("poe_evidence") or []
         if poe_evidence:
             rendered = []
@@ -1932,16 +2018,16 @@ def run_validations(wb, cfg, counts, related_result, paths, warnings) -> list[di
 
     anchor = cfg["product_anchor"]["asin"]
 
-    # Sheet titles for the exact-paste DataDive MKL tabs come from the config
+    # Sheet titles for the exact-paste MKL tabs come from the config
     # (source of truth via tabs.exact_paste), not hardcoded — so validation stays
-    # aligned with whatever the config names them (e.g. '3.1. Master List DataDive').
+    # aligned with whatever the config names them (e.g. '3.1 MKL SoldScope 30%').
     exact_paste = cfg["tabs"]["exact_paste"]
     sheet_for = {src: sheet for sheet, src in exact_paste.items()}
     master_sheet = sheet_for.get("master_csv", "")
     expanded_sheet = sheet_for.get("expanded_mkl_csv", "")
 
     # 1. Product anchor is the configured ASIN and present as a master-list
-    #    column (authoritative — it's a DataDive ASIN column). The ASINs tab is
+    #    column (authoritative: it's a keyword-research ASIN column). The ASINs tab is
     #    a curated carry-forward tab; if the anchor isn't in it, that tab is a
     #    template placeholder to curate for this market (warning, not failure).
     master_header = counts["_master_header"]
@@ -1970,7 +2056,7 @@ def run_validations(wb, cfg, counts, related_result, paths, warnings) -> list[di
             f"ASINs / curated tabs for this market (currently template placeholders)."
         )
 
-    # 2. Exact DataDive root/master row counts match source CSVs.
+    # 2. Exact root/master row counts match source CSVs.
     add(
         "Root Keywords rows == roots CSV rows",
         counts["1. Root Keywords"] == counts["_roots_csv"],
@@ -1993,16 +2079,11 @@ def run_validations(wb, cfg, counts, related_result, paths, warnings) -> list[di
         f"core={paths.get('master_csv', '')} expanded={paths.get('expanded_mkl_csv', '')}",
     )
 
-    metadata = cfg.get("datadive_exports") or {}
-    missing_meta = []
-    for group in ("core_mkl", "expanded_mkl"):
-        item = metadata.get(group) or {}
-        for field in ("min_relevancy", "visible_keyword_count", "visible_search_volume", "export_timestamp", "niche_id", "marketplace", "hero_keyword"):
-            value = str(item.get(field, "")).strip()
-            if not value or value.startswith("TO_RECORD"):
-                missing_meta.append(f"{group}.{field}")
+    # keyword_exports (legacy: datadive_exports) holds either the DataDive UI export
+    # fields or the SoldScope run fields; see export_metadata_missing().
+    missing_meta = export_metadata_missing(cfg)
     add(
-        "DataDive export metadata present for core and expanded MKL",
+        f"{keyword_source_label(cfg)} export metadata present for core and expanded MKL",
         not missing_meta,
         f"missing={missing_meta}",
     )
@@ -2131,7 +2212,7 @@ def run_validations(wb, cfg, counts, related_result, paths, warnings) -> list[di
     # Competitor brand names must never reach publishable SEO copy (title,
     # item highlights, bullets, description, backend). Scans the New Listing
     # column (col C) of the SEO Text tab for triage.brand_tokens; the own brand
-    # and the Notes/annotation rows (Guardrail, Ranking Juice, Semantic
+    # and the Notes/annotation rows (Guardrail, ranking score, Semantic
     # direction) are exempt.
     brand_tokens = [
         t for t in (cfg.get("triage", {}).get("brand_tokens") or [])
@@ -2694,8 +2775,20 @@ def write_handoff_note(path: str, cfg: dict, args: dict, manifest: dict) -> str:
         f"## {keyword_source_label(cfg)} Exports",
         "",
     ]
-    for key, value in (cfg.get("datadive_exports") or {}).items():
+    for key, value in keyword_exports(cfg).items():
         if not isinstance(value, dict):
+            continue
+        if "search_id" in value:
+            asins = value.get("asins") or []
+            if isinstance(asins, (list, tuple)):
+                asins = ", ".join(str(a) for a in asins)
+            lines.append(
+                f"- `{key}`: search `{value.get('search_id','')}`, marketplace `{value.get('marketplace','')}`, "
+                f"ASINs `{asins}`, window `{value.get('date_from','')}..{value.get('date_to','')}`, "
+                f"kept rows `{value.get('kept_rows','')}` of raw `{value.get('raw_rows','')}`, "
+                f"core min `{value.get('core_min','')}`, pool min `{value.get('pool_min','')}`, "
+                f"relevancy `{value.get('relevancy_mode','')}`"
+            )
             continue
         lines.append(f"- `{key}`: min relevancy `{value.get('min_relevancy','')}`, visible keywords `{value.get('visible_keyword_count','')}`, visible SV `{value.get('visible_search_volume','')}`, exported `{value.get('export_timestamp','')}`")
     lines += [
@@ -2739,15 +2832,12 @@ def write_handoff_note(path: str, cfg: dict, args: dict, manifest: dict) -> str:
 # --------------------------------------------------------------------------- #
 # Preflight (capability-based input checklists)
 # --------------------------------------------------------------------------- #
-# DataDive inputs the MCP can supply are generated from saved MCP JSON
-# via datadive_mcp_to_csv.py (get_niche_roots / get_niche_keywords / get_niche_competitors),
-# so they are NOT part of the browser task. Validated byte-for-data-identical to the
-# UI exports on a validation run (roots 222/222, Core 257/257, 0 mismatches). The full
-# keyword pool stays in BROWSER: it is three read-only DataDive endpoints merged locally
-# (/mkl, /outlier, /residue-kw-list), NOT a UI export and NOT a Min. Relevancy change.
-MCP_INPUT_KEYS = ["roots_csv", "master_csv", "competitors_csv"]
+# Keyword inputs come from saved SoldScope MCP result pages: tools/soldscope/keywords.py
+# writes roots, Core, the complete pool (expanded_mkl_csv) and competitors in one run,
+# so none of them is a browser task. Legacy DataDive configs name the same four keys
+# and are checked the same way.
+MCP_INPUT_KEYS = ["roots_csv", "master_csv", "expanded_mkl_csv", "competitors_csv"]
 BROWSER_INPUT_KEYS = [
-    "expanded_mkl_csv",
     "poe_products_csv", "poe_search_terms_csv", "related_niches_json",
     "poe_reviews_json", "poe_returns_json", "poe_structured_json", "listing_reference_json",
 ]
@@ -2764,17 +2854,17 @@ def _browser_input_checklist(cfg: dict, args: dict, missing: list[str]) -> str:
         "CAPABILITY CHECKLIST: Gather the missing keyword-workbook browser inputs.",
         "",
         f"Objective: produce the inputs below for {subject} "
-        f"({pa.get('marketplace')}), DataDive niche {pa.get('datadive_niche')}, anchor ASIN {pa.get('asin')}.",
+        f"({pa.get('marketplace')}), {research_identity(cfg)}, anchor ASIN {pa.get('asin')}.",
         "",
         "Read-only collection only: do not edit listings, change shared settings, commit/push, or inspect cookies/session/credentials.",
         "",
         "Produce these files at exactly these paths:",
     ]
     label = {
-        "roots_csv": "DataDive UI — niche analysis roots CSV",
-        "master_csv": "DataDive UI — Core MKL CSV at 30% Min Rel.",
-        "expanded_mkl_csv": "DataDive read-only full keyword pool filtered at 1% Min Rel.",
-        "competitors_csv": "DataDive UI (or MCP fallback) — competitors CSV",
+        "roots_csv": "Keyword roots CSV (tools/soldscope/keywords.py roots.csv)",
+        "master_csv": "Core MKL CSV (tools/soldscope/keywords.py core.csv)",
+        "expanded_mkl_csv": "Complete keyword pool CSV (tools/soldscope/keywords.py expanded.csv)",
+        "competitors_csv": "Competitors CSV (tools/soldscope/keywords.py competitors.csv)",
         "poe_products_csv": "POE — Products CSV (auto: `run-poe.mjs niche` → *_NicheDetailsProductsTab.csv; manual tab export = fallback)",
         "poe_search_terms_csv": "POE — Search Terms CSV (auto: `run-poe.mjs niche` → *_NicheDetailsSearchTermsTab.csv)",
         "related_niches_json": "POE — related-niches JSON (auto: `run-poe.mjs search|batch` → *_related-niches.json)",
@@ -2794,15 +2884,11 @@ def _browser_input_checklist(cfg: dict, args: dict, missing: list[str]) -> str:
     lines += [
         "",
         "Listing capture covers the anchor + the niche's competitor ASINs (input = the ASINs tab `link` "
-        "column once built, or the DataDive competitor set). Keep a row even when title/bullets fail (set status).",
+        "column once built, or the compared ASINs in the keyword run's research.json). Keep a row even when title/bullets fail (set status).",
         "Caveats to confirm: Seller Central account + marketplace; any ASIN that resolves to the wrong product "
         "family; ingredient/health-claim risks (flag joint/skin/hair/nail/anti-age claims in the live copy).",
         "",
         "Known capture quirks (from prior runs):",
-        "- DataDive export buttons may emit NO detectable download event. If exports don't land, ask the operator to "
-        "click them manually, then map the files in ~/Downloads by filename/timestamp/rows/headers "
-        "(Core 30% includes a 'Sugg. bid & range' column; the Expanded 1% file has many more rows). Report the "
-        "row counts + headers per file and cross-check them against the DataDive MCP niche statistics.",
         "- POE: use the API-first downloader — ONE command per niche produces ALL POE contract files "
         "(tools/opportunity-explorer/run-poe.mjs niche --niche-id <id> --marketplace <cc> --client <slug>; "
         "search/batch for the related-niches JSON; EU marketplaces all via --origin https://sellercentral.amazon.de). "
@@ -2824,6 +2910,49 @@ def _browser_input_checklist(cfg: dict, args: dict, missing: list[str]) -> str:
     return "\n".join(lines)
 
 
+def _soldscope_mcp_steps(cfg: dict, args: dict, missing: list[str]) -> str:
+    """Steps that produce the keyword CSVs from saved SoldScope MCP pages."""
+    pa = cfg.get("product_anchor") or {}
+    research = pa.get("research") if isinstance(pa.get("research"), dict) else {}
+    asins = research.get("asins") or ([pa["asin"]] if pa.get("asin") else [])
+    if isinstance(asins, (list, tuple)):
+        asins = ",".join(str(x) for x in asins)
+    asins = asins or "<ANCHOR,COMPETITOR,...>"
+    marketplace = research.get("marketplace") or "<US|CA|MX|UK|DE|ES|FR|IT>"
+    search_id = research.get("search_id") or "<SEARCH_ID>"
+    anchor = pa.get("asin") or ""
+    files = {"roots_csv": "roots.csv", "master_csv": "core.csv",
+             "expanded_mkl_csv": "expanded.csv", "competitors_csv": "competitors.csv"}
+    lines = [
+        "",
+        "STATUS: MISSING SOLDSCOPE MCP INPUTS (no browser download):",
+        f"  Run: {research_identity(cfg)}",
+        "  1) Pick the ASIN set: the anchor first when the product is live, plus up to 9 competitors. "
+        "Prelaunch runs have no anchor and set ranking_context.mode: unavailable.",
+        "  2) Credits: SoldScope calls that spend credits need one run approval naming the ASINs, "
+        "marketplace and expected credits (one per ASIN); rank-tracker writes need exact-action "
+        "approval (tools/soldscope/README.md).",
+        "  3) US, CA, MX, UK, DE, ES, FR, IT: one keyword_research_search_multi_asin (2 to 10 ASINs). "
+        "Other marketplaces: one kr_asin_search per ASIN, read with kr_get_results.",
+        "  4) Poll keyword_research_get_search_progress at most every 5 seconds until searchStatus 2 "
+        "(13 = failed), then page keyword_research_get_multi_results with per_page 1000 until every "
+        "meta.total row is read. Save each page as multi-<search_id>-page-NNN.json.",
+        "  5) Write the CSVs, research.json and keywords-receipt.json (the receipt fails unless every row reconciles):",
+        "     .venv/bin/python tools/soldscope/keywords.py --pages multi-<search_id>-page-*.json \\",
+        f"       --out-dir <run dir> {'--anchor ' + anchor + ' ' if anchor else ''}--asins {asins} "
+        f"--marketplace {marketplace} --search-id {search_id}",
+        "  6) Point the config inputs at the adapter files, then copy the run fields from research.json and "
+        "keywords-receipt.json into keyword_exports and product_anchor.research:",
+    ]
+    for key in missing:
+        lines.append(f"     {key}: <run dir>/{files.get(key, key)}  -> {args[key]}")
+    if keyword_source_label(cfg) != "SoldScope":
+        lines.append('     Also set keyword_source: "SoldScope" and copy tabs.template_renames plus the MKL tab '
+                     "names in tabs.exact_paste and tab_order from config.TEMPLATE.json, so the workbook does "
+                     "not label SoldScope data as DataDive.")
+    return "\n".join(lines) + "\n"
+
+
 def _build_command(args: dict) -> str:
     return (
         ".venv/bin/python tools/amazon-seo-keyword-workbook/build_keyword_workbook.py "
@@ -2835,7 +2964,7 @@ def run_preflight(cfg: dict, args: dict) -> int:
     pa = cfg["product_anchor"]
     print("=" * 64)
     print(f"PREFLIGHT — {pa.get('client')} · {pa.get('product')}")
-    print(f"  marketplace={pa.get('marketplace')}  niche={pa.get('datadive_niche')}  anchor={pa.get('asin')}")
+    print(f"  marketplace={pa.get('marketplace')}  research={research_identity(cfg)}  anchor={pa.get('asin')}")
     print("=" * 64)
     present = [k for k in MCP_INPUT_KEYS + BROWSER_INPUT_KEYS + SETUP_INPUT_KEYS if os.path.exists(args[k])]
     missing_mcp = [k for k in MCP_INPUT_KEYS if not os.path.exists(args[k])]
@@ -2855,18 +2984,7 @@ def run_preflight(cfg: dict, args: dict) -> int:
             print(f"  [ ] (setup)  {k}  -> {args[k]}")
 
     if missing_mcp:
-        niche = cfg["product_anchor"].get("datadive_niche", "<NICHE>")
-        anchor = cfg["product_anchor"].get("asin", "<ANCHOR>")
-        print(
-            "\nSTATUS: MISSING DATADIVE MCP INPUTS (no browser download):\n"
-            "  1) Call get_niche_roots / get_niche_keywords / get_niche_competitors for niche "
-            f"{niche}; save each raw JSON response to a file.\n"
-            "  2) Cross-check len(keywords) == get_niche_competitors numVisibleKeywords before trusting Core.\n"
-            "  3) Run datadive_mcp_to_csv.py to write roots_csv/master_csv/competitors_csv:\n"
-            f"     .venv/bin/python tools/amazon-seo-keyword-workbook/datadive_mcp_to_csv.py --anchor {anchor} \\\n"
-            "       --roots-json <roots.json> --keywords-json <keywords.json> --competitors-json <comps.json> \\\n"
-            f"       --out-roots \"{args['roots_csv']}\" --out-core \"{args['master_csv']}\" --out-competitors \"{args['competitors_csv']}\"\n"
-        )
+        print(_soldscope_mcp_steps(cfg, args, missing_mcp))
     if missing_browser:
         print("\nSTATUS: MISSING BROWSER INPUTS. Use the capability checklist below:\n")
         print(_browser_input_checklist(cfg, args, missing_browser))
@@ -3103,7 +3221,7 @@ def main() -> int:
     counts["_poe_search_terms_csv"] = len(poe_search)
     counts["_master_header"] = master[0] if master else []
 
-    # The DataDive roots CSV ships a leading empty column and an unnamed
+    # The roots CSV ships a leading empty column and an unnamed
     # trailing 0–1 relevance score; transform_roots() renames the columns,
     # marks important/ad roots (config: root_importance — tiered ⭐⭐ ad roots
     # when ad_min_sv/ad_min_score are set), and buckets each root with the same
@@ -3202,7 +3320,7 @@ def main() -> int:
     else:
         warnings.append("Outlier opportunity-KW tab not in template; skipped.")
 
-    # --- SEO Text rewrite (curated, + Ranking Juice column) ----------------- #
+    # --- SEO Text rewrite (curated, + keyword ranking score notes) ---------- #
     # Tab is '4.1 SEO Text' in the current template (legacy name '4. SEO Text');
     # resolve whichever exists so the SEO copy actually rebuilds instead of leaving
     # the style-template product's (e.g. collagen) SEO text in place.
@@ -3215,7 +3333,7 @@ def main() -> int:
         build_seo_text(wb[seo_sheet], args["seo_content"], seo_result, warnings)
         counts[seo_sheet] = seo_result.get("rows_written", 0)
         if not seo_result.get("skipped"):
-            print(f"  rebuilt {seo_sheet!r}: {seo_result.get('rows_written', 0)} rows (+ Ranking Juice column)")
+            print(f"  rebuilt {seo_sheet!r}: {seo_result.get('rows_written', 0)} rows (+ ranking score notes)")
     else:
         warnings.append("SEO Text tab not in template; skipped.")
 
@@ -3372,7 +3490,8 @@ def main() -> int:
             "poe_structured_json": {"path": args.get("poe_structured_json", "")},
         },
         "tab_production": cfg["tabs"],
-        "datadive_exports": cfg.get("datadive_exports", {}),
+        "keyword_exports": keyword_exports(cfg),
+        **({"datadive_exports": cfg["datadive_exports"]} if "datadive_exports" in cfg else {}),
         "tab_order": [ws.title for ws in wb.worksheets],
         "row_counts": populated,
         "related_niche_filter": {

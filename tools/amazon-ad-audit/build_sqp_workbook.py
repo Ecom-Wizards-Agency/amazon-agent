@@ -2,7 +2,8 @@
 """
 Amazon Ad/Sales Audit — SQP Intelligence workbook (client-agnostic).
 Week-aware, market-SV deduped per query+week, ASIN-vs-market CTR/CVR gaps, PPC overlay
-(from clean/search_terms_classified.csv aggregated by term), DataDive organic-rank overlay.
+(from clean/search_terms_classified.csv aggregated by term), organic-rank overlay from the
+keyword research (SoldScope research.json; legacy DataDive niche JSON).
 Ports the per-client SQP-workbook builder; styling from ew_audit_style.
 """
 from __future__ import annotations
@@ -16,7 +17,7 @@ from openpyxl.utils import get_column_letter
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ew_audit_style as ew
 from ew_audit_style import C, TL, F, header_row, numf, RIGHT, LEFT, LEFT_DATA, WRAP, CENTER, BORDER, gap_fill, title_block as _tb
-from analyze_audit import rp, load_config, classify
+from analyze_audit import rp, load_config, classify, research_keywords_csv, research_meta, LEGACY_KEYWORDS_CSV
 
 INT = ew.INT; PCT = ew.PCT; PCT2 = ew.PCT2; RO = ew.RO
 
@@ -92,9 +93,11 @@ def build(config_path, outdir):
             d = ppc[str(row["term"]).lower().strip()]
             d["sp"] += _num(row["spend"]); d["sa"] += _num(row["sales"])
 
-    # ---- DataDive organic rank ----
+    # ---- Organic rank from keyword research (clean/research_keywords.csv; legacy datadive_keywords.csv) ----
     ddrank = {}
-    ddp = CLEAN / "datadive_keywords.csv"
+    ddp = research_keywords_csv(CLEAN)
+    rank_provider = research_meta(cfg)["provider"] or (
+        "DataDive" if ddp.name == LEGACY_KEYWORDS_CSV else "SoldScope")
     if ddp.exists():
         for row in csv.DictReader(open(ddp)):
             rk = row.get("rank")
@@ -270,10 +273,10 @@ def build(config_path, outdir):
         rr += 1
     ws.freeze_panes = f"A{hr+1}"
 
-    # TAB 7: Organic Rank (DataDive) — only if data present
+    # TAB 7: Organic Rank (<provider>), only if data present
     if has_dd:
-        ws = wb.create_sheet("Organic Rank (DataDive)")
-        title_block(ws, "Organic Rank overlay (DataDive)", "Brand organic rank on the SQP queries. Ranked top-10 + high SV + high ad spend = candidate to reduce PPC dependence.", 7)
+        ws = wb.create_sheet(f"Organic Rank ({rank_provider})"[:31])
+        title_block(ws, f"Organic Rank overlay ({rank_provider})", "Brand organic rank on the SQP queries. Ranked top-10 + high SV + high ad spend = candidate to reduce PPC dependence.", 7)
         hr = 5; header_row(ws, hr, ["Group", "Search query", "Intent", "Avg SV", "Imp Share", "Organic rank", "Ad spend"], [20, 30, 9, 9, 10, 16, 11])
         rr = hr + 1
         seen_or = {}

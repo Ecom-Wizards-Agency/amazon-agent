@@ -5,7 +5,7 @@ description: "Build evidence-led Sponsored Brands video concepts, scripts, creat
 
 # Amazon Sponsored Brands Video Briefs
 
-Browser: Mixed. POE uses CDP over the shared debug Chrome. DataDive and AdLabs use MCP. Google Drive and Google Docs use their connected tools.
+Browser: Mixed. POE uses CDP over the shared debug Chrome. SoldScope and AdLabs use MCP. Google Drive and Google Docs use their connected tools.
 
 Create editor-ready Sponsored Brands video packages for Amazon search. The shopper has already typed a query and is comparing products. Each confirmed query cluster produces one video concept with three distinct openings over one shared second half.
 
@@ -28,7 +28,7 @@ Create editor-ready Sponsored Brands video packages for Amazon search. The shopp
 ## Required Inputs
 
 - Latest relevant Google Drive keyword-research workbook. Prefer the pinned workbook URL in config; otherwise find the latest authoritative workbook in the existing client Keyword Research folder.
-- DataDive niche keywords and roots.
+- SoldScope keyword research for the target ASINs and their competitors: `research.json` and `roots.csv` from `tools/soldscope/keywords.py`. SoldScope calls that spend credits need one run approval naming the ASINs, marketplace and expected credits; rank-tracker writes need exact-action approval (`tools/soldscope/README.md`).
 - POE full niche packs selected through the breadth workflow below.
 - Per-ASIN SQP from AdLabs `search_query`.
 - Current ad performance from AdLabs `target` and `ad_group`: spend, CTR, CVR, raw ACOS, and placement context where available.
@@ -51,14 +51,14 @@ Stop with zero POE fetches when the account or marketplace is unavailable or amb
 
 ## POE Breadth Workflow
 
-1. Read the latest relevant Drive keyword workbook and DataDive roots before choosing seeds.
+1. Read the latest relevant Drive keyword workbook and the SoldScope roots (`roots.csv`) before choosing seeds.
 2. Produce 8 to 12 deduplicated, non-branded seeds. Cover the head term, product form, mechanism, principal uses, and meaningful attributes. Do not pad with spelling variants.
 3. Search every seed. Union related niches by `nicheId`, retain seed provenance, and exclude branded, wrong-product, wrong-form, wrong-audience, and wrong-use niches.
 4. Download 5 to 10 relevant full niche packs. If fewer than five qualify, download all relevant niches and record the limitation in the coverage manifest.
 5. Reuse a cached pack only when it is no more than 14 days old and satisfies the same seed, relevance, and full-pack coverage requirements.
 6. Mark an insufficient prior pack as `superseded` in the run manifest. Never delete historical raw data.
 
-The coverage manifest records workbook URL, DataDive niche, roots by source, final seeds by category, related niches considered, exclusions with reasons, selected full packs, capture timestamps, cache decisions, and limitations.
+The coverage manifest records workbook URL, SoldScope research run (marketplace, ASINs, `search_id`), roots by source, final seeds by category, related niches considered, exclusions with reasons, selected full packs, capture timestamps, cache decisions, and limitations.
 
 ## Workflow
 
