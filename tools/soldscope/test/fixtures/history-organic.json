@@ -1,0 +1,46 @@
+{
+ "data": {
+  "history": {
+   "501": [
+    {
+     "created_at": 1792476000,
+     "position": 4,
+     "asin": "B0TEST0001"
+    },
+    {
+     "created_at": 1792519200,
+     "position": 6,
+     "asin": "B0TEST0001"
+    },
+    {
+     "created_at": 1792562400,
+     "position": 3,
+     "asin": "B0TEST0001"
+    },
+    {
+     "created_at": 1792584000,
+     "position": 5,
+     "asin": "B0TEST0001"
+    },
+    {
+     "created_at": 1792623600,
+     "position": 0,
+     "asin": "B0TEST0001"
+    },
+    {
+     "created_at": 1792648800,
+     "position": 150,
+     "asin": "B0TEST0001"
+    }
+   ],
+   "502": [
+    {
+     "created_at": 1792476000,
+     "position": 9,
+     "asin": "B0TEST0002"
+    }
+   ]
+  },
+  "mobileHistory": []
+ }
+}

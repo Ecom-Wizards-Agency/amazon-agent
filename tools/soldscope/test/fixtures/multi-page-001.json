@@ -1,0 +1,266 @@
+{
+ "data": {
+  "productDetails": [
+   {
+    "asin": "B0TEST0001",
+    "parentAsin": null,
+    "brand": "Test Brand 1",
+    "marketplace": "US",
+    "title": "Test Widget Cleaner 1",
+    "productType": "CLEANER"
+   },
+   {
+    "asin": "B0TEST0002",
+    "parentAsin": null,
+    "brand": "Test Brand 2",
+    "marketplace": "US",
+    "title": "Test Widget Cleaner 2",
+    "productType": "CLEANER"
+   },
+   {
+    "asin": "B0TEST0003",
+    "parentAsin": null,
+    "brand": "Test Brand 3",
+    "marketplace": "US",
+    "title": "Test Widget Cleaner 3",
+    "productType": "CLEANER"
+   },
+   {
+    "asin": "B0TEST0004",
+    "parentAsin": null,
+    "brand": "Test Brand 4",
+    "marketplace": "US",
+    "title": "Test Widget Cleaner 4",
+    "productType": "CLEANER"
+   }
+  ],
+  "keywords": [
+   {
+    "keyword": "widget cleaner",
+    "marketplace": "US",
+    "searchVolume": 1000,
+    "relevancy": 75,
+    "competitorsRelevancy": 75,
+    "asinsPositions": {
+     "B0TEST0001": {
+      "organicScrapeEventDate": "2026-10-01",
+      "organicAsin": "B0TEST0001",
+      "organicRank": 3,
+      "sponsoredScrapeEventDate": null,
+      "sponsoredRank": 5,
+      "sponsoredAsin": "B0TEST0001"
+     },
+     "B0TEST0002": {
+      "organicScrapeEventDate": "2026-10-01",
+      "organicAsin": "B0TEST0002",
+      "organicRank": 10,
+      "sponsoredScrapeEventDate": null,
+      "sponsoredRank": null,
+      "sponsoredAsin": null
+     },
+     "B0TEST0003": {
+      "organicScrapeEventDate": "2026-10-01",
+      "organicAsin": "B0TEST0003",
+      "organicRank": 40,
+      "sponsoredScrapeEventDate": null,
+      "sponsoredRank": null,
+      "sponsoredAsin": null
+     },
+     "B0TEST0004": {
+      "organicScrapeEventDate": "2026-10-01",
+      "organicAsin": "B0TEST0004",
+      "organicRank": 120,
+      "sponsoredScrapeEventDate": null,
+      "sponsoredRank": null,
+      "sponsoredAsin": null
+     }
+    },
+    "cpc": 1.25,
+    "cpcMin": 0.9,
+    "cpcMax": 1.6,
+    "matchTypes": [
+     1
+    ],
+    "categories": []
+   },
+   {
+    "keyword": "widget cleaner&#39;s kit",
+    "marketplace": "US",
+    "searchVolume": 300,
+    "relevancy": 50,
+    "competitorsRelevancy": 50,
+    "asinsPositions": {
+     "B0TEST0001": {
+      "organicScrapeEventDate": "2026-10-01",
+      "organicAsin": "B0TEST0001",
+      "organicRank": 20,
+      "sponsoredScrapeEventDate": null,
+      "sponsoredRank": null,
+      "sponsoredAsin": null
+     },
+     "B0TEST0002": {
+      "organicScrapeEventDate": "2026-10-01",
+      "organicAsin": "B0TEST0002",
+      "organicRank": 60,
+      "sponsoredScrapeEventDate": null,
+      "sponsoredRank": null,
+      "sponsoredAsin": null
+     }
+    },
+    "cpc": 0,
+    "cpcMin": 0,
+    "cpcMax": 0,
+    "matchTypes": [
+     1
+    ],
+    "categories": []
+   },
+   {
+    "keyword": "widget",
+    "marketplace": "US",
+    "searchVolume": 5000,
+    "relevancy": 100,
+    "competitorsRelevancy": 100,
+    "asinsPositions": {
+     "B0TEST0001": {
+      "organicScrapeEventDate": "2026-10-01",
+      "organicAsin": "B0TEST0001",
+      "organicRank": 1,
+      "sponsoredScrapeEventDate": null,
+      "sponsoredRank": 1,
+      "sponsoredAsin": "B0TEST0001"
+     },
+     "B0TEST0002": {
+      "organicScrapeEventDate": "2026-10-01",
+      "organicAsin": "B0TEST0002",
+      "organicRank": 2,
+      "sponsoredScrapeEventDate": null,
+      "sponsoredRank": 2,
+      "sponsoredAsin": "B0TEST0002"
+     },
+     "B0TEST0003": {
+      "organicScrapeEventDate": "2026-10-01",
+      "organicAsin": "B0TEST0003",
+      "organicRank": 3,
+      "sponsoredScrapeEventDate": null,
+      "sponsoredRank": null,
+      "sponsoredAsin": null
+     },
+     "B0TEST0004": {
+      "organicScrapeEventDate": "2026-10-01",
+      "organicAsin": "B0TEST0004",
+      "organicRank": 4,
+      "sponsoredScrapeEventDate": null,
+      "sponsoredRank": null,
+      "sponsoredAsin": null
+     }
+    },
+    "cpc": 0,
+    "cpcMin": 0,
+    "cpcMax": 0,
+    "matchTypes": [
+     1
+    ],
+    "categories": []
+   },
+   {
+    "keyword": "widget+cleaner+spray",
+    "marketplace": "US",
+    "searchVolume": 200,
+    "relevancy": 25,
+    "competitorsRelevancy": 25,
+    "asinsPositions": {
+     "B0TEST0002": {
+      "organicScrapeEventDate": "2026-10-01",
+      "organicAsin": "B0TEST0002",
+      "organicRank": 30,
+      "sponsoredScrapeEventDate": null,
+      "sponsoredRank": null,
+      "sponsoredAsin": null
+     }
+    },
+    "cpc": 0,
+    "cpcMin": 0,
+    "cpcMax": 0,
+    "matchTypes": [
+     1
+    ],
+    "categories": []
+   }
+  ],
+  "productsSummary": {
+   "B0TEST0001": {
+    "brand": "Test Brand 1",
+    "asin": "B0TEST0001",
+    "variationsCount": 0,
+    "rating": 4.0,
+    "reviewCount": 100,
+    "price": 10.0,
+    "fulfillmentType": 2,
+    "offersCount": null,
+    "category": {
+     "catId": 1,
+     "name": "Home & Kitchen"
+    },
+    "sales": 1000,
+    "revenue": 10000.0,
+    "salesTrend": 0
+   },
+   "B0TEST0002": {
+    "brand": "Test Brand 2",
+    "asin": "B0TEST0002",
+    "variationsCount": 1,
+    "rating": 4.1,
+    "reviewCount": 200,
+    "price": 15.0,
+    "fulfillmentType": 1,
+    "offersCount": null,
+    "category": {
+     "catId": 1,
+     "name": "Home & Kitchen"
+    },
+    "sales": 900,
+    "revenue": 13500.0,
+    "salesTrend": 0
+   },
+   "B0TEST0003": {
+    "brand": "Test Brand 3",
+    "asin": "B0TEST0003",
+    "variationsCount": 2,
+    "rating": 4.2,
+    "reviewCount": 300,
+    "price": 20.0,
+    "fulfillmentType": 2,
+    "offersCount": null,
+    "category": {
+     "catId": 1,
+     "name": "Home & Kitchen"
+    },
+    "sales": 800,
+    "revenue": 16000.0,
+    "salesTrend": 0
+   },
+   "median": {
+    "brand": 3,
+    "asin": 3,
+    "category": [
+     {
+      "name": "Home & Kitchen",
+      "count": 3
+     }
+    ]
+   }
+  },
+  "keywordDistribution": {
+   "totalKeywords": 8
+  },
+  "searchStat": {},
+  "topProducts": [],
+  "seedKeyword": null
+ },
+ "meta": {
+  "current_page": 1,
+  "per_page": 4,
+  "total": 8
+ }
+}
