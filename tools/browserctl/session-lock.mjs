@@ -1,6 +1,6 @@
 // Shared wire contract with read_browser_lock.py. Each child process claims the
 // next link: siblings serialize, while a workflow can call nested helpers.
-import {mkdirSync,openSync,closeSync,readFileSync,writeFileSync,unlinkSync} from 'node:fs';
+import {mkdirSync,openSync,fchmodSync,closeSync,readFileSync,writeFileSync,unlinkSync} from 'node:fs';
 import {dirname,resolve} from 'node:path';
 import {homedir} from 'node:os';
 import {randomUUID} from 'node:crypto';
@@ -28,6 +28,8 @@ export function acquireSessionLock(port=9223,owner=`node:${process.pid}`){
  if(previous&&read(root).token===previous&&read(root).pid!==process.pid){path=`${root}.child-${validate(root)}`;borrowed=true;}
  mkdirSync(dirname(path),{recursive:true,mode:0o700});
  let fd;try{fd=openSync(path,'wx',0o660);}catch(e){if(e.code!=='EEXIST')throw e;throw new Error('BROWSER_SESSION_BUSY: grimoire is in use; retry after its current task finishes');}
+ // The umask can strip the group bits (0077 under scheduled units); the broker reads these files through the group.
+ try{fchmodSync(fd,0o660);}catch(e){closeSync(fd);unlinkSync(path);throw e;}
  const token=randomUUID();try{writeFileSync(fd,JSON.stringify({pid:process.pid,owner,token,created_at:Date.now()/1000}));}finally{closeSync(fd);}
  const state={path,token,users:1,previous,previousChain};locks.set(root,state);
  if(borrowed)process.env.AMAZON_BROWSER_LOCK_CHAIN=JSON.stringify([...chain(),token]);
