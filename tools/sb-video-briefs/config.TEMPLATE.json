@@ -11,7 +11,8 @@
       "marketplace": "<SoldScope marketplace, e.g. US>",
       "search_id": "<SoldScope keyword research search_id>"
     },
-    "adlabs_profile_id": "<AdLabs profile_id>"
+    "synq_client_id": "<SYNQ client_id from list_clients>",
+    "_legacy_keys": "adlabs_profile_id is legacy and read only for the AdLabs carve-out account"
   },
   "seller_central": {
     "account_name": "<exact account-picker label>",

@@ -21,18 +21,16 @@
   "sources": {
     "sellerboard_account": "Example",
     "sellerboard_grouping": "parent",
-    "adlabs_profile": "Example",
-    "adlabs_profile_id": "000000000000000",
-    "adlabs_dashboard": "Example",
-    "adlabs_dashboard_id": "00000",
-    "adlabs_currency": "USD",
-    "adlabs_last_refreshed_utc": "2026-08-01T00:00:00Z",
-    "adlabs_dashboard_preflight": {
+    "synq_client_id": "CTEST0001",
+    "synq_dashboard": "Example US monthly",
+    "synq_currency": "USD",
+    "synq_last_refreshed_utc": "2026-08-01T00:00:00Z",
+    "synq_dashboard_preflight": {
       "required": true,
       "current_period_verified": true,
       "comparison_period_verified": true,
       "screenshot_comparison_matches": true,
-      "comparison_source_when_mismatched": "exact-dated AdLabs MCP"
+      "comparison_source_when_mismatched": "exact-dated SYNQ MCP (get_daily_metrics)"
     },
     "rank_tracker_marketplace_supported": true,
     "slack_channel": "#example-amazon-ew",
@@ -50,7 +48,7 @@
         "previous_month_screenshot_required": true,
         "required_grouping": "parent"
       },
-      "adlabs_dashboard": {
+      "synq_dashboard": {
         "screenshot_required": true,
         "show_current_and_previous_complete_months": true
       },

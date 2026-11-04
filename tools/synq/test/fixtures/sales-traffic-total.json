@@ -1,0 +1,19 @@
+{
+ "note": null,
+ "rows": [
+  {
+   "sales_currency": "USD",
+   "ordered_product_sales": 1500.5,
+   "ordered_product_sales_b2b": 0,
+   "units_ordered": 60,
+   "units_ordered_b2b": 0,
+   "total_order_items": 58,
+   "units_refunded": 1,
+   "page_views": 2400,
+   "sessions": 1900,
+   "buy_box_pct_weighted": 0.98,
+   "unit_session_pct": 0.031,
+   "total_groups": 1
+  }
+ ]
+}

@@ -4,7 +4,16 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from tools.ads_recall import CHALLENGES, DECISION, recall_paths, resolve_vault
+from tools.ads_recall import (
+    CHALLENGES,
+    DECISION,
+    DECISIONS,
+    SOURCE_CONTRACTS,
+    SYNQ_DECISION,
+    contract_paths,
+    recall_paths,
+    resolve_vault,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -31,6 +40,44 @@ class AdsRecallTests(unittest.TestCase):
                 self.assertEqual(resolve_vault(), root.resolve())
             paths = recall_paths("management", root)
             self.assertEqual(paths[:4], [decision, challenges, playbook, research])
+
+    def test_synq_decision_follows_doctrine_decision(self):
+        self.assertEqual(DECISIONS, (DECISION, SYNQ_DECISION))
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for rel in (DECISION, SYNQ_DECISION, CHALLENGES):
+                (root / rel).parent.mkdir(parents=True, exist_ok=True)
+                (root / rel).write_text("x", encoding="utf-8")
+            paths = recall_paths("management", root)
+            self.assertEqual(paths[:3], [root / DECISION, root / SYNQ_DECISION, root / CHALLENGES])
+
+    def test_missing_synq_decision_is_skipped(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for rel in (DECISION, CHALLENGES):
+                (root / rel).parent.mkdir(parents=True, exist_ok=True)
+                (root / rel).write_text("x", encoding="utf-8")
+            self.assertEqual(recall_paths("audit", root), [root / DECISION, root / CHALLENGES])
+
+    def test_source_contract_listed_only_when_present(self):
+        self.assertEqual(SOURCE_CONTRACTS, ("docs/synq-mcp.md",))
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.assertEqual(contract_paths("management", root), [])
+            contract = root / "docs/synq-mcp.md"
+            contract.parent.mkdir()
+            contract.write_text("contract", encoding="utf-8")
+            for surface in ("console", "management", "monitor", "audit", "campaign-builder"):
+                self.assertEqual(contract_paths(surface, root), [contract])
+            self.assertEqual(contract_paths("seo-rank-gate", root), [])
+
+    def test_source_map_names_both_decisions_and_contract(self):
+        import json
+
+        source_map = json.loads((ROOT / "docs/ads-doctrine-source-map.json").read_text(encoding="utf-8"))
+        self.assertEqual(source_map["decision_record"], DECISION)
+        self.assertEqual(source_map["decision_records"], list(DECISIONS))
+        self.assertEqual(source_map["source_contracts"], list(SOURCE_CONTRACTS))
 
     def test_missing_vault_is_supported(self):
         with tempfile.TemporaryDirectory() as tmp:

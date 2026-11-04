@@ -33,7 +33,7 @@
     },
     "ads": {
       "skills": ["amazon-ads-console", "amazon-audit", "amazon-ppc-weekly-management"],
-      "keywords": ["ppc", "acos", "tacos", "roas", "campaign", "bid", "bids", "budget", "sponsored products", "sponsored brands", "sponsored display", "negative keyword", "placement", "top of search", "impressions", "cpc", "adlabs", "ad group", "bulk file", "kampagne", "gebot", "werbung", "anzeige", "werbekosten"],
+      "keywords": ["ppc", "acos", "tacos", "roas", "campaign", "bid", "bids", "budget", "sponsored products", "sponsored brands", "sponsored display", "negative keyword", "placement", "top of search", "impressions", "cpc", "adlabs", "synq", "ad group", "bulk file", "kampagne", "gebot", "werbung", "anzeige", "werbekosten"],
       "error_codes": []
     },
     "account-health": {

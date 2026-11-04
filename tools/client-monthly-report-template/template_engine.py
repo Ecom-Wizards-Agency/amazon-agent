@@ -43,6 +43,45 @@ def rank_tracker_marketplace_supported(marketplace: str) -> bool:
     return code in RANK_TRACKER_MARKETPLACES
 
 
+ADS_SOURCE_SYNQ = "SYNQ"
+ADS_SOURCE_ADLABS = "AdLabs"  # legacy, AdLabs carve-out only
+
+
+def _resolve_ads_source(
+    synq_client_id: str,
+    synq_dashboard: str,
+    adlabs_profile: str,
+    adlabs_dashboard: str,
+) -> str:
+    """SYNQ whenever a SYNQ key is set or no legacy AdLabs key is; AdLabs only
+    for a legacy config that carries AdLabs keys and no SYNQ key."""
+
+    if synq_client_id.strip() or synq_dashboard.strip():
+        return ADS_SOURCE_SYNQ
+    if adlabs_profile.strip() or adlabs_dashboard.strip():
+        return ADS_SOURCE_ADLABS
+    return ADS_SOURCE_SYNQ
+
+
+def _missing_ads_fields(
+    synq_client_id: str,
+    synq_dashboard: str,
+    adlabs_profile: str,
+    adlabs_dashboard: str,
+) -> list[str]:
+    """Missing ads-source fields: the SYNQ pair, or the legacy AdLabs pair for
+    a config that carries AdLabs keys and no SYNQ key yet."""
+
+    source = _resolve_ads_source(
+        synq_client_id, synq_dashboard, adlabs_profile, adlabs_dashboard
+    )
+    if source == ADS_SOURCE_ADLABS:
+        fields = (("adlabs_profile", adlabs_profile), ("adlabs_dashboard", adlabs_dashboard))
+    else:
+        fields = (("synq_client_id", synq_client_id), ("synq_dashboard", synq_dashboard))
+    return [name for name, value in fields if not value.strip()]
+
+
 def _resolve_rank_support(
     explicit: Optional[bool],
     marketplace: str,
@@ -153,10 +192,14 @@ class MarketplacePart:
     display_name: str
     currency_symbol: str
     sellerboard_account: str
-    adlabs_profile: str
-    adlabs_dashboard: str
+    # Legacy AdLabs fields (AdLabs carve-out only), kept in their old positions so
+    # positional callers still work; the SYNQ fields below take precedence.
+    adlabs_profile: str = ""
+    adlabs_dashboard: str = ""
     rank_tracker_supported: Optional[bool] = None
     datadive_supported: Optional[bool] = None  # legacy flag, read as a fallback
+    synq_client_id: str = ""
+    synq_dashboard: str = ""  # SYNQ Report Builder dashboard name or id
 
     @property
     def rank_tracking_supported(self) -> bool:
@@ -164,16 +207,29 @@ class MarketplacePart:
             self.rank_tracker_supported, self.code, self.datadive_supported
         )
 
+    @property
+    def ads_source(self) -> str:
+        return _resolve_ads_source(
+            self.synq_client_id, self.synq_dashboard,
+            self.adlabs_profile, self.adlabs_dashboard,
+        )
+
+    @property
+    def ads_dashboard(self) -> str:
+        return self.synq_dashboard or self.adlabs_dashboard
+
     def validate(self) -> None:
         required = {
             "code": self.code,
             "display_name": self.display_name,
             "currency_symbol": self.currency_symbol,
             "sellerboard_account": self.sellerboard_account,
-            "adlabs_profile": self.adlabs_profile,
-            "adlabs_dashboard": self.adlabs_dashboard,
         }
         missing = [name for name, value in required.items() if not value.strip()]
+        missing += _missing_ads_fields(
+            self.synq_client_id, self.synq_dashboard,
+            self.adlabs_profile, self.adlabs_dashboard,
+        )
         if missing:
             raise ValueError(f"Marketplace part is missing: {', '.join(missing)}")
 
@@ -184,9 +240,11 @@ class MonthlySourceRegistry:
 
     sellerboard_account: str
     sellerboard_grouping: str
-    adlabs_profile: str
-    adlabs_dashboard: str
-    focus_products: tuple[str, ...]
+    # Legacy AdLabs fields (AdLabs carve-out only), kept in their old positions; the
+    # SYNQ fields below take precedence.
+    adlabs_profile: str = ""
+    adlabs_dashboard: str = ""
+    focus_products: tuple[str, ...] = ()
     slack_channel: str = ""
     marketplace: str = ""
     rank_tracker_group_ids: Mapping[str, str] = field(default_factory=dict)
@@ -195,12 +253,42 @@ class MonthlySourceRegistry:
     # Legacy DataDive fields, read only as fallbacks.
     rank_radar_ids: Mapping[str, str] = field(default_factory=dict)
     datadive_supported: Optional[bool] = None
+    synq_client_id: str = ""
+    synq_dashboard: str = ""  # SYNQ Report Builder dashboard name or id
+    # `sources.synq_dashboard_preflight`, else the legacy
+    # `sources.adlabs_dashboard_preflight`.
+    dashboard_preflight: Mapping[str, Any] = field(default_factory=dict)
 
     @property
     def rank_tracking_supported(self) -> bool:
         return _resolve_rank_support(
             self.rank_tracker_supported, self.marketplace, self.datadive_supported
         )
+
+    @property
+    def ads_source(self) -> str:
+        return _resolve_ads_source(
+            self.synq_client_id, self.synq_dashboard,
+            self.adlabs_profile, self.adlabs_dashboard,
+        )
+
+    @property
+    def ads_dashboard(self) -> str:
+        return self.synq_dashboard or self.adlabs_dashboard
+
+    def dashboard_preflight_issues(self) -> tuple[str, ...]:
+        """Unverified dashboard preflight checks, empty when the preflight is
+        not required or every check passed."""
+
+        preflight = self.dashboard_preflight or {}
+        if not preflight.get("required"):
+            return ()
+        checks = (
+            "current_period_verified",
+            "comparison_period_verified",
+            "screenshot_comparison_matches",
+        )
+        return tuple(check for check in checks if preflight.get(check) is not True)
 
     @classmethod
     def from_brand_config(cls, config: Mapping[str, Any]) -> "MonthlySourceRegistry":
@@ -209,7 +297,12 @@ class MonthlySourceRegistry:
         DataDive predecessor: `rank_tracker_group_id` to `rank_radar_id`,
         `rank_tracker_url` to `rank_radar_url`, and
         `sources.rank_tracker_marketplace_supported` to
-        `sources.datadive_marketplace_supported` or `sources.datadive_supported`."""
+        `sources.datadive_marketplace_supported` or `sources.datadive_supported`.
+        The ads source reads `sources.synq_client_id`, `sources.synq_dashboard`
+        and `sources.synq_dashboard_preflight` first; the legacy
+        `sources.adlabs_profile`, `sources.adlabs_dashboard` and
+        `sources.adlabs_dashboard_preflight` are kept for configs that have not
+        moved to SYNQ (the AdLabs carve-out account)."""
 
         sources = config.get("sources") or {}
         brand = config.get("brand") or {}
@@ -232,6 +325,14 @@ class MonthlySourceRegistry:
             if url:
                 urls[name] = str(url)
 
+        preflight = sources.get("synq_dashboard_preflight")
+        if not isinstance(preflight, Mapping):
+            preflight = sources.get("adlabs_dashboard_preflight")
+        if not isinstance(preflight, Mapping):
+            preflight = {}
+        synq_dashboard = sources.get("synq_dashboard")
+        if synq_dashboard in (None, ""):
+            synq_dashboard = sources.get("synq_dashboard_id")
         legacy_supported = sources.get("datadive_marketplace_supported")
         if legacy_supported is None:
             legacy_supported = sources.get("datadive_supported")
@@ -247,15 +348,17 @@ class MonthlySourceRegistry:
             rank_tracker_urls=urls,
             rank_tracker_supported=sources.get("rank_tracker_marketplace_supported"),
             datadive_supported=legacy_supported,
+            synq_client_id=str(sources.get("synq_client_id") or ""),
+            synq_dashboard=str(synq_dashboard or ""),
+            dashboard_preflight=dict(preflight),
         )
 
     def validate(self) -> None:
-        required = {
-            "sellerboard_account": self.sellerboard_account,
-            "adlabs_profile": self.adlabs_profile,
-            "adlabs_dashboard": self.adlabs_dashboard,
-        }
-        missing = [name for name, value in required.items() if not value.strip()]
+        missing = [] if self.sellerboard_account.strip() else ["sellerboard_account"]
+        missing += _missing_ads_fields(
+            self.synq_client_id, self.synq_dashboard,
+            self.adlabs_profile, self.adlabs_dashboard,
+        )
         if missing:
             raise ValueError(f"Monthly source registry is missing: {', '.join(missing)}")
         if self.sellerboard_grouping.strip().lower() != "parent":
@@ -279,12 +382,22 @@ class MonthlyRunEvidence:
     sellerboard_current_month: bool = False
     sellerboard_previous_month: bool = False
     sellerboard_parent_grouping_verified: bool = False
-    adlabs_dashboard_current_month: bool = False
-    adlabs_dashboard_previous_month: bool = False
+    adlabs_dashboard_current_month: bool = False  # legacy, read as a fallback
+    adlabs_dashboard_previous_month: bool = False  # legacy, read as a fallback
     rank_tracker_products: frozenset[str] = field(default_factory=frozenset)
     rank_radar_products: frozenset[str] = field(default_factory=frozenset)  # legacy
     meeting_notes_status: str = "missing"
     slack_accessible: bool = True
+    synq_dashboard_current_month: bool = False
+    synq_dashboard_previous_month: bool = False
+
+    @property
+    def dashboard_current_month(self) -> bool:
+        return self.synq_dashboard_current_month or self.adlabs_dashboard_current_month
+
+    @property
+    def dashboard_previous_month(self) -> bool:
+        return self.synq_dashboard_previous_month or self.adlabs_dashboard_previous_month
 
     def validate(self) -> None:
         allowed = {"missing", "supplied", "none_confirmed"}
@@ -317,15 +430,20 @@ def missing_operator_inputs(
             "Group by parent."
         )
 
-    missing_adlabs_periods: list[str] = []
-    if not evidence.adlabs_dashboard_current_month:
-        missing_adlabs_periods.append("reporting month")
-    if not evidence.adlabs_dashboard_previous_month:
-        missing_adlabs_periods.append("comparison month")
-    if missing_adlabs_periods:
+    missing_dashboard_periods: list[str] = []
+    if not evidence.dashboard_current_month:
+        missing_dashboard_periods.append("reporting month")
+    if not evidence.dashboard_previous_month:
+        missing_dashboard_periods.append("comparison month")
+    if missing_dashboard_periods:
+        dashboard = (
+            "SYNQ Report Builder dashboard screenshot"
+            if registry.ads_source == ADS_SOURCE_SYNQ
+            else "AdLabs custom-dashboard screenshot"
+        )
         requests.append(
-            "AdLabs custom-dashboard screenshot showing the "
-            + " and ".join(missing_adlabs_periods)
+            dashboard + " showing the "
+            + " and ".join(missing_dashboard_periods)
             + " on the saved dashboard."
         )
 

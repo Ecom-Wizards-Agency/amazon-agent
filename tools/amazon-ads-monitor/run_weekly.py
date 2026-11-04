@@ -19,12 +19,16 @@ Flow
    brief); Sellerboard's total_* columns can read 0 for the still-in-
    progress current day, so never anchor the week on today -- pass an
    earlier `--date` if yesterday itself isn't a fully-completed day yet.
-3. Load the week's normalized AdLabs campaign/target-level rows (already
-   filtered/shaped by the skill layer -- see
-   `recommendations.normalize_entities` and the two AdLabs quirks
-   documented in the amazon-ads-performance-briefs SKILL.md) from `--adlabs-json`;
-   omitted/empty is fine -- Push/Pause-Optimize come back empty with a
-   note, not an error.
+3. Load the week's normalized ads-source campaign/target-level rows from
+   `--ads-json` (legacy alias `--adlabs-json`). For SYNQ the skill layer
+   pulls the window through the SYNQ MCP and builds the file with
+   `tools/synq/convert.py entities` (see `recommendations.normalize_entities`
+   and the amazon-ads-performance-briefs weekly workflow). The file is a
+   list of rows or a `{"note", "rows"}` wrapper; a non-null note (row cap
+   reached, truncated) is carried into the brief's notes. Omitted/empty is
+   fine -- Push/Pause-Optimize come back empty with a note, not an error.
+   `--ads-source` (default SYNQ; AdLabs carve-out: AdLabs) names the source in
+   the notes.
 4. Parse the week's external-signal digest (`--signal-digest`, see
    `_local/ads-signals/<ISO-year>-W<week>/digest.md` and
    `recommendations.parse_signal_digest_markdown`) if given.
@@ -43,19 +47,19 @@ Flow
 
 Examples
 --------
-Sellerboard CSV alone (no AdLabs yet -- Push/Pause-Optimize come back
+Sellerboard CSV alone (no ads-source rows yet -- Push/Pause-Optimize come back
 empty with a note; that's a valid, complete weekly run):
 
     python3 tools/amazon-ads-monitor/run_weekly.py \\
         --csv _local/ads-monitor/inbox/acme/dashboardtotals_30d.csv \\
         --account acme --goal rank-launch --date 2026-07-13
 
-Full weekly run with AdLabs weekly entities + a signal digest:
+Full weekly run with SYNQ weekly entities + a signal digest:
 
     python3 tools/amazon-ads-monitor/run_weekly.py \\
         --csv <7d path>,<30d path> --account acme --goal rank-launch \\
         --situation "recurring ACOS spikes on broad match" \\
-        --adlabs-json _local/ads-monitor/inbox/acme/adlabs_weekly.json \\
+        --ads-json _local/ads-monitor/inbox/acme/synq_entities_weekly.json \\
         --signal-digest _local/ads-signals/2026-W28/digest.md \\
         --out output --slack-json -
 """
@@ -99,10 +103,20 @@ def _parse_args(argv=None) -> argparse.Namespace:
     )
     p.add_argument("--account", type=str, default=None, help="Account slug (default: inferred from the first --csv filename)")
     p.add_argument(
-        "--adlabs-json", type=str, default=None,
-        help="Path to a JSON file: a list of normalized AdLabs weekly campaign/target rows "
-             "(see recommendations.normalize_entities for the expected shape). Omit for an "
-             "AdLabs-free run -- Push/Pause-Optimize come back empty with a note, not an error.",
+        "--ads-json", dest="ads_json", type=str, default=None,
+        help="Path to a JSON file: a list of normalized weekly campaign/target rows from the ads "
+             "source, or a {\"note\", \"rows\"} wrapper (for SYNQ: tools/synq/convert.py entities; "
+             "see recommendations.normalize_entities for the row shape). Omit for a Sellerboard-only "
+             "run -- Push/Pause-Optimize come back empty with a note, not an error.",
+    )
+    p.add_argument(
+        "--adlabs-json", dest="adlabs_json", type=str, default=None,
+        help="Legacy alias of --ads-json for AdLabs rows; the source label then defaults to AdLabs.",
+    )
+    p.add_argument(
+        "--ads-source", type=str, default=None,
+        help="Name of the ads source shown in the brief's notes (default: SYNQ with --ads-json, "
+             "AdLabs with the legacy --adlabs-json; the AdLabs carve-out account: AdLabs).",
     )
     p.add_argument(
         "--goal", type=str, default=None,
@@ -140,7 +154,14 @@ def _parse_args(argv=None) -> argparse.Namespace:
     )
     p.add_argument("--no-daily-flags", action="store_true", help="Skip the optional day-level goal-aware flags section (included by default)")
     p.add_argument("--quiet", action="store_true", help="Suppress the console summary")
-    return p.parse_args(argv)
+    args = p.parse_args(argv)
+    if args.ads_json and args.adlabs_json:
+        p.error("pass --ads-json or its legacy alias --adlabs-json, not both")
+    if args.ads_source is None:
+        args.ads_source = "AdLabs" if args.adlabs_json else "SYNQ"
+    if args.adlabs_json:
+        args.ads_json = args.adlabs_json
+    return args
 
 
 def _infer_account_from_csv_path(path: str) -> str:
@@ -153,6 +174,26 @@ def _infer_account_from_csv_path(path: str) -> str:
         if idx != -1:
             return stem[:idx]
     return stem
+
+
+def load_ads_entities(path: str, ads_source: str = "SYNQ"):
+    """Read an `--ads-json` file: a plain list of entity rows, or the
+    `{"note": <text or null>, "rows": [...]}` wrapper the SYNQ pulls are
+    saved in. Returns `(rows, notes)`; a non-null note becomes a brief note
+    so a row-capped pull is never presented as complete."""
+    payload = json.loads(Path(path).read_text(encoding="utf-8"))
+    if isinstance(payload, list):
+        return payload, []
+    if isinstance(payload, dict) and isinstance(payload.get("rows"), list):
+        note = payload.get("note")
+        notes = []
+        if note:
+            notes.append(
+                f"{ads_source} entity rows carry a source note ({str(note).strip()}) -- the lists below may "
+                "be incomplete; narrow the pull or raise the limit before acting on them."
+            )
+        return payload["rows"], notes
+    raise ValueError(f"--ads-json {path}: expected a list of rows or a {{\"note\", \"rows\"}} wrapper")
 
 
 def run_account(
@@ -168,6 +209,8 @@ def run_account(
     rank_rows: list = None,
     monthly_budget: float = None,
     rank_radar: list = None,  # legacy keyword alias for rank_rows
+    ads_source: str = "SYNQ",
+    entity_notes: list = None,
 ):
     ds = SellerboardDataSource.from_paths({account: csv_paths})
     start = week_end - dt.timedelta(days=window_days)
@@ -177,7 +220,7 @@ def run_account(
     if not account_rows:
         notes.append(
             "Sellerboard feed returned no rows for this window -- per SELLERBOARD-FORMAT.md, fall back to "
-            "AdLabs for this brand/week at the skill layer; this CLI run has no account-level figures to report."
+            f"{ads_source} for this brand/week at the skill layer; this CLI run has no account-level figures to report."
         )
 
     lens = resolve_goal_lens(goal)
@@ -187,7 +230,13 @@ def run_account(
     recommendations = build_recommendations(
         raw_entities or [], goal=goal, situation=situation, signal_items=signal_items,
         rank_rows=rank_rows if rank_rows is not None else rank_radar, pacing=pacing,
+        source_label=ads_source,
     )
+    # Source notes (row cap reached, truncated) lead the rendered Notes
+    # section, so a cut pull is never presented as a complete list.
+    source_notes = [n for n in (entity_notes or []) if n]
+    if source_notes:
+        recommendations.notes[:0] = source_notes
 
     flags_tuple = None
     if include_daily_flags and account_rows:
@@ -277,9 +326,13 @@ def main(argv=None) -> int:
         return 2
     account = args.account or _infer_account_from_csv_path(csv_paths[0])
 
-    raw_entities = []
-    if args.adlabs_json:
-        raw_entities = json.loads(Path(args.adlabs_json).read_text(encoding="utf-8"))
+    raw_entities, entity_notes = [], []
+    if args.ads_json:
+        try:
+            raw_entities, entity_notes = load_ads_entities(args.ads_json, args.ads_source)
+        except ValueError as exc:
+            print(f"ERROR: {exc}", file=sys.stderr)
+            return 2
 
     signal_items = []
     if args.signal_digest:
@@ -297,6 +350,7 @@ def main(argv=None) -> int:
             goal=args.goal, raw_entities=raw_entities, signal_items=signal_items,
             situation=args.situation, include_daily_flags=not args.no_daily_flags,
             rank_rows=rank_rows, monthly_budget=args.monthly_budget,
+            ads_source=args.ads_source, entity_notes=entity_notes,
         )
     except Exception as exc:  # noqa: BLE001 -- surface the error, exit non-zero
         print(f"ERROR [{account}]: {exc}", file=sys.stderr)

@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """Batch log for staged PPC applies (client-agnostic).
 
-Staged-apply standard: a batch is ONE opt-group, never the whole account; several
-levers may land together inside a group's batch, each row labeled with its lever.
-Before any apply, snapshot the old -> new rows here; the file is the revert source
-and the cooldown ledger. Data lives under _local/ppc-manage/<client>/batches/
-(gitignored).
+Staged-apply standard: a batch is ONE role group (a SYNQ runner role, or an
+AdLabs opt-group of the AdLabs carve-out account), never the whole account; several levers may land
+together inside a group's batch, each row labeled with its lever. Before any
+change, snapshot the old -> new rows here; the file is the revert source and the
+cooldown ledger. The rows and the revert payload are source-neutral. Data lives
+under _local/ppc-manage/<client>/batches/ (gitignored).
 
 Commands:
   snapshot       write a batch file from a rows JSON (fails on cooldown conflicts)
@@ -15,7 +16,8 @@ Commands:
   status         list batches for a client (age, status, scored or open)
   score          record the read-before-write verdict on a batch
   revert         emit the old values as an update payload (the write itself
-                 stays in the agent's preview -> approval -> apply gate)
+                 stays in the agent's approval gate: SYNQ Change History or
+                 Campaign Manager; AdLabs carve-out: AdLabs update_entities)
   mark-reverted  flag a batch as reverted after the revert write is applied
 
 rows JSON shape (list): {"entity_type": "keyword|target|campaign|ad_group|placement",
@@ -216,7 +218,8 @@ def cmd_revert(a, base):
         print(f"revert payload ({len(payload)} rows) -> {a.out}")
     else:
         print(text)
-    print(f"apply via update_entities behind the write gate, then: "
+    print("apply behind the write gate in the SYNQ web app (Change History revert or "
+          "Campaign Manager); AdLabs carve-out: AdLabs update_entities. Then: "
           f"batches.py mark-reverted --client {a.client} --tag {a.tag}", file=sys.stderr)
 
 
@@ -245,7 +248,9 @@ def main():
     common(p)
     p.add_argument("--tag", required=True, help="<client>-<YYYY>W<ww>-<group>-<lever>")
     p.add_argument("--lever", required=True)
-    p.add_argument("--group", required=True, help="opt-group (rank/discovery/profit/shield/...)")
+    p.add_argument("--group", required=True,
+                   help="role group: SYNQ runner role or AdLabs carve-out opt-group "
+                        "(rank/discovery/profit/shield/...)")
     p.add_argument("--note", required=True, help="same note passed to the apply call")
     p.add_argument("--rows", required=True, help="path to rows JSON")
     p.add_argument("--bypass-cooldown", metavar="REASON",

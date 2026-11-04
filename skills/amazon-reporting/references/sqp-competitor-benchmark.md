@@ -2,7 +2,7 @@
 
 Mode browser: CDP (scripted capture via `tools/sc-sqp-competitor/`; manual UI walk only as fallback).
 
-Capture Amazon's per-query top-ASIN comparison from Brand Analytics > Search Query Performance. This is the only source for **competitor-level** query share: the AdLabs MCP exposes our own share and nothing else, and no API returns the competitor table. Read-only throughout.
+Capture Amazon's per-query top-ASIN comparison from Brand Analytics > Search Query Performance. This is the only source for **competitor-level** query share: the SYNQ MCP (`get_sqp_data`) exposes our own share and nothing else, and no API returns the competitor table. Read-only throughout.
 
 ## Required Inputs
 

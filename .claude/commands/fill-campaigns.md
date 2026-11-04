@@ -44,4 +44,4 @@ Load the `campaign-structure-fill` mode in `amazon-seo`, then read `skills/amazo
    ```
 7. **Report and stop**: filled counts per bucket, warnings, backup path, and where the Proposed
    Campaign Names block is (below the scaffold). Do not build bulk files, do not open the webapp,
-   do not push anything to AdLabs.
+   do not push anything to SYNQ or AdLabs.

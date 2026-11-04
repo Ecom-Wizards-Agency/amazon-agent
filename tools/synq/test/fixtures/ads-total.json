@@ -1,0 +1,15 @@
+[
+ {
+  "report_date": null,
+  "campaign_id": null,
+  "ad_group_id": null,
+  "entity_id": null,
+  "cost": 123.4567,
+  "sales": 456.78,
+  "orders": 20,
+  "units": 22,
+  "impressions": 10000,
+  "clicks": 300,
+  "total_groups": 1
+ }
+]

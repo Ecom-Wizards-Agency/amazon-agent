@@ -2,8 +2,11 @@
   "client": "CLIENT NAME",
   "marketplace": "US",
   "currency": "USD",
-  "adlabs_team_id": "REQUIRED",
-  "adlabs_profile_id": "REQUIRED",
+  "data_source": "SYNQ",
+  "synq_client_id": "REQUIRED for SYNQ (from list_clients, confirmed by SKU or title in get_catalog)",
+  "adlabs_team_id": "",
+  "adlabs_profile_id": "",
+  "adlabs_note": "Optional legacy keys, AdLabs carve-out only: set both and data_source \"AdLabs\" for an AdLabs-sourced build.",
   "parent_asin": "B0XXXXXXXX",
   "asins": {
     "B0XXXXXXXX": "short variant label"
@@ -35,6 +38,9 @@
     },
     "search_term_csvs": {
       "2026-06-14": "downloads/<client>/reporting/search_terms_2026-06-14.csv"
+    },
+    "stock_csvs": {
+      "2026-06-14": "downloads/<client>/reporting/stock_2026-06-14.csv"
     }
   },
   "output": {

@@ -161,10 +161,9 @@ Default routing:
 - `amazon-catalog`: variations, parentage, flat files, listing edits and catalog conflicts.
 - `amazon-ads-console`: Ads Console bids, budgets, placements, targeting and settings.
 - `amazon-amc`: Amazon Marketing Cloud SQL, runs, schedules and audiences.
-- `amazon-dayparting`: hourly-report analysis and bid schedules.
 - `amazon-sponsored-products-bulk-files`: Sponsored Products bulk-upload files from a brief, file only.
 - `amazon-ads-performance-briefs`: read-only daily or weekly Ads performance briefs.
-- `amazon-ppc-weekly-management`: the weekly AdLabs preview, approval and staged-apply loop.
+- `amazon-ppc-weekly-management`: the weekly SYNQ PPC loop (runner review, proposals, approved web-app changes); the AdLabs carve-out account keeps its AdLabs loop.
 - `amazon-sponsored-brands-video-briefs`: Sponsored Brands video concepts and editor briefs.
 - `amazon-creator-connections`: Creator Connections campaigns, inbox, tracker, replies and MCF fulfillment.
 - `amazon-reporting`: Seller Central and Ads report fetching and formatting, not audit narratives.
@@ -183,10 +182,11 @@ Default routing:
 - `amazon-flatfilepro`: FlatFilePro workbooks, uploads, mapping and the secondary-image pipeline.
 - `amazon-forecasting-sources`: per-client forecasting sources, assumptions and caveats.
 
-## Data Source Routing: SoldScope vs POE
+## Data Source Routing
 
-- SoldScope (MCP `soldscope`): keyword research, competitor ASINs, search volume, relevancy and organic and sponsored rank tracking. Use it first and read-only by default. A keyword research run is addressed by its ASIN set (anchor first), marketplace and `search_id`; rank tracking by its rank-tracker `group_id`. SoldScope calls that spend credits need one run approval naming the ASINs, marketplace and expected credits; rank-tracker writes need exact-action approval (`tools/soldscope/README.md`). It signs in by OAuth in the MCP client; never save a SoldScope credential in this project, GitHub, SOPs or operator notes.
-- DataDive is retired: start no new DataDive work. Old DataDive exports, CSVs and workbook tabs stay readable so existing workbooks and audits can be rebuilt.
+- SoldScope (MCP `soldscope`): keyword research, competitor ASINs, search volume, relevancy and organic and sponsored rank tracking. Use it first and read-only by default. SoldScope calls that spend credits need one run approval naming the ASINs, marketplace and expected credits; rank-tracker writes need exact-action approval (`tools/soldscope/README.md`). It signs in by OAuth in the MCP client; never save a SoldScope credential in this project, GitHub, SOPs or operator notes.
+- SYNQ (MCP `synq`): Ads data, read-only and first. Web-app writes need exact-action approval; AdLabs serves only the AdLabs carve-out account (`docs/synq-mcp.md`).
+- DataDive is retired: start no new DataDive work. Old DataDive exports, CSVs and workbook tabs stay readable.
 - Product Opportunity Explorer (POE/OEI): Products, Search Terms, Customer Review Insights, Returns and Related Niches, behind the Seller Central login with no MCP. Use the API-first downloader (`skills/amazon-opportunity-explorer/references/opportunity-explorer-workflow.md`) and `skills/amazon-opportunity-explorer/references/poe-niche-export-checklist.md`. POE data has one permanent store, the client's pCloud `_Data/opportunity-data/` tree, for Amazon Agent and Grimoire; the skill owns transfer, receipt and migration rules.
 - Listing copy for anchor and competitor ASINs comes from live product pages through `amazon-listing-capture`, never from SoldScope or POE.
 
@@ -203,7 +203,7 @@ Source priority:
 
 Owning skills carry the full standards; these lines route.
 
-- Audits: `amazon-audit`. `deep` always uses downloaded ads bulk + Business Report + SQP, `monthly` and `actions` require an AdLabs profile, and previews and applies route to `amazon-ppc-weekly-management`.
+- Audits: `amazon-audit`. `deep` always uses downloaded ads bulk + Business Report + SQP, `monthly` and `actions` require a SYNQ client (AdLabs carve-out: its AdLabs profile), and previews and applies route to `amazon-ppc-weekly-management`.
 - Offboarding: `amazon-client-offboarding`, read-only, delivered into an exact existing folder inside `<Client> - Shared/`.
 - Campaign creation: `amazon-sponsored-products-bulk-files`; a file only, with campaigns defaulting to `paused`.
 - Sponsored Brands video briefs: `amazon-sponsored-brands-video-briefs` (`/video-brief`).

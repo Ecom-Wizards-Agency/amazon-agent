@@ -1,7 +1,8 @@
-# Data source: downloaded files (prospects)
+# Data source: downloaded files (prospects and clients not yet in SYNQ)
 
-Loaded at step 2 when the brand has no AdLabs profile. Every Lens A row must still be filled
-from here. "Not available on this path" is only an acceptable answer for margin.
+Loaded at step 2 for `deep`, and for `monthly` and `actions` on a client still being onboarded
+into SYNQ (`docs/synq-mcp.md`). Every Lens A row must still be filled from here. "Not available
+on this path" is only an acceptable answer for margin.
 
 
 Scaffold a config, run preflight, gather the browser and SoldScope inputs, then continue through the build.

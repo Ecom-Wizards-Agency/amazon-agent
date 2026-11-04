@@ -35,8 +35,8 @@ the placement field changes the bid when an impression is eligible for Amazon Bu
 the site field controls campaign serving scope where Amazon supports it.
 
 **Output is a file only.** This tool never uploads or touches live campaigns. Uploading via
-Campaign Manager → Bulk Operations (or any AdLabs push) is a separate, operator-confirmed
-action (stop-before-risk applies). **Update mode is the one exception to "nothing is live
+Campaign Manager → Bulk Operations (or any SYNQ Campaign Manager push, or an AdLabs push for the AdLabs
+carve-out account) is a separate, operator-confirmed action (stop-before-risk applies). A SYNQ Campaign Manager push is a separate attended web-app action in the 9222 operator browser with the same per-batch exact-action gate: the client, marketplace, exact entities, old → new values and the expected result. Snapshot and tag each batch with `tools/amazon-ppc-management/batches.py` and read it back with `get_ads_change_log`. **Update mode is the one exception to "nothing is live
 yet"**: its rows reference real, currently-serving entities, so uploading an update-mode
 file changes a live account the moment Amazon processes it. Its `_REVIEW.md` is mandatory
 reading before that upload.

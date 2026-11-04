@@ -1,6 +1,6 @@
 # Audit Workflow
 
-Mode browser: Mixed (AdLabs and SoldScope over MCP; Business Report, SQP and the ads bulk over the CDP report fetcher on the download path; live creative capture over CDP on both paths; build is local).
+Mode browser: Mixed (SYNQ and SoldScope over MCP, AdLabs over MCP for the AdLabs carve-out account only; Business Report, SQP and the ads bulk over the CDP report fetcher on the download path; read-only SYNQ gap pages and live creative capture over CDP; build is local).
 
 This skill is the whole standard. It replaces the two former audit skills and the separate playbook
 doc, so nothing here points outside this directory.
@@ -73,16 +73,17 @@ This is operator intent, and no lookup can infer it, so it comes first. Ask this
 
 | Ask it as | Internal key | For |
 |---|---|---|
-| First-time audit | `deep` | A prospect pitch before the brand is connected to AdLabs |
+| First-time audit | `deep` | A prospect pitch before the brand is connected to SYNQ |
 | Monthly review | `monthly` | A client we already run |
-| Actions only | `actions` | A read-only prioritized change list for an AdLabs-managed client |
+| Actions only | `actions` | A read-only prioritized change list for a managed client |
 
 The rest of this file and both lens references use the internal key, so read `monthly` wherever
 the posture is named later.
 
 **The posture fixes the data source.** A first-time audit is always prospect work and never calls
-AdLabs. Monthly and actions-only audits are managed-account work and require AdLabs. Applying any
-action leaves this skill and routes to `amazon-ppc-weekly-management`.
+SYNQ or AdLabs. Monthly and actions-only audits are managed-account work and require a SYNQ
+client (AdLabs carve-out: its AdLabs profile). Applying any action leaves this skill and routes to
+`amazon-ppc-weekly-management`.
 
 Skip this stage entirely when the arguments already say it.
 
@@ -100,24 +101,35 @@ Resolve the new prospect brief normally and build every conclusion from that pro
 
 ### Stage 2. Route and pre-fill. Silent, no questions.
 
-**`deep`: download path.** Read `references/source-bulk.md`. Do not start an AdLabs session and do
-not look for a profile. Resolve any existing per-client audit config, then read the matched prospect
+**`deep`: download path.** Read `references/source-bulk.md`. Do not call SYNQ or start an AdLabs
+session, and do not look for a client or profile. Resolve any existing per-client audit config, then read the matched prospect
 call notes for context. A first-time audit still asks the full brief in stage 3 because prospect
 facts and margin assumptions must be explicit.
 
-**`monthly` and `actions`: AdLabs path.** Read `references/source-adlabs.md`, then run the startup
+**`monthly` and `actions`: SYNQ path.** Read `references/source-synq.md`, then run the startup
 sequence:
 
-1. `start_chat_session`, then `read_resource(adlabs://instructions)`. Pass the returned
-   `chat_session_id` on every later call.
-2. `get_entity_data(teams)`, then `get_entity_data(profiles, team_id)`.
+1. `list_clients`. Skip demo clients (`is_demo: true`) and any client that is not `active`.
+2. Confirm the match with `get_catalog` by SKU or `product_title`; a client name alone does not
+   prove whose seller data it is.
+3. `get_sync_status` for every marketplace in scope.
 
-Require an unambiguous profile. If AdLabs is unavailable or the profile is missing, stop and report
-the blocker. Never fall back to downloaded files for these postures.
+Require one unambiguous, confirmed client with a successful recent sync.
 
-Then **resolve what is already known instead of asking for it** from profile memory, the client ops
-profile, and the per-client config: brand terms, product-fact negatives, break-even, doctrine,
-account naming, marketplaces, ASINs, product groups, competitor tokens, and `core_tokens`.
+**AdLabs carve-out only.** The AdLabs carve-out account (US and CA) still runs on AdLabs. Read
+`references/source-adlabs.md` and run its startup instead: `start_chat_session`, then
+`read_resource(adlabs://instructions)`, passing the returned `chat_session_id` on every later call;
+then `get_entity_data(teams)` and `get_entity_data(profiles, team_id)`. Require an unambiguous
+profile.
+
+Downloaded files are allowed for these postures only for a client still being onboarded into SYNQ
+(`docs/synq-mcp.md`), through `references/source-bulk.md`. For any other client, a missing SYNQ
+client, a failed sync or an unavailable AdLabs profile is a blocker to stop and report.
+
+Then **resolve what is already known instead of asking for it** from `get_catalog` goals
+(AdLabs carve-out: AdLabs profile memory), the client ops profile, and the per-client config: brand
+terms, product-fact negatives, break-even, doctrine, account naming, marketplaces, ASINs,
+product groups, competitor tokens, and `core_tokens`.
 
 ### Stage 3. Ask only what stage 2 did not resolve.
 
@@ -147,8 +159,8 @@ quarterly pass is due: compute it and report it.
 
 Flag explicitly what is missing rather than assuming a clean window.
 
-For managed postures, stage 2 already read the AdLabs profile memory and client ops profile for the
-**brief** values. This step reads for a different purpose: what happened, what we learned, and what
+For managed postures, stage 2 already read the `get_catalog` goals (AdLabs carve-out: AdLabs profile
+memory) and client ops profile for the **brief** values. This step reads for a different purpose: what happened, what we learned, and what
 to do next. Reuse what stage 2 already pulled rather than fetching it twice, and never turn any of
 it into a question.
 
@@ -182,19 +194,22 @@ screenshot is allowed only when it visibly supports a material finding.
 
 **This is not a report card on last month's changes.** Write what we learned and what we do
 next. Only attribute a metric move to a specific batch when the before and after windows are
-equal length, from **one** source, with explicit DATE and COMPARE_DATE. Otherwise state the
-learning and the next action and say the attribution is not clean. Never mix Sellerboard
-percentages into an AdLabs comparison; quote their currency, not their percentages.
+equal length, from **one** source, with explicit windows (on SYNQ, two `get_daily_metrics` pulls;
+AdLabs carve-out: DATE and COMPARE_DATE). Otherwise state the learning and the next action and say the
+attribution is not clean. Never mix Sellerboard percentages into a SYNQ or AdLabs comparison; quote
+their currency, not their percentages.
 
 | Source | Where | Notes |
 |---|---|---|
 | Applied PPC changes | `_local/ppc-manage/<client>/batches/<tag>.json` | Best source: structured, local, per change. `rows[]` carry entity, field, old, new. `score` carries the verdict. Tag form `<client>-<YYYY>W<ww>-<group>[-<lever>]`. |
-| AdLabs apply history | AdLabs `logs` (job_overview, job_details) | Batch tags live in the apply `note` string, not in the `tags` tool, which this skill must not call. |
+| SYNQ change history | `get_ads_change_log`, `get_entity_changes`, `get_campaign_changes` | `batch_id` and `source_module` per batch; `source: external` marks edits outside SYNQ. Detail in `references/source-synq.md`. |
+| AdLabs apply history (AdLabs carve-out only) | AdLabs `logs` (job_overview, job_details) | Batch tags live in the apply `note` string, not in the `tags` tool, which this skill must not call. |
 | Vault run notes | `<vault>/Clients/<Name>/Runs/YYYY-MM-DD-<workflow>.md` | Vault path resolves from `AMAZON_AGENT_TEAM_VAULT`, else `_local/team-vault-path.txt`. Only some clients have a `Runs/` folder. |
 | Vault lessons | `<vault>/Lessons/wizards-ai-lessons.md` | One global append-only file, not per client. Filter by client mention. Long-form sits in `<vault>/Playbooks/`. |
 | Notion tasks | `Client Tasks - Overview` | Fields `Task`, `Status`, `Brand` (relation), `date:Due:start`. Query with `content_search_mode: "workspace_search"`; the default search returns the pages that mention the database, not the database. |
 | Events and tests | Notion A/B Tests database | Row types `Promo/Deal`, `Stock Event`, `Price Change`, `Launch`, plus real A/B tests. Resolve the title and properties at runtime. |
-| AdLabs profile memory | `context_and_prompts(get_context, PROFILE, <profile_id>)` | Brand terms, product-fact negatives, break-even, strategy doctrine. |
+| SYNQ catalog goals | `get_catalog` | `acos_target` (percent), `target_tacos` (ratio), `assigned_strategy_id`, campaign-role multipliers, `cogs`. |
+| AdLabs profile memory (AdLabs carve-out only) | `context_and_prompts(get_context, PROFILE, <profile_id>)` | Brand terms, product-fact negatives, break-even, strategy doctrine. |
 | Slack | Per-client `#<brand>-ew-amazon`; the ID sits in `Clients/<Name>/Amazon Ops.md` under `slack_destination` | Read-only here. Vault first, Slack to verify. Some clients have no dedicated channel. |
 | Client ops profile | `node tools/client-profiles/find-client-profile.mjs <slug>` | Account naming, marketplaces, stakeholders, restrictions. Some clients have no `Amazon Ops.md` and will not resolve. |
 
@@ -210,15 +225,21 @@ percentages into an AdLabs comparison; quote their currency, not their percentag
 
 ## 2. Get the data
 
-Both paths must fill the same Lens A rows. "That is not available on this path" is only an
+Every path must fill the same Lens A rows. "That is not available on this path" is only an
 acceptable answer for **margin**, and only until the client's P&L arrives.
 
 - **`deep`: download path.** Scaffold the config, preflight, gather browser downloads, run
-  SoldScope keyword research over MCP, and build locally. Never call AdLabs.
-- **`monthly` and `actions`: AdLabs path.** Campaigns, targets, search terms, placements, per-ASIN
-  SQP, the Business Report, and stock are live on the MCP. Never fall back to bulk downloads.
+  SoldScope keyword research over MCP, and build locally. Never call SYNQ or AdLabs.
+- **`monthly` and `actions`: SYNQ path.** Campaigns, targets, search terms, placements, per-ASIN
+  SQP, Sales and Traffic, stock, pacing and change history are live on the SYNQ MCP. The gaps
+  (current bids and budgets, budget-capped days, top-of-search impression share, runner status)
+  come from their named sources in `references/source-synq.md` and fill only those rows.
+- **AdLabs carve-out only.** The same reads come live from the AdLabs MCP
+  (`references/source-adlabs.md`).
+- **A client still being onboarded into SYNQ** uses the download path for `monthly` and `actions`
+  until it is onboarded.
 
-Rank and keyword data come from the SoldScope MCP on both paths: the rank tracker for rank
+Rank and keyword data come from the SoldScope MCP on every path: the rank tracker for rank
 history, keyword research for a rank snapshot, keyword demand and competitors across the ASIN
 set. SoldScope calls that spend credits need one run approval naming the ASINs, marketplace and
 expected credits; rank-tracker writes need exact-action approval (`tools/soldscope/README.md`).
@@ -235,24 +256,28 @@ expected credits; rank-tracker writes need exact-action approval (`tools/soldsco
 
 ## 3. Lens A: Performance. Every run, every posture.
 
-Each row names its source on both paths. A row that produced no number must be named in the
+Each row names its source on every path. A row that produced no number must be named in the
 output with the reason.
 
-| # | Check | Download path | MCP path |
+| # | Check | Download path | SYNQ path |
 |---|---|---|---|
-| A1 | Stock and offline days, before grading any rank campaign | Business Report + operator | `product`: `out_of_stock_days`, `days_of_cover`, `fulfillable_units`, `availability_trend` |
-| A2 | Buy Box share, seller count and price, **weekly** | `run.mjs business --start/--end` per week | `product`: `FEATURED_OFFER_PERCENT`, `BUY_BOX_VIEWS` |
+| A1 | Stock and offline days, before grading any rank campaign | Business Report + operator | `get_inventory` history (out-of-stock days derived from fulfillable stock; unbuyable days reported separately), `get_catalog.days_inventory` |
+| A2 | Buy Box share, seller count and price, **weekly** | `run.mjs business --start/--end` per week | `get_sales_traffic_daily` `buy_box_percentage` by week, then by day; `get_inventory` `is_buy_box_winner`, `buy_box_price` |
 | A3 | Organic rank bands and movement; cost-per-rank on every rank campaign | SoldScope keyword research (bands) + rank tracker (movement) | same, SoldScope MCP |
-| A4 | SQP demand and intent split; click share, purchase capture, CVR against market | SQP `.csv` per group | `search_query`, `ASIN_*` beside `TOTAL_*` |
-| A5 | **Funnel decomposition** (the tripwire) | Search Catalog Performance + SQP, per average week (see the method notes) | `search_query`: `ASIN_CTR`, `ASIN_CART_ADD_SHARE`, `ASIN_CONVERSION_RATE` |
-| A6 | Demand trajectory: is the niche draining, and is the brand draining faster | SoldScope keyword research (demand snapshot) + SQP week series | same, plus `search_query` per week |
-| A7 | Channel mix and placement mechanism (base bid times multiplier) | ads bulk | `campaign`, `placement` entities |
-| A8 | Search-term waste and harvest, 1-gram and 2-gram | ads bulk search terms | `target` + search-term entities, profile-derived aCTC and CVR benchmarks |
-| A9 | Structure diagnosis, **enabled and spending only** | `parse_bulk` structure block | `group_by_column(campaign_group_name)` + target reads |
-| A10 | Bid categories and budget caps; flag campaigns capped **and** unprofitable | ads bulk | guide formulas |
-| A11 | Missing channels: no SB, no SD, no DSP, no retargeting | channel presence in bulk | `campaign` ad-type bands, DSP |
-| A12 | Brand leak, and whether branded spend buys anything | search terms + SQP | `analyze(brand_spend_leak_detection)`, then manual variant scan |
-| A13 | TACOS against target, period-over-period, only when Ads and sales windows align | BR + bulk; otherwise N/A | `ACOTS`, `ACOTS_TO_TARGET`, profile deltas |
+| A4 | SQP demand and intent split; click share, purchase capture, CVR against market | SQP `.csv` per group | `get_sqp_data` weekly, ASIN columns beside `total_*` |
+| A5 | **Funnel decomposition** (the tripwire) | Search Catalog Performance + SQP, per average week (see the method notes) | `get_sqp_data`: `clicks`, `cart_adds`, `purchases` over their `total_*` |
+| A6 | Demand trajectory: is the niche draining, and is the brand draining faster | SoldScope keyword research (demand snapshot) + SQP week series | same, plus `get_sqp_data` per week |
+| A7 | Channel mix and placement mechanism (base bid times multiplier) | ads bulk | `get_daily_metrics` `entity_type: placement`, `list_campaigns.ad_product`; current modifiers from bulk or console |
+| A8 | Search-term waste and harvest, 1-gram and 2-gram | ads bulk search terms | `get_search_terms` per window + target metrics, account-derived aCTC and CVR benchmarks |
+| A9 | Structure diagnosis, **enabled and spending only** | `parse_bulk` structure block | `list_campaigns(state: ENABLED)` + target metrics; negatives and ad groups from bulk |
+| A10 | Bid categories and budget caps; flag campaigns capped **and** unprofitable | ads bulk | budgets and capped days from bulk or console (SYNQ gap); `get_spend_pacing` |
+| A11 | Missing channels: no SB, no SD, no DSP, no retargeting | channel presence in bulk | `list_campaigns.ad_product`; DSP not visible |
+| A12 | Brand leak, and whether branded spend buys anything | search terms + SQP | `get_search_terms` + `get_sqp_data`, computed locally, then manual variant scan |
+| A13 | TACOS against target, period-over-period, only when Ads and sales windows align | BR + bulk; otherwise N/A | `get_daily_metrics` cost over `get_sales_traffic_daily` sales, windows ending at the Sales and Traffic date, against `get_catalog.target_tacos` |
+
+AdLabs carve-out only: the same rows come from the AdLabs entities named in
+`references/source-adlabs.md` (`product`, `search_query`, `campaign`, `placement`, `target`,
+`analyze(brand_spend_leak_detection)`, `ACOTS`).
 
 **A2 in detail.** Sponsored Products only serves while you hold the featured offer, so a
 hijacked listing silently caps how much the account is *able* to spend, and the ACOS you are
@@ -266,7 +291,7 @@ velocity fed organic rank. Buy Box loss usually has **two** causes at once, stoc
 sellers; do not settle on the first. Tells: Buy Box bottoming near but not at zero, the keyword research
 scraped price sitting far above the brand's own, and `advertisedKws: 0` on the competitor payload.
 
-**A5, the tripwire.** Always compute it. It is arithmetic on data both paths already hold, and it
+**A5, the tripwire.** Always compute it. It is arithmetic on data every path already holds, and it
 is the cheapest signal that the problem is not in the ads. Index click rate, cart-adds per click
 and purchases per cart-add as your count divided by the market total **on the same queries and the
 same weeks**, averaged per query across the weeks it appeared, then summed within the segment. That
@@ -381,9 +406,10 @@ an intentional Rank exception:
   decision rather than an automatic budget recommendation.
 
 Where a time-in-budget figure is available, read it directly: about 97% in budget means little
-opportunity, 63% means missing roughly 37% of the day. On the MCP path the proxy is the last-7-day
-average daily spend sitting at the daily budget. Flag campaigns that are **capped and unprofitable
-at once**: fix the bids before the budget.
+opportunity, 63% means missing roughly 37% of the day. On the SYNQ path the proxy is the last-7-day
+average daily spend (`get_daily_metrics(group_by: campaign)`) sitting at the daily budget from the
+bulk download. AdLabs carve-out only: the guide formulas. Flag campaigns that are **capped and
+unprofitable at once**: fix the bids before the budget.
 
 **A13, and a per-product view that finds things the account view hides.** Join total sales per
 product against ad spend per product and put **% of total sales beside % of total ad spend**. The
@@ -421,17 +447,34 @@ ACOS is not proof that branded spend caused the sale.
 
 ### When the question is "why did sales fall"
 
-Sales = clicks times CVR, and clicks = impressions times CTR. **Deltas combine by multiplying
-decimal multipliers, never by adding percentages.** Find the drivers by **sorting campaigns and
-keywords by change**, not by absolute value: sorting by the lowest absolute number just surfaces
-dead campaigns. **Compare year-over-year clicks, not spend.** Clicks and sessions are the only
+**Before any branch, prove the drop is not a data artifact.** On the SYNQ path run
+`get_sync_status` first and confirm both windows are covered. Compare completed, equal-length
+windows (default the last 7 completed days against the 7 before), and end any window that uses
+Sales and Traffic at its last date, which runs 2 to 3 days behind ads. Stop and report if freshness
+alone can explain the drop.
+
+Attributed sales = impressions times CTR times CVR times AOV (clicks = impressions times CTR).
+**Deltas combine by multiplying decimal multipliers, never by adding percentages.** Sum the base
+metrics in each window and recompute every ratio; never average a row's ACOS, CTR or CVR. Call the
+ad figure attributed sales (on SYNQ, "SYNQ-reported attributed sales"), never total sales.
+
+Find the drivers by **ranking contributors (campaign, target, search term, placement, ad product)
+by absolute change in attributed sales**, not by absolute value: sorting by the lowest absolute
+number just surfaces dead campaigns. Pull each window separately and join by id
+(`references/source-synq.md`), so a campaign that fell to zero still shows. Classify each material
+contributor as a visibility loss (impressions fell), an engagement loss (CTR fell), a traffic or
+cost constraint (clicks fell with spend or CPC), a conversion loss (clicks held, CVR fell), a basket
+loss (orders held better than sales, AOV fell) or a mix shift between channels or campaigns. Then
+read the daily series (`get_daily_metrics(group_by: date)`) to tell a sustained move from one or two
+days or a base effect. **Compare year-over-year clicks, not spend.** Clicks and sessions are the only
 metrics defined identically in the ad console and Seller Central, so they are the safe join.
 
 Work the branches in this order:
 
-1. **Buy Box and stock first.** This is check zero for us and it stays there. Below roughly 30
-   days of cover a listing starts losing one-day-shipping eligibility and organic rank drops,
-   worsening below about 14 days. On a coming stockout, stop advertising rather than trickling.
+1. **Buy Box, stock and organic rank first.** This is check zero for us and it stays there, ahead of
+   any ads decomposition. Below roughly 30 days of cover a listing starts losing one-day-shipping
+   eligibility and organic rank drops, worsening below about 14 days. On a coming stockout, stop
+   advertising rather than trickling. Read rank from the SoldScope rank tracker.
 2. **Hard stops**, ranked by how often they are the cause: bids too low, then parent-ASIN sibling
    cannibalization (Amazon generally awards one impression per parent per keyword, so siblings
    compete with each other), then accidental or automated negatives, then ad ineligibility (Buy
@@ -443,11 +486,19 @@ Work the branches in this order:
    visibility loss on top of a demand decline, and the two need separate sentences.
 4. **Conversion branch**: listing, then seasonality, then targeting mix. The single biggest
    recurring conversion mover is a deal or promotion starting or ending, yours or a competitor's.
-5. **If the metric that moved is ACOS**, reframe it as CPC divided by (CVR times AOV). Fast split:
-   a campaign at twice the account CPC is a bid problem; a campaign at account CPC with twice the
-   ACOS is a conversion problem. Note that lowering CPC can raise ACOS.
+5. **If the metric that moved is ACOS**, reframe it as CPC divided by (CVR times AOV). Evaluate
+   CPC, then CVR, then AOV, then click volume and its effect on spend, combined as multipliers, and
+   quantify how much came from spend rising against attributed sales falling. Rank campaigns by
+   absolute spend delta and lost attributed sales, not by the most extreme ACOS. A mix shift toward a
+   higher-ACOS channel can raise account ACOS while every channel holds. Fast split: a campaign at
+   twice the account CPC is a bid problem; a campaign at account CPC with twice the ACOS is a
+   conversion problem. Note that lowering CPC can raise ACOS.
 6. **Check our own change log** before calling it a decline. A drop can be a correct optimization
-   whose cost was known and accepted. This is what section 1's learnings layer is for.
+   whose cost was known and accepted. This is what section 1's learnings layer is for. On the SYNQ
+   path read `get_ads_change_log`, `get_entity_changes` (`source: external` marks edits outside
+   SYNQ) and `get_campaign_changes`, plus runner status from the SYNQ Bid Optimizer page, read-only;
+   these replace flags and recommendations. A row that vanished is not a pause until
+   `get_campaign_changes` says so. AdLabs carve-out only: the AdLabs apply history.
 7. **After a peak** (Prime Day, Christmas), use short rolling windows that exclude the event and
    re-widen week by week, or the comparison is against an inflated base.
 
@@ -473,9 +524,11 @@ skipped Lens B is a disclosure, never a silence.
 
 ## 5. Grading
 
-- **Target hierarchy**: Optimization-Group goal ACOS (`campaign_group`) beats profile Target
-  ACOS beats break-even ACOS. Grade each campaign against its own group's goal. Note profiles
-  with no Optimization Groups and recommend creating them.
+- **Target hierarchy**: on SYNQ, the Catalog Manager goal (`get_catalog.acos_target`, a percent)
+  beats break-even ACOS; grade each campaign against the goal of the products it advertises.
+  AdLabs carve-out only: Optimization-Group goal ACOS (`campaign_group`) beats profile Target
+  ACOS beats break-even ACOS; grade each campaign against its own group's goal, and note profiles
+  with no Optimization Groups.
 - **Break-even ACOS is an assumption** until margin is confirmed, and every red or amber verdict
   keys off it. State it explicitly, in the deliverable, as a single constant that the whole
   document updates on. State where profile targets sit relative to it.
@@ -641,15 +694,18 @@ reserved for the priority title and isolated metrics that genuinely need emphasi
 
 ## 8. Hard rules, always apply
 
-These hold on both paths, in every posture, whether or not a reference was loaded.
+These hold on every path, in every posture, whether or not a reference was loaded.
 
-- **The audit is strictly read-only.** No `update_entities`, `create_entities`, `optimizer`,
-  `harvesting`, `tags`, or dashboard and context mutations. No campaign, bid, budget or listing
-  changes on either path.
-- **AdLabs writes, including `set_core_context`, happen only after the operator explicitly lifts the
-  read-only rule for that specific write in the current chat.** A general "sounds good" is not a lift,
-  and the permission layer will block otherwise. Apply approved changes batch by batch with a
-  what-will-change summary per batch, tagged so the next audit can measure each batch.
+- **The audit is strictly read-only.** No SYNQ web-app change (Campaign Manager, Keyword
+  Harvester, Search Term Negator, Bid Optimizer goals, roles or exclusions), and no campaign, bid,
+  budget or listing changes on any path. Approved changes route to `amazon-ppc-weekly-management`,
+  which needs exact-action approval for each one.
+- **AdLabs carve-out only.** No `update_entities`, `create_entities`, `optimizer`, `harvesting`,
+  `tags`, or dashboard and context mutations. AdLabs writes, including `set_core_context`, happen
+  only after the operator explicitly lifts the read-only rule for that specific write in the current
+  chat. A general "sounds good" is not a lift, and the permission layer will block otherwise. Apply
+  approved changes batch by batch with a what-will-change summary per batch, tagged so the next audit
+  can measure each batch.
 - **Never hand-edit the builders per client.** Everything client-specific lives in the config. If the
   code cannot express something, extend the toolkit rather than forking it.
 - Verify the artifact, not the exit code: count outputs against inputs before reporting success.
@@ -679,9 +735,13 @@ testing rather than a rule to apply to a client's account.
 
 ## References
 
-- `references/source-adlabs.md`: the AdLabs MCP path. Entities and what each carries, the margin
+- `references/source-synq.md`: the SYNQ MCP path for managed clients. Startup and sync gate, window
+  and row-cap rules, the per-step tool map, change history and runner status, and the gaps with their
+  sources.
+- `references/source-adlabs.md`: AdLabs carve-out only. Entities and what each carries, the margin
   gap, and the MCP mechanics that silently return wrong rows.
-- `references/source-bulk.md`: the download path. Config contract, capability-based preflight,
+- `references/source-bulk.md`: the download path, for `deep` and for clients still being onboarded
+  into SYNQ. Config contract, capability-based preflight,
   the window rule, the bulk parse traps, and the `--validate` gates.
 - `references/lens-b-shopper-creative.md`: POE reviews and returns at breadth, live creative
   capture for the client plus two competitors, image coverage, indexing, price and reviews.

@@ -7,7 +7,7 @@ helper to compute derived metrics (CTR, CVR, CPC, ACOS, ROAS, TACOS).
 No MCP calls live here. This module is pure Python (stdlib + requests) so
 it can be unit-tested without any live Amazon account, Slack, or Notion
 access. The runtime/skill layer decides which adapter to instantiate and
-does any MCP-backed enrichment (Notion, Slack, AdLabs) separately.
+does any MCP-backed enrichment (Notion, Slack, SYNQ) separately.
 Sellerboard feeds are saved locally by `fetch_sellerboard.py`.
 
 Adapters:
@@ -17,22 +17,24 @@ Adapters:
                            (whole-account truth: total sales, ad spend, ad
                            sales, real ACOS, margin, etc). See its
                            docstring and `_local/ads-monitor/
-                           SELLERBOARD-FORMAT.md`. AdLabs is the
+                           SELLERBOARD-FORMAT.md`. SYNQ is the
                            ad-granular cross-check source (see
-                           `crosscheck.py`), wired at the skill layer via
-                           the AdLabs MCP -- not implemented as a
-                           `DataSource` adapter here because it needs a
-                           live chat-session/entity-data call shape that
-                           doesn't fit a simple "one CSV in, rows out"
-                           parse (see `AdLabsDataSource` below).
+                           `crosscheck.py`), pulled at the skill layer via
+                           the SYNQ MCP and converted by
+                           `tools/synq/convert.py` -- not implemented as a
+                           `DataSource` adapter here because the pull is a
+                           live MCP call, not a "one CSV in, rows out"
+                           parse (see `SynqDataSource` below). AdLabs
+                           plays the same role for the AdLabs carve-out account only.
 - SPAdsApiDataSource    -- SECONDARY real adapter (Amazon Ads API v3
                            reporting), demoted from primary 2026-07-14 in
                            favor of SellerboardDataSource. Built from
                            Amazon's published docs, not live-tested. Still
                            useful for campaign-level detail if Sellerboard
-                           /AdLabs access isn't available for an account.
+                           /SYNQ access isn't available for an account.
                            See its docstring.
-- AdLabsDataSource, MarketplaceAdProsDataSource -- documented stubs only.
+- SynqDataSource, AdLabsDataSource (AdLabs carve-out only), MarketplaceAdProsDataSource
+  -- documented stubs only.
 """
 
 from __future__ import annotations
@@ -517,7 +519,7 @@ class SellerboardCSVError(RuntimeError):
     """Raised when a non-blank Sellerboard CSV can't be parsed at all
     (e.g. no recognizable header). A genuinely blank/empty feed is NOT an
     error -- `parse_sellerboard_csv` returns `[]` for that, which signals
-    the caller to fall back to AdLabs for the account, per
+    the caller to fall back to the ads source (SYNQ) for the account, per
     SELLERBOARD-FORMAT.md."""
 
 
@@ -588,7 +590,7 @@ def parse_sellerboard_csv(text: Optional[str], account: str) -> list:
     SELLERBOARD-FORMAT.md, a just-requested Sellerboard report can come
     back blank; the caller (this toolkit's `SellerboardDataSource`, or
     the skill layer) should treat an empty result as "fall back to
-    AdLabs for this brand/day", not crash.
+    the ads source (SYNQ) for this brand/day", not crash.
 
     Dates are DD/MM/YYYY. Ad-spend columns (`SponsoredProducts`,
     `SponsoredDisplay`, `SponsoredBrands`, `SponsoredBrandsVideo`) are
@@ -664,8 +666,8 @@ class SellerboardDataSource(DataSource):
 
     Sellerboard gives whole-account totals only (no campaign/keyword
     breakdown) -- `get_campaign_daily` always returns `[]`. Pair with
-    AdLabs (via the AdLabs MCP at the skill layer) for campaign-level
-    detail and the spend/sales cross-check (`crosscheck.py`).
+    SYNQ (via the SYNQ MCP at the skill layer; AdLabs for the AdLabs carve-out account) for
+    campaign-level detail and the spend/sales cross-check (`crosscheck.py`).
 
     A brand can have more than one feed (a ~30-day window and a ~7-day
     window); pass all of them via repeated `add_feed` calls for the same
@@ -707,7 +709,7 @@ class SellerboardDataSource(DataSource):
 
     def get_campaign_daily(self, account: str, start: dt.date, end: dt.date) -> list:
         # Sellerboard's Dashboard Totals feed is account-level only. Real
-        # campaign detail comes from AdLabs at the skill layer.
+        # campaign detail comes from SYNQ at the skill layer.
         return []
 
 
@@ -1010,10 +1012,63 @@ class SPAdsApiDataSource(DataSource):
 # ---------------------------------------------------------------------------
 # Documented stubs: secondary/cross-check sources only.
 
+_SYNQ_STUB_MESSAGE = (
+    "SynqDataSource is a documented stub. Pull through the SYNQ MCP at the "
+    "skill/runtime layer: list_clients (skip is_demo) -> get_catalog identity "
+    "check -> get_sync_status -> get_daily_metrics(date_from, date_to, "
+    "group_by='total') for the cross-check, plus campaign/target rows and "
+    "get_search_terms for the weekly brief. Save each response as "
+    "{\"note\", \"rows\"} and convert with tools/synq/convert.py totals "
+    "(--ads-json for run_monitor.py) or entities (--ads-json for run_weekly.py)."
+)
+
+
+class SynqDataSource(DataSource):
+    """Documented stub, not implemented as a `DataSource` adapter.
+
+    SYNQ is the ad-granular cross-check and campaign/target-detail source
+    paired with SellerboardDataSource's whole-account totals via
+    `crosscheck.py` (Sellerboard stays the account P&L source). This
+    toolkit makes no MCP calls; the skill layer pulls through the SYNQ MCP:
+
+    1. `list_clients`, skipping `is_demo` clients, then confirm the client
+       by SKU or title with `get_catalog` (a client name alone does not
+       prove whose seller data it is).
+    2. `get_sync_status`; a stale or failed sync blocks the brief.
+    3. Daily: `get_daily_metrics(date_from=date_to=<report date>,
+       group_by='total')` for spend/sales, converted by
+       `tools/synq/convert.py totals` into the `--ads-json` file for
+       `run_monitor.py`. Leave out `--sales-traffic` while Sales and
+       Traffic is inside its 2-3 day lag.
+    4. Weekly: `get_daily_metrics` campaign and target rows for each
+       window separately (joined by id), `list_campaigns` and
+       `get_search_terms`, converted by `tools/synq/convert.py entities`
+       into the `--ads-json` file for `run_weekly.py`.
+
+    Every SYNQ tool caps at `limit` (max 2000) and prefixes a "ROW LIMIT
+    REACHED" or "TRUNCATED" note when rows were cut; the converter exits 2
+    on such a note unless `--allow-truncated`. SYNQ metric rows carry no
+    current bids, budgets or budget-capped days, and the sales attribution
+    window is unconfirmed (label it SYNQ-reported sales).
+    """
+
+    def list_accounts(self) -> list:
+        raise NotImplementedError(_SYNQ_STUB_MESSAGE)
+
+    def get_account_daily(self, account, start, end):
+        raise NotImplementedError(_SYNQ_STUB_MESSAGE)
+
+    def get_campaign_daily(self, account, start, end):
+        raise NotImplementedError(_SYNQ_STUB_MESSAGE)
+
+
 class AdLabsDataSource(DataSource):
     """Documented stub, not implemented as a `DataSource` adapter.
 
-    AdLabs is the ad-granular cross-check source (confirmed 2026-07-13,
+    AdLabs carve-out only. AdLabs is retired for every other client;
+    use `SynqDataSource` above.
+
+    AdLabs was the ad-granular cross-check source (confirmed 2026-07-13,
     see _local/skill-build-plans/ads-and-bulk-skills.md) paired with
     SellerboardDataSource's whole-account totals via `crosscheck.py`.
     Historically it lagged the live account by ~4-5 days; as of
@@ -1079,6 +1134,7 @@ DATASOURCES = {
     "mock": MockDataSource,
     "sellerboard": SellerboardDataSource,
     "spads": SPAdsApiDataSource,
+    "synq": SynqDataSource,
     "adlabs": AdLabsDataSource,
     "marketplaceadpros": MarketplaceAdProsDataSource,
 }

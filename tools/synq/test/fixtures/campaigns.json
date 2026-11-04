@@ -1,0 +1,23 @@
+[
+ {
+  "campaign_id": "1000000001",
+  "name": "CTEST Rank Exact",
+  "ad_product": "SP",
+  "state": "ENABLED",
+  "marketplace": "US"
+ },
+ {
+  "campaign_id": "1000000002",
+  "name": "CTEST Discovery Phrase",
+  "ad_product": "SP",
+  "state": "ENABLED",
+  "marketplace": "US"
+ },
+ {
+  "campaign_id": "1000000003",
+  "name": "CTEST Profit ASIN",
+  "ad_product": "SP",
+  "state": "PAUSED",
+  "marketplace": "US"
+ }
+]
