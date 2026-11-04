@@ -1,0 +1,44 @@
+{
+ "data": {
+  "keywords": [
+   {
+    "keyword": "widget reiniger",
+    "marketplace": "DE",
+    "searchVolume": 800,
+    "organicRank": 3,
+    "sponsoredRank": 7,
+    "cpc": 0.5,
+    "cpcMin": 0.3,
+    "cpcMax": 0.7,
+    "relevancy": 0
+   },
+   {
+    "keyword": "widget",
+    "marketplace": "DE",
+    "searchVolume": 4000,
+    "organicRank": 1,
+    "sponsoredRank": null,
+    "cpc": 0.5,
+    "cpcMin": 0.3,
+    "cpcMax": 0.7,
+    "relevancy": 0
+   },
+   {
+    "keyword": "solo widget",
+    "marketplace": "DE",
+    "searchVolume": 120,
+    "organicRank": 10,
+    "sponsoredRank": null,
+    "cpc": 0.5,
+    "cpcMin": 0.3,
+    "cpcMax": 0.7,
+    "relevancy": 0
+   }
+  ]
+ },
+ "meta": {
+  "current_page": 1,
+  "per_page": 50,
+  "total": 3
+ }
+}

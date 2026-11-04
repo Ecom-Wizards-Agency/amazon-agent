@@ -14,12 +14,14 @@ Fill every `<...>` placeholder:
 - **`client`, `date`, `marketplaces`, `amazon_account`, `currency`** — basics. `currency` drives $ vs € formatting.
 - **`breakeven_acos`** — the ASSUMPTION (ask for real margin; default a sensible guess and flag it). Drives all red/amber verdicts.
 - **`brand_tokens`** — the brand and its real misspellings/transpositions that carry brand intent (e.g. a brand plus its transposed spelling). Do NOT include dictionary words that merely resemble the brand.
-- **`competitor_tokens`** — competitor brand names (from the DataDive niche competitors + known rivals). Used for the conquesting bucket.
+- **`competitor_tokens`**: competitor brand names (from the research.json competitors + known rivals). Used for the conquesting bucket.
 - **`asin_groups`** — map each product line to its ASINs (matches the SQP file split and Business-Report ASINs). Use `null`/`{}` for an ungrouped single line.
-- **`windows`** — ads / business-report / SQP-weeks / DataDive dates for the subtitle + method notes.
+- **`windows`**: ads / business-report / SQP-weeks / `research` dates for the subtitle + method notes. Leave `research` empty to take the window from research.json.
 - **`comparison_windows`** — when the product is offline or suppressed, keep the required incident
   window separate from the latest four complete weeks it was continuously online. Never blend them.
-- **`datadive_niche`** — the DataDive `nicheId` (from `list_niches`). Leave empty to skip the organic overlay.
+- **`research`**: the SoldScope keyword research run: `marketplace` and `asins` (anchor first, up to 9 competitors from POE top clicked products, the top results for the hero keyword, or the operator's list). There is no persistent niche; a run is the marketplace, the ASIN list and its `search_id`. Leave `asins` empty to skip the organic overlay. Medians in the output describe these compared ASINs (at most 10), not the whole category.
+- **`inputs.research_json`**: the `research.json` that `tools/soldscope/keywords.py` writes. One file feeds both the keyword and the competitor readers. **`inputs.rank_series_json`** is the optional `tools/soldscope/ranks.py` output.
+- **Legacy keys**: `datadive_niche`, `inputs.datadive_niche_json`, `inputs.datadive_competitors_json`, `inputs.rank_radar_json` and `windows.datadive` keep working for audits built before the switch, with DataDive labels.
 
 ## 2. Gather the inputs (preflight-driven)
 
@@ -28,7 +30,7 @@ python3 tools/amazon-ad-audit/build_audit.py --config tools/amazon-ad-audit/conf
 ```
 
 - Gather every **MISSING BROWSER INPUT** into the exact `inputs{}` paths using the connected browser. Business Report and SQP can also come from `tools/report-fetcher/`; the ads bulk `.xlsx` still comes from the Ads console.
-- Gather every **MISSING DATADIVE MCP INPUT** with `get_niche_keywords` and `get_niche_competitors`, saving the raw responses to the printed paths.
+- Gather every **MISSING SOLDSCOPE MCP INPUT** with the SoldScope calls the checklist names. SoldScope calls that spend credits need one run approval naming the ASINs, marketplace and expected credits; rank-tracker writes need exact-action approval (`tools/soldscope/README.md`). Save every raw page, then run `tools/soldscope/keywords.py` (and `tools/soldscope/ranks.py` for the rank series) to write the printed paths. The saved pages and `keywords-receipt.json` are the evidence.
 - Re-run `--preflight` until it prints **READY**, then continue through build, narrative, QA, and authorized internal delivery. If one capability is unavailable, hand off only its checklist to any capable agent.
 
 ## 3. Build

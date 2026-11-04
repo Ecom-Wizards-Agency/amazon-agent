@@ -9,7 +9,7 @@ optional USPs and visual direction for each image.
 
 Use the selective design installation in `docs/design-skills-installation.md`
 of the Amazon Agent repository. No full operator setup,
-Seller Central login, DataDive access or existing ASIN is required. Supplied data
+Seller Central login, keyword-tool access or existing ASIN is required. Supplied data
 is analyzed with its dates and limitations.
 
 `SKILL.md` in this Amazon Agent skill directory is the canonical source. `references/worked-example.md` explains the reasoning with an anonymized

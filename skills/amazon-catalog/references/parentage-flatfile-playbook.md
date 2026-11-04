@@ -119,6 +119,9 @@ Legacy → modern column mapping (Amazon's help still describes the legacy names
 
 Merging pools reviews and can shift ranks/traffic. Before upload, capture per
 ASIN: Business Report by Child ASIN (30d), SQP weekly (8w), review count + star
-average + BSR + price snapshots, ads 30d export, and a DataDive rank baseline.
+average + BSR + price snapshots, ads 30d export, and a rank baseline from the
+SoldScope rank tracker (free reads of the existing group). Tracking a new keyword
+set or attaching products is a rank-tracker write and needs approval of that
+exact action (`tools/soldscope/README.md`).
 Any ASIN intentionally left out of the family doubles as a control. Compare
 4 weeks pre vs post, excluding promo-contaminated weeks (e.g. Prime Day).

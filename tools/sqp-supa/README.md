@@ -5,7 +5,7 @@ with PPC ad spend + ad sales, per Sunday-Saturday week, per ASIN, with
 rule-based flags and an Action Plan tab. The diagnostic this exists for:
 "click share fell because ad spend on that keyword quietly fell."
 
-**v2** adds organic rank (DataDive Rank Radar, optional) and the conversion gap
+**v2** adds organic rank (SoldScope rank tracker, optional) and the conversion gap
 to the market (free, from counts already read). **v3** adds days out of stock per
 week. Together they split the flags, which is where the judgement lives: paying
 over target while rank IMPROVES is rank investment, not waste, and v1 could only
@@ -14,8 +14,9 @@ ever say "cut".
 **Stock is checked first, because it explains the rest.** Amazon deranks what it
 cannot ship, so an out-of-stock week produces share loss, rank slip and a high
 ACOS that look exactly like a bidding failure and are not one. On the Acme DE
-run, "kollagen pulver" reads rank 7 → 24 → 8 → 14 against 1 → 5 → 2 → 1 days out
-of stock: the collapse and its cause on one line.
+run (historical DataDive Rank Radar data), "kollagen pulver" reads rank
+7 → 24 → 8 → 14 against 1 → 5 → 2 → 1 days out of stock: the collapse and its
+cause on one line.
 
 Validated basis: the AdLabs MCP `search_query` entity is byte-identical to
 Seller Central SQP (verified 2026-07-08, US 3-way + DE 2-way, 13,248 cells,
@@ -33,8 +34,15 @@ Seller Central SQP (verified 2026-07-08, US 3-way + DE 2-way, 13,248 cells,
 2. **Configure**: copy `config.TEMPLATE.json` to `config.<client>-<market>.json`
    (gitignored), list weeks ascending and both input maps.
    - Optionally add `inputs.rank_jsons: {"<ASIN>": ".../rank_<ASIN>.json"}` holding
-     `get_rank_radar_data` payloads. **Check the radar's marketplace matches** the
-     config's: a DE config fed an IT radar scores the wrong country silently.
+     one rank series per ASIN, written by `tools/soldscope/ranks.py` from saved
+     SoldScope rank tracker `rank_tracker_list_phrases` pages (free reads; pass
+     `--marketplace` so a group from another marketplace fails). **Check the rank
+     tracker group's marketplace matches** the config's: a DE config fed an IT
+     group scores the wrong country silently.
+   - `rank_source` (optional, default `SoldScope rank tracker`) names the rank
+     source in the Methods tab and the build summary. Rank files saved from the
+     retired DataDive Rank Radar have the same shape and still load; set
+     `rank_source` to `DataDive Rank Radar (historical)` when rebuilding from them.
    - Add `inputs.stock_csvs: {"<week>": ".../stock_<week>.csv"}` holding one AdLabs
      `product` export per week, and `thresholds.oos_days_flag` (default 2).
 3. **Build + validate**:
@@ -80,7 +88,7 @@ week a fortnight ago.
 
 ## Known limits
 
-- Rank coverage is thin by design: radars track a few dozen keywords while SQP
+- Rank coverage is thin by design: rank tracking covers a few dozen keywords while SQP
   carries hundreds, so most rows have no rank and fall back to earlier behaviour.
 - Stock is an ASIN-level fact repeated on every keyword row of that ASIN. That
   redundancy is deliberate: a rank slip and its cause belong in the same eyeline.

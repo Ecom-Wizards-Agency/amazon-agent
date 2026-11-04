@@ -34,7 +34,7 @@
       "screenshot_comparison_matches": true,
       "comparison_source_when_mismatched": "exact-dated AdLabs MCP"
     },
-    "datadive_marketplace_supported": true,
+    "rank_tracker_marketplace_supported": true,
     "slack_channel": "#example-amazon-ew",
     "slack_channel_id": "C0000000000",
     "slack_review": {
@@ -73,10 +73,10 @@
     {
       "name": "Focus Product",
       "parent_asin": "B000000000",
-      "rank_radar_id": "replace-me",
-      "rank_radar_url": "https://2.datadive.tools/rank-radar/replace-me",
+      "rank_tracker_group_id": "replace-me",
+      "rank_tracker_url": "https://app.soldscope.com/rank-tracker/replace-me",
       "full_month_screenshot_required_each_run": true,
-      "rank_radar_previous_period_source": "previous approved monthly report",
+      "rank_tracker_previous_period_source": "previous approved monthly report",
       "include_sqp": true
     }
   ],

@@ -38,7 +38,7 @@ before asking questions. Reuse facts already confirmed in the conversation.
   Use the relevant supplied search, review, rating-impact, return and purchase-driver
   tables. Missing tabs reduce confidence; they do not automatically block the brief.
 - Brand guidance, assets, price, competitors and test results improve the work when
-  available. Do not require DataDive, SQP, ads access, a fresh niche pull or brand kit.
+  available. Do not require keyword-tool access, SQP, ads access, a fresh niche pull or brand kit.
 - Ask only for missing information that changes product identity or prevents an
   accurate core concept. For an unsupported optional claim, use another supported
   argument and name the specific evidence that would strengthen the concept.

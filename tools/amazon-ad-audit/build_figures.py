@@ -9,12 +9,13 @@ skipped, never faked.
   fig_rank_movement.png            where each keyword's organic rank started and
                                    ended over the window (dumbbell + direction arrow,
                                    real position axis, 1 = top). The STANDARD rank
-                                   chart. (needs rank_radar_json)
-  fig_rank_distribution.png        organic rank spread across the DataDive MKL
-                                   (needs datadive_niche_json + asin_groups)
+                                   chart. (needs rank_series_json, legacy rank_radar_json)
+  fig_rank_distribution.png        organic rank spread across the research keyword set
+                                   (needs research_json + asin_groups)
   fig_visibility_vs_competition.png  share of category search volume ranked top 10,
-                                   you vs every seller in the niche
-                                   (needs datadive_niche_json + datadive_competitors_json)
+                                   you vs every compared seller
+                                   (needs research_json; legacy datadive_niche_json +
+                                   datadive_competitors_json)
   fig_price_vs_rating.png          price against RATING, review count as bubble size,
                                    you highlighted. Replaces the old price-vs-review-count
                                    scatter: review count needed a log axis that rendered
@@ -22,9 +23,10 @@ skipped, never faked.
                                    and a "social proof" chart that omitted the rating hid
                                    the number usually doing the damage. The client's price
                                    comes from config.client_price or Business Report ASP,
-                                   NEVER from DataDive, which reports the Buy Box price.
+                                   NEVER from the research data, whose price is the live
+                                   offer (often the Buy Box price).
                                    Optional config.client_dtc_price draws a reference line.
-                                   (needs datadive_competitors_json)
+                                   (needs research_json competitors)
   fig_demand_segments.png          GRAPH 1: where the demand is, across four EXCLUSIVE
                                    segments (branded / competitor / generic-core /
                                    generic-head). Splitting generic is the point: folding
@@ -44,7 +46,7 @@ skipped, never faked.
                                    Guarded: needs a branded query with real demand
                                    (>= MIN_BRAND_SV) and >= 3 sellers ranked on it,
                                    so a no-brand-demand account gets no empty chart.
-                                   (needs datadive_niche_json + competitors + brand_tokens)
+                                   (needs research_json + brand_tokens)
 
 `build_audit.py` calls this automatically and `narrative_scaffold.py` references the
 files it produced, so the operator writes prose around figures that already exist.
@@ -69,7 +71,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
-from analyze_audit import rp, load_config, classify  # noqa: E402
+from analyze_audit import rp, load_config, classify, research_meta, research_paths, research_keywords  # noqa: E402
 import branding as _branding  # noqa: E402
 
 # Floor for "the brand is actually searched for". Below this, a brand-name-leak chart
@@ -221,12 +223,13 @@ def _rank_movement(plt, P, cfg, out):
     when it was one keyword's worst position. Showing the actual position with a
     direction arrow removes that misread and makes better-vs-worse instant.
 
-    Input: a DataDive Rank Radar payload at cfg["inputs"]["rank_radar_json"] —
-    a list of {keyword, searchVolume, ranks:[{date, organicRank}, ...]}. Start =
+    Input: the rank series at cfg["inputs"]["rank_series_json"] (tools/soldscope/ranks.py
+    output; legacy key rank_radar_json holds a DataDive Rank Radar payload of the same
+    shape): a list of {keyword, searchVolume, ranks:[{date, organicRank}, ...]}. Start =
     first ranked day, end = last. Guarded: returns None if the input is absent or
-    unreadable, so an audit without a radar simply skips this figure.
+    unreadable, so an audit without a rank series simply skips this figure.
     """
-    rjp = rp((cfg.get("inputs") or {}).get("rank_radar_json"))
+    rjp = rp(research_paths(cfg)["rank_series"])
     if not rjp or not rjp.exists():
         return None
     try:
@@ -298,7 +301,7 @@ def _rank_distribution(plt, P, cfg, kws, asins, out):
     _title(ax, P, f"You rank 1-4 for {vals[0]} of {len(kws)} category keywords, "
                   f"and 1-10 for {vals[0] + vals[1]}",
            f"{cfg.get('client','')} organic rank across the relevant keyword set "
-           f"(DataDive, {cfg.get('windows', {}).get('datadive', '')})")
+           f"({_research_tag(cfg)})")
     ax.set_ylabel("Keywords", fontsize=9, color=P["steel"])
     ax.set_ylim(0, max(vals) * 1.18)
     _frame(ax, P, ygrid=True)
@@ -357,10 +360,16 @@ def _money(v, cfg):
     return f"{sym}{v:,.0f}" if float(v).is_integer() else f"{sym}{v:,.2f}"
 
 
-def _client_price(cfg, asins):
-    """The client's REAL selling price, never DataDive's.
+def _research_tag(cfg):
+    meta = research_meta(cfg)
+    return ", ".join(x for x in (meta["provider"], meta["window"]) if x)
 
-    DataDive reports the BUY BOX price. During a hijack or a stock-out that is a third
+
+def _client_price(cfg, asins):
+    """The client's REAL selling price, never the research data's.
+
+    Research tools report the live offer, often the BUY BOX price (DataDive always did).
+    During a hijack or a stock-out that is a third
     party's price, so using it puts the client in the wrong place on a price chart. A
     live audit had the client plotted at $50 against a true $33.39, which turned them
     from the third most expensive listing into a lone outlier.
@@ -413,16 +422,22 @@ def _price_vs_rating(plt, P, cfg, comps, asins, out):
         return None
 
     own = [c for c in pts if c.get("asin") in asins]
+    meta = research_meta(cfg)
+    provider = meta["provider"] or "research"
+    # Legacy DataDive niches cover the category; SoldScope compares at most 10 chosen ASINs,
+    # so its medians must say so.
+    med_label = "category median" if meta["legacy"] else f"median of {len(pts)} compared ASINs"
     real, src = _client_price(cfg, asins)
     if own and real:
         if abs(own[0]["price"] - real) > 0.01:
-            print(f"[fig] client price {own[0]['price']:.2f} from DataDive (Buy Box) "
+            print(f"[fig] client price {own[0]['price']:.2f} from {provider} (live offer) "
                   f"replaced with {real:.2f} from {src}")
         for c in own:
             c["price"] = real
     elif own:
-        print("[fig] WARN: using DataDive's price for the client. It is the BUY BOX price, "
-              "so a hijack or stock-out will misplace them. Set config.client_price.")
+        print(f"[fig] WARN: using the {provider} price for the client. It is the live offer, "
+              "often the BUY BOX price, so a hijack or stock-out will misplace them. "
+              "Set config.client_price.")
 
     ratings = [c["rating"] for c in pts]
     med_p = sorted(c["price"] for c in pts)[len(pts) // 2]
@@ -439,7 +454,7 @@ def _price_vs_rating(plt, P, cfg, comps, asins, out):
 
     fig, ax = plt.subplots(figsize=(9, 5.2))
     ax.axhline(med_p, color=P["hair"], lw=1.2, zorder=1)
-    ax.annotate(f"category median {_money(med_p, cfg)}", (0.995, med_p),
+    ax.annotate(f"{med_label} {_money(med_p, cfg)}", (0.995, med_p),
                 xycoords=("axes fraction", "data"), textcoords="offset points",
                 xytext=(0, 5), ha="right", fontsize=8, color=P["steel"], zorder=2)
     # The website line only earns its place when the website charges something DIFFERENT.
@@ -509,6 +524,8 @@ def _price_vs_rating(plt, P, cfg, comps, asins, out):
         # sitting a full star below it, and the chart then shouts a finding that the
         # body copy has to walk back. One 2026-08 audit shipped exactly that contradiction.
         m = own[0]
+        field = "category's" if meta["legacy"] else "compared ASINs'"
+        rating_label = "Category rating" if meta["legacy"] else f"Rating across {len(pts)} compared ASINs"
         med_r = sorted(ratings)[len(ratings) // 2]
         dp = (m["price"] / med_p - 1) if med_p else 0.0
         dr = m["rating"] - med_r
@@ -518,17 +535,19 @@ def _price_vs_rating(plt, P, cfg, comps, asins, out):
         if hi_p and lo_r:
             head = f"You are {pw} and {rw}."
         elif hi_p:
-            head = f"You are {pw}, at about the category's median rating."
+            head = f"You are {pw}, at about the {field} median rating."
         elif lo_r:
-            head = f"You are {rw}, at about the category's median price."
+            head = f"You are {rw}, at about the {field} median price."
         else:
             head = "You sit close to the category on both price and rating."
         # Keep this short. The median PRICE is already annotated on its own gridline,
         # and a long subtitle widens the saved canvas under bbox_inches="tight" until
         # the axes occupy about half the image.
-        sub += f" Category rating: median {med_r:.1f}\u2605, mean {sum(ratings) / len(ratings):.2f}\u2605."
+        sub += (f" {rating_label}: median {med_r:.1f}\u2605, "
+                f"mean {sum(ratings) / len(ratings):.2f}\u2605.")
     else:
-        head = "Price against rating across the niche"
+        head = ("Price against rating across the niche" if meta["legacy"]
+                else f"Price against rating across the {len(pts)} compared ASINs")
     _title(ax, P, head, sub)
     _frame(ax, P)
     fig.tight_layout(); fig.savefig(out, dpi=200, bbox_inches="tight"); plt.close(fig)
@@ -817,10 +836,11 @@ def build(config_path, outdir) -> list:
     asins = _client_asins(cfg)
     made = []
     kws = comps = None
-    kp = rp(cfg["inputs"].get("datadive_niche_json"))
+    paths = research_paths(cfg)
+    kp = rp(paths["keywords"])
     if kp and kp.exists():
-        kws = json.loads(kp.read_text()).get("keywords") or None
-    cp = rp(cfg["inputs"].get("datadive_competitors_json"))
+        kws = research_keywords(json.loads(kp.read_text())) or None
+    cp = rp(paths["competitors"])
     if cp and cp.exists():
         comps = json.loads(cp.read_text()).get("competitors") or None
 
@@ -847,7 +867,7 @@ def build(config_path, outdir) -> list:
     for m in made:
         print(f"[fig] wrote {Path(m).name}")
     if not made:
-        print("[fig] no figures: DataDive/SQP inputs absent")
+        print("[fig] no figures: keyword research/SQP inputs absent")
     return made
 
 

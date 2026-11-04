@@ -9,7 +9,7 @@
   "breakeven_acos": 0.50,
   "client_price": null,
   "client_dtc_price": null,
-  "client_price_note": "Optional but strongly recommended. The client's REAL selling price. DataDive reports the BUY BOX price, so during a hijack or stock-out it is a third party's and puts the client in the wrong place on the price/rating chart. Leave null to derive ASP from the Business Report (sales / units). client_dtc_price adds the brand's own-website price as a reference line.",
+  "client_price_note": "Optional but strongly recommended. The client's REAL selling price. Keyword research reports the live offer, often the BUY BOX price, so during a hijack or stock-out it is a third party's and puts the client in the wrong place on the price/rating chart. Leave null to derive ASP from the Business Report (sales / units). client_dtc_price adds the brand's own-website price as a reference line.",
 
   "brand_tokens": ["<brand>", "<common misspelling/transposition>"],
   "brand_tokens_note": "Substring, case-insensitive. Include real misspellings that carry brand intent; do NOT include dictionary words that merely resemble the brand.",
@@ -28,7 +28,7 @@
     "ads": "<e.g. 2026-06-01..2026-06-30 (30d)>",
     "business_report": "<e.g. June 2026>",
     "sqp_weeks": ["<YYYY-MM-DD>", "<YYYY-MM-DD>"],
-    "datadive": "<YYYY-MM-DD>"
+    "research": "<YYYY-MM-DD..YYYY-MM-DD of the SoldScope keyword research; leave empty to take it from research.json>"
   },
 
   "comparison_windows": {
@@ -37,7 +37,11 @@
     "note": "Keep incident and online-control windows separate. Do not blend them."
   },
 
-  "datadive_niche": "<nicheId, or empty if no organic overlay>",
+  "research": {
+    "marketplace": "US",
+    "asins": ["<anchor ASIN first>", "<up to 9 competitor ASINs>"],
+    "_note": "The SoldScope keyword research run behind the organic overlay. Leave asins empty to skip it. One run covers 2 to 10 ASINs and has no persistent niche. Legacy configs use datadive_niche, inputs.datadive_niche_json, inputs.datadive_competitors_json, inputs.rank_radar_json and windows.datadive; those keys still build."
+  },
 
   "inputs": {
     "ads_bulk_xlsx": "<path to Amazon Ads bulk .xlsx>",
@@ -47,11 +51,10 @@
       "<Product line B>": "<path to multi-ASIN SQP .csv>"
     },
     "search_catalog_performance_csv": "<optional Search Catalog Performance .csv for product-level funnel validation>",
-    "datadive_niche_json": "<path to saved DataDive niche keywords JSON from the DataDive MCP, or empty>",
-    "datadive_competitors_json": "<optional path to DataDive competitors JSON, or empty>",
-    "rank_radar_json": "<optional path to a DataDive Rank Radar payload (keyword + ranks over time) for the standard fig_rank_movement chart, or empty>",
+    "research_json": "<path to research.json from tools/soldscope/keywords.py (keywords + competitors in one file), or empty>",
+    "rank_series_json": "<optional path to a rank series from tools/soldscope/ranks.py (keyword + ranks over time) for the standard fig_rank_movement chart, or empty>",
     "evidence_candidates_json": "<optional screenshot candidate manifest from capture_audit_evidence.mjs>",
-    "market_sizing_json": "<optional directional market-size appendix JSON>",
+    "market_sizing_json": "<optional directional market-size appendix JSON; set its provider field (soldscope) so the appendix names the source>",
     "voice_guide_path": "<optional writing authority used when authoring the client narrative; never embedded in the deliverable>"
   },
 

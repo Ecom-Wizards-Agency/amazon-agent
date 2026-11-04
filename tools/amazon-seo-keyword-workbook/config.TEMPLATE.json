@@ -1,13 +1,24 @@
 {
   "_README": "TEMPLATE — copy to config.<client>-<product>-<market>.json and fill every <...> and TO_RECORD_* value. This tool is client-agnostic: nothing is product-specific until you fill this in. Run `build_keyword_workbook.py --config <your config> --preflight` to see what inputs are still missing. See NEW-CLIENT.md.",
+  "keyword_source": "SoldScope",
   "product_anchor": {
     "client": "<CLIENT>",
     "amazon_account": "<Seller Central account + country>",
     "marketplace": "<Germany|Italy|UK|...>",
     "product": "<full product name>",
-    "asin": "<anchor ASIN, must be a DataDive-tracked column in the master CSV>",
+    "asin": "<anchor ASIN; must be an ASIN column in the Core CSV (listed first in the keyword run). Empty for a prelaunch product, with ranking_context.mode unavailable>",
     "asin_note": "<optional: ASIN gotchas, e.g. a pack/variant that resolves to a different product>",
-    "datadive_niche": "<DataDive niche id>",
+    "research": {
+      "_comment": "Run identity of the SoldScope keyword research; copy it from research.json written by tools/soldscope/keywords.py. Legacy configs keep datadive_niche instead, which the builder still reads.",
+      "asins": [
+        "<anchor ASIN first when the product is live>",
+        "<competitor ASIN, up to 9>"
+      ],
+      "marketplace": "<US|CA|MX|UK|DE|ES|FR|IT, or another kr_asin_search marketplace>",
+      "search_id": "TO_RECORD_FROM_RESEARCH_JSON",
+      "date_from": "TO_RECORD_FROM_RESEARCH_JSON",
+      "date_to": "TO_RECORD_FROM_RESEARCH_JSON"
+    },
     "poe_niche": "<POE niche / hero keyword>",
     "listing_status": "<optional: e.g. live | currently unavailable>",
     "pack_size": "<optional>"
@@ -42,31 +53,37 @@
       "servings": "<e.g. 30>"
     }
   },
-  "datadive_exports": {
-    "_comment": "Metadata for BOTH MKL exports. Placeholder values (TO_RECORD_*) FAIL validation by design — fill them at export time.",
+  "keyword_exports": {
+    "_comment": "Run metadata for BOTH keyword CSVs (Core = core.csv, pool = expanded.csv). Copy every value from research.json and keywords-receipt.json; never type it from memory. Placeholder values (TO_RECORD_*) FAIL validation by design. core_min/pool_min are normalized relevancy (0-1). Legacy configs keep datadive_exports with the DataDive UI fields; the builder still reads them.",
     "core_mkl": {
-      "source": "DataDive UI CSV",
-      "min_relevancy": "30%",
-      "min_sv": "",
-      "max_sv": "",
-      "visible_keyword_count": "TO_RECORD_FROM_DATADIVE_UI",
-      "visible_search_volume": "TO_RECORD_FROM_DATADIVE_UI",
-      "export_timestamp": "TO_RECORD_AT_EXPORT",
-      "niche_id": "<niche id>",
-      "marketplace": "<market>",
-      "hero_keyword": "<hero kw>"
+      "source": "SoldScope keyword_research_search_multi_asin via tools/soldscope/keywords.py",
+      "search_id": "TO_RECORD_FROM_RESEARCH_JSON",
+      "asins": [
+        "TO_RECORD_FROM_RESEARCH_JSON"
+      ],
+      "marketplace": "TO_RECORD_FROM_RESEARCH_JSON",
+      "date_from": "TO_RECORD_FROM_RESEARCH_JSON",
+      "date_to": "TO_RECORD_FROM_RESEARCH_JSON",
+      "raw_rows": "TO_RECORD_FROM_KEYWORDS_RECEIPT",
+      "kept_rows": "TO_RECORD_FROM_KEYWORDS_RECEIPT (core rows)",
+      "core_min": 0.3,
+      "pool_min": 0.01,
+      "relevancy_mode": "TO_RECORD_FROM_KEYWORDS_RECEIPT"
     },
     "expanded_mkl": {
-      "source": "DataDive UI CSV",
-      "min_relevancy": "1%",
-      "min_sv": "",
-      "max_sv": "",
-      "visible_keyword_count": "TO_RECORD_FROM_DATADIVE_UI",
-      "visible_search_volume": "TO_RECORD_FROM_DATADIVE_UI",
-      "export_timestamp": "TO_RECORD_AT_EXPORT",
-      "niche_id": "<niche id>",
-      "marketplace": "<market>",
-      "hero_keyword": "<hero kw>"
+      "source": "SoldScope keyword_research_search_multi_asin via tools/soldscope/keywords.py",
+      "search_id": "TO_RECORD_FROM_RESEARCH_JSON",
+      "asins": [
+        "TO_RECORD_FROM_RESEARCH_JSON"
+      ],
+      "marketplace": "TO_RECORD_FROM_RESEARCH_JSON",
+      "date_from": "TO_RECORD_FROM_RESEARCH_JSON",
+      "date_to": "TO_RECORD_FROM_RESEARCH_JSON",
+      "raw_rows": "TO_RECORD_FROM_KEYWORDS_RECEIPT",
+      "kept_rows": "TO_RECORD_FROM_KEYWORDS_RECEIPT (pool rows)",
+      "core_min": 0.3,
+      "pool_min": 0.01,
+      "relevancy_mode": "TO_RECORD_FROM_KEYWORDS_RECEIPT"
     }
   },
   "related_niche_filter": {
@@ -81,7 +98,7 @@
     ]
   },
   "triage": {
-    "_comment": "Token rules for Outlier triage. Fill brand_tokens from the DataDive competitors; form/claim/negative for THIS product form + marketplace language.",
+    "_comment": "Token rules for Outlier triage. Fill brand_tokens from the brands in competitors.csv (the keyword run's compared ASINs); form/claim/negative for THIS product form + marketplace language.",
     "match": "word",
     "categories_order": [
       "Competitor/brand term",
@@ -105,7 +122,7 @@
       "<clearly off-product/irrelevant word>"
     ],
     "semantic_opportunity": {
-      "_comment": "When no token rule fires, flag as opportunity if relevant AND the anchor product under-ranks vs competitors. (Legacy key names are still accepted for back-compat.)",
+      "_comment": "When no token rule fires, flag as opportunity if relevant AND the anchor product under-ranks vs competitors. min_relevancy is normalized relevancy (0-1). (Legacy key names are still accepted for back-compat.)",
       "min_relevancy": 0.5,
       "min_search_volume": 200,
       "anchor_rank_worse_than_best_competitor_by": 5,
@@ -130,7 +147,7 @@
     ]
   },
   "root_importance": {
-    "_comment": "'1. Root Keywords' is written as: Important | Root Keyword | Frequency | Broad Search Volume | Root Score | Category. The Important column is the AD-TARGETING signal: with ad_min_sv/ad_min_score set (tiered mode), roots get the ad_marker when score >= ad_min_score AND Broad SV >= ad_min_sv AND Category is not Brand/Claim/Form/Off-niche — these seed SKW/rank campaigns. Roots with score >= min_score but no SV floor get the plain marker. Category comes from the same triage tokens + core/POE vocabulary as the Never-Ever ladder. Legacy configs with only min_score/marker keep the old binary marking.",
+    "_comment": "'1. Root Keywords' is written as: Important | Root Keyword | Frequency | Broad Search Volume | Root Score | Category. The Important column is the AD-TARGETING signal: with ad_min_sv/ad_min_score set (tiered mode), roots get the ad_marker when score >= ad_min_score AND Broad SV >= ad_min_sv AND Category is not Brand/Claim/Form/Off-niche; these seed SKW/rank campaigns. Roots with score >= min_score but no SV floor get the plain marker. Category comes from the same triage tokens + core/POE vocabulary as the Never-Ever ladder. Legacy configs with only min_score/marker keep the old binary marking. Root Score is the 0-1 fifth column of roots.csv; SoldScope roots are scored locally, so check min_score/ad_min_score against the first SoldScope runs (NEW-CLIENT.md).",
     "min_score": 0.1,
     "marker": "⭐",
     "ad_min_score": 0.1,
@@ -138,7 +155,7 @@
     "ad_marker": "⭐⭐"
   },
   "never_ever": {
-    "_comment": "Generated from the Expanded MKL 1% file into a SECTIONED audit tab: (1) Never Ever single-word negatives (apply as negative phrase) with Category + Why + SV/relevancy evidence + example phrases; (2) competitor brands (campaign-dependent: negative in rank/SKW, target in PAT/conquest — never blanket negatives); (3) claim-risk words (compliance review); (4) review-manually near-miss band (relevancy between the auto cut and review_band_max_relevancy); (5) phrase-level negative candidates (combination-irrelevant phrases whose words are individually clean, top 30 by SV; disable with phrase_candidates=false). relevant_words protect real product intent from being auto-negated; explicit_never_words force-negate known junk.",
+    "_comment": "Generated from the Expanded MKL 1% file into a SECTIONED audit tab: (1) Never Ever single-word negatives (apply as negative phrase) with Category + Why + SV/relevancy evidence + example phrases; (2) competitor brands (campaign-dependent: negative in rank/SKW, target in PAT/conquest, never blanket negatives); (3) claim-risk words (compliance review); (4) review-manually near-miss band (relevancy between the auto cut and review_band_max_relevancy); (5) phrase-level negative candidates (combination-irrelevant phrases whose words are individually clean, top 30 by SV; disable with phrase_candidates=false). relevant_words protect real product intent from being auto-negated; explicit_never_words force-negate known junk. Relevancy thresholds are normalized relevancy (0-1); the SoldScope adapter divides its 0-100 score by 100.",
     "min_frequency": 2,
     "max_relevancy_for_auto_negative": 0.3,
     "review_band_max_relevancy": 0.5,
@@ -188,26 +205,30 @@
   },
   "tabs": {
     "_comment": "Production model. The template .xlsx is STYLE ONLY — no product-specific tab is carried forward. exact_paste = 1:1 CSV (exception: the roots CSV gets a header-cleanup transform — see root_importance); rebuild = generated from current sources; generated_blank = explicit skipped row.",
+    "template_renames": {
+      "3.1 MKL DataDive 30%": "3.1 MKL SoldScope 30%",
+      "2.1 MKL DataDive 1%": "2.1 MKL SoldScope 1%"
+    },
+    "_template_renames_comment": "Renames the template's two MKL tabs in place before the build. Every other tab key below uses the template's own sheet names, so no stray tab is created.",
     "exact_paste": {
       "1. Root Keywords": "roots_csv",
-      "3.1. Master List DataDive": "master_csv",
-      "3.2. Expanded MKL 1%": "expanded_mkl_csv",
+      "3.1 MKL SoldScope 30%": "master_csv",
+      "2.1 MKL SoldScope 1%": "expanded_mkl_csv",
       "POE Raw - Products": "poe_products_csv",
       "POE Raw - Search Terms": "poe_search_terms_csv"
     },
     "rebuild": [
       "ASINs",
-      "2 Never KWs",
+      "2.2 Never KWs",
       "POE Raw - Related Niches",
-      "Outlier - Opportunity KWs",
-      "4.1 SEO Text",
+      "3.2 Outlier KWs",
+      "4. SEO Text",
       "4.2 Competitors",
       "POE Raw - Reviews",
       "POE Raw - Returns",
       "POE Semantic Insights"
     ],
     "carry_forward": [
-      "3.2. Root Long-Tails DataDive",
       "5. Campaign Structure"
     ],
     "_carry_forward_comment": "5. Campaign Structure is carried forward as the empty PPC scaffold from template_keyword_workbook.xlsx (Rank/Shield SKW waves, Long-Tails, Discovery, PAT) so keywords can be filled in later. Do NOT add it to generated_blank — that would wipe the scaffold. Leave generated_blank empty unless a tab genuinely needs an explicit skipped row.",
@@ -218,10 +239,10 @@
     "_comment": "Input contract — paths the builder reads (CLI flags still override; ~ and repo-relative resolved). Fill all of these for the new client.",
     "template": "<path to a styled .xlsx to reuse as style base>",
     "seo_content": "tools/amazon-seo-keyword-workbook/seo_content.<client>-<market>.json",
-    "roots_csv": "~/Downloads/niche-<niche>-niche-analysis-roots.csv",
-    "master_csv": "~/Downloads/master list-niche-<niche>-keywords.csv",
-    "expanded_mkl_csv": "~/Downloads/master list-niche-<niche>-keywords-1pct.csv",
-    "competitors_csv": "~/Downloads/niche-<niche>-competitors.csv",
+    "roots_csv": "output/<client>/seo/<date>/<product>/soldscope/roots.csv",
+    "master_csv": "output/<client>/seo/<date>/<product>/soldscope/core.csv",
+    "expanded_mkl_csv": "output/<client>/seo/<date>/<product>/soldscope/expanded.csv",
+    "competitors_csv": "output/<client>/seo/<date>/<product>/soldscope/competitors.csv",
     "poe_products_csv": "~/Downloads/<date>_<market>_NicheDetailsProductsTab.csv",
     "poe_search_terms_csv": "~/Downloads/<date>_<market>_NicheDetailsSearchTermsTab.csv",
     "related_niches_json": "output/<client>/opportunity-data/<date>_poe_related-niches.json",
@@ -254,18 +275,18 @@
   "tab_order": [
     "ASINs",
     "1. Root Keywords",
-    "2 Never KWs",
-    "3.1. Master List DataDive",
-    "3.2. Expanded MKL 1%",
-    "4.1 SEO Text",
+    "2.1 MKL SoldScope 1%",
+    "2.2 Never KWs",
+    "3.1 MKL SoldScope 30%",
+    "3.2 Outlier KWs",
+    "4. SEO Text",
     "4.2 Competitors",
+    "5. Campaign Structure",
     "POE Raw - Products",
     "POE Raw - Search Terms",
     "POE Raw - Reviews",
     "POE Raw - Returns",
     "POE Raw - Related Niches",
-    "POE Semantic Insights",
-    "Outlier - Opportunity KWs",
-    "5. Campaign Structure"
+    "POE Semantic Insights"
   ]
 }

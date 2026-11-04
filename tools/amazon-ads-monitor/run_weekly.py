@@ -115,10 +115,12 @@ def _parse_args(argv=None) -> argparse.Namespace:
              "recommendations.parse_signal_digest_markdown and folded into TEST selection.",
     )
     p.add_argument(
-        "--rank-radar-json", type=str, default=None,
-        help="Path to a JSON file: a list of DataDive Rank Radar rows "
+        "--rank-json", "--rank-radar-json", dest="rank_json", type=str, default=None,
+        help="Path to a JSON file: a list of weekly organic-rank rows "
              "({keyword, rank_now, rank_prev, weeks_stable} -- see "
-             "recommendations.normalize_rank_radar). Drives the GRADUATE list and per-keyword "
+             "recommendations.normalize_rank_rows), written by "
+             "tools/soldscope/ranks.py --weekly-rows from the SoldScope rank tracker. "
+             "--rank-radar-json is the legacy alias. Drives the GRADUATE list and per-keyword "
              "rank protection. Omit = category-rule-only Rank handling, stated in a note.",
     )
     p.add_argument(
@@ -163,8 +165,9 @@ def run_account(
     signal_items: list = None,
     situation: str = None,
     include_daily_flags: bool = True,
-    rank_radar: list = None,
+    rank_rows: list = None,
     monthly_budget: float = None,
+    rank_radar: list = None,  # legacy keyword alias for rank_rows
 ):
     ds = SellerboardDataSource.from_paths({account: csv_paths})
     start = week_end - dt.timedelta(days=window_days)
@@ -183,7 +186,7 @@ def run_account(
     weekly_analysis = aggregate_week(account_rows, week_end)
     recommendations = build_recommendations(
         raw_entities or [], goal=goal, situation=situation, signal_items=signal_items,
-        rank_radar=rank_radar, pacing=pacing,
+        rank_rows=rank_rows if rank_rows is not None else rank_radar, pacing=pacing,
     )
 
     flags_tuple = None
@@ -284,16 +287,16 @@ def main(argv=None) -> int:
         if digest_path.exists():
             signal_items = parse_signal_digest_markdown(digest_path.read_text(encoding="utf-8"))
 
-    rank_radar = []
-    if args.rank_radar_json:
-        rank_radar = json.loads(Path(args.rank_radar_json).read_text(encoding="utf-8"))
+    rank_rows = []
+    if args.rank_json:
+        rank_rows = json.loads(Path(args.rank_json).read_text(encoding="utf-8"))
 
     try:
         weekly_analysis, recommendations, markdown, slack_payload = run_account(
             account, csv_paths, week_end, args.window_days,
             goal=args.goal, raw_entities=raw_entities, signal_items=signal_items,
             situation=args.situation, include_daily_flags=not args.no_daily_flags,
-            rank_radar=rank_radar, monthly_budget=args.monthly_budget,
+            rank_rows=rank_rows, monthly_budget=args.monthly_budget,
         )
     except Exception as exc:  # noqa: BLE001 -- surface the error, exit non-zero
         print(f"ERROR [{account}]: {exc}", file=sys.stderr)

@@ -30,16 +30,25 @@ class AgentNeutralKeywordPreflightTest(unittest.TestCase):
     def tearDown(self):
         self.tmp.cleanup()
 
-    def _run(self, mcp_present: bool, browser_present: bool, setup_present: bool = True) -> str:
-        cfg = {
-            "product_anchor": {
-                "client": "Example",
-                "product": "Example Product",
-                "marketplace": "US",
-                "datadive_niche": "niche-123",
-                "asin": "B000000000",
-            }
+    def _run(self, mcp_present: bool, browser_present: bool, setup_present: bool = True,
+             legacy: bool = False) -> str:
+        anchor = {
+            "client": "Example",
+            "product": "Example Product",
+            "marketplace": "US",
+            "asin": "B0TEST0001",
         }
+        if legacy:
+            anchor["datadive_niche"] = "niche-123"
+        else:
+            anchor["research"] = {
+                "asins": ["B0TEST0001", "B0TEST0002"],
+                "marketplace": "US",
+                "search_id": 12345,
+                "date_from": "2026-10-01",
+                "date_to": "2026-10-30",
+            }
+        cfg = {"product_anchor": anchor}
         args = {
             "config": str(self.root / "config.json"),
             "handoff_note": "",
@@ -63,24 +72,48 @@ class AgentNeutralKeywordPreflightTest(unittest.TestCase):
             self.assertNotIn(name, rendered)
         return rendered
 
+    def test_expanded_pool_is_an_mcp_input(self):
+        self.assertIn("expanded_mkl_csv", MCP_INPUT_KEYS)
+        self.assertNotIn("expanded_mkl_csv", BROWSER_INPUT_KEYS)
+
     def test_mcp_only_missing(self):
         rendered = self._run(mcp_present=False, browser_present=True)
-        self.assertIn("MISSING DATADIVE MCP INPUTS", rendered)
+        self.assertIn("STATUS: MISSING SOLDSCOPE MCP INPUTS", rendered)
         self.assertNotIn("MISSING BROWSER INPUTS", rendered)
+        for step in ("keyword_research_search_multi_asin", "keyword_research_get_search_progress",
+                     "keyword_research_get_multi_results", "tools/soldscope/keywords.py",
+                     "tools/soldscope/README.md", "--search-id 12345", "--asins B0TEST0001,B0TEST0002"):
+            self.assertIn(step, rendered)
+        self.assertIn("<run dir>/expanded.csv", rendered)
+        self.assertNotIn("DataDive", rendered)
+        self.assertNotIn("datadive_mcp_to_csv", rendered)
 
     def test_browser_only_missing(self):
         rendered = self._run(mcp_present=True, browser_present=False)
         self.assertIn("MISSING BROWSER INPUTS", rendered)
-        self.assertNotIn("MISSING DATADIVE MCP INPUTS", rendered)
+        self.assertNotIn("MISSING SOLDSCOPE MCP INPUTS", rendered)
+        self.assertNotIn("DataDive", rendered)
 
     def test_both_capabilities_missing(self):
         rendered = self._run(mcp_present=False, browser_present=False)
-        self.assertIn("MISSING DATADIVE MCP INPUTS", rendered)
+        self.assertIn("MISSING SOLDSCOPE MCP INPUTS", rendered)
         self.assertIn("MISSING BROWSER INPUTS", rendered)
 
     def test_ready_continues_current_run(self):
         rendered = self._run(mcp_present=True, browser_present=True)
         self.assertIn("continue the current run", rendered)
+
+    def test_legacy_datadive_config_still_reaches_ready(self):
+        rendered = self._run(mcp_present=True, browser_present=True, legacy=True)
+        self.assertIn("research=DataDive niche niche-123", rendered)
+        self.assertIn("STATUS: READY", rendered)
+
+    def test_legacy_datadive_config_missing_inputs_gets_soldscope_steps(self):
+        rendered = self._run(mcp_present=False, browser_present=True, legacy=True)
+        self.assertIn("STATUS: MISSING SOLDSCOPE MCP INPUTS", rendered)
+        self.assertNotIn("get_niche_", rendered)
+        # A legacy config rebuilt from SoldScope data must switch its labels too.
+        self.assertIn('keyword_source: "SoldScope"', rendered)
 
 
 class SeoEvidenceGateTest(unittest.TestCase):

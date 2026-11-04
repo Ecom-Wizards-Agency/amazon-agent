@@ -23,15 +23,6 @@ export async function verifyEvidenceIdentity(handle, expected, deps = {}) {
     return { kind: expected.kind, ...identity, accountName: expected.accountName,
       requestedMarketplace: expected.marketplace, url: facts.url };
   }
-  if (expected?.kind === "datadive") {
-    const niche = url.pathname.match(/^\/niche\/([^/]+)(?:\/|$)/)?.[1];
-    if (url.protocol !== "https:" || !["2.datadive.tools", "app.datadive.tools"].includes(url.hostname) ||
-        !expected.nicheId || niche !== expected.nicheId ||
-        !expected.heroKeyword || !facts.text.toLowerCase().includes(expected.heroKeyword.toLowerCase())) {
-      throw new Error("EVIDENCE_IDENTITY_MISMATCH: DataDive niche does not match the research input");
-    }
-    return { kind: expected.kind, nicheId: niche, heroKeyword: expected.heroKeyword, url: facts.url };
-  }
   if (expected?.kind === "amazon-retail") {
     const markets = { "www.amazon.com": "US", "www.amazon.de": "DE", "www.amazon.co.uk": "UK",
       "www.amazon.ca": "CA", "www.amazon.com.mx": "MX", "www.amazon.com.au": "AU",
@@ -46,7 +37,7 @@ export async function verifyEvidenceIdentity(handle, expected, deps = {}) {
     await (deps.assertDeliveryPostcode || assertDeliveryPostcode)(handle.session, url.hostname.slice("www.amazon.".length));
     return { kind: expected.kind, marketplace, asin, query, url: facts.url };
   }
-  throw new Error("EVIDENCE_IDENTITY_REQUIRED: seller-central, datadive or amazon-retail identity");
+  throw new Error("EVIDENCE_IDENTITY_REQUIRED: seller-central or amazon-retail identity");
 }
 
 export async function captureTaskEvidence(handle, { expected, selector } = {}, deps = {}) {

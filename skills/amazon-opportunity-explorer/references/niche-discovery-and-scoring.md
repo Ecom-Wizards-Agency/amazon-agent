@@ -10,7 +10,7 @@ the brand's own name, leaving 4 real category niches. Breadth changes conclusion
 
 ## 1. Seed
 
-For SB video scouting, read the latest Google Drive keyword workbook and DataDive roots, then pick 8 to 12 non-branded seed queries spanning **angles**, not synonyms. Synonyms collapse to the same
+For SB video scouting, read the latest Google Drive keyword workbook and the SoldScope roots (`roots.csv` from `tools/soldscope/keywords.py`, or SoldScope word frequency for an existing search), then pick 8 to 12 non-branded seed queries spanning **angles**, not synonyms. Synonyms collapse to the same
 niche and waste the run. Angles that generalise:
 
 - the product itself, and each competing **form factor** for the same job

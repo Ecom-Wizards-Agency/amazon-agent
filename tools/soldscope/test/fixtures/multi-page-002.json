@@ -1,0 +1,218 @@
+{
+ "data": {
+  "productDetails": [
+   {
+    "asin": "B0TEST0001",
+    "parentAsin": null,
+    "brand": "Test Brand 1",
+    "marketplace": "US",
+    "title": "Test Widget Cleaner 1",
+    "productType": "CLEANER"
+   },
+   {
+    "asin": "B0TEST0002",
+    "parentAsin": null,
+    "brand": "Test Brand 2",
+    "marketplace": "US",
+    "title": "Test Widget Cleaner 2",
+    "productType": "CLEANER"
+   },
+   {
+    "asin": "B0TEST0003",
+    "parentAsin": null,
+    "brand": "Test Brand 3",
+    "marketplace": "US",
+    "title": "Test Widget Cleaner 3",
+    "productType": "CLEANER"
+   },
+   {
+    "asin": "B0TEST0004",
+    "parentAsin": null,
+    "brand": "Test Brand 4",
+    "marketplace": "US",
+    "title": "Test Widget Cleaner 4",
+    "productType": "CLEANER"
+   }
+  ],
+  "keywords": [
+   {
+    "keyword": "widget cleaner spray\ufffc",
+    "marketplace": "US",
+    "searchVolume": 150,
+    "relevancy": 20,
+    "competitorsRelevancy": 20,
+    "asinsPositions": {
+     "B0TEST0002": {
+      "organicScrapeEventDate": "2026-10-01",
+      "organicAsin": "B0TEST0002",
+      "organicRank": 35,
+      "sponsoredScrapeEventDate": null,
+      "sponsoredRank": null,
+      "sponsoredAsin": null
+     }
+    },
+    "cpc": 0,
+    "cpcMin": 0,
+    "cpcMax": 0,
+    "matchTypes": [
+     1
+    ],
+    "categories": []
+   },
+   {
+    "keyword": "brand x widget | 20 pack",
+    "marketplace": "US",
+    "searchVolume": 90,
+    "relevancy": 10,
+    "competitorsRelevancy": 10,
+    "asinsPositions": {
+     "B0TEST0002": {
+      "organicScrapeEventDate": "2026-10-01",
+      "organicAsin": "B0TEST0002",
+      "organicRank": 5,
+      "sponsoredScrapeEventDate": null,
+      "sponsoredRank": null,
+      "sponsoredAsin": null
+     }
+    },
+    "cpc": 0,
+    "cpcMin": 0,
+    "cpcMax": 0,
+    "matchTypes": [
+     1
+    ],
+    "categories": []
+   },
+   {
+    "keyword": "far widget",
+    "marketplace": "US",
+    "searchVolume": 400,
+    "relevancy": 5,
+    "competitorsRelevancy": 5,
+    "asinsPositions": {
+     "B0TEST0001": {
+      "organicScrapeEventDate": "2026-10-01",
+      "organicAsin": "B0TEST0001",
+      "organicRank": 200,
+      "sponsoredScrapeEventDate": null,
+      "sponsoredRank": null,
+      "sponsoredAsin": null
+     },
+     "B0TEST0002": {
+      "organicScrapeEventDate": "2026-10-01",
+      "organicAsin": "B0TEST0002",
+      "organicRank": 300,
+      "sponsoredScrapeEventDate": null,
+      "sponsoredRank": null,
+      "sponsoredAsin": null
+     }
+    },
+    "cpc": 0,
+    "cpcMin": 0,
+    "cpcMax": 0,
+    "matchTypes": [
+     1
+    ],
+    "categories": []
+   },
+   {
+    "keyword": "widget cleaner refill",
+    "marketplace": "US",
+    "searchVolume": null,
+    "relevancy": 40,
+    "competitorsRelevancy": 40,
+    "asinsPositions": {
+     "B0TEST0001": {
+      "organicScrapeEventDate": "2026-10-01",
+      "organicAsin": "B0TEST0001",
+      "organicRank": 5,
+      "sponsoredScrapeEventDate": null,
+      "sponsoredRank": null,
+      "sponsoredAsin": null
+     }
+    },
+    "cpc": 0,
+    "cpcMin": 0,
+    "cpcMax": 0,
+    "matchTypes": [
+     1
+    ],
+    "categories": []
+   }
+  ],
+  "productsSummary": {
+   "B0TEST0001": {
+    "brand": "Test Brand 1",
+    "asin": "B0TEST0001",
+    "variationsCount": 0,
+    "rating": 4.0,
+    "reviewCount": 100,
+    "price": 10.0,
+    "fulfillmentType": 2,
+    "offersCount": null,
+    "category": {
+     "catId": 1,
+     "name": "Home & Kitchen"
+    },
+    "sales": 1000,
+    "revenue": 10000.0,
+    "salesTrend": 0
+   },
+   "B0TEST0002": {
+    "brand": "Test Brand 2",
+    "asin": "B0TEST0002",
+    "variationsCount": 1,
+    "rating": 4.1,
+    "reviewCount": 200,
+    "price": 15.0,
+    "fulfillmentType": 1,
+    "offersCount": null,
+    "category": {
+     "catId": 1,
+     "name": "Home & Kitchen"
+    },
+    "sales": 900,
+    "revenue": 13500.0,
+    "salesTrend": 0
+   },
+   "B0TEST0003": {
+    "brand": "Test Brand 3",
+    "asin": "B0TEST0003",
+    "variationsCount": 2,
+    "rating": 4.2,
+    "reviewCount": 300,
+    "price": 20.0,
+    "fulfillmentType": 2,
+    "offersCount": null,
+    "category": {
+     "catId": 1,
+     "name": "Home & Kitchen"
+    },
+    "sales": 800,
+    "revenue": 16000.0,
+    "salesTrend": 0
+   },
+   "median": {
+    "brand": 3,
+    "asin": 3,
+    "category": [
+     {
+      "name": "Home & Kitchen",
+      "count": 3
+     }
+    ]
+   }
+  },
+  "keywordDistribution": {
+   "totalKeywords": 8
+  },
+  "searchStat": {},
+  "topProducts": [],
+  "seedKeyword": null
+ },
+ "meta": {
+  "current_page": 2,
+  "per_page": 4,
+  "total": 8
+ }
+}

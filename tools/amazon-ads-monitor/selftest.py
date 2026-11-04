@@ -813,7 +813,7 @@ def test_cli_end_to_end_weekly():
                 "--situation", "recurring acos spike on broad match",
                 "--adlabs-json", str(adlabs_path),
                 "--signal-digest", str(digest_path),
-                "--rank-radar-json", str(radar_path),
+                "--rank-json", str(radar_path),
                 "--monthly-budget", "4000",
                 "--out", tmp,
                 "--slack-json", "-",
@@ -835,6 +835,13 @@ def test_cli_end_to_end_weekly():
         if json_start != -1:
             payload = json.loads(stdout[json_start:])
             check("weekly_cli_slack_json_has_channel", bool(payload.get("channel")), payload.get("channel"))
+
+        # The legacy --rank-radar-json flag stays an alias of --rank-json.
+        legacy_args = run_weekly._parse_args([
+            "--csv", str(csv_path), "--account", "acme-us", "--date", "2026-07-10",
+            "--rank-radar-json", str(radar_path),
+        ])
+        check("weekly_cli_rank_radar_json_alias", legacy_args.rank_json == str(radar_path), legacy_args.rank_json)
 
 
 def test_cli_end_to_end_weekly_csv_only():
@@ -998,7 +1005,7 @@ def test_rank_radar_graduation_and_protection():
     # the missing-radar gap is stated in a note, never silent.
     no_radar = build_recommendations(entities, goal="profit-maintain")
     check("radar_baseline_cut_without_radar", _PROFIT_ENTITY["name"] in _pause_names(no_radar), _pause_names(no_radar))
-    check("radar_missing_noted", any("No Rank Radar rows supplied" in n for n in no_radar.notes), no_radar.notes)
+    check("radar_missing_noted", any("No organic-rank rows supplied" in n for n in no_radar.notes), no_radar.notes)
     check("radar_none_graduate_without_radar", no_radar.graduate == [], no_radar.graduate)
 
     return result

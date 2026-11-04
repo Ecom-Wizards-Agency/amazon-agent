@@ -4,16 +4,22 @@ Loaded at step 2 when the brand has no AdLabs profile. Every Lens A row must sti
 from here. "Not available on this path" is only an acceptable answer for margin.
 
 
-Scaffold a config, run preflight, gather the browser and DataDive inputs, then continue through the build.
+Scaffold a config, run preflight, gather the browser and SoldScope inputs, then continue through the build.
 
 1. Copy `tools/amazon-ad-audit/config.TEMPLATE.json` to `config.<client>-<market>.json`
    (gitignored). Fill client, marketplaces, product lines and ASINs, break-even ACOS, brand and
-   competitor tokens, `core_tokens`, `asin_groups`, windows. Never reuse another client's values.
+   competitor tokens, `core_tokens`, `asin_groups`, windows, and `research` (marketplace and the
+   ASIN set, anchor first, up to 9 competitors). Never reuse another client's values.
 2. `python3 tools/amazon-ad-audit/build_audit.py --config <cfg> --preflight` prints per-input
-   OK or MISSING, then capability-based browser and DataDive MCP checklists or READY.
+   OK or MISSING, then capability-based browser and SoldScope MCP checklists or READY.
 3. Gather the browser downloads to the exact contract paths and record evidence and caveats.
-4. Pull the DataDive niche and competitors over MCP to the config paths, then re-run
-   `--preflight` until READY and continue with the build, narrative, QA, and authorized delivery.
+4. Run the SoldScope keyword research the checklist names. SoldScope calls that spend credits
+   need one run approval naming the ASINs, marketplace and expected credits; rank-tracker writes
+   need exact-action approval (`tools/soldscope/README.md`). Save every raw page, convert them with
+   `tools/soldscope/keywords.py`, and point `research_json` at its `research.json`. The saved
+   pages and `keywords-receipt.json` (raw JSON plus sha256) are the evidence; do not screenshot
+   the research. Re-run `--preflight` until READY and continue with the build, narrative, QA, and
+   authorized delivery.
    If the current runtime lacks one capability, hand off only that checklist to any capable agent.
 
 | Input | Config key | Gatherer |
@@ -22,8 +28,11 @@ Scaffold a config, run preflight, gather the browser and DataDive inputs, then c
 | Business Report `.csv` (Detail Page Sales and Traffic by Child ASIN) | `business_report_csv` | Connected browser or `tools/report-fetcher/` |
 | Multi-ASIN SQP `.csv`, one per product group, weekly | `sqp_csvs` | Connected browser or `tools/report-fetcher/` |
 | Search Catalog Performance `.csv`, when a product-funnel claim must be tested | `search_catalog_performance_csv` | Brand Analytics download |
-| DataDive niche keywords + competitors JSON | `datadive_niche_json`, `datadive_competitors_json` | DataDive MCP |
-| Rank Radar payload (optional, drives the rank chart) | `rank_radar_json` | DataDive MCP |
+| `research.json` (keywords + competitors in one file) | `research_json` | SoldScope keyword research, then `tools/soldscope/keywords.py` |
+| Rank series (optional, drives the rank chart; only when the product is already tracked) | `rank_series_json` | SoldScope rank tracker, then `tools/soldscope/ranks.py` |
+
+Configs from before the switch keep `datadive_niche_json`, `datadive_competitors_json` and
+`rank_radar_json`; the builder still reads those saved files and labels them DataDive.
 
 Recommended extras: the SB campaign placement report (the bulk's SB placement rows are
 incomplete, only Detail Page populated in practice) and the SP Search-Term Impression-Share

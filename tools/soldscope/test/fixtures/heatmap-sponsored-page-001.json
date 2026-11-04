@@ -1,0 +1,259 @@
+{
+ "data": [
+  {
+   "id": 1,
+   "dataId": 1001,
+   "phrase": "widget cleaner",
+   "searchVolume": 1000,
+   "organicPosition": 1,
+   "sponsoredPosition": null,
+   "updatedAt": "2026-10-24 06:00:00",
+   "r_2026-10-03": {
+    "date": "2026-10-03",
+    "rank": 0,
+    "amazon_choice": 0
+   },
+   "r_2026-10-04": {
+    "date": "2026-10-04",
+    "rank": 0,
+    "amazon_choice": 0
+   },
+   "r_2026-10-05": {
+    "date": "2026-10-05",
+    "rank": 0,
+    "amazon_choice": 0
+   },
+   "r_2026-10-06": {
+    "date": "2026-10-06",
+    "rank": 0,
+    "amazon_choice": 0
+   },
+   "r_2026-10-07": {
+    "date": "2026-10-07",
+    "rank": 0,
+    "amazon_choice": 0
+   },
+   "r_2026-10-08": {
+    "date": "2026-10-08",
+    "rank": 0,
+    "amazon_choice": 0
+   },
+   "r_2026-10-09": {
+    "date": "2026-10-09",
+    "rank": 0,
+    "amazon_choice": 0
+   },
+   "r_2026-10-10": {
+    "date": "2026-10-10",
+    "rank": 0,
+    "amazon_choice": 0
+   },
+   "r_2026-10-11": {
+    "date": "2026-10-11",
+    "rank": 0,
+    "amazon_choice": 0
+   },
+   "r_2026-10-12": {
+    "date": "2026-10-12",
+    "rank": 0,
+    "amazon_choice": 0
+   },
+   "r_2026-10-13": {
+    "date": "2026-10-13",
+    "rank": 0,
+    "amazon_choice": 0
+   },
+   "r_2026-10-14": {
+    "date": "2026-10-14",
+    "rank": 0,
+    "amazon_choice": 0
+   },
+   "r_2026-10-15": {
+    "date": "2026-10-15",
+    "rank": 0,
+    "amazon_choice": 0
+   },
+   "r_2026-10-16": {
+    "date": "2026-10-16",
+    "rank": 0,
+    "amazon_choice": 0
+   },
+   "r_2026-10-17": {
+    "date": "2026-10-17",
+    "rank": 0,
+    "amazon_choice": 0
+   },
+   "r_2026-10-18": {
+    "date": "2026-10-18",
+    "rank": 0,
+    "amazon_choice": 0
+   },
+   "r_2026-10-19": {
+    "date": "2026-10-19",
+    "rank": 0,
+    "amazon_choice": 0
+   },
+   "r_2026-10-20": {
+    "date": "2026-10-20",
+    "rank": 0,
+    "amazon_choice": 0
+   },
+   "r_2026-10-21": {
+    "date": "2026-10-21",
+    "rank": 0,
+    "amazon_choice": 0
+   },
+   "r_2026-10-22": {
+    "date": "2026-10-22",
+    "rank": 0,
+    "amazon_choice": 0
+   },
+   "r_2026-10-23": {
+    "date": "2026-10-23",
+    "rank": 45,
+    "amazon_choice": 0
+   },
+   "r_2026-10-24": {
+    "date": "2026-10-24",
+    "rank": 19,
+    "amazon_choice": 0
+   }
+  },
+  {
+   "id": 2,
+   "dataId": 1002,
+   "phrase": "widget spray",
+   "searchVolume": 300,
+   "organicPosition": null,
+   "sponsoredPosition": null,
+   "updatedAt": "2026-10-24 06:00:00",
+   "r_2026-10-03": {
+    "date": "2026-10-03",
+    "rank": 0,
+    "amazon_choice": 0
+   },
+   "r_2026-10-04": {
+    "date": "2026-10-04",
+    "rank": 0,
+    "amazon_choice": 0
+   },
+   "r_2026-10-05": {
+    "date": "2026-10-05",
+    "rank": 0,
+    "amazon_choice": 0
+   },
+   "r_2026-10-06": {
+    "date": "2026-10-06",
+    "rank": 0,
+    "amazon_choice": 0
+   },
+   "r_2026-10-07": {
+    "date": "2026-10-07",
+    "rank": 0,
+    "amazon_choice": 0
+   },
+   "r_2026-10-08": {
+    "date": "2026-10-08",
+    "rank": 0,
+    "amazon_choice": 0
+   },
+   "r_2026-10-09": {
+    "date": "2026-10-09",
+    "rank": 0,
+    "amazon_choice": 0
+   },
+   "r_2026-10-10": {
+    "date": "2026-10-10",
+    "rank": 0,
+    "amazon_choice": 0
+   },
+   "r_2026-10-11": {
+    "date": "2026-10-11",
+    "rank": 0,
+    "amazon_choice": 0
+   },
+   "r_2026-10-12": {
+    "date": "2026-10-12",
+    "rank": 0,
+    "amazon_choice": 0
+   },
+   "r_2026-10-13": {
+    "date": "2026-10-13",
+    "rank": 0,
+    "amazon_choice": 0
+   },
+   "r_2026-10-14": {
+    "date": "2026-10-14",
+    "rank": 0,
+    "amazon_choice": 0
+   },
+   "r_2026-10-15": {
+    "date": "2026-10-15",
+    "rank": 0,
+    "amazon_choice": 0
+   },
+   "r_2026-10-16": {
+    "date": "2026-10-16",
+    "rank": 0,
+    "amazon_choice": 0
+   },
+   "r_2026-10-17": {
+    "date": "2026-10-17",
+    "rank": 0,
+    "amazon_choice": 0
+   },
+   "r_2026-10-18": {
+    "date": "2026-10-18",
+    "rank": 0,
+    "amazon_choice": 0
+   },
+   "r_2026-10-19": {
+    "date": "2026-10-19",
+    "rank": 0,
+    "amazon_choice": 0
+   },
+   "r_2026-10-20": {
+    "date": "2026-10-20",
+    "rank": 0,
+    "amazon_choice": 0
+   },
+   "r_2026-10-21": {
+    "date": "2026-10-21",
+    "rank": 0,
+    "amazon_choice": 0
+   },
+   "r_2026-10-22": {
+    "date": "2026-10-22",
+    "rank": 0,
+    "amazon_choice": 0
+   },
+   "r_2026-10-23": {
+    "date": "2026-10-23",
+    "rank": 0,
+    "amazon_choice": 0
+   },
+   "r_2026-10-24": {
+    "date": "2026-10-24",
+    "rank": 0,
+    "amazon_choice": 0
+   }
+  }
+ ],
+ "meta": {
+  "current_page": 1,
+  "from": 1,
+  "last_page": 1,
+  "per_page": 100,
+  "to": 2,
+  "total": 2
+ },
+ "group": {
+  "id": 9001,
+  "accountId": 1,
+  "marketplace": "US",
+  "primaryProductId": 501,
+  "phrasesCount": 2,
+  "productsCount": 1,
+  "createdAt": "2026-10-04T10:00:00.000000Z"
+ }
+}

@@ -12,8 +12,9 @@ and `expected` identity in its JSON specification, plus `output_dir` and
 `captures` (each with an `id`, `finding`, `caption`, and `source_kind`). For
 Seller Central, supply `kind: "seller-central"`, `accountName`, `marketplace`,
 `marketplaceLabel` and any configured identity IDs. Retail evidence uses
-`kind: "amazon-retail"`, marketplace and exact ASIN or search query. DataDive
-uses `kind: "datadive"`, niche ID and hero keyword. Optional `selector` must
+`kind: "amazon-retail"`, marketplace and exact ASIN or search query. Keyword
+research data is not screenshotted: its evidence is the MCP receipt (the saved
+raw JSON pages and the sha256 list in `keywords-receipt.json`). Optional `selector` must
 match exactly one visible element. Missing, busy or replaced targets fail;
 the helper never chooses a tab by URL/title or relabels an unverified account.
 
@@ -35,9 +36,12 @@ The **master** merges the audit + SQP tabs under a built one-page `① Overview`
 | Ads bulk `.xlsx` | Amazon Ads console (bulk operations) | Connected browser |
 | Business Report `.csv` | Seller Central → Business Reports | Connected browser or report fetcher |
 | Multi-ASIN SQP `.csv` (per product group) | Brand Analytics → Search Query Performance | Connected browser or report fetcher |
-| DataDive niche JSON | DataDive MCP (`get_niche_keywords` / `get_niche_competitors`) | DataDive MCP |
+| `research.json` (keywords + competitors) | SoldScope keyword research, converted by `tools/soldscope/keywords.py` | SoldScope MCP |
+| Rank series (optional) | SoldScope rank tracker, converted by `tools/soldscope/ranks.py` | SoldScope MCP |
 
-Run `build_audit.py --config <cfg> --preflight` to get capability-based checklists for missing browser or DataDive MCP inputs, or a READY status.
+Configs from before the SoldScope switch still build from their saved legacy DataDive niche, competitor and rank files (`datadive_niche_json`, `datadive_competitors_json`, `rank_radar_json`), and keep DataDive labels. The audit reads those files; it no longer documents how to pull them.
+
+Run `build_audit.py --config <cfg> --preflight` to get capability-based checklists for missing browser or SoldScope MCP inputs, or a READY status.
 
 ## Commands
 
@@ -55,7 +59,7 @@ python3 tools/amazon-ad-audit/build_audit.py --config tools/amazon-ad-audit/conf
 ## Files
 
 - `ew_audit_style.py` — shared workbook styling; palette/fonts come from the local branding file (see BRANDING.md). ACOS is always a ratio, never divided by 100.
-- `analyze_audit.py` — parser → `metrics.json` + `clean/*.csv` + `clean/sqp_summary.json`.
+- `analyze_audit.py`: parser → `metrics.json` + `clean/*.csv` (keyword ranks in `clean/research_keywords.csv`; the SQP builder still reads a legacy `clean/datadive_keywords.csv`) + `clean/sqp_summary.json`.
 - `build_audit_workbook.py` / `build_sqp_workbook.py` / `build_master_workbook.py` — the three builders.
 - `narrative_scaffold.py` + `md_to_docx.py` — narrative draft.
 - `build_audit.py` — orchestrator (`--config` / `--preflight` / `--validate`).

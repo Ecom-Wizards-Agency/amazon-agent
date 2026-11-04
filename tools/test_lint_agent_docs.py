@@ -14,8 +14,9 @@ from tools.lint_agent_docs import (
     agents_md_budget_errors,
     knowledge_errors,
     model_name_errors,
-    validate_datadive_routing,
+    STALE_KEYWORD_ROUTES,
     validate_skill_directory,
+    validate_stale_keyword_routes,
 )
 
 
@@ -79,37 +80,55 @@ class SkillManifestLintTests(unittest.TestCase):
         self.assertTrue(any("must mention `$amazon-example`" in error for error in errors), errors)
 
 
-class DataDiveRoutingLintTests(unittest.TestCase):
-    def write_contracts(self, root: Path, *, route: str = "CDP (9223)") -> None:
+class StaleKeywordRouteLintTests(unittest.TestCase):
+    def write_docs(self, root: Path, routing_line: str) -> None:
         (root / "docs").mkdir(parents=True)
-        reference = root / "skills" / "amazon-seo" / "references"
-        reference.mkdir(parents=True)
-        (root / "AGENTS.md").write_text(
-            "DataDive web app navigation, read-only endpoint fetches, downloads, and\n",
-            encoding="utf-8",
-        )
-        (root / "docs" / "browser-routing-map.md").write_text(
-            '| DataDive full keyword pool (the old "Expanded 1% MKL") | '
-            f"`amazon-seo` | {route} |\n",
-            encoding="utf-8",
-        )
-        (reference / "keyword-research-workbook.md").write_text(
-            "logged-in DataDive session through managed Chrome CDP on port 9223\n",
-            encoding="utf-8",
-        )
+        (root / "skills" / "amazon-seo").mkdir(parents=True)
+        (root / "tools" / "example").mkdir(parents=True)
+        (root / ".claude" / "commands").mkdir(parents=True)
+        (root / "AGENTS.md").write_text("SoldScope MCP first, read-only by default.\n", encoding="utf-8")
+        (root / "skills" / "amazon-seo" / "SKILL.md").write_text(
+            "Old DataDive exports stay readable.\n", encoding="utf-8")
+        (root / ".claude" / "commands" / "keyword-research.md").write_text(
+            "Run the SoldScope keyword research.\n", encoding="utf-8")
+        (root / "tools" / "example" / "README.md").write_text("Legacy DataDive CSVs load.\n", encoding="utf-8")
+        (root / "docs" / "browser-routing-map.md").write_text(routing_line, encoding="utf-8")
 
-    def test_datadive_cdp_route_passes(self):
+    def test_soldscope_routes_and_legacy_notes_pass(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            self.write_contracts(root)
-            self.assertEqual([], validate_datadive_routing(root))
+            self.write_docs(root, "| Keyword research | `amazon-seo` | None (SoldScope MCP) |\n")
+            self.assertEqual([], validate_stale_keyword_routes(root))
 
-    def test_datadive_extension_default_fails(self):
+    def test_each_retired_token_fails_with_file_and_line(self):
+        for token in STALE_KEYWORD_ROUTES:
+            with self.subTest(token=token), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                self.write_docs(root, f"| Keyword research | `amazon-seo` |\n| Pool | {token} |\n")
+                errors = validate_stale_keyword_routes(root)
+                self.assertEqual(1, len(errors), errors)
+                self.assertTrue(errors[0].startswith("docs/browser-routing-map.md:2:"), errors)
+                self.assertIn(token, errors[0])
+
+    def test_match_ignores_case_and_covers_tool_and_command_docs(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            self.write_contracts(root, route="Extension")
-            errors = validate_datadive_routing(root)
-            self.assertTrue(any("DataDive CDP" in error for error in errors), errors)
+            self.write_docs(root, "clean\n")
+            (root / "tools" / "example" / "README.md").write_text("Pull it from the datadive mcp.\n", encoding="utf-8")
+            (root / ".claude" / "commands" / "keyword-research.md").write_text(
+                "Call `mcp__datadive__get_niche_keywords`.\n", encoding="utf-8")
+            errors = validate_stale_keyword_routes(root)
+            self.assertEqual(2, len(errors), errors)
+            self.assertTrue(any(e.startswith("tools/example/README.md:1:") for e in errors), errors)
+            self.assertTrue(any(e.startswith(".claude/commands/keyword-research.md:1:") for e in errors), errors)
+
+    def test_python_sources_are_not_scanned(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_docs(root, "clean\n")
+            (root / "tools" / "example" / "legacy_reader.py").write_text(
+                "# reads files once saved from https://app.datadive.tools\n", encoding="utf-8")
+            self.assertEqual([], validate_stale_keyword_routes(root))
 
 
 def write_fixture(root: Path, strategy_value: float, consumer_value: float) -> tuple[Path, Path]:

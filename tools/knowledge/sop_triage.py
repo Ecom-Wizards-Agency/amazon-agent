@@ -60,7 +60,7 @@ VERDICTS = {"", "keep", "update", "supersede", "merge", "drop"}
 LIST_SEP = "; "
 
 TOOLS_RE = re.compile(
-    r"helium 10|helium10|cerebro|magnet|scribbles|jungle scout|keepa|datadive|"
+    r"helium 10|helium10|cerebro|magnet|scribbles|jungle scout|keepa|datadive|soldscope|"
     r"sellerboard|flatfilepro|asana|hubspot|justcall|fireflies|google meet|youtube",
     re.IGNORECASE,
 )

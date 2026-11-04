@@ -28,9 +28,15 @@ skills/amazon-seo/references/seo-writing-methodology.md section 2):
 CLI
 ---
     python3 tools/amazon-seo-keyword-workbook/ranking_score.py \
-        --keywords <core-mkl.csv | get_niche_keywords.json> \
+        --keywords <core-mkl.csv | legacy get_niche_keywords.json> \
         [--listing <listing-reference.json>] [--seo-content <seo_content.json>] \
         [--compare-datadive <ranking-juice.json>] [--json]
+
+``--keywords`` takes the Core CSV that tools/soldscope/keywords.py writes (or any
+builder-format MKL CSV). A saved DataDive get_niche_keywords JSON still loads.
+``--compare-datadive`` is legacy: it compares the score with a saved DataDive
+get_ranking_juice JSON and is kept only to re-check the calibration on old
+DataDive files.
 """
 from __future__ import annotations
 
@@ -463,11 +469,13 @@ def print_table(out: dict) -> None:
 
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description="Calculate a keyword ranking score (Ranking Juice equivalent).")
-    p.add_argument("--keywords", required=True, help="Core MKL CSV or DataDive get_niche_keywords JSON")
+    p.add_argument("--keywords", required=True,
+                   help="Core MKL CSV (tools/soldscope/keywords.py core.csv) or a legacy DataDive get_niche_keywords JSON")
     p.add_argument("--listing", help="listing-reference or capture JSON ({listings:[{asin,title,bullets,description}]}); "
                    "an optional backend or generic_keyword value is scored separately")
     p.add_argument("--seo-content", help="seo_content JSON; its New Listing copy is scored as 'Draft'")
-    p.add_argument("--compare-datadive", help="DataDive get_ranking_juice JSON to compare per ASIN")
+    p.add_argument("--compare-datadive",
+                   help="legacy: saved DataDive get_ranking_juice JSON to compare per ASIN (calibration check on old files)")
     p.add_argument("--weights", help='JSON weights, e.g. \'{"title":3,"bullets":2,"description":1,"backend":1}\' '
                    '(backend applies only to listings that carry backend terms)')
     p.add_argument("--highlights-field", default="title", choices=HIGHLIGHT_FIELDS,

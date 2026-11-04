@@ -1,0 +1,46 @@
+{
+ "process_id": "00000000-0000-0000-0000-000000000000",
+ "status": "completed",
+ "results": {
+  "B0TEST0004": {
+   "status": "completed",
+   "data": {
+    "asin": "B0TEST0004",
+    "title": "Test Widget Cleaner 4 live",
+    "price": {
+     "currency": "$",
+     "priceCents": 2499
+    },
+    "rating": 4.4,
+    "ratingsCount": 420,
+    "sales": {
+     "sales": 300,
+     "type": 1
+    },
+    "buyBoxInfo": {
+     "sellerName": "Test Seller",
+     "sellerType": 2
+    },
+    "variationsInfo": {
+     "totalVariationsCount": 2
+    },
+    "productDetails": {
+     "asin": "B0TEST0004",
+     "brand": "Test Brand 4"
+    },
+    "breadcrumbs": [
+     {
+      "name": "Home & Kitchen"
+     },
+     {
+      "name": "Cleaning"
+     }
+    ]
+   }
+  },
+  "B0TEST0009": {
+   "status": "failed",
+   "data": null
+  }
+ }
+}

@@ -11,8 +11,9 @@ Checks:
 5. Every repo file path a doc names actually exists. A renamed tool leaves its old
    name behind in every doc that told an agent to run it, and nothing fails until
    somebody runs the command. This is the mechanical half of that.
-6. Browser priority, the DataDive CDP route, and local-artifact handoff
-   invariants remain explicit.
+6. Browser priority and local-artifact handoff invariants remain explicit, and
+   no authored doc routes work to the retired DataDive MCP, web app or help
+   library.
 7. Registered Amazon Ads doctrine mirrors agree with their canonical strategy key
    whenever that key exists.
 8. AGENTS.md stays under its byte limit, and its pinned safety phrases appear
@@ -61,7 +62,6 @@ AUTHORED_GLOBS = [
 
 # Generated or captured content inside the authored globs: exempt.
 EXEMPT_PARTS = [
-    "skills/amazon-seo/references/datadive-support/",
     # Temporary: em-dash sweep deferred while the branding-doc rework is in
     # flight in the operator's working tree (2026-07-15). Remove once swept.
     "tools/amazon-ad-audit/",
@@ -92,27 +92,11 @@ TRIM = ".,;:!?)]'\"`"
 # lie. Same principle the vault linter uses to exclude its decision records.
 PATH_CHECK_EXEMPT = ("docs/public-release-checklist.md",)
 
-DATADIVE_ROUTE_REQUIREMENTS = {
-    "AGENTS.md": "DataDive web app navigation, read-only endpoint fetches, downloads, and",
-    "docs/browser-routing-map.md": (
-        '| DataDive full keyword pool (the old "Expanded 1% MKL") | '
-        "`amazon-seo` | CDP (9223) |"
-    ),
-    "skills/amazon-seo/references/keyword-research-workbook.md": (
-        "logged-in DataDive session through managed Chrome CDP on port 9223"
-    ),
-}
+# Check 6. DataDive is retired (03.11.2026). An authored doc that still names its MCP
+# tools, web app or deleted help library sends an agent down a route that no longer
+# exists. Legacy notes describe old DataDive files without these tokens.
+STALE_KEYWORD_ROUTES = ("mcp__datadive", "DataDive MCP", "datadive.tools", "tools/datadive-support")
 
-DATADIVE_STALE_ROUTES = {
-    "AGENTS.md": "DataDive is the standing example",
-    "docs/browser-routing-map.md": (
-        '| DataDive full keyword pool (the old "Expanded 1% MKL") | '
-        " `amazon-seo` | Extension |"
-    ),
-    "skills/amazon-seo/references/keyword-research-workbook.md": (
-        "full keyword pool uses three read-only DataDive endpoints in the extension browser"
-    ),
-}
 
 
 # Check 8. Codex loads project instructions only up to a combined byte budget and
@@ -200,20 +184,24 @@ def model_name_errors(root: Path = ROOT) -> list[str]:
     return errors
 
 
-def validate_datadive_routing(root: Path = ROOT) -> list[str]:
-    """Keep DataDive web work on Grimoire's managed port-9223 browser."""
+def validate_stale_keyword_routes(root: Path = ROOT) -> list[str]:
+    """Fail when an authored doc names a retired DataDive route."""
     errors: list[str] = []
-    for rel, required in DATADIVE_ROUTE_REQUIREMENTS.items():
-        path = root / rel
-        if not path.exists():
-            errors.append(f"{rel}: missing DataDive routing authority")
-            continue
-        text = path.read_text(encoding="utf-8")
-        if required not in text:
-            errors.append(f"{rel}: missing required DataDive CDP routing contract")
-        stale = DATADIVE_STALE_ROUTES.get(rel)
-        if stale and stale in text:
-            errors.append(f"{rel}: contains stale DataDive extension-default route")
+    seen: set[Path] = set()
+    for pattern in AUTHORED_GLOBS:
+        for path in sorted(root.glob(pattern)):
+            if not path.is_file() or path in seen:
+                continue
+            seen.add(path)
+            rel = path.relative_to(root).as_posix()
+            if "node_modules/" in rel:
+                continue
+            for lineno, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+                lowered = line.lower()
+                for token in STALE_KEYWORD_ROUTES:
+                    if token.lower() in lowered:
+                        errors.append(f"{rel}:{lineno}: names retired route `{token}`; "
+                                      "use SoldScope (tools/soldscope/README.md)")
     return errors
 
 
@@ -418,7 +406,7 @@ def main() -> int:
     errors: list[str] = []
     missing_paths: list[tuple[str, int, str]] = []
 
-    errors.extend(validate_datadive_routing())
+    errors.extend(validate_stale_keyword_routes())
     errors.extend(rights_matrix_errors())
     errors.extend(agents_md_budget_errors())
     errors.extend(model_name_errors())

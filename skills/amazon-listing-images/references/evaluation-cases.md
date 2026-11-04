@@ -26,7 +26,7 @@ Choose image count; deliver four fields per image and a short internal rationale
 
 ### Reviewer rubric
 
-Proceed with dated snapshot; no mandatory fresh pull, DataDive, ASIN or approval
+Proceed with dated snapshot; no mandatory fresh pull, keyword-tool access, ASIN or approval
 question. Prioritize scent suitability and bedtime relevance. Preserve denominators
 and overlapping-niche limits. No 80% buyer return rate, conversion lift, insect use,
 sleep benefit, all-natural, all-night, stain-free, tested-nozzle or comparison claim.

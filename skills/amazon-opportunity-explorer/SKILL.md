@@ -43,7 +43,7 @@ The legacy DOM extractor is a deprecated fallback only.
 
 When the task asks where demand or ideas exist, do not rely on three convenient niches.
 
-1. Read the latest relevant Google Drive keyword-research workbook and DataDive roots when available.
+1. Read the latest relevant Google Drive keyword-research workbook and the SoldScope roots (`roots.csv` from `tools/soldscope/keywords.py`) when available. Without a saved run, SoldScope word frequency (`keyword_research_get_multi_word_frequency` or `keyword_research_get_asin_word_frequency`, free reads of an existing search) can supply seed terms.
 2. Create 8 to 12 non-branded seeds spanning head term, product form, mechanism, principal uses, and meaningful attributes.
 3. Search all seeds. Union and deduplicate related niches by `nicheId` while retaining seed provenance.
 4. Exclude wrong-brand, wrong-product, wrong-form, wrong-audience, and wrong-use results with explicit reasons.

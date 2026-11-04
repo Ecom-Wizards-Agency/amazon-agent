@@ -5,7 +5,7 @@ description: "Create read-only Amazon ad and sales audits, including falling-sal
 
 # Amazon Audit
 
-Browser: Mixed (AdLabs and DataDive over MCP; Seller Central reports and live creative capture over CDP; local workbook and document builds).
+Browser: Mixed (AdLabs and SoldScope over MCP; Seller Central reports and live creative capture over CDP; local workbook and document builds).
 
 Knowledge units for this area live in knowledge/ads/; search them first with python3 tools/search_amazon_libraries.py "<symptom>" --library kb.
 
@@ -27,3 +27,5 @@ It also owns diagnostic requests such as "why are sales falling?", "why did ACOS
 6. Read `references/writing-and-delivery.md` before drafting or delivering the narrative.
 
 The run is read-only. Recommendations may route to `amazon-ppc-weekly-management`, but this skill never applies campaign or account changes.
+
+Keyword, competitor and rank data come from SoldScope: keyword research for the ASIN set and the rank tracker for rank history. SoldScope calls that spend credits need one run approval naming the ASINs, marketplace and expected credits; rank-tracker writes need exact-action approval (`tools/soldscope/README.md`).

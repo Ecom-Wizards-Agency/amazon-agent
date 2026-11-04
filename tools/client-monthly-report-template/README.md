@@ -32,7 +32,8 @@ made during the pilot review:
 - Sales included in every applicable performance table
 - Current-period performance rows sorted by Sales, highest to lowest
 - Multi-marketplace reports split into complete, currency-isolated parts
-- Unsupported DataDive marketplaces omitted without invented Rank Radar output
+- Marketplaces the SoldScope rank tracker does not cover omitted without
+  invented rank output
 - Report document and audit workbook delivered together as native Google files
 - Stable brand source details remembered between runs; only missing, stale, or
   changed values are requested again
@@ -93,9 +94,12 @@ explicitly requests them or supplies the required source document.
 ## New-brand use
 
 1. Copy `brand-config.example.json` and fill the exact account, marketplace,
-   source, segment, focus-product, and Rank Radar fields.
+   source, segment, focus-product, and rank-tracker fields
+   (`focus_products[].rank_tracker_group_id`, `rank_tracker_url` and
+   `sources.rank_tracker_marketplace_supported`; see Rank tracker below).
 2. Collect the four-item operator handoff: Sellerboard for both months grouped by
-   parent, one full-month Rank Radar screenshot per supported focus product, the
+   parent, one full-month SoldScope rank tracker heatmap screenshot per supported
+   focus product, the
    exact AdLabs custom dashboard, and meeting notes or a confirmed no-notes status.
    Retrieve the Slack channel from brand configuration and ask for it only when
    missing, ambiguous, or inaccessible. See Operator input handoff below.
@@ -118,11 +122,37 @@ explicitly requests them or supplies the required source document.
     `tools/gdrive-deliver/deliver.py`, keeping intermediaries in
     `output/{client}/reporting/`.
 
+## Rank tracker
+
+Organic rank comes from the SoldScope rank tracker. Each focus product names its
+tracking group:
+
+- `focus_products[].rank_tracker_group_id`: the SoldScope group id.
+- `focus_products[].rank_tracker_url`:
+  `https://app.soldscope.com/rank-tracker/<group id>`. Built from the group id
+  when it is blank.
+- `sources.rank_tracker_marketplace_supported`: optional override. Without it,
+  support follows the marketplace code. The SoldScope rank tracker covers US, CA,
+  MX, BR, DE, ES, FR, IT, UK, NL, SE, IN, TR, AE, SA and AU; it does not cover
+  JP.
+
+`MonthlySourceRegistry.from_brand_config` reads these keys. Older configs still
+load: `rank_radar_id`, `rank_radar_url`, `sources.datadive_marketplace_supported`
+and `sources.datadive_supported` are read when the new key is missing. The
+DataDive marketplace flag is used only when the config has no marketplace code,
+so an AU brand that DataDive did not cover now gets a rank page.
+
+The old DataDive Rank Radars were copied to SoldScope groups on 21.10.2026, so
+SoldScope history for those products starts that day. The October 2026 report
+therefore uses the full-month DataDive Rank Radar screenshot while that
+subscription is active, or a note that October rank data is partial (21 to 31
+October). November 2026 is the first full month from SoldScope.
+
 ## Operator input handoff
 
 Use this checklist when preparing a brand's monthly report inputs. The reporting
 system should already remember stable brand details such as marketplace, focus
-products, parent ASINs, brand terms and misspellings, DataDive links, AdLabs
+products, parent ASINs, brand terms and misspellings, rank tracker links, AdLabs
 dashboard, Sellerboard account, currency, and Slack channel. Only provide those
 details again when they changed or the system says they are missing.
 
@@ -138,9 +168,10 @@ Send screenshots for both the reporting month and the previous comparison month.
 - Keep the account KPI cards and focus-product parent rows visible.
 - Do not crop away dates, totals, product names, or displayed decimals.
 
-#### 2. DataDive Rank Radar by focus product
+#### 2. SoldScope rank tracker by focus product
 
-Send one heatmap screenshot for every focus product being reported.
+Send one rank tracker heatmap screenshot for every focus product being reported,
+from the product's group at `https://app.soldscope.com/rank-tracker/<group id>`.
 
 - Show the complete reporting month from the first through the final day.
 - Keep the product identity and daily rank columns visible.
@@ -148,7 +179,11 @@ Send one heatmap screenshot for every focus product being reported.
 - Do not add a black border or include unrelated blank space.
 - A previous full-month heatmap may be requested when it is not already in the
   prior approved report and a month-over-month ranking comparison is needed.
-- No screenshot is required when DataDive does not support the marketplace.
+- No screenshot is required when the SoldScope rank tracker does not cover the
+  marketplace (for example Japan).
+- For October 2026, SoldScope history starts on 21.10.2026 (see Rank tracker
+  below). Send the full-month DataDive Rank Radar screenshot instead, or the
+  report states that October rank data covers 21 to 31 October only.
 
 #### 3. AdLabs custom dashboard
 

@@ -6,7 +6,11 @@
     "marketplace": "<DE|US|IT|...>",
     "language": "<language of all on-screen text and VO>",
     "target_asins": ["<ASIN>"],
-    "datadive_niche": "<DataDive niche id>",
+    "research": {
+      "asins": ["<anchor ASIN first>", "<competitor ASIN>"],
+      "marketplace": "<SoldScope marketplace, e.g. US>",
+      "search_id": "<SoldScope keyword research search_id>"
+    },
     "adlabs_profile_id": "<AdLabs profile_id>"
   },
   "seller_central": {

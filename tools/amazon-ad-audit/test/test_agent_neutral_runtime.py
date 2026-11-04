@@ -33,12 +33,24 @@ class AgentNeutralAuditPreflightTest(unittest.TestCase):
             path.write_text("x", encoding="utf-8")
         return str(path)
 
-    def _run(self, browser_present: bool, mcp_present: bool, mismatched_windows: bool = False):
+    def _run(self, browser_present: bool, mcp_present: bool, mismatched_windows: bool = False,
+             legacy: bool = False):
+        if legacy:
+            research_inputs = {
+                "datadive_niche_json": self._path("niche.json", mcp_present),
+                "datadive_competitors_json": self._path("competitors.json", mcp_present),
+            }
+        else:
+            research_inputs = {
+                "research_json": self._path("research.json", mcp_present),
+                "rank_series_json": self._path("ranks.json", mcp_present),
+            }
         cfg = {
             "client": "Example",
             "marketplaces": ["US"],
             "amazon_account": "Example Seller",
-            "datadive_niche": "niche-123",
+            **({"datadive_niche": "niche-123"} if legacy else
+               {"research": {"marketplace": "US", "asins": ["B0TEST0001", "B0TEST0002"]}}),
             "windows": {
                 "ads": "2026-07-01..2026-07-31",
                 "business_report": ("2026-06-01..2026-06-30" if mismatched_windows
@@ -50,8 +62,7 @@ class AgentNeutralAuditPreflightTest(unittest.TestCase):
                 "business_report_csv": self._path("business.csv", browser_present),
                 "sqp_csvs": {"Main": self._path("sqp.csv", browser_present)},
                 "search_catalog_performance_csv": self._path("scp.csv", browser_present),
-                "datadive_niche_json": self._path("niche.json", mcp_present),
-                "datadive_competitors_json": self._path("competitors.json", mcp_present),
+                **research_inputs,
             },
         }
         out = io.StringIO()
@@ -66,19 +77,34 @@ class AgentNeutralAuditPreflightTest(unittest.TestCase):
         code, rendered = self._run(browser_present=False, mcp_present=True)
         self.assertEqual(code, 1)
         self.assertIn("MISSING BROWSER INPUTS", rendered)
-        self.assertNotIn("MISSING DATADIVE MCP INPUTS", rendered)
+        self.assertNotIn("MISSING SOLDSCOPE MCP INPUTS", rendered)
 
     def test_mcp_only_missing(self):
         code, rendered = self._run(browser_present=True, mcp_present=False)
         self.assertEqual(code, 1)
-        self.assertIn("MISSING DATADIVE MCP INPUTS", rendered)
+        self.assertIn("MISSING SOLDSCOPE MCP INPUTS", rendered)
         self.assertNotIn("MISSING BROWSER INPUTS", rendered)
+        self.assertIn("keyword_research_search_multi_asin", rendered)
+        self.assertIn("B0TEST0001, B0TEST0002", rendered)
+        self.assertIn("tools/soldscope/keywords.py", rendered)
+        self.assertIn("tools/soldscope/ranks.py", rendered)
+        self.assertIn("one run approval", rendered)
+        self.assertNotIn("get_niche_", rendered)
+
+    def test_legacy_datadive_keys_still_gate_preflight(self):
+        code, rendered = self._run(browser_present=True, mcp_present=False, legacy=True)
+        self.assertEqual(code, 1)
+        self.assertIn("MISSING SOLDSCOPE MCP INPUTS", rendered)
+        self.assertIn("Legacy DataDive niche keywords JSON", rendered)
+        self.assertIn("tools/soldscope/keywords.py", rendered)
+        code, rendered = self._run(browser_present=True, mcp_present=True, legacy=True)
+        self.assertEqual(code, 0)
 
     def test_both_capabilities_missing(self):
         code, rendered = self._run(browser_present=False, mcp_present=False)
         self.assertEqual(code, 1)
         self.assertIn("MISSING BROWSER INPUTS", rendered)
-        self.assertIn("MISSING DATADIVE MCP INPUTS", rendered)
+        self.assertIn("MISSING SOLDSCOPE MCP INPUTS", rendered)
 
     def test_ready_continues_current_run(self):
         code, rendered = self._run(browser_present=True, mcp_present=True)

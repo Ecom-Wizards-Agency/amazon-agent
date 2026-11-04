@@ -1,5 +1,5 @@
 ---
-description: Run the weekly PPC management loop for an AdLabs-managed client (stock gate, pacing, Rank Radar, optimizer preview -> approval -> apply)
+description: Run the weekly PPC management loop for an AdLabs-managed client (stock gate, pacing, SoldScope rank tracker, optimizer preview -> approval -> apply)
 argument-hint: "<client/profile> [week-end date]"
 ---
 

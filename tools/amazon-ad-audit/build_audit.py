@@ -30,6 +30,7 @@ from analyze_audit import (  # noqa: E402
     as_market_map,
     assess_ads_business_window_alignment,
     load_config,
+    research_paths,
     rp,
 )
 
@@ -65,10 +66,17 @@ def collect_inputs(cfg):
         yield (f"SQP .csv [{grp}]", p, "BROWSER")
     if inp.get("search_catalog_performance_csv"):
         yield ("Search Catalog Performance .csv", inp.get("search_catalog_performance_csv"), "BROWSER")
-    if cfg.get("datadive_niche"):
-        yield ("DataDive niche keywords JSON", inp.get("datadive_niche_json"), "DATADIVE_MCP")
+    paths = research_paths(cfg)
+    if paths["research"] or (cfg.get("research") or {}).get("asins"):
+        yield ("SoldScope research.json (keywords + competitors)", paths["research"], "SOLDSCOPE_MCP")
+    elif paths["legacy"]:
+        # Pre-switch config. A missing legacy file is replaced by a fresh SoldScope run.
+        yield ("Legacy DataDive niche keywords JSON", inp.get("datadive_niche_json"), "SOLDSCOPE_MCP")
         if inp.get("datadive_competitors_json"):
-            yield ("DataDive competitors JSON", inp.get("datadive_competitors_json"), "DATADIVE_MCP")
+            yield ("Legacy DataDive competitors JSON", inp.get("datadive_competitors_json"), "SOLDSCOPE_MCP")
+    if paths["rank_series"]:
+        label = "Legacy DataDive rank series JSON" if paths["rank_series_legacy"] else "SoldScope rank series JSON"
+        yield (label, paths["rank_series"], "SOLDSCOPE_RANKS")
 
 
 def preflight(cfg, cfg_path) -> int:
@@ -81,7 +89,7 @@ def preflight(cfg, cfg_path) -> int:
         if not ok:
             missing.append((label, p, who))
     browser = [m for m in missing if m[2] == "BROWSER"]
-    datadive_mcp = [m for m in missing if m[2] == "DATADIVE_MCP"]
+    soldscope_mcp = [m for m in missing if m[2] in ("SOLDSCOPE_MCP", "SOLDSCOPE_RANKS")]
     alignment = assess_ads_business_window_alignment(cfg.get("windows", {}))
     if alignment["ads_vs_business_report"] != "matched":
         print("\nWARNING: Ads and Business Report source windows are "
@@ -118,14 +126,62 @@ def preflight(cfg, cfg_path) -> int:
         print("If this runtime lacks the connected-browser capability, hand off only this checklist "
               "and the exact paths to any capable agent.")
         print("---8<---------------")
-    if datadive_mcp:
-        print("\nMISSING DATADIVE MCP INPUTS: capability checklist")
-        for label, p, _ in datadive_mcp:
-            print(f"  - {label}: save get_niche_keywords/get_niche_competitors for "
-                  f"niche '{cfg.get('datadive_niche')}' to {p}")
-        print("Then: re-run preflight and continue when READY. If this runtime lacks DataDive MCP, "
-              "hand off only this checklist and the exact paths to any capable agent.")
+    if soldscope_mcp:
+        _soldscope_checklist(cfg, soldscope_mcp)
     return 1
+
+
+# Marketplaces where one keyword_research_search_multi_asin call covers 2 to 10 ASINs.
+MULTI_ASIN_MARKETS = {"US", "CA", "MX", "UK", "GB", "DE", "ES", "FR", "IT"}
+
+
+def _soldscope_checklist(cfg, missing):
+    research = cfg.get("research") or {}
+    market = (research.get("marketplace") or (cfg.get("marketplaces") or ["US"])[0]).upper()
+    asins = [a for a in (research.get("asins") or []) if a]
+    if not asins:
+        asins = [a for group in (cfg.get("asin_groups") or {}).values() for a in group][:1]
+    asin_text = ", ".join(asins) if asins else "<anchor ASIN first, then up to 9 competitors>"
+    print("\nMISSING SOLDSCOPE MCP INPUTS: capability checklist")
+    for label, p, _ in missing:
+        where = p or "not set: point inputs.research_json at <run dir>/research.json"
+        print(f"  - {label}: {where}")
+    if any(who == "SOLDSCOPE_MCP" for _, _, who in missing):
+        out_dir = "<run dir>"
+        target = next((p for _, p, who in missing if who == "SOLDSCOPE_MCP" and p), None)
+        if target:
+            out_dir = str(Path(target).parent)
+        print(f"Keyword research (marketplace {market}, ASINs {asin_text}):")
+        print("  1. SoldScope calls that spend credits need one run approval naming the ASINs, "
+              "marketplace and expected credits; rank-tracker writes need exact-action approval "
+              "(tools/soldscope/README.md).")
+        if market in MULTI_ASIN_MARKETS:
+            print("  2. keyword_research_search_multi_asin with the ASINs above, anchor first "
+                  "(2 to 10 ASINs, one credit per ASIN).")
+        else:
+            print("  2. One kr_asin_search per ASIN (this marketplace has no multi-ASIN research).")
+        if market in MULTI_ASIN_MARKETS:
+            print("  3. Poll keyword_research_get_search_progress at most every 5 seconds, then page "
+                  "keyword_research_get_multi_results (per_page 1000) until meta.total rows are read, "
+                  "saving every page as multi-<search_id>-page-NNN.json.")
+            print(f"  4. python3 tools/soldscope/keywords.py --pages <saved pages> --out-dir {out_dir} "
+                  f"--marketplace {market} --asins <ASINs> --anchor <anchor ASIN>")
+        else:
+            print("  3. Page kr_get_results (per_page 1000) for each search_id until meta.total rows are read "
+                  "(an empty first page means it is still processing: wait at least 5 seconds and retry), "
+                  "saving every page as kr-<asin>-<search_id>-page-NNN.json.")
+            print(f"  4. python3 tools/soldscope/keywords.py --asin-pages ASIN=PAGE.json[,PAGE.json] ... "
+                  f"--search-id <id1,id2,...> --out-dir {out_dir} --marketplace {market} "
+                  f"--asins <ASINs> --anchor <anchor ASIN>")
+        print("     It writes research.json there; inputs.research_json must point at it.")
+    if any(who == "SOLDSCOPE_RANKS" for _, _, who in missing):
+        print("Rank series (free reads): rank_tracker_list_groups for the marketplace and ASIN, "
+              "rank_tracker_list_products for the own product_id, then rank_tracker_list_phrases "
+              "(heatmap, results_type organic, every page, at most 92 days). Save the pages and run:")
+        print(f"  python3 tools/soldscope/ranks.py --organic <saved pages> --out <rank_series_json path> "
+              f"--marketplace {market} --asin <own ASIN>")
+    print("Then: re-run preflight and continue when READY. If this runtime lacks the SoldScope MCP, "
+          "hand off only this checklist and the exact paths to any capable agent.")
 
 
 # ----------------------------------------------------------------- build

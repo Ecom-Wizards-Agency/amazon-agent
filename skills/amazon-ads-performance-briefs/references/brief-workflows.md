@@ -226,7 +226,7 @@ Sellerboard feeds use no MCP tool; see the local fetcher above.
 A weekly brief (`{week_end}_weekly.md`) shares the daily brief's data
 sources and philosophy but replaces the day-over-day read with a
 week-over-week (WoW) read, then adds read-only PROPOSAL lists on top:
-**Push**, **Graduate** (Rank Radar-driven), **Pause/Optimize**, and
+**Push**, **Graduate** (organic-rank-driven), **Pause/Optimize**, and
 **Test** (only if pertinent), plus a **Run-rate pacing** read when a
 monthly budget is on file. It never executes anything -- see Rules
 below; execution belongs to `amazon-ppc-weekly-management` (`/ppc-manage`),
@@ -255,7 +255,7 @@ docstring for exact signatures.
      --date <the latest FULLY COMPLETED day> \
      --adlabs-json <path to step 2's normalized entities JSON, or omit> \
      --signal-digest _local/ads-signals/<ISO-year>-W<week>/digest.md \
-     --rank-radar-json <path to step 2b's radar rows JSON, or omit> \
+     --rank-json <path to step 2b's weekly rank rows JSON, or omit> \
      --monthly-budget <amount from the client config, or omit> \
      --out output --slack-json <path or ->
    ```
@@ -309,13 +309,23 @@ docstring for exact signatures.
      understate reality. Re-pull or shift the week-end back a day if
      you see an implausible drop concentrated entirely in the final day.
 
-   **2b. Pull Rank Radar rows (DataDive MCP) -- the live organic-rank
-   input.** `list_rank_radars` -> `get_rank_radar_data` for the brand's
-   tracked keywords over this week and the prior week; shape each row as
+   **2b. Pull weekly rank rows (SoldScope rank tracker) -- the live
+   organic-rank input.** These are free reads (no credits):
+   `rank_tracker_list_groups` (filter by marketplace and ASIN) gives the
+   `group_id`; check that the group's marketplace matches the brand's, since
+   a group tracking another country's listing scores the wrong country
+   silently. `rank_tracker_list_products(group_id)` gives the own
+   `product_id`. `rank_tracker_list_phrases(group_id, product_id,
+   heatmap=true, heatmap_date_from, heatmap_date_to, results_type=organic,
+   per_page=100)`, every page, over at least the last 8 complete
+   Sunday-Saturday weeks (at most 92 days); save each page and read it from
+   the file, because large pages overflow context. Then run
+   `python3 tools/soldscope/ranks.py --organic <pages> --asin <ASIN>
+   --marketplace <code> --weekly-rows --out <rows JSON>`, which writes
    `{keyword, rank_now, rank_prev, weeks_stable}` (weeks_stable = consecutive
-   weeks at/below rank 3) and pass the JSON via `--rank-radar-json`. Big
-   radar payloads overflow; parse the saved tool-result file with python.
-   This drives the GRADUATE list (rank 1-3 stable 2+ weeks -> step down
+   weeks at/below rank 3) and fails on a marketplace mismatch, and pass the
+   file via `--rank-json` (`--rank-radar-json` is the legacy alias). This
+   drives the GRADUATE list (rank 1-3 stable 2+ weeks -> step down
    toward break-even) and per-keyword rank protection (an
    improving-rank keyword is never proposed for a cut -- moved to notes).
    Omitting it is a valid run; the brief states the gap in a note.

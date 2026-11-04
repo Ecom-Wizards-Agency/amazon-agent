@@ -5,7 +5,7 @@
 Use the narrowest source that can establish the fact. Timestamp every extraction and retain its source ID in each evidence row.
 
 1. Live Amazon reports and account state: Amazon Ads, Seller Central reports, SQP, Account Health, catalog, inventory, and buyability.
-2. Managed advertising and rank state: AdLabs and DataDive, including change history, optimization groups, rank tracking, and query intelligence.
+2. Managed advertising and rank state: AdLabs for change history, optimization groups, and query intelligence; the SoldScope rank tracker (free `rank_tracker_*` reads of the client's tracking group) for rank state and rank history. SoldScope history for the copied trackers starts on 21.10.2026. SoldScope has no source for the seller's listing-change history (DataDive had one), so state that gap in the handover instead of implying a listing change log is complete.
 3. Customer and creative evidence: POE, listing capture, approved image files, briefs, and client-visible Drive assets.
 4. Economics: approved finance source or current client-approved unit economics.
 5. Timeline reconciliation: internal Slack, Notion, team-vault run notes, and prior tactical documents. Convert relevant findings into dated client-readable facts. Never expose internal links.
@@ -60,7 +60,7 @@ Exclude Slack, Notion, localhost, internal Drive material, broken links, duplica
 Load only the specialist skills needed by the evidence that exists:
 
 - advertising history and state: `amazon-ads-console`, `amazon-ppc-weekly-management`, `amazon-reporting`;
-- rank and query evidence: `amazon-audit`, `amazon-opportunity-explorer`, DataDive/AdLabs routes;
+- rank and query evidence: `amazon-audit`, `amazon-opportunity-explorer`, the SoldScope rank tracker and AdLabs routes;
 - listing and creative: `amazon-listing-capture`, `amazon-seo`, `amazon-opportunity-explorer`;
 - catalog: `amazon-catalog`;
 - inventory and buyability: `amazon-fba-inventory-planning`, `amazon-reporting`;
