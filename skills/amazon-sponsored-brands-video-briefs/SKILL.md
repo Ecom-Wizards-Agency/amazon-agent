@@ -5,7 +5,7 @@ description: "Build evidence-led Sponsored Brands video concepts, scripts, creat
 
 # Amazon Sponsored Brands Video Briefs
 
-Browser: Mixed. POE uses CDP over the shared debug Chrome. SoldScope and AdLabs use MCP. Google Drive and Google Docs use their connected tools.
+Browser: Mixed. POE uses CDP over the shared debug Chrome. SoldScope and SYNQ use MCP (AdLabs carve-out: the AdLabs MCP). Google Drive and Google Docs use their connected tools.
 
 Create editor-ready Sponsored Brands video packages for Amazon search. The shopper has already typed a query and is comparing products. Each confirmed query cluster produces one video concept with three distinct openings over one shared second half.
 
@@ -30,8 +30,8 @@ Create editor-ready Sponsored Brands video packages for Amazon search. The shopp
 - Latest relevant Google Drive keyword-research workbook. Prefer the pinned workbook URL in config; otherwise find the latest authoritative workbook in the existing client Keyword Research folder.
 - SoldScope keyword research for the target ASINs and their competitors: `research.json` and `roots.csv` from `tools/soldscope/keywords.py`. SoldScope calls that spend credits need one run approval naming the ASINs, marketplace and expected credits; rank-tracker writes need exact-action approval (`tools/soldscope/README.md`).
 - POE full niche packs selected through the breadth workflow below.
-- Per-ASIN SQP from AdLabs `search_query`.
-- Current ad performance from AdLabs `target` and `ad_group`: spend, CTR, CVR, raw ACOS, and placement context where available.
+- Per-ASIN SQP from SYNQ `get_sqp_data`. Every SYNQ run starts with `list_clients` (skip `is_demo` clients), confirms the client by SKU or title with `get_catalog`, then checks `get_sync_status`. The SYNQ client id lives in `client.synq_client_id`; older configs carry `client.adlabs_profile_id`, which is legacy and read only for the AdLabs carve-out account.
+- Current ad performance from SYNQ `get_daily_metrics` or `get_metrics` by `target` and `ad_group`: spend, CTR, CVR, raw ACOS. Placement context comes from `entity_type: placement`. Save each response as `{"note", "rows"}` and never treat a capped list (a "ROW LIMIT REACHED" or "TRUNCATED" note) as complete. AdLabs carve-out only: pull SQP and ad performance from its AdLabs profile instead.
 - Current live listing reference JSON for each target ASIN.
 - Current price and shelf-price context.
 - Product facts, brand kit, and verified footage sources.

@@ -4,9 +4,19 @@ SUPA-style SQP x PPC weekly workbook.
 
 Joins Amazon SQP shares (search volume, click share, purchase share) with PPC
 ad spend + ad sales per keyword, per Sunday-Saturday week, per ASIN. Flags are
-deterministic rules. Inputs are AdLabs MCP CSV exports (search_query entity per
-week + search_term entity grouped by term per week). The AdLabs search_query
-entity was verified byte-identical to Seller Central SQP on 2026-07-08.
+deterministic rules. Inputs are CSVs, one per week:
+
+- SYNQ (default): `get_sqp_data` per week, `get_search_terms` and
+  `get_inventory` history, saved as {"note", "rows"} and converted by
+  `tools/synq/convert.py sqp | search-terms | stock`. SYNQ SQP parity against
+  Seller Central is pending; until it passes, check one ASIN-week against the
+  Seller Central SQP CSV.
+- AdLabs carve-out only: AdLabs MCP CSV exports (search_query entity per
+  week + search_term entity grouped by term per week + product entity for
+  stock). The AdLabs search_query entity was verified byte-identical to Seller
+  Central SQP on 2026-07-08.
+
+`data_source(cfg)` picks the label shown in Methods and the build summary.
 
 Usage:
   python3 build_supa_workbook.py --config config.<client>.json [--validate]
@@ -129,6 +139,63 @@ def load_ppc(cfg):
 
 
 DEFAULT_RANK_SOURCE = "SoldScope rank tracker"
+DEFAULT_DATA_SOURCE = "SYNQ"
+
+
+def data_source(cfg):
+    """Label for where the SQP, PPC and stock CSVs came from: an explicit
+    `data_source`, else "SYNQ" when `synq_client_id` is set, else "AdLabs"
+    when only the legacy `adlabs_profile_id` is set (the AdLabs carve-out account), else SYNQ."""
+    explicit = str(cfg.get("data_source") or "").strip()
+    if explicit:
+        return explicit
+    if str(cfg.get("synq_client_id") or "").strip():
+        return "SYNQ"
+    if str(cfg.get("adlabs_profile_id") or "").strip():
+        return "AdLabs"
+    return DEFAULT_DATA_SOURCE
+
+
+def _is_adlabs(cfg):
+    return data_source(cfg).strip().lower() == "adlabs"
+
+
+def source_rows(cfg):
+    """Methods-tab rows for the SQP, PPC and stock inputs, by data source."""
+    if _is_adlabs(cfg):
+        return {
+            "sqp": ("AdLabs MCP search_query entity, one pull per week. "
+                    "Verified byte-identical to Seller Central SQP on 2026-07-08 "
+                    "(US 3-way and DE 2-way checks, 13,248 metric cells, 0 mismatches)."),
+            "ppc": ("AdLabs MCP search_term entity, one pull per week, "
+                    "grouped by search term. Profile "
+                    + str(cfg.get("adlabs_profile_id") or "not set") + "."),
+            "stock": ("AdLabs `product` entity, one export per week: "
+                      "`out_of_stock_days` is window-scoped, so the weeks sum back to the "
+                      "monthly figure. An ASIN-level fact repeated on every keyword row of that "
+                      "ASIN, deliberately, so a rank slip and its cause sit in the same eyeline. "
+                      "Do NOT read availability / days_of_cover / fulfillable_units per week: "
+                      "those are current snapshots and come back identical in every export."),
+        }
+    client = str(cfg.get("synq_client_id") or "not set")
+    return {
+        "sqp": ("SYNQ MCP get_sqp_data, report_period WEEK, one pull per Sunday-Saturday "
+                "week, converted by tools/synq/convert.py sqp (clicks, purchases and "
+                "impressions map to the ASIN counts; total_* to the market counts). "
+                "SYNQ client " + client + ". Parity against Seller Central SQP is "
+                "pending: until it passes, check one ASIN-week against the Seller "
+                "Central CSV."),
+        "ppc": ("SYNQ MCP get_search_terms for each week, converted by "
+                "tools/synq/convert.py search-terms (summed per search term, "
+                "cost as spend). Sales are SYNQ-reported attributed sales; the "
+                "attribution window is unconfirmed."),
+        "stock": ("SYNQ MCP get_inventory with history, converted by tools/synq/convert.py "
+                  "stock: a day counts as out of stock when the ASIN's fulfillable "
+                  "quantity is 0, counting one stock pool per FNSKU. Days without a "
+                  "snapshot are not counted. An ASIN-level fact repeated on every keyword "
+                  "row of that ASIN, deliberately, so a rank slip and its cause sit in "
+                  "the same eyeline."),
+    }
 
 
 def rank_source(cfg):
@@ -188,12 +255,13 @@ def load_rank(cfg):
 def load_stock(cfg):
     """stock[(asin, week)] = out-of-stock days in that week (0-7).
 
-    Input is one AdLabs `product` entity export per week, same DATE filter as the
-    SQP pull. `out_of_stock_days` is WINDOW-scoped, so a per-week pull gives the
-    days lost in that week and the weeks sum back to the monthly figure.
-
-    Do NOT try to read availability / days_of_cover / fulfillable_units this way:
-    those are CURRENT snapshots and come back identical in every week's export.
+    Input is one `asin,out_of_stock_days` CSV per week. SYNQ: written by
+    `tools/synq/convert.py stock` from `get_inventory` history (one stock pool
+    per FNSKU, days without a snapshot not counted). AdLabs carve-out: one
+    `product` entity export per week, same DATE filter as the SQP pull;
+    `out_of_stock_days` is WINDOW-scoped, so the weeks sum back to the monthly
+    figure. Do NOT read AdLabs availability / days_of_cover / fulfillable_units
+    this way: those are CURRENT snapshots, identical in every week's export.
 
     Optional. No `inputs.stock_csvs` and the block never renders, and every flag
     falls back to v2 behaviour.
@@ -965,13 +1033,11 @@ def tab_methods(wb, cfg, weeks, stats):
     ws.column_dimensions["B"].width = 110
     th = cfg["thresholds"]
     target = cfg["targets"]["acos"]
+    src = source_rows(cfg)
     rows = [
-        ("SQP source", "AdLabs MCP search_query entity, one pull per week. "
-         "Verified byte-identical to Seller Central SQP on 2026-07-08 "
-         "(US 3-way and DE 2-way checks, 13,248 metric cells, 0 mismatches)."),
-        ("PPC source", "AdLabs MCP search_term entity, one pull per week, "
-         "grouped by search term. Profile "
-         + str(cfg["adlabs_profile_id"]) + "."),
+        ("Data source", data_source(cfg) + "."),
+        ("SQP source", src["sqp"]),
+        ("PPC source", src["ppc"]),
         ("Weeks", ", ".join(weeks) + ". Sunday to Saturday, Amazon SQP convention."),
         ("Coverage cap", "SQP carries the top 100 queries per ASIN per week. "
          "That cap is Amazon's, present in every source. The long tail is "
@@ -1005,12 +1071,7 @@ def tab_methods(wb, cfg, weeks, stats):
         ("Flag E1", f"Scaling winner. Both shares up WoW, spend at least "
          f"{S}{th['min_spend_prev']:.0f}, ACOS at or under {target:.0%}. "
          "Action: protect bid, add budget headroom."),
-        ("Days out of stock", "AdLabs `product` entity, one export per week: "
-         "`out_of_stock_days` is window-scoped, so the weeks sum back to the "
-         "monthly figure. An ASIN-level fact repeated on every keyword row of that "
-         "ASIN, deliberately, so a rank slip and its cause sit in the same eyeline. "
-         "Do NOT read availability / days_of_cover / fulfillable_units per week: "
-         "those are current snapshots and come back identical in every export."),
+        ("Days out of stock", src["stock"]),
         ("Stock outranks everything", "Amazon deranks what it cannot ship, so an "
          f"out-of-stock week produces share loss, rank slip and a high ACOS that "
          f"look exactly like a bidding failure and are not one. At or above "
@@ -1117,6 +1178,7 @@ def build(cfg_path):
     p = out_path(cfg)
     wb.save(p)
     print(f"BUILT {p}")
+    print(f"  data source: {data_source(cfg)}")
     ranked = sum(1 for e in kw.values() if any(d.get("rank") is not None for d in e["weeks"].values()))
     gapped = sum(1 for e in kw.values() if any(d.get("cvr_gap") is not None for d in e["weeks"].values()))
     print(f"  keywords: {len(kw)} (asin,query) pairs · actions: {len(actions)}")
@@ -1201,7 +1263,8 @@ def validate(cfg_path):
             for name, got, want, tol in checks:
                 if abs((got or 0) - want) > tol:
                     errors.append(f"{asin} '{q}' {name}: cell {got} != raw {want}")
-        # soft cross-check vs AdLabs' own comparison column
+        # soft cross-check vs the export's own comparison column (AdLabs
+        # exports carry one; SYNQ rows have none, so cs_cmp is 0 and this skips)
         prior = sqp.get((asin, weeks[-2]), {})
         for q in sample[:7]:
             rec = latest[q]
@@ -1210,7 +1273,7 @@ def validate(cfg_path):
                 if abs(ours - rec["cs_cmp"]) > 0.005:
                     warns.append(
                         f"{asin} '{q}': prior-week click share {ours:.4f} vs "
-                        f"AdLabs comparison {rec['cs_cmp']:.4f}")
+                        f"{data_source(cfg)} comparison {rec['cs_cmp']:.4f}")
 
     for ws in wb.worksheets:
         for row in ws.iter_rows():

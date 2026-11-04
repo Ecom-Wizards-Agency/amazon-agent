@@ -1,5 +1,5 @@
 ---
-description: Build the SUPA weekly SQP x PPC workbook for a client (AdLabs-native, per-keyword spend-vs-share diagnosis)
+description: Build the SUPA weekly SQP x PPC workbook for a client (SYNQ-native, per-keyword spend-vs-share diagnosis)
 argument-hint: "[client + marketplace] (e.g. 'acme de' or 'bravo us')"
 ---
 
@@ -14,9 +14,11 @@ Nothing else in the toolkit separates a spend-driven share loss from a market-dr
 
 The user's target is: **$ARGUMENTS**
 
-Reference: `tools/sqp-supa/README.md`. Data source is the AdLabs MCP, not Seller Central: the
-`search_query` entity was verified byte-identical to SC SQP (US 3-way + DE 2-way, 13,248 cells,
-0 mismatches, 2026-07-08).
+Reference: `tools/sqp-supa/README.md`. Data source is the SYNQ MCP (read-only, free reads; contract
+in `docs/synq-mcp.md`), converted to the builder's CSVs by `tools/synq/convert.py`. SYNQ SQP parity
+against Seller Central is pending: until one ASIN-week has been checked against the Seller Central
+SQP CSV, say in the delivery note that SYNQ SQP is unverified. The AdLabs carve-out account (US and CA)
+keeps the AdLabs pull (see "AdLabs carve-out only" at the end).
 
 ## Steps
 
@@ -24,8 +26,12 @@ Reference: `tools/sqp-supa/README.md`. Data source is the AdLabs MCP, not Seller
    `config.TEMPLATE.json`. These are **gitignored** (client configs are local-only). Existing local configs
    follow the same `config.<client>-<market>.json` naming.
 
-   Fill from the AdLabs profile resource, never by guessing: `adlabs_team_id`, `adlabs_profile_id`,
-   `currency`, `targets.acos` / `targets.tacos`. Set `asins` to the ASINs carrying real spend
+   Fill from SYNQ, never by guessing: `synq_client_id` from `list_clients` (skip `is_demo` clients),
+   confirmed by a known SKU or title in `get_catalog`, because a client name alone does not prove
+   whose seller data it is. `data_source` stays `SYNQ`. `targets.acos` / `targets.tacos` come from
+   `get_catalog` (`acos_target` is a percent, so 45 becomes 0.45; `target_tacos` is already a ratio)
+   or the client's strategy; set `currency` to the marketplace currency. `adlabs_team_id` and
+   `adlabs_profile_id` are optional legacy keys for the AdLabs carve-out account only. Set `asins` to the ASINs carrying real spend
    (one tab each, so keep it to the meaningful set, not the whole catalog) with short variant labels.
 
 2. **Pick the weeks.** Sunday week-starts, ascending, at least 2 (`len < 2` hard-exits). The last
@@ -55,21 +61,27 @@ Reference: `tools/sqp-supa/README.md`. Data source is the AdLabs MCP, not Seller
    waste. Without it, P3 can only say "cut". With no `rank_jsons` the column never renders and every
    flag falls back to v1 behaviour, so this is safe to skip.
 
-4. **Pull the data from AdLabs, one call per week.** For each week, with
-   `DATE >= <sunday>` and `DATE <= <saturday>`:
-   - `get_entity_data(entity_type="search_query", team_id, profile_id, filters=...)` → `download_data`
-     → `downloads/<client>/reporting/sqp_<week>.csv`
-   - `get_entity_data(entity_type="search_term", ...)` → `download_data`
-     → `downloads/<client>/reporting/search_terms_<week>.csv`
-   - **Stock (v3, strongly recommended):** `get_entity_data(entity_type="product", ...)` →
-     `download_data` → `downloads/<client>/reporting/stock_<week>.csv`, wired via
-     `inputs.stock_csvs`. `out_of_stock_days` is window-scoped so the weeks sum back to the
-     monthly figure. Sanity-check that they do.
-     Do NOT try to read `availability` / `days_of_cover` / `fulfillable_units` per week: those
-     are CURRENT snapshots and come back identical in every week's export.
+4. **Pull the data from SYNQ and convert it.** Run `get_sync_status` first; a failed or stale sync
+   stops the build. Save every response as `{"note": <note text or null>, "rows": [...]}`. A
+   "ROW LIMIT REACHED" or "TRUNCATED" note means rows were cut: narrow the pull or raise `limit`
+   (max 2000) until no page carries one, because a cut list is never complete.
+   - **SQP, one pull per week:** `get_sqp_data(client_id, marketplace, period_from=<sunday>,
+     period_to=<saturday>, report_period="WEEK")`. Then
+     `python3 tools/synq/convert.py sqp --pages <SQP pages> --out-dir downloads/<client>/reporting`
+     → `sqp_<week>.csv` per Sunday week.
+   - **Search terms:** `get_search_terms(client_id, marketplace, date_from=<first sunday>,
+     date_to=<last saturday>)`, split by `ad_product`, `campaign_id` or week when it caps. Then
+     `python3 tools/synq/convert.py search-terms --pages <pages> --out-dir downloads/<client>/reporting --week-start sunday`
+     → `search_terms_<week>.csv`.
+   - **Stock (v3, strongly recommended):** `get_inventory(client_id, marketplace, history=true,
+     date_from=<first sunday>, date_to=<last saturday>)`. Then
+     `python3 tools/synq/convert.py stock --history <pages> --out-dir downloads/<client>/reporting --week-start sunday`
+     → `stock_<week>.csv`, wired via `inputs.stock_csvs`. A day counts as out of stock when the
+     ASIN's fulfillable quantity is 0 (one pool per FNSKU); a day without a snapshot is not counted.
 
-   **The per-week pull is not optional.** The `search_query` entity has no date column, so a single
-   range pull silently aggregates the weeks together and destroys the comparison the tool exists to make.
+   Each converter exits 2 on a row-cap note unless `--allow-truncated`, and writes a receipt with
+   input hashes and row counts. Check that every configured week has its three CSVs and that no
+   week is marked `partial`.
 
    The SQP reader has **no column fallbacks**: `asin`, `search_query`, `total_click_count`,
    `asin_click_count`, `total_purchase_count`, `asin_purchase_count`, `search_query_volume` must be
@@ -129,4 +141,22 @@ Reference: `tools/sqp-supa/README.md`. Data source is the AdLabs MCP, not Seller
   score second, since rank is what changes the advice.
 - The ASIN tab's column geometry comes from `asin_layout()`, shared with the validator. v1 hardcoded
   it for 3 weeks and silently corrupted any 4-week run; do not reintroduce fixed offsets.
-- Read-only. This builds a file. It never touches AdLabs or Amazon.
+- Read-only. This builds a file. It never touches SYNQ, AdLabs or Amazon.
+
+## AdLabs carve-out only
+
+The AdLabs carve-out account (US and CA) keeps the AdLabs pull until it moves to SYNQ. Set `data_source: "AdLabs"`,
+`adlabs_team_id` and `adlabs_profile_id` from the AdLabs profile resource. For each week, with
+`DATE >= <sunday>` and `DATE <= <saturday>`:
+- `get_entity_data(entity_type="search_query", team_id, profile_id, filters=...)` → `download_data`
+  → `downloads/<client>/reporting/sqp_<week>.csv`
+- `get_entity_data(entity_type="search_term", ...)` → `download_data`
+  → `downloads/<client>/reporting/search_terms_<week>.csv`
+- `get_entity_data(entity_type="product", ...)` → `download_data`
+  → `downloads/<client>/reporting/stock_<week>.csv`. `out_of_stock_days` is window-scoped, so the
+  weeks sum back to the monthly figure; sanity-check that they do. Do NOT read `availability` /
+  `days_of_cover` / `fulfillable_units` per week: those are CURRENT snapshots, identical in every
+  week's export.
+
+The per-week pull is not optional there. The `search_query` entity has no date column, so a single
+range pull silently aggregates the weeks together and destroys the comparison the tool exists to make.

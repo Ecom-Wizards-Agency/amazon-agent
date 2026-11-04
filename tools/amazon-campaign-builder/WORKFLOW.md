@@ -86,12 +86,13 @@ contract; nothing in the code is client-specific.
 - **Update mode has no "paused-by-default" safety net**: an Update/Archive/Create row acts
   on a real, currently-serving entity the moment it's processed. The `_REVIEW.md` plain-
   English change list is the safety mechanism here; read it before uploading, every time.
-- The tool writes a file; it has no Amazon Ads API or AdLabs write path. Uploading the bulk
-  file, pushing via AdLabs `create_entities`/update calls, changing live bids/budgets: each
+- The tool writes a file; it has no Amazon Ads API, SYNQ or AdLabs write path. Uploading the
+  bulk file, pushing through SYNQ Campaign Manager or AdLabs, changing live bids/budgets: each
   is a stop-before-risk action needing explicit operator instruction in the current chat (or
   a matching `_local/local-permissions.md` standing permission).
-- For AdLabs-managed accounts the operator may instead ask for a gated AdLabs push: that
-  follows the `amazon-audit` write policy (explicit per-write lift, batch-by-batch
+- A SYNQ Campaign Manager push is a separate attended web-app action in the 9222 operator browser with the same per-batch exact-action gate: the client, marketplace, exact entities, old → new values and the expected result. Snapshot and tag each batch with `tools/amazon-ppc-management/batches.py` and read it back with `get_ads_change_log`. It is not part of this toolkit, which stays file-only.
+- AdLabs carve-out only: for the AdLabs carve-out account (US and CA) the operator may instead ask for a gated
+  AdLabs `create_entities`/update push: that follows the `amazon-audit` write policy (explicit per-write lift, batch-by-batch
   what-will-change summary, tags). It is not part of this toolkit.
 - Run `python3 tools/amazon-campaign-builder/selftest.py` after any change to either toolkit.
   It must stay green (synthetic fixtures, no network/Amazon access).

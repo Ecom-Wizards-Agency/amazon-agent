@@ -482,7 +482,7 @@ def build_workbook(ctx: dict, out_path: Path) -> None:
         {"field": "Audience", "value": cfg.get("audience", ""), "rule": "Client-facing"},
         {"field": "Currency", "value": cfg.get("currency", "EUR"), "rule": "Marketplace-native values remain native when needed"},
         {"field": "Evidence watermark", "value": cfg["cutoff_timestamp"], "rule": "Recent advertising changes remain provisional"},
-        {"field": "Read-only scope", "value": "No Amazon, AdLabs, listing, inventory, or communication changes", "rule": "Builder and workflow contract"},
+        {"field": "Read-only scope", "value": "No Amazon, SYNQ, AdLabs, listing, inventory, or communication changes", "rule": "Builder and workflow contract"},
         {"field": "Economics rule", "value": "Profitability and Required RPC are withheld unless break-even ACOS is verified", "rule": "Evidence manifest"},
     ]
     for source in evidence.get("sources", []):

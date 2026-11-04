@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Resolve the ordered team-knowledge files for an Amazon Ads workflow.
 
-This helper prints paths only. The calling agent still reads the files. An unavailable
-team vault is a supported state and produces no output.
+This helper prints paths only. The calling agent still reads the files. The tracked
+source contract (`docs/synq-mcp.md`) comes first when it exists; an unavailable team
+vault is a supported state and adds no vault paths.
 """
 
 from __future__ import annotations
@@ -13,6 +14,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 DECISION = "Decisions/2026-08-11-amazon-ads-doctrine-upgrade.md"
+SYNQ_DECISION = "Decisions/2026-11-03-adlabs-retired-synq-primary.md"
+# Read in this order; a decision missing from the vault is skipped.
+DECISIONS = (DECISION, SYNQ_DECISION)
+# Tracked repo docs that define the ads data source, listed from ROOT when present.
+SOURCE_CONTRACTS = ("docs/synq-mcp.md",)
 CHALLENGES = "Research/amazon-ads/challenges.md"
 
 SURFACES = {
@@ -65,6 +71,7 @@ SURFACES = {
         ],
     },
     "seo-rank-gate": {
+        "source_contracts": False,
         "playbooks": [],
         "research": [
             "Research/amazon-ads/listing-cvr-and-creative.md",
@@ -95,9 +102,16 @@ def resolve_vault(explicit: str | None = None) -> Path | None:
     return None
 
 
+def contract_paths(surface: str, root: Path | None = None) -> list[Path]:
+    if not SURFACES[surface].get("source_contracts", True):
+        return []
+    base = ROOT if root is None else root
+    return [base / rel for rel in SOURCE_CONTRACTS if (base / rel).is_file()]
+
+
 def recall_paths(surface: str, vault: Path) -> list[Path]:
     spec = SURFACES[surface]
-    ordered = [DECISION, CHALLENGES, *spec["playbooks"], *spec["research"]]
+    ordered = [*DECISIONS, CHALLENGES, *spec["playbooks"], *spec["research"]]
     return [vault / rel for rel in ordered if (vault / rel).is_file()]
 
 
@@ -106,6 +120,8 @@ def main() -> int:
     parser.add_argument("surface", choices=sorted(SURFACES))
     parser.add_argument("--vault", help="explicit team-vault path, mainly for diagnostics")
     args = parser.parse_args()
+    for path in contract_paths(args.surface):
+        print(path)
     vault = resolve_vault(args.vault)
     if vault is None:
         return 0

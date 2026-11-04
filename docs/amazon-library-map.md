@@ -98,7 +98,7 @@ Safety note: billing/payment identifiers, credentials, tokens, and secret values
 
 Path: `<repo-root>/AdLabs Help`
 
-Use for the public AdLabs methodology articles that document the optimizer's bid, placement and RPC formulas. It backs the weekly PPC loop's rule that optimizer max-change settings are ceilings, never the step size.
+Use for the public AdLabs methodology articles that document the optimizer's bid, placement and RPC formulas. AdLabs now runs only the AdLabs carve-out account (US and CA), so this library serves the AdLabs carve-out account's optimizer math only. It backs the carve-out PPC loop's rule that optimizer max-change settings are ceilings, never the step size.
 
 Important index:
 
@@ -149,7 +149,7 @@ Cross-functional troubleshooting:
 
 Search all libraries, then reconcile sources by date and authority.
 
-AdLabs optimizer math or bid formulas:
+AdLabs optimizer math or bid formulas (AdLabs carve-out only):
 
 1. AdLabs Help
 2. Amazon Ads Help
@@ -163,4 +163,4 @@ AdLabs optimizer math or bid formulas:
 - Amazon Seller Help: complete local Seller Help capture, 239/239 pages, captured 12.05.2026, 54 refreshed 06.10.2026 (`tools/knowledge/help_capture.mjs`).
 - Amazon Ads Help: complete Advanced Tools docs capture, 27/27 pages, updated 13.05.2026.
 - Advertising Help After Login: Ads Support Center capture of 237 articles; 120 re-captured verbatim and 114 linked pages added 06.10.2026 (`tools/knowledge/help_capture.mjs`), 15 dead linked URLs listed in `_index/advertising-help-missing.json`.
-- AdLabs Help: public AdLabs methodology articles, 7 files, downloaded 26.07.2026.
+- AdLabs Help: public AdLabs methodology articles, 7 files, downloaded 26.07.2026; serves the AdLabs carve-out account's optimizer only.

@@ -18,13 +18,17 @@ The user's target is: **$ARGUMENTS**
    **First-time audit** (new client onboarding or a prospect pitch, internally `deep`),
    **Monthly review** (a client we already run, `monthly`), **Actions only** (just the change list,
    `actions`). Skip this round entirely when `$ARGUMENTS` already names the job. The labels name
-   the job, never the data source: onboarding a client who is already in AdLabs is a first-time
+   the job, never the data source: onboarding a client who is already in SYNQ is a first-time
    audit.
 
-3. **Detect and pre-fill. Silently, no question.** Run the AdLabs startup sequence
-   (`start_chat_session`, `get_entity_data(teams)`, `get_entity_data(profiles, team_id)`) and look
-   for the brand. Found means the MCP path; not found means the download path. Then resolve what is
-   already on file rather than asking for it: AdLabs profile memory, the client ops profile via
+3. **Detect and pre-fill. Silently, no question.** On `monthly` and `actions`, call SYNQ
+   `list_clients` (skip `is_demo` clients and any client that is not `active`), find the brand,
+   confirm it by SKU or title with `get_catalog`, then run `get_sync_status`. Found means the SYNQ
+   path. The AdLabs carve-out account (US and CA) uses the AdLabs startup in the skill instead. A
+   client still being onboarded into SYNQ (`docs/synq-mcp.md`) uses the download path; any other client not found is a
+   blocker to report. A first-time audit skips the lookup and always takes the download path.
+   Then resolve what is already on file rather than asking for it: the
+   `get_catalog` goals (AdLabs carve-out: AdLabs profile memory), the client ops profile via
    `node tools/client-profiles/find-client-profile.mjs <slug>`, and the per-client config.
 
 4. **Ask only what step 3 did not resolve, with a second AskUserQuestion.** Never carry a prior
@@ -49,8 +53,8 @@ The user's target is: **$ARGUMENTS**
    SoldScope MCP inputs, then build and `--validate` until every gate passes. SoldScope calls
    that spend credits need one run approval naming the ASINs, marketplace and expected credits;
    rank-tracker writes need exact-action approval (`tools/soldscope/README.md`). If one capability is
-   unavailable, hand off only that checklist to any capable agent. On the MCP path, build to the
-   same depth without `build_audit.py`.
+   unavailable, hand off only that checklist to any capable agent. On the SYNQ path (AdLabs carve-out: the
+   AdLabs path), build to the same depth without `build_audit.py`.
 
 8. **Write the narrative** into the scaffold per the skill: operator voice, organic-first, lean,
    one **Problems and Solutions** section of five to seven `### Priority N:` action-led headings,

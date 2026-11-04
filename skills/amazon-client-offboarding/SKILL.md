@@ -11,7 +11,7 @@ Create a decision-ready handover, not a generic audit and not an archive dump. S
 
 ## Non-negotiable boundaries
 
-- Stay read-only across Amazon, AdLabs, listings, catalog, inventory, Account Health, and communications.
+- Stay read-only across Amazon, SYNQ, AdLabs (AdLabs carve-out only), listings, catalog, inventory, Account Health, and communications.
 - Build only for explicitly included markets. Do not mention excluded markets in either client deliverable.
 - Use client-specific evidence only in gitignored run folders and client systems. Never commit run configs, manifests, exports, links, or narratives.
 - Treat the approved workflow branding as authoritative. Preflight must fail if the approved branding file, black logo, or document font is absent. Never accept the renderer's neutral fallback.
@@ -24,7 +24,7 @@ Create a decision-ready handover, not a generic audit and not an archive dump. S
 
 Create the run config from `tools/amazon-client-offboarding/config.TEMPLATE.json`. Record client, successor, audience, included and excluded markets, currency, cutoff timestamp, equal-day comparison windows, attribution-complete date, narrative path, evidence path, approved branding, appendix, and exact existing Drive destination.
 
-Use `references/evidence-and-sources.md` to assemble the evidence manifest. Unsupported areas are disclosed as gaps and omitted from analysis rather than padded with assumptions.
+Use `references/evidence-and-sources.md` to assemble the evidence manifest, including what to do when the SYNQ client is `offboarding` (still readable) or `purged` (fall back to console and bulk downloads). Unsupported areas are disclosed as gaps and omitted from analysis rather than padded with assumptions.
 
 ### 2. Build the operating narrative
 

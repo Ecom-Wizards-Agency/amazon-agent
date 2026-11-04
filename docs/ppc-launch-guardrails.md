@@ -114,12 +114,13 @@ The versioned JSON includes the mode, phase, pass/fail status, client, marketpla
 
 ## SYNQ execution route
 
-SYNQ is an optional Amazon PPC operations route for batch-applying approved changes such as bid optimizations and Negative Phrase additions. It does not replace the Figma structure, product workbook, campaign-builder preflight, operator approval, or post-launch live readback.
+SYNQ is the standard route for applying approved PPC changes on SYNQ clients, such as bid optimizations and Negative Phrase additions; the AdLabs carve-out account (US and CA) stays on AdLabs. Changes are made in the SYNQ web app in the attended operator browser (`docs/synq-mcp.md`). It does not replace the Figma structure, product workbook, campaign-builder preflight, operator approval, or post-launch live readback.
 
 - Use SYNQ only after the proposed targets, negatives, bids, advertiser, marketplace, and scope pass the same guardrails as a bulk file or console change.
 - For non-branded campaigns, batch-apply the verified own-brand terms as campaign-level Negative Phrase. Do not add generic product terms or relevant branded terms to Shield or other branded campaigns.
 - Review the SYNQ batch before applying it and retain its change record with the run evidence.
-- A queued or applied SYNQ change is not completion. Verify the processed live campaigns and targeting before closing the run.
+- A queued or applied SYNQ change is not completion. Verify the processed live campaigns and targeting before closing the run, and read the change back with `get_ads_change_log`, `get_entity_changes` and `get_campaign_changes`.
+- One writer per campaign: a SYNQ Bid Optimizer runner and any other bid writer (AdLabs optimizer or dayparting, manual pushes) never share a campaign.
 
 ## Experiments and creative feedback
 

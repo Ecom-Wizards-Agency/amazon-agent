@@ -159,12 +159,12 @@ def _markdown_headline_table(series: SeriesAnalysis, metrics: Optional[tuple] = 
     return "\n".join(lines)
 
 
-def _markdown_campaign_table(campaign_series: list) -> str:
+def _markdown_campaign_table(campaign_series: list, ads_source: str = "SYNQ") -> str:
     if not campaign_series:
         return (
             "_No campaign-level detail this run._ Sellerboard's Dashboard Totals feed is "
-            "account-level only; campaign/keyword detail comes from AdLabs (see "
-            "`crosscheck.py` and the skill's AdLabs pull step).\n"
+            f"account-level only; campaign/keyword detail comes from the ads source ({ads_source}; see "
+            f"`crosscheck.py` and the skill's {ads_source} pull step).\n"
         )
     lines = [
         "| Campaign | Category | Spend | Sales | ACOS | Spend vs Trailing-7 | Trend |",
@@ -291,7 +291,7 @@ def render_markdown(
     lines += [
         "## Campaign detail",
         "",
-        _markdown_campaign_table(analysis.campaign_series),
+        _markdown_campaign_table(analysis.campaign_series, meta.get("ads_source") or "SYNQ"),
         "",
     ]
 
@@ -547,7 +547,7 @@ def render_weekly_markdown(
 
     if meta.get("preview"):
         lines += [
-            "> **PREVIEW -- mock data.** No live Amazon Ads/Sellerboard/AdLabs data is wired up for "
+            "> **PREVIEW -- mock data.** No live Amazon Ads/Sellerboard/SYNQ data is wired up for "
             "this account yet; this brief is generated from synthetic data so the format can be "
             "reviewed before real data exists.",
             "",

@@ -44,13 +44,13 @@ Present the `--preview` output (or the built `_REVIEW.md`) to the operator befor
 
 ### 4. Hand off and stop
 
-The deliverable is the `.xlsx` + `_REVIEW.md` under `output/<client-slug>/ads/`. Uploading it (Campaign Manager → Bulk Operations) is the operator's action, or a separately-confirmed agent action per the stop-before-risk rule. Never upload, push via AdLabs, or enable campaigns as part of this workflow.
+The deliverable is the `.xlsx` + `_REVIEW.md` under `output/<client-slug>/ads/`. Uploading it (Campaign Manager → Bulk Operations) is the operator's action, or a separately-confirmed agent action per the stop-before-risk rule. Never upload, push through SYNQ Campaign Manager or AdLabs (AdLabs carve-out only), or enable campaigns as part of this workflow. A SYNQ Campaign Manager push is a separate attended web-app action in the 9222 operator browser with the same per-batch exact-action gate: the client, marketplace, exact entities, old → new values and the expected result. Snapshot and tag each batch with `tools/amazon-ppc-management/batches.py` and read it back with `get_ads_change_log`.
 
 ## Update mode: changing existing campaigns
 
 ### 1. Get a fresh bulksheets export
 
-Ask the operator (or, if you have console/AdLabs access, do it yourself) to download a
+Ask the operator (or, if you have Ads console access, do it yourself) to download a
 bulksheets export of the "Sponsored Products Campaigns" tab covering the campaigns/ad
 groups/keywords/targets in scope (Bulk Operations → create/download a spreadsheet). This is
 the **only** valid source of real IDs for update mode. The console UI's displayed IDs are

@@ -23,7 +23,10 @@ Covers:
   only if present; the expected figures are recomputed from the CSV's own
   raw columns at test time, not hardcoded, so no real financial numbers
   ever land in this committed file).
-- crosscheck.py: verified vs mismatch vs no_data verdicts.
+- crosscheck.py: verified vs mismatch vs no_data verdicts, the source label
+  (default SYNQ, custom AdLabs) and the legacy `adlabs_value` alias.
+- run_monitor.py / run_weekly.py: `--ads-json`, its legacy alias
+  `--adlabs-json`, `--ads-source`, and the `{"note", "rows"}` wrapper.
 - flags.py goal lenses: the same underlying metrics produce different
   flag severities under different `goal=` lenses (rank-launch vs
   profit-maintain vs neutral).
@@ -461,9 +464,98 @@ def test_crosscheck_verdicts():
         [f for f in tolerance_result.figures if f.figure == "ad_spend"][0].verdict == VERIFIED,
     )
 
+    # Source label: SYNQ by default, any custom label (AdLabs carve-out: AdLabs) when passed.
+    check("crosscheck_default_label_synq", "Sellerboard and SYNQ agree" in render_verdict_line(verified), render_verdict_line(verified))
+    check("crosscheck_mismatch_line_default_synq", "vs SYNQ $160.00" in line and "AdLabs" not in line, line)
+    check("crosscheck_no_data_line_default_synq", "(SYNQ or Sellerboard figure missing" in render_verdict_line(no_data), render_verdict_line(no_data))
+    adlabs_line = render_verdict_line(cross_check(sb, al_far, source_label="AdLabs"))
+    check("crosscheck_custom_label_adlabs", "vs AdLabs $160.00" in adlabs_line and "SYNQ" not in adlabs_line, adlabs_line)
+    spend_fig = mismatches[0]
+    check("crosscheck_adlabs_value_legacy_alias", spend_fig.adlabs_value == spend_fig.ads_value == 160.0, (spend_fig.adlabs_value, spend_fig.ads_value))
+    legacy_positional = cross_check(sb, al_close, 0.07)
+    check("crosscheck_positional_args_still_work", legacy_positional.headline_verdict == VERIFIED, legacy_positional.headline_verdict)
+
+
+# ---------------------------------------------------------------------------
+# run_monitor.py daily CLI: Sellerboard CSV + --ads-json totals (SYNQ label
+# by default), the legacy --adlabs-json alias with --ads-source AdLabs.
+
+def test_cli_daily_ads_json():
+    with tempfile.TemporaryDirectory() as tmp:
+        csv_path = Path(tmp, "acme-us_dashboardtotals_30d.csv")
+        csv_path.write_text(_build_synthetic_weekly_csv(), encoding="utf-8")
+        totals_path = Path(tmp, "ads_totals.json")
+        # Synthetic CSV day: ad spend 170.00, ad sales 300.00, total sales 1000.00.
+        totals_path.write_text(json.dumps({"ad_spend": 171.0, "ad_sales": 298.0, "total_sales": 1004.0}), encoding="utf-8")
+
+        def _run(flag, extra, out_dir):
+            buf = io.StringIO()
+            with redirect_stdout(buf):
+                code = run_monitor.main([
+                    "--source", "sellerboard", "--csv", str(csv_path), "--accounts", "acme-us",
+                    "--date", "2026-07-10", flag, str(totals_path), "--out", out_dir, "--quiet", *extra,
+                ])
+            md = Path(out_dir, "acme-us", "ads-monitor", "2026-07-10_daily.md")
+            return code, md.read_text(encoding="utf-8") if md.exists() else ""
+
+        code, text = _run("--ads-json", [], str(Path(tmp, "synq")))
+        check("daily_ads_json_exit_zero", code == 0, code)
+        check("daily_ads_json_crosscheck_synq_label", "Sellerboard and SYNQ agree" in text, text[-800:])
+        check("daily_ads_json_campaign_detail_names_synq", "ads source (SYNQ" in text and "AdLabs" not in text, text[-800:])
+
+        code, text = _run("--adlabs-json", ["--ads-source", "AdLabs"], str(Path(tmp, "adlabs")))
+        check("daily_adlabs_json_alias_exit_zero", code == 0, code)
+        check("daily_adlabs_json_alias_label", "Sellerboard and AdLabs agree" in text, text[-800:])
+
+        code, text = _run("--adlabs-json", [], str(Path(tmp, "adlabs-default")))
+        check("daily_adlabs_json_alias_default_label_adlabs", code == 0 and "Sellerboard and AdLabs agree" in text, text[-800:])
+
+        # The {"note", "rows": [figures]} wrapper a partial convert.py totals run writes.
+        totals_path.write_text(json.dumps({
+            "note": "PARTIAL: converted with --allow-truncated from cut input",
+            "rows": [{"ad_spend": 171.0, "ad_sales": 298.0, "total_sales": 1004.0}],
+        }), encoding="utf-8")
+        code, text = _run("--ads-json", [], str(Path(tmp, "wrapped")))
+        check("daily_ads_json_wrapper_exit_zero", code == 0, code)
+        check("daily_ads_json_wrapper_figures_used", "Sellerboard and SYNQ agree" in text, text[-800:])
+        check("daily_ads_json_wrapper_note_carried", "SYNQ figures carry a source note (PARTIAL" in text, text[-1200:])
+
+    alias_args = run_monitor._parse_args(["--adlabs-json", "x.json"])
+    check("daily_adlabs_json_alias_dest", alias_args.ads_json == "x.json" and alias_args.ads_source == "AdLabs", vars(alias_args))
+    synq_args = run_monitor._parse_args(["--ads-json", "x.json"])
+    check("daily_ads_json_label_default_synq", synq_args.ads_source == "SYNQ", vars(synq_args))
+    explicit_args = run_monitor._parse_args(["--adlabs-json", "x.json", "--ads-source", "SYNQ"])
+    check("daily_adlabs_json_explicit_source_wins", explicit_args.ads_source == "SYNQ", vars(explicit_args))
+
 
 # ---------------------------------------------------------------------------
 # flags.py goal lenses: same metrics, different severities per lens.
+
+# Campaign totals: a file holding campaign rows and their target rows (the
+# AdLabs campaign+target+keyword pull, or convert.py entities with a campaign
+# and a target file) counts each campaign's spend once, in any row order.
+
+def test_campaign_totals_mixed_grains():
+    from recommendations import _campaign_totals, normalize_entities
+    rows = [
+        {"entity_type": "campaign", "name": "Camp A", "campaign_name": "Camp A", "campaign_id": "C1",
+         "spend": 30.0, "impressions": 900, "sales": 60.0, "orders": 3, "clicks": 20},
+        {"entity_type": "target", "name": "kw one", "campaign_name": "Camp A", "campaign_id": "C1",
+         "spend": 18.0, "impressions": 500, "sales": 40.0, "orders": 2, "clicks": 12},
+        {"entity_type": "keyword", "name": "kw two", "campaign_name": "Camp A", "campaign_id": "C1",
+         "spend": 12.0, "impressions": 400, "sales": 20.0, "orders": 1, "clicks": 8},
+        {"entity_type": "target", "name": "kw three", "campaign_name": "Camp B", "campaign_id": "C2",
+         "spend": 5.0, "impressions": 100, "sales": 0.0, "orders": 0, "clicks": 3},
+        {"entity_type": "target", "name": "kw four", "campaign_name": "Camp B", "campaign_id": "C2",
+         "spend": 2.5, "impressions": 50, "sales": 0.0, "orders": 0, "clicks": 1},
+    ]
+    for label, order in (("campaign_first", rows), ("campaign_last", list(reversed(rows)))):
+        totals = _campaign_totals(normalize_entities(order))
+        check(f"campaign_totals_{label}_campaign_row_wins",
+              totals["C1"]["spend"] == 30.0 and totals["C1"]["impressions"] == 900, totals["C1"])
+        check(f"campaign_totals_{label}_children_summed_without_campaign_row",
+              totals["C2"]["spend"] == 7.5 and totals["C2"]["impressions"] == 150, totals["C2"])
+
 
 def test_goal_lens_severity_differences(campaign_analysis):
     # Campaign C (Rank/SKW near-zero impressions) is an ALERT under the
@@ -762,7 +854,7 @@ def test_weekly_report_rendering(weekly, active_flags, suppressed_flags, empty_t
 
 # ---------------------------------------------------------------------------
 # run_weekly.py CLI: a full end-to-end run from a synthetic Sellerboard CSV
-# alone (no AdLabs), plus a run WITH an AdLabs entities file + a signal
+# alone (no ads-source rows), plus a run WITH a SYNQ entities file + a signal
 # digest, proving the CLI's argument wiring (not just the library calls).
 
 def _build_synthetic_weekly_csv(days: int = 21) -> str:
@@ -788,8 +880,8 @@ def test_cli_end_to_end_weekly():
         csv_path = Path(tmp, "acme-us_dashboardtotals_30d.csv")
         csv_path.write_text(_build_synthetic_weekly_csv(), encoding="utf-8")
 
-        adlabs_path = Path(tmp, "adlabs_weekly.json")
-        adlabs_path.write_text(json.dumps([dict(_PROFIT_ENTITY), dict(_RANK_ENTITY)]), encoding="utf-8")
+        ads_path = Path(tmp, "synq_entities_weekly.json")
+        ads_path.write_text(json.dumps([dict(_PROFIT_ENTITY), dict(_RANK_ENTITY)]), encoding="utf-8")
 
         digest_path = Path(tmp, "digest.md")
         digest_path.write_text(
@@ -811,7 +903,7 @@ def test_cli_end_to_end_weekly():
                 "--date", "2026-07-10",
                 "--goal", "profit-maintain",
                 "--situation", "recurring acos spike on broad match",
-                "--adlabs-json", str(adlabs_path),
+                "--ads-json", str(ads_path),
                 "--signal-digest", str(digest_path),
                 "--rank-json", str(radar_path),
                 "--monthly-budget", "4000",
@@ -843,10 +935,50 @@ def test_cli_end_to_end_weekly():
         ])
         check("weekly_cli_rank_radar_json_alias", legacy_args.rank_json == str(radar_path), legacy_args.rank_json)
 
+        # The legacy --adlabs-json flag stays an alias of --ads-json; its label defaults to AdLabs.
+        alias_args = run_weekly._parse_args([
+            "--csv", str(csv_path), "--account", "acme-us", "--date", "2026-07-10",
+            "--adlabs-json", str(ads_path),
+        ])
+        check("weekly_cli_adlabs_json_alias", alias_args.ads_json == str(ads_path), alias_args.ads_json)
+        check("weekly_cli_adlabs_json_source_default_adlabs", alias_args.ads_source == "AdLabs", alias_args.ads_source)
+        synq_args = run_weekly._parse_args([
+            "--csv", str(csv_path), "--account", "acme-us", "--date", "2026-07-10",
+            "--ads-json", str(ads_path),
+        ])
+        check("weekly_cli_ads_source_default_synq", synq_args.ads_source == "SYNQ", synq_args.ads_source)
+
+        # The {"note", "rows"} wrapper: rows are read, a non-null note lands in the brief.
+        wrapped_path = Path(tmp, "synq_entities_wrapped.json")
+        wrapped_path.write_text(json.dumps({
+            "note": "ROW LIMIT REACHED: 2 rows returned = the requested limit (2)",
+            "rows": [dict(_PROFIT_ENTITY), dict(_RANK_ENTITY)],
+        }), encoding="utf-8")
+        wrapped_out = Path(tmp, "wrapped")
+        exit_code = run_weekly.main([
+            "--csv", str(csv_path), "--account", "acme-us", "--date", "2026-07-10",
+            "--goal", "profit-maintain", "--ads-json", str(wrapped_path),
+            "--out", str(wrapped_out), "--quiet",
+        ])
+        check("weekly_cli_wrapper_exit_zero", exit_code == 0, exit_code)
+        wrapped_md = wrapped_out / "acme-us" / "ads-monitor" / "2026-07-10_weekly.md"
+        wrapped_text = wrapped_md.read_text(encoding="utf-8") if wrapped_md.exists() else ""
+        check("weekly_cli_wrapper_rows_used", _PROFIT_ENTITY["name"] in wrapped_text or _RANK_ENTITY["name"] in wrapped_text)
+        check("weekly_cli_wrapper_note_carried", "SYNQ entity rows carry a source note (ROW LIMIT REACHED" in wrapped_text, wrapped_text[-1200:])
+
+        rows, notes = run_weekly.load_ads_entities(str(ads_path))
+        check("weekly_load_plain_list", len(rows) == 2 and notes == [], (len(rows), notes))
+        bad_path = Path(tmp, "bad.json")
+        bad_path.write_text(json.dumps({"rows": "nope"}), encoding="utf-8")
+        with redirect_stderr(io.StringIO()):
+            bad_code = run_weekly.main(["--csv", str(csv_path), "--account", "acme-us", "--date", "2026-07-10",
+                                        "--ads-json", str(bad_path), "--out", str(Path(tmp, "bad")), "--quiet"])
+        check("weekly_cli_bad_ads_json_exit_2", bad_code == 2, bad_code)
+
 
 def test_cli_end_to_end_weekly_csv_only():
     """The weekly CLI must run end-to-end from a Sellerboard CSV alone
-    (no --adlabs-json, no --signal-digest) -- Push/Pause-Optimize come
+    (no --ads-json, no --signal-digest) -- Push/Pause-Optimize come
     back empty with a note, not an error."""
     with tempfile.TemporaryDirectory() as tmp:
         csv_path = Path(tmp, "globex-us_dashboardtotals_30d.csv")
@@ -865,7 +997,7 @@ def test_cli_end_to_end_weekly_csv_only():
         check("weekly_csv_only_cli_writes_md", out_md.exists())
         if out_md.exists():
             text = out_md.read_text(encoding="utf-8")
-            check("weekly_csv_only_no_adlabs_note_present", "No AdLabs campaign/target-level rows supplied" in text)
+            check("weekly_csv_only_no_synq_note_present", "No SYNQ campaign/target-level rows supplied" in text, text[-800:])
 
 
 def test_weekly_metrics_json_contract():
@@ -1251,6 +1383,8 @@ def main() -> int:
     test_sellerboard_semicolon_delimiter_autodetect()
     test_real_sellerboard_sample()
     test_crosscheck_verdicts()
+    test_cli_daily_ads_json()
+    test_campaign_totals_mixed_grains()
     test_goal_lens_severity_differences(analysis)
 
     weekly = test_aggregate_week_math()

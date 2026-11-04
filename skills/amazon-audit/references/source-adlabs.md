@@ -1,6 +1,8 @@
-# Data source: AdLabs MCP (managed clients)
+# Data source: AdLabs MCP (AdLabs carve-out only)
 
-Loaded at step 2 when the brand resolves to an AdLabs profile. Every Lens A row must still be
+AdLabs carve-out only. AdLabs is retired for every other client; their managed audits load
+`references/source-synq.md`. Loaded at step 2 for `monthly` and `actions` when the brand is
+the AdLabs carve-out account (US or CA), which still runs on its AdLabs profile. Every Lens A row must still be
 filled from here. "Not available on this path" is only an acceptable answer for margin.
 
 

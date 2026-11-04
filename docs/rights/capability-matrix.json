@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_on": "2026-11-03",
+  "updated_on": "2026-11-04",
   "rows": [
     {
       "id": "seller-central.read",
@@ -1800,6 +1800,164 @@
       ],
       "verified_on": "2026-11-03",
       "notes": "Covers rank_tracker_create_group, rank_tracker_attach_products, rank_tracker_apply_suggested_phrases, rank_tracker_toggle_phrases_boost and index_checker_delete."
+    },
+    {
+      "id": "synq.read",
+      "domain": "synq",
+      "capability": "SYNQ MCP reads (ads metrics, search terms, SQP, inventory, catalog, change history)",
+      "grimoire": {
+        "state": "open",
+        "how": "Pending until the Grimoire SYNQ merge; then mention-pass free reads through its configured SYNQ tool allowlist."
+      },
+      "amazon_agent": {
+        "state": "allowed",
+        "how": "Use the SYNQ MCP free reads: list_clients (skip demo clients), confirm the client by SKU or title with get_catalog, then get_sync_status; never treat a row-capped list as complete."
+      },
+      "identity": "SYNQ OAuth identity in the MCP client; Slack follows the actor",
+      "port": null,
+      "spp_rows": [],
+      "gates": [
+        {
+          "kind": "file_literal",
+          "repo": "amazon-agent",
+          "file": "docs/synq-mcp.md",
+          "literal": "read-only and free"
+        },
+        {
+          "kind": "file_literal",
+          "repo": "amazon-agent",
+          "file": "docs/browser-routing-map.md",
+          "literal": "SYNQ MCP (Ads data, read-only)"
+        }
+      ],
+      "docs": [
+        {
+          "repo": "amazon-agent",
+          "path": "docs/rights/README.md",
+          "note": "Versioned authority; the SYNQ read, write and AdLabs carve-out rules live in docs/synq-mcp.md."
+        }
+      ],
+      "verified_on": "2026-11-04",
+      "notes": "The SYNQ MCP is read-only and spends no credits. No Amazon account mutation authority."
+    },
+    {
+      "id": "synq.web-execute",
+      "domain": "synq",
+      "capability": "SYNQ web-app changes (Bid Optimizer goals, roles and exclusions; Campaign Manager; Keyword Harvester; Search Term Negator)",
+      "grimoire": {
+        "state": "forbidden",
+        "how": "Grimoire never writes in SYNQ; SYNQ change questions go to an attended run."
+      },
+      "amazon_agent": {
+        "state": "approval-gated",
+        "how": "Exact-action approval naming the client, marketplace, exact entities, old and new values and the expected result; snapshot and tag with tools/amazon-ppc-management/batches.py, then read back with the SYNQ change tools.",
+        "identity": "Operator's own SYNQ web-app login in the attended operator session",
+        "port": 9222
+      },
+      "identity": "Operator's own SYNQ web-app login in the attended operator session",
+      "port": 9222,
+      "spp_rows": [],
+      "gates": [
+        {
+          "kind": "file_literal",
+          "repo": "amazon-agent",
+          "file": "docs/synq-mcp.md",
+          "literal": "exact-action approval"
+        },
+        {
+          "kind": "file_literal",
+          "repo": "amazon-agent",
+          "file": "docs/ppc-launch-guardrails.md",
+          "literal": "One writer per campaign"
+        }
+      ],
+      "docs": [
+        {
+          "repo": "amazon-agent",
+          "path": "docs/rights/README.md",
+          "note": "Versioned authority; the SYNQ read, write and AdLabs carve-out rules live in docs/synq-mcp.md."
+        }
+      ],
+      "verified_on": "2026-11-04",
+      "notes": "One writer per campaign: a SYNQ runner and any other bid writer never share a campaign. New campaign builds stay bulk files."
+    },
+    {
+      "id": "adlabs.read",
+      "domain": "adlabs",
+      "capability": "AdLabs reads, the AdLabs carve-out account (US and CA) only",
+      "grimoire": {
+        "state": "forbidden",
+        "how": "Grimoire's AdLabs MCP entry is disabled; ads questions for the AdLabs carve-out account go to an attended run."
+      },
+      "amazon_agent": {
+        "state": "allowed",
+        "how": "Read only the AdLabs profiles of the AdLabs carve-out account (US and CA); every other client reads ads data from SYNQ or, outside SYNQ, from Amazon reports."
+      },
+      "identity": "AdLabs identity in the MCP client; Slack follows the actor",
+      "port": null,
+      "spp_rows": [],
+      "gates": [
+        {
+          "kind": "file_literal",
+          "repo": "amazon-agent",
+          "file": "docs/synq-mcp.md",
+          "literal": "AdLabs carve-out account"
+        },
+        {
+          "kind": "file_literal",
+          "repo": "amazon-agent",
+          "file": "docs/amazon-library-map.md",
+          "literal": "AdLabs optimizer math"
+        }
+      ],
+      "docs": [
+        {
+          "repo": "amazon-agent",
+          "path": "docs/rights/README.md",
+          "note": "Versioned authority; the SYNQ read, write and AdLabs carve-out rules live in docs/synq-mcp.md."
+        }
+      ],
+      "verified_on": "2026-11-04",
+      "notes": "AdLabs is retired except the AdLabs carve-out account (US and CA). AMC runs only through AdLabs until its replacement route is decided. No Amazon account mutation authority."
+    },
+    {
+      "id": "adlabs.write",
+      "domain": "adlabs",
+      "capability": "AdLabs optimizer, harvest, opt-group and dayparting writes, the AdLabs carve-out account (US and CA) only",
+      "grimoire": {
+        "state": "forbidden",
+        "how": "Grimoire never writes through AdLabs."
+      },
+      "amazon_agent": {
+        "state": "approval-gated",
+        "how": "The AdLabs carve-out account (US and CA) only: preview first, then exact-action approval of the batch before the staged apply."
+      },
+      "identity": "AdLabs identity in the MCP client; Slack follows the actor",
+      "port": null,
+      "spp_rows": [],
+      "gates": [
+        {
+          "kind": "file_literal",
+          "repo": "amazon-agent",
+          "file": "docs/synq-mcp.md",
+          "literal": "never share a campaign"
+        },
+        {
+          "kind": "file_literal",
+          "repo": "amazon-agent",
+          "file": "docs/ppc-launch-guardrails.md",
+          "literal": "AdLabs optimizer or dayparting"
+        }
+      ],
+      "docs": [
+        {
+          "repo": "amazon-agent",
+          "path": "docs/rights/README.md",
+          "note": "Versioned authority; the SYNQ read, write and AdLabs carve-out rules live in docs/synq-mcp.md."
+        }
+      ],
+      "verified_on": "2026-11-04",
+      "notes": "The AdLabs carve-out account's live AdLabs dayparting schedules overwrite console and bulk bid edits on their campaigns."
     },
     {
       "id": "browser.anchor-refusal",

@@ -156,7 +156,7 @@ def analyze_account(
     metrics: Optional[tuple] = None,
 ) -> AnalysisResult:
     """`metrics`: see `analyze_series`; applied to both the account series
-    and every campaign series (campaign rows from an AdLabs adapter still
+    and every campaign series (campaign rows from an ads-source adapter (SYNQ) still
     use the default SP-Ads metric set unless overridden explicitly)."""
     by_date = {r.date: r for r in account_rows}
     account_series = analyze_series(by_date, report_date, label=account, category=CATEGORY_UNKNOWN, metrics=metrics)

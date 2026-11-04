@@ -5,12 +5,20 @@
 Use the narrowest source that can establish the fact. Timestamp every extraction and retain its source ID in each evidence row.
 
 1. Live Amazon reports and account state: Amazon Ads, Seller Central reports, SQP, Account Health, catalog, inventory, and buyability.
-2. Managed advertising and rank state: AdLabs for change history, optimization groups, and query intelligence; the SoldScope rank tracker (free `rank_tracker_*` reads of the client's tracking group) for rank state and rank history. SoldScope history for the copied trackers starts on 21.10.2026. SoldScope has no source for the seller's listing-change history (DataDive had one), so state that gap in the handover instead of implying a listing change log is complete.
+2. Managed advertising and rank state: SYNQ `get_ads_change_log` and `get_entity_changes` for change history; SYNQ `get_sqp_data` for query intelligence; the Bid Optimizer runner setup (goals, campaign roles, exclusions) read from the SYNQ Bid Optimizer page, read-only in the browser; the SoldScope rank tracker (free `rank_tracker_*` reads of the client's tracking group) for rank state and rank history. SoldScope history for the copied trackers starts on 21.10.2026. SoldScope has no source for the seller's listing-change history (DataDive had one), so state that gap in the handover instead of implying a listing change log is complete. AdLabs carve-out only: change history and optimization groups come from AdLabs.
 3. Customer and creative evidence: POE, listing capture, approved image files, briefs, and client-visible Drive assets.
 4. Economics: approved finance source or current client-approved unit economics.
 5. Timeline reconciliation: internal Slack, Notion, team-vault run notes, and prior tactical documents. Convert relevant findings into dated client-readable facts. Never expose internal links.
 
 Do not describe a source as current merely because it is the newest file found. Compare its coverage end date with the cutoff and performance windows.
+
+## SYNQ client status
+
+Every SYNQ read starts as `docs/synq-mcp.md` says: `list_clients` (skip `is_demo` clients), a `get_catalog` SKU or title check, then `get_sync_status`. Read the client's `lifecycle_status` first:
+
+- `active` or `offboarding`: SYNQ is readable. `offboarding` is the normal status for this workflow, so read it like an active client and record the status and `get_sync_status` `updated_at` in the evidence manifest.
+- `purged`: the client's SYNQ data is gone. Take advertising history and state from the Ads console and bulk downloads instead, and disclose in the handover that SYNQ change history was unavailable.
+- Not listed: the client is not yet in SYNQ (or never was); use the same console and bulk-download fallback.
 
 ## Required manifest behavior
 
@@ -60,7 +68,7 @@ Exclude Slack, Notion, localhost, internal Drive material, broken links, duplica
 Load only the specialist skills needed by the evidence that exists:
 
 - advertising history and state: `amazon-ads-console`, `amazon-ppc-weekly-management`, `amazon-reporting`;
-- rank and query evidence: `amazon-audit`, `amazon-opportunity-explorer`, the SoldScope rank tracker and AdLabs routes;
+- rank and query evidence: `amazon-audit`, `amazon-opportunity-explorer`, the SoldScope rank tracker and SYNQ routes (AdLabs carve-out: AdLabs);
 - listing and creative: `amazon-listing-capture`, `amazon-seo`, `amazon-opportunity-explorer`;
 - catalog: `amazon-catalog`;
 - inventory and buyability: `amazon-fba-inventory-planning`, `amazon-reporting`;

@@ -1,6 +1,7 @@
 """recommendations.py -- the weekly brief's PROPOSAL engine.
 
-Pure functions over normalized AdLabs campaign/target-level rows for one
+Pure functions over normalized ads-source (SYNQ; AdLabs for the AdLabs carve-out account)
+campaign/target-level rows for one
 account's week (no I/O, no MCP -- same discipline as analyze.py/flags.py).
 This is the piece that makes the weekly brief more than a bigger daily
 report: it looks at the week's campaign/target detail and proposes THREE
@@ -86,10 +87,12 @@ def _discovery_share_max(goal: Optional[str]) -> float:
 
 
 # ---------------------------------------------------------------------------
-# Entity normalization. The skill layer supplies a list of dicts (from the
-# AdLabs MCP, already filtered post-fetch by profile_id -- see SKILL.md's
-# note on AdLabs returning all team profiles regardless of the filter
-# passed to it). Missing/optional fields degrade gracefully.
+# Entity normalization. The skill layer supplies a list of dicts (for SYNQ:
+# get_daily_metrics campaign/target rows per window, joined to
+# list_campaigns and get_search_terms by `tools/synq/convert.py entities`;
+# for the AdLabs carve-out account: the AdLabs pull, filtered post-fetch by profile_id). SYNQ
+# metric rows carry no budget, so `daily_budget` / `budget_capped_days` /
+# `time_in_budget` arrive as null. Missing/optional fields degrade gracefully.
 
 @dataclass
 class Entity:
@@ -401,18 +404,38 @@ def _self_competition_groups(entities: list) -> dict:
 
 def _campaign_totals(entities: list) -> dict:
     """Roll target/keyword-level rows up to campaign totals (spend,
-    impressions) for the stalled-campaign check. Rows already at
-    entity_type == 'campaign' are used directly."""
+    impressions) for the stalled-campaign check.
+
+    One file can hold campaign rows and their target/keyword rows (the
+    AdLabs pull asked for campaign, target and keyword grains together;
+    `tools/synq/convert.py entities` with a campaign and a target metrics
+    file does the same). A campaign row already IS the campaign total, so
+    it wins whatever the row order, and that campaign's child rows are
+    ignored. Child rows are summed only for campaigns without a campaign
+    row."""
     totals: dict = {}
+    by_id: dict = {}
+    by_name: dict = {}
     for e in entities:
+        if e.entity_type != "campaign":
+            continue
         key = e.campaign_id or e.campaign_name
         agg = totals.setdefault(key, {"name": e.campaign_name, "spend": 0.0, "impressions": 0, "category": e.category})
+        agg["spend"] = e.spend
+        agg["impressions"] = e.impressions
+        if e.campaign_id:
+            by_id[e.campaign_id] = key
+        if e.campaign_name:
+            by_name[e.campaign_name] = key
+    for e in entities:
         if e.entity_type == "campaign":
-            agg["spend"] = e.spend
-            agg["impressions"] = e.impressions
-        else:
-            agg["spend"] += e.spend
-            agg["impressions"] += e.impressions
+            continue
+        if (e.campaign_id and e.campaign_id in by_id) or (e.campaign_name and e.campaign_name in by_name):
+            continue  # this campaign's total came from its campaign row (names are unique per account)
+        key = e.campaign_id or e.campaign_name
+        agg = totals.setdefault(key, {"name": e.campaign_name, "spend": 0.0, "impressions": 0, "category": e.category})
+        agg["spend"] += e.spend
+        agg["impressions"] += e.impressions
     return totals
 
 
@@ -731,10 +754,12 @@ def build_recommendations(
     rank_rows: Optional[list] = None,
     pacing=None,
     rank_radar: Optional[list] = None,
+    source_label: str = "SYNQ",
 ) -> RecommendationsResult:
-    """Top-level entry point. `raw_entities`: normalized AdLabs weekly
-    campaign/target rows (see `normalize_entities`). `signal_items`: parsed
-    external-signal digest entries (see `parse_signal_digest_markdown`),
+    """Top-level entry point. `raw_entities`: normalized ads-source weekly
+    campaign/target rows (see `normalize_entities`); `source_label` names
+    that source in the notes (default SYNQ; AdLabs carve-out: AdLabs).
+    `signal_items`: parsed external-signal digest entries (see `parse_signal_digest_markdown`),
     already tagged/pre-filtered by the critical-review protocol upstream
     -- this function still requires them to map to a `brand_tags` entry
     before surfacing them, so an unrelated signal never leaks in just
@@ -764,7 +789,7 @@ def build_recommendations(
 
     notes = list(pause_notes)
     if not entities:
-        notes.append("No AdLabs campaign/target-level rows supplied this week -- Push/Pause-Optimize lists are empty by construction, not a clean bill of health.")
+        notes.append(f"No {source_label} campaign/target-level rows supplied this week -- Push/Pause-Optimize lists are empty by construction, not a clean bill of health.")
     if not radar and any(e.category == CATEGORY_RANK for e in entities):
         notes.append(
             "No organic-rank rows supplied -- graduation and per-keyword rank protection were skipped; "

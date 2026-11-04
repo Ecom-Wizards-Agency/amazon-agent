@@ -22,12 +22,17 @@ for the delivered-file/local-fetch flow):
         --csv _local/ads-monitor/inbox/acme/dashboardtotals_7d.csv \\
         --accounts acme --goal rank-launch --date 2026-07-13
 
-Pass a same-day AdLabs figure file (fetched via the AdLabs MCP at the
-skill layer -- this CLI makes no MCP/network calls itself) to also run
-the Sellerboard-vs-AdLabs cross-check:
+Pass a same-day ads-source figure file to also run the Sellerboard-vs-ads
+cross-check. For SYNQ the skill layer pulls `get_daily_metrics` with
+`group_by: total` through the SYNQ MCP and converts it with
+`tools/synq/convert.py totals` (this CLI makes no MCP/network calls itself):
 
     python3 tools/amazon-ads-monitor/run_monitor.py --source sellerboard \\
-        --csv <path> --accounts acme --adlabs-json <path to {"ad_spend":..,"ad_sales":..,"total_sales":..}>
+        --csv <path> --accounts acme --ads-json <path to {"ad_spend":..,"ad_sales":..,"total_sales":..}>
+
+`--ads-source` (default SYNQ) names the ads source in the cross-check line;
+The AdLabs carve-out account passes `--ads-source AdLabs` with its AdLabs figures.
+`--adlabs-json` stays as a legacy alias of `--ads-json`.
 
 Real Amazon Ads API (secondary source, once _local/ads-monitor/config.json
 has credentials):
@@ -48,7 +53,7 @@ from analyze import analyze_account
 from datasource import DATASOURCES, SPAdsApiConfigError, SELLERBOARD_METRICS
 from flags import evaluate, resolve_goal_lens, GOAL_LENSES
 from report import render_markdown, render_slack, default_slack_channel, SELLERBOARD_HEADLINE_METRICS, SELLERBOARD_SLACK_HEADLINE_METRICS, SELLERBOARD_METRIC_LABEL_OVERRIDES
-from crosscheck import cross_check
+from crosscheck import cross_check, DEFAULT_SOURCE_LABEL
 
 DEFAULT_SLACK_CHANNEL_ID = default_slack_channel()  # real ID lives in _local/ads-monitor/config.json
 
@@ -75,18 +80,60 @@ def _parse_args(argv=None) -> argparse.Namespace:
              "Adjusts flag thresholds/severity/wording (see flags.py GOAL_LENSES). Unknown/omitted -> neutral lens (unchanged behavior).",
     )
     p.add_argument(
-        "--adlabs-json", type=str, default=None,
-        help="Path to a JSON file with same-report-day AdLabs figures {\"ad_spend\":.., \"ad_sales\":.., "
-             "\"total_sales\":..} (fetched via the AdLabs MCP at the skill layer -- this CLI makes no "
-             "MCP/network calls itself). When given, runs the Sellerboard-vs-AdLabs cross-check "
-             "(crosscheck.py) and includes the verdict in the report.",
+        "--ads-json", dest="ads_json", type=str, default=None,
+        help="Path to a JSON file with same-report-day ads-source figures {\"ad_spend\":.., \"ad_sales\":.., "
+             "\"total_sales\":..}, or the {\"note\", \"rows\": [figures]} wrapper tools/synq/convert.py "
+             "totals writes for a partial (--allow-truncated) run (for SYNQ: get_daily_metrics group_by "
+             "total, converted at the skill layer -- this CLI makes no MCP/network calls itself). When "
+             "given, runs the Sellerboard-vs-ads cross-check (crosscheck.py) and includes the verdict in "
+             "the report; a wrapper note is carried into the report notes.",
+    )
+    p.add_argument(
+        "--adlabs-json", dest="adlabs_json", type=str, default=None,
+        help="Legacy alias of --ads-json for AdLabs figures; the cross-check label then defaults to AdLabs.",
+    )
+    p.add_argument(
+        "--ads-source", type=str, default=None,
+        help="Name of the ads source shown in the cross-check line (default: SYNQ with --ads-json, "
+             "AdLabs with the legacy --adlabs-json; the AdLabs carve-out account: AdLabs).",
     )
     p.add_argument("--tolerance", type=float, default=None, help="Cross-check tolerance as a fraction (default: crosscheck.DEFAULT_TOLERANCE, +/-7%%)")
     p.add_argument("--out", type=str, default="output", help="Base output directory (default: output)")
     p.add_argument("--window-days", type=int, default=14, help="Days of history to fetch before the report date for trailing calcs (default: 14)")
     p.add_argument("--slack-json", type=str, default=None, help="Write the Slack payload here ('-' for stdout); one payload per account")
     p.add_argument("--quiet", action="store_true", help="Suppress the per-account console summary")
-    return p.parse_args(argv)
+    args = p.parse_args(argv)
+    if args.ads_json and args.adlabs_json:
+        p.error("pass --ads-json or its legacy alias --adlabs-json, not both")
+    if args.ads_source is None:
+        args.ads_source = "AdLabs" if args.adlabs_json else DEFAULT_SOURCE_LABEL
+    if args.adlabs_json:
+        args.ads_json = args.adlabs_json
+    return args
+
+
+def load_ads_figures(path: str, ads_source: str = DEFAULT_SOURCE_LABEL):
+    """Read an `--ads-json` figures file: the plain `{ad_spend, ad_sales,
+    total_sales}` object, or the `{"note": <text or null>, "rows": [figures]}`
+    wrapper `tools/synq/convert.py totals` writes for a partial run. Returns
+    `(figures, notes)`; a non-null note becomes a report note so partial
+    figures are never presented as complete."""
+    payload = json.loads(Path(path).read_text(encoding="utf-8"))
+    if isinstance(payload, dict) and "rows" in payload:
+        rows = payload.get("rows")
+        if not (isinstance(rows, list) and len(rows) == 1 and isinstance(rows[0], dict)):
+            raise ValueError(f"--ads-json {path}: a {{\"note\", \"rows\"}} wrapper must hold exactly one figures object")
+        note = payload.get("note")
+        notes = []
+        if note:
+            notes.append(
+                f"{ads_source} figures carry a source note ({str(note).strip()}) -- the cross-check "
+                "may compare partial figures; re-pull before trusting the verdict."
+            )
+        return rows[0], notes
+    if isinstance(payload, dict):
+        return payload, []
+    raise ValueError(f"--ads-json {path}: expected a figures object or a {{\"note\", \"rows\"}} wrapper")
 
 
 def _load_config(path: str) -> dict:
@@ -132,15 +179,18 @@ def _build_datasource(source: str, config: dict, csv_paths: list = None, account
             )
         account = account_hint or _infer_account_from_csv_path(csv_paths[0])
         return cls.from_paths({account: csv_paths})
-    # adlabs / marketplaceadpros: documented stubs, instantiate to surface
+    # synq / adlabs / marketplaceadpros: documented stubs, instantiate to surface
     # the clear NotImplementedError from their constructors/methods.
     return cls()
 
 
 def run_account(
     ds, account: str, report_date: dt.date, window_days: int, config: dict, source: str,
-    goal: str = None, adlabs_figures: dict = None, tolerance: float = None,
+    goal: str = None, ads_figures: dict = None, tolerance: float = None,
+    ads_source: str = DEFAULT_SOURCE_LABEL, adlabs_figures: dict = None, figure_notes: list = None,
 ):
+    if ads_figures is None and adlabs_figures is not None:  # legacy keyword
+        ads_figures = adlabs_figures
     start = report_date - dt.timedelta(days=window_days)
     account_rows = ds.get_account_daily(account, start, report_date)
     campaign_rows = ds.get_campaign_daily(account, start, report_date)
@@ -154,15 +204,16 @@ def run_account(
         thresholds_note = "Using config-overridden thresholds (see _local/ads-monitor/config.json)."
 
     notes = [n for n in [thresholds_note] if n]
+    notes.extend(n for n in (figure_notes or []) if n)
     if source == "sellerboard" and not account_rows:
         notes.append(
             "Sellerboard feed returned no rows for this window (blank/just-requested report or no "
-            "delivered file yet) -- per SELLERBOARD-FORMAT.md, fall back to AdLabs for this brand/day "
+            f"delivered file yet) -- per SELLERBOARD-FORMAT.md, fall back to {ads_source} for this brand/day "
             "at the skill layer; this CLI run has no account-level figures to report."
         )
 
     crosscheck_result = None
-    if adlabs_figures is not None:
+    if ads_figures is not None:
         report_row = analysis.account_series.report_row
         sb_figures = {
             "ad_spend": report_row.spend if report_row else None,
@@ -170,7 +221,7 @@ def run_account(
             "total_sales": report_row.total_sales if report_row else None,
         }
         kwargs = {} if tolerance is None else {"tolerance": tolerance}
-        crosscheck_result = cross_check(sb_figures, adlabs_figures, **kwargs)
+        crosscheck_result = cross_check(sb_figures, ads_figures, source_label=ads_source, **kwargs)
 
     lens = resolve_goal_lens(goal)
 
@@ -180,7 +231,8 @@ def run_account(
             "mock": "MOCK (synthetic data, no live credentials)",
             "sellerboard": "Sellerboard 'Dashboard Totals' (PRIMARY, whole-account truth)",
             "spads": "Amazon Ads API v3 (SP, secondary)",
-            "adlabs": "AdLabs (ad-granular cross-check, same-day figure corrects tomorrow)",
+            "synq": "SYNQ (ad-granular cross-check; Sales and Traffic lags 2-3 days)",
+            "adlabs": "AdLabs (AdLabs carve-out only; ad-granular cross-check, same-day figure corrects tomorrow)",
             "marketplaceadpros": "MarketplaceAdPros (secondary/cross-check)",
         }.get(source, source),
         "preview": source == "mock",
@@ -190,6 +242,7 @@ def run_account(
         "notes": notes,
         "goal_lens": {"label": lens["label"], "description": lens["description"]},
         "crosscheck": crosscheck_result,
+        "ads_source": ads_source,
     }
     if source == "sellerboard":
         meta["headline_metrics"] = SELLERBOARD_HEADLINE_METRICS
@@ -215,9 +268,13 @@ def main(argv=None) -> int:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 2
 
-    adlabs_figures = None
-    if args.adlabs_json:
-        adlabs_figures = json.loads(Path(args.adlabs_json).read_text(encoding="utf-8"))
+    ads_figures, figure_notes = None, []
+    if args.ads_json:
+        try:
+            ads_figures, figure_notes = load_ads_figures(args.ads_json, args.ads_source)
+        except ValueError as exc:
+            print(f"ERROR: {exc}", file=sys.stderr)
+            return 2
 
     accounts = args.accounts.split(",") if args.accounts else ds.list_accounts()
     out_base = Path(args.out)
@@ -229,7 +286,8 @@ def main(argv=None) -> int:
         try:
             analysis, active_flags, suppressed_flags, markdown, slack_payload = run_account(
                 ds, account, report_date, args.window_days, config, args.source,
-                goal=args.goal, adlabs_figures=adlabs_figures, tolerance=args.tolerance,
+                goal=args.goal, ads_figures=ads_figures, tolerance=args.tolerance,
+                ads_source=args.ads_source, figure_notes=figure_notes,
             )
         except Exception as exc:  # noqa: BLE001 -- surface per-account errors, keep going
             print(f"ERROR [{account}]: {exc}", file=sys.stderr)

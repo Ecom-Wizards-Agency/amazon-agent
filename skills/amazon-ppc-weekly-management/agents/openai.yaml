@@ -1,4 +1,4 @@
 interface:
   display_name: "Amazon PPC Weekly Management"
-  short_description: "Run the weekly AdLabs PPC loop"
-  default_prompt: "Use $amazon-ppc-weekly-management to run the weekly AdLabs PPC loop for this request."
+  short_description: "Run the weekly SYNQ PPC loop"
+  default_prompt: "Use $amazon-ppc-weekly-management to run the weekly SYNQ PPC loop for this request."

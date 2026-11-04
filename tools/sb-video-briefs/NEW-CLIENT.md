@@ -1,7 +1,7 @@
 # New client setup: SB video briefs
 
 1. Copy `config.TEMPLATE.json` to `config.<client>-<market>-<product-line>.json`. It stays local and gitignored. Use one config per product line.
-2. Fill the exact Seller Central account-picker name, expected `partnerAccountId`, optional agency parent, marketplace label, marketplace, language, ASINs, the SoldScope keyword research run in `client.research` (ASINs with the anchor first, marketplace, `search_id`), AdLabs profile, and existing Drive creative folder.
+2. Fill the exact Seller Central account-picker name, expected `partnerAccountId`, optional agency parent, marketplace label, marketplace, language, ASINs, the SoldScope keyword research run in `client.research` (ASINs with the anchor first, marketplace, `search_id`), SYNQ client id (`client.synq_client_id`; older configs carry `client.adlabs_profile_id`, now legacy and AdLabs carve-out only), and existing Drive creative folder.
 3. Pin the latest Google Drive keyword-research workbook when one exists. The scouting pass combines its roots with the SoldScope roots (`roots.csv` from `tools/soldscope/keywords.py`) before POE discovery. Older configs may still carry `client.datadive_niche`; treat saved DataDive data from that niche as dated evidence only.
 4. Brand kit and footage locations can start as `none`. Missing strategy direction does not block a brief. Missing required footage becomes an exact production gap on the affected card.
 5. Build or refresh the Creative Reference & Asset Library before the brief.

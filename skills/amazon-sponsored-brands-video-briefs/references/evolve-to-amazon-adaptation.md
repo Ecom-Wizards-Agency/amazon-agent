@@ -63,7 +63,7 @@ Inputs, in priority order:
 1. POE (niche level): top search terms, search volume, click share and conversion share of the top ASINs. Find queries with high volume where the top 3 do not dominate click share: those are winnable shelves.
 2. SoldScope keyword research (`research.json` and `roots.csv` for our ASINs and competitors): relevancy, our rank per query, root aggregation. Use it to draw cluster boundaries and to check whether we have organic support (a video that clicks to a listing that does not mention the criterion will not convert).
 3. SQP (per-ASIN): our real impression, click, and purchase share per query. The video shortlist lives where impression share is meaningful but click share underperforms: we are seen and not chosen. That is a creative problem, which a video can fix.
-4. AdLabs or bulk ads data: where we already spend on the cluster and what SB or SP CTR and CVR look like today. An existing high-spend, low-CTR SB target is the single best video candidate in the account.
+4. SYNQ ads data (a bulk download for clients not yet in SYNQ; AdLabs carve-out: AdLabs): where we already spend on the cluster and what SB or SP CTR and CVR look like today. An existing high-spend, low-CTR SB target is the single best video candidate in the account.
 
 Scorecard per candidate cluster (gate, then rank):
 

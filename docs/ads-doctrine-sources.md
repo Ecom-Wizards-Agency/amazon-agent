@@ -7,7 +7,7 @@ This map prevents one operating rule from acquiring several competing homes.
 1. Current first-party Amazon documentation controls platform rules, eligibility, and live UI behavior.
 2. `_local/ads-strategy/strategy.json` owns numeric operating thresholds. Skills and tools consume or cite its keys instead of creating independent values.
 3. Tracked `SKILL.md` files own non-numeric operating procedure and safety gates.
-4. The team-vault `Research/amazon-ads/challenges.md` holds the synchronized challenge decisions and evidence. `Decisions/2026-08-11-amazon-ads-doctrine-upgrade.md` records the implementation order and named TBDs.
+4. The team-vault `Research/amazon-ads/challenges.md` holds the synchronized challenge decisions and evidence. `Decisions/2026-08-11-amazon-ads-doctrine-upgrade.md` records the implementation order and named TBDs. `Decisions/2026-11-03-adlabs-retired-synq-primary.md` records that SYNQ replaced AdLabs as the ads data source and change route, with the AdLabs carve-out account (US and CA) kept on AdLabs.
 5. Team-vault Playbooks contain tested agency practice. Research is evidence and never overrides doctrine automatically.
 
 The machine-readable threshold-to-consumer registry is
@@ -32,9 +32,11 @@ the value.
 ## Recall contract
 
 Before an ads workflow, run `python3 tools/ads_recall.py <surface>`. The helper
-resolves the team vault, lists the implementation decision when present, then the
+first lists the tracked SYNQ source contract `docs/synq-mcp.md` for every ads surface
+except `seo-rank-gate`. It then resolves the team vault and lists the 2026-08-11 doctrine
+decision and the 2026-11-03 SYNQ decision when present, then the
 synchronized challenge decisions, matching Playbook, and Research topics. The agent reads the returned files in that
-order. If the team vault is unavailable, the helper exits successfully without output
+order. If the team vault is unavailable, the helper exits successfully without vault paths
 and the tracked skill plus local strategy remain sufficient to continue.
 
 `Playbooks/` holds long-form tactical write-ups from the team's own tested account work:

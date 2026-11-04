@@ -28,11 +28,17 @@ Use the brand's own purchases as the primary commercial signal. Break ties or br
 
 Keep the selection method visible and count the excluded tail. If the operator names specific parents or queries, preserve them even when they fall outside the automatic top set.
 
-## AdLabs Reference Handling
+## SYNQ SQP Handling
 
-Current AdLabs reference queries require `SELECT * FROM reference_data`. Preserve all existing columns and append computed columns when needed. Do not copy the external narrow-select pattern into this workflow.
+SYNQ `get_sqp_data` returns one row per ASIN, query and period. The market columns (`search_query_volume`, `total_query_impressions`, `total_clicks`, `total_cart_adds`, `total_purchases` and the other `total_*` columns) repeat on every ASIN row for the same query and period. Take them once per query and period; summing them across ASINs multiplies the market. Sum only the ASIN columns (`impressions`, `clicks`, `cart_adds`, `purchases`) across ASINs. For brand totals, call `get_sqp_data` with `brand_level: true` instead of adding up ASIN rows.
 
-Reuse one fetched reference through group, query, and read operations where possible. Do not re-fetch the same SQP rows per parent. Read compact slices only after filtering and aggregation.
+Save each response as `{"note": <note text or null>, "rows": [...]}`. When the note says "ROW LIMIT REACHED" or "TRUNCATED", the rows were cut: narrow by `search_query`, period or ASIN, or raise `limit` (max 2000), and never report a cut list as complete.
+
+Reuse one fetch through grouping and reading. Do not re-fetch the same SQP rows per parent. Read compact slices only after filtering and aggregation.
+
+### AdLabs carve-out only
+
+AdLabs reference queries require `SELECT * FROM reference_data`. Preserve all existing columns and append computed columns when needed. Do not copy the external narrow-select pattern into this workflow. Reuse one fetched reference through group, query, and read operations where possible.
 
 ## Reconciliation
 

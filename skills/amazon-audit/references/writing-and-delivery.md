@@ -104,7 +104,7 @@ Use charts for numeric relationships and point the reader to the MASTER workbook
 
 The reusable profile is:
 
-- Full `deep` prospect audit using downloads only. Never initialize AdLabs.
+- Full `deep` prospect audit using downloads only. Never call SYNQ or initialize AdLabs.
 - Current Victor voice authority when one is configured, while preserving the audit's evidence
   hierarchy, causal caveats, and brand contract.
 - One combined **Problems and Solutions** section. Use an action-led heading, short diagnosis, one
@@ -190,7 +190,7 @@ Check each one, and fold it into **Problems and Solutions** where the data suppo
 
 Ship one **MASTER** Excel file plus its component workbooks: the Ad/Sales Audit workbook, the SQP
 Intelligence workbook, and the MASTER that merges both under a built one-page Overview. On the
-download path `build_audit.py` produces all three. On the MCP path, build to the same depth using
+download path `build_audit.py` produces all three. On the SYNQ or AdLabs path, build to the same depth using
 `ew_audit_style.py` and a per-run script; **do not use `build_audit.py`**, whose preflight and
 `parse_bulk` hardcode a contract the MCP does not reproduce.
 
@@ -296,7 +296,7 @@ clipped titles only show up when you open the PNG. Simpler beats complete.
 The narrative is built as a brand-styled **A4 `.docx` intermediate**, rendered from the narrative `.md` by
 `tools/amazon-ad-audit/render_branded.py`. Not a pixel deck: a clean, readable report carrying the
 CI. `render(cfg, outdir, scaffold_md, cover=False, brand_dir=None)` takes a **Path**, not a string.
-It is client- and source-agnostic, so the MCP path uses it too: set `custom_kpis` in `metrics.json`
+It is client- and source-agnostic, so the SYNQ and AdLabs paths use it too: set `custom_kpis` in `metrics.json`
 as `[[number, label, sub-or-null], ...]` and the renderer needs no `totals` or `breakeven` at all
 (the hook sits in `_kpis(M)`).
 
@@ -392,10 +392,14 @@ the client can see it.
 files. Keep the build script beside the output for reruns. Confirm with the operator before a
 prospect sees anything.
 
-**Attach the GoTo links** per flagged dataset on the MCP path. They are session-generated and expire,
-so describe the filters in the deliverable as well.
+**Describe each flagged dataset's filters** on the SYNQ path (client, marketplace, tool, entity type,
+window and sort), so the reader can rebuild the view in the SYNQ app. AdLabs carve-out only:
+attach the GoTo links per flagged dataset as well. They are session-generated and expire, so the
+filter description stays in the deliverable.
 
-**Keep sources separate and labelled.** Ads cite AdLabs, net of VAT; P&L cites Sellerboard, gross.
+**Keep sources separate and labelled.** Ads cite SYNQ, labelled "SYNQ-reported attributed sales"
+until SYNQ confirms the attribution window; the AdLabs carve-out account's ads cite AdLabs, net of VAT. P&L cites
+Sellerboard, gross.
 Never mix product totals from one with ad cost from the other. Expect roughly a VAT-sized gap between
 the two ad-spend figures and reconcile it explicitly rather than silently picking one.
 
@@ -459,7 +463,7 @@ a table or the title is safer through the scaffold.
   count SB once, or ad spend and sales inflate; this once added about $112k of phantom ad sales.
 - **SP "Bidding Adjustment" rows carry placement-level campaign totals.** Never sum them with keyword
   or target rows. Audience-cohort rows are excluded from the placement table for the same reason: they
-  re-slice the same traffic by audience. On the MCP path the same trap appears as the placement entity,
+  re-slice the same traffic by audience. On the SYNQ and AdLabs paths the same trap appears as placement rows,
   whose totals must not be summed with target rows.
 - **PAT rows with no typed query classify by target**: own ASIN is branded defence, foreign ASIN is
   conquesting. Only where the row genuinely has no search term.
@@ -475,5 +479,6 @@ a table or the title is safer through the scaffold.
 - **Keyword research covers the compared ASINs only.** Demand totals come from the keywords at
   least one compared ASIN ranks for (top 50), so they are a floor on the category. Legacy DataDive
   files cap at 500 visible rows of the niche. Keep outliers visible and do not imply full coverage.
-- **AdLabs availability labels lie.** "In Stock" or "Eligible" can appear with `fulfillable_units = 0`.
-  Check units before diagnosing dark campaigns.
+- **Availability labels lie.** On SYNQ a listing can read buyable while `fulfillable_quantity` is 0.
+  AdLabs carve-out only: "In Stock" or "Eligible" can appear with `fulfillable_units = 0`. Check
+  units before diagnosing dark campaigns.

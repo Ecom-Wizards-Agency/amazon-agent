@@ -23,4 +23,4 @@ The user's brief is: **$ARGUMENTS**
 
 6. **Build + QA**: `--config <cfg>`; gates must PASS. Deliver the `.xlsx` + `_REVIEW.md` paths.
 
-7. **Stop.** Uploading in Campaign Manager → Bulk Operations (or any AdLabs push) is a separate operator-confirmed action. Never do it as part of this command.
+7. **Stop.** Uploading in Campaign Manager → Bulk Operations (or any SYNQ Campaign Manager push, or an AdLabs push for the AdLabs carve-out account) is a separate operator-confirmed action. Never do it as part of this command.

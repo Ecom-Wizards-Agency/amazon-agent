@@ -345,5 +345,178 @@ class TemplateEngineTests(unittest.TestCase):
             registry.validate()
 
 
+    # ------------------------------------------------------------------
+    # Ads source: SYNQ keys first, legacy AdLabs keys as the fallback.
+
+    @staticmethod
+    def _example_config() -> dict:
+        return json.loads(
+            (Path(__file__).parent / "brand-config.example.json").read_text(
+                encoding="utf-8"
+            )
+        )
+
+    def test_example_config_loads_synq_keys(self) -> None:
+        registry = MonthlySourceRegistry.from_brand_config(self._example_config())
+        registry.validate()
+        self.assertEqual(registry.synq_client_id, "CTEST0001")
+        self.assertEqual(registry.synq_dashboard, "Example US monthly")
+        self.assertEqual(registry.adlabs_profile, "")
+        self.assertEqual(registry.ads_source, "SYNQ")
+        self.assertEqual(registry.ads_dashboard, "Example US monthly")
+        self.assertTrue(registry.dashboard_preflight["required"])
+        self.assertEqual(registry.dashboard_preflight_issues(), ())
+
+    def test_synq_dashboard_id_is_read_when_name_is_blank(self) -> None:
+        config = self._example_config()
+        config["sources"]["synq_dashboard"] = ""
+        config["sources"]["synq_dashboard_id"] = "dash-1"
+        registry = MonthlySourceRegistry.from_brand_config(config)
+        registry.validate()
+        self.assertEqual(registry.synq_dashboard, "dash-1")
+
+    def test_unverified_preflight_check_is_reported(self) -> None:
+        config = self._example_config()
+        config["sources"]["synq_dashboard_preflight"]["comparison_period_verified"] = False
+        registry = MonthlySourceRegistry.from_brand_config(config)
+        self.assertEqual(
+            registry.dashboard_preflight_issues(), ("comparison_period_verified",)
+        )
+        config["sources"]["synq_dashboard_preflight"]["required"] = False
+        self.assertEqual(
+            MonthlySourceRegistry.from_brand_config(config).dashboard_preflight_issues(),
+            (),
+        )
+
+    def test_legacy_adlabs_config_still_loads(self) -> None:
+        config = self._example_config()
+        sources = config["sources"]
+        for key in ("synq_client_id", "synq_dashboard", "synq_dashboard_preflight"):
+            sources.pop(key)
+        sources["adlabs_profile"] = "Legacy Brand"
+        sources["adlabs_dashboard"] = "Legacy Brand"
+        sources["adlabs_dashboard_preflight"] = {
+            "required": True,
+            "current_period_verified": True,
+            "comparison_period_verified": False,
+            "screenshot_comparison_matches": True,
+        }
+        registry = MonthlySourceRegistry.from_brand_config(config)
+        registry.validate()
+        self.assertEqual(registry.ads_source, "AdLabs")
+        self.assertEqual(registry.ads_dashboard, "Legacy Brand")
+        self.assertEqual(
+            registry.dashboard_preflight_issues(), ("comparison_period_verified",)
+        )
+        requests = missing_operator_inputs(
+            registry, MonthlyRunEvidence(meeting_notes_status="supplied")
+        )
+        self.assertTrue(
+            any(request.startswith("AdLabs custom-dashboard screenshot") for request in requests),
+            requests,
+        )
+
+    def test_registry_without_any_ads_source_fails(self) -> None:
+        registry = MonthlySourceRegistry(
+            sellerboard_account="Brand",
+            sellerboard_grouping="parent",
+            focus_products=("Product",),
+        )
+        with self.assertRaisesRegex(ValueError, "synq_client_id, synq_dashboard"):
+            registry.validate()
+
+    def test_partial_synq_keys_do_not_fall_back_to_adlabs(self) -> None:
+        registry = MonthlySourceRegistry(
+            sellerboard_account="Brand",
+            sellerboard_grouping="parent",
+            adlabs_profile="Brand",
+            adlabs_dashboard="Brand",
+            focus_products=("Product",),
+            synq_client_id="CTEST0001",
+        )
+        self.assertEqual(registry.ads_source, "SYNQ")
+        with self.assertRaisesRegex(ValueError, "synq_dashboard"):
+            registry.validate()
+
+    def test_synq_registry_requests_report_builder_screenshot(self) -> None:
+        registry = MonthlySourceRegistry(
+            sellerboard_account="Brand US",
+            sellerboard_grouping="parent",
+            focus_products=("Product",),
+            slack_channel="#brand-amazon-ew",
+            marketplace="US",
+            synq_client_id="CTEST0001",
+            synq_dashboard="Brand US monthly",
+        )
+        evidence = MonthlyRunEvidence(
+            sellerboard_current_month=True,
+            sellerboard_previous_month=True,
+            sellerboard_parent_grouping_verified=True,
+            synq_dashboard_current_month=True,
+            rank_tracker_products=frozenset({"Product"}),
+            meeting_notes_status="supplied",
+        )
+        self.assertEqual(
+            missing_operator_inputs(registry, evidence),
+            (
+                "SYNQ Report Builder dashboard screenshot showing the comparison "
+                "month on the saved dashboard.",
+            ),
+        )
+
+    def test_synq_and_legacy_dashboard_evidence_both_count(self) -> None:
+        registry = MonthlySourceRegistry(
+            sellerboard_account="Brand US",
+            sellerboard_grouping="parent",
+            focus_products=("Product",),
+            slack_channel="#brand-amazon-ew",
+            marketplace="US",
+            synq_client_id="CTEST0001",
+            synq_dashboard="Brand US monthly",
+        )
+        base = dict(
+            sellerboard_current_month=True,
+            sellerboard_previous_month=True,
+            sellerboard_parent_grouping_verified=True,
+            rank_tracker_products=frozenset({"Product"}),
+            meeting_notes_status="supplied",
+        )
+        synq = MonthlyRunEvidence(
+            synq_dashboard_current_month=True, synq_dashboard_previous_month=True, **base
+        )
+        legacy = MonthlyRunEvidence(
+            adlabs_dashboard_current_month=True, adlabs_dashboard_previous_month=True, **base
+        )
+        mixed = MonthlyRunEvidence(
+            synq_dashboard_current_month=True, adlabs_dashboard_previous_month=True, **base
+        )
+        for evidence in (synq, legacy, mixed):
+            self.assertEqual(missing_operator_inputs(registry, evidence), ())
+
+    def test_marketplace_part_accepts_synq_or_legacy_adlabs(self) -> None:
+        synq_part = MarketplacePart(
+            code="US",
+            display_name="United States",
+            currency_symbol="$",
+            sellerboard_account="Brand US",
+            synq_client_id="CTEST0001",
+            synq_dashboard="Brand US monthly",
+        )
+        synq_part.validate()
+        self.assertEqual(synq_part.ads_source, "SYNQ")
+        self.assertEqual(synq_part.ads_dashboard, "Brand US monthly")
+
+        legacy_part = MarketplacePart("CA", "Canada", "C$", "Brand CA", "Brand CA", "Brand CA")
+        legacy_part.validate()
+        self.assertEqual(legacy_part.ads_source, "AdLabs")
+
+        bare = MarketplacePart(
+            code="DE", display_name="Germany", currency_symbol="€",
+            sellerboard_account="Brand DE",
+        )
+        with self.assertRaisesRegex(ValueError, "synq_client_id, synq_dashboard"):
+            bare.validate()
+
+
 if __name__ == "__main__":
     unittest.main()
