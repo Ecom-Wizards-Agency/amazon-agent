@@ -200,6 +200,37 @@ class RightsMatrixTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             renderer.rendered_readme(self.matrix, "no markers")
 
+    def test_empty_and_false_equality_gates_are_strict(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            gate = {"kind": "json_pointer_equals", "repo": "wizards-ai", "file": "config.json", "pointer": "/x"}
+            for stored, expected, ok in (([], [], True), (["store.build_draft"], [], False), ({}, [], False),
+                                         (False, False, True), (True, False, False), (0, False, False), (None, False, False)):
+                (root / "config.json").write_text(json.dumps({"x": stored}))
+                with self.subTest(stored=stored, expected=expected):
+                    self.assertEqual(rights.resolve_gate({"wizards-ai": root}, {**gate, "value": expected})[0], ok)
+
+    def test_grimoire_amazon_writes_are_attended_only(self):
+        rows = rights.rows_by_id(self.matrix)
+        empty_executors = {"kind": "json_pointer_equals", "repo": "wizards-ai", "file": "config.json",
+                           "pointer": "/approved_actions/executors", "value": []}
+        required = {
+            "store.build_draft": empty_executors, "store.update_draft": empty_executors,
+            "shipment.tracking.update": empty_executors, "listing.images.replace": empty_executors,
+            "listing.images.bulk": {**empty_executors, "pointer": "/listing_image_jobs/enabled", "value": False},
+            "listing.images.canary": {**empty_executors, "pointer": "/approved_actions/executor_settings/listing.images.replace/canary_fingerprints"},
+            "cases.create-reply": {**empty_executors, "pointer": "/case_workflow/send_enabled", "value": False},
+        }
+        for ident, gate in required.items():
+            row = rows[ident]
+            with self.subTest(row=ident):
+                self.assertEqual(row["grimoire"]["state"], "forbidden")
+                self.assertIn("attended session only (claude code or codex)", row["grimoire"]["how"].lower())
+                self.assertIn(gate, row["gates"])
+                for other in row["gates"]:
+                    self.assertFalse(other["kind"] == "json_pointer_contains" and other.get("pointer") == "/approved_actions/executors")
+                    self.assertFalse(other.get("pointer") == "/listing_image_jobs/enabled" and other.get("value") is not False)
+
     def test_all_available_checkout_gates(self):
         root = RIGHTS.parents[1]
         roots = {name: root.parent / name for name in rights.REPOS}

@@ -1,6 +1,6 @@
 # Brand Store audits and scoped corrections
 
-Browser: CDP (the machine's attended session in direct chat, Grimoire on port 9223 from Slack; use the shared browserctl task and evidence helpers).
+Browser: CDP (the machine's attended session in direct chat, Grimoire on port 9223 from Slack for read-only audits; use the shared browserctl task and evidence helpers).
 
 Use this reference for product-grid audits, wrong or missing image destinations,
 approved artwork replacements and Store builds. The team vault's
@@ -16,18 +16,27 @@ approved artwork replacements and Store builds. The team vault's
 | Fix merged product families or wrong listing attributes | Separate catalog workflow | Store selections do not change parentage |
 
 In direct chat, proceed with concrete changes already authorized in the session;
-do not ask for the same permission again. In Slack reasoning runs, submit the exact prepared request through Wizards AI
-`store_requests.py`. Configured teammates in internal channels authorize requested
-draft changes without a second Victor approval. Current and newly ready managed
+do not ask for the same permission again. Grimoire (Slack) runs are read-only on
+Amazon: they audit, build the correction manifest and prepare the exact plan in the
+thread, and do not submit it. The draft change runs in an attended Claude Code or
+Codex session, which then follows the rest of this procedure. In that session a
+configured teammate's concrete request authorizes the requested draft change without a
+second Victor approval. Current and newly ready managed
 clients inherit access; no per-account activation or canary is required. The Store update executor is
 `store.update_draft`; its operations are `set_link`, `replace_image`, `restore_image_fit` and `set_grid`.
 It is separate from `store.build_draft`, which clears and rebuilds planned pages.
 Explicit pauses, authenticated request scope, current account identity and result
 verification remain enforced. Interrupted scoped updates use `--resume-existing`: require the same plan journal and bound draft, reconcile all saved state, then finish only missing approved operations. Builds and cancelled requests retain verification-only recovery. Registration alone does not authorize unrelated actions.
 Read the Wizards AI `store_builder/README.md` and its scoped-update reference before
-preparing an executor payload. An unavailable or disabled executor is a scoped
-execution blocker, not evidence that the browser UI cannot perform the action.
-Do not bypass Slack executor restrictions through direct CDP calls.
+preparing an executor payload. Attended sessions run the drivers
+(`store_build_draft.py`, `store_update_draft.py`) with `--attended`; Grimoire runs
+are refused (config gate plus a unit check), which is policy, not a hard lock.
+The drivers keep the 9223 delegated login, which holds the Store Design rights; this
+is the one attended exception to the 9222 operator rule.
+The disabled Slack executors are not a blocker for that attended route. Any other
+refusal of the attended driver is a scoped execution blocker, not evidence that the
+browser UI cannot perform the action. Do not get around a driver refusal with direct
+CDP calls; the `--attended` driver run is the attended path.
 
 Submission for moderation, scheduling and publishing are separate actions. Record
 their authorized scope explicitly; a draft update never implies them. This reference

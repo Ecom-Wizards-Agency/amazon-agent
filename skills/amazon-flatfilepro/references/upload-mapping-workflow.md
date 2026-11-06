@@ -3,6 +3,7 @@
 ## Chrome Setup
 
 - Use managed Chrome CDP on the machine's attended default session (`operator` on 9222 on Evo X1, `grimoire` on 9223 elsewhere) through `node tools/browserctl/browserctl.mjs run -- <command>`, because FlatFilePro depends on its logged-in session and native file-upload support. The team FlatFilePro login is brokered on both ports; Grimoire-side runs keep `--session grimoire`.
+- Grimoire (Slack) and scheduled runs are read-only on Amazon: they prepare the workbook, assessment or manifest; the upload or approved change runs in an attended Claude Code or Codex session.
 - If managed Chrome is unavailable, recover it rather than switching to the T3 Code in-app browser. If FlatFilePro is logged out, run the exact-origin authentication broker and stop for the operator on any human challenge.
 - Do not inspect passwords, cookies, local storage, tokens, or session data.
 

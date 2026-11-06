@@ -34,8 +34,9 @@ relationships. Use `prepare` and `upload-map` (`Update Listings` in FlatFilePro)
 - new listings
 - an attended session without the FlatFilePro connector
 - Grimoire, Slack and scheduled runs: the connector is an account-level claude.ai
-  connector and attended only. Grimoire keeps its CDP pipeline and the
-  `secondary-images` mode (`listing.images.bulk`).
+  connector and attended only. Grimoire is read-only on Amazon: it prepares the
+  batch in the thread, and the `secondary-images` mode (`listing.images.bulk`)
+  runs in an attended session.
 
 The swatch image (SWCH) is never changed in either route.
 

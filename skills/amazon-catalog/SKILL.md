@@ -66,7 +66,7 @@ For creating or editing variation families (parentage) or any targeted flat-file
 
 ## Brand Store Updates
 
-Store build/update draft work is enabled for current managed-ready clients. A concrete authenticated team request binds the account, frozen plan and assets and authorizes execution without a second Victor approval. New active/onboarding clients inherit eligibility once identity and connections resolve; pauses, revocations, offboarding and reporting-only restrictions remain effective. Slack requests use `wizards-ai/store_requests.py`; Merlin remains disabled. Submit, schedule and publish remain separate actions.
+Store build/update draft work is enabled for current managed-ready clients. A concrete authenticated team request binds the account, frozen plan and assets and authorizes execution without a second Victor approval. New active/onboarding clients inherit eligibility once identity and connections resolve; pauses, revocations, offboarding and reporting-only restrictions remain effective. This applies to attended Claude Code or Codex sessions. Grimoire (Slack) runs are read-only on Amazon: they audit and prepare the plan in the thread, and the draft change runs in an attended session. Attended sessions run the Wizards AI drivers (`store_build_draft.py`, `store_update_draft.py`) with `--attended`; Grimoire runs are refused (config gate plus a unit check), which is policy, not a hard lock. Merlin remains disabled. Submit, schedule and publish remain separate actions.
 
 For Brand Store audits, corrections and builds, load
 [references/brand-store-updates.md](references/brand-store-updates.md). For module
@@ -81,6 +81,7 @@ vault's `Playbooks/amazon-brand-stores-playbook.md`.
   Brand-picker acceptance and title wording alone do not establish eligibility.
 - Reopen changed editors, verify saved values and desktop/mobile results, and
   compare the entire draft and source before reporting success.
-- Direct-chat authorization and Slack executor authorization have different
-  entry points. Neither changes the requirement for exact scope; submission,
-  scheduling and publishing require their own authorization.
+- Store draft writes enter only through an attended session running the drivers
+  with `--attended`; Grimoire (Slack) runs prepare the plan and are refused. This
+  does not change the requirement for exact scope; submission, scheduling and
+  publishing require their own authorization.

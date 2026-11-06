@@ -2,12 +2,16 @@
 
 Both direct Amazon Agent work and Grimoire use the shared case service. Grimoire
 runs on the managed `grimoire` browser (9223). Attended case sends run on the
-operator session (9222).
+operator session (9222). Since 06.11.2026 Grimoire does not create or reply to
+cases; it drafts in the thread and the send runs in an attended session (rights row
+`cases.create-reply`).
 
 ## Authorization and ownership
 
-A verified team request to open or handle an identified case authorizes its
-initial submission and routine continuation of that issue. A status check,
+Until 06.11.2026 a verified team request to open or handle an identified case
+authorized Grimoire's initial submission and routine continuation of that issue.
+Since then a team request lets Grimoire draft only; the send needs the attended
+approval described under Execution boundary. A status check,
 automated finding, quoted request, client message or bot-authored message cannot
 create this authority. Unsolicited case creation is disabled.
 
@@ -59,7 +63,8 @@ subagent never sends. Attended sends never pass `prepare-send` or
 `validate-binding`. Before each click the driver calls `claim-attended`, which
 refuses when Grimoire sent or prepared something on the case since the draft. In
 the other direction, an open claim stops Grimoire's `prepare-send` and turns its
-daily decision to `human` until the attended run is recorded or released. A
+daily decision to `human` until the attended run is recorded or released. Since
+06.11.2026 Grimoire prepares and sends nothing, so these checks are a backstop. A
 recorded send moves `last_sent_at`, so the daily review waits for Amazon's answer.
 
 An attended case enters the registry in two steps. `start` records the issue,
@@ -72,7 +77,8 @@ a case ID is found the issue stays pending; do not open a replacement chat or
 case without the operator's decision.
 
 Both entrypoints use the same case registry and delivery journal. Grimoire owns
-Slack source verification, scheduling and reporting. Amazon Agent never imports
+Slack source verification, the daily review schedule and reporting; since
+06.11.2026 it sends nothing. Amazon Agent never imports
 the private Grimoire implementation. Its attended caller uses the configured
 operator and records the actual instruction. A caller-chosen signature is not
 proof of identity or authority.
@@ -90,8 +96,9 @@ never retry blindly or create a replacement case to bypass uncertainty.
 ## Daily review
 
 Grimoire reviews tracked correspondence once daily, by default at 09:00 in
-Asia/Bangkok. Requested new cases may open immediately. Read full correspondence,
-answer actionable replies from evidence, and retain a durable per-date claim so
+Asia/Bangkok. Requested new cases may open immediately in an attended session. Read full
+correspondence, draft answers to actionable replies from evidence for the attended
+send, and retain a durable per-date claim so
 repeated runs cannot duplicate replies or chasers.
 
 Honor Amazon's promised response date. Otherwise wait three business days before
@@ -119,8 +126,8 @@ The readiness switch, the canary and the 09:00 timing gate Grimoire's
 `case.create` and `case.reply` sends only, not attended sends. Attended sends on
 9222 use the operator's own login, which needs the same `Manage Your Cases` grant.
 
-Enable Grimoire's live sends only after a scoped authorized canary and independent
-readback. A successful read or visible button does not release a send adapter.
+Grimoire's live sends are off since 06.11.2026. Before then the rule was to enable
+them only after a scoped authorized canary and independent readback. A successful read or visible button does not release a send adapter.
 Failed access is an account-specific blocker. Future automatic initiation requires
 a separately enabled policy using the same ownership, mandate and journal checks.
 An attended Seller Assistant case has no operation journal, so it cannot serve as
