@@ -114,6 +114,10 @@ MIME type, exact client folder, content readback, and final URL are verified. If
 Drive delivery is unavailable, report that exact blocker and retain the staging
 files; do not upload a briefing ZIP to Slack or call the local pack ready.
 
+Grimoire (Slack) runs prepare the brief plan, research and draft Markdown in the
+thread only. They do not run `build_and_deliver.py` or write to Drive. Drive
+delivery and readback happen in an attended Claude Code or Codex session.
+
 When an operator changes the placement from Sponsored Brands Video to Prime
 Video or Streaming TV, adapt the research and creative format to that placement
 and skip SBV-only checkpoints that no longer apply. The delivery invariant does

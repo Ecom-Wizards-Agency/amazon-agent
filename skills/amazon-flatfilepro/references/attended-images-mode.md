@@ -4,7 +4,8 @@ Mode browser: Mixed (connector reads and writes plus local intake and pixel chec
 
 Use this mode when an operator in an attended chat supplies finished image files
 for named listings, including a new MAIN image. It replaces per-run survey,
-inspection and verify scripts with one route. Grimoire and Slack requests keep the
+inspection and verify scripts with one route. Grimoire and Slack requests only
+prepare the batch in the thread; a secondary-image batch then runs attended in the
 `secondary-images` mode, which never touches MAIN.
 
 Rights rows: `listing.images.attended` and `flatfilepro.mcp_update` in
