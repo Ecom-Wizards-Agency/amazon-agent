@@ -234,7 +234,47 @@ class ResearchJsonTest(unittest.TestCase):
         self.assertEqual((r["date_from"], r["date_to"]), ("2026-07-01", "2026-09-30"))
         self.assertTrue(r["created_at"].endswith("Z"))
         self.assertEqual(r["statistics"], {"numKeywords": 4, "rawRows": 8, "uniqueRows": 6,
-                                           "poolRows": 4, "coreRows": 2})
+                                           "poolRows": 4, "coreRows": 2,
+                                           "rankDates": {"organicMin": "2026-10-01",
+                                                         "organicMax": "2026-10-01"}})
+        self.assertEqual(r["thresholds"], {"topN": 50, "p1RankMax": 48, "rankCap": 101,
+                                           "poolMin": 0.01, "coreMin": 0.30})
+        self.assertEqual(r["relevancyChoice"], "native")
+
+    def test_keyword_cpc(self):
+        by = {k["keyword"]: k for k in self.r["keywords"]}
+        self.assertEqual((by["widget cleaner"]["cpc"], by["widget cleaner"]["cpcMin"],
+                          by["widget cleaner"]["cpcMax"]), (1.25, 0.9, 1.6))
+        self.assertEqual(by["widget"]["cpc"], 0)
+        for k in self.r["keywords"]:
+            self.assertTrue({"cpc", "cpcMin", "cpcMax"} <= set(k), k["keyword"])
+
+    def test_listing_age(self):
+        comps = {c["asin"]: c for c in self.r["competitors"]}
+        self.assertEqual((comps["B0TEST0001"]["listingAgeDays"], comps["B0TEST0001"]["listingAgeApprox"]),
+                         (400, False))
+        # days: false falls back to y/m/d: 1*365.25 + 2*30.44 + 3 = 429.13
+        self.assertEqual((comps["B0TEST0002"]["listingAgeDays"], comps["B0TEST0002"]["listingAgeApprox"]),
+                         (429, True))
+        self.assertEqual((comps["B0TEST0003"]["listingAgeDays"], comps["B0TEST0003"]["listingAgeApprox"]),
+                         (None, False))
+        self.assertEqual(comps["B0TEST0004"]["listingAgeDays"], None)
+
+    def test_rank_dates_span(self):
+        tmp = Path(tempfile.mkdtemp())
+        pages = []
+        for i, p in enumerate(PAGES):
+            page = json.loads(Path(p).read_text())
+            page["data"]["keywords"][0]["asinsPositions"]["B0TEST0002"]["organicScrapeEventDate"] = \
+                ["2026-09-12", "2026-10-20"][i]
+            q = tmp / Path(p).name
+            q.write_text(json.dumps(page))
+            pages.append(str(q))
+        proc, out = run_cli("--pages", *pages, "--relevancy", "computed")
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        r = json.loads((out / "research.json").read_text())
+        self.assertEqual(r["statistics"]["rankDates"], {"organicMin": "2026-09-12", "organicMax": "2026-10-20"})
+        self.assertEqual(r["relevancyChoice"], "computed")
 
     def test_keywords_and_rank_caps(self):
         by = {k["keyword"]: k for k in self.r["keywords"]}
@@ -301,6 +341,11 @@ class AsinPagesTest(unittest.TestCase):
         self.assertEqual(by["widget reiniger"]["sponsoredAsinRanks"]["B0TEST0001"], 7)
         self.assertEqual(by["widget"]["relevancy"], 1.0)
         self.assertEqual(read_csv(out / "core.csv")[0][5:], ["B0TEST0002", "B0TEST0001"])
+        self.assertEqual(research["relevancyChoice"], "computed")
+        self.assertIn("rankDates", research["statistics"])
+        self.assertEqual(research["thresholds"]["topN"], 50)
+        for k in research["keywords"]:
+            self.assertTrue({"cpc", "cpcMin", "cpcMax"} <= set(k), k["keyword"])
 
     def test_merge_mode_short_read_fails(self):
         tmp = Path(tempfile.mkdtemp()) / "short.json"

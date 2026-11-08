@@ -88,18 +88,72 @@ python3 tools/soldscope/keywords.py --marketplace NL --search-id 70001,70002 \
 {"provider":"soldscope","source":"keyword_research_search_multi_asin"|"kr_asin_search",
  "search_id":ID|[IDs],"marketplace":"US","asins":[...],"anchor":ASIN|null,
  "date_from":..,"date_to":..,"created_at":ISO8601,
- "statistics":{"numKeywords":<pool rows>,"rawRows":..,"uniqueRows":..,"poolRows":..,"coreRows":..},
+ "statistics":{"numKeywords":<pool rows>,"rawRows":..,"uniqueRows":..,"poolRows":..,"coreRows":..,
+               "rankDates":{"organicMin":"YYYY-MM-DD"|null,"organicMax":"YYYY-MM-DD"|null}},
+ "thresholds":{"topN":50,"p1RankMax":48,"rankCap":101,"poolMin":0.01,"coreMin":0.3},
+ "relevancyChoice":"native"|"computed",
  "keywords":[{"keyword":..,"searchVolume":int|null,"relevancy":0-1,
-              "asinRanks":{ASIN:int|null},"sponsoredAsinRanks":{ASIN:int|null},"origin":"core"|"pool"}],
+              "asinRanks":{ASIN:int|null},"sponsoredAsinRanks":{ASIN:int|null},"origin":"core"|"pool",
+              "cpc":float|null,"cpcMin":float|null,"cpcMax":float|null}],
  "competitors":[{"asin","brand","title","price","rating","reviewCount","reviews","revenue","sales",
                  "sellerCountry":"","category":"<name string>","variations","fulfillment",
-                 "advertisedKws":int,"kwRankedOnP1Percent":float,"isAnchor":bool}],
+                 "advertisedKws":int,"kwRankedOnP1Percent":float,"isAnchor":bool,
+                 "listingAgeDays":int|null,"listingAgeApprox":bool}],
  "benchmark":{"price":median,"reviewCount":median,"rating":median,"basis":"median of N compared ASINs"}}
 ```
 
-`keywords` holds the pool; Core rows carry `origin: "core"`. The benchmark is the median of the compared ASINs (at most 10), not a category median.
+`keywords` holds the pool; Core rows carry `origin: "core"`. The benchmark is the median of the compared ASINs (at most 10), not a category median. `listingAgeDays` is SoldScope's `listingAge.days`; when that is missing it is computed from years, months and days and `listingAgeApprox` is true. `rankDates` spans the `organicScrapeEventDate` values of the rows read.
 
 - `keywords-receipt.json`: `ok`, `raw_rows`, `meta_total`, `unique`, `dropped`, `merged` (merge mode adds `merged_within_asin`, `joined_across_asins`, `per_asin`), Core and pool counts and SV, roots and competitor counts, the relevancy choice with its agreement figures, thresholds, noise-filter removals, warnings, the dropped and merged keyword lists, and every input file with its sha256.
+
+## Keyword matrix
+
+`tools/soldscope/matrix.py` turns a research.json from `keywords.py` into one self-contained, sortable page, `matrix.html`, in DataDive's competitor-by-keyword layout, plus `matrix-receipt.json`. It reads saved files only and never calls SoldScope. The procedure, the publish approval and storage live in the `keyword-matrix` mode of `amazon-seo` (`skills/amazon-seo/references/keyword-matrix.md`).
+
+```
+python3 tools/soldscope/matrix.py --research DIR/research.json --out-dir DIR
+  [--roots DIR/roots.csv] [--title "Widget Keyword Matrix"] [--views roots,outliers]
+  [--min-relev-pct 30] [--outlier-min-sv 2000] [--max-bytes 250000]
+```
+
+- It exits 2 on a research.json without `thresholds`. Older runs only need `keywords.py` again on their saved pages, which costs nothing.
+- `--views roots,outliers` adds the Roots tab (from `roots.csv` next to research.json unless `--roots` says otherwise) and the Outliers tab. The default is the matrix alone.
+
+### Metrics
+
+Every figure is computed in Python over the full row set before any trimming. The page only sorts, filters and draws. Below, n is the number of compared ASINs and h is how many of them rank organically at `thresholds.topN` (50) or better; comparisons are done in integers.
+
+| Item | Rule |
+|---|---|
+| Matrix rows | pool rows with `100*h >= 30*n` (the `--min-relev-pct`) and SV above 0, one-word terms included; DataDive's MKL default |
+| Relev. | h/n as a whole percentage, recomputed per row, because research.json may hold SoldScope's native rank-weighted score; its filter uses the same scale (`>=60`) |
+| Launch Score | `(6*SV*n + 1000*h) // (2000*h)` when `10*h >= 4*n`, else blank; DataDive's round(SV / relevancy x 0.003), half-up |
+| Sugg. bid & range | `cpc (cpcMin-cpcMax)`, sorted on cpc |
+| Rank cell | organic rank (Sponsored toggle: sponsored rank); blank when not ranked, muted ">100" for 101. Heatmap tint in DataDive's bands: 1-5 red (bold), 6-21 orange, 22-40 yellow, 41+ green |
+| KWs on P1 | matrix rows at organic rank 48 or better (`p1RankMax`), count and share |
+| SV on P1 | SV of those rows over the SV of all matrix rows: the Share of Voice |
+| Strength | Share of Voice 80% or more Very Strong, 60% Strong, 40% Weak, 20% Very Weak, below that no label |
+| Advertised KWs | matrix rows with any sponsored rank for the ASIN, count and share |
+| Outliers | pool rows with SV of at least `--outlier-min-sv` (2,000) and `100*h <= 30*n`. 30d Outlier SV per ASIN sums those where it ranks in the top 50. Rows also in the matrix carry an "in matrix" tag |
+| Listing Age | `listingAgeDays`, marked "approx." when computed |
+| Niche Median | median of the compared ASINs with a value; unique counts for brand and ASIN, the fulfillment types, category counts, Strength chips. 30d sales and revenue show a range between the median and the average of the 2nd to 4th highest |
+| Totals line | count and SV of the rows a filter leaves visible; the only figure that follows filters |
+
+The anchor sits first with a "Your product" tag; the others follow by 30d sales, highest first. A listing that SoldScope reports with rating 0 and no reviews shows a blank rating.
+
+### Page and size
+
+- **What the page uses:** plain HTML, CSS and JavaScript. The only external request is the IBM Plex font stylesheet from Google Fonts, which both page hosts allow; offline the page falls back to system fonts. The data is embedded as gzip+base64 JSON and unpacked with `DecompressionStream` (Chrome 80+, Safari 16.4+, Firefox 113+). Browsers without it show a message.
+- **Size cap:** `--max-bytes` (default 250,000) keeps the file under the 256 KiB Codex Pages limit. If the file would be larger, the lowest-SV rows are dropped, the page shows a banner, and the receipt names every dropped keyword. `--max-bytes 0` removes the cap.
+- **Sizes on real runs:** a 10-ASIN run (2,392 terms, 518 outliers, 1,745 roots) came to about 148 KB, and a 5-ASIN run (553 terms) to about 39 KB.
+- **Receipt contents:** every input with its sha256, thresholds, `eligible`, `rendered` and `dropped` counts per view, `outliers_in_matrix`, and `payload_sha256`. That hash is taken over the uncompressed payload and is identical on every run of the same input.
+
+### Not shown, and how to read it
+
+- **Not shown:** Seller's Country (it would take a paid `product_research_search_products` call), KWs and SV with TOS ads (SoldScope has no placement field), and product images (both page hosts block Amazon's image host).
+- **Advertised KWs** counts any sponsored rank SoldScope recorded for the run. On a 5-ASIN supplement run checked against a DataDive screenshot of the same ASINs, it ran well above DataDive (62% vs 30% and 54% vs 12% for two competitors). Read it as advertising presence, not as a DataDive-equivalent figure.
+- **Data source differences:** organic ranks, listing ages and prices matched DataDive closely on that check. SV did not, because SoldScope estimates its own search volume (212,610 vs 256,445 for the head term), and Launch Score follows SV.
+- **Sibling ranks:** many ranks come from a sibling variation (`asinsPositions[ASIN].organicAsin` differs from the ASIN), 38% on the 10-ASIN run.
 
 ## Rank procedure
 

@@ -195,6 +195,14 @@
     "variationsCount": 0,
     "rating": 4.0,
     "reviewCount": 100,
+    "listingAge": {
+     "y": 1,
+     "m": 1,
+     "d": 5,
+     "invert": 0,
+     "days": 400,
+     "from_string": false
+    },
     "price": 10.0,
     "fulfillmentType": 2,
     "offersCount": null,
@@ -212,6 +220,14 @@
     "variationsCount": 1,
     "rating": 4.1,
     "reviewCount": 200,
+    "listingAge": {
+     "y": 1,
+     "m": 2,
+     "d": 3,
+     "invert": 0,
+     "days": false,
+     "from_string": true
+    },
     "price": 15.0,
     "fulfillmentType": 1,
     "offersCount": null,
