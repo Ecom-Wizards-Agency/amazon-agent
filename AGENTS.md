@@ -145,7 +145,7 @@ python3 tools/knowledge/ask.py "account health violation"
 
 ## Specialist Skill Model
 
-This project uses one current agent, the main operator regardless of runtime or model, with specialist skills. Specialist skills are not permanent separate agents; they are focused playbooks the current agent loads when the request matches. In attended sessions, delegate parallel research, independent QA and large split tasks to temporary subagents when that saves time; the current agent stays the only writer to external systems. Unattended passes follow their runbook and do not delegate.
+This project uses one current agent, the main operator regardless of runtime or model, with specialist skills. Specialist skills are not permanent separate agents; they are focused playbooks the current agent loads when the request matches. In attended sessions, delegate parallel research, independent QA and large split tasks to temporary subagents when that saves time; the current agent stays the only writer to external systems. Unattended passes follow their runbook and spawn no subagents; a hand-off that runbook defines, such as Grimoire's relay to an OpenBot agent, is part of the runbook.
 
 **Skills are agent-neutral.** The current agent owns a workflow end to end when it has the required capabilities: data collection, local build, writing, QA, and authorized internal delivery. Describe steps by capability or surface (`connected browser`, `CDP`, `SoldScope MCP`, `local build`, `Google Drive`), never by a named assistant; platform names stay only where they name a real interface or discovery mechanism. When a capability is missing, leave the standard handoff for any capable agent; a handoff is a capability fallback, not a permanent role split.
 
