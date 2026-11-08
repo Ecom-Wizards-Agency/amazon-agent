@@ -1,6 +1,6 @@
 ---
 name: amazon-seo
-description: "Run Amazon keyword research, build keyword workbooks, write and audit listing SEO, optimize for semantic search, and check claims compliance."
+description: "Run Amazon keyword research, build keyword workbooks and competitor keyword matrix pages, write and audit listing SEO, optimize for semantic search, and check claims compliance."
 ---
 
 # Amazon SEO
@@ -17,6 +17,7 @@ Use this skill for Amazon keyword research, keyword workbooks, listing optimizat
 - `listing-optimization`: write or audit titles, Item Highlights, bullets, descriptions, and backend terms. Read `references/listing-optimization-and-compliance.md` and `references/seo-writing-methodology.md`.
 - `health-claims-check`: run the regulated or standard claims pass. Read `references/health-claims-compliance.md` and the marketplace-specific rules it routes to.
 - `campaign-structure-fill`: fill the workbook's visual PPC plan only. Read the Campaign Structure section in `references/keyword-research-workbook.md`.
+- `keyword-matrix`: turn a SoldScope keyword research run into one sortable competitor-by-keyword HTML page (DataDive-style ranks, P1 share, outliers, optional roots) and publish it privately after operator approval. Read `references/keyword-matrix.md`.
 
 ## Shared Rules
 

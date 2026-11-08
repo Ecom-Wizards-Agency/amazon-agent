@@ -142,6 +142,40 @@ def _median(vals):
     return statistics.median(vals) if vals else None
 
 
+_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}")
+
+
+def rank_dates(rows: list[dict]) -> dict:
+    """Earliest and latest organic scrape date (YYYY-MM-DD) across the rows read.
+
+    Multi-ASIN rows carry asinsPositions[*].organicScrapeEventDate; a single-ASIN row may
+    carry it at the top level. Null when no row has one."""
+    dates = set()
+    for r in rows:
+        if not isinstance(r, dict):
+            continue
+        cands = [p.get("organicScrapeEventDate") for p in _positions(r).values() if isinstance(p, dict)]
+        cands.append(r.get("organicScrapeEventDate"))
+        for v in cands:
+            if isinstance(v, str) and _DATE_RE.match(v):
+                dates.add(v[:10])
+    return {"organicMin": min(dates) if dates else None, "organicMax": max(dates) if dates else None}
+
+
+def listing_age(s: dict) -> tuple[int | None, bool]:
+    """(days, approx) from productsSummary[ASIN].listingAge; days can be False, then y/m/d."""
+    la = s.get("listingAge") if isinstance(s, dict) else None
+    if not isinstance(la, dict):
+        return None, False
+    days = _num(la.get("days"))
+    if days is not None:
+        return int(days), False
+    y, m, d = (_num(la.get(k)) for k in ("y", "m", "d"))
+    if y is None and m is None and d is None:
+        return None, False
+    return int(round((y or 0) * 365.25 + (m or 0) * 30.44 + (d or 0))), True
+
+
 def _page_data(page) -> dict:
     if not isinstance(page, dict):
         raise AdapterError("page is not a JSON object")
@@ -380,6 +414,7 @@ def competitor_rows(asins, anchor, details, summary, live, core) -> tuple[list[d
         reviews = _num(s.get("reviewCount"))
         if reviews is None:
             reviews = _num(x.get("ratingsCount"))
+        age_days, age_approx = listing_age(s)
         variations = _num(s.get("variationsCount"))
         if variations is None:
             variations = _num((x.get("variationsInfo") or {}).get("totalVariationsCount"))
@@ -401,6 +436,8 @@ def competitor_rows(asins, anchor, details, summary, live, core) -> tuple[list[d
             "advertisedKws": sum(1 for r in core if r["sponsored"].get(asin) is not None),
             "kwRankedOnP1Percent": round(sum(1 for r in core if (r["ranks"].get(asin) or RANK_CAP) <= P1_RANK_MAX)
                                          / n_core, 4) if n_core else 0.0,
+            "listingAgeDays": age_days,
+            "listingAgeApprox": age_approx,
             "isAnchor": asin == anchor,
         })
     return rows, missing
@@ -452,6 +489,7 @@ def run(args) -> dict:
 
         by_kw, dropped, merged = dedupe(rows, fill)
         raw_rows = len(rows)
+        dates = rank_dates(rows)
         page_numbers = got["pages"]
     else:
         source = "kr_asin_search"
@@ -474,6 +512,7 @@ def run(args) -> dict:
         asins = order
         by_kw, dropped, merged = {}, [], []
         raw_rows = meta_total = 0
+        all_rows: list[dict] = []
         page_numbers = {}
         for asin, paths in specs:
             inputs += [{"role": f"kr_get_results_page:{asin}", "path": str(p), "sha256": sha256(p)} for p in paths]
@@ -481,6 +520,7 @@ def run(args) -> dict:
             if got["meta_total"] != len(got["rows"]):
                 raise AdapterError(f"{asin}: read {len(got['rows'])} rows but meta.total is {got['meta_total']}")
             raw_rows += len(got["rows"])
+            all_rows += got["rows"]
             meta_total += got["meta_total"]
             page_numbers[asin] = got["pages"]
             markets |= got["markets"]
@@ -509,9 +549,10 @@ def run(args) -> dict:
                 cur["sponsored"].update(rec["sponsored"])
                 if (rec["sv"] or 0) > (cur["sv"] or 0):
                     cur["sv"] = rec["sv"]
-                for k in ("cpc", "cpcMin", "cpcMax"):
-                    if cur[k] is None:
-                        cur[k] = rec[k]
+                # A cpc of 0 means no bid; take cpc and its range together from one record.
+                if not cur["cpc"] and rec["cpc"]:
+                    cur.update(cpc=rec["cpc"], cpcMin=rec["cpcMin"], cpcMax=rec["cpcMax"])
+        dates = rank_dates(all_rows)
         for rec in by_kw.values():
             for a in asins:
                 rec["ranks"].setdefault(a, None)
@@ -642,9 +683,13 @@ def run(args) -> dict:
         "date_from": args.date_from, "date_to": args.date_to,
         "created_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
         "statistics": {"numKeywords": len(pool), "rawRows": raw_rows, "uniqueRows": unique,
-                       "poolRows": len(pool), "coreRows": len(core)},
+                       "poolRows": len(pool), "coreRows": len(core), "rankDates": dates},
+        "thresholds": {"topN": args.top_n, "p1RankMax": P1_RANK_MAX, "rankCap": RANK_CAP,
+                       "poolMin": args.pool_min, "coreMin": args.core_min},
+        "relevancyChoice": choice,
         "keywords": [{"keyword": r["keyword"], "searchVolume": int(r["sv"]) if r["sv"] is not None else None,
                       "relevancy": round(r["rel"], 4),
+                      "cpc": r["cpc"], "cpcMin": r["cpcMin"], "cpcMax": r["cpcMax"],
                       "asinRanks": {a: cap_rank(r["ranks"][a]) for a in asins},
                       "sponsoredAsinRanks": {a: cap_rank(r["sponsored"][a]) for a in asins},
                       "origin": "core" if r["keyword"] in core_set else "pool"} for r in pool],
