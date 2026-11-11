@@ -39,7 +39,7 @@ Use for: “run a sweep,” “check new messages,” “who replied,” “who 
    - content posted
    - paused product
    - unqualified/ghosted/declined
-7. Update the tracker row or create one in the correct tab. Append an audit-log entry and add any due work to the daily action queue.
+7. Follow the required update/readback protocol in `tracker-schema.md`: write the original campaign row, synchronize applicable Registry fields, append the audit event and update the Queue regardless of hidden/collapsed/filtered state. Re-read the backend records and verify the complete overview's source binding and score through `verify-tracker-update` before treating the action as complete or advancing its checkpoint.
 8. Draft any needed creator replies, but do not send unless approved in the current chat or covered by standing permission.
 9. If Slack reporting is requested or automated, use only the configured posting helper and post only new updates/material status changes.
 
@@ -89,6 +89,7 @@ Use for: “create a tracker for this campaign,” “make this tab match the ap
    - column order
 4. Create rows only from verified campaign/message evidence.
 5. If product is unclear, use the `Undecided` tab.
+6. Keep `Start here` and `Creator overview` as derived reading views. Map new campaign tabs/rows into the complete overview and verify score aliases, source links, filters and current holds. Preserve the original records and the view formulas; do not treat visibility or an overview row position as record identity.
 
 ## `gaps`: find missing trackers
 

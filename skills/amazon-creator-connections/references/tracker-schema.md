@@ -10,6 +10,35 @@ This is the sole tracker schema. Preserve the live sheet's formatting, merges, d
 - Row 11 onward: creator records.
 - One tab per campaign, plus `Undecided` for unresolved product choice and three internal control tabs: `Creator Registry`, `Creator Action Log`, and `Daily Action Queue`.
 
+These are the standard campaign header rows, not a reason to rewrite a legacy layout. Locate the live header row and resolve its fields by name.
+
+## Simplified reading views
+
+`Start here` records current operator restrictions, the sample-request workflow and campaign links. `Creator overview` is a formula-driven reading view with creator, campaign/product, stage, recorded score, next step, follow-up, sample/content and source-record link. Neither tab replaces a campaign row or a control tab.
+
+- Hidden tabs, collapsed groups and filtered-out rows remain part of the same tracker. Visibility never determines update or sweep coverage. Use spreadsheet metadata and bounded connector reads that include these records, not only mounted or visible UI rows.
+- The overview's `Current work` filter is a reading convenience. Validate changed records through `All records` or the complete underlying projection, including held and closed records.
+- Match each view entry to the immutable Creator Record ID and exact campaign/source reference. A source-row link is a navigation reference, not a newly issued identity. Names and overview row numbers are not keys; sorting and filters can change their positions.
+- Pending intake labels without verified IDs remain unresolved. Do not issue an ID from a queue ID, name or formula, or clear an intake entry before its verified campaign row is represented.
+- Show the score already recorded in the source. Supported legacy headers are `Total Qualification Score`, `Qualification Score`, and `Qualification score (not shipping clearance)`. Resolve a different header explicitly rather than treating it as blank. Blank/unverified is `Not recorded`; an actual zero is `0/10`. Preserve the distinction.
+- A new score comes from `score`, with its evidence and missing checks recorded in the original row. Do not type a score into the overview or copy a different campaign's score. `10/10` is qualification, not shipping authority.
+- Current operator holds and identity/order conflicts override historical approval labels, scores and due dates in the reading view. Filter or layout changes must not clear a hold.
+- A storefront, product or portfolio URL in a historical `Posted Link(s)` cell is not proof of posted content. Distinguish content links from other links; independent verification remains separate.
+
+## Required update and readback protocol
+
+For each resolved creator-record update:
+
+1. Read the current operator restrictions, campaign row, Registry record, Queue row and existing Action Log IDs. Capture the overview's source, row-selection and score formulas. Resolve the source coordinates again before writing; retain the full before records privately.
+2. Prepare the exact changed fields from verified thread, profile, order or control-runner evidence. Check live dropdowns. Preserve untouched values, notes, formulas, identity fingerprints, locks and sample history. Recompute qualification after new research/replies; update the source score, evidence and missing checks together.
+3. Write the original campaign row and a dated Notes entry preserving prior notes. Synchronize applicable Registry changes through their required controls; unchanged identity/lock fields stay unchanged. Append one uniquely identified Action Log event and update the Queue outcome, due/hold state and Last Updated. Use a held queue state while an operator hold applies.
+4. Read back the affected campaign, Registry, Action Log and Queue records from the same canonical spreadsheet, even when hidden. Match the intended fields exactly and confirm no unplanned field changes. A partial write is incomplete.
+5. Read the changed record in the complete overview. Verify the source link, record/campaign binding, recorded score and current hold. Verify that the captured source/row/score formulas remain intact and cover new campaign rows. Add newly created campaign tabs to the view's source mapping and check its capacity before calling that tracker setup complete.
+6. Run `creator_control.py verify-tracker-update` on those private captured records. If formulas are still recalculating, re-read once. Repair a damaged view within the authorized scope or hold/escalate the discrepancy; never hide it by typing a display score. Do not resend a message, repeat an order or append a duplicate log event to repair a display failure.
+7. Mark the update complete and advance its message checkpoint only after verification passes. Include the full checked `tracker_update` input on an `actioned` sweep thread; also set `tracker_updated: true` and supply it on a held/escalated thread whose tracker was changed. The checkpoint runner rechecks it against the creator, run and sweep window.
+
+The checker validates supplied connector captures; it cannot independently attest a remote write or perform one. Ordinary human edits may refresh overview formulas, but do not automatically update the Registry, Log or Queue. Reconcile such edits through this protocol before the next agent action. Keep raw captures under `_local/`, never in code or a checkpoint sent to Arcana.
+
 ## Campaign tab columns
 
 The live header order is authoritative. Resolve columns by header name at runtime. Do not hard-code letters or prior positions.
