@@ -72,6 +72,10 @@ python3 tools/creator-connections-control/creator_control.py record-api-order --
 
 # Build sweep-checkpoint.json (counts and fingerprints only) from the local sweep file.
 python3 tools/creator-connections-control/creator_control.py sweep-checkpoint --input <local-sweep> --output <sweep-checkpoint.json>
+
+# Compare original/control records and the simplified view after a tracker write.
+# This read-only command does not use the signing key, write Sheets or authorize sends.
+python3 tools/creator-connections-control/creator_control.py verify-tracker-update --input <private-readback.json>
 ```
 
 Exit code `0` means the control result passed. Exit code `2` means it is safely held. The JSON output is the audit artifact to reference from the tracker and action log.
@@ -135,6 +139,51 @@ Arcana places MCF sample orders through SP-API after an owner or admin types the
 ## Sweep checkpoint
 
 `sweep-checkpoint` turns the local sweep file into `sweep-checkpoint.json`, the Arcana sweep contract (`schema_version: 1`). Input: `run_id`, `run_date`, `brand`, `started_at`, `completed_at`, `evidence_reference`, the nine `counts` (`mounted`, `opened`, `changed`, `messages_examined`, `messages_sent`, `no_action_acknowledgements`, `held_or_escalated`, `archived_spam`, `unmatched`), and one entry per thread with the raw `thread_key`, `creator_record_id` (null when unmatched), `sender_role` (`creator`, `brand`, or `amazon`), `amazon_timestamp`, the newest message `body`, `outcome`, and `reason`. The output keeps the counts and replaces each thread key and body with its HMAC fingerprint; the thread fingerprint is the registry's `thread_key`. Keep the input under `_local/`; it holds message text. A failure names the fields, never their values.
+
+An `actioned` thread now requires `tracker_update`, the complete input described below. A held/escalated thread whose tracker was changed also sets `tracker_updated: true` and supplies it. The checkpoint runner reruns the comparison, binds its creator and run ID to the thread, and requires the write/readback times to fall within the sweep window. A failed comparison stops checkpoint creation; it never exports raw readbacks or changes Arcana's schema-version-1 output. A thread held without a tracker change does not need a fabricated write receipt.
+
+## Tracker update verification
+
+Follow the canonical-first protocol in `skills/amazon-creator-connections/references/tracker-schema.md`. The executor still writes through the connected Google Sheets tools. This checker compares supplied before/after captures; it cannot independently attest a remote write, repair a formula, synchronize an arbitrary manual edit, or authorize outreach/fulfillment.
+
+Capture the live header names, formulas and original records before writing. Normalize connector CellData into dictionaries keyed by those headers, preserving zero, blank, raw values and source references. Use the canonical spreadsheet and visibility-inclusive bounded reads, not a visible-row export. Do not use display names or overview row numbers to join data.
+
+The private input contains:
+
+| Field | Required evidence |
+| --- | --- |
+| `run_id`, `creator_record_id` | Current run and resolved immutable record ID. |
+| `update_kind` | `record_update`, `creator_reply`, or `background_check`. Replies and research always require fresh qualification evidence. |
+| `spreadsheet_id`, `campaign_tab`, `campaign_id`, `source_ref` | Exact canonical spreadsheet, campaign and freshly resolved source-row reference. |
+| `updated_at`, `evidence_reference` | ISO timestamp with timezone for this update and a private source-evidence reference. |
+| `before` | Full original `campaign`, `registry` and `queue` dictionaries, plus `action_log_ids` captured before appending. Each source/control record has `Creator Record ID`. |
+| `expected` | Exact planned changed fields plus `Creator Record ID` for `campaign`, `registry`, `queue` and `action_log`; also `overview` with the intended derived `Stage` and any changed display fields to check. Queue `Current Status` must explicitly match the saved campaign Status. Do not include unrelated source fields as proposed changes. |
+| `overview_formulas` | Formula strings captured before the update, keyed by roles `source`, `rows`, `score`; include policy/hold formulas when applicable. |
+| `readback` | Fresh records captured after writing, using the fields below. |
+| `qualification` | Required for a score write, changed qualification/fulfillment inputs, or research/replies; current evidence for `score_record`, including the same `creator_record_id` and `campaign_id`. Source contact, profile and qualification fields must agree with that evidence. |
+| `operator_hold` | Explicit boolean from current operator restrictions; omission is not equivalent to no hold. A hold must remain visible, suppress the displayed follow-up date and keep the Queue held. |
+
+`readback` repeats `spreadsheet_id`, `campaign_tab` and `source_ref`, and includes:
+
+- `captured_at`: ISO timestamp with timezone at or after `updated_at`.
+- `source_scope: "all_rows_and_tabs"`: capture includes the hidden/collapsed/filtered source and control records. This declares the executor's read scope; it is not a substitute for collecting those records.
+- `overview_scope`: `all_records` or `complete_projection`. A `Current work` selection cannot prove coverage of held/closed rows.
+- `campaign`, `registry`, `queue`: complete after-record dictionaries, exactly equal to the corresponding `before` dictionary overlaid with planned `expected` fields. Reject missing or unexpected added fields as well as changed values. Registry `Active Tracker Tab` / `Active Campaign ID` must bind the same campaign.
+- `action_log`: captured log rows, containing exactly one new `Action Log ID` from `expected.action_log`. It has matching `Creator Record ID` / `Campaign Tab`, a fresh `Timestamp` and `Evidence Reference`. An old or duplicate event cannot satisfy this write.
+- `overview`: captured view/projection entries. Exactly one `Source Reference` matches the source row; its `Creator Record ID` and `Campaign Tab` must agree. Include its recorded `Score` or `Score*`, `Stage` and planned display fields. Join hidden identity helpers to the view by its source reference, never by name or row position.
+- `overview_formulas`: actual formula strings for the same captured roles; replacing them with typed scores fails.
+
+Campaign Notes must gain an entry while retaining the prior text. The Queue's `Last Updated` and the new log timestamp must fall between the update and readback times. Registry fields that did not change still need a readback; never rotate fingerprints or alter a lock to make synchronization pass.
+
+Scores accept integer points, `n/10`, and the existing `n/10 qualification ...` annotation. The known source headers are `Total Qualification Score`, `Qualification Score`, and `Qualification score (not shipping clearance)`. A different/conflicting score header, invalid score or mismatched view stops verification. Unknown stays `Not recorded`; zero stays `0/10`. Changed qualification/fulfillment facts also require recomputation even if the caller did not propose a score write. Evidence must agree with saved contact/profile/qualification fields and any explicit source/Registry ASIN; ambiguous multiple-ASIN products are held. A complete parsed fulfillment address must be supported by the saved source address, never invented to gain a point.
+
+`PASS` returns only the run/record ID, normalized score, capture time, verified-field count and a digest of the private comparison input. `HOLD` returns a field label without captured values; malformed or unreadable input files also return HOLD rather than a traceback. Keep the full checked input in the local sweep file and the small result as private run evidence. Never repair a failed display by resending, reordering or duplicating a successful event. All identity, message-authority, sample, reservation and MCF gates remain separate.
+
+The synthetic `tracker_update()` fixture in `tests/test_tracker_sync.py` is a complete input example. Tests run without Google or Amazon access:
+
+```bash
+python3 -m unittest discover -s tools/creator-connections-control/tests -v
+```
 
 Registry mutations are serialized through a per-registry lock file. Each command rereads the registry after it owns the lock and replaces the JSON atomically only after the mutation succeeds. Concurrent reservations for the same creator/ASIN therefore produce one lock and one held result. A leftover `.lock` file indicates an interrupted process and must be reviewed rather than bypassed automatically.
 

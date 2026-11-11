@@ -78,6 +78,11 @@ Creator Connections lives behind Amazon Ads login and currently has no direct MC
    - End every sweep by building `sweep-checkpoint.json` with the runner's `sweep-checkpoint` command and submitting it with `creators.sweep_checkpoint`. Arcana decides whether the sweep reconciled; the file never claims it.
    - Report final mounted thread count, threads opened, changed threads, messages examined, messages sent, no-action acknowledgements, held/escalated threads, archived spam, and unmatched threads. Do not report a successful sweep when any count is unreconciled.
 
+10. Update the original records and verify the simplified view.
+   - `Start here` and `Creator overview` are reading views. Write verified facts to the resolved campaign row and applicable Registry fields, append the Action Log event, and update the Queue even when those rows, columns or tabs are hidden, collapsed or filtered out.
+   - Follow the update/readback protocol in `references/tracker-schema.md`. Verify the original fields and overview score by Creator Record ID plus campaign/source reference; never write to an overview row by its displayed position.
+   - Run `verify-tracker-update` on the captured before/after records. A failed backend or overview check keeps the update incomplete and its watermark unchanged. An `actioned` sweep thread requires that checked input; the runner does not write Sheets or grant send authority.
+
 ## How to use
 
 Use natural requests:
@@ -166,6 +171,7 @@ Before a state-changing action, use `tools/creator-connections-control/creator_c
 
 - Issue or resolve the immutable Creator Record ID with `register`. Never assign an ID from a name, row number, or spreadsheet formula.
 - Run `score` after every background check or creator reply. Do not overwrite the score with a manually typed value when its visible evidence no longer supports it.
+- After each creator-record update, run `verify-tracker-update` against fresh connector readbacks, including hidden records and the complete overview projection. See `references/tracker-schema.md` and the runner README for the input contract.
 - Build the dated machine-readable queue with `queue` before the daily sweep. Sync its results to `Daily Action Queue` and `Creator Action Log` only after the record ID is resolved.
 - Run `preflight-switch --phase offer` before proposing an alternate ASIN for an MCF-blocked product. Offer only a same-campaign alternative with verified FBA/MCF-fulfillable inventory. Run `preflight-switch --phase confirm` after the creator explicitly replies with that ASIN and before changing the active product record.
 - Run `preflight` immediately before handing a lane to Arcana or placing any MCF order. It requires the explicit creator, campaign, tracker row, recipient fingerprint, live FBA/MCF inventory evidence, and exact ASIN/SKU match. Then call `creators.preflight_result`, run `reserve-mcf` with its `derived_order_key`, and call `creators.register_record` (see Arcana hand-over below). A `HOLD` result means no order and an escalation.

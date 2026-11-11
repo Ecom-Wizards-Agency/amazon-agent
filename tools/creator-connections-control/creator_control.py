@@ -1211,6 +1211,198 @@ def iso_timestamp(value: Any) -> bool:
         return False
 
 
+SCORE_HEADERS = (
+    "Total Qualification Score", "Qualification Score",
+    "Qualification score (not shipping clearance)",
+)
+QUALIFICATION_HEADERS = {
+    "Full Name", "Address", "Email", "Phone", "Product", "Requested ASIN",
+    "Product Match Status", "Amazon Storefront Link", "Portfolio / Media Kit Link",
+    "Recent Posting Verified?", "Last Visible Post Date", "Content Quality Rating",
+    "Category Fit", "Performance Evidence Available?", "Earns Revenue Badge?",
+    "Revenue Badge Source", "Revenue Threshold Met?", "Specific ASIN Mentioned?",
+    "Spam Risk", "Risk Flags", "Qualification Notes", "Evidence Notes",
+}
+
+
+def tracker_score(value: Any) -> int | None:
+    """Read a recorded/display score without turning unknown or False into zero."""
+    if value is None or isinstance(value, str) and value.strip().lower() in {
+        "", "not recorded", "not verified", "unknown", "n/a",
+    }:
+        return None
+    if type(value) in {int, float} and 0 <= value <= 10 and int(value) == value:
+        return int(value)
+    if isinstance(value, str):
+        text = value.strip()
+        match = re.fullmatch(r"(\d{1,2})(?:\s*/\s*10)?(?:\s+qualification\b.*)?", text, re.IGNORECASE)
+        if match and int(match[1]) <= 10 and len(re.findall(r"\d+\s*/\s*10", text)) <= 1:
+            return int(match[1])
+    raise Hold("Tracker synchronization failed: score.invalid_format")
+
+
+def recorded_tracker_score(row: dict[str, Any], *, overview: bool = False) -> int | None:
+    headers = ("Score", "Score*") if overview else SCORE_HEADERS
+    found = [tracker_score(row[key]) for key in headers if key in row]
+    if overview and not found:
+        raise Hold("Tracker synchronization failed: overview.score_missing")
+    if not found and any(isinstance(key, str) and re.search(r"score", key, re.IGNORECASE) for key in row):
+        raise Hold("Tracker synchronization failed: score.unrecognized_header")
+    if len(set(found)) > 1:
+        raise Hold("Tracker synchronization failed: score.conflicting_columns")
+    return found[0] if found else None
+
+
+def verify_tracker_update(payload: dict[str, Any]) -> dict[str, Any]:
+    """Compare supplied connector readbacks; never write Sheets or grant action authority."""
+    def require(condition: bool, field: str) -> None:
+        if not condition:
+            # Field labels are fixed here; never echo captured values or arbitrary headers.
+            raise Hold("Tracker synchronization failed: " + field)
+
+    require(isinstance(payload, dict), "input")
+    identifier, run_id = payload.get("creator_record_id"), payload.get("run_id")
+    require(isinstance(identifier, str) and bool(re.fullmatch(r"CCR-[A-Z0-9]+-\d{2}-\d{4,}", identifier)), "creator_record_id")
+    require(isinstance(run_id, str) and bool(re.fullmatch(r"[A-Za-z0-9:_.-]{1,80}", run_id)), "run_id")
+    require(payload.get("update_kind") in ("record_update", "creator_reply", "background_check"), "update_kind")
+    for key in ("spreadsheet_id", "campaign_tab", "campaign_id", "source_ref", "evidence_reference"):
+        require(isinstance(payload.get(key), str) and bool(payload[key].strip()), key)
+    require(iso_timestamp(payload.get("updated_at")), "updated_at")
+    readback, expected, before = payload.get("readback"), payload.get("expected"), payload.get("before")
+    require(isinstance(readback, dict) and isinstance(expected, dict) and isinstance(before, dict), "snapshots_and_expected")
+    require(iso_timestamp(readback.get("captured_at")), "readback.captured_at")
+    updated = datetime.fromisoformat(payload["updated_at"].replace("Z", "+00:00"))
+    observed = datetime.fromisoformat(readback["captured_at"].replace("Z", "+00:00"))
+    require(observed >= updated, "readback.precedes_update")
+    for key in ("spreadsheet_id", "campaign_tab", "source_ref"):
+        require(readback.get(key) == payload[key], "readback." + key)
+    require(readback.get("source_scope") == "all_rows_and_tabs", "readback.source_scope")
+    require(readback.get("overview_scope") in ("all_records", "complete_projection"), "readback.overview_scope")
+
+    verified_fields = 0
+    for table in ("campaign", "registry", "queue", "action_log"):
+        wanted, actual = expected.get(table), readback.get(table)
+        require(isinstance(wanted, dict) and bool(wanted), table + ".expected_fields")
+        if table == "action_log":
+            require(isinstance(actual, list), "action_log.rows")
+            event_id = wanted.get("Action Log ID")
+            require(isinstance(event_id, str) and bool(event_id.strip()), "action_log.event_id")
+            matches = [row for row in actual if isinstance(row, dict) and row.get("Action Log ID") == event_id]
+            require(len(matches) == 1, "action_log.unique_event")
+            actual = matches[0]
+            require(iso_timestamp(wanted.get("Timestamp")), "action_log.timestamp")
+            event_at = datetime.fromisoformat(wanted["Timestamp"].replace("Z", "+00:00"))
+            require(updated <= event_at <= observed, "action_log.stale_event")
+            require(isinstance(wanted.get("Evidence Reference"), str)
+                    and bool(wanted["Evidence Reference"].strip()), "action_log.evidence_reference")
+            previous_ids = before.get("action_log_ids")
+            require(isinstance(previous_ids, list) and all(isinstance(item, str) for item in previous_ids), "action_log.previous_ids")
+            require(event_id not in previous_ids, "action_log.reused_event")
+        require(isinstance(actual, dict), table + ".row")
+        require(wanted.get("Creator Record ID") == actual.get("Creator Record ID") == identifier, table + ".identity")
+        require(all(key in actual and actual[key] == value for key, value in wanted.items()), table + ".fields_mismatch")
+        if table != "action_log":
+            previous = before.get(table)
+            require(isinstance(previous, dict) and previous.get("Creator Record ID") == identifier, table + ".previous_row")
+            require(actual == previous | wanted, table + ".unplanned_change")
+        verified_fields += len(wanted)
+    previous_notes, updated_notes = before["campaign"].get("Notes", ""), expected["campaign"].get("Notes")
+    require(isinstance(previous_notes, str) and isinstance(updated_notes, str)
+            and updated_notes != previous_notes and previous_notes in updated_notes, "campaign.notes_history")
+    queue_at = expected["queue"].get("Last Updated")
+    require(iso_timestamp(queue_at), "queue.last_updated")
+    require(updated <= datetime.fromisoformat(queue_at.replace("Z", "+00:00")) <= observed, "queue.stale_update")
+    require(isinstance(readback["campaign"].get("Status"), str) and bool(readback["campaign"]["Status"].strip()), "campaign.status")
+    require(expected["queue"].get("Current Status") == readback["queue"].get("Current Status")
+            == readback["campaign"]["Status"], "queue.current_status")
+    require(readback["registry"].get("Active Tracker Tab") == payload["campaign_tab"], "registry.active_campaign_tab")
+    require(normalized(readback["registry"].get("Active Campaign ID")) == normalized(payload["campaign_id"]), "registry.active_campaign_id")
+    for table in ("queue", "action_log"):
+        row = readback[table] if table == "queue" else matches[0]
+        require(row.get("Campaign Tab") == payload["campaign_tab"], table + ".campaign_tab")
+
+    formulas, actual_formulas = payload.get("overview_formulas"), readback.get("overview_formulas")
+    require(isinstance(formulas, dict) and {"source", "rows", "score"} <= formulas.keys(), "overview.formula_roles")
+    require(isinstance(actual_formulas, dict), "overview.formula_readback")
+    require(all(isinstance(value, str) and value.startswith("=") and actual_formulas.get(role) == value
+                for role, value in formulas.items()), "overview.formulas_changed")
+    rows = readback.get("overview")
+    require(isinstance(rows, list), "overview.rows")
+    # Source references are navigation bindings, never newly issued identities.
+    matches = [row for row in rows if isinstance(row, dict) and row.get("Source Reference") == payload["source_ref"]]
+    require(len(matches) == 1, "overview.unique_source")
+    view = matches[0]
+    require(view.get("Creator Record ID") == identifier and view.get("Campaign Tab") == payload["campaign_tab"], "overview.identity")
+    wanted_view = expected.get("overview")
+    require(isinstance(wanted_view, dict) and isinstance(wanted_view.get("Stage"), str)
+            and bool(wanted_view["Stage"].strip()), "overview.expected_stage")
+    require(all(key in view and view[key] == value for key, value in wanted_view.items()), "overview.fields_mismatch")
+    source_score = recorded_tracker_score(readback["campaign"])
+    require(recorded_tracker_score(view, overview=True) == source_score, "overview.score_mismatch")
+    qualification_changed = any(
+        key in QUALIFICATION_HEADERS and before["campaign"].get(key) != value
+        for key, value in expected["campaign"].items()
+    )
+    if (any(header in expected["campaign"] for header in SCORE_HEADERS) or qualification_changed
+            or payload["update_kind"] in {"creator_reply", "background_check"}):
+        require(isinstance(payload.get("qualification"), dict), "score.evidence_required")
+    if "qualification" in payload:
+        record = payload["qualification"]
+        require(isinstance(record, dict), "score.evidence")
+        require(record.get("creator_record_id") == identifier
+                and normalized(record.get("campaign_id")) == normalized(payload["campaign_id"]), "score.evidence_identity")
+        bindings = (
+            ("Full Name", "full_name", normalized), ("Email", "email", normalize_email),
+            ("Phone", "phone", normalize_phone), ("Requested ASIN", "requested_asin", normalized),
+            ("Amazon Storefront Link", "storefront_url", canonical_storefront),
+            ("Product Match Status", "product_match_status", normalized),
+            ("Recent Posting Verified?", "recent_post_verified", is_truthy),
+            ("Content Quality Rating", "content_quality_rating", normalized),
+            ("Category Fit", "category_fit", normalized),
+            ("Performance Evidence Available?", "performance_evidence_available", is_truthy),
+            ("Earns Revenue Badge?", "earns_revenue_badge", is_truthy),
+            ("Specific ASIN Mentioned?", "specific_asin_mentioned", is_truthy),
+            ("Spam Risk", "spam_risk", normalized),
+        )
+        for header, key, normalize in bindings:
+            if header in readback["campaign"]:
+                try:
+                    agrees = normalize(readback["campaign"][header]) == normalize(record.get(key))
+                except (AttributeError, TypeError, ValueError):
+                    agrees = False
+                require(agrees, "score.evidence_source_mismatch")
+        for product in (readback["campaign"].get("Product"), readback["registry"].get("Active Product / ASIN")):
+            asins = set(re.findall(r"\bB0[A-Z0-9]{8}\b", str(product or "").upper()))
+            require(len(asins) <= 1, "score.evidence_product_ambiguous")
+            if asins:
+                require(normalized(record.get("requested_asin")).upper() in asins, "score.evidence_product_mismatch")
+        try:
+            scored = score_record(record)
+        except (AttributeError, TypeError, ValueError):
+            raise Hold("Tracker synchronization failed: score.evidence") from None
+        if "Address" in readback["campaign"] and scored["checks"]["complete_fulfillment_details"]:
+            address_words = " " + re.sub(r"[^\w]+", " ", normalized(readback["campaign"]["Address"])) + " "
+            for part in ("street", "city", "state", "postal_code"):
+                words = re.sub(r"[^\w]+", " ", normalized(record["address"].get(part)))
+                require(bool(words) and " " + words + " " in address_words, "score.evidence_address_mismatch")
+        require(scored["score"] == source_score, "score.computed_mismatch")
+    registry_state = normalized(readback["registry"].get("Record State"))
+    lock_state = normalized(readback["registry"].get("Record Lock State"))
+    if "conflict" in registry_state or re.search(r"conflict|reconcil|^locked|^reserved", lock_state):
+        require(normalized(view.get("Stage")) in {"your review", "on hold"}, "overview.registry_hold")
+    require(type(payload.get("operator_hold")) is bool, "operator_hold")
+    if payload.get("operator_hold") is True:
+        require(normalized(view.get("Stage")) == "on hold", "overview.operator_hold")
+        require(normalized(view.get("Follow-up*", view.get("Follow-up"))) == "on hold", "overview.held_follow_up")
+        require(normalized(readback["queue"].get("Queue State")) in {"hold", "on hold", "blocked", "paused"}, "queue.operator_hold")
+    return {
+        "result": "PASS", "run_id": run_id, "creator_record_id": identifier,
+        "score": source_score, "score_label": "Not recorded" if source_score is None else f"{source_score}/10",
+        "observed_at": readback["captured_at"], "fields_verified": verified_fields,
+        "readback_digest": hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest(),
+    }
+
+
 def sweep_checkpoint(sweep: dict[str, Any], secret: bytes) -> dict[str, Any]:
     """Build sweep-checkpoint.json: counts and per-thread fingerprints, never a message or a thread link."""
     problems: list[str] = []
@@ -1260,11 +1452,29 @@ def sweep_checkpoint(sweep: dict[str, Any], secret: bytes) -> dict[str, Any]:
             "amazon_timestamp": thread.get("amazon_timestamp") is None or iso_timestamp(thread.get("amazon_timestamp")),
             "outcome": outcome in SWEEP_OUTCOMES,
             "reason": reason is None or (isinstance(reason, str) and bool(re.fullmatch(r"[a-z0-9_]{1,120}", reason))),
+            "tracker_updated": "tracker_updated" not in thread or type(thread["tracker_updated"]) is bool,
         }
         failed = [name for name, passed in checks.items() if not passed]
         if failed:
             problems.extend(f"threads[{index}].{name}" for name in failed)
             continue
+        synchronization = thread.get("tracker_update")
+        if outcome == "actioned" or thread.get("tracker_updated") is True or synchronization is not None:
+            try:
+                receipt = verify_tracker_update(synchronization)
+                if receipt["creator_record_id"] != record_id or receipt["run_id"] != run_id:
+                    raise Hold("Synchronization receipt belongs to another update.")
+                observed = datetime.fromisoformat(receipt["observed_at"].replace("Z", "+00:00"))
+                if not iso_timestamp(sweep.get("started_at")) or not iso_timestamp(sweep.get("completed_at")):
+                    raise Hold("Synchronization receipt requires a bounded sweep window.")
+                started = datetime.fromisoformat(sweep["started_at"].replace("Z", "+00:00"))
+                completed = datetime.fromisoformat(sweep["completed_at"].replace("Z", "+00:00"))
+                updated = datetime.fromisoformat(synchronization["updated_at"].replace("Z", "+00:00"))
+                if not started <= updated <= observed <= completed:
+                    raise Hold("Synchronization receipt is outside the sweep window.")
+            except Hold:
+                problems.append(f"threads[{index}].tracker_update")
+                continue
         checkpoints.append({
             "thread_key": fingerprint(secret, "thread", normalized(thread["thread_key"])),
             "creator_record_id": record_id,
@@ -1456,6 +1666,8 @@ def main() -> None:
     sweep_parser = sub.add_parser("sweep-checkpoint")
     sweep_parser.add_argument("--input", required=True)
     sweep_parser.add_argument("--output", required=True)
+    tracker_verify = sub.add_parser("verify-tracker-update")
+    tracker_verify.add_argument("--input", required=True)
     list_reservations = sub.add_parser("list-mcf")
     list_reservations.add_argument("--registry", required=True)
     migrate = sub.add_parser("migrate-legacy")
@@ -1466,6 +1678,13 @@ def main() -> None:
     args = parser.parse_args()
     cancel_outcome = read_json(args.outcome) if getattr(args, "outcome", None) else None
     try:
+        if args.command == "verify-tracker-update":
+            # Read-only comparison of captured Sheets data needs no identity/signing secret.
+            try:
+                captured = read_json(args.input)
+            except (OSError, ValueError):
+                raise Hold("Tracker synchronization failed: input_file") from None
+            emit(verify_tracker_update(captured))
         secret = get_secret(args.secret_env)
         if args.command == "register":
             record = read_json(args.record)

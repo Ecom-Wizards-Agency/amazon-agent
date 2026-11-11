@@ -13,6 +13,8 @@ The shared Creator Connections tracker is the only durable source of truth. Its 
 
 No routine task may be performed from chat memory, a separate spreadsheet, or a prior Slack post. Before each external action, the bot reads the resolved Creator Record ID and current row from the tracker, validates it through the control runner, completes the action, and writes the outcome back before selecting the next creator.
 
+`Start here` and `Creator overview` are reading views over that system. Hidden, collapsed or filtered records remain in scope. The required update/readback protocol in `tracker-schema.md` binds each write to its original row, applicable Registry state, unique Action Log event and Queue update, then verifies the overview's recorded score and hold. `verify-tracker-update` checks the captured evidence without writing Sheets or authorizing an external action. A partial backend write or stale/mismatched overview is incomplete; retain the old watermark and reconcile the failed part without duplicating a message, order or successful log event.
+
 ## Multi-client run isolation
 
 Read the enabled-client roster from `_local/creator-connections/enabled-clients.json`. Process enabled clients sequentially so one browser account, tracker binding, or local cache cannot bleed into the next client.
