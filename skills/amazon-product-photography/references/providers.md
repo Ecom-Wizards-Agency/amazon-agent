@@ -91,6 +91,40 @@ reference and transformation controls before starting a run.
 
 Source: [Magnific MCP](https://www.magnific.com/ai/docs/magnific-mcp).
 
+## Replicate alternative
+
+Replicate runs hosted models; we used its HTTP API with an account token. Tested 09.11.2026 with Google's Nano Banana image model at 2K, the same
+model as a parallel Magnific run. Read the model's input schema before the first
+run (that model took `prompt`, `image_input`, `aspect_ratio`, `resolution` and
+`output_format`), upload the reference and keep each prediction ID.
+
+- A prediction needs prepaid credit on the account that owns the token. Without it
+  the API returns HTTP 402 and the attempt is not billed. Personal and organisation
+  accounts hold separate credit, so check which account the token belongs to.
+- Below 5 USD of credit, Replicate throttles to 6 predictions a minute with a burst
+  of 1. On a low balance, run one prediction at a time instead of in parallel.
+- The model page may publish no price. Read the cost per image from the billing
+  page after a small run, and set the batch size from that.
+
+In a blind comparison of 19 prompts with one render each, Replicate won 11, Magnific
+6, with 2 ties. Replicate led on label fidelity (fidelity lens 12 to 7) and won the
+packshot and a scene where Magnific misspelled the label. Magnific won two
+lifestyle scenes, where both Replicate renders had a pasted-on band across the
+top, plus a food scene where Replicate's food looked like ceramic. Each platform produced unusable renders at times, and neither
+removes the need for the label read-back. One sample per prompt on
+the same model makes this indicative, not a ranking: most differences are sample
+variation.
+
+## Comparing providers
+
+Compare blind, or the result follows the judge's expectations. Use the same prompt,
+reference, model, resolution and aspect ratio on each side. Resize both images the
+same way, strip metadata and name them A and B, alternating which provider is A.
+Keep the key outside the judges' folder and apply it in code after judging. Give
+each prompt two independent judges: one for fidelity (label text, match to the
+reference, unwanted marks) and one for photo quality (composition, light, realism,
+artefacts). Report wins per lens and say how many samples each prompt had.
+
 ## Prompt fallback
 
 Return exact prompts with reference order, role, required settings and desired

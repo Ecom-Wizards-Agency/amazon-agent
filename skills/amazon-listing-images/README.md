@@ -12,6 +12,10 @@ of the Amazon Agent repository. No full operator setup,
 Seller Central login, keyword-tool access or existing ASIN is required. Supplied data
 is analyzed with its dates and limitations.
 
+A creative-pack mode takes a short brief (`references/brief-template.md`) and
+returns a gated pack of facts, frames, copy, claims record, shot list and design
+spec for a human check before anything is rendered.
+
 `SKILL.md` in this Amazon Agent skill directory is the canonical source. `references/worked-example.md` explains the reasoning with an anonymized
 example. Photography routes to `amazon-product-photography`; Figma layout work is
 optional and outside this skill.

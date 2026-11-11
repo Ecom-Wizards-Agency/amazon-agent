@@ -83,10 +83,67 @@ Exactly three secondary images in German with four fields. Retain supported
 strengthen to 24 hours. No universal holder fit, hot retention, dishwasher-safe or
 leak-proof claim. No new strategy, main-image rewrite or research prerequisites.
 
+## Case D: creative-pack brief missing the label file
+
+### Input to the performing agent
+
+Creative-pack brief for Amazon.com, English copy. Approver: the operator. Brand:
+Fernwell. Product as printed on the pack: Fernwell Night Magnesium, 60 capsules.
+ASIN: new. Claims posture: label facts only. Label or spec file: blank. Website:
+a public brand site. Style direction: calm, light backgrounds. No POE export.
+
+### Reviewer rubric
+
+A dietary supplement is regulated, so the missing label file blocks the facts
+stage. Send one message that lists every blocking gap at once (here the label
+file; also any other blocking gap from `references/brief-template.md`) and stop. Do not research, draft
+frames, write copy or produce a partial pack first. Do not ask about optional
+fields such as POE data or competitor ASINs; those become flagged assumptions
+later. No serving facts, amounts or claims guessed from the website.
+
+## Case E: refuter finds an implied claim after a clean gate
+
+### Input to the performing agent
+
+Pack in progress for a standard-posture joint-support supplement. The chosen
+writer set passes `scripts/check_copy.py` with 0 errors. The frame for the
+"everyday movement" line shows an older couple hiking a steep trail, and the
+shot list asks for a before and after split of the same person. A claims
+refuter reports both as meaning-level claims: the scene and the split imply a
+mobility result that no label fact or approved line supports.
+
+### Reviewer rubric
+
+A clean gate is not the end of the claims stage. Run one fix pass on the errors
+only: change the scene to verified ordinary use and drop the before and after
+split, keeping the accepted line if it is supported. Record each finding, the
+change and the reason in `claims.md`. Re-run the gate and the refuters once.
+Any HIGH finding that remains becomes a named decision in `pack.md`, not a
+silent pass. Do not rewrite unaffected frames.
+
+## Case F: change request on one frame of a delivered pack
+
+### Input to the performing agent
+
+A delivered pack (version 1) has seven frames and a valid `DONE.json`. The human
+check returns one request: on the dimensions frame, show the product in hand
+for scale instead of next to a ruler, and shorten the headline. Nothing else
+changes.
+
+### Reviewer rubric
+
+Re-run only the stages the request touches: that frame's entry in `frames.md`,
+its copy (gated again), its shot-list entry and its design-spec notes, plus the
+claims check for that frame. Keep the other frames, facts and brand CI as they
+are. Bump the pack version in `pack.md`, note what changed, and rewrite
+`DONE.json` last with fresh sha256 values, the new gate exit code and HIGH count.
+Do not restart research or rewrite the brief.
+
 ## Routing and review
 
 Positive: image concept/Bildkonzept from product and POE data; gallery order;
-exact image copy; English/German revision of an accepted gallery.
+exact image copy; English/German revision of an accepted gallery; a creative
+pack from a filled brief.
 Negative: POE export alone; title/backend SEO only; SB video script; rendering
 alone with a complete prompt; publishing images. Route those to their owners.
 

@@ -1,6 +1,6 @@
 ---
 name: amazon-product-photography
-description: "Create, edit and enhance product photos or write reference-based photo prompts. Use for packshots, lifestyle, usage and detail photos with FLORA, Nano Banana, Seedream, Higgsfield or Magnific. Does not design listing graphics or Figma layouts."
+description: "Create, edit and enhance product photos or write reference-based photo prompts. Use for packshots, lifestyle, usage and detail photos with FLORA, Nano Banana, Seedream, Higgsfield, Magnific or Replicate. Does not design listing graphics or Figma layouts."
 ---
 
 # Amazon Product Photography
@@ -93,6 +93,16 @@ contact shadows and any hand/product interaction. Fix actual defects before call
 a result usable. Keep original and chosen versions with source/reference mapping,
 model when known, prompt/settings, run IDs and output IDs.
 
+Generators often garble a label once the product is small in the scene. Read every
+visible label at 100% and 200%. When the print is wrong, transfer the crisp
+reference label onto the render with `scripts/label_transfer.py` (numpy and Pillow)
+rather than re-rolling. A glyph error in the source label artwork comes through on
+every transfer, so fix the source once. When the product is too small for its fine
+print to read correctly, soften that fine print like depth of field (the script's
+soften region) and keep the brand and product name crisp, or re-render with the
+product larger. For a MAIN packshot, composite the crisp reference cutout into the
+generated scene and keep the scene's contact shadow.
+
 For each requested photo deliver either:
 
 - The actual photo/preview and file link, useful dimensions, review status and any
@@ -110,7 +120,12 @@ photo-only work.
 - `amazon-listing-images` owns buying strategy, gallery order and copy.
 - `amazon-image-production` owns graphic composition and editable Figma layouts;
   pass selected photos there only when the user also requests that work.
+- A creative pack's `shot-list.json` from `amazon-listing-images` is the prompt
+  packet; generating from it needs a budget set for that task.
 - `references/reference-intake.md`: photo inputs, reference roles and prompt example.
-- `references/providers.md`: researched FLORA, Higgsfield and Magnific workflows.
+- `references/providers.md`: researched FLORA, Higgsfield, Magnific and Replicate
+  workflows, and how to compare providers blind.
+- `scripts/label_transfer.py`: label transfer onto a render; its self-test is
+  `scripts/selftest_label_transfer.py`.
 - `references/model-guidance.md`: dated official model guidance and enhancement limits.
 - `references/evaluation-cases.md`: maintenance-only photo-scope checks.

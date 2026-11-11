@@ -43,6 +43,7 @@ Do not repeat approval for accepted direction or routine reversible edits.
 - Keep source notes, operational metadata and placeholders outside final exports.
 - Verify frame count/order, text contents, editable layers and export dimensions.
 - Check applicable current Amazon requirements for production-ready deliverables.
+- Run the review and fix rounds in `references/figma-production.md` before handoff.
 
 Deliver actual Figma/frame links, previews and requested exports with remaining
 retouch or design decisions. If Figma is unavailable, provide a self-contained
@@ -55,7 +56,14 @@ Publishing finished files to existing listings is the `direct-update` mode of
 are installed; otherwise hand the files to the operator. Neither is needed for
 design work.
 
+## Build from a creative pack
+
+When the input is an `amazon-listing-images` creative pack, follow "Build from a
+creative pack" in `references/figma-production.md`: verify and gate the pack
+before rendering, then build and read back every text layer.
+
 ## References
 
-- `references/figma-production.md`: editable layout workflow and visual checks.
+- `references/figma-production.md`: editable layout workflow, visual checks and
+  the creative-pack build.
 - `references/evaluation-cases.md`: maintenance-only layout and routing checks.

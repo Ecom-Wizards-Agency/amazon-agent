@@ -14,3 +14,5 @@ connections; generation requires the selected provider's authorized connection.
 
 `SKILL.md` in this Amazon Agent skill directory is the canonical source. The references contain model guidance, provider research and a small
 photo input pack. This skill delivers photos, not listing graphics or typography.
+`scripts/label_transfer.py` pastes a crisp reference label onto a render whose
+label came out garbled; it needs numpy and Pillow.

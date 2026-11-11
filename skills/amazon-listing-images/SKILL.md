@@ -1,11 +1,11 @@
 ---
 name: amazon-listing-images
-description: "Create Amazon listing image concepts, sequence, exact copy, and visual directions from supplied product and POE data. Use for gallery strategy, Bildkonzepte, Bildtexte, or image-copy revisions; rendering and publishing are separate."
+description: "Create Amazon listing image concepts, sequence, exact copy, and visual directions from supplied product and POE data, or a full creative pack from a brief. Use for gallery strategy, Bildkonzepte, Bildtexte, or image-copy revisions; rendering and publishing are separate."
 ---
 
 # Amazon Listing Images
 
-Browser: None (analysis and writing use supplied evidence; requested live research follows its owning skill).
+Browser: Mixed (analysis and writing use supplied evidence; a pack reads a public brand website by web fetch and the live and competitor galleries as public retail pages in the connected browser; other live research follows its owning skill).
 
 Turn product facts and Product Opportunity Explorer data into images that help a
 shopper choose the product. Each image answers a material buying question through
@@ -22,6 +22,18 @@ or copy. Explicit live POE discovery or downloads remain with
 `amazon-opportunity-explorer`; rendering and publishing use their own workflows and
 authorization.
 
+## Modes
+
+| Mode | Input and output | Read first |
+| --- | --- | --- |
+| Concept (default) | Product and POE data in; concepts, order, exact copy and visual directions out. | This file. |
+| Creative pack | A filled brief in; the full pack out for a human check before any rendering. | `references/brief-template.md`, `references/creative-pack.md`, `references/image-copy.md` |
+
+In pack mode, gate the copy with `scripts/check_copy.py` and a profile from
+`references/claims-profiles/`. POE data is optional there; without it the pack
+states the lower confidence of its buying priorities. The rest of this file
+applies to both modes.
+
 ## Inputs and scope
 
 The two required inputs are **product data and POE data**. Accept files, tables,
@@ -34,6 +46,10 @@ before asking questions. Reuse facts already confirmed in the conversation.
 - Record whether product facts are label/spec verified, brand published, operator
   confirmed, or merely marketing assertions. Establish what is sold, quantity,
   intended use, meaningful features and support for proposed claims.
+- Check the label itself, not only the copy against the label: recompute %DV and
+  per-serving arithmetic, compare allergen and other-ingredient lines with the
+  brand's published pages, and record the physical look (contents colour, cap,
+  count) from a real photo. A label error or gap is a hold, never a fact to repeat.
 - Identify each POE niche, market, capture/update dates, metric labels and units.
   Use the relevant supplied search, review, rating-impact, return and purchase-driver
   tables. Missing tabs reduce confidence; they do not automatically block the brief.
@@ -171,6 +187,14 @@ does not authorize listing uploads, campaigns, messages or publishing.
   reasoning/team onboarding, not a fixed sequence to copy.
 - `references/evaluation-cases.md`: synthetic behavioral checks for maintenance;
   not required reading during client work.
+- `references/brief-template.md`: the brief a human fills for a creative pack.
+- `references/creative-pack.md`: pack procedure, file spec, brand-CI intake and
+  design-spec rules.
+- `references/image-copy.md`: image-copy rules, the writer and blind-judge
+  protocol and claims-posture levels.
+- `references/claims-profiles/`: gate profiles (`amazon-standard.json`,
+  `us-dietary-supplement.json`) for `scripts/check_copy.py`, whose self-test is
+  `scripts/selftest_check_copy.py`.
 - `amazon-opportunity-explorer` owns requested discovery/downloads. This skill owns
   image strategy/copy when product and POE evidence already exist.
 - `amazon-listing-capture` owns requested live capture; `amazon-seo` owns titles,

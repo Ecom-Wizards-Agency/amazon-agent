@@ -1,0 +1,111 @@
+{
+  "_doc": [
+    "Claims profile for scripts/check_copy.py: the Amazon image-copy rules that hold in every category.",
+    "banned: regex patterns grouped by reason. Each match in a free text key is an error. Patterns run on the normalized text (ASCII apostrophes, hyphens and spaces) and ignore case.",
+    "warnings: regex patterns grouped by reason. Each match is a warning for a human to check, not an error.",
+    "A category profile names this file in its own extends key (\"extends\": \"amazon-standard\") and adds its groups; groups and patterns are merged in order and a repeated pattern counts once.",
+    "Scalar keys (disclaimer, headline_words, eyebrow_caps, no_text_frames) are taken from the most specific profile that sets them.",
+    "disclaimer: null here. A category whose structure/function lines need a fixed disclaimer sets {key, prefix, name}.",
+    "headline_words: a headline outside min..max words is a warning that names the aim range.",
+    "eyebrow_caps: true warns when an eyebrow is not written in capitals.",
+    "no_text_frames: frame ids that must carry no text at all; Amazon's MAIN image is product only.",
+    "A product's facts file can lift a banned pattern with allow when the claim is approved for that product."
+  ],
+  "name": "amazon-standard",
+  "banned": {
+    "price and promotion": [
+      "\\bprice",
+      "\\$",
+      "discount",
+      "\\bsale\\b",
+      "\\bcoupon",
+      "\\bcheapest"
+    ],
+    "reviews and ratings": [
+      "\\breview(s|ed|ers?)?\\b",
+      "\\bstars?\\b",
+      "\\b(top|highly|best|five|5)[- ]?rated\\b",
+      "\\brated by\\b",
+      "\\b(customer|user|average|star) ratings?\\b",
+      "\\bout of (5|five)\\b",
+      "testimon",
+      "customers? say"
+    ],
+    "rank and superlatives": [
+      "\\bbest\\b",
+      "\\bbestsell",
+      "#1",
+      "\\bnumber one\\b",
+      "strongest",
+      "\\bamazon'?s choice",
+      "award",
+      "\\bunbeatable",
+      "\\bsuperior"
+    ],
+    "guarantees": [
+      "guarantee",
+      "refund",
+      "money-?back",
+      "risk[- ]free"
+    ],
+    "competitor comparison": [
+      "better than",
+      "unlike",
+      "other brands",
+      "\\bcompar(e|ed|es|ing|isons?)\\b",
+      "\\bvs\\.?(?=\\s|$)",
+      "\\bversus\\b"
+    ],
+    "shipping and delivery": [
+      "free (shipping|delivery|returns)",
+      "\\bprime (shipping|delivery|eligible)"
+    ],
+    "urgency": [
+      "limited time",
+      "act now",
+      "\\bhurry",
+      "while supplies last",
+      "\\btoday only",
+      "selling fast",
+      "\\blast chance"
+    ]
+  },
+  "warnings": {
+    "tone": [
+      "!"
+    ],
+    "unsupported figures": [
+      "%"
+    ],
+    "puffery": [
+      "\\bpremium\\b",
+      "\\bultimate\\b",
+      "\\bworld'?s\\b"
+    ],
+    "endorsements": [
+      "\\bdoctors?\\b",
+      "\\bexperts?\\b",
+      "recommended\\b"
+    ],
+    "environmental claims": [
+      "eco[- ]?friendly",
+      "sustainab",
+      "biodegradab",
+      "recyclab",
+      "compostab"
+    ],
+    "newness and safety": [
+      "\\bnew\\b",
+      "\\bsafe\\b",
+      "\\bnon-?toxic"
+    ]
+  },
+  "disclaimer": null,
+  "headline_words": {
+    "min": 2,
+    "max": 8,
+    "aim": [3, 7]
+  },
+  "eyebrow_caps": true,
+  "no_text_frames": ["MAIN"]
+}

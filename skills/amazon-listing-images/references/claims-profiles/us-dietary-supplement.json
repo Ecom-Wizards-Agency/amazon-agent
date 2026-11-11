@@ -1,0 +1,159 @@
+{
+  "_doc": [
+    "Claims profile for scripts/check_copy.py: US dietary supplements, built on amazon-standard.",
+    "Free text keys stay at label facts and neutral routine or format wording. Disease, body-system and effect words are errors there; an approved structure/function line goes only in a key the skeleton lists in sf_keys, which the gate checks against approved_sf_lines instead of this list.",
+    "Quality, testing, certification, origin and free-from words are errors unless the product's facts file lifts the exact pattern with allow, backed by evidence a human has approved.",
+    "Use and format words beyond the label's suggested use (timing, with food, capsule size) are errors until the label or an approved source says so.",
+    "disclaimer: every frame that holds an S/F line must carry a key named key whose text starts with prefix; name is the word used in the error.",
+    "Patterns run on the normalized text and ignore case. See amazon-standard.json for the merge rules."
+  ],
+  "name": "us-dietary-supplement",
+  "extends": "amazon-standard",
+  "banned": {
+    "body systems and markers": [
+      "circulat",
+      "\\bblood\\b",
+      "\\bheart",
+      "cardio",
+      "vascul",
+      "\\barter(y|ies|ial)",
+      "pressure",
+      "glucose",
+      "\\bsugar",
+      "lipid",
+      "cholesterol",
+      "\\bclot(s|ting|ted)?\\b",
+      "fibrin",
+      "\\bsymptom",
+      "\\borgans?\\b",
+      "\\bvessel",
+      "\\bliver",
+      "\\bkidney",
+      "\\bbrain",
+      "cognit",
+      "hormon",
+      "metabol"
+    ],
+    "effect and wellbeing words": [
+      "\\benergy",
+      "vitality",
+      "immun",
+      "inflamm",
+      "\\bpain",
+      "relief",
+      "\\baging\\b",
+      "longevity",
+      "wellness",
+      "\\bhealth",
+      "\\bsupport",
+      "\\bboost",
+      "\\bpromot",
+      "\\bmaintain",
+      "\\bprotect",
+      "\\bbenefit"
+    ],
+    "disease claims": [
+      "\\btreat",
+      "\\bcure",
+      "\\bprevent",
+      "diagnos",
+      "disease",
+      "diabet",
+      "stroke",
+      "\\bcancer",
+      "alzheimer",
+      "dementia",
+      "arthritis",
+      "obesity",
+      "insomnia",
+      "\\banxiety",
+      "depress",
+      "infection",
+      "\\bvirus",
+      "\\bviral\\b"
+    ],
+    "cleanse and detox": [
+      "\\bclear(s|ing|ed)?\\b",
+      "\\bclean",
+      "cleanse",
+      "cleanup",
+      "detox",
+      "\\bflush"
+    ],
+    "quality, testing and certification": [
+      "non-?gmo",
+      "\\bgmo\\b",
+      "\\bpur(e|ity)\\b",
+      "\\borganic\\b",
+      "\\btested\\b",
+      "\\btesting\\b",
+      "\\blab\\b",
+      "certif",
+      "\\bgmp\\b",
+      "\\bfda\\b",
+      "made in (the )?usa",
+      "\\busa\\b",
+      "patent",
+      "verified",
+      "clinical",
+      "pharma"
+    ],
+    "potency": [
+      "\\bmax(imum)?\\b",
+      "extra strength",
+      "high[- ]potency",
+      "\\bpoten(t|cy)"
+    ],
+    "free-from and diet": [
+      "veggie",
+      "vegetarian",
+      "vegan",
+      "\\bsoy",
+      "gluten",
+      "dairy",
+      "allergen"
+    ],
+    "use and format beyond the label": [
+      "easy to swallow",
+      "\\bsmall capsule",
+      "capsule size",
+      "\\bmorning",
+      "with food",
+      "before food",
+      "empty stomach"
+    ],
+    "results promises": [
+      "you'?ll feel",
+      "notice a difference",
+      "\\bresults?\\b",
+      "\\bworks\\b",
+      "in days"
+    ]
+  },
+  "warnings": {
+    "dose wording": [
+      "\\bdose\\b",
+      "\\bdosage\\b",
+      "\\bdaily dose\\b",
+      "\\bpill",
+      "\\btablet"
+    ],
+    "potency wording": [
+      "\\bpower"
+    ],
+    "evidence wording": [
+      "\\bstud(y|ies)\\b",
+      "\\bresearch",
+      "\\bscien",
+      "\\bproven\\b"
+    ],
+    "label wording": [
+      "\\bnatural"
+    ]
+  },
+  "disclaimer": {
+    "key": "disclaimer",
+    "prefix": "*These statements have not been evaluated",
+    "name": "FDA disclaimer"
+  }
+}
