@@ -19,6 +19,8 @@ Claim tier (R):               see image-copy.md for conversion costs; choose one
                                - label facts + named structure/function lines:
                                  list each approved line exactly
                                - standard
+                               - cosmetic: sourced ingredient facts, with no
+                                 implied finished-product result
 
 Generation budget (R):        spend cap/currency, attempt cap, repair allowance;
                                zero if supplied assets cover required scenes

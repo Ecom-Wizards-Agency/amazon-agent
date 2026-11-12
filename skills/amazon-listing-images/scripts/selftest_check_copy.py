@@ -21,6 +21,7 @@ GATE = HERE / "check_copy.py"
 PROFILES = HERE.parent / "references" / "claims-profiles"
 PROFILE = PROFILES / "us-dietary-supplement.json"
 STANDARD = PROFILES / "amazon-standard.json"
+COSMETIC = PROFILES / "us-cosmetic.json"
 DISCLAIMER = ("*These statements have not been evaluated by the Food and Drug Administration. "
               "This product is not intended to diagnose, treat, cure, or prevent any disease.")
 SF_LINE = "Supports muscle function*"
@@ -295,7 +296,38 @@ def main():
         if not ok:
             failures.append("usage error")
 
-    total = len(MUTATIONS) + len(WARNINGS) + len(CLEAN) + len(CONFIG) + 3
+        cosmetic_skeleton = {"frames": [{"id": "MAIN", "texts": []}, {"id": "PT01", "texts": [free("sub", "subheadline", 180)]}]}
+        (tmp / "skeleton.json").write_text(json.dumps(cosmetic_skeleton), encoding="utf-8")
+        cosmetic_cases = [
+            ("cosmetic product fact", "Serum in a glass bottle.", 0),
+            ("sourced ingredient fact", "Glycerin is a humectant.", 0),
+            ("drug claim", "Promotes hair regrowth.", 1),
+            ("ingredient implies product efficacy", "Glycerin grows hair.", 1),
+            ("device mechanism", "Creates micro-channels for absorption.", 1),
+            ("safety claim", "Painless and hypoallergenic.", 1),
+            ("disease claim", "Treats eczema.", 1),
+            ("health effect", "Supports blood circulation.", 1),
+            ("detox", "A detox routine.", 1),
+            ("result promise", "Visible results in days.", 1),
+            ("testing needs approval", "Lab tested serum.", 1),
+            ("free-from needs approval", "Gluten free serum.", 1),
+            ("inherited Amazon ban", "The best serum.", 1),
+        ]
+        for label, line, expected_code in cosmetic_cases:
+            doc = copy.deepcopy(cosmetic_skeleton)
+            doc["frames"][1]["texts"][0]["text"] = line
+            code, result = run(tmp, "cosmetic", doc, profile=COSMETIC)
+            ok = code == expected_code and bool(result["errors"]) == bool(expected_code)
+            print(("PASS" if ok else "FAIL"), label, result["errors"])
+            if not ok:
+                failures.append(label)
+        profile = json.loads(COSMETIC.read_text(encoding="utf-8"))
+        ok = profile["status"] == "draft" and profile["verification"] == "unverified" and profile["disclaimer"] is None
+        print(("PASS" if ok else "FAIL"), "cosmetic profile awaits human review without supplement disclaimer")
+        if not ok:
+            failures.append("cosmetic review status")
+
+    total = len(MUTATIONS) + len(WARNINGS) + len(CLEAN) + len(CONFIG) + 3 + len(cosmetic_cases) + 1
     print(f"{total - len(failures)}/{total} passed")
     if failures:
         print("FAILED:", ", ".join(failures))

@@ -58,7 +58,9 @@ go back through the writer, then through the copy gate and affected claims check
 
 The gate profile follows the product's category, not the posture. A regulated
 product always uses its category profile; for a US dietary supplement that is
-`references/claims-profiles/us-dietary-supplement.json`. A product in no regulated
+`references/claims-profiles/us-dietary-supplement.json`; for a US cosmetic, use
+`references/claims-profiles/us-cosmetic.json` (draft, unverified; awaiting human
+category compliance review before publication). A product in no regulated
 category uses `references/claims-profiles/amazon-standard.json`. Disease and drug
 claims are banned in every posture. For a regulated product the standard posture
 adds only the benefit lines the brief approves, through `approved_sf_lines` and

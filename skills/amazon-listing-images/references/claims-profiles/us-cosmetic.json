@@ -1,0 +1,32 @@
+{
+  "_doc": [
+    "US cosmetic profile for scripts/check_copy.py, built on amazon-standard. Draft, unverified; awaiting human category compliance review and label verification before publication.",
+    "Cosmetic intake permits verified cosmetic product facts and sourced facts about an ingredient. An ingredient fact must not imply a finished-product result. The facts-and-images refuter checks that distinction and every source; regex checks cannot establish substantiation or image implications.",
+    "Drug, disease, device, health-effect and results claims remain prohibited. Quality, origin, testing and free-from copy needs exact brief approval and an evidence-backed facts.allow entry. Use, amounts and units must match the label.",
+    "No supplement structure/function disclaimer is imposed on cosmetic facts. The gate remains a mechanical check, not category compliance approval."
+  ],
+  "name": "us-cosmetic",
+  "status": "draft",
+  "verification": "unverified",
+  "extends": "amazon-standard",
+  "banned": {
+    "unapproved drug, device and efficacy language": [
+      "regrow|regrowth|hair growth|hair loss|DHT|follicle|absorption|penetrat|micro.?channel",
+      "painless|sterile|clinically|FDA.?approved|safe for|no side effects|non.?irritat|hypoallergenic|fuller hair|thicker hair",
+      "\\bgrows? hair\\b"
+    ],
+    "disease and health effects": [
+      "\\btreat|\\bcure|\\bprevent|diagnos|disease|diabet|stroke|\\bcancer|alzheimer|dementia|arthritis|obesity|insomnia|\\banxiety|depress|infection|\\bvirus|\\bviral\\b",
+      "circulat|\\bblood\\b|\\bheart|cardio|vascul|\\barter(y|ies|ial)|glucose|cholesterol|\\bsymptom|\\borgans?\\b|\\bliver|\\bkidney|\\bbrain|hormon|inflamm|\\bpain|relief|immun|\\bhealth"
+    ],
+    "cleanse, detox and results promises": [
+      "\\bcleanse\\b|detox|\\bflush",
+      "you'?ll feel|notice a difference|\\bresults?\\b|\\bworks\\b|in days"
+    ],
+    "quality, origin, testing and free-from": [
+      "non-?gmo|\\bgmo\\b|\\bpur(e|ity)\\b|\\borganic\\b|\\btested\\b|\\btesting\\b|\\blab\\b|certif|\\bgmp\\b|\\bfda\\b|made in|\\busa\\b|patent|verified|clinical|pharma|transparency|no proprietary blend",
+      "free[- ]from|veggie|vegetarian|vegan|\\bsoy|gluten|dairy|allergen"
+    ]
+  },
+  "disclaimer": null
+}
