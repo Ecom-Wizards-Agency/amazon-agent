@@ -75,6 +75,13 @@ Claims law and the risk ladder are in
 
 Applies to every regulated product, in every posture.
 
+For the cosmetic tier only, ordinary surface cleansing of skin, hair or scalp is
+allowed with a source; the shared "no cleanse" rule below does not apply to that
+cosmetic meaning. Verified application directions (including curing a nail coating
+under a UV lamp) and ingredient facts use their practical or ingredient meaning,
+not a disease claim inferred from an overlapping word. The refuters check that
+context and source; systemic cleanse/detox or drug claims remain excluded.
+
 - No disease words (treat, cure, prevent, diagnose, any named condition) and no
   body-system or health-effect words outside an approved structure/function line.
 - No cleanse, detox or flush language. No results or timing promises ("you'll feel",
@@ -166,8 +173,9 @@ Each finding names the key, quotes the text and rates it HIGH, MEDIUM or LOW. Th
 
 ## Lessons
 
-- The gate catches only the mechanical layer: banned words, fixed keys, numbers,
-  lengths. Meaning-level errors need the refuters: a false count ("six ingredients"
+- A mechanical profile is a first filter; the meaning-level refuters decide
+  whether copy is cleared. They check errors beyond words, fixed keys, numbers
+  and lengths: a false count ("six ingredients"
   on a five-ingredient label), a second serving phrase, an origin claim in plain
   words, or a product name on the pack that differs from the listing.
 - Voice is the usual weak spot. Writers given the brand's own site lines as allowed

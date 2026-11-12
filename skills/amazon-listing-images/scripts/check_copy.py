@@ -5,7 +5,7 @@ Usage:
   python3 -I -B check_copy.py <copy.json> --skeleton <copy-skeleton.json>
       --profile <profile.json> --facts <facts.json> [--json]
 
-Exit 0 when there are no errors or profile review holds, 1 when there are errors,
+Exit 0 requires zero errors and no profile review holds; 1 means there are errors,
 2 on a usage, read or configuration error, 3 when profile review is required.
 Warnings alone never change the exit code. Fixed keys must match
 the skeleton exactly; only free keys are checked for claims.
