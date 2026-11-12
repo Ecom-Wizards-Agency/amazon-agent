@@ -109,6 +109,7 @@ def make_clr(path: Path) -> None:
     sheet.title = "Category Listings Report"
     sheet.append(["SKU", "ASIN", "Parent SKU", "Variation Theme"])
     sheet.append(["CHILD-1", "B000000001", "", ""])
+    sheet.append(["CHILD-1-ALT", "B000000001", "", ""])
     sheet.append(["CHILD-2", "B000000002", "", ""])
     sheet.append(["CHILD-3", "B000000003", "", ""])
     sheet.append(["OLD-PARENT", "B000000004", "", ""])
@@ -190,6 +191,40 @@ def main() -> int:
     check("existing child has minimal six relationship fields plus variation", len(child_values) == 7, str(child_values))
     ccp.close_workbook(info.workbook)
 
+    print("\n=== Multiple existing offers on one child ASIN ===")
+    shared = base_manifest(template, clr, TMP / "pack-shared-asin")
+    shared["family"]["children"].extend([
+        {"sku": "CHILD-1-ALT", "asin": "B000000001", "status": "existing", "variation_value": "1-Month Supply"},
+        {"sku": "CHILD-3", "asin": "B000000003", "status": "existing", "variation_value": "3-Month Supply"},
+    ])
+    shared_path = save_manifest(shared, "shared-asin.json")
+    shared_loaded = ccp.load_manifest(shared_path)
+    shared_pack = ccp.build(shared_loaded)
+    shared_file = shared_pack / "03-upload-ready" / "01-create-family.xlsm"
+    check("same-ASIN offers pass saved workbook validation", bool(ccp.validate_workbook(shared_loaded, shared_file)))
+    info, shared_rows = ccp.rows_from_workbook(shared_file)
+    check("one parent and four child offers", len(shared_rows) == 5, str(len(shared_rows)))
+    check(
+        "all existing offers keep minimal partial updates without product IDs",
+        all(
+            len(values) == 7
+            and ccp.canonical_value(info, values, "action") == ccp.PARTIAL_UPDATE
+            and not ccp.nonempty(ccp.canonical_value(info, values, "external_product_id"))
+            for _, values in shared_rows[1:]
+        ),
+    )
+    ccp.close_workbook(info.workbook)
+    check(
+        "review checklist describes uniqueness per ASIN",
+        "Variation values are unique per ASIN" in (shared_pack / "02-change-manifest.md").read_text(encoding="utf-8"),
+    )
+
+    normalized_shared = base_manifest(template, clr, TMP / "normalized-shared")
+    normalized_shared["family"]["children"][1].update({
+        "sku": "CHILD-1-ALT", "asin": " b000000001 ", "variation_value": " 1-month SUPPLY ",
+    })
+    check("ASIN and variation comparisons normalize case and whitespace", ccp.validate_manifest(normalized_shared) == [])
+
     print("\n=== Add an existing third child ===")
     add = base_manifest(template, clr, TMP / "pack-add")
     add["operation"] = "add_existing_child"
@@ -240,7 +275,41 @@ def main() -> int:
     duplicate["family"]["children"][1]["variation_value"] = "1-month supply"
     duplicate_path = save_manifest(duplicate, "duplicate.json")
     duplicate_loaded = ccp.load_manifest(duplicate_path)
-    expect_error("duplicate variation values rejected", lambda: ccp.validate_manifest(duplicate_loaded), "duplicate variation values")
+    expect_error("distinct-ASIN duplicate variation values rejected", lambda: ccp.validate_manifest(duplicate_loaded), "duplicate variation values")
+    duplicate_file = TMP / "duplicate-variation.xlsm"
+    ccp.write_workbook(template, duplicate_file, ccp.build_specs(duplicate_loaded)[0][1])
+    expect_error(
+        "distinct-ASIN duplicates rejected in a matching saved workbook",
+        lambda: ccp.validate_workbook(duplicate_loaded, duplicate_file),
+        "duplicate child variation values",
+    )
+
+    unknown_asin = base_manifest(template, clr, TMP / "unknown-asin")
+    unknown_asin["family"]["children"][1].update({"asin": "", "variation_value": "1-Month Supply"})
+    expect_error("unknown-ASIN duplicate values rejected", lambda: ccp.validate_manifest(unknown_asin), "duplicate variation values")
+
+    new_offer = base_manifest(template, clr, TMP / "new-offer")
+    new_offer["family"]["children"][1].update({
+        "sku": "CHILD-NEW", "status": "new", "asin": "B000000001", "variation_value": "1-Month Supply",
+    })
+    expect_error("new child cannot reuse an existing value by claiming its ASIN", lambda: ccp.validate_manifest(new_offer), "duplicate variation values")
+
+    repeated_sku = base_manifest(template, clr, TMP / "repeated-sku")
+    repeated_sku["family"]["children"][1].update({
+        "sku": "CHILD-1", "asin": "B000000001", "variation_value": "1-Month Supply",
+    })
+    expect_error("same-ASIN duplicate SKUs remain rejected", lambda: ccp.validate_manifest(repeated_sku), "duplicate SKUs in manifest")
+
+    conflicting = base_manifest(template, clr, TMP / "conflicting-asin")
+    conflicting["family"]["children"][1].update({"sku": "CHILD-1-ALT", "asin": "B000000001"})
+    expect_error("conflicting values on one ASIN rejected", lambda: ccp.validate_manifest(conflicting), "conflicting variation values for existing ASINs")
+    conflicting_file = TMP / "conflicting-asin.xlsm"
+    ccp.write_workbook(template, conflicting_file, ccp.build_specs(conflicting)[0][1])
+    expect_error(
+        "conflicting same-ASIN values rejected in a matching saved workbook",
+        lambda: ccp.validate_workbook(conflicting, conflicting_file),
+        "conflicting variation values for existing ASINs",
+    )
 
     contaminated = TMP / "contaminated.xlsm"
     shutil.copy2(upload, contaminated)
@@ -275,7 +344,7 @@ def main() -> int:
     print("\n=== Ordered delete and rebuild ===")
     rebuild = base_manifest(template, clr, TMP / "pack-rebuild")
     rebuild["operation"] = "rebuild_family"
-    rebuild["source"]["allow_missing_skus"] = ["SYNTH-PARENT"]
+    rebuild["family"]["parent"].update({"sku": "OLD-PARENT", "status": "existing"})
     rebuild_path = save_manifest(rebuild, "rebuild.json")
     rebuild_loaded = ccp.load_manifest(rebuild_path)
     rebuild_pack = ccp.build(rebuild_loaded)
@@ -285,6 +354,56 @@ def main() -> int:
     check("rebuild file exists", apply_file.exists())
     check("delete file validates", bool(ccp.validate_workbook(rebuild_loaded, delete_file)))
     check("rebuild file validates", bool(ccp.validate_workbook(rebuild_loaded, apply_file)))
+
+    print("\n=== Rebuild under a different new parent SKU ===")
+    replacement = base_manifest(template, clr, TMP / "pack-replacement")
+    replacement["operation"] = "rebuild_family"
+    replacement["family"]["old_parent_sku"] = "OLD-PARENT"
+    replacement["family"]["children"] = shared["family"]["children"]
+    replacement_path = save_manifest(replacement, "replacement.json")
+    replacement_loaded = ccp.load_manifest(replacement_path)
+    replacement_pack = ccp.build(replacement_loaded)
+    replacement_delete = replacement_pack / "03-upload-ready" / "01-delete-old-parent.xlsm"
+    replacement_create = replacement_pack / "03-upload-ready" / "02-rebuild-family.xlsm"
+    info, delete_rows = ccp.rows_from_workbook(replacement_delete)
+    check(
+        "replacement deletes only the old parent",
+        len(delete_rows) == 1
+        and ccp.canonical_value(info, delete_rows[0][1], "sku") == "OLD-PARENT"
+        and ccp.canonical_value(info, delete_rows[0][1], "action") == ccp.DELETE,
+    )
+    ccp.close_workbook(info.workbook)
+    info, replacement_rows = ccp.rows_from_workbook(replacement_create)
+    check(
+        "replacement creates the new parent and all four existing offers",
+        len(replacement_rows) == 5
+        and ccp.canonical_value(info, replacement_rows[0][1], "sku") == "SYNTH-PARENT"
+        and all(
+            ccp.canonical_value(info, values, "parent_sku") == "SYNTH-PARENT"
+            for _, values in replacement_rows[1:]
+        ),
+    )
+    ccp.close_workbook(info.workbook)
+    check("replacement delete validates", bool(ccp.validate_workbook(replacement_loaded, replacement_delete)))
+    check("replacement create validates", bool(ccp.validate_workbook(replacement_loaded, replacement_create)))
+
+    missing_old = base_manifest(template, clr, TMP / "missing-old-parent")
+    missing_old["operation"] = "rebuild_family"
+    missing_old["family"]["old_parent_sku"] = "MISSING-PARENT"
+    expect_error(
+        "replacement requires old parent in the source report",
+        lambda: ccp.validate_manifest(missing_old),
+        "existing SKUs missing from Category Listings Report: MISSING-PARENT",
+    )
+    colliding_parent = base_manifest(template, clr, TMP / "colliding-parent")
+    colliding_parent["operation"] = "rebuild_family"
+    colliding_parent["family"]["old_parent_sku"] = "OLD-PARENT"
+    colliding_parent["family"]["parent"]["sku"] = "TARGET-PARENT"
+    expect_error(
+        "replacement rejects an already existing destination parent",
+        lambda: ccp.validate_manifest(colliding_parent),
+        "new SKUs already exist in Category Listings Report: TARGET-PARENT",
+    )
 
     print("\n=== Detach and reparent sequencing ===")
     detach = base_manifest(template, clr, TMP / "pack-detach")

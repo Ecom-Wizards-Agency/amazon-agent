@@ -53,12 +53,12 @@ ERROR_GUIDANCE = {
     "8066": (
         "Invalid parentage setup",
         "Check Parentage Level, Parent SKU, variation theme, product type, and the distinct "
-        "variation value on every child.",
+        "variation value on every child ASIN.",
     ),
     "8801": (
         "Duplicate variation attributes",
-        "Two children share the same variation value or Amazon is still retaining a conflicting "
-        "catalog attribute. Use one unique value per child and verify the selected theme.",
+        "Two child ASINs share the same variation value or Amazon is still retaining a conflicting "
+        "catalog attribute. Use one unique value per ASIN and verify the selected theme.",
     ),
     "90041": (
         "Missing required data",
@@ -99,6 +99,35 @@ def nonempty(value: Any) -> bool:
 
 def normalized(value: Any) -> str:
     return re.sub(r"[^a-z0-9]+", "", str(value or "").lower())
+
+
+def variation_value_issues(children: Iterable[dict[str, Any]], *, label: str) -> list[str]:
+    """Permit repeated values only for existing offers on the same valid ASIN."""
+    asins_by_value: dict[str, list[str | None]] = {}
+    values_by_asin: dict[str, set[str]] = {}
+    for child in children:
+        value = str(child.get("variation_value") or "").strip().casefold()
+        if not value:
+            continue
+        asin: str | None = str(child.get("asin") or "").strip().upper()
+        if child.get("status") != "existing" or not re.fullmatch(r"[A-Z0-9]{10}", asin):
+            asin = None
+        asins_by_value.setdefault(value, []).append(asin)
+        if asin:
+            values_by_asin.setdefault(asin, set()).add(value)
+
+    duplicates = sorted(
+        value
+        for value, asins in asins_by_value.items()
+        if len(asins) > 1 and (None in asins or len(set(asins)) > 1)
+    )
+    conflicts = sorted(asin for asin, values in values_by_asin.items() if len(values) > 1)
+    issues = []
+    if duplicates:
+        issues.append(f"duplicate {label}: {', '.join(duplicates)}")
+    if conflicts:
+        issues.append(f"conflicting variation values for existing ASINs: {', '.join(conflicts)}")
+    return issues
 
 
 def load_manifest(path: Path) -> dict[str, Any]:
@@ -169,7 +198,6 @@ def validate_manifest(manifest: dict[str, Any], *, require_files: bool = True) -
         issues.append("family.children[] must contain at least one child")
 
     skus: list[str] = []
-    values: list[str] = []
     for index, child in enumerate(children, 1):
         tag = f"family.children[{index}]"
         for key in ("sku", "status"):
@@ -187,8 +215,6 @@ def validate_manifest(manifest: dict[str, Any], *, require_files: bool = True) -
             issues.append(f"{tag}.variation_value is required")
         if child.get("sku"):
             skus.append(str(child["sku"]))
-        if child.get("variation_value"):
-            values.append(str(child["variation_value"]).strip().casefold())
         if child.get("status") == "new":
             if operation == "create_gtin_exempt_child" and not child.get("gtin_exempt"):
                 issues.append(f"{tag}.gtin_exempt must be true for this operation")
@@ -206,9 +232,7 @@ def validate_manifest(manifest: dict[str, Any], *, require_files: bool = True) -
     duplicate_skus = sorted({sku for sku in skus if skus.count(sku) > 1})
     if duplicate_skus:
         issues.append(f"duplicate SKUs in manifest: {', '.join(duplicate_skus)}")
-    duplicate_values = sorted({v for v in values if values.count(v) > 1})
-    if duplicate_values:
-        issues.append(f"duplicate variation values: {', '.join(duplicate_values)}")
+    issues.extend(variation_value_issues(children, label="variation values"))
 
     removed = set(map(str, family.get("removed_child_skus") or []))
     child_skus = {str(c.get("sku")) for c in children if c.get("sku")}
@@ -234,8 +258,10 @@ def validate_manifest(manifest: dict[str, Any], *, require_files: bool = True) -
                         for child in children
                         if child.get("status") == "existing" and child.get("sku")
                     }
-                    if operation in {"delete_parent", "rebuild_family", "detach_children"} and parent.get("sku"):
+                    if operation in {"delete_parent", "detach_children"} and parent.get("sku"):
                         expected_existing.add(str(parent["sku"]))
+                    if operation == "rebuild_family" and parent.get("sku"):
+                        expected_existing.add(str(family.get("old_parent_sku") or parent["sku"]))
                     if operation == "reparent_children" and family.get("old_parent_sku"):
                         expected_existing.add(str(family["old_parent_sku"]))
                         if parent.get("status") == "existing":
@@ -255,6 +281,13 @@ def validate_manifest(manifest: dict[str, Any], *, require_files: bool = True) -
                         if child.get("status") == "new" and child.get("sku")
                     }
                     if operation == "create_parent" and parent.get("sku"):
+                        new_skus.add(str(parent["sku"]))
+                    if (
+                        operation == "rebuild_family"
+                        and family.get("old_parent_sku")
+                        and family["old_parent_sku"] != parent.get("sku")
+                        and parent.get("sku")
+                    ):
                         new_skus.add(str(parent["sku"]))
                     if operation == "reparent_children" and parent.get("status") == "new":
                         new_skus.add(str(parent["sku"]))
@@ -659,7 +692,7 @@ Amazon processes the files in the listed order. For multi-file changes, do not s
 
 - Only the intended SKUs appear in each file.
 - Parent and child product types match.
-- Every child has one unique customer-facing variation value.
+- Variation values are unique per ASIN; existing SKUs on the same ASIN share the same value.
 - Existing children use minimal partial updates.
 - New parents and new children use full updates.
 - No parent row contains price, quantity, condition, or a child variation value.
@@ -734,7 +767,12 @@ def validate_workbook(manifest: dict[str, Any], path: Path) -> list[str]:
     if unexpected := sorted(actual_skus - expected_skus):
         issues.append(f"unexpected SKUs present: {', '.join(unexpected)}")
 
-    variation_values: list[str] = []
+    children_by_sku = {
+        str(child["sku"]): child
+        for child in (manifest.get("family", {}).get("children") or [])
+        if child.get("sku")
+    }
+    actual_children: list[dict[str, Any]] = []
     themes: set[str] = set()
     variation_attr = manifest.get("family", {}).get("variation_attribute")
     variation_col = resolve_column(info, variation_attr, required=False) if variation_attr else None
@@ -783,7 +821,9 @@ def validate_workbook(manifest: dict[str, Any], path: Path) -> list[str]:
             if theme:
                 themes.add(str(theme))
             if variation_key and nonempty(values.get(variation_key)):
-                variation_values.append(str(values[variation_key]).strip().casefold())
+                actual_children.append(
+                    {**children_by_sku.get(sku, {}), "variation_value": values[variation_key]}
+                )
             if action == PARTIAL_UPDATE and extras:
                 issues.append(f"SKU {sku}: existing child is not a minimal partial update")
             id_type = canonical_value(info, values, "external_product_id_type")
@@ -793,9 +833,7 @@ def validate_workbook(manifest: dict[str, Any], path: Path) -> list[str]:
 
     if len(themes) > 1:
         issues.append(f"mixed variation themes: {', '.join(sorted(themes))}")
-    duplicates = sorted({v for v in variation_values if variation_values.count(v) > 1})
-    if duplicates:
-        issues.append(f"duplicate child variation values: {', '.join(duplicates)}")
+    issues.extend(variation_value_issues(actual_children, label="child variation values"))
 
     template = resolve_source(manifest, "blank_template")
     template_info = load_template(template)
