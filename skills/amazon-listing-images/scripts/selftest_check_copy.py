@@ -361,6 +361,43 @@ def main():
             print(("PASS" if ok else "FAIL"), "approved free-from", line)
             if not ok:
                 failures.append(f"approved free-from {line}")
+        # Cosmetic lifecycle fields cannot be blank, removed or unknown.
+        lifecycle_cases = [
+            ("empty", {"status": "", "verification": ""}),
+            ("removed", {}),
+            ("pending", {"status": "pending", "verification": "pending"}),
+        ]
+        cosmetic_profile = json.loads(COSMETIC.read_text(encoding="utf-8"))
+        lifecycle_profile = tmp / "cosmetic-lifecycle.json"
+        lifecycle_doc = copy.deepcopy(cosmetic_skeleton)
+        lifecycle_doc["frames"][1]["texts"][0]["text"] = "Serum in a glass bottle."
+        for label, fields in lifecycle_cases:
+            profile = {k: v for k, v in cosmetic_profile.items() if k not in ("status", "verification")}
+            profile.update(fields)
+            lifecycle_profile.write_text(json.dumps(profile), encoding="utf-8")
+            code, result = run(tmp, "lifecycle", lifecycle_doc, profile=lifecycle_profile)
+            ok = (code == 3 and result["status"] == "review_required" and not result["ok"]
+                  and result["review_required"] and len(result["review_reasons"]) == 2
+                  and not result["errors"] and not result["warnings"])
+            print(("PASS" if ok else "FAIL"), f"cosmetic lifecycle {label}: exit {code}")
+            if not ok:
+                failures.append(f"cosmetic lifecycle {label}")
+        # Approval releases a hold only after both lifecycle fields are reviewed.
+        profile = {**cosmetic_profile, "status": "approved"}
+        profile.pop("verification")
+        lifecycle_profile.write_text(json.dumps(profile), encoding="utf-8")
+        before_code, before = run(tmp, "before-review", lifecycle_doc, profile=lifecycle_profile)
+        profile["verification"] = "verified"
+        lifecycle_profile.write_text(json.dumps(profile), encoding="utf-8")
+        code, result = run(tmp, "after-review", lifecycle_doc, profile=lifecycle_profile)
+        ok = (before_code == 3 and before["status"] == "review_required" and not before["ok"]
+              and before["review_required"] and before["review_reasons"] and not before["errors"]
+              and code == 0 and result["status"] == "passed" and result["ok"]
+              and not result["review_required"] and not result["review_reasons"]
+              and not result["errors"] and not result["warnings"])
+        print(("PASS" if ok else "FAIL"), f"reviewed lifecycle clears hold: exits {before_code} -> {code}")
+        if not ok:
+            failures.append("reviewed lifecycle clears hold")
         # A hold in any inherited profile survives even an approved child.
         review_cases = [
             ({"status": "draft"}, "status is draft"),
@@ -396,7 +433,7 @@ def main():
         if not ok:
             failures.append("cosmetic review status")
 
-    total = len(MUTATIONS) + len(WARNINGS) + len(CLEAN) + len(CONFIG) + 3 + len(cosmetic_cases) + 1 + len(review_cases) + 1 + len(approved_free_from) + len(source_warning_cases)
+    total = len(MUTATIONS) + len(WARNINGS) + len(CLEAN) + len(CONFIG) + 3 + len(cosmetic_cases) + 1 + len(review_cases) + 1 + len(approved_free_from) + len(source_warning_cases) + len(lifecycle_cases) + 1
     print(f"{total - len(failures)}/{total} passed")
     if failures:
         print("FAILED:", ", ".join(failures))
