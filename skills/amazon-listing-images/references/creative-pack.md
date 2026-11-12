@@ -115,8 +115,15 @@ regulated category; the profile follows the category, not the claims posture
 `facts.json` holds the product-specific part: product name and stem, allowed numbers,
 extra banned words, unit values and pattern rules; its schema is documented in the
 script. `scripts/selftest_check_copy.py` proves the gate on an invented product.
-Exit 0 means no errors. The output starts with the command, the working folder and
-the sha256 of every profile file in the extends chain; `gate.txt` keeps the full
+Exit 0 means no errors or profile review hold. Exit 3 means `review_required`:
+the profile is draft or unverified, even if the copy has no errors. It never clears
+a pack by itself. Use the existing `claims.md` record for both meaning-level
+refuters' final clearance, evidence sources and a named person's dated sign-off
+covering the copy and the draft/unverified profile. Bind that record to the final
+copy and profile hashes in `DONE.json`; record exit 3 and the `claims.md` path/hash
+there. Missing either the refuter clearance or the person's sign-off blocks
+`DONE.json` and pack clearance. Do not turn exit 3 into exit 0.
+The output starts with the command, the working folder and the sha256 of every profile file in the extends chain; `gate.txt` keeps the full
 output of the final run.
 
 ## Pack files

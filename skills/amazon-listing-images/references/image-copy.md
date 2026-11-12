@@ -123,7 +123,10 @@ keys and limits, as `<pack>/candidates/<set>.json`, then runs:
 
 Return failed lines or missing roles to their writer with the relevant constraint
 and finding, keeping accepted wording unchanged; do not rewrite during mapping.
-Gate again until 0 errors and explain warnings. Judge only passing sets below.
+Gate again until 0 errors and explain warnings. Exit 3 (`review_required`) allows
+candidate judging with a review hold; pack clearance requires the refuter record
+and named person's sign-off in `claims.md`, bound by `DONE.json`, as specified in
+`references/creative-pack.md`. Judge only sets with no mechanical errors below.
 
 A set that cannot reach 0 errors drops out, and `pack.md` says so. The
 `candidates/` folder is working material, not one of the pack files.

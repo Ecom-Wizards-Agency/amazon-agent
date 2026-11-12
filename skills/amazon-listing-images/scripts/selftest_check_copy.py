@@ -299,8 +299,8 @@ def main():
         cosmetic_skeleton = {"frames": [{"id": "MAIN", "texts": []}, {"id": "PT01", "texts": [free("sub", "subheadline", 180)]}]}
         (tmp / "skeleton.json").write_text(json.dumps(cosmetic_skeleton), encoding="utf-8")
         cosmetic_cases = [
-            ("cosmetic product fact", "Serum in a glass bottle.", 0),
-            ("sourced ingredient fact", "Glycerin is a humectant.", 0),
+            ("cosmetic product fact", "Serum in a glass bottle.", 3),
+            ("sourced ingredient fact", "Glycerin is a humectant.", 3),
             ("drug claim", "Promotes hair regrowth.", 1),
             ("ingredient implies product efficacy", "Glycerin grows hair.", 1),
             ("device mechanism", "Creates micro-channels for absorption.", 1),
@@ -317,17 +317,46 @@ def main():
             doc = copy.deepcopy(cosmetic_skeleton)
             doc["frames"][1]["texts"][0]["text"] = line
             code, result = run(tmp, "cosmetic", doc, profile=COSMETIC)
-            ok = code == expected_code and bool(result["errors"]) == bool(expected_code)
+            ok = code == expected_code and bool(result["errors"]) == (expected_code == 1)
             print(("PASS" if ok else "FAIL"), label, result["errors"])
             if not ok:
                 failures.append(label)
+        # A hold in any inherited profile survives even an approved child.
+        review_cases = [
+            ({"status": "draft"}, "status is draft"),
+            ({"verification": "unverified"}, "verification is unverified"),
+            ({"status": "draft", "verification": "unverified"}, "verification is unverified"),
+        ]
+        for fields, reason in review_cases:
+            parent = tmp / "review-parent.json"
+            parent.write_text(json.dumps({"name": "review-parent", **fields}), encoding="utf-8")
+            child = tmp / "review-child.json"
+            child.write_text(json.dumps({"name": "review-child", "extends": str(parent),
+                                         "status": "approved", "verification": "verified"}), encoding="utf-8")
+            doc = copy.deepcopy(cosmetic_skeleton)
+            doc["frames"][1]["texts"][0]["text"] = "Serum in a glass bottle."
+            code, result = run(tmp, "review", doc, profile=child)
+            ok = (code == 3 and result["status"] == "review_required" and not result["ok"]
+                  and result["review_required"] and not result["errors"]
+                  and any(reason in r for r in result["review_reasons"]))
+            print(("PASS" if ok else "FAIL"), "profile review hold", fields)
+            if not ok:
+                failures.append(f"profile review hold {fields}")
+        proc = subprocess.run([sys.executable, "-I", "-B", str(GATE), str(tmp / "review.json"),
+                               "--skeleton", str(tmp / "skeleton.json"), "--profile", str(COSMETIC),
+                               "--facts", str(tmp / "facts.json")], capture_output=True, text=True)
+        ok = (proc.returncode == 3 and "status is draft" in proc.stdout and "verification is unverified" in proc.stdout
+              and "meaning-level refuter clearance and named human sign-off in claims.md" in proc.stdout)
+        print(("PASS" if ok else "FAIL"), "text output explains profile review hold")
+        if not ok:
+            failures.append("text output explains profile review hold")
         profile = json.loads(COSMETIC.read_text(encoding="utf-8"))
         ok = profile["status"] == "draft" and profile["verification"] == "unverified" and profile["disclaimer"] is None
         print(("PASS" if ok else "FAIL"), "cosmetic profile awaits human review without supplement disclaimer")
         if not ok:
             failures.append("cosmetic review status")
 
-    total = len(MUTATIONS) + len(WARNINGS) + len(CLEAN) + len(CONFIG) + 3 + len(cosmetic_cases) + 1
+    total = len(MUTATIONS) + len(WARNINGS) + len(CLEAN) + len(CONFIG) + 3 + len(cosmetic_cases) + 1 + len(review_cases) + 1
     print(f"{total - len(failures)}/{total} passed")
     if failures:
         print("FAILED:", ", ".join(failures))
