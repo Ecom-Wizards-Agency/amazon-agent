@@ -46,7 +46,7 @@ function baseState(overrides = {}) {
   };
 }
 function fakeRuntime(dir, { state = baseState(), identity = null, newTargetOnClick = false, dispatchError = null, approveEffect = 'label', onDispatch = null, afterClick = null, prepareError = null } = {}) {
-  let clock = T0, clicked = false;
+  let clock = T0, clicked = false, preparedOptions = {};
   const sent = [];
   const events = [];
   const attemptsAtDispatch = [];
@@ -62,6 +62,7 @@ function fakeRuntime(dir, { state = baseState(), identity = null, newTargetOnCli
     },
     targets: async () => { if (clicked && afterClick?.targets) throw afterClick.targets; return newTargetOnClick && clicked ? ['target-1', 'target-2'] : ['target-1']; },
     prepareClick: async (_frame, label, opts = {}) => {
+      preparedOptions = opts;
       events.push(`prepare:${label}${opts.tour ? ':tour' : ''}`);
       if (opts.composerSubmit) events.push('composer-scope');
       if (typeof opts.expectedComposerText === 'string') events.push(`composer-text:${sha256(opts.expectedComposerText)}`);
@@ -75,7 +76,7 @@ function fakeRuntime(dir, { state = baseState(), identity = null, newTargetOnCli
       if (dispatchError) throw dispatchError;
       clicked = true;
       const label = events.filter(e => e.startsWith('prepare:')).at(-1).slice(8);
-      if (label === 'Submit') { sent.push(current.composer.value); current.composer.value = ''; current.message_count += 1; }
+      if (label === 'Submit' && !preparedOptions.expectedTermsText) { sent.push(current.composer.value); current.composer.value = ''; current.message_count += 1; }
       if (label === 'Approve') {
         current.message_count += 1;
         if (approveEffect === 'label') current.composer.label = 'Message associate...';
@@ -131,6 +132,13 @@ test('exact label matching: unique, ambiguous, disabled, whitespace, no substrin
   assert.deepEqual(matchLabel(controls, 'Upload file'), { ok: false, reason: 'disabled', count: 1 });
   assert.equal(matchLabel(controls, 'Sub').reason, 'not_found');
   assert.equal(matchLabel([{ label: 'Submit case', disabled: false }], 'Submit').reason, 'not_found');
+});
+
+test('upload control accepts the case reply plural label and rejects conflicting controls', () => {
+  const plural = { label: 'Upload files', disabled: false };
+  assert.deepEqual(SA.uploadControl([plural]), { ok: true, index: 0, control: plural });
+  assert.deepEqual(SA.uploadControl([plural, { label: 'Attach', disabled: false }]), { ok: false, reason: 'ambiguous', count: 2 });
+  assert.deepEqual(SA.uploadControl([{ ...plural, disabled: true }]), { ok: false, reason: 'not_found', count: 0 });
 });
 
 test('composer hash mismatch, empty and over-long text are refused', () => {
@@ -198,6 +206,78 @@ test('navigation allowlist refuses unlisted labels and tour labels without a vis
     const withTour = fakeRuntime(dir, { state: baseState({ tour: { visible: true, text: 'Step 1/3', frame_id: 'main' }, controls: [{ frame_id: 'main', label: 'Got it', disabled: false, in_tour: true }] }) });
     assert.equal((await executeCommand(withTour.rt, command('003', 'navigate', { label: 'Got it' }))).status, 'ok');
     assert.ok(withTour.events.includes('prepare:Got it:tour') && withTour.events.includes('dispatch'));
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
+const RETRY_CONVERSATION = `${SC}/assistant/amzn1.cyrano.conversation.cid.v2.20011791440550427171293?client=sellerSupport-meldFullPage`;
+function retryState(overrides = {}) {
+  return baseState({ url: RETRY_CONVERSATION, conversation_url: RETRY_CONVERSATION,
+    generation_error: { detected: true, case_created: false },
+    composer: { ...baseState().composer, disabled: true },
+    controls: [{ frame_id: 'main', label: 'Try again', disabled: false }], ...overrides });
+}
+
+test('Try again is scoped to an idle existing conversation with a generation error and empty composer', () => {
+  const check = state => isNavigationAllowed('Try again', state, { origin: SC });
+  assert.deepEqual(check(retryState()), { ok: true, kind: 'generation_retry' });
+  assert.equal(check(retryState({ url: ASSISTANT })).reason, 'retry_not_on_conversation');
+  assert.equal(check(retryState({ conversation_url: null })).reason, 'retry_not_on_conversation');
+  assert.equal(check(retryState({ url: RETRY_CONVERSATION.replace(SC, 'https://example.com') })).reason, 'retry_not_on_conversation');
+  assert.equal(check(retryState({ selection: { ok: false } })).reason, 'retry_frame_unverified');
+  assert.equal(check(retryState({ generation_error: { detected: false } })).reason, 'generation_error_not_visible');
+  for (const changed of [{ busy: true }, { handoff: { approve_count: 1 } }, { denial: { detected: true } },
+    { generation_error: { detected: true, case_created: true } }, { composer: { ...baseState().composer, value: P1 } }]) {
+    assert.equal(check(retryState(changed)).reason, 'retry_state_not_safe');
+  }
+});
+
+test('generation errors and case creation confirmations come only from the composer frame', () => {
+  const frames = [{ frame_id: 'main', url: RETRY_CONVERSATION, same_origin: true },
+    { frame_id: 'chat', url: RETRY_CONVERSATION, same_origin: true }];
+  const data = { main: { text: 'Generation interrupted', composers: [], controls: [] },
+    chat: { text: 'Working on it', composers: [{ value: '', disabled: true }], controls: [] } };
+  assert.equal(assembleState(frames, data).generation_error.detected, false);
+  data.chat.text = "Something didn’t work as expected\nGeneration interrupted\nTry again";
+  assert.equal(assembleState(frames, data).generation_error.detected, true);
+  for (const phrase of ['Your case has been successfully created. Case ID: 123456789', 'Your case has been created successfully. Case ID: 123456789']) {
+    data.chat.text += `\n${phrase}`;
+    assert.equal(assembleState(frames, data).generation_error.case_created, true);
+  }
+});
+
+test('Try again clicks without resending, rejects wrong-frame, disabled and duplicate controls, and rechecks identity', async () => {
+  const dir = await runDir();
+  try {
+    const good = fakeRuntime(dir, { state: retryState() });
+    const result = await executeCommand(good.rt, command('001', 'navigate', { label: 'Try again' }));
+    assert.equal(result.status, 'ok'); assert.equal(result.kind, 'generation_retry');
+    assert.deepEqual(good.sent, []);
+    assert.equal(good.events.filter(e => e === 'dispatch').length, 1);
+    assert.equal(good.events.filter(e => e === 'identity').length, 3);
+    for (const controls of [
+      [{ frame_id: 'other', label: 'Try again', disabled: false }],
+      [{ frame_id: 'main', label: 'Try again', disabled: true }],
+      [{ frame_id: 'main', label: 'Try again', disabled: false }, { frame_id: 'main', label: 'Try again', disabled: false }],
+    ]) {
+      const bad = fakeRuntime(dir, { state: retryState({ controls }) });
+      assert.equal((await executeCommand(bad.rt, command('002', 'navigate', { label: 'Try again' }))).status, 'blocked');
+      assert.ok(!bad.events.includes('dispatch'));
+    }
+    let calls = 0;
+    const changed = fakeRuntime(dir, { state: retryState(), identity: async () => {
+      if (++calls === 2) throw new Error('account changed');
+      return { merchant_id: SELLER, marketplace_id: 'ATVPDKIKX0DER' };
+    } });
+    assert.equal((await executeCommand(changed.rt, command('003', 'navigate', { label: 'Try again' }))).reason, 'identity_mismatch');
+    assert.ok(!changed.events.includes('dispatch'));
+    const uncertain = fakeRuntime(dir, { state: retryState(), dispatchError: new Error('connection lost') });
+    assert.equal((await executeCommand(uncertain.rt, command('004', 'navigate', { label: 'Try again' }))).status, 'uncertain');
+    assert.equal(uncertain.events.filter(e => e === 'dispatch').length, 1);
+    const moved = fakeRuntime(dir, { state: retryState() });
+    const prepare = moved.rt.browser.prepareClick;
+    moved.rt.browser.prepareClick = async (...args) => { const point = await prepare(...args); moved.current.busy = true; return point; };
+    assert.equal((await executeCommand(moved.rt, command('005', 'navigate', { label: 'Try again' }))).reason, 'retry_state_changed');
+    assert.ok(!moved.events.includes('dispatch'));
   } finally { await rm(dir, { recursive: true, force: true }); }
 });
 
@@ -775,12 +855,13 @@ test('the hit test adds the main frame scroll offset to the click point', async 
 class FakeEl {
   constructor(tag, attrs = {}, children = [], text = '') {
     Object.assign(this, { tagName: tag.toUpperCase(), attrs, children: [], parentNode: null, text, nodeType: 1, shadowRoot: null, value: attrs.value ?? '' });
-    this.disabled = 'disabled' in attrs; this.readOnly = 'readonly' in attrs;
+    this.disabled = 'disabled' in attrs; this.readOnly = 'readonly' in attrs; this.type = attrs.type ?? ''; this.checked = 'checked' in attrs;
     for (const c of children) { c.parentNode = this; this.children.push(c); }
   }
   getAttribute(n) { return n in this.attrs ? String(this.attrs[n]) : null; }
   hasAttribute(n) { return n in this.attrs; }
   getBoundingClientRect() { return { width: 10, height: 10 }; }
+  scrollIntoView(options) { (this.scrollCalls ||= []).push(options); }
   get textContent() { return this.text + this.children.map(c => c.textContent).join(''); }
   // The element's own text is one text node ahead of its children.
   get childNodes() {
@@ -1128,6 +1209,73 @@ test('attach uploads a private copy hashed after it was written', async () => {
     assert.equal(uploads[0].path, join(dir, 'uploads', '01', 'invoice.pdf'));
     assert.equal(uploads[0].bytes, 'pdf bytes', 'Amazon receives the approved bytes');
   } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
+test('attach adds a second approved file when the completed first upload remains selected', async () => {
+  const dir = await runDir();
+  try {
+    const first = join(dir, 'invoice.pdf'), second = join(dir, 'evidence.png');
+    await writeFile(first, 'invoice bytes'); await writeFile(second, 'image bytes');
+    const f = fakeRuntime(dir), setFile = f.rt.browser.setFile;
+    f.rt.browser.setFile = async (input, path) => {
+      await setFile(input, path);
+      f.current.attachments.input_files = [path.split('/').at(-1)];
+    };
+    const a1 = await approvalFile(dir, { plan_item: 'attachment', sha256: sha256('invoice bytes') }, 'first.json');
+    const a2 = await approvalFile(dir, { plan_item: 'attachment', sha256: sha256('image bytes') }, 'second.json');
+    assert.equal((await executeCommand(f.rt, command('001', 'attach', { file: first, sha256: sha256('invoice bytes'), 'approval-file': a1 }))).status, 'attached');
+    assert.deepEqual(f.current.attachments.input_files, ['invoice.pdf']);
+    const result = await executeCommand(f.rt, command('002', 'attach', { file: second, sha256: sha256('image bytes'), 'approval-file': a2 }));
+    assert.equal(result.status, 'attached');
+    assert.deepEqual(result.chips, ['invoice.pdf', 'evidence.png']);
+    assert.deepEqual(f.current.attachments.input_files, ['evidence.png']);
+    assert.deepEqual(f.attemptsAtDispatch, [1, 2], 'each upload is journalled before dispatch');
+    const log = (await readFile(join(dir, 'approvals.jsonl'), 'utf8')).trim().split('\n').map(JSON.parse);
+    assert.deepEqual(SA.approvedAttachmentNames(log), ['invoice.pdf', 'evidence.png']);
+    assert.equal((await executeCommand(f.rt, command('003', 'attach', { file: second, sha256: sha256('image bytes'), 'approval-file': a2 }))).reason, 'send_limit_reached');
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
+test('attach refuses an unlogged or unconfirmed selected file before upload', async () => {
+  for (const mode of ['unlogged', 'unchipped', 'uploading', 'same-name']) {
+    const dir = await runDir();
+    try {
+      const file = join(dir, mode === 'same-name' ? 'invoice.pdf' : 'evidence.png');
+      await writeFile(file, 'image bytes');
+      const state = baseState({ attachments: { chips: mode === 'unchipped' ? [] : ['invoice.pdf'], input_files: ['invoice.pdf'], file_input_count: 1, uploading: mode === 'uploading' } });
+      if (mode !== 'unlogged') await appendFile(join(dir, 'approvals.jsonl'), JSON.stringify({ phase: 'result', command: 'attach', status: 'attached', name: 'invoice.pdf' }) + '\n');
+      const f = fakeRuntime(dir, { state });
+      const approval = await approvalFile(dir, { plan_item: 'attachment', sha256: sha256('image bytes') }, 'attach.json');
+      const result = await executeCommand(f.rt, command('001', 'attach', { file, sha256: sha256('image bytes'), 'approval-file': approval }));
+      assert.equal(result.status, 'blocked', mode);
+      assert.equal(result.reason, mode === 'uploading' ? 'upload_in_progress' : mode === 'same-name' ? 'attachment_already_present' : 'file_input_not_empty', mode);
+      assert.ok(!f.events.includes('set-file'), mode);
+    } finally { await rm(dir, { recursive: true, force: true }); }
+  }
+});
+
+test('attach never confirms a second upload that loses a prior chip or adds an unexpected chip', async () => {
+  for (const mode of ['prior-lost', 'unexpected']) {
+    const dir = await runDir();
+    try {
+      const file = join(dir, 'evidence.png'); await writeFile(file, 'image bytes');
+      await appendFile(join(dir, 'approvals.jsonl'), JSON.stringify({ phase: 'result', command: 'attach', status: 'attached', name: 'invoice.pdf' }) + '\n');
+      const state = baseState({ attachments: { chips: ['invoice.pdf'], input_files: ['invoice.pdf'], file_input_count: 1, uploading: false } });
+      const f = fakeRuntime(dir, { state }), setFile = f.rt.browser.setFile;
+      f.rt.browser.setFile = async (input, path) => {
+        await setFile(input, path);
+        f.current.attachments.input_files = ['evidence.png'];
+        f.current.attachments.chips = mode === 'prior-lost' ? ['evidence.png'] : ['invoice.pdf', 'evidence.png', 'unknown.png'];
+      };
+      const approval = await approvalFile(dir, { plan_item: 'attachment', sha256: sha256('image bytes') }, 'attach.json');
+      const result = await executeCommand(f.rt, command('001', 'attach', { file, sha256: sha256('image bytes'), 'approval-file': approval }));
+      assert.equal(result.status, 'uncertain', mode);
+      assert.equal(result.reason, 'chip_not_confirmed', mode);
+      assert.equal(f.uploads.length, 1, mode);
+      const log = (await readFile(join(dir, 'approvals.jsonl'), 'utf8')).trim().split('\n').map(JSON.parse);
+      assert.deepEqual(SA.approvedAttachmentNames(log), ['invoice.pdf'], 'uncertain new upload is not accepted as an approved chip');
+    } finally { await rm(dir, { recursive: true, force: true }); }
+  }
 });
 
 test('an interrupt stops every click, insert and upload that has not started', async () => {
@@ -1786,6 +1934,32 @@ test('page: with two Issue summaries the terms and both controls come from the l
   assert.equal(pageCode(() => runPage(bare, 'terms')), 'terms_container_not_found');
 });
 
+test('page: modern case upload widgets exclude sender text and require completed file items', () => {
+  const page = (status = null) => {
+    const item = el('kat-file-item', { name: 'inventory.png', 'file-status': status ?? '' }, [el('span', {}, [], 'inventory.png')]);
+    const widget = el('kat-file-upload', {});
+    const shadow = el('div', {}, [el('kat-button', { label: 'Upload files' }), ...(status === null ? [] : [item])]);
+    shadow.nodeType = 11; shadow.host = widget; widget.shadowRoot = shadow;
+    return el('body', {}, [el('div', {}, [
+      el('span', {}, [], 'amazon@example.agency'), el('span', {}, [], 'unrelated.pdf'),
+      el('textarea', {}), widget, el('button', {}, [], 'Send'),
+    ])]);
+  };
+  const empty = runPage(page(), 'scan').region;
+  assert.deepEqual(empty.chips, [], 'sender email and neighbouring filename are not attachments');
+  assert.equal(empty.uploading, false);
+  for (const status of ['uploaded', 'success', 'complete', 'completed']) {
+    const ready = runPage(page(status), 'scan').region;
+    assert.deepEqual(ready.chips, ['inventory.png'], status);
+    assert.equal(ready.uploading, false, status);
+  }
+  for (const status of ['uploading', 'failed', 'unknown', '']) {
+    const blocked = runPage(page(status), 'scan').region;
+    assert.deepEqual(blocked.chips, [], status);
+    assert.equal(blocked.uploading, true, `${status || 'missing status'} must block sending`);
+  }
+});
+
 test('page: staged upload cards count as chips until an upload refusal empties the list', () => {
   const page = ({ placeholder = 'Click send to upload', refused = false, regionChip = null, regionError = false } = {}) => {
     const staged = el('div', { class: 'upload-card' }, [el('span', { class: 'file-name' }, [], 'invoice.pdf'), ...(refused ? [el('span', {}, [], 'Unsupported file was attached')] : [])]);
@@ -1828,6 +2002,388 @@ test('approve and Request changes with two summaries are bound to the last summa
     const r4 = await executeCommand(unread.rt, command('004', 'navigate', { label: 'Request changes' }));
     assert.equal(r4.status, 'blocked'); assert.equal(r4.reason, 'control_summary_not_verified');
     assert.ok(!unread.events.includes('dispatch'));
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
+// The 2026-11 email-case UI puts Next in a two-step KAT-CARD. These fields are
+// display nodes, not editable inputs; the footer and labels may be shadow DOM.
+function emailWizardPage({ step = 1, disabled = false, missing = null, subject = 'Exact subject', details = 'Dear Amazon Support,\n\nPlease investigate this child.\n\nBest,\nAlex', names = ['evidence.png'], duplicate = false } = {}) {
+  const shadow = (host, children) => {
+    const root = el('shadow-root', {}, children); root.nodeType = 11; root.host = host;
+    host.shadowRoot = root; return host;
+  };
+  const make = () => {
+    const next = el('button', disabled ? { disabled: '' } : {}, [], 'Next');
+    const footer = shadow(el('wizard-footer', {}), [el('span', {}, [], `Step ${step} of 2`), el('span', {}, [], step === 1 ? 'Issue summary' : 'Contact method'), el('button', {}, [], 'Cancel case'), next]);
+    const field = (id, text) => shadow(el('div', { 'data-testid': id }), [el('span', {}, [], text)]);
+    const children = [
+      ...(missing === 'subject' ? [] : [field('issue-summary-subject', subject)]),
+      ...(missing === 'attachments' ? [] : [el('div', { 'data-testid': 'issue-summary-attachments' }, names.map((name, i) => el('li', { 'data-testid': `saved-attachment-${i}` }, [el('span', {}, [], name), el('span', {}, [], '172 KB')])))]),
+      ...(missing === 'details' ? [] : [field('issue-summary-details', details)]), footer,
+    ];
+    return { card: el('kat-card', {}, children), next };
+  };
+  const first = make(), second = duplicate ? make() : null;
+  const composer = el('div', {}, [el('textarea', { placeholder: 'Select an option above to proceed.', disabled: '' }), el('button', {}, [], 'Upload file')]);
+  return { ...first, body: el('body', {}, [el('main', {}, [first.card, ...(second ? [second.card] : []), composer])]) };
+}
+
+function emailContactPage({ support = 'STANDARD', channel = 'Email', disabled = false, preview = null, duplicate = false, summaryCount = 1, emailDisabled = false, duplicateEmail = false, standardOnly = false } = {}) {
+  const subject = 'Exact subject', details = 'Dear Amazon Support, Please investigate this child. Best, Alex';
+  const completed = () => el('div', { 'data-testid': 'collapsed-step' }, [], `Completed\nStep 1 of 2 · Issue summary\n${preview ?? `${subject} - ${details}`}\nEdit`);
+  const make = () => {
+    const submit = el('button', disabled ? { disabled: '' } : {}, [], 'Submit');
+    const option = (prefix, value, selected) => el('label', { 'data-testid': prefix + value }, [el('input', { type: 'radio', value, ...(selected ? { checked: '' } : {}), ...(value === 'Email' && emailDisabled ? { disabled: '' } : {}) }), el('span', {}, [], value)]);
+    const card = el('kat-card', {}, [
+      ...(standardOnly ? [] : [el('fieldset', { 'data-testid': 'program-selection' }, [option('program-option-', 'STANDARD', support === 'STANDARD'), option('program-option-', 'SPECIALIST', support === 'SPECIALIST')])]),
+      el('fieldset', { 'data-testid': 'channel-selection' }, [option('channel-option-', 'Email', channel === 'Email'), ...(duplicateEmail ? [option('channel-option-', 'Email', false)] : []), option('channel-option-', 'Chat', channel === 'Chat')]),
+      el('span', {}, [], 'Step 2 of 2'), el('span', {}, [], 'Contact channel'), el('button', {}, [], 'Back'), el('button', {}, [], 'Cancel case'), submit,
+    ]);
+    return { card, submit };
+  };
+  const first = make(), second = duplicate ? make() : null;
+  const widget = el('div', {}, [...Array.from({ length: summaryCount }, completed), first.card, ...(second ? [second.card] : [])]);
+  const footer = el('div', {}, [el('textarea', { placeholder: 'Select an option above to proceed.', disabled: '' }), el('button', {}, [], 'Submit'), el('button', {}, [], 'Upload file')]);
+  return { ...first, body: el('body', {}, [el('main', {}, [widget, footer])]), binding: { subject, details_sha256: sha256(details), attachment_names: ['evidence.png'] } };
+}
+
+test('email wizard: Next stays outside generic navigation and only its two-step summary card supplies terms', () => {
+  assert.equal(isNavigationAllowed('Next', {}).ok, false);
+  assert.equal(SA.validateCommandArgs('approve', { label: 'Next', 'expect-terms-sha256': P1_SHA, 'approval-file': '/approval.json' }).ok, true);
+  assert.equal(SA.validateCommandArgs('approve', { label: 'Submit case', 'expect-terms-sha256': P1_SHA, 'approval-file': '/approval.json' }).ok, false);
+  const page = emailWizardPage(), terms = runPage(page.body, 'terms', { label: 'Next' });
+  assert.equal(terms.basis, 'email_case_wizard'); assert.equal(terms.step, 1); assert.equal(terms.subject, 'Exact subject');
+  assert.match(terms.details, /Dear Amazon Support, Please investigate/); assert.deepEqual(terms.attachment_names, ['evidence.png']);
+  assert.match(terms.text, /Cancel case/); assert.match(terms.text, /Step 1 of 2/);
+  assert.equal(runPage(page.body, 'control', { label: 'Next', expectedTermsText: terms.text }), page.next);
+  assert.equal(pageCode(() => runPage(page.body, 'control', { label: 'Next', expectedTermsText: terms.text + ' changed' })), 'terms_changed');
+  const ordinary = el('body', {}, [el('button', {}, [], 'Next')]);
+  assert.equal(pageCode(() => runPage(ordinary, 'terms', { label: 'Next' })), 'email_wizard_not_visible');
+  for (const missing of ['subject', 'details', 'attachments']) assert.equal(pageCode(() => runPage(emailWizardPage({ missing }).body, 'terms', { label: 'Next' })), 'email_wizard_not_visible');
+  assert.equal(pageCode(() => runPage(emailWizardPage({ details: '' }).body, 'terms', { label: 'Next' })), 'email_wizard_not_visible');
+  assert.equal(pageCode(() => runPage(emailContactPage().body, 'terms', { label: 'Next' })), 'email_wizard_wrong_step');
+  assert.equal(pageCode(() => runPage(emailWizardPage({ duplicate: true }).body, 'terms', { label: 'Next' })), 'email_wizard_ambiguous');
+  const disabled = emailWizardPage({ disabled: true }), disabledTerms = runPage(disabled.body, 'terms', { label: 'Next' });
+  assert.equal(disabledTerms.action_enabled, false);
+  assert.equal(pageCode(() => runPage(disabled.body, 'control', { label: 'Next', expectedTermsText: disabledTerms.text })), 'email_wizard_not_ready');
+});
+
+test('email wizard: approved subject, rendered details and exact attachment names are independently bound', () => {
+  const wizard = runPage(emailWizardPage().body, 'terms', { label: 'Next' });
+  const binding = { subject: wizard.subject, details_sha256: sha256(collapse(wizard.details)), attachment_names: ['evidence.png'] };
+  assert.equal(SA.checkEmailCaseSummary(wizard, binding).ok, true);
+  assert.equal(SA.checkEmailCaseSummary(wizard, null).reason, 'case_summary_binding_missing');
+  assert.equal(SA.checkEmailCaseSummary({ ...wizard, subject: 'Other subject' }, binding).reason, 'case_summary_subject_changed');
+  assert.equal(SA.checkEmailCaseSummary({ ...wizard, details: wizard.details + ' Refund us.' }, binding).reason, 'case_summary_details_changed');
+  assert.equal(SA.checkEmailCaseSummary({ ...wizard, attachment_names: [] }, binding).reason, 'case_summary_attachments_changed');
+  assert.equal(SA.checkEmailCaseSummary({ ...wizard, attachment_names: ['other.png'] }, binding).reason, 'case_summary_attachments_changed');
+  assert.equal(SA.checkEmailCaseSummary(wizard, { ...binding, attachment_names: ['evidence.png', 'evidence.png'] }).reason, 'case_summary_binding_missing');
+});
+
+function wizardRuntime(dir, options = {}) {
+  const page = runPage(emailWizardPage().body, 'terms', { label: 'Next' });
+  const wizard = { ...page, frame_id: 'main', action_label: 'Next', terms_sha256: termsHash(page.text) };
+  const state = baseState({ url: RETRY_CONVERSATION, conversation_url: RETRY_CONVERSATION, email_wizard: wizard,
+    controls: [{ frame_id: 'main', label: 'Next', disabled: false }], composer: { ...baseState().composer, disabled: true } });
+  let run;
+  run = fakeRuntime(dir, { state, ...options, onDispatch: async label => {
+    if (label === 'Next' && options.advance !== false) run.current.email_wizard = { ok: true, frame_id: 'main', step: 2, text: 'Step 2 of 2 Contact method Email Cancel case' };
+    if (options.onDispatch) await options.onDispatch(label);
+  } });
+  run.rt.browser.terms = async (_frame, opts) => {
+    assert.equal(opts?.label, 'Next');
+    const w = run.current.email_wizard; return { ...w, sha256: termsHash(w.text) };
+  };
+  run.binding = { subject: wizard.subject, details_sha256: sha256(collapse(wizard.details)), attachment_names: wizard.attachment_names };
+  run.terms = page.text;
+  return run;
+}
+
+test('email wizard: guarded Next records one advancement, proves Step 2 and survives controller restart without a repeat', async () => {
+  const dir = await runDir();
+  try {
+    const run = wizardRuntime(dir), h = termsHash(run.terms);
+    const approval = await approvalFile(dir, { plan_item: 'approve', sha256: h, case_summary: run.binding });
+    const args = { label: 'Next', 'expect-terms-sha256': h, 'approval-file': approval };
+    const result = await executeCommand(run.rt, command('001', 'approve', args));
+    assert.equal(result.status, 'advanced'); assert.equal(result.wizard_step_after, 2);
+    assert.ok(run.events.includes('prepare:Next') && run.events.includes(`terms-text:${h}`));
+    assert.deepEqual(run.attemptsAtDispatch, [1]); assert.deepEqual(run.sent, []);
+    const log = await readLog(dir); assert.equal(log[0].action_label, 'Next'); assert.equal(log[1].status, 'advanced');
+    const again = wizardRuntime(dir); again.rt.counts = await loadUsageCounts(dir);
+    assert.equal((await executeCommand(again.rt, command('002', 'approve', args))).reason, 'send_limit_reached');
+    assert.ok(!again.events.includes('dispatch'));
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
+test('email wizard: changed hash, wrong phase/frame, missing binding and identity change all block before dispatch', async () => {
+  const dir = await runDir();
+  try {
+    for (const change of [
+      run => { run.current.email_wizard.terms_sha256 = 'f'.repeat(64); },
+      run => { run.current.email_wizard.step = 2; },
+      run => { run.current.email_wizard.frame_id = 'other'; },
+      run => { run.current.email_wizard.action_enabled = false; },
+      run => { run.binding = null; },
+      run => { let calls = 0; run.rt.browser.terms = async () => ({ ...run.current.email_wizard, sha256: ++calls === 2 ? 'f'.repeat(64) : termsHash(run.terms) }); },
+      run => { let calls = 0; run.rt.deps.verifyIdentity = async () => { if (++calls === 2) throw Error('account changed'); return { merchant_id: SELLER, marketplace_id: 'ATVPDKIKX0DER' }; }; },
+    ]) {
+      const run = wizardRuntime(dir); change(run); const h = termsHash(run.terms);
+      const approval = await approvalFile(dir, { plan_item: 'approve', sha256: h, case_summary: run.binding });
+      const result = await executeCommand(run.rt, command('001', 'approve', { label: 'Next', 'expect-terms-sha256': h, 'approval-file': approval }));
+      assert.ok(['blocked', 'refused'].includes(result.status), JSON.stringify(result));
+      assert.ok(!run.events.includes('dispatch')); assert.deepEqual(await readLog(dir), []);
+    }
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
+test('email wizard: a click without stable Step 2 proof is uncertain and cannot advance twice', async () => {
+  const dir = await runDir();
+  try {
+    const run = wizardRuntime(dir, { advance: false }), h = termsHash(run.terms);
+    const approval = await approvalFile(dir, { plan_item: 'approve', sha256: h, case_summary: run.binding });
+    const args = { label: 'Next', 'expect-terms-sha256': h, 'approval-file': approval };
+    const result = await executeCommand(run.rt, command('001', 'approve', args));
+    assert.equal(result.status, 'uncertain'); assert.equal(result.reason, 'no_visible_step_two');
+    assert.equal((await executeCommand(run.rt, command('002', 'approve', args))).reason, 'send_limit_reached');
+    assert.equal(run.events.filter(e => e === 'dispatch').length, 1);
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
+test('email wizard: final Submit is scoped to Standard Support email and the unique completed issue preview', () => {
+  const page = emailContactPage(), terms = runPage(page.body, 'terms', { label: 'Submit' });
+  assert.equal(terms.step, 2); assert.equal(terms.action_label, 'Submit');
+  assert.equal(terms.support_type, 'STANDARD'); assert.equal(terms.contact_channel, 'Email');
+  assert.equal(terms.completed_summary_count, 1);
+  assert.equal(SA.checkEmailCaseCompletedSummary(terms, page.binding).ok, true);
+  assert.equal(runPage(page.body, 'control', { label: 'Submit', expectedTermsText: terms.text }), page.submit, 'never the composer Submit');
+  assert.match(terms.text, /Selected support type: STANDARD/); assert.match(terms.text, /Selected contact channel: Email/);
+  assert.equal(pageCode(() => runPage(page.body, 'control', { label: 'Submit', expectedTermsText: terms.text + ' changed' })), 'terms_changed');
+  for (const opts of [{ channel: 'Chat' }, { support: 'SPECIALIST' }, { channel: null }, { disabled: true }, { summaryCount: 0 }, { summaryCount: 2 }]) {
+    const bad = emailContactPage(opts), card = runPage(bad.body, 'terms', { label: 'Submit' });
+    assert.equal(pageCode(() => runPage(bad.body, 'control', { label: 'Submit', expectedTermsText: card.text })), 'email_wizard_not_ready');
+  }
+  assert.equal(pageCode(() => runPage(emailContactPage({ duplicate: true }).body, 'terms', { label: 'Submit' })), 'email_wizard_ambiguous');
+  assert.equal(pageCode(() => runPage(el('body', {}, [el('button', {}, [], 'Submit')]), 'terms', { label: 'Submit' })), 'email_wizard_not_visible');
+  const changed = runPage(emailContactPage({ preview: 'Exact subject - Please refund us.' }).body, 'terms', { label: 'Submit' });
+  assert.equal(SA.checkEmailCaseCompletedSummary(changed, page.binding).reason, 'case_summary_details_changed');
+  assert.equal(SA.checkEmailCaseCompletedSummary({ ...terms, completed_summary_preview: 'Another subject - Body' }, page.binding).reason, 'case_summary_subject_changed');
+});
+
+test('email wizard: standard-only Contact channel cards allow Email selection and the bound final Submit', () => {
+  const unselected = emailContactPage({ standardOnly: true, channel: null, disabled: true });
+  const before = runPage(unselected.body, 'terms', { label: 'Email' });
+  assert.equal(before.support_type, 'STANDARD'); assert.equal(before.contact_channel, null);
+  assert.equal(before.action_enabled, false);
+  assert.equal(runPage(unselected.body, 'control', { label: 'Email', expectedTermsText: before.text }).getAttribute('data-testid'), 'channel-option-Email');
+  assert.equal(pageCode(() => runPage(unselected.body, 'control', { label: 'Submit', expectedTermsText: before.text })), 'email_wizard_not_ready');
+
+  const selected = emailContactPage({ standardOnly: true }), after = runPage(selected.body, 'terms', { label: 'Submit' });
+  assert.equal(after.support_type, 'STANDARD'); assert.equal(after.contact_channel, 'Email');
+  assert.equal(SA.checkEmailCaseCompletedSummary(after, selected.binding).ok, true);
+  assert.equal(runPage(selected.body, 'control', { label: 'Submit', expectedTermsText: after.text }), selected.submit);
+  const chat = emailContactPage({ standardOnly: true, channel: 'Chat' }), chatTerms = runPage(chat.body, 'terms', { label: 'Submit' });
+  assert.equal(pageCode(() => runPage(chat.body, 'control', { label: 'Submit', expectedTermsText: chatTerms.text })), 'email_wizard_not_ready');
+  for (const options of [{ emailDisabled: true }, { duplicateEmail: true }, { summaryCount: 0 }]) {
+    const bad = emailContactPage({ standardOnly: true, ...options }), terms = runPage(bad.body, 'terms', { label: 'Email' });
+    assert.equal(pageCode(() => runPage(bad.body, 'control', { label: 'Email', expectedTermsText: terms.text })), 'email_channel_not_ready');
+  }
+});
+
+test('email wizard: absent program selection does not admit hidden program controls or malformed Contact channel cards', () => {
+  const hiddenProgram = el('fieldset', { 'data-testid': 'program-selection' });
+  hiddenProgram.getBoundingClientRect = () => ({ width: 0, height: 0 });
+  for (const extra of [hiddenProgram, el('label', { 'data-testid': 'program-option-SPECIALIST' }), el('input', { type: 'radio', value: 'SPECIALIST', checked: '' }), el('fieldset', { 'data-testid': 'channel-selection' })]) {
+    const bad = emailContactPage({ standardOnly: true });
+    extra.parentNode = bad.card; bad.card.children.push(extra);
+    assert.equal(pageCode(() => runPage(bad.body, 'terms', { label: 'Submit' })), 'email_wizard_not_visible');
+  }
+  assert.equal(pageCode(() => runPage(emailContactPage({ standardOnly: true, duplicate: true }).body, 'terms', { label: 'Submit' })), 'email_wizard_ambiguous');
+});
+
+test('email wizard: only the bound final Submit is centered before the unchanged obstruction check', () => {
+  const page = emailContactPage(), terms = runPage(page.body, 'terms', { label: 'Submit' });
+  assert.equal(page.submit.scrollCalls, undefined, 'reading the card never scrolls');
+  assert.equal(pageCode(() => runPage(page.body, 'control', { label: 'Submit', expectedTermsText: terms.text + ' changed' })), 'terms_changed');
+  assert.equal(page.submit.scrollCalls, undefined, 'a changed card never scrolls');
+  assert.equal(runPage(page.body, 'control', { label: 'Submit', expectedTermsText: terms.text }), page.submit);
+  assert.deepEqual(page.submit.scrollCalls, [{ block: 'center', inline: 'nearest', behavior: 'instant' }]);
+  assert.equal(runPage(page.body, 'terms', { label: 'Submit' }).text, terms.text, 'scrolling cannot alter the approved terms');
+  for (const opts of [{ channel: 'Chat' }, { support: 'SPECIALIST' }, { disabled: true }, { summaryCount: 2 }]) {
+    const bad = emailContactPage(opts), badTerms = runPage(bad.body, 'terms', { label: 'Submit' });
+    assert.equal(pageCode(() => runPage(bad.body, 'control', { label: 'Submit', expectedTermsText: badTerms.text })), 'email_wizard_not_ready');
+    assert.equal(bad.submit.scrollCalls, undefined);
+  }
+  const step1 = emailWizardPage(), step1Terms = runPage(step1.body, 'terms', { label: 'Next' });
+  runPage(step1.body, 'control', { label: 'Next', expectedTermsText: step1Terms.text });
+  assert.equal(step1.next.scrollCalls, undefined, 'the Step1 path keeps its existing scroll behavior');
+  const email = emailContactPage({ channel: null, disabled: true }), emailTerms = runPage(email.body, 'terms', { label: 'Email' });
+  const option = runPage(email.body, 'control', { label: 'Email', expectedTermsText: emailTerms.text });
+  assert.equal(option.scrollCalls, undefined, 'channel selection keeps its existing scroll behavior');
+});
+
+const NEXT_TERMS_SHA = 'a'.repeat(64);
+const nextChain = binding => [
+  { queue_id: 'next-001', phase: 'attempt', command: 'approve', action_label: 'Next', sha256: NEXT_TERMS_SHA, approval: { case_summary: binding } },
+  { queue_id: 'next-001', phase: 'result', command: 'approve', action_label: 'Next', sha256: NEXT_TERMS_SHA, status: 'advanced' },
+];
+
+test('email wizard: final approval requires the confirmed Next chain with unchanged case fields and attachment names', () => {
+  const binding = emailContactPage().binding, approval = { case_summary: binding, step1_terms_sha256: NEXT_TERMS_SHA };
+  assert.equal(SA.checkEmailCaseSummaryChain(nextChain(binding), approval).ok, true);
+  assert.equal(SA.checkEmailCaseSummaryChain([], approval).reason, 'case_summary_chain_unverified');
+  assert.equal(SA.checkEmailCaseSummaryChain(nextChain(binding), { case_summary: binding }).reason, 'case_summary_chain_missing');
+  const uncertain = nextChain(binding); uncertain[1].status = 'uncertain';
+  assert.equal(SA.checkEmailCaseSummaryChain(uncertain, approval).reason, 'case_summary_chain_unverified');
+  for (const changed of [{ ...binding, attachment_names: [] }, { ...binding, subject: 'Changed' }, { ...binding, details_sha256: 'f'.repeat(64) }]) {
+    assert.equal(SA.checkEmailCaseSummaryChain(nextChain(binding), { ...approval, case_summary: changed }).reason, 'case_summary_chain_changed');
+  }
+});
+
+function contactRuntime(dir, options = {}) {
+  const page = emailContactPage(), terms = runPage(page.body, 'terms', { label: 'Submit' });
+  const wizard = { ...terms, frame_id: 'main', terms_sha256: termsHash(terms.text) };
+  const state = baseState({ url: RETRY_CONVERSATION, conversation_url: RETRY_CONVERSATION, email_wizard: wizard,
+    controls: [{ frame_id: 'main', label: 'Submit', disabled: false }], composer: { ...baseState().composer, disabled: true } });
+  let run;
+  run = fakeRuntime(dir, { state, ...options, onDispatch: async label => {
+    if (label === 'Submit' && options.confirm !== false) run.current.generation_error = { detected: false, case_created: true };
+    if (options.onDispatch) await options.onDispatch(label);
+  } });
+  run.rt.browser.terms = async (_frame, opts) => {
+    assert.equal(opts?.label, 'Submit'); const w = run.current.email_wizard; return { ...w, sha256: termsHash(w.text) };
+  };
+  run.binding = page.binding; run.terms = terms.text;
+  return run;
+}
+
+test('email wizard: final Submit uses approved fields, records once and requires case-creation confirmation', async () => {
+  const dir = await runDir();
+  try {
+    const run = contactRuntime(dir), h = termsHash(run.terms);
+    await writeFile(join(dir, 'approvals.jsonl'), nextChain(run.binding).map(e => JSON.stringify(e)).join('\n') + '\n');
+    const approval = await approvalFile(dir, { plan_item: 'approve', sha256: h, case_summary: run.binding, step1_terms_sha256: NEXT_TERMS_SHA });
+    const args = { label: 'Submit', 'expect-terms-sha256': h, 'approval-file': approval };
+    const result = await executeCommand(run.rt, command('001', 'approve', args));
+    assert.equal(result.status, 'approved'); assert.equal(result.action_label, 'Submit');
+    assert.deepEqual(run.sent, [], 'the case-card action never submits the composer');
+    assert.ok(run.events.includes(`terms-text:${h}`)); assert.equal(run.events.filter(e => e === 'dispatch').length, 1);
+    const again = contactRuntime(dir); again.rt.counts = await loadUsageCounts(dir);
+    assert.equal((await executeCommand(again.rt, command('002', 'approve', args))).reason, 'send_limit_reached');
+    const log = await readLog(dir); assert.equal(log.at(-2).action_label, 'Submit'); assert.equal(log.at(-1).status, 'approved');
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
+test('email wizard: final Submit blocks changed fields/channel/hash/identity or missing chain before any click', async () => {
+  const dir = await runDir();
+  try {
+    for (const change of [
+      run => { run.current.email_wizard.contact_channel = 'Chat'; },
+      run => { run.current.email_wizard.support_type = 'SPECIALIST'; },
+      run => { run.current.email_wizard.completed_summary_preview += ' Refund us.'; },
+      run => { run.current.email_wizard.completed_summary_count = 2; },
+      run => { run.current.email_wizard.action_enabled = false; },
+      run => { let calls = 0; run.rt.browser.terms = async () => ({ ...run.current.email_wizard, sha256: ++calls === 2 ? 'f'.repeat(64) : termsHash(run.terms) }); },
+      run => { let calls = 0; run.rt.deps.verifyIdentity = async () => { if (++calls === 2) throw Error('account changed'); return { merchant_id: SELLER, marketplace_id: 'ATVPDKIKX0DER' }; }; },
+    ]) {
+      const run = contactRuntime(dir), h = termsHash(run.terms); change(run);
+      const chain = nextChain(run.binding); await writeFile(join(dir, 'approvals.jsonl'), chain.map(e => JSON.stringify(e)).join('\n') + '\n');
+      const approval = await approvalFile(dir, { plan_item: 'approve', sha256: h, case_summary: run.binding, step1_terms_sha256: NEXT_TERMS_SHA });
+      const result = await executeCommand(run.rt, command('001', 'approve', { label: 'Submit', 'expect-terms-sha256': h, 'approval-file': approval }));
+      assert.ok(['blocked', 'refused'].includes(result.status), JSON.stringify(result));
+      assert.ok(!run.events.includes('dispatch')); assert.deepEqual(await readLog(dir), chain);
+    }
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
+test('email wizard: an unconfirmed final Submit is uncertain and is never repeated', async () => {
+  const dir = await runDir();
+  try {
+    const run = contactRuntime(dir, { confirm: false }), h = termsHash(run.terms);
+    await writeFile(join(dir, 'approvals.jsonl'), nextChain(run.binding).map(e => JSON.stringify(e)).join('\n') + '\n');
+    const approval = await approvalFile(dir, { plan_item: 'approve', sha256: h, case_summary: run.binding, step1_terms_sha256: NEXT_TERMS_SHA });
+    const args = { label: 'Submit', 'expect-terms-sha256': h, 'approval-file': approval };
+    const result = await executeCommand(run.rt, command('001', 'approve', args));
+    assert.equal(result.status, 'uncertain'); assert.equal(result.reason, 'case_creation_not_confirmed');
+    assert.equal((await executeCommand(run.rt, command('002', 'approve', args))).reason, 'send_limit_reached');
+    assert.equal(run.events.filter(e => e === 'dispatch').length, 1);
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
+test('email wizard: Email navigation targets only the exact enabled option in the verified Step2 card', () => {
+  const page = emailContactPage({ channel: null, disabled: true }), terms = runPage(page.body, 'terms', { label: 'Email' });
+  assert.equal(terms.email_option_count, 1); assert.equal(terms.email_option_enabled, true);
+  assert.equal(terms.action_enabled, false, 'the final Submit can remain disabled before selecting a channel');
+  const option = runPage(page.body, 'control', { label: 'Email', expectedTermsText: terms.text });
+  assert.equal(option.getAttribute('data-testid'), 'channel-option-Email');
+  assert.notEqual(option, page.submit);
+  assert.equal(pageCode(() => runPage(page.body, 'control', { label: 'Email', expectedTermsText: terms.text + ' changed' })), 'terms_changed');
+  assert.equal(pageCode(() => runPage(el('body', {}, [el('button', {}, [], 'Email')]), 'control', { label: 'Email', expectedTermsText: terms.text })), 'email_wizard_not_visible');
+  for (const opts of [{ support: 'SPECIALIST' }, { emailDisabled: true }, { duplicateEmail: true }, { summaryCount: 0 }]) {
+    const bad = emailContactPage(opts), card = runPage(bad.body, 'terms', { label: 'Email' });
+    assert.equal(pageCode(() => runPage(bad.body, 'control', { label: 'Email', expectedTermsText: card.text })), 'email_channel_not_ready');
+  }
+  assert.equal(pageCode(() => runPage(emailContactPage({ duplicate: true }).body, 'terms', { label: 'Email' })), 'email_wizard_ambiguous');
+  assert.equal(pageCode(() => runPage(emailWizardPage().body, 'terms', { label: 'Email' })), 'email_wizard_wrong_step');
+  assert.equal(SA.validateCommandArgs('navigate', { label: 'Email', 'expect-terms-sha256': termsHash(terms.text) }).ok, true);
+  assert.equal(SA.validateCommandArgs('navigate', { label: 'Show more', 'expect-terms-sha256': termsHash(terms.text) }).ok, false);
+});
+
+function emailSelectionRuntime(dir, options = {}) {
+  const pack = opts => ({ ...runPage(emailContactPage(opts).body, 'terms', { label: 'Email' }), frame_id: 'main' });
+  const withHash = opts => { const w = pack(opts); return { ...w, terms_sha256: termsHash(w.text) }; };
+  let run;
+  run = contactRuntime(dir, { onDispatch: async label => {
+    if (label === 'Email') run.current.email_wizard = withHash({ channel: 'Email' });
+    if (options.onDispatch) await options.onDispatch(label);
+  } });
+  run.current.email_wizard = withHash({ channel: null, disabled: true });
+  run.rt.browser.terms = async (_frame, opts) => {
+    assert.equal(opts?.label, 'Email'); const w = run.current.email_wizard; return { ...w, sha256: termsHash(w.text) };
+  };
+  return run;
+}
+
+test('email wizard: Email selection stays in the running controller and never submits the case or composer', async () => {
+  const dir = await runDir();
+  try {
+    const run = emailSelectionRuntime(dir);
+    await writeFile(join(dir, 'approvals.jsonl'), nextChain(run.binding).map(e => JSON.stringify(e)).join('\n') + '\n');
+    const result = await executeCommand(run.rt, command('001', 'navigate', { label: 'Email', 'expect-terms-sha256': run.current.email_wizard.terms_sha256 }));
+    assert.equal(result.status, 'ok'); assert.equal(result.kind, 'email_channel'); assert.equal(result.selected, true);
+    assert.equal(run.current.email_wizard.contact_channel, 'Email');
+    assert.deepEqual(run.sent, []); assert.equal(run.current.generation_error?.case_created, undefined);
+    assert.equal(run.events.filter(e => e === 'dispatch').length, 1); assert.ok(run.events.includes('prepare:Email'));
+    assert.equal(run.events.some(e => e === 'prepare:Submit'), false);
+    const again = await executeCommand(run.rt, command('002', 'navigate', { label: 'Email', 'expect-terms-sha256': run.current.email_wizard.terms_sha256 }));
+    assert.equal(again.status, 'ok'); assert.equal(again.already_selected, true);
+    assert.equal(run.events.filter(e => e === 'dispatch').length, 1, 'an already-selected option is not clicked again');
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
+test('email wizard: Email navigation refuses ordinary labels, missing hashes/chain, disabled/multiple options and late card changes', async () => {
+  const dir = await runDir();
+  try {
+    const ordinary = fakeRuntime(dir, { state: baseState({ url: RETRY_CONVERSATION, conversation_url: RETRY_CONVERSATION, controls: [{ frame_id: 'main', label: 'Email', disabled: false }] }) });
+    assert.equal((await executeCommand(ordinary.rt, command('001', 'navigate', { label: 'Email', 'expect-terms-sha256': P1_SHA }))).reason, 'email_channel_not_ready');
+    assert.ok(!ordinary.events.includes('dispatch'));
+    for (const change of [
+      run => { run.current.email_wizard.step = 1; },
+      run => { run.current.email_wizard.email_option_count = 2; },
+      run => { run.current.email_wizard.email_option_enabled = false; },
+      run => { run.current.email_wizard.completed_summary_preview += ' Changed.'; },
+      run => { let calls = 0; run.rt.browser.terms = async () => ({ ...run.current.email_wizard, sha256: ++calls === 2 ? 'f'.repeat(64) : run.current.email_wizard.terms_sha256 }); },
+    ]) {
+      const run = emailSelectionRuntime(dir); change(run);
+      await writeFile(join(dir, 'approvals.jsonl'), nextChain(run.binding).map(e => JSON.stringify(e)).join('\n') + '\n');
+      const result = await executeCommand(run.rt, command('002', 'navigate', { label: 'Email', 'expect-terms-sha256': run.current.email_wizard.terms_sha256 }));
+      assert.ok(['refused', 'blocked'].includes(result.status), JSON.stringify(result)); assert.ok(!run.events.includes('dispatch'));
+    }
+    const missing = emailSelectionRuntime(dir);
+    assert.equal((await executeCommand(missing.rt, command('003', 'navigate', { label: 'Email' }))).reason, 'email_channel_terms_required');
+    await writeFile(join(dir, 'approvals.jsonl'), '');
+    assert.equal((await executeCommand(missing.rt, command('004', 'navigate', { label: 'Email', 'expect-terms-sha256': missing.current.email_wizard.terms_sha256 }))).reason, 'case_summary_chain_unverified');
+    assert.ok(!missing.events.includes('dispatch'));
   } finally { await rm(dir, { recursive: true, force: true }); }
 });
 
