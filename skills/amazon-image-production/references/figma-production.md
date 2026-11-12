@@ -30,7 +30,9 @@ call an unsupported remote-image import method. Preserve destination and node ID
 1. Inspect the reference images and read the approved copy. Extract a compact
    visual direction with type hierarchy, palette, spacing, image treatment and
    annotation style. Use client brand assets, not the agency brand by default.
-2. Set a representative frame at the requested export dimensions. If unspecified,
+2. Prepare the first-image examples under `amazon-listing-images`'s
+   `references/creative-pack.md`, "Shots and creative approval", at the requested
+   export dimensions. If unspecified,
    use a clearly labelled working canvas, e.g. 2000 by 2000 for a square draft;
    this is a design starting point, not a claim about Amazon requirements.
 3. Place photos with correct proportions, masks and crops. Match background
@@ -46,16 +48,14 @@ call an unsupported remote-image import method. Preserve destination and node ID
    Fix clipping, weak contrast, accidental crops and label errors before expanding.
    Text effects can tint the product: a headline glow over a cap once turned it
    grey. After typography, compare the product's colours with the reference.
-6. Reuse a few layout styles across the remaining frames while giving each image's
+6. Extend the selected direction under that same first-image procedure while giving each image's
    buying job an appropriate composition. Repeated template structure is useful
    only while it communicates the content well.
 
-For every new gallery direction, stop after the representative pilot and before
-expansion until a person approves that direction or explicitly waives the look.
-Record who, when and the version in the receipt and delivery note. The driving
-agent cannot approve it. This applies to every input brief, including work without
-a creative pack. Reuse existing approval of that same direction; routine reversible
-edits do not reopen it unless they materially change the approved direction.
+Use that procedure for every input brief, including work without a creative pack.
+The job's owning master controls approvers and checkpoints; without one, apply the
+person-approval fallback in that procedure. Record the decision in the receipt and
+delivery note. Routine reversible edits do not reopen an unchanged direction.
 
 ## Build from a creative pack
 
@@ -76,12 +76,12 @@ claims record, shot list and design spec. Build from it in this order:
    since the pack, and the build stops until the pack is gated again. The errors
    and warnings must match `gate.txt`. Gate any later copy edit again before it
    goes into a frame.
-4. Render the photos with `amazon-product-photography` from `shot-list.json`,
-   inside the generation budget set for that task.
-5. Build one pilot in Figma from `copy.json` and `design-spec.md`, following
-   the layout work above. Record the person's direction approval or explicit
-   waiver before expanding to the remaining frames. Reuse an existing approval
-   only when it covers this direction and version.
+4. Prepare photos for the first-image examples with `amazon-product-photography`
+   from `shot-list.json`, inside the task's generation budget. Defer the remaining
+   frames' photos until the direction checkpoint below.
+5. Build the examples in Figma from `copy.json` and `design-spec.md` under Layout
+   work above, then complete the direction checkpoint before the remaining frames.
+   Reuse an existing approval only when it covers this direction and version.
 6. Read back every text layer and compare it with `copy.json` character for
    character, then view each frame at 360 px wide for the mobile check.
 7. Uploading the finished images stays with `amazon-flatfilepro`.
@@ -95,6 +95,18 @@ a small product, pseudo-text along an edge, semi-transparent objects, broken han
 contact, colour casts. Have a second agent try to refute each finding, and fix
 only the ones that survive.
 
+Show the product ready for use: filled and assembled. Empty or disassembled is
+appropriate only in a frame about filling or assembly. Source liquid colour and
+fill level from a real client photo; never invent them. If the source shows an
+empty applicator, obtain a filled reference before adding visible serum.
+
+For edited product pixels, including liquid fills and transparent parts, review
+the final export at full size beside a real client photo. Record both paths and
+the verdict in the receipt. Reject painted-looking liquid or surfaces; transparent
+hardware must still read as solid. In v1 of the 12.11.2026 rerun, the flat opaque
+serum block and see-through cap passed the job's own checks. A checklist pass cannot
+clear these edits.
+
 Fix one defect at a time; when delegating, give each defect its own worker. Check
 every fix twice: once that the defect is gone, and once that nothing around it
 changed. Allow one repair round per defect, then finish it by hand or name it as a
@@ -103,10 +115,11 @@ the previous round, and keep before and after images for every retouch.
 
 ## Production receipt and conversion gate
 
-Use the conversion rubric in
+Use the design rules and conversion rubric in
 `skills/amazon-listing-images/references/creative-pack.md` on every final frame.
 The production receipt records the frame ID, final export path/hash, 360 px preview,
-and pass/fail with a reason for each of: buying reason, one visible proof element
+and the separate congruence and fresh-reviewer buying-reason checks defined there,
+plus pass/fail with a reason for each of: buying reason, one visible proof element
 and its source, product share (full-product bounding-box width/height percentages,
 complete silhouette and planned target), and incremental buying job over the
 previous frame. Record MAIN's recognition exception as the rubric defines it.
@@ -120,6 +133,8 @@ Technical checks alone never pass a gallery. Any failed conversion field or miss
 required scene blocks delivery. Fix, export and recheck the affected frame and its
 neighbours; record the new result against the new hash. If blocked, return a held
 review artifact with the exact unresolved decision, not a delivered gallery.
+The job's owning master also governs who must inspect exports before reporting;
+record completion of that inspection in the receipt.
 
 ## Final checks and handoff
 
