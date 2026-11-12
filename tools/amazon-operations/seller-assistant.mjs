@@ -396,7 +396,7 @@ export function isNavigationAllowed(label, state = {}, { origin = null, caseId =
     }
     if (!state.selection?.ok || state.composer?.frame_id !== state.selection.frame_id) return { ok: false, reason: 'retry_frame_unverified' };
     if (state.generation_error?.detected !== true) return { ok: false, reason: 'generation_error_not_visible' };
-    if (state.busy || state.handoff?.approve_count > 0 || state.denial?.detected || state.generation_error.case_created ||
+    if (state.busy || state.handoff?.approve_count > 0 || state.email_wizard?.ok || state.email_wizard?.count > 0 || state.denial?.detected || state.generation_error.case_created ||
         !state.composer || normalizeComposer(state.composer.value) !== '') return { ok: false, reason: 'retry_state_not_safe' };
     return { ok: true, kind: 'generation_retry' };
   }

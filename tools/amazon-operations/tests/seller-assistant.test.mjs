@@ -231,6 +231,32 @@ test('Try again is scoped to an idle existing conversation with a generation err
   }
 });
 
+test('Try again refuses active email summaries and contact steps without legacy Approve controls', async () => {
+  const dir = await runDir();
+  try {
+    for (const email_wizard of [
+      { ok: true, frame_id: 'main', step: 1, action_label: 'Next', action_enabled: true },
+      { ok: true, frame_id: 'main', step: 2, action_label: 'Submit', action_enabled: true },
+      { ok: false, reason: 'email_wizard_ambiguous', count: 2 },
+    ]) {
+      const state = retryState({ email_wizard, handoff: { approve_count: 0 } });
+      assert.equal(isNavigationAllowed('Try again', state, { origin: SC }).reason, 'retry_state_not_safe');
+      const run = fakeRuntime(dir, { state });
+      assert.equal((await executeCommand(run.rt, command('001', 'navigate', { label: 'Try again' }))).reason, 'retry_state_not_safe');
+      assert.ok(!run.events.includes('dispatch'));
+    }
+    const run = fakeRuntime(dir, { state: retryState() });
+    const prepare = run.rt.browser.prepareClick;
+    run.rt.browser.prepareClick = async (...args) => {
+      const point = await prepare(...args);
+      run.current.email_wizard = { ok: true, frame_id: 'main', step: 1 };
+      return point;
+    };
+    assert.equal((await executeCommand(run.rt, command('002', 'navigate', { label: 'Try again' }))).reason, 'retry_state_changed');
+    assert.ok(!run.events.includes('dispatch'));
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
 test('generation errors and case creation confirmations come only from the composer frame', () => {
   const frames = [{ frame_id: 'main', url: RETRY_CONVERSATION, same_origin: true },
     { frame_id: 'chat', url: RETRY_CONVERSATION, same_origin: true }];
