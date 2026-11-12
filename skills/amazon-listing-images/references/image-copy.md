@@ -36,7 +36,7 @@ are qualitative costs, not forecasts of conversion lift or a legal safe harbour.
 | 1. Label facts only | Verified printed identity, contents, amounts and directions, subject to category rules below | Can explain contents and use, but may remove the buyer's main reason to choose the product; do not quietly substitute storage facts for that benefit | no `approved_sf_lines` |
 | 2. Label facts plus named structure/function lines | Tier 1 plus the exact supported, brief-approved lines in designated frames, where the category permits them | Restores the named benefit only; exact phrasing, required disclaimers and restricted placement consume space and limit the story | `approved_sf_lines` and `sf_keys` |
 | 3. Standard | Benefits supported by product evidence within the category, marketplace and Amazon/FTC rules | Gives more room to explain why to buy; requires stronger substantiation and claims review and may still exclude the desired promise | free keys; regulated lines use `approved_sf_lines` and `sf_keys` |
-| Cosmetic, when chosen at intake | Verified cosmetic product facts and the sourced ingredient facts described below; no invented finished-product result | Can answer cosmetic buying questions; unsupported efficacy remains an evidence gap | free keys under the applicable category rules |
+| Cosmetic, when chosen at intake | Sourced scalp-care, appearance and practical benefits, verified product facts and directions, and sourced ingredient facts; no invented finished-product result | Can answer cosmetic buying questions; unsupported efficacy remains an evidence gap | free keys under the applicable category rules |
 
 If the chosen tier removes the product's primary benefit, stop at intake before
 concept, copy or production. Show the person the applicable tiers with the exact benefit
@@ -48,7 +48,10 @@ cannot make an unsupported or prohibited claim usable. Record the decision in
 The claim tier chosen at intake governs the job; the agent must not tighten it on
 its own. If the person chooses a cosmetic tier, sourced ingredient facts are
 allowed as facts about the ingredient, without implying a finished-product result.
-Apply that distinction in the category checks below. Unanswered shopper questions
+Every cosmetic benefit, fact and direction needs a source recorded by key in
+`claims.md`. Appearance and safety wording needs substantiation and refuter review;
+it is not banned solely for naming appearance or safety. Apply the ingredient versus
+finished-product distinction in the category checks below. Unanswered shopper questions
 follow the evidence-gap delivery rule in `references/creative-pack.md`.
 
 A claims refuter's crop, label-hiding or product-size restriction also goes to the
@@ -71,6 +74,13 @@ Claims law and the risk ladder are in
 ## Regulated categories
 
 Applies to every regulated product, in every posture.
+
+For the cosmetic tier only, ordinary surface cleansing of skin, hair or scalp is
+allowed with a source; the shared "no cleanse" rule below does not apply to that
+cosmetic meaning. Verified application directions (including curing a nail coating
+under a UV lamp) and ingredient facts use their practical or ingredient meaning,
+not a disease claim inferred from an overlapping word. The refuters check that
+context and source; systemic cleanse/detox or drug claims remain excluded.
 
 - No disease words (treat, cure, prevent, diagnose, any named condition) and no
   body-system or health-effect words outside an approved structure/function line.
@@ -123,7 +133,10 @@ keys and limits, as `<pack>/candidates/<set>.json`, then runs:
 
 Return failed lines or missing roles to their writer with the relevant constraint
 and finding, keeping accepted wording unchanged; do not rewrite during mapping.
-Gate again until 0 errors and explain warnings. Judge only passing sets below.
+Gate again until 0 errors and explain warnings. Exit 3 (`review_required`) allows
+candidate judging with a review hold; pack clearance requires the refuter record
+and named person's sign-off in `claims.md`, bound by `DONE.json`, as specified in
+`references/creative-pack.md`. Judge only sets with no mechanical errors below.
 
 A set that cannot reach 0 errors drops out, and `pack.md` says so. The
 `candidates/` folder is working material, not one of the pack files.
@@ -160,8 +173,9 @@ Each finding names the key, quotes the text and rates it HIGH, MEDIUM or LOW. Th
 
 ## Lessons
 
-- The gate catches only the mechanical layer: banned words, fixed keys, numbers,
-  lengths. Meaning-level errors need the refuters: a false count ("six ingredients"
+- A mechanical profile is a first filter; the meaning-level refuters decide
+  whether copy is cleared. They check errors beyond words, fixed keys, numbers
+  and lengths: a false count ("six ingredients"
   on a five-ingredient label), a second serving phrase, an origin claim in plain
   words, or a product name on the pack that differs from the listing.
 - Voice is the usual weak spot. Writers given the brand's own site lines as allowed
