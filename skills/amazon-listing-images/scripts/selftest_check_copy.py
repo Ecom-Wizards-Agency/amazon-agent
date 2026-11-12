@@ -301,6 +301,13 @@ def main():
         cosmetic_cases = [
             ("cosmetic product fact", "Serum in a glass bottle.", 3),
             ("sourced ingredient fact", "Glycerin is a humectant.", 3),
+            ("pump direction", "Depress the pump", 3),
+            ("coat direction", "Paint a thin coat", 3),
+            ("UV direction", "Cure under a UV lamp", 3),
+            ("lipid ingredient fact", "Cholesterol is a lipid", 3),
+            ("soy ingredient fact", "Soy oil is an emollient", 3),
+            ("cosmetic cleansing", "Use to cleanse the scalp", 3),
+            ("plain cosmetic cleanse", "cleanse", 3),
             ("drug claim", "Promotes hair regrowth.", 1),
             ("ingredient implies product efficacy", "Glycerin grows hair.", 1),
             ("device mechanism", "Creates micro-channels for absorption.", 1),
