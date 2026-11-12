@@ -308,10 +308,15 @@ def main():
             ("soy ingredient fact", "Soy oil is an emollient", 3),
             ("cosmetic cleansing", "Use to cleanse the scalp", 3),
             ("plain cosmetic cleanse", "cleanse", 3),
+            ("scalp-care benefit", "Moisturises the scalp", 3),
+            ("appearance benefit", "Fuller hair appearance", 3),
+            ("practical benefit", "Spreads evenly over the scalp", 3),
+            ("ingredient mechanism fact", "Glycerin improves water absorption", 3),
+            ("ingredient name with body word", "Blood orange oil adds fragrance", 3),
             ("drug claim", "Promotes hair regrowth.", 1),
             ("ingredient implies product efficacy", "Glycerin grows hair.", 1),
             ("device mechanism", "Creates micro-channels for absorption.", 1),
-            ("safety claim", "Painless and hypoallergenic.", 1),
+            ("safety needs source review", "Painless and hypoallergenic.", 3),
             ("disease claim", "Treats eczema.", 1),
             ("eczema intended use", "For eczema", 1),
             ("acne intended use", "For acne", 1),
@@ -335,6 +340,15 @@ def main():
             print(("PASS" if ok else "FAIL"), label, result["errors"])
             if not ok:
                 failures.append(label)
+        source_warning_cases = ["Fuller hair appearance", "Painless and hypoallergenic."]
+        for line in source_warning_cases:
+            doc = copy.deepcopy(cosmetic_skeleton)
+            doc["frames"][1]["texts"][0]["text"] = line
+            code, result = run(tmp, "source-warning", doc, profile=COSMETIC)
+            ok = code == 3 and not result["errors"] and bool(result["warnings"])
+            print(("PASS" if ok else "FAIL"), "source review warning", line)
+            if not ok:
+                failures.append(f"source review warning {line}")
         # Reuse facts.allow for evidence-backed approval of the exact pattern.
         approved_free_from = ["Fragrance-free", "Paraben-free", "Alcohol-free"]
         approved_facts = tmp / "approved-free-from.json"
@@ -382,7 +396,7 @@ def main():
         if not ok:
             failures.append("cosmetic review status")
 
-    total = len(MUTATIONS) + len(WARNINGS) + len(CLEAN) + len(CONFIG) + 3 + len(cosmetic_cases) + 1 + len(review_cases) + 1 + len(approved_free_from)
+    total = len(MUTATIONS) + len(WARNINGS) + len(CLEAN) + len(CONFIG) + 3 + len(cosmetic_cases) + 1 + len(review_cases) + 1 + len(approved_free_from) + len(source_warning_cases)
     print(f"{total - len(failures)}/{total} passed")
     if failures:
         print("FAILED:", ", ".join(failures))

@@ -36,7 +36,7 @@ are qualitative costs, not forecasts of conversion lift or a legal safe harbour.
 | 1. Label facts only | Verified printed identity, contents, amounts and directions, subject to category rules below | Can explain contents and use, but may remove the buyer's main reason to choose the product; do not quietly substitute storage facts for that benefit | no `approved_sf_lines` |
 | 2. Label facts plus named structure/function lines | Tier 1 plus the exact supported, brief-approved lines in designated frames, where the category permits them | Restores the named benefit only; exact phrasing, required disclaimers and restricted placement consume space and limit the story | `approved_sf_lines` and `sf_keys` |
 | 3. Standard | Benefits supported by product evidence within the category, marketplace and Amazon/FTC rules | Gives more room to explain why to buy; requires stronger substantiation and claims review and may still exclude the desired promise | free keys; regulated lines use `approved_sf_lines` and `sf_keys` |
-| Cosmetic, when chosen at intake | Verified cosmetic product facts and the sourced ingredient facts described below; no invented finished-product result | Can answer cosmetic buying questions; unsupported efficacy remains an evidence gap | free keys under the applicable category rules |
+| Cosmetic, when chosen at intake | Sourced scalp-care, appearance and practical benefits, verified product facts and directions, and sourced ingredient facts; no invented finished-product result | Can answer cosmetic buying questions; unsupported efficacy remains an evidence gap | free keys under the applicable category rules |
 
 If the chosen tier removes the product's primary benefit, stop at intake before
 concept, copy or production. Show the person the applicable tiers with the exact benefit
@@ -48,7 +48,10 @@ cannot make an unsupported or prohibited claim usable. Record the decision in
 The claim tier chosen at intake governs the job; the agent must not tighten it on
 its own. If the person chooses a cosmetic tier, sourced ingredient facts are
 allowed as facts about the ingredient, without implying a finished-product result.
-Apply that distinction in the category checks below. Unanswered shopper questions
+Every cosmetic benefit, fact and direction needs a source recorded by key in
+`claims.md`. Appearance and safety wording needs substantiation and refuter review;
+it is not banned solely for naming appearance or safety. Apply the ingredient versus
+finished-product distinction in the category checks below. Unanswered shopper questions
 follow the evidence-gap delivery rule in `references/creative-pack.md`.
 
 A claims refuter's crop, label-hiding or product-size restriction also goes to the
