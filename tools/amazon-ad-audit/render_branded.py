@@ -241,16 +241,16 @@ def _cover_kwargs(cfg, M, blocks, brand_dir):
     # admits (the block sits in generous whitespace, so 7-8 still fits an A4 cover).
     inside_max = int(_bcfg(cfg, "cover_inside_max", 4) or 4)
     inside = [(f"{i+1:02d}", t) for i, (k, t) in enumerate([b for b in blocks if b[0] == "h2"])
-              if t.lower() not in ("sources used", "method notes")][:inside_max]
+              if t.lower() not in ("sources used", "method notes", "quellen und methodik")][:inside_max]
     by = _bcfg(cfg, "prepared_by", _B.get("prepared_by_default") or "the operator")
     label = _doc_label(cfg)
     return dict(brand_dir=str(brand_dir), title=client,
                 eyebrow=label.upper(), dateline=f"{mname} · {win}".upper(),
                 sub_lines=lines or [sub], prepared_for=client,
-                prepared_by=_branding.prepared_by_line(_B, by),
-                inside=inside, footer_left=_branding.cover_footer_left(_B),
+                prepared_by=_bcfg(cfg, "cover_prepared_by_line", None) or _branding.prepared_by_line(_B, by),
+                inside=inside, footer_left=_bcfg(cfg, "cover_footer_left", None) or _branding.cover_footer_left(_B),
                 footer_right=label, palette=_B["palette_doc"], font_file=FONT_FILE,
-                logo_file=_B["assets"]["logo_white"])
+                logo_file=_B["assets"]["logo_white"], labels=_bcfg(cfg, "cover_labels", None))
 
 
 # ------------------------------ DOCX ------------------------------

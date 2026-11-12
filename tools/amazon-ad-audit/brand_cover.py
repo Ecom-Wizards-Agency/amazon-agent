@@ -21,7 +21,9 @@ def _snap(v): return int(round(v/GRID))*GRID
 
 def build_cover(out, brand_dir, title, eyebrow, dateline, sub_lines, prepared_for, prepared_by,
                 inside, footer_left, footer_right, logo_w=300, logo_y=300, block_y=440, inside_y=1496,
-                palette=None, font_file="Inter-Variable.ttf", logo_file="logo_white.png"):
+                palette=None, font_file="Inter-Variable.ttf", logo_file="logo_white.png", labels=None):
+    # Optional localisation of the two fixed cover labels (e.g. a German deliverable).
+    lab = {"prepared_for": "PREPARED FOR", "inside": "WHAT'S INSIDE", **(labels or {})}
     if palette is None:
         import branding as _branding
         palette = _branding.load_branding({})["palette_doc"]
@@ -66,11 +68,11 @@ def build_cover(out, brand_dir, title, eyebrow, dateline, sub_lines, prepared_fo
         d.text((MX, y), ln, font=inter("Regular", 44), fill=MIST); y += 60
     y = _snap(y + 90)
     d.line([(MX, y), (W - MX, y)], fill=SLATE, width=2); y += 34
-    tracked(d, (MX, y), "PREPARED FOR", inter("SemiBold", 21), STEEL, tr=3); y += 40
+    tracked(d, (MX, y), lab["prepared_for"], inter("SemiBold", 21), STEEL, tr=3); y += 40
     d.text((MX, y), prepared_for, font=inter("Bold", 38), fill=WHITE); y += 56
     d.text((MX, y), prepared_by, font=inter("Regular", 29), fill=MIST)
     y = inside_y
-    tracked(d, (MX, y), "WHAT'S INSIDE", inter("SemiBold", 21), ORANGE, tr=3); y += 54
+    tracked(d, (MX, y), lab["inside"], inter("SemiBold", 21), ORANGE, tr=3); y += 54
     for num, txt in inside:
         d.text((MX, y), num, font=inter("Bold", 33), fill=ORANGE)
         d.text((MX + 78, y), txt, font=inter("Regular", 33), fill=CLOUD); y += 62
