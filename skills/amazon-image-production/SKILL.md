@@ -34,9 +34,10 @@ photos, and editable shapes or annotations. An imported finished JPEG is not a
 fully editable listing layout; photographic pixels remain raster content.
 
 Inspect both rendered screenshots and layer structure, fix observed problems,
-then extend the accepted direction through the requested gallery. When a material
-style choice remains unresolved, use human feedback on the representative frame.
-Do not repeat approval for accepted direction or routine reversible edits.
+then stop before extending a new gallery direction until a person approves the
+pilot or explicitly waives the look. Record the decision in the production receipt;
+the driving agent cannot approve it. Reuse approval for the same direction and do
+not repeat it for routine reversible edits.
 
 - Preserve exact copy, variant, quantities, dimensions and claims from the brief.
 - Check hierarchy and contrast at mobile size, and crop/artifacts at full size.

@@ -50,9 +50,12 @@ call an unsupported remote-image import method. Preserve destination and node ID
    buying job an appropriate composition. Repeated template structure is useful
    only while it communicates the content well.
 
-Human feedback is most valuable on the representative direction and final selected
-gallery. Gather it when a material aesthetic choice is unresolved. Do not impose
-an extra approval loop on already accepted direction or routine reversible edits.
+For every new gallery direction, stop after the representative pilot and before
+expansion until a person approves that direction or explicitly waives the look.
+Record who, when and the version in the receipt and delivery note. The driving
+agent cannot approve it. This applies to every input brief, including work without
+a creative pack. Reuse existing approval of that same direction; routine reversible
+edits do not reopen it unless they materially change the approved direction.
 
 ## Build from a creative pack
 
@@ -75,8 +78,10 @@ claims record, shot list and design spec. Build from it in this order:
    goes into a frame.
 4. Render the photos with `amazon-product-photography` from `shot-list.json`,
    inside the generation budget set for that task.
-5. Build the frames in Figma from `copy.json` and `design-spec.md`, following
-   the layout work above.
+5. Build one pilot in Figma from `copy.json` and `design-spec.md`, following
+   the layout work above. Record the person's direction approval or explicit
+   waiver before expanding to the remaining frames. Reuse an existing approval
+   only when it covers this direction and version.
 6. Read back every text layer and compare it with `copy.json` character for
    character, then view each frame at 360 px wide for the mobile check.
 7. Uploading the finished images stays with `amazon-flatfilepro`.
@@ -95,6 +100,26 @@ every fix twice: once that the defect is gone, and once that nothing around it
 changed. Allow one repair round per defect, then finish it by hand or name it as a
 decision. After the last fix, run a regression check on the final exports against
 the previous round, and keep before and after images for every retouch.
+
+## Production receipt and conversion gate
+
+Use the conversion rubric in
+`skills/amazon-listing-images/references/creative-pack.md` on every final frame.
+The production receipt records the frame ID, final export path/hash, 360 px preview,
+and pass/fail with a reason for each of: buying reason, one visible proof element
+and its source, product share (full-product bounding-box width/height percentages,
+complete silhouette and planned target), and incremental buying job over the
+previous frame. Record MAIN's recognition exception as the rubric defines it.
+
+Also record in-use and lifestyle frame IDs (separate scenes), the stated generation
+budget and actual use, the person's pilot approval/version or explicit waiver, and
+any crop/size restriction with its conversion cost and human decision. A held pack
+or a planned rubric is not a passed production receipt.
+
+Technical checks alone never pass a gallery. Any failed conversion field or missing
+required scene blocks delivery. Fix, export and recheck the affected frame and its
+neighbours; record the new result against the new hash. If blocked, return a held
+review artifact with the exact unresolved decision, not a delivered gallery.
 
 ## Final checks and handoff
 

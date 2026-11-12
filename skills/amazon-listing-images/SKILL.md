@@ -64,6 +64,15 @@ before asking questions. Reuse facts already confirmed in the conversation.
   unless the user changes them or evidence contradicts them. Do not restart research
   or rewrite unrelated listing fields.
 
+For a new gallery or a new claim direction, read the claim tiers in
+`references/image-copy.md` at intake, including in normal concept mode. Stop if
+the chosen tier removes the primary benefit until the person chooses a supported
+scope after seeing the conversion costs. For a complete gallery production brief,
+use `references/creative-pack.md` for research, scenes, budget, pilot approval and
+the planned conversion rubric, whether or not the request used the words
+"creative pack". A narrow revision or translation keeps the accepted scope; reopen
+only decisions the change affects.
+
 ## From evidence to buying priorities
 
 1. **Describe the buying situation.** Infer awareness from queries, audience,

@@ -25,15 +25,29 @@ its words do that job and nothing else.
 - The brand's voice comes from `ci-spec.md`. No exclamation marks or hype unless the
   brand itself writes that way.
 
-## Claims postures
+## Claim tiers (claims postures)
 
-The brief sets one posture. It decides what the copy may claim beyond the label.
+The brief chooses one tier at intake. Give the person the product's primary buying
+benefit, the evidence for it, and the conversion tradeoff for each tier below. These
+are qualitative costs, not forecasts of conversion lift or a legal safe harbour.
 
-| Posture | Allowed | Skeleton |
-| --- | --- | --- |
-| Label facts only | What the label prints: identity, contents, amounts and directions | no `approved_sf_lines` |
-| Label facts plus named structure/function lines | The above, plus only the exact lines the brief approves, only in the keys listed in `sf_keys`, each with an asterisk and the full disclaimer on the same image | `approved_sf_lines` and `sf_keys` |
-| Standard | Benefits the product evidence supports, under the general Amazon and FTC rules | free keys; for a regulated product, brief-approved lines in `approved_sf_lines` and `sf_keys` |
+| Tier / existing posture name | Allowed | Conversion cost | Skeleton |
+| --- | --- | --- | --- |
+| 1. Label facts only | Verified printed identity, contents, amounts and directions, subject to category rules below | Can explain contents and use, but may remove the buyer's main reason to choose the product; do not quietly substitute storage facts for that benefit | no `approved_sf_lines` |
+| 2. Label facts plus named structure/function lines | Tier 1 plus the exact supported, brief-approved lines in designated frames, where the category permits them | Restores the named benefit only; exact phrasing, required disclaimers and restricted placement consume space and limit the story | `approved_sf_lines` and `sf_keys` |
+| 3. Standard | Benefits supported by product evidence within the category, marketplace and Amazon/FTC rules | Gives more room to explain why to buy; requires stronger substantiation and claims review and may still exclude the desired promise | free keys; regulated lines use `approved_sf_lines` and `sf_keys` |
+
+If the chosen tier removes the product's primary benefit, stop at intake before
+concept, copy or production. Show the person all three tiers with the exact benefit
+retained/lost, the supporting evidence or gap and each conversion cost. Ask them to
+choose or confirm a narrower practical-benefit direction explicitly. Approval
+cannot make an unsupported or prohibited claim usable. Record the decision in
+`brief.md` and `claims.md`; no agent may accept that tradeoff for the person.
+
+A claims refuter's crop, label-hiding or product-size restriction also goes to the
+person with the exact risk, compliant alternative and conversion cost. Do not make
+the product small or unrecognisable to force a pass. Copy changes from a reviewer
+go back through the writer, then through the copy gate and affected claims checks.
 
 The gate profile follows the product's category, not the posture. A regulated
 product always uses its category profile; for a US dietary supplement that is

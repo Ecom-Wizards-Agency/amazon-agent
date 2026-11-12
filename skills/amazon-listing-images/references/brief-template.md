@@ -14,11 +14,17 @@ Product (R):                   product name exactly as printed on the shipped pa
 ASIN (R):                      the ASIN, or "new"
 Marketplace and copy language (R):  e.g. US, English
 Label or spec file (R):        attached file or link; full size, every panel
-Claims posture (R if regulated):    one of
+Claim tier (R):               see image-copy.md for conversion costs; choose one:
                                - label facts only
                                - label facts + named structure/function lines:
                                  list each approved line exactly
                                - standard
+
+Generation budget (R):        spend cap/currency, attempt cap, repair allowance;
+                               zero if supplied assets cover required scenes
+Required scenes (R):          at least one in-use and one separate lifestyle scene;
+                               available assets or planned generation
+Primary buying benefit (R):   supported benefit and whether the tier retains it
 
 Website URL (O):
 Brand colours, fonts, logo file (O):   hex values, font names, logo as SVG or PNG
@@ -60,10 +66,14 @@ question at once and waits for the answers:
   or contradicts the label file.
 - **Marketplace:** the marketplace or copy language is missing.
 - **Label file:** no label or spec file, or one too small to read every line.
-- **Posture for a regulated product:** a supplement, food with a health angle,
-  topical or other regulated product without a claims posture, or with
-  structure/function lines named loosely instead of exactly.
+- **Claim tier:** missing tier, structure/function lines named loosely instead of
+  exactly, or a tier that removes the primary benefit without the person's explicit
+  decision after seeing the conversion costs in `references/image-copy.md`.
+- **Production direction:** missing generation budget, required scene plan or human
+  approver. A person may explicitly waive the pilot look; an agent cannot approve
+  its own creative direction.
 
-Every other gap becomes a flagged assumption in `pack.md`. For example, no website
-means the brand CI comes from the pack and the brief alone; no POE export means
-lower confidence on the buying jobs, stated in the pack.
+Other input gaps are recorded in `pack.md`. No website means CI comes from the pack
+and brief. Missing POE input triggers the archive search in
+`references/creative-pack.md`; research gaps follow that reference's human decision
+gate before concept approval.
