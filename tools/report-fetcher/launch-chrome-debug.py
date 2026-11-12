@@ -150,8 +150,16 @@ def read_state() -> dict:
 def process_arguments(pid: int) -> list[str]:
     if sys.platform.startswith("linux"):
         try:
-            return Path(f"/proc/{pid}/cmdline").read_bytes().decode().strip("\0").split("\0")
-        except (OSError, UnicodeError):
+            arguments = Path(f"/proc/{pid}/cmdline").read_bytes().decode().strip("\0").split("\0")
+            # Chrome may rewrite argv into a single, space-delimited process title.
+            # Accept that form only when its executable matches the socket owner.
+            if len(arguments) == 1:
+                expanded = shlex.split(arguments[0])
+                executable = os.readlink(f"/proc/{pid}/exe").removesuffix(" (deleted)")
+                if expanded and os.path.realpath(expanded[0]) == os.path.realpath(executable):
+                    return expanded
+            return arguments
+        except (OSError, UnicodeError, ValueError):
             return []
     result = subprocess.run(["ps", "-p", str(pid), "-o", "command="],
                             capture_output=True, text=True, check=False)

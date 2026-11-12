@@ -29,6 +29,15 @@ with tempfile.TemporaryDirectory(prefix="launcher-profile-") as directory:
                       if str(value).startswith("/proc/") else proc if str(value) == "/proc" else Path(value)):
         assert module.listening_processes() == {10}
     good = ["chrome", "--remote-debugging-port=19323", f"--user-data-dir={profile}"]
+    command = root / "cmdline"
+    for raw, expected in [
+        (b"/opt/google/chrome/chrome\0--remote-debugging-port=19323\0", ["/opt/google/chrome/chrome", "--remote-debugging-port=19323"]),
+        (b"/opt/google/chrome/chrome --remote-debugging-port=19323\0", ["/opt/google/chrome/chrome", "--remote-debugging-port=19323"]),
+        (b"/other/chrome --remote-debugging-port=19323\0", ["/other/chrome --remote-debugging-port=19323"]),
+    ]:
+        command.write_bytes(raw)
+        with patch.object(module, "Path", return_value=command), patch.object(module.os, "readlink", return_value="/opt/google/chrome/chrome"):
+            assert module.process_arguments(10) == expected
     wrong = ["chrome", "--remote-debugging-port=19323", f"--user-data-dir={root / 'wrong'}"]
     with patch.object(module, "process_arguments", return_value=good):
         assert module.process_matches(10)
