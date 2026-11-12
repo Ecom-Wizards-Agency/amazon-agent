@@ -101,8 +101,13 @@ def normalized(value: Any) -> str:
     return re.sub(r"[^a-z0-9]+", "", str(value or "").lower())
 
 
-def variation_value_issues(children: Iterable[dict[str, Any]], *, label: str) -> list[str]:
-    """Permit repeated values only for existing offers on the same valid ASIN."""
+def variation_value_issues(children: Iterable[dict[str, Any]], *, label: str, manifest: dict[str, Any]) -> list[str]:
+    """Permit repeated values only for same-ASIN offers verified in the report."""
+    report_asins: dict[str, set[str]] = {}
+    try:
+        read_report_skus(resolve_source(manifest, "category_listings_report"), asins_by_sku=report_asins)
+    except (CatalogError, OSError, ValueError, zipfile.BadZipFile):
+        report_asins.clear()  # Missing evidence cannot grant the duplicate-value exemption.
     asins_by_value: dict[str, list[str | None]] = {}
     values_by_asin: dict[str, set[str]] = {}
     for child in children:
@@ -112,7 +117,8 @@ def variation_value_issues(children: Iterable[dict[str, Any]], *, label: str) ->
         asin: str | None = str(child.get("asin") or "").strip().upper()
         if child.get("status") != "existing" or not re.fullmatch(r"[A-Z0-9]{10}", asin):
             asin = None
-        asins_by_value.setdefault(value, []).append(asin)
+        verified_asin = asin if report_asins.get(str(child.get("sku"))) == {asin} else None
+        asins_by_value.setdefault(value, []).append(verified_asin)
         if asin:
             values_by_asin.setdefault(asin, set()).add(value)
 
@@ -232,7 +238,7 @@ def validate_manifest(manifest: dict[str, Any], *, require_files: bool = True) -
     duplicate_skus = sorted({sku for sku in skus if skus.count(sku) > 1})
     if duplicate_skus:
         issues.append(f"duplicate SKUs in manifest: {', '.join(duplicate_skus)}")
-    issues.extend(variation_value_issues(children, label="variation values"))
+    issues.extend(variation_value_issues(children, label="variation values", manifest=manifest))
 
     removed = set(map(str, family.get("removed_child_skus") or []))
     child_skus = {str(c.get("sku")) for c in children if c.get("sku")}
@@ -307,7 +313,7 @@ def validate_manifest(manifest: dict[str, Any], *, require_files: bool = True) -
     return notes
 
 
-def read_report_skus(path: Path) -> set[str]:
+def read_report_skus(path: Path, *, asins_by_sku: dict[str, set[str]] | None = None) -> set[str]:
     """Read SKU values from modern CLRs or conventional SKU-column reports.
 
     Each sheet is streamed once. Read-only worksheets resolve ``sheet.cell()``
@@ -317,10 +323,15 @@ def read_report_skus(path: Path) -> set[str]:
     workbook = openpyxl.load_workbook(path, read_only=True, data_only=True, keep_vba=False)
     found: set[str] = set()
 
-    def collect(rows: list[tuple[Any, ...]], sku_index: int, first_data_row: int) -> None:
+    def collect(rows: list[tuple[Any, ...]], sku_index: int, first_data_row: int, header: tuple[Any, ...]) -> None:
+        asin_index = header_index(header, {"asin", "asin1", "asin1value"})
         for row in rows[first_data_row - 1:]:
             if sku_index < len(row) and nonempty(row[sku_index]):
-                found.add(str(row[sku_index]).strip())
+                sku = str(row[sku_index]).strip()
+                found.add(sku)
+                if asins_by_sku is not None:
+                    asin = str(row[asin_index] or "").strip().upper() if asin_index is not None and asin_index < len(row) else ""
+                    asins_by_sku.setdefault(sku, set()).add(asin)
 
     def header_index(row: tuple[Any, ...], names: set[str]) -> int | None:
         return next((i for i, value in enumerate(row) if normalized(value) in names), None)
@@ -338,7 +349,7 @@ def read_report_skus(path: Path) -> set[str]:
                     if attribute_row <= len(rows):
                         sku_index = header_index(rows[attribute_row - 1], {"itemsku", "sku"})
                         if sku_index is not None:
-                            collect(rows, sku_index, data_row)
+                            collect(rows, sku_index, data_row, rows[attribute_row - 1])
                             continue
                 except CatalogError:
                     pass
@@ -346,7 +357,7 @@ def read_report_skus(path: Path) -> set[str]:
                 sku_index = header_index(row, {"itemsku", "sku", "sellersku"})
                 if sku_index is None:
                     continue
-                collect(rows, sku_index, header_row + 1)
+                collect(rows, sku_index, header_row + 1, row)
                 break
     finally:
         close_workbook(workbook)
@@ -833,7 +844,7 @@ def validate_workbook(manifest: dict[str, Any], path: Path) -> list[str]:
 
     if len(themes) > 1:
         issues.append(f"mixed variation themes: {', '.join(sorted(themes))}")
-    issues.extend(variation_value_issues(actual_children, label="child variation values"))
+    issues.extend(variation_value_issues(actual_children, label="child variation values", manifest=manifest))
 
     template = resolve_source(manifest, "blank_template")
     template_info = load_template(template)

@@ -271,6 +271,42 @@ def main() -> int:
     ccp.close_workbook(info.workbook)
 
     print("\n=== Manifest and workbook rejection gates ===")
+    contradicted = base_manifest(template, clr, TMP / "contradicted")
+    contradicted["family"]["children"][1].update({"asin": "B000000001", "variation_value": "1-Month Supply"})
+    contradicted = ccp.load_manifest(save_manifest(contradicted, "contradicted.json"))
+    expect_error("report contradicts repeated manifest ASIN", lambda: ccp.validate_manifest(contradicted), "duplicate variation values")
+    expect_error("contradicted mapping cannot produce READY pack", lambda: ccp.build(contradicted), "duplicate variation values")
+    check("rejected mapping writes no pack", not ccp.output_dir(contradicted).exists())
+    contradicted_file = TMP / "contradicted.xlsm"
+    ccp.write_workbook(template, contradicted_file, ccp.build_specs(contradicted)[0][1])
+    expect_error("saved workbook also checks source ASIN mapping", lambda: ccp.validate_workbook(contradicted, contradicted_file), "duplicate child variation values")
+
+    for evidence in ("no-column", "blank", "ambiguous", "missing-sku", "missing-file", "modern"):
+        report = TMP / f"{evidence}.xlsx"
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        if evidence == "modern":
+            ws.append(["settings=attributeRow=2;dataRow=3"])
+            ws.append(["item_sku", "asin#1.value"])
+        else:
+            ws.append(["SKU", "unrelated" if evidence == "no-column" else "ASIN"])
+        ws.append(["CHILD-1", "B000000001"])
+        if evidence != "missing-sku":
+            ws.append(["CHILD-1-ALT", "" if evidence == "blank" else "B000000001"])
+        if evidence == "ambiguous":
+            ws.append(["CHILD-1-ALT", "B000000002"])
+        wb.save(report)
+        wb.close()
+        probe = base_manifest(template, report, TMP / evidence)
+        probe["family"]["children"][1].update({"sku": "CHILD-1-ALT", "asin": "B000000001", "variation_value": "1-Month Supply"})
+        probe["source"]["allow_missing_skus"] = ["CHILD-1-ALT"]
+        if evidence == "missing-file":
+            report.unlink()
+        if evidence == "modern":
+            check("modern report ASIN mapping grants exemption", bool(ccp.validate_manifest(probe) is not None))
+        else:
+            expect_error(f"{evidence} evidence fails closed even without file checks", lambda: ccp.validate_manifest(probe, require_files=False), "duplicate variation values")
+
     duplicate = base_manifest(template, clr, TMP / "duplicate")
     duplicate["family"]["children"][1]["variation_value"] = "1-month supply"
     duplicate_path = save_manifest(duplicate, "duplicate.json")
