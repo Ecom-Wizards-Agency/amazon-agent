@@ -17,7 +17,10 @@
     ],
     "disease and health effects": [
       "\\btreat|\\bcure\\b(?!\\s+under\\s+(?:(?:a|an|the)\\s+)?(?:UV|LED)\\b)|\\bprevent|diagnos|disease|diabet|stroke|\\bcancer|alzheimer|dementia|arthritis|obesity|insomnia|\\banxiety|\\bdepress(?:ion|ive|ed)\\b|infection|\\bvirus|\\bviral\\b",
-      "circulat|\\bblood\\b|\\bheart|cardio|vascul|\\barter(y|ies|ial)|glucose|(?:lower|reduc|control)\\w*\\s+cholesterol|\\bsymptom|\\borgans?\\b|\\bliver|\\bkidney|\\bbrain|hormon|inflamm|\\bpain\\b|relief|immun|\\bhealth"
+      "circulat|\\bblood\\b|\\bheart|cardio|vascul|\\barter(y|ies|ial)|glucose|(?:lower|reduc|control)\\w*\\s+cholesterol|\\bsymptom|\\borgans?\\b|\\bliver|\\bkidney|\\bbrain|hormon|inflamm|\\bpain\\b|relief|immun|\\bhealth",
+      "\\b(?:eczema|acne)\\b",
+      "\\b(?:stimulat\\w*|boost\\w*|increas\\w*)\\s+collagen(?:\\s+production)?\\b",
+      "\\bregenerat\\w*\\s+cells?\\b"
     ],
     "cleanse, detox and results promises": [
       "detox|\\bflush",
@@ -25,7 +28,8 @@
     ],
     "quality, origin, testing and free-from": [
       "non-?gmo|\\bgmo\\b|\\bpur(e|ity)\\b|\\borganic\\b|\\btested\\b|\\btesting\\b|\\blab\\b|certif|\\bgmp\\b|\\bfda\\b|made in|\\busa\\b|patent|verified|clinical|pharma|transparency|no proprietary blend",
-      "free[- ]from|veggie|vegetarian|vegan|gluten|dairy|allergen"
+      "free[- ]from|veggie|vegetarian|vegan|gluten|dairy|allergen",
+      "\\b(?:fragrance|paraben|alcohol)[- ]free\\b"
     ]
   },
   "disclaimer": null

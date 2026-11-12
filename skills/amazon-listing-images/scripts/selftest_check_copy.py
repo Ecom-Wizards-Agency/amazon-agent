@@ -313,6 +313,13 @@ def main():
             ("device mechanism", "Creates micro-channels for absorption.", 1),
             ("safety claim", "Painless and hypoallergenic.", 1),
             ("disease claim", "Treats eczema.", 1),
+            ("eczema intended use", "For eczema", 1),
+            ("acne intended use", "For acne", 1),
+            ("collagen production", "Stimulates collagen production", 1),
+            ("cell regeneration", "Regenerates cells", 1),
+            ("fragrance-free needs evidence", "Fragrance-free", 1),
+            ("paraben-free needs evidence", "Paraben-free", 1),
+            ("alcohol-free needs evidence", "Alcohol-free", 1),
             ("health effect", "Supports blood circulation.", 1),
             ("detox", "A detox routine.", 1),
             ("result promise", "Visible results in days.", 1),
@@ -328,6 +335,18 @@ def main():
             print(("PASS" if ok else "FAIL"), label, result["errors"])
             if not ok:
                 failures.append(label)
+        # Reuse facts.allow for evidence-backed approval of the exact pattern.
+        approved_free_from = ["Fragrance-free", "Paraben-free", "Alcohol-free"]
+        approved_facts = tmp / "approved-free-from.json"
+        approved_facts.write_text(json.dumps({**FACTS, "allow": [r"\b(?:fragrance|paraben|alcohol)[- ]free\b"]}), encoding="utf-8")
+        for line in approved_free_from:
+            doc = copy.deepcopy(cosmetic_skeleton)
+            doc["frames"][1]["texts"][0]["text"] = line
+            code, result = run(tmp, "approved-cosmetic", doc, profile=COSMETIC, facts=approved_facts)
+            ok = code == 3 and not result["errors"] and result["review_required"]
+            print(("PASS" if ok else "FAIL"), "approved free-from", line)
+            if not ok:
+                failures.append(f"approved free-from {line}")
         # A hold in any inherited profile survives even an approved child.
         review_cases = [
             ({"status": "draft"}, "status is draft"),
@@ -363,7 +382,7 @@ def main():
         if not ok:
             failures.append("cosmetic review status")
 
-    total = len(MUTATIONS) + len(WARNINGS) + len(CLEAN) + len(CONFIG) + 3 + len(cosmetic_cases) + 1 + len(review_cases) + 1
+    total = len(MUTATIONS) + len(WARNINGS) + len(CLEAN) + len(CONFIG) + 3 + len(cosmetic_cases) + 1 + len(review_cases) + 1 + len(approved_free_from)
     print(f"{total - len(failures)}/{total} passed")
     if failures:
         print("FAILED:", ", ".join(failures))
