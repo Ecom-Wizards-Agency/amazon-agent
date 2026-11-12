@@ -175,6 +175,7 @@ Default routing:
 - `amazon-listing-images`: image concepts, order and exact copy from product and POE data, including `amazon-image-strategy` requests.
 - `amazon-product-photography`: product photos, retouching and photo prompts.
 - `amazon-image-production`: listing graphics and Figma layouts from accepted briefs.
+- `amazon-brand-content-design`: A+, Brand Store and Brand Story design.
 - `amazon-listing-capture`: live listing-copy capture for anchor and competitor ASINs.
 - `amazon-sop-maintenance`: `/create-sop`, `/fix-sop` and SOP corrections.
 - `amazon-logistics`: Send to Amazon, shipments, removals, AWD and inventory operations.

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Amazon Brand Content Design"
+  short_description: "Design A+ content, Brand Stores and Brand Story"
+  default_prompt: "Use $amazon-brand-content-design to plan the requested Amazon brand content, brief a separate copywriter, and prepare editable designs with conversion QA and the format handoff."
