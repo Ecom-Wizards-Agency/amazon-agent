@@ -23,7 +23,7 @@ variant; use current slot readback when a selected module differs.
 | --- | --- |
 | Single Image & Sidebar | 300 x 400 main; 350 x 175 sidebar |
 | Single Left / Single Right Image | 300 x 300 |
-| Four Images & Text | 200 x 200 each |
+| Four Images & Text | Legacy PDF: 200 x 200 each; API minimum: 220 x 200 each |
 | Comparison Chart | 150 x 300 per product |
 | Four Image Highlights | 400 x 400 primary; secondary size unverified |
 | Single Image & Specs Detail / Single Image & Highlights | 300 x 300 |
@@ -33,7 +33,12 @@ variant; use current slot readback when a selected module differs.
 | All Text / Technical Specifications | No image |
 
 The [Amazon API examples](https://developer-docs.amazon/sp-api/docs/a-plus-content-examples)
-also document Company Logo (600 x 180), Image Header with Text (970 x 600),
+give a 220 x 200 minimum for `StandardFourImageTextModule`, differing from the
+legacy PDF's 200 x 200. Before choosing dimensions, explicitly match the selected
+Four Images & Text module and image slot in the live builder and record its
+constraints. Stop design for that slot until the match is confirmed.
+
+The API examples also document Company Logo (600 x 180), Image Header with Text (970 x 600),
 and Multiple Image Text (300 x 300 per highlight). These are additional catalog
 entries, not permission to reinterpret a differently named legacy template. Match
 the current selected module and its field limits before export.
