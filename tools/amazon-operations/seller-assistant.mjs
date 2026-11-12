@@ -396,7 +396,7 @@ export function isNavigationAllowed(label, state = {}, { origin = null, caseId =
     }
     if (!state.selection?.ok || state.composer?.frame_id !== state.selection.frame_id) return { ok: false, reason: 'retry_frame_unverified' };
     if (state.generation_error?.detected !== true) return { ok: false, reason: 'generation_error_not_visible' };
-    if (state.busy || state.handoff?.approve_count > 0 || state.email_wizard?.ok || state.email_wizard?.count > 0 || state.denial?.detected || state.generation_error.case_created ||
+    if (state.busy || state.handoff?.approve_count > 0 || state.email_wizard?.present || state.email_wizard?.ok || state.email_wizard?.count > 0 || state.denial?.detected || state.generation_error.case_created ||
         !state.composer || normalizeComposer(state.composer.value) !== '') return { ok: false, reason: 'retry_state_not_safe' };
     return { ok: true, kind: 'generation_retry' };
   }
@@ -695,6 +695,7 @@ export function pageAgent(op, arg, lib) {
   };
   const emailWizard = () => {
     const cards = [];
+    let present = false;
     const completed = els.filter(e => e.getAttribute('data-testid') === 'collapsed-step' && visible(e)).map(node => {
       const text = collapse(node.innerText || wizardText(node));
       const prefix = /^Completed\s+Step\s*1\s*of\s*2\s*[·•]?\s*Issue summary\s*/i;
@@ -703,6 +704,8 @@ export function pageAgent(op, arg, lib) {
     }).filter(Boolean);
     for (const node of els.filter(e => e.tagName === 'KAT-CARD' && visible(e))) {
       const text = wizardText(node);
+      // Presence blocks recovery even when the displayed fields cannot be bound.
+      if (/\bStep\s*[12]\s*of\s*2\b/i.test(text)) present = true;
       const ownControls = all.filter(c => within(node, c.el));
       if (/\bStep\s*2\s*of\s*2\b/i.test(text)) {
         const submit = ownControls.filter(c => c.label === 'Submit'), back = ownControls.filter(c => c.label === 'Back'), cancel = ownControls.filter(c => c.label === 'Cancel case');
@@ -768,11 +771,11 @@ export function pageAgent(op, arg, lib) {
     }
     const active = cards.filter(c => c.step === 2 || c.action_enabled);
     const choices = active.length ? active : cards;
-    if (choices.length !== 1) return { ok: false, reason: choices.length ? 'email_wizard_ambiguous' : 'email_wizard_not_visible', count: choices.length };
+    if (choices.length !== 1) return { ok: false, present, reason: choices.length ? 'email_wizard_ambiguous' : 'email_wizard_not_visible', count: choices.length };
     const card = choices[0];
-    return { ok: true, ...card, tag: card.node.tagName, role: card.node.getAttribute('role'), testid: card.node.getAttribute('data-testid'), basis: 'email_case_wizard' };
+    return { ok: true, present, ...card, tag: card.node.tagName, role: card.node.getAttribute('role'), testid: card.node.getAttribute('data-testid'), basis: 'email_case_wizard' };
   };
-  const wizardFacts = w => w.ok ? { ok: true, step: w.step, action_label: w.step === 1 ? 'Next' : 'Submit', action_enabled: w.action_enabled,
+  const wizardFacts = w => w.ok ? { ok: true, present: w.present, step: w.step, action_label: w.step === 1 ? 'Next' : 'Submit', action_enabled: w.action_enabled,
     text: w.text, subject: w.subject ?? null, details: w.details ?? null, attachment_names: w.attachment_names ?? null,
     ...(w.step === 2 ? { support_type: w.support_type, contact_channel: w.contact_channel,
       completed_summary_count: w.completed_summary_count, completed_summary_preview: w.completed_summary_preview,

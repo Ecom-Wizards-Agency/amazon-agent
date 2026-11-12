@@ -257,6 +257,34 @@ test('Try again refuses active email summaries and contact steps without legacy 
   } finally { await rm(dir, { recursive: true, force: true }); }
 });
 
+for (const [label, options] of [
+  ['missing attachment field', { missing: 'attachments' }],
+  ['empty details', { details: '' }],
+  ['duplicate attachment names', { names: ['evidence.png', 'evidence.png'] }],
+]) test(`Try again refuses an unparsed email wizard: ${label}`, async () => {
+  const dir = await runDir();
+  try {
+    const scan = runPage(emailWizardPage(options).body, 'scan');
+    assert.equal(scan.email_wizard.ok, false, 'summary must remain unparsed');
+    assert.equal(scan.email_wizard.present, true, 'visible wizard survives parse failure');
+    const state = retryState({ email_wizard: scan.email_wizard, handoff: { approve_count: 0 } });
+    const run = fakeRuntime(dir, { state });
+    const result = await executeCommand(run.rt, command('001', 'navigate', { label: 'Try again' }));
+    assert.equal(result.status, 'refused');
+    assert.equal(result.reason, 'retry_state_not_safe');
+    assert.ok(!run.events.includes('dispatch'));
+    const changed = fakeRuntime(dir, { state: retryState() });
+    const prepare = changed.rt.browser.prepareClick;
+    changed.rt.browser.prepareClick = async (...args) => {
+      const point = await prepare(...args);
+      changed.current.email_wizard = scan.email_wizard;
+      return point;
+    };
+    assert.equal((await executeCommand(changed.rt, command('002', 'navigate', { label: 'Try again' }))).reason, 'retry_state_changed');
+    assert.ok(!changed.events.includes('dispatch'));
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
 test('generation errors and case creation confirmations come only from the composer frame', () => {
   const frames = [{ frame_id: 'main', url: RETRY_CONVERSATION, same_origin: true },
     { frame_id: 'chat', url: RETRY_CONVERSATION, same_origin: true }];
