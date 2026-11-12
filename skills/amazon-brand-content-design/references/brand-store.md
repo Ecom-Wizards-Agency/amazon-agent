@@ -28,9 +28,9 @@ export; a historical Figma preset must not override it.
 | Background video | Full/large/medium; inspect current video constraints |
 | Text, product, product grid, best sellers, recommendations, featured deals | Native responsive content; no custom raster preset |
 
-The internal Store playbook used a 3000 x 600 desktop banner and 1688 x 338 mobile
-banner. Keep these as working presets only after confirming the header's current
-device controls. The published image-tile mobile minimum above does not establish a
+The internal Store playbook used a 3000 x 600 desktop banner and an unverified
+1688 x 338 mobile banner. Confirm the mobile header size and current device controls
+in the live builder before designing it. The published image-tile mobile minimum above does not establish a
 mobile-header size. Keep important content in the central 70% of the desktop hero
 as an initial crop guard, then inspect actual desktop and mobile previews.
 

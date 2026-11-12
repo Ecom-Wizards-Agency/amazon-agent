@@ -25,7 +25,7 @@ variant; use current slot readback when a selected module differs.
 | Single Left / Single Right Image | 300 x 300 |
 | Four Images & Text | Legacy PDF: 200 x 200 each; API minimum: 220 x 200 each |
 | Comparison Chart | 150 x 300 per product |
-| Four Image Highlights | 400 x 400 primary; secondary size unverified |
+| Four Image Highlights | 400 x 400 primary; secondary size unverified, confirm in the live builder before designing |
 | Single Image & Specs Detail / Single Image & Highlights | 300 x 300 |
 | Three Images & Text | 300 x 300 each |
 | Four Images / Text Quadrant | 135 x 135 each |

@@ -25,13 +25,13 @@ The [Amazon Quick Start Guide](https://m.media-amazon.com/images/G/01/BX_Marketi
 allows 1 to 19 cards and explains the Store link and ASIN assignment. This is a
 published older guide, not a check of the current account.
 
-Unverified: the mobile-background size, file byte limits/formats, exact responsive
+Unverified: mobile image sizes (including the background), file byte limits/formats, exact responsive
 safe zones and current account eligibility. The current fetched API field table
 lists only the desktop hero size; its example includes a mobile image without a
 size constraint. Do not infer dimensions from example crop coordinates or use
 unconfirmed secondary-site numbers as requirements. Stop production of affected
-exports until the person supplies current slot constraints or an authorized read
-confirms them. Other research and copy can continue.
+designs and exports until the person or an authorized read confirms each affected
+constraint in the live builder. Other research and copy can continue.
 
 ## Sequence
 
