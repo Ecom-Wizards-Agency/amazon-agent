@@ -156,12 +156,17 @@ def merge_profile(path):
         profile["names"].append(name)
         profile["files"].append((name, str(file), hashlib.sha256(file.read_bytes()).hexdigest()))
         check_layer(layer, layer.get("name") or str(file))
-        for key, held in (("status", "draft"), ("verification", "unverified")):
-            value = layer.get(key)
-            if value is not None and not isinstance(value, str):
-                raise ConfigError(f"profile {name}: {key} must be a string")
-            if value is not None and value.strip().casefold() == held:
-                profile["review_reasons"].append(f"profile {name}: {key} is {held}")
+        # Lifecycle metadata opts a layer into review. Cosmetics require it even
+        # when both fields are removed; legacy standard/supplement layers do not.
+        if name == "us-cosmetic" or any(key in layer for key in ("status", "verification")):
+            for key, reviewed in (("status", "approved"), ("verification", "verified")):
+                value = layer.get(key)
+                if value is not None and not isinstance(value, str):
+                    raise ConfigError(f"profile {name}: {key} must be a string")
+                value = value.strip().casefold() if value is not None else ""
+                if value != reviewed:
+                    reason = value or ("missing" if key not in layer else "empty")
+                    profile["review_reasons"].append(f"profile {name}: {key} is {reason}")
         for key in ("banned", "warnings"):
             for p in patterns(layer.get(key), f"profile {layer.get('name')}.{key}"):
                 if p not in profile[key]:
