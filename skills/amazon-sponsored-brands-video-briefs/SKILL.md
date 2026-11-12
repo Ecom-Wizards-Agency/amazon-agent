@@ -1,139 +1,88 @@
 ---
 name: amazon-sponsored-brands-video-briefs
-description: "Build evidence-led Sponsored Brands video concepts, scripts, creative references, and editor-ready briefs; campaign execution stays separate."
+description: "Build evidence-led Sponsored Brands video concepts, scripts and complete editor briefings. Use for a commissioned video or a three-angle concept test; campaign execution stays separate."
 ---
 
 # Amazon Sponsored Brands Video Briefs
 
 Browser: Mixed. POE uses CDP over the shared debug Chrome. SoldScope and SYNQ use MCP (AdLabs carve-out: the AdLabs MCP). Google Drive and Google Docs use their connected tools.
 
-Create editor-ready Sponsored Brands video packages for Amazon search. The shopper has already typed a query and is comparing products. Each confirmed query cluster produces one video concept with three distinct openings over one shared second half.
+Deliver one complete editor briefing as a native Google Doc. It contains final copy, timing, visual and audio direction, relevant product and brand rules, and the exact requested deliverables. Research and claims evidence stay internal; a separate Creative Reference is no longer delivered.
 
-## Load Order
+## Choose the assignment
 
-1. `references/evolve-to-amazon-adaptation.md` for creative translation only.
-2. `references/editor-brief-template.md` for the mandatory briefing shape.
-3. `references/creative-reference-doc.md` for the evergreen product and asset reference.
-4. `tools/sb-video-briefs/config.TEMPLATE.json` for the local config contract.
-5. `<vault>/Playbooks/amazon-sb-video-concept-testing-playbook.md` (team vault, resolved via `AMAZON_AGENT_TEAM_VAULT` or `_local/team-vault-path.txt`) only when prior learnings or test readiness affect concept selection. Do not copy its measurement method into editor documents.
-6. `skills/amazon-seo/references/health-claims-compliance.md` for internal claims QA when the category or copy needs it.
+| Mode | Use when | Output and checkpoint |
+|---|---|---|
+| `production` | The operator has agreed the objective and concept | The requested complete cuts. Do not invent alternate hooks or repeat open-ended cluster selection. |
+| `concept_testing` | The task is to discover and test creative direction | Three named openings per confirmed query cluster, over one identical shared second half. Stop at the shortlist for operator confirmation before scripting. |
 
-## Vocabulary
+Record mode and requested cuts in the assignment and delivery receipt; the repository-builder route also records `briefing.mode` and `briefing.requested_cuts` in its config. A production Video section is one complete cut; a concept-testing Video section is one concept with three cuts. Count scripts before language/export duplicates. An absent mode in a legacy builder config retains concept testing.
 
-- Batch: one video concept for one query cluster.
-- Angle 1, 2, 3: three openings that lead on different buying criteria.
-- Cut: one angle plus the shared Part 2. There are exactly three cuts per concept.
-- Awareness level: Solution Aware, Product Aware, or Most Aware only.
+Targeting intent is a separate input. Discovery defaults to non-branded queries. A specific operator request for branded recognition, such as an own-brand production video, controls that assignment; record it internally without turning it into a standing waiver. An explicitly agreed production concept does not require a second shortlist approval. Claims support and action approvals still apply.
 
-## Required Inputs
+## Load order
 
-- Latest relevant Google Drive keyword-research workbook. Prefer the pinned workbook URL in config; otherwise find the latest authoritative workbook in the existing client Keyword Research folder.
-- SoldScope keyword research for the target ASINs and their competitors: `research.json` and `roots.csv` from `tools/soldscope/keywords.py`. SoldScope calls that spend credits need one run approval naming the ASINs, marketplace and expected credits; rank-tracker writes need exact-action approval (`tools/soldscope/README.md`).
-- POE full niche packs selected through the breadth workflow below.
-- Per-ASIN SQP from SYNQ `get_sqp_data`. Every SYNQ run starts with `list_clients` (skip `is_demo` clients), confirms the client by SKU or title with `get_catalog`, then checks `get_sync_status`. The SYNQ client id lives in `client.synq_client_id`; older configs carry `client.adlabs_profile_id`, which is legacy and read only for the AdLabs carve-out account.
-- Current ad performance from SYNQ `get_daily_metrics` or `get_metrics` by `target` and `ad_group`: spend, CTR, CVR, raw ACOS. Placement context comes from `entity_type: placement`. Save each response as `{"note", "rows"}` and never treat a capped list (a "ROW LIMIT REACHED" or "TRUNCATED" note) as complete. AdLabs carve-out only: pull SQP and ad performance from its AdLabs profile instead.
-- Current live listing reference JSON for each target ASIN.
-- Current price and shelf-price context.
-- Product facts, brand kit, and verified footage sources.
+1. `references/editor-brief-template.md` for the editor document.
+2. `references/evolve-to-amazon-adaptation.md` for creative translation. Its discovery and three-angle rules apply to concept testing; the explicit assignment above controls production mode.
+3. `references/creative-reference-doc.md` for internal evidence, product facts and asset handling.
+4. `references/connected-delivery.md` for native-connector delivery, or `tools/sb-video-briefs/config.TEMPLATE.json` when using the repository builder.
+5. `<vault>/Playbooks/amazon-sb-video-concept-testing-playbook.md`, resolved through `AMAZON_AGENT_TEAM_VAULT` or `_local/team-vault-path.txt`, when test readiness or prior learnings affect the work. Measurement stays outside the editor document.
+6. `skills/amazon-seo/references/health-claims-compliance.md` when the category or copy needs claims QA.
 
-## Seller Central Account Recovery
+## Inputs and evidence
 
-Pass these config values to every POE command:
+Every assignment needs the client, marketplace, language, placement, current ASIN/variant and pack, objective, requested cuts, approved factual basis, brand guidance, and footage state. Do not assume a visual direction identifies an available source clip. Include verified asset links only when useful; do not infer rights. A known missing required shot becomes an exact production gap.
 
-- `--account-name`
-- `--expected-partner-account-id`
-- optional `--parent-account-name`
-- `--marketplace-label`
+Production may use supplied verified research and an approved direction. Collect missing claim-critical evidence before drafting final copy. Do not require fresh paid research or the complete discovery process for an already agreed concept.
 
-`run-poe.mjs` reads the live identity before the first search or niche request. If it is wrong, it uses trusted CDP clicks to select the configured account and marketplace, reloads POE, and re-reads `partnerAccountId`. Fetching begins only after the identity matches.
+Concept discovery additionally uses:
 
-Stop with zero POE fetches when the account or marketplace is unavailable or ambiguous, the user is logged out, a human challenge appears, or the post-switch identity still differs. Never handle credentials, MFA, CAPTCHA, or account recovery.
+- Latest authoritative Drive keyword workbook, preferring the pinned URL, and SoldScope `research.json` / `roots.csv`. Credit-spending calls need one run approval naming ASINs, marketplace and expected credits; rank-tracker writes need exact-action approval (`tools/soldscope/README.md`).
+- Relevant full POE packs through the breadth workflow below.
+- Per-ASIN SQP and current target/ad-group metrics from SYNQ. Start with `list_clients`, skip demo clients, verify the client by SKU/title with `get_catalog`, then check `get_sync_status`. Retain response notes and never treat row-limited results as complete. Use the AdLabs profile only for its carve-out account.
+- Live listing-reference JSON, current shelf-price context, and listing support for the proposed buying criterion.
 
-## POE Breadth Workflow
+## POE identity and breadth
 
-1. Read the latest relevant Drive keyword workbook and the SoldScope roots (`roots.csv`) before choosing seeds.
-2. Produce 8 to 12 deduplicated, non-branded seeds. Cover the head term, product form, mechanism, principal uses, and meaningful attributes. Do not pad with spelling variants.
-3. Search every seed. Union related niches by `nicheId`, retain seed provenance, and exclude branded, wrong-product, wrong-form, wrong-audience, and wrong-use niches.
-4. Download 5 to 10 relevant full niche packs. If fewer than five qualify, download all relevant niches and record the limitation in the coverage manifest.
-5. Reuse a cached pack only when it is no more than 14 days old and satisfies the same seed, relevance, and full-pack coverage requirements.
-6. Mark an insufficient prior pack as `superseded` in the run manifest. Never delete historical raw data.
+Pass `--account-name`, `--expected-partner-account-id`, optional `--parent-account-name`, and `--marketplace-label` to every POE command. `run-poe.mjs` must verify the live identity before fetching. Stop with zero fetches if the account or marketplace is unavailable, ambiguous or still wrong after switching, or login/human challenge prevents verification. Use the repository login broker for login recovery; do not inspect credentials or handle human challenges.
 
-The coverage manifest records workbook URL, SoldScope research run (marketplace, ASINs, `search_id`), roots by source, final seeds by category, related niches considered, exclusions with reasons, selected full packs, capture timestamps, cache decisions, and limitations.
+For discovery, combine workbook and SoldScope roots into 8 to 12 deduplicated non-branded seeds covering head term, form, mechanism, uses and attributes. Search every seed, union by nicheId, retain provenance and exclude irrelevant niches. Download 5 to 10 relevant full packs, or all relevant packs when fewer than five qualify. Cached packs must be no older than 14 days and meet the same coverage requirements. Mark insufficient prior packs superseded without deleting raw history.
+
+The internal manifest records workbook URL, SoldScope run/ASINs/marketplace/search_id, roots, seeds, considered niches, exclusions, selected packs, timestamps, cache decisions and limitations.
 
 ## Workflow
 
-1. Intake: client, marketplace, product line, ASINs, language, Seller Central identity, Drive folder, and footage state. Migrate the config when legacy break-even, flat account, or testing keys appear. Ignore those legacy values after warning.
-2. Build the research layer using the breadth workflow.
-3. Build 3 to 5 candidate clusters. Gate on non-branded intent, product fit, listing support, factual copy support, and solvable production requirements.
-4. Rank candidates using search volume, organic rank, impression-to-click-share gap, spend, CTR, CVR, raw ACOS, price congruence, and listing support. Do not use break-even ACOS.
-5. Identify clusters that are not creative problems, such as healthy CTR with a post-click conversion issue or wrong-intent traffic.
-6. Present the shortlist with one evidence line per cluster. Pause for operator confirmation of one cluster per product before scripting.
-7. Build or refresh the Creative Reference from the confirmed facts, shelf map, shopper language, cluster coverage, price constraint, and verified asset inventory.
-8. Script the briefing. Every concept has three named angles leading on distinct buying criteria, one identical Part 2, final on-screen copy, filmable directions, sound-off rules, and a textless looping end frame.
-9. Run internal line-by-line claims QA. Every visible line and VO line must trace to the live listing, packaging, or an explicit operator decision. Resolve medium and high risk before delivery. Do not include the risk table in either editor document.
-10. Retain one concise absolute do-not list in the briefing so the editor cannot accidentally introduce forbidden language or imagery.
-11. Run `build_and_deliver.py`. It creates both native Docs on first delivery and updates both canonical document ids in place on later runs. The command completes only after title, folder, MIME type, content readback, and PDF-export QA pass for both Docs.
-12. When live test learnings exist, read them from the existing Notion A/B Test Program and use the creative learning in the next cluster or execution decision. Do not write performance methodology or results into the brief or reference.
+1. Confirm mode, scope and inputs. Keep evidence and operator decisions internal.
+2. For concept discovery, build 3 to 5 candidate clusters. Gate on intent/product fit, factual and listing support, and solvable production requirements. Rank by volume, organic rank, impression-to-click-share gap, spend, CTR, CVR, raw ACOS, price congruence and listing support. Exclude post-click or wrong-intent problems. Present one evidence line per cluster and stop for confirmation.
+3. Give the writer the agreed objective, factual basis, brand/pack rules, requested cuts and relevant prior learnings. Keep planning language out of final copy.
+4. Write the complete briefing. Production follows the agreed sequence; concept testing has three distinct buying criteria and one shared Part 2 per concept. Every card has final text, timing and filmable visual intent. State audio/VO explicitly; voiceover and any particular duration are assignment choices.
+5. Run internal line-by-line QA on visible copy, VO and visual implications. Trace facts to verified listing/packaging evidence or an explicit operator decision. Resolve medium/high claims risk. Keep only concise, relevant do-not instructions in the briefing. The editor never chooses alternate claim wording.
+6. Run the portable mechanical validator. Have a fresh reviewer inspect factual support, shopper relevance, natural copy, visual feasibility and editor completeness. Consolidate issues into one targeted writer revision and recheck it. Any unresolved factual or production blocker stays visible and prevents a ready verdict.
+7. Deliver the single briefing through the repository builder or the supported native-connector route in `references/connected-delivery.md`, then inspect the native/PDF pages. Preserve the canonical brief ID. Historical reference Docs are untouched.
+8. Record editor questions, corrections and production blockers with the job. Consume actual creative-test learnings from the existing Notion A/B Test Program; retain their context. Propose small workflow changes for review rather than editing instructions automatically.
 
-## Internal Claims QA
+## Mechanical checks
 
-- Claims validation remains a hard internal gate even though no claims appendix is delivered.
-- Reject unsupported final cards and VO lines.
-- Verify claim-critical product facts against packaging when available.
-- When forbidden words are printed on packaging, add a framing rule that keeps them illegible.
-- The editor never chooses alternate claims wording.
+The standard-library helper travels with this skill and works from a task workspace:
 
-## Editor Deliverable QA
+`python3 -I -B <skill-root>/scripts/validate_brief.py --brief-md <file> --mode production --requested-cuts 1`
 
-- All mandatory template sections and the verbatim specs box are present.
-- Frame 1 shows the product in action. No logo intro, fade-in, title card, empty pack shot, blank frame, or language error.
-- Exactly three distinguishable cuts are specified: one angle plus the identical shared Part 2.
-- Each angle leads on a distinct buying criterion.
-- Every scripted card is filmable, legible at thumbnail size, no longer than seven words, and source-traceable internally.
-- The final frame is textless and loops cleanly.
-- The brief contains no claims appendix, testing thresholds, measurement method, or break-even ACOS.
-- The reference contains no testing method or performance result. Its asset section is section 5.
-- Missing visual strategy direction is not a blocker. Missing required footage is an exact production gap.
+Use `--mode concept_testing --requested-cuts 3` for one test concept. Success reports `mechanical_checks_passed`, videos, cuts and scripted cards. It checks sections, per-video angle structure, cut count, nonempty card fields, unique local card IDs, seven-word cards, a reading-time floor of 2.5 seconds or visible characters divided by 12, continuous timing, shared-sequence joins, SBV target duration and textless endings. The reviewer still allows a visual beat. Mechanical checks do not establish claims support, creative quality, footage availability or visual QA.
 
 ## Delivery
 
-Run:
+For the repository-builder route:
 
-`python3 tools/sb-video-briefs/build_and_deliver.py --config <config> --brief-md <file> --reference-md <file>`
+`python3 tools/sb-video-briefs/build_and_deliver.py --config <config> --brief-md <file>`
 
-Canonical titles:
+Use the canonical title `<Client> <Market> - <Product Line> SB Video Briefing`. Keep the existing source Markdown destination, typically `output/<client>/creative-reference/`; this historical folder name does not imply a second deliverable. Preserve the existing file ID, URL, comments, permissions and version history. Legacy reference config and `--reference-md` are ignored with warnings and never cause reference writes.
 
-- `<Client> <Market> - <Product Line> SB Video Briefing`
-- `<Client> <Market> - <Product Line> - Creative Reference & Asset Library`
+The builder checks title, existing client Video Briefings folder, native MIME type, complete content readback and PDF export. Its manifest remains `delivered_pending_visual_qa` until the attending operator workflow inspects every page for brand and editor requirements. Local Markdown, DOCX, PDFs and ZIPs are staging, not delivery.
 
-Keep source Markdown in `output/<client>/creative-reference/`. Never add version suffixes. If a canonical Doc already exists, edit it in place. Preserve its file id, URL, comments, permissions, and version history. Retain render intermediaries when delivery or QA fails.
+When the repository builder is absent, use the supported native-connector route in `references/connected-delivery.md` if its capabilities and verification gates are available. Connected Composio MCP does not require a local CLI or operator repository. Hand off only the specific delivery steps that neither route can satisfy. Never claim completion, substitute an unbranded upload, or write to a client-visible destination without authorization. Grimoire runs do not write to Drive. A placement change to Prime Video or Streaming TV requires its format and specs; do not run SBV-only validation against another placement.
 
-Local Markdown, DOCX, PDFs, ZIPs, and `output/` paths are staging evidence, never
-the delivered briefing. A briefing is complete only when the native Google Doc
-MIME type, exact client folder, content readback, and final URL are verified. If
-Drive delivery is unavailable, report that exact blocker and retain the staging
-files; do not upload a briefing ZIP to Slack or call the local pack ready.
+## Ownership and stops
 
-Grimoire (Slack) runs prepare the brief plan, research and draft Markdown in the
-thread only. They do not run `build_and_deliver.py` or write to Drive. Drive
-delivery and readback happen in an attended Claude Code or Codex session.
-
-When an operator changes the placement from Sponsored Brands Video to Prime
-Video or Streaming TV, adapt the research and creative format to that placement
-and skip SBV-only checkpoints that no longer apply. The delivery invariant does
-not change: every human-facing briefing and Creative Reference still goes to the
-existing client `Video Briefings` folder as a native Google Doc.
-
-## Ownership Boundary
-
-- This skill prepares testable concepts and consumes past learnings.
-- `amazon-ads-console` and `amazon-ppc-weekly-management` own launch, measurement, verdict, and scaling under the canonical agency playbook.
-- Live tests and results belong in the existing Notion A/B Test Program and brand portal.
-- Campaign creation and performance writes are outside `build_and_deliver.py`.
-- Pure PPC structure routes to `amazon-sponsored-products-bulk-files` or `amazon-ads-console`; creator sourcing routes to `amazon-creator-connections`.
-
-## Stop Before Risk
-
-- Pause at the shortlist confirmation checkpoint.
-- Never create campaigns, upload creatives, change bids or budgets, edit listings, or make another Amazon-visible change.
-- Stop POE before the first data request unless Seller Central account identity and marketplace have been verified.
+- This skill owns creative briefings and consumes learnings. Ads skills own launch, measurement, verdicts and scaling; results live in the existing Notion program and portal.
+- Stop before Amazon-visible actions, campaigns, creative uploads, bid/budget or listing changes. Those are outside this builder.
+- Stop at open concept-selection approval; continue an already approved production assignment without repeating it.

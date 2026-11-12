@@ -1,5 +1,10 @@
 {
   "_README": "TEMPLATE: copy to config.<client>-<market>-<product-line>.json. Client configs are local-only and gitignored. One config per product line.",
+  "briefing": {
+    "mode": "production",
+    "requested_cuts": 1,
+    "_comment": "production executes an agreed assignment; concept_testing writes three cuts per confirmed concept. requested_cuts counts complete scripted cuts, before language/export duplicates."
+  },
   "client": {
     "name": "<CLIENT>",
     "product_line": "<PRODUCT LINE>",
@@ -64,8 +69,6 @@
     "drive_folder_id": "<existing Google Drive folder id>",
     "source_markdown_dir": "output/<client>/creative-reference/",
     "brief_title": "<Client> <Market> - <Product Line> SB Video Briefing",
-    "reference_title": "<Client> <Market> - <Product Line> - Creative Reference & Asset Library",
-    "brief_document_id": null,
-    "reference_document_id": null
+    "brief_document_id": null
   }
 }
