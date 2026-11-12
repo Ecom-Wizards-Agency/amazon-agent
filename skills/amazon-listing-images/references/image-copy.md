@@ -25,19 +25,42 @@ its words do that job and nothing else.
 - The brand's voice comes from `ci-spec.md`. No exclamation marks or hype unless the
   brand itself writes that way.
 
-## Claims postures
+## Claim tiers (claims postures)
 
-The brief sets one posture. It decides what the copy may claim beyond the label.
+The brief chooses one tier at intake. Give the person the product's primary buying
+benefit, the evidence for it, and the conversion tradeoff for each tier below. These
+are qualitative costs, not forecasts of conversion lift or a legal safe harbour.
 
-| Posture | Allowed | Skeleton |
-| --- | --- | --- |
-| Label facts only | What the label prints: identity, contents, amounts and directions | no `approved_sf_lines` |
-| Label facts plus named structure/function lines | The above, plus only the exact lines the brief approves, only in the keys listed in `sf_keys`, each with an asterisk and the full disclaimer on the same image | `approved_sf_lines` and `sf_keys` |
-| Standard | Benefits the product evidence supports, under the general Amazon and FTC rules | free keys; for a regulated product, brief-approved lines in `approved_sf_lines` and `sf_keys` |
+| Tier / existing posture name | Allowed | Conversion cost | Skeleton |
+| --- | --- | --- | --- |
+| 1. Label facts only | Verified printed identity, contents, amounts and directions, subject to category rules below | Can explain contents and use, but may remove the buyer's main reason to choose the product; do not quietly substitute storage facts for that benefit | no `approved_sf_lines` |
+| 2. Label facts plus named structure/function lines | Tier 1 plus the exact supported, brief-approved lines in designated frames, where the category permits them | Restores the named benefit only; exact phrasing, required disclaimers and restricted placement consume space and limit the story | `approved_sf_lines` and `sf_keys` |
+| 3. Standard | Benefits supported by product evidence within the category, marketplace and Amazon/FTC rules | Gives more room to explain why to buy; requires stronger substantiation and claims review and may still exclude the desired promise | free keys; regulated lines use `approved_sf_lines` and `sf_keys` |
+| Cosmetic, when chosen at intake | Verified cosmetic product facts and the sourced ingredient facts described below; no invented finished-product result | Can answer cosmetic buying questions; unsupported efficacy remains an evidence gap | free keys under the applicable category rules |
+
+If the chosen tier removes the product's primary benefit, stop at intake before
+concept, copy or production. Show the person the applicable tiers with the exact benefit
+retained/lost, the supporting evidence or gap and each conversion cost. Ask them to
+choose or confirm a narrower practical-benefit direction explicitly. Approval
+cannot make an unsupported or prohibited claim usable. Record the decision in
+`brief.md` and `claims.md`; no agent may accept that tradeoff for the person.
+
+The claim tier chosen at intake governs the job; the agent must not tighten it on
+its own. If the person chooses a cosmetic tier, sourced ingredient facts are
+allowed as facts about the ingredient, without implying a finished-product result.
+Apply that distinction in the category checks below. Unanswered shopper questions
+follow the evidence-gap delivery rule in `references/creative-pack.md`.
+
+A claims refuter's crop, label-hiding or product-size restriction also goes to the
+person with the exact risk, compliant alternative and conversion cost. Do not make
+the product small or unrecognisable to force a pass. Copy changes from a reviewer
+go back through the writer, then through the copy gate and affected claims checks.
 
 The gate profile follows the product's category, not the posture. A regulated
 product always uses its category profile; for a US dietary supplement that is
-`references/claims-profiles/us-dietary-supplement.json`. A product in no regulated
+`references/claims-profiles/us-dietary-supplement.json`; for a US cosmetic, use
+`references/claims-profiles/us-cosmetic.json` (draft, unverified; awaiting human
+category compliance review before publication). A product in no regulated
 category uses `references/claims-profiles/amazon-standard.json`. Disease and drug
 claims are banned in every posture. For a regulated product the standard posture
 adds only the benefit lines the brief approves, through `approved_sf_lines` and
@@ -77,22 +100,30 @@ Three writers, each in its own separate context, each with a different angle:
 2. **Shopper benefit:** leads with the practical gain each frame's job offers.
 3. **Brand voice:** writes the way the brand's own site writes.
 
-Each writer receives the same inputs: this file, `frames.md`, `fact-sheet.md`, the
-tone section of `ci-spec.md` with the site lines quoted there as allowed patterns,
-the claims posture, `copy-skeleton.json`, `facts.json` and the gate command with the
-profile chosen above, run from the skill folder:
-
-`python3 -I -B scripts/check_copy.py <pack>/candidates/<set>.json --skeleton <pack>/copy-skeleton.json --profile references/claims-profiles/<profile>.json --facts <pack>/facts.json`
+Each writer receives the shopper question per frame, sourced facts and a description
+of the picture, plus this file, the brand tone and approved claim tier/category rules.
+Never send a line-by-line copy skeleton, prewritten headline or another writer's
+lines. Keep `copy-skeleton.json` with the job runner for mechanical assembly and
+validation after writing. A comparison between two writers counts only when both
+received these independent inputs; retain the actual briefs. The 12.11.2026 rerun's
+`blind-pairs.md` returned near-identical lines under a shared copy skeleton.
 
 Each one:
 
-1. Writes three options per free key that differ in angle, not only in wording, and
-   marks its pick with a one-line reason, in its notes file
-   `<pack>/candidates/<set>-options.md`.
-2. Fills a copy of the skeleton with its picks as `<pack>/candidates/<set>.json`,
-   leaving fixed keys untouched and respecting `max_chars`.
-3. Runs the gate on that file and fixes until it reports 0 errors. Warnings are
-   fixed or given a reason.
+1. Composes three different copy options per frame under its assigned lens, marks
+   its pick with a one-line reason in `<pack>/candidates/<set>-options.md`, and saves
+   the picked words by frame and text role in `<pack>/candidates/<set>-draft.json`.
+2. Returns those words without fitting them to a supplied line-by-line skeleton.
+   Fixed label facts and required disclaimers remain exact.
+
+The job runner maps each draft verbatim to the skeleton's keys, preserving fixed
+keys and limits, as `<pack>/candidates/<set>.json`, then runs:
+
+`python3 -I -B scripts/check_copy.py <pack>/candidates/<set>.json --skeleton <pack>/copy-skeleton.json --profile references/claims-profiles/<profile>.json --facts <pack>/facts.json`
+
+Return failed lines or missing roles to their writer with the relevant constraint
+and finding, keeping accepted wording unchanged; do not rewrite during mapping.
+Gate again until 0 errors and explain warnings. Judge only passing sets below.
 
 A set that cannot reach 0 errors drops out, and `pack.md` says so. The
 `candidates/` folder is working material, not one of the pack files.

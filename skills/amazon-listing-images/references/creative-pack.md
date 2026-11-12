@@ -9,8 +9,8 @@ anything is rendered. Pack mode renders nothing, builds nothing and uploads noth
 
 Use it when the brief asks for a creative pack, or when copy, shots and layout will be
 produced by different people or sessions and need one fixed source. Use the normal
-concept mode of `SKILL.md` for a chat brief or a copy revision. In pack mode POE data is
-optional; without it the pack states the lower confidence on the buying jobs.
+concept mode of `SKILL.md` for a chat brief or a copy revision. In pack mode, search
+existing POE archives before declaring POE unavailable; record the source gaps and their effect on the buying jobs in the research file below.
 
 ## Stages
 
@@ -18,8 +18,8 @@ Each stage writes its files before the next starts. The method lives where named
 
 | Stage | Method | Writes |
 | --- | --- | --- |
-| Intake | `references/brief-template.md`; blocking gaps stop the pack | `brief.md` |
-| Research | `SKILL.md` "From evidence to buying priorities"; live listing copy through `amazon-listing-capture` when installed; galleries as in "Live galleries" below | notes in `frames.md` |
+| Intake | `references/brief-template.md`; settle claim tier, generation budget and human approver together; blocking gaps stop the pack | `brief.md` |
+| Research | `SKILL.md` "From evidence to buying priorities"; live listing copy through `amazon-listing-capture` when installed; galleries as in "Live galleries" below | `work/shopper-insights.md` |
 | Facts | `SKILL.md` "Inputs and scope"; read the label at full size and check the label itself, then one independent refuter compares every fact with the label | `fact-sheet.md`, `facts.json` |
 | Brand CI | "Brand CI from the website" below | `ci-spec.md` |
 | Concept | `SKILL.md` "Build the image sequence" | `frames.md`, `copy-skeleton.json` |
@@ -30,6 +30,36 @@ Each stage writes its files before the next starts. The method lives where named
 
 A change request re-runs only the stages it affects and every stage after them that
 reads their output, then bumps the pack version and rewrites `DONE.json` last.
+
+## Research evidence
+
+Research must produce `work/shopper-insights.md` before concept work. It contains:
+
+- POE niche, marketplace, capture date, metric scope and source paths. Use
+  `amazon-opportunity-explorer` to locate the existing evidence and its pCloud
+  archive before requesting a new pull. Keep archived snapshots labelled with their
+  dates; record the search locations and a specific gap if no evidence exists.
+  Do not imply that competitor copy proves a product claim.
+- Five relevant competitor galleries, analysed slot by slot, including MAIN.
+  Record ASIN, source/capture date, slot order, buying reason, proof device,
+  product prominence, scene type and what each slot adds. Supplied captures can
+  satisfy this research; names or listing bullets alone cannot.
+- A differentiation list: where this product can look different, the shopper
+  uncertainty it resolves, the product evidence and the scene that can show it.
+  Separate observed evidence from creative interpretation and missing proof.
+
+Missing galleries or POE remain explicit research gaps. Stop before approving the
+concept pack until the missing research is supplied or a person accepts the named
+limitation; record that decision in `pack.md`. Never replace the research file with
+unattributed notes in a frame table.
+
+Start `frames.md` from the top shopper questions and objections in
+`work/shopper-insights.md`. Each frame answers one with a sourced fact, expressed
+as what the shopper gets. The headline gives that answer in the shopper's words;
+do not invent a customer quotation. The proof adds a number or fact a shopper can
+understand without the manual and does not repeat the headline. Put questions
+without a sourced answer in a short delivery list, "evidence the client could
+supply"; do not write around the gap to fill a slot.
 
 ## Live galleries
 
@@ -65,7 +95,8 @@ must also carry the disclaimer) and `optional_empty_keys`.
 
 - **Fixed keys** (`"fixed": true`) hold exact text from the label or a decision:
   stat values, ingredient rows, the disclaimer. The gate requires them unchanged.
-- **Free keys** (`"fixed": false`) start empty and are what the writers fill.
+- **Free keys** (`"fixed": false`) start empty; the job runner maps the writers'
+  chosen words into them under `references/image-copy.md`, Writers.
 
 Default `max_chars` for free keys: eyebrow 26, headline 44 to 52, subheadline 85 to
 95, chip 30, stat label 18. Shorten a limit when the layout needs it; raise one only
@@ -92,21 +123,73 @@ output of the final run.
 
 | File | Holds |
 | --- | --- |
-| `pack.md` | The one page the human checks: identity and sources; claims posture; frame table with job, scene and headline; the gate line; refuter counts by severity; decisions needed (risk acceptances, exceptions); assumptions; holds before upload; the command that pulls the pack into `output/<client>/catalog/<date>-listing-images-<product>/pack/` |
+| `pack.md` | The one page the human checks: identity and sources; claims posture; frame table with job, scene and headline; the gate line; refuter counts by severity; decisions needed (risk acceptances, exceptions); assumptions; the evidence-gap list from Research evidence; holds before upload; the command that pulls the pack into `output/<client>/catalog/<date>-listing-images-<product>/pack/` |
 | `brief.md` | The filled brief as received, plus answers to blocking questions |
 | `fact-sheet.md` | Every label fact with where it sits on the label and how it was verified; label errors or gaps found, each as a hold; the product's physical look and the photo it comes from |
 | `facts.json` | The gate's per-product facts |
 | `ci-spec.md` | Palette with roles and hex, type families and weights, tone quotes, imagery notes, logo file, sources and dates |
-| `frames.md` | Frame table: buying job, evidence, scene, text slots, decisions |
+| `work/shopper-insights.md` | POE archive sources and gaps, five slot-by-slot competitor galleries, and supported visual differentiation |
+| `frames.md` | Frame table: shopper question/objection, sourced answer as what the shopper gets, additional proof, scene, planned text slots, decisions |
 | `copy-skeleton.json` | The skeleton above |
 | `copy.json` | The final copy, the skeleton with every free key filled |
 | `gate.txt` | Final gate output with its exit code, starting with the command line and the profile hashes the gate prints |
 | `claims.md` | Posture, every refuter finding with key, quote, severity and resolution, and remaining HIGH items |
-| `shot-list.json` | `references`: each input file with a role (`P1` product front, `S1` style, `C1` composition; see the reference-intake roles). `slots`: `id`, `frames`, `aspect_ratio`, `reference_inputs`, `prompt` and an `acceptance` check specific to the shot |
+| `shot-list.json` | `references`: each input file with a role (`P1` product front, `S1` style, `C1` composition; see the reference-intake roles). `slots`: `id`, `frames`, `aspect_ratio`, `reference_inputs`, `prompt`, `scene_type` and an `acceptance` check specific to the shot; a generation budget with currency/spend cap, maximum attempts and repair allowance, including zero when using supplied assets |
 | `design-spec.md` | Per-frame layout over the photo, type, colour, depth and the checks below |
 | `DONE.json` | Written last: job id, pack version, sha256 per file, gate exit code, claims profile name with the sha256 of each profile file in its extends chain, HIGH count. Its presence is the completion signal; a pack without it is unfinished |
 
+## Shots and creative approval
+
+The shot list must include at least one in-use scene showing the product used as
+instructed, and a separate lifestyle scene showing the buyer and a relevant setting.
+A hand holding a pack without using it does not satisfy in-use; a generic studio
+still does not satisfy lifestyle. Neither scene may imply an unapproved result.
+Map both to frame IDs. If claims or missing assets prevent either, stop and give
+the person the scene options and conversion cost rather than quietly dropping it.
+
+Record the generation budget before production: new scenes versus reusable supplied
+photos, attempt cap, spend cap and repair allowance. Zero is valid when suitable
+assets already exist. A budget is a ceiling, not permission to spend or a universal
+scene count; obtain the task's tool authorization before paid generation. Stop at
+the cap and request a decision if required scenes still fail.
+
+For creative-direction approval, choose a representative secondary frame and build
+three examples using the congruence check below. Each example must show the proposed
+typography, proof graphics and lifestyle treatment; show all three to the person.
+Assess MAIN separately against its product-only, white-background and no-copy rules,
+even when MAIN comes first in the gallery. After the person picks a direction, build
+exactly one visual for each remaining frame.
+For pack-only work, use local direction previews with supplied assets and gated
+copy; finished artwork uses native layouts in `amazon-image-production`. Preserve
+MAIN's no-copy rule. The job's owning master controls
+who approves and when. Without one, a person approves before expansion; the driving
+agent cannot approve it. Record the selected example, person, time and version,
+or the person's explicit waiver of the look. Reuse approval of an unchanged direction.
+
 ## Design rules
+
+Use the following photo-led structure for secondary frames, adapted to the client's
+own brand. It does not prescribe another product's colours or typefaces:
+
+- Full-bleed scenes with space planned for type; avoid isolated cutouts on empty
+  panels as the default. Light, perspective and contact shadows create depth.
+- House default: use a hard edge between the text panel and photograph. Do not
+  fade text into the image with a gradient.
+- Stack eyebrow, headline and accent line as one readable hierarchy. An accent
+  belongs to the headline's idea, not a second unrelated promise. Supporting copy
+  stays subordinate. Use the client's type, palette and voice.
+- Give every frame one focal proof element: a sourced number with its qualifier,
+  a visible demonstration, a labelled material/detail, a readable facts panel or
+  another product-specific piece of evidence. Decorative icons alone are not proof.
+- Keep the product large and fully visible, with its silhouette and identity clear
+  at phone size. Compose the scene around it. Detail views may add a close-up while
+  retaining a fully visible product anchor; record the prominence target per frame.
+- Supporting graphics are allowed: editable cards, chips, badges, diagrams, leader
+  lines and annotations can make the proof readable. A design spec may not ban
+  supporting graphics as a class. Use them when they explain the evidence, with
+  no invented seals or unsupported claims; do not obscure the product or hands.
+- Solid panels and restrained cards may support text contrast and separation. Keep
+  photographic shadows consistent and avoid flat repeated panels that add no job.
 
 Amazon's mobile gallery shows a 2000 px image at about 360 to 414 px wide, a scale of
 about 0.18 to 0.21. Minimums on the 2000 px canvas:
@@ -127,7 +210,7 @@ about 0.18 to 0.21. Minimums on the 2000 px canvas:
 - When text does not fit at these sizes, widen the box, reflow or add a line; the
   copy is fixed once gated.
 - Contrast is at least 4.5:1 for text under 150 px and 3:1 for larger text, measured
-  against the photo pixels behind it. Add or strengthen a gradient overlay to get there.
+  against the pixels behind it. Use a solid text panel to reach it.
 - The words come only from `copy.json`. MAIN carries no text and no added shapes.
 - Focus labels that name each frame's job sit outside every frame, so they are never
   exported and never part of the copy readback.
@@ -142,3 +225,37 @@ about 0.18 to 0.21. Minimums on the 2000 px canvas:
   identifies the product is weak; give it a benefit or merge it into another frame.
 - Final checks: read back every text layer against `copy.json`, then view each frame
   downscaled to 360 px wide and read every line without zooming.
+
+## Conversion gate
+
+Plan the rubric in `frames.md` and apply it to the actual final exports at 360 px
+and full resolution. Copy readback, dimensions, hashes and contrast are necessary
+technical checks; they never pass a gallery on their own.
+
+Run two separate checks on every frame. For congruence, the text names what the
+picture shows and the picture supports the text. A scalp-care headline over a
+picture showing no scalp fails. In addition, a fresh reviewer answers, "What reason
+to buy does this frame give, in one sentence?" Record the answer verbatim. "None"
+or a description of the picture fails a secondary frame even when congruence passes.
+The 12.11.2026 rerun's v1 passed congruence 7/7 while five of seven headlines were captions or
+instructions, including "Serum with glycerin", "Full formula / As printed" and
+"See the applicator in hand"; "50% OVERLAP" required the manual to interpret.
+
+| Field per frame | Pass condition |
+| --- | --- |
+| Buying reason | A specific supported benefit or uncertainty resolved for this shopper; identity or a generic adjective alone fails a secondary frame |
+| Proof element | Name the one focal visible proof and its fact/source; it adds understandable evidence beyond the headline, as specified in Research evidence |
+| Product share | Record the visible full-product bounding-box width and height as percentages of the frame, plus whether the silhouette is complete; compare with the frame's planned prominence target and confirm recognition at 360 px. A small/cropped product or a missed target fails; revise layout or obtain a person's explicit target revision with its conversion cost |
+| Increment | State what new buying question this frame answers over the previous frame; a repeated beat fails and must be replaced or merged |
+
+MAIN is assessed for faithful recognition, visible contents, product share and the
+current Amazon main-image rules. Its visible shipped product is its proof; it needs
+no added headline or sales graphics. Its increment is the opening recognition job.
+
+Record each field as pass/fail with an evidence path and a reason, then an overall
+result per frame, including congruence and the fresh reviewer's buying-reason answer.
+Any failed field blocks delivery of the gallery. Fix the frame
+and recheck its neighbours; do not average away a failure or describe a failing set
+as delivered. Pack-mode rubric entries are planned checks, never proof that an
+unrendered gallery passed. The production receipt records the actual results and
+the in-use/lifestyle frame IDs, budget usage and creative approval or waiver.
