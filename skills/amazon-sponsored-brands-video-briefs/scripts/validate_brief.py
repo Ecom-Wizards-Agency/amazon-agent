@@ -105,8 +105,8 @@ def validate_videos(text: str, cfg: dict | None) -> dict:
         block = re.split(r"^## ", following, maxsplit=1, flags=re.MULTILINE)[0]
         label = f"Video {video.group(1)}"
         duration = float(video.group(2))
-        if duration <= 0 or duration > 45:
-            raise ValueError(f"{label}: SB video target must be greater than zero and at most 45 seconds")
+        if duration < 6 or duration > 45:
+            raise ValueError(f"{label}: SB video target must be between 6 and 45 seconds inclusive")
         if mode == "production":
             if re.search(r"^#### Angle \d+:", block, re.MULTILINE):
                 raise ValueError(f"{label}: production mode specifies complete cuts, not test angles")

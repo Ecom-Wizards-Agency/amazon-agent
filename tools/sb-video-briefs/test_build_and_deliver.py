@@ -59,6 +59,20 @@ class BuildAndDeliverTests(unittest.TestCase):
         result = self.validate(GLOBAL + production_video())
         self.assertEqual((result["videos"], result["cuts"], result["scripted_cards"]), (1, 1, 2))
 
+    def test_video_duration_accepts_both_amazon_boundaries(self):
+        for mode, fixture, cuts in (("production", production_video, 1), ("concept_testing", concept_video, 3)):
+            for duration in (6, 45):
+                with self.subTest(mode=mode, duration=duration):
+                    text = (GLOBAL + fixture()).replace("target 6 s", f"target {duration} s").replace("3–6 s", f"3–{duration} s")
+                    self.assertEqual(self.validate(text, self.config(mode, cuts))["cuts"], cuts)
+
+    def test_video_duration_rejects_outside_amazon_boundaries(self):
+        for mode, fixture, cuts in (("production", production_video, 1), ("concept_testing", concept_video, 3)):
+            for duration in (5, 5.999, 45.001, 46):
+                with self.subTest(mode=mode, duration=duration), self.assertRaisesRegex(ValueError, "between 6 and 45"):
+                    text = (GLOBAL + fixture()).replace("target 6 s", f"target {duration} s").replace("3–6 s", f"3–{duration} s")
+                    self.validate(text, self.config(mode, cuts))
+
     def test_production_without_amazon_research_needs_no_seller_identity(self):
         cfg = self.config()
         del cfg["seller_central"]
