@@ -153,12 +153,15 @@ assets already exist. A budget is a ceiling, not permission to spend or a univer
 scene count; obtain the task's tool authorization before paid generation. Stop at
 the cap and request a decision if required scenes still fail.
 
-For the first image, build three examples using the congruence check below and
-show all three to the person. After they pick a direction, build exactly one visual
-for each remaining frame.
+For creative-direction approval, choose a representative secondary frame and build
+three examples using the congruence check below. Each example must show the proposed
+typography, proof graphics and lifestyle treatment; show all three to the person.
+Assess MAIN separately against its product-only, white-background and no-copy rules,
+even when MAIN comes first in the gallery. After the person picks a direction, build
+exactly one visual for each remaining frame.
 For pack-only work, use local direction previews with supplied assets and gated
 copy; finished artwork uses native layouts in `amazon-image-production`. Preserve
-MAIN's no-copy rule when MAIN is the first image. The job's owning master controls
+MAIN's no-copy rule. The job's owning master controls
 who approves and when. Without one, a person approves before expansion; the driving
 agent cannot approve it. Record the selected example, person, time and version,
 or the person's explicit waiver of the look. Reuse approval of an unchanged direction.
