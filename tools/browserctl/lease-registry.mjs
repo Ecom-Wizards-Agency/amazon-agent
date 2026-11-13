@@ -527,7 +527,11 @@ export async function reserveTaskTab({
     if (regionPrimary && record && (record.regionScope ?? record.contextScope) !== regionScope) {
       throw new Error(`TASK_TAB_CONFLICT: ${normalizedTaskId}/${normalizedSlot} region changed`);
     }
-    if (record?.completedAt) {
+    if (record?.completedAt && regionPrimary) {
+      // Regional primaries are reusable shared slots, including after recovery.
+      record.completedAt = null;
+      record.completionOutcome = null;
+    } else if (record?.completedAt) {
       throw new Error(`TASK_TAB_COMPLETED: ${normalizedTaskId} has already completed`);
     }
     if (taskControlIsHealthy(record?.controller, now)) {

@@ -31,11 +31,15 @@ import { regionBusy, regionHolder, describeRegionHolder } from '../browserctl/re
 
 export const MAX_COMPOSER_CHARS = 2500;
 export const NAVIGATION_LABELS = Object.freeze(['Get help with a new issue', 'Show more', 'Show less']);
+export const EMAIL_CHANNEL_LABELS = Object.freeze(['Email']);
+// Regenerate Amazon's answer to an already delivered message, without Submit.
+// Only the existing conversation's composer frame can expose this recovery.
+export const GENERATION_RETRY_LABEL = 'Try again';
 // Reply opens the reply form of a case and sends nothing. It is allowed only on
 // the case view page.
 export const REPLY_LABEL = 'Reply';
 export const SUBMIT_LABELS = Object.freeze(['Submit', 'Send', 'Chat now']);
-export const UPLOAD_LABELS = Object.freeze(['Upload file', 'Attach']);
+export const UPLOAD_LABELS = Object.freeze(['Upload file', 'Upload files', 'Attach']);
 // The case reply form's Chat now button opens Amazon's case chat in a new window.
 // Its opening line and the "Your name" value (the case owner's signature_name
 // from run.json) are code constants shown in the operator's draft, so they are
@@ -72,8 +76,8 @@ const ISO_TZ = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,9})?)?(?:Z|[+-]
 export const ACCOUNT_KEYS = Object.freeze(['profile_key', 'client_slug', 'marketplace', 'seller_id', 'marketplace_id',
   'seller_central_name', 'marketplace_label', 'parent_account_name']);
 const OUTBOUND = new Set(['open', 'navigate', 'type', 'submit', 'approve', 'attach']);
-const SUCCESS = new Set(['ok', 'sent', 'approved', 'attached']);
-const ACTION_DONE = new Set(['sent', 'approved', 'attached']);
+const SUCCESS = new Set(['ok', 'sent', 'approved', 'attached', 'advanced']);
+const ACTION_DONE = new Set(['sent', 'approved', 'attached', 'advanced']);
 const CHAT_FRAME_URL = /assistant|cyrano|meld|chat|seller-?support/i;
 const RUN_SUBDIRS = ['queue', 'results', 'steps', 'transcripts', 'screenshots', 'viewcase', 'uploads'];
 // An approval may be stamped up to five minutes ahead of the controller clock.
@@ -91,6 +95,45 @@ export const normalizeComposer = value => normalizeText(String(value ?? '').repl
 export const normalizeTerms = value => String(value ?? '').replace(/\r\n?/g, '\n').split('\n')
   .map(line => line.replace(/[ \t ]+/g, ' ').trim()).filter(Boolean).join('\n');
 export const termsHash = text => sha256(normalizeTerms(text));
+
+/** A wizard approval binds the approved case fields as well as the whole card.
+ * The details hash uses collapsed display whitespace because Amazon renders
+ * paragraphs and no-break spaces instead of the draft's exact line breaks. */
+function validCaseSummaryBinding(binding) {
+  return Boolean(binding && typeof binding === 'object' && typeof binding.subject === 'string' && binding.subject.trim() &&
+      /^[a-f0-9]{64}$/.test(binding.details_sha256 || '') && Array.isArray(binding.attachment_names) &&
+      !binding.attachment_names.some(n => typeof n !== 'string' || !n || /[\\/]/.test(n)) &&
+      new Set(binding.attachment_names).size === binding.attachment_names.length);
+}
+
+export function checkEmailCaseSummary(wizard, binding) {
+  if (!validCaseSummaryBinding(binding)) return { ok: false, reason: 'case_summary_binding_missing' };
+  if (collapse(wizard?.subject) !== collapse(binding.subject)) return { ok: false, reason: 'case_summary_subject_changed' };
+  if (!wizard?.details || sha256(collapse(wizard.details)) !== binding.details_sha256) return { ok: false, reason: 'case_summary_details_changed' };
+  const names = wizard?.attachment_names;
+  if (!Array.isArray(names) || names.length !== binding.attachment_names.length || new Set(names).size !== names.length ||
+      !binding.attachment_names.every(n => names.includes(n))) return { ok: false, reason: 'case_summary_attachments_changed' };
+  return { ok: true };
+}
+
+export function checkEmailCaseCompletedSummary(wizard, binding) {
+  if (!validCaseSummaryBinding(binding)) return { ok: false, reason: 'case_summary_binding_missing' };
+  if (wizard?.completed_summary_count !== 1 || typeof wizard.completed_summary_preview !== 'string') return { ok: false, reason: 'completed_summary_not_unique' };
+  const preview = collapse(wizard.completed_summary_preview), prefix = `${collapse(binding.subject)} - `;
+  if (!preview.startsWith(prefix)) return { ok: false, reason: 'case_summary_subject_changed' };
+  if (sha256(collapse(preview.slice(prefix.length))) !== binding.details_sha256) return { ok: false, reason: 'case_summary_details_changed' };
+  return { ok: true };
+}
+
+export function checkEmailCaseSummaryChain(entries, approval) {
+  if (!validCaseSummaryBinding(approval?.case_summary) || !/^[a-f0-9]{64}$/.test(approval.step1_terms_sha256 || '')) return { ok: false, reason: 'case_summary_chain_missing' };
+  const attempts = entries.filter(e => e.phase === 'attempt' && e.command === 'approve' && e.action_label === 'Next' && e.sha256 === approval.step1_terms_sha256);
+  if (attempts.length !== 1 || !entries.some(e => e.phase === 'result' && e.queue_id === attempts[0].queue_id && e.command === 'approve' && e.action_label === 'Next' && e.sha256 === attempts[0].sha256 && e.status === 'advanced')) return { ok: false, reason: 'case_summary_chain_unverified' };
+  const old = attempts[0].approval?.case_summary, wanted = approval.case_summary;
+  if (!validCaseSummaryBinding(old) || collapse(old.subject) !== collapse(wanted.subject) || old.details_sha256 !== wanted.details_sha256 ||
+      old.attachment_names.length !== wanted.attachment_names.length || !old.attachment_names.every(n => wanted.attachment_names.includes(n))) return { ok: false, reason: 'case_summary_chain_changed' };
+  return { ok: true };
+}
 
 function codeError(code, message = code, extra = {}) {
   return Object.assign(new Error(message), { code }, extra);
@@ -334,6 +377,29 @@ export function selectComposerFrame(frames) {
 export function isNavigationAllowed(label, state = {}, { origin = null, caseId = null } = {}) {
   const wanted = collapse(label);
   if (NAVIGATION_LABELS.includes(wanted)) return { ok: true, kind: 'navigation' };
+  if (EMAIL_CHANNEL_LABELS.includes(wanted)) {
+    let conversation; try { conversation = new URL(state.url); } catch { return { ok: false, reason: 'email_channel_not_on_conversation' }; }
+    if (!CONVERSATION_PATH.test(conversation.pathname + conversation.search) || state.conversation_url !== state.url ||
+        (origin && conversation.origin !== origin)) return { ok: false, reason: 'email_channel_not_on_conversation' };
+    const w = state.email_wizard;
+    if (!state.selection?.ok || !w?.ok || w.frame_id !== state.selection.frame_id || w.step !== 2 ||
+        w.support_type !== 'STANDARD' || w.completed_summary_count !== 1 || w.email_option_count !== 1 || !w.email_option_enabled) return { ok: false, reason: 'email_channel_not_ready' };
+    if (state.busy || state.denial?.detected || state.generation_error?.case_created || normalizeComposer(state.composer?.value) !== '') return { ok: false, reason: 'email_channel_state_not_safe' };
+    return { ok: true, kind: 'email_channel' };
+  }
+  if (wanted === GENERATION_RETRY_LABEL) {
+    let conversation;
+    try { conversation = new URL(state.url); } catch { return { ok: false, reason: 'retry_not_on_conversation' }; }
+    if (!CONVERSATION_PATH.test(conversation.pathname + conversation.search) ||
+        state.conversation_url !== state.url || (origin && conversation.origin !== origin)) {
+      return { ok: false, reason: 'retry_not_on_conversation' };
+    }
+    if (!state.selection?.ok || state.composer?.frame_id !== state.selection.frame_id) return { ok: false, reason: 'retry_frame_unverified' };
+    if (state.generation_error?.detected !== true) return { ok: false, reason: 'generation_error_not_visible' };
+    if (state.busy || state.handoff?.approve_count > 0 || state.email_wizard?.present || state.email_wizard?.ok || state.email_wizard?.count > 0 || state.denial?.detected || state.generation_error.case_created ||
+        !state.composer || normalizeComposer(state.composer.value) !== '') return { ok: false, reason: 'retry_state_not_safe' };
+    return { ok: true, kind: 'generation_retry' };
+  }
   if (wanted === REPLY_LABEL) {
     const onCase = isCaseViewPage(state?.url, caseId) && (!origin || originOf(state.url) === origin);
     return onCase ? { ok: true, kind: 'reply' } : { ok: false, reason: 'reply_not_on_case_page' };
@@ -471,10 +537,10 @@ export function summarizeViewCase(payload) {
 const FLAG_TYPES = {
   open: { 'via-lobby': 'bool', conversation: 'conversation', case: 'caseid' },
   state: {},
-  navigate: { label: 'label' },
+  navigate: { label: 'label', 'expect-terms-sha256': 'sha' },
   type: { 'text-file': 'path', sha256: 'sha' },
   submit: { 'expect-sha256': 'sha', 'approval-file': 'path', 'expect-attachment': 'list', label: 'submitlabel' },
-  approve: { 'expect-terms-sha256': 'sha', 'approval-file': 'path' },
+  approve: { 'expect-terms-sha256': 'sha', 'approval-file': 'path', label: 'approvelabel' },
   attach: { file: 'path', sha256: 'sha', 'approval-file': 'path' },
   transcript: { 'wait-new': 'int', timeout: 'int' },
   screenshot: { name: 'name' },
@@ -504,12 +570,14 @@ export function validateCommandArgs(command, args, { absolutePaths = true } = {}
     if (type === 'path' && !(typeof value === 'string' && value && (!absolutePaths || isAbsolute(value)))) return bad();
     if (type === 'label' && !(typeof value === 'string' && collapse(value) && value.length <= 100)) return bad();
     if (type === 'submitlabel' && !SUBMIT_LABELS.includes(value)) return bad();
+    if (type === 'approvelabel' && !['Approve', 'Next', 'Submit'].includes(value)) return bad();
     if (type === 'name' && !(typeof value === 'string' && /^[A-Za-z0-9][A-Za-z0-9_.-]{0,39}$/.test(value))) return bad();
     if (type === 'caseid' && !(typeof value === 'string' && /^\d{5,30}$/.test(value))) return bad();
     if (type === 'conversation' && !(typeof value === 'string' && CONVERSATION_PATH.test(value))) return bad();
     if (type === 'int' && !(Number.isInteger(value) && value >= INT_RANGE[key][0] && value <= INT_RANGE[key][1])) return bad();
     if (type === 'list' && !(Array.isArray(value) && value.every(v => typeof v === 'string' && v && v.length <= 200 && !/[\\/]/.test(v)))) return bad();
   }
+  if (command === 'navigate' && args['expect-terms-sha256'] !== undefined && !EMAIL_CHANNEL_LABELS.includes(collapse(args.label))) return { ok: false, reason: 'terms_hash_only_for_email_channel' };
   return { ok: true };
 }
 
@@ -609,6 +677,110 @@ export function pageAgent(op, arg, lib) {
   const all = controls();
   const comps = composersOf();
   const comp = comps.length === 1 ? comps[0] : null;
+  // The two-step email-case wizard is a concrete KAT-CARD, not an arbitrary
+  // Next button. Its displayed fields live in open shadow roots. Read and bind
+  // those exact nodes so an old message or a neighbouring form cannot vouch for
+  // the active case summary.
+  const wizardText = n => {
+    const out = [];
+    const walk = x => {
+      if (x.nodeType === 3) { out.push(x.textContent || ''); return; }
+      if (x.nodeType !== 1 && x.nodeType !== 11) return;
+      if (x.nodeType === 1 && (/^(?:SCRIPT|STYLE|NOSCRIPT|TEMPLATE)$/.test(x.tagName) || !visible(x))) return;
+      if (x.nodeType === 1 && x.shadowRoot) walk(x.shadowRoot);
+      for (const child of x.childNodes || []) walk(child);
+    };
+    walk(n);
+    return collapse(out.join(' '));
+  };
+  const emailWizard = () => {
+    const cards = [];
+    let present = false;
+    const completed = els.filter(e => e.getAttribute('data-testid') === 'collapsed-step' && visible(e)).map(node => {
+      const text = collapse(node.innerText || wizardText(node));
+      const prefix = /^Completed\s+Step\s*1\s*of\s*2\s*[·•]?\s*Issue summary\s*/i;
+      if (!prefix.test(text) || /\bStep\s*2\s*of\s*2\b/i.test(text)) return null;
+      return { node, text, preview: text.replace(prefix, '').replace(/(?:\s+Edit)+$/, '').trim() };
+    }).filter(Boolean);
+    for (const node of els.filter(e => e.tagName === 'KAT-CARD' && visible(e))) {
+      const text = wizardText(node);
+      // Presence blocks recovery even when the displayed fields cannot be bound.
+      if (/\bStep\s*[12]\s*of\s*2\b/i.test(text)) present = true;
+      const ownControls = all.filter(c => within(node, c.el));
+      if (/\bStep\s*2\s*of\s*2\b/i.test(text)) {
+        const submit = ownControls.filter(c => c.label === 'Submit'), back = ownControls.filter(c => c.label === 'Back'), cancel = ownControls.filter(c => c.label === 'Cancel case');
+        const program = els.filter(e => within(node, e) && visible(e) && e.getAttribute('data-testid') === 'program-selection');
+        const channel = els.filter(e => within(node, e) && visible(e) && e.getAttribute('data-testid') === 'channel-selection');
+        if (!/\bContact channel\b/.test(text) || submit.length !== 1 || back.length !== 1 || cancel.length !== 1 || program.length > 1 || channel.length !== 1) continue;
+        // Standard-only accounts omit the support-program chooser. Infer that
+        // variant only when no hidden/orphan program controls or other radio
+        // groups remain in the card; a malformed chooser must not become Standard.
+        const standardOnly = program.length === 0 && !els.some(e => within(node, e) &&
+          (e.getAttribute('data-testid') === 'program-selection' || (e.getAttribute('data-testid') || '').startsWith('program-option-') ||
+            (e.tagName === 'INPUT' && e.type === 'radio' && !within(channel[0], e))));
+        if (program.length === 0 && !standardOnly) continue;
+        const selected = (scope, prefix) => {
+          // The native radio can be visually hidden inside its visible option
+          // label. Its checked property, not a CSS selection class, is binding.
+          const radios = els.filter(e => within(scope, e) && e.tagName === 'INPUT' && e.type === 'radio' && e.checked === true && !disabledOf(e));
+          if (radios.length !== 1) return null;
+          const radio = radios[0], parents = els.filter(e => within(scope, e) && visible(e) && within(e, radio) && e.getAttribute('data-testid') === prefix + radio.value);
+          return parents.length === 1 ? String(radio.value) : null;
+        };
+        const support = standardOnly ? 'STANDARD' : selected(program[0], 'program-option-'), contact = selected(channel[0], 'channel-option-');
+        const emailOptions = els.filter(e => within(channel[0], e) && visible(e) && e.getAttribute('data-testid') === 'channel-option-Email');
+        const emailRadios = emailOptions.length === 1 ? els.filter(e => within(emailOptions[0], e) && e.tagName === 'INPUT' && e.type === 'radio' && String(e.value) === 'Email') : [];
+        const emailEnabled = emailOptions.length === 1 && emailRadios.length === 1 && !disabledOf(emailOptions[0]) && !disabledOf(emailRadios[0]);
+        let neighbours = [];
+        for (let n = node, depth = 0; n && n.nodeType === 1 && n !== document.body && depth < 8; n = parentOf(n), depth++) {
+          if (comp && within(n, comp)) break;
+          const matches = completed.filter(c => within(n, c.node));
+          if (matches.length) { neighbours = matches; break; }
+          if (n.getAttribute('data-testid') === 'body' || n.getAttribute('role') === 'listitem') break;
+        }
+        const summary = neighbours.length === 1 ? neighbours[0] : null;
+        const fullText = [summary ? `Completed issue summary: ${summary.preview}` : '', text,
+          `Selected support type: ${support || 'none'}`, `Selected contact channel: ${contact || 'none'}`].filter(Boolean).join('\n');
+        cards.push({ node, text: fullText, step: 2, action: submit[0].el, action_enabled: !submit[0].disabled,
+          support_type: support, contact_channel: contact, completed_summary_count: neighbours.length, completed_summary_preview: summary?.preview ?? null,
+          email_action: emailOptions.length === 1 ? emailOptions[0] : null, email_option_count: emailOptions.length, email_option_enabled: emailEnabled });
+        continue;
+      }
+      if (!/\bStep\s*1\s*of\s*2\b/i.test(text) || !/\bIssue summary\b/.test(text)) continue;
+      const field = testid => els.filter(e => within(node, e) && visible(e) && e.getAttribute('data-testid') === testid);
+      const subject = field('issue-summary-subject'), details = field('issue-summary-details'), attachments = field('issue-summary-attachments');
+      const next = ownControls.filter(c => c.label === 'Next');
+      const cancel = ownControls.filter(c => c.label === 'Cancel case');
+      if (subject.length !== 1 || details.length !== 1 || attachments.length !== 1 || next.length !== 1 || cancel.length !== 1) continue;
+      const subjectText = wizardText(subject[0]), detailsText = wizardText(details[0]);
+      if (!subjectText || !detailsText || text.length > 20000) continue;
+      const files = els.filter(e => within(attachments[0], e) && visible(e) && (e.getAttribute('data-testid') || '').startsWith('saved-attachment-'));
+      const names = [];
+      let filesValid = true;
+      for (const file of files) {
+        const candidates = els.filter(e => within(file, e) && visible(e))
+          .flatMap(e => [...(e.childNodes || [])].filter(n => n.nodeType === 3).map(n => collapse(n.textContent)))
+          .filter(t => /^[^\s\/\\:*?"<>|][^\/\\:*?"<>|\n]{0,199}\.[A-Za-z0-9]{1,8}$/.test(t));
+        const unique = [...new Set(candidates)];
+        if (unique.length !== 1) { filesValid = false; break; }
+        names.push(unique[0]);
+      }
+      if (!filesValid || new Set(names).size !== names.length) continue;
+      cards.push({ node, text, step: 1, action: next[0].el, action_enabled: !next[0].disabled,
+        subject: subjectText, details: detailsText, attachment_names: names });
+    }
+    const active = cards.filter(c => c.step === 2 || c.action_enabled);
+    const choices = active.length ? active : cards;
+    if (choices.length !== 1) return { ok: false, present, reason: choices.length ? 'email_wizard_ambiguous' : 'email_wizard_not_visible', count: choices.length };
+    const card = choices[0];
+    return { ok: true, present, ...card, tag: card.node.tagName, role: card.node.getAttribute('role'), testid: card.node.getAttribute('data-testid'), basis: 'email_case_wizard' };
+  };
+  const wizardFacts = w => w.ok ? { ok: true, present: w.present, step: w.step, action_label: w.step === 1 ? 'Next' : 'Submit', action_enabled: w.action_enabled,
+    text: w.text, subject: w.subject ?? null, details: w.details ?? null, attachment_names: w.attachment_names ?? null,
+    ...(w.step === 2 ? { support_type: w.support_type, contact_channel: w.contact_channel,
+      completed_summary_count: w.completed_summary_count, completed_summary_preview: w.completed_summary_preview,
+      email_option_count: w.email_option_count, email_option_enabled: w.email_option_enabled } : {}),
+    tag: w.tag, role: w.role, testid: w.testid, basis: w.basis } : w;
   // Composer region: the smallest ancestor that also holds the send control in
   // question (Submit by default) or an upload control (Upload file, Attach).
   const region = (el, label = 'Submit') => {
@@ -652,11 +824,23 @@ export function pageAgent(op, arg, lib) {
           .some(n => /unsupported file was attached|upload failed|failed to upload/i.test(collapse(n.textContent))))
         .map(x => collapse(x.textContent)).filter(t => FILE.test(t))
       : [];
-    const uploading = els.some(x => within(r, x) && visible(x) && (x.getAttribute('role') === 'progressbar' || x.getAttribute('aria-busy') === 'true')) ||
+    const modernWidgets = els.filter(x => x.tagName === 'KAT-FILE-UPLOAD' && within(r, x) && visible(x));
+    const modernItems = els.filter(x => x.tagName === 'KAT-FILE-ITEM' && visible(x) && modernWidgets.some(w => within(w, x)))
+      .map(x => ({ name: collapse(x.getAttribute('name')), status: collapse(x.getAttribute('file-status')).toLowerCase() }));
+    const completedStatuses = ['uploaded', 'success', 'complete', 'completed'];
+    // Modern reply forms also display the sender email in this region. Their
+    // file widget is authoritative; filename-like text outside it is not a chip.
+    // Any pending, failed or unknown item blocks sending until its state is known.
+    const modernBlocked = modernWidgets.length > 0 && (modernWidgets.length !== 1 ||
+      modernItems.some(x => !completedStatuses.includes(x.status) || !FILE.test(x.name)));
+    const uploading = modernBlocked || els.some(x => within(r, x) && visible(x) && (x.getAttribute('role') === 'progressbar' || x.getAttribute('aria-busy') === 'true')) ||
       texts.some(t => /^(?:uploading|upload failed|failed to upload)/i.test(t));
     const submit = submitsOf(el, c).map(x => ({ disabled: x.disabled, in_region: x.in_region }));
     const submitByLabel = Object.fromEntries(submitLabels.map(label => [label, submitsOf(el, c, label).map(x => ({ disabled: x.disabled, in_region: x.in_region }))]));
-    return { chips: uploadError ? [] : [...new Set([...fileTexts.filter(t => FILE.test(t)), ...stagedFiles])], counters: texts.filter(t => COUNTER.test(t)), uploading, submit, submit_by_label: submitByLabel };
+    const chips = modernWidgets.length
+      ? (modernBlocked ? [] : [...new Set(modernItems.map(x => x.name))])
+      : [...new Set([...fileTexts.filter(t => FILE.test(t)), ...stagedFiles])];
+    return { chips: uploadError ? [] : chips, counters: texts.filter(t => COUNTER.test(t)), uploading, submit, submit_by_label: submitByLabel };
   };
   const busy = () => els.some(el => visible(el) && (el.getAttribute('role') === 'progressbar' || el.getAttribute('aria-busy') === 'true')) ||
     leaves(null).some(el => /^working on it\b/i.test(collapse(el.textContent)));
@@ -734,6 +918,7 @@ export function pageAgent(op, arg, lib) {
       region: comp ? regionFacts(comp, c) : { chips: [], counters: [], uploading: false, submit: null, submit_by_label: null },
       file_inputs: { count: files.length, names: files.flatMap(el => [...(el.files || [])].map(f => f.name)) },
       name_field: (names => ({ count: names.length, value: names.length === 1 ? String(names[0].value ?? '') : null, disabled: names.length === 1 ? disabledOf(names[0]) || names[0].readOnly === true : null }))(nameFields()),
+      email_wizard: wizardFacts(emailWizard()),
       conversation: { basis: c.basis, message_count: c.message_count, message_detection: c.message_detection },
     };
   }
@@ -749,6 +934,31 @@ export function pageAgent(op, arg, lib) {
       if (!v.ok) fail(v.reason, String(v.count ?? ''));
       if (typeof arg.expectedComposerText !== 'string' || normalizeComposer(valueOf(comp)) !== arg.expectedComposerText) fail('composer_changed');
       return list[0].el;
+    }
+    if (arg.label === 'Next' && arg.expectedTermsText) {
+      const wizard = emailWizard();
+      if (!wizard.ok) fail(wizard.reason, String(wizard.count));
+      if (wizard.step !== 1 || !wizard.action_enabled) fail('email_wizard_not_ready');
+      if (wizard.text !== arg.expectedTermsText) fail('terms_changed');
+      return wizard.action;
+    }
+    if (arg.label === 'Submit' && arg.expectedTermsText) {
+      const wizard = emailWizard();
+      if (!wizard.ok) fail(wizard.reason, String(wizard.count));
+      if (wizard.step !== 2 || !wizard.action_enabled || wizard.support_type !== 'STANDARD' || wizard.contact_channel !== 'Email' || wizard.completed_summary_count !== 1) fail('email_wizard_not_ready');
+      if (wizard.text !== arg.expectedTermsText) fail('terms_changed');
+      // The conversation's sticky composer can cover this footer even when its
+      // box is in view. Center only the verified final action before the usual
+      // content-quad and obstruction checks decide whether it can be clicked.
+      wizard.action.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'instant' });
+      return wizard.action;
+    }
+    if (arg.label === 'Email' && arg.expectedTermsText) {
+      const wizard = emailWizard();
+      if (!wizard.ok) fail(wizard.reason, String(wizard.count));
+      if (wizard.step !== 2 || wizard.support_type !== 'STANDARD' || wizard.completed_summary_count !== 1 || wizard.email_option_count !== 1 || !wizard.email_option_enabled) fail('email_channel_not_ready');
+      if (wizard.text !== arg.expectedTermsText) fail('terms_changed');
+      return wizard.email_action;
     }
     if (arg.label === 'Approve' && arg.expectedTermsText) {
       const terms = pageAgent('terms', null, lib);
@@ -779,6 +989,12 @@ export function pageAgent(op, arg, lib) {
   if (op === 'name-input') { const n = nameFields(); if (n.length !== 1) fail('name_field_count', String(n.length)); return n[0]; }
   if (op === 'file-input') { const f = fileInputs(); if (f.length !== 1) fail('file_input_count', String(f.length)); return f[0]; }
   if (op === 'terms') {
+    if (arg?.label === 'Next' || arg?.label === 'Submit' || arg?.label === 'Email') {
+      const wizard = emailWizard();
+      if (!wizard.ok) fail(wizard.reason, String(wizard.count));
+      if (wizard.step !== (arg.label === 'Next' ? 1 : 2)) fail('email_wizard_wrong_step');
+      return wizardFacts(wizard);
+    }
     // Terms heuristic: walk up from the unique Approve control. Prefer the nearest
     // dialog, card or message ancestor with visible text outside any control that
     // holds neither the composer nor the conversation area (basis "card"); else
@@ -897,8 +1113,8 @@ const FOCUS_SELECT_FN = 'function(){this.focus();if(typeof this.select==="functi
 
 const originOf = url => { try { return new URL(url).origin; } catch { return 'null'; } };
 
-/** The one upload control of a frame: Upload file (Seller Assistant) or Attach
- * (case chat window). Both present is ambiguous. */
+/** The one upload control of a frame: Upload file (Seller Assistant), Upload files
+ * (case reply form), or Attach (case chat window). Multiple controls are ambiguous. */
 export function uploadControl(controls) {
   const found = UPLOAD_LABELS.map(label => matchLabel(controls, label));
   const ok = found.filter(m => m.ok);
@@ -938,10 +1154,17 @@ export function assembleState(frames, data) {
     name_field: selected?.name_field ?? null,
     controls: controls.slice(0, 300),
     status_texts: [...new Set(list.flatMap(f => data[f.frame_id]?.status || []))],
+    generation_error: {
+      detected: /generation interrupted|something didn[’']t work as expected/i.test(selected?.text || ''),
+      case_created: /your case has been (?:successfully created|created successfully)\.?\s*case id/i.test(selected?.text || ''),
+    },
     busy: list.some(f => data[f.frame_id]?.busy === true),
     tour,
     denial: detectDenial(texts),
     handoff: { approve_count: approve.length, approve_enabled: matchLabel(controls, 'Approve').ok, terms_text: null, terms_sha256: null },
+    email_wizard: selected?.email_wizard?.ok === true ? { ...selected.email_wizard, frame_id: selection.frame_id,
+      terms_sha256: termsHash(selected.email_wizard.text),
+      ...(selected.email_wizard.details ? { details_sha256: sha256(collapse(selected.email_wizard.details)) } : {}) } : (selected?.email_wizard ?? null),
     attachments: {
       upload_present: frameControls.some(c => UPLOAD_LABELS.includes(collapse(c.label))), upload_enabled: uploadControl(frameControls).ok,
       submit_enabled: matchLabel(frameControls, 'Submit').ok, chips: selected?.region?.chips || [], uploading: selected?.region?.uploading === true,
@@ -1075,7 +1298,7 @@ export function makeBrowser({ send, listPageTargets = async () => [], sleep = ms
       }
       return state;
     },
-    async terms(frameId) { const t = await run(frameId, 'terms'); return { ...t, sha256: termsHash(t.text) }; },
+    async terms(frameId, options = null) { const t = await run(frameId, 'terms', options); return { ...t, sha256: termsHash(t.text) }; },
     async prepareClick(frameId, label, { tour = false, composerSubmit = false, expectedTermsText = null, expectedComposerText = null } = {}) { return locate(await run(frameId, 'control', { label, tour, composerSubmit, expectedTermsText, expectedComposerText }, { byValue: false })); },
     dispatchClick: dispatch,
     async insertText(frameId, text) {
@@ -1387,6 +1610,129 @@ async function chatNow(rt, args, approval) {
   }
 }
 
+async function selectEmailCaseChannel(rt, args, state) {
+  const expected = args['expect-terms-sha256'];
+  if (!expected) return { status: 'refused', reason: 'email_channel_terms_required' };
+  if (rt.caseId || rt.chat || rt.config?.registry_id) return { status: 'refused', reason: 'email_wizard_new_case_only' };
+  const allowed = isNavigationAllowed('Email', state, { origin: rt.origin });
+  if (!allowed.ok) return { status: 'refused', reason: allowed.reason };
+  const entries = await readApprovalLog(rt.runDir);
+  const verified = entries.filter(e => e.phase === 'attempt' && e.command === 'approve' && e.action_label === 'Next' &&
+    checkEmailCaseSummaryChain(entries, { case_summary: e.approval?.case_summary, step1_terms_sha256: e.sha256 }).ok);
+  if (verified.length !== 1) return { status: 'refused', reason: 'case_summary_chain_unverified' };
+  const binding = verified[0].approval.case_summary, frameId = state.email_wizard.frame_id;
+  const check = s => {
+    const nav = isNavigationAllowed('Email', s, { origin: rt.origin });
+    if (!nav.ok) return nav;
+    const w = s.email_wizard;
+    if (s.conversation_url !== state.conversation_url || w.frame_id !== frameId ||
+        !s.frames.some(f => f.frame_id === frameId && f.same_origin && f.reachable !== false)) return { ok: false, reason: 'email_channel_frame_changed' };
+    if (w.terms_sha256 !== expected) return { ok: false, reason: 'terms_sha_mismatch' };
+    return checkEmailCaseCompletedSummary(w, binding);
+  };
+  const first = check(state);
+  if (!first.ok) return { status: 'blocked', reason: first.reason };
+  if (state.email_wizard.contact_channel === 'Email') return { status: 'ok', kind: 'email_channel', label: 'Email', already_selected: true };
+  const terms = await rt.browser.terms(frameId, { label: 'Email' });
+  if (terms.sha256 !== expected || !checkEmailCaseCompletedSummary(terms, binding).ok) return { status: 'blocked', reason: 'email_channel_summary_changed' };
+  await reverify(rt);
+  const pre = await rt.browser.scan(), ready = check(pre);
+  if (!ready.ok) return { status: 'blocked', reason: ready.reason, stage: 'pre_click' };
+  let click;
+  try {
+    click = await guardedClick(rt, frameId, 'Email', async () => {
+      await reverify(rt);
+      const current = await rt.browser.terms(frameId, { label: 'Email' });
+      if (current.sha256 !== expected || !checkEmailCaseCompletedSummary(current, binding).ok) throw codeError('email_channel_summary_changed');
+    }, { expectedTermsText: terms.text });
+  } catch (error) {
+    if (error.dispatched) { if (isFatal(error)) rt.fatal = true; return { status: 'uncertain', reason: error.code || 'email_channel_click_failed', clicked: true }; }
+    if (isFatal(error)) throw error;
+    return { status: 'blocked', reason: error.code || 'email_channel_not_prepared', clicked: false };
+  }
+  if (click.new_targets.length) return { status: 'blocked', reason: 'new_target', new_targets: click.new_targets };
+  let previous = null, streak = 0;
+  let wait;
+  try {
+    wait = await waitUntil(rt, async () => {
+      const s = await rt.browser.scan(), w = s.email_wizard;
+      const ready = isNavigationAllowed('Email', s, { origin: rt.origin }).ok && w.frame_id === frameId &&
+        s.conversation_url === state.conversation_url && w.contact_channel === 'Email' && checkEmailCaseCompletedSummary(w, binding).ok;
+      const current = ready ? termsHash(w.text) : null;
+      streak = current && current === previous ? streak + 1 : (current ? 1 : 0); previous = current;
+      return s;
+    }, () => streak >= 2, 5000, 500);
+  } catch (error) {
+    if (isFatal(error)) rt.fatal = true;
+    return { status: 'uncertain', reason: error.code || 'email_channel_selection_not_confirmed', clicked: true };
+  }
+  return { status: wait.satisfied ? 'ok' : 'uncertain', kind: 'email_channel', label: 'Email', clicked: true,
+    ...(wait.satisfied ? { selected: true, terms_sha256: wait.value.email_wizard.terms_sha256 } : { reason: 'email_channel_selection_not_confirmed' }) };
+}
+
+async function actEmailCaseWizard(rt, args, approval) {
+  const action = args.label, next = action === 'Next', expectedStep = next ? 1 : 2;
+  const expected = args['expect-terms-sha256'], key = `approve:${expected}`, stepKey = `email_wizard:${action}`;
+  if (usageCount(rt, key) >= 1 || usageCount(rt, stepKey) >= 1) return { status: 'refused', reason: 'send_limit_reached', limit: 1 };
+  if (rt.caseId || rt.chat || rt.config?.registry_id) return { status: 'refused', reason: 'email_wizard_new_case_only' };
+  if (!next) {
+    const chain = checkEmailCaseSummaryChain(await readApprovalLog(rt.runDir), approval);
+    if (!chain.ok) return { status: 'refused', reason: chain.reason };
+  }
+  const caseCheck = wizard => next ? checkEmailCaseSummary(wizard, approval.case_summary) : checkEmailCaseCompletedSummary(wizard, approval.case_summary);
+  const check = state => {
+    let url; try { url = new URL(state.url); } catch { return { ok: false, reason: 'email_wizard_not_on_conversation' }; }
+    if (url.origin !== rt.origin || !CONVERSATION_PATH.test(url.pathname + url.search) || state.conversation_url !== state.url) return { ok: false, reason: 'email_wizard_not_on_conversation' };
+    const w = state.email_wizard;
+    if (!state.selection?.ok || !w?.ok || w.frame_id !== state.selection.frame_id ||
+        !state.frames.some(f => f.frame_id === w.frame_id && f.same_origin && f.reachable !== false)) return { ok: false, reason: w?.reason || 'email_wizard_frame_unverified' };
+    if (w.step !== expectedStep || w.action_label !== action || !w.action_enabled) return { ok: false, reason: 'email_wizard_not_ready' };
+    if (!next && (w.support_type !== 'STANDARD' || w.contact_channel !== 'Email')) return { ok: false, reason: 'email_wizard_email_not_selected' };
+    if (w.terms_sha256 !== expected) return { ok: false, reason: 'terms_sha_mismatch' };
+    return caseCheck(w);
+  };
+  const idle = await waitUntil(rt, () => rt.browser.scan(), s => !s.busy, 30000);
+  if (!idle.satisfied) return { status: 'blocked', reason: 'assistant_busy' };
+  const first = check(idle.value);
+  if (!first.ok) return { status: 'blocked', reason: first.reason };
+  const frameId = idle.value.email_wizard.frame_id;
+  const terms = await rt.browser.terms(frameId, { label: action });
+  const termsCheck = caseCheck(terms);
+  if (terms.sha256 !== expected || !termsCheck.ok) return { status: 'refused', reason: termsCheck.ok ? 'terms_sha_mismatch' : termsCheck.reason };
+  const identity = await reverify(rt);
+  const recheck = await rt.browser.terms(frameId, { label: action });
+  const fieldCheck = caseCheck(recheck);
+  if (recheck.sha256 !== expected || !fieldCheck.ok) return { status: 'refused', reason: fieldCheck.ok ? 'terms_sha_mismatch' : fieldCheck.reason, stage: 'pre_click' };
+  const pre = await rt.browser.scan(), preCheck = check(pre);
+  if (pre.busy || !preCheck.ok || pre.email_wizard.frame_id !== frameId) return { status: 'blocked', reason: pre.busy ? 'assistant_busy' : (preCheck.reason || 'email_wizard_frame_changed'), stage: 'pre_click' };
+  const claim = await claimBeforeClick(rt, approval);
+  if (claim) return claim;
+  let click;
+  try {
+    click = await guardedClick(rt, frameId, action, async () => {
+      await logAttempt(rt, { command: 'approve', action_label: action, sha256: expected, plan_item: approval.plan_item, approval_file: args['approval-file'], approval, identity });
+      bumpUsage(rt, key); bumpUsage(rt, stepKey);
+      markDispatched(rt, 'approve', expected, 'clicked');
+    }, { expectedTermsText: terms.text });
+  } catch (error) { return clickFailure(rt, error); }
+  try {
+    let streak = 0, previous = null;
+    const wait = await waitUntil(rt, async () => {
+      const state = await rt.browser.scan(), w = state.email_wizard;
+      const frameValid = state.selection?.ok && state.frames.some(f => f.frame_id === frameId && f.reachable !== false && f.same_origin);
+      const ready = frameValid && (next ? w?.ok && w.step === 2 && w.frame_id === frameId : state.generation_error?.case_created === true);
+      const stable = ready ? (next ? termsHash(w.text) : state.url) : null;
+      streak = stable && stable === previous ? streak + 1 : (stable ? 1 : 0); previous = stable;
+      return state;
+    }, () => streak >= 2, 60000);
+    const status = wait.satisfied ? (next ? 'advanced' : 'approved') : 'uncertain';
+    const result = { status, clicked: true, action_label: action, terms_sha256: expected, wizard_step_after: wait.value.email_wizard?.step ?? null,
+      ...(click.new_targets.length ? { reason: 'new_target', new_targets: click.new_targets } : wait.satisfied ? {} : { reason: next ? 'no_visible_step_two' : 'case_creation_not_confirmed' }) };
+    await logApproval(rt, { phase: 'result', command: 'approve', action_label: action, sha256: expected, status, delivery: status });
+    return result;
+  } catch (error) { return dispatchedFailure(rt, error); }
+}
+
 export const handlers = {
   async state(rt) { return { status: 'ok', state: await rt.browser.scan() }; },
 
@@ -1444,6 +1790,7 @@ export const handlers = {
 
   async navigate(rt, args) {
     const state = await rt.browser.scan();
+    if (EMAIL_CHANNEL_LABELS.includes(collapse(args.label))) return selectEmailCaseChannel(rt, args, state);
     const allowed = isNavigationAllowed(args.label, state, { origin: rt.origin, caseId: rt.caseId ?? null });
     if (!allowed.ok) return { status: 'refused', reason: allowed.reason, label: args.label };
     if (allowed.kind === 'reply' && !rt.caseId) return { status: 'refused', reason: 'case_not_opened', label: args.label };
@@ -1451,13 +1798,30 @@ export const handlers = {
     // the one frame that shows the tour; the page re-checks this before the click.
     const tour = allowed.kind === 'tour';
     const summary = allowed.kind === 'summary';
+    const retry = allowed.kind === 'generation_retry';
     const match = summary
       ? { ok: Boolean(state.handoff.frame_id && state.handoff.terms_text), control: { frame_id: state.handoff.frame_id }, reason: 'summary_not_verified' }
       : tour
       ? matchLabel(state.controls.filter(c => c.frame_id === state.tour.frame_id && c.in_tour === true), args.label)
+      : retry
+      ? matchLabel(state.controls.filter(c => c.frame_id === state.selection.frame_id), args.label)
       : allControlsMatch(state, args.label);
     if (!match.ok) return { status: 'blocked', reason: `control_${match.reason}${tour ? '_in_tour' : ''}`, count: match.count };
-    const click = await guardedClick(rt, match.control.frame_id, collapse(args.label), null, { tour, expectedTermsText: summary ? state.handoff.terms_text : null });
+    const beforeRetry = retry ? async () => {
+      const current = await rt.browser.scan();
+      const check = isNavigationAllowed(args.label, current, { origin: rt.origin });
+      if (!check.ok || current.conversation_url !== state.conversation_url || current.selection.frame_id !== match.control.frame_id) {
+        throw codeError('retry_state_changed');
+      }
+      await reverify(rt);
+    } : null;
+    let click;
+    try {
+      click = await guardedClick(rt, match.control.frame_id, collapse(args.label), beforeRetry, { tour, expectedTermsText: summary ? state.handoff.terms_text : null });
+    } catch (error) {
+      if (retry && error.dispatched) return { status: 'uncertain', reason: error.code || 'retry_click_failed', label: collapse(args.label), clicked: true };
+      throw error;
+    }
     if (click.new_targets.length) return { status: 'blocked', reason: 'new_target', new_targets: click.new_targets };
     return { status: 'ok', kind: allowed.kind, label: collapse(args.label) };
   },
@@ -1550,6 +1914,7 @@ export const handlers = {
     const expected = args['expect-terms-sha256'];
     const loaded = await loadApproval(args['approval-file'], expected, COMMAND_PLAN_ITEMS.approve, rt.deps.readFile, approvalContext(rt));
     if (!loaded.ok) return { status: 'refused', reason: loaded.reason };
+    if (args.label === 'Next' || args.label === 'Submit') return actEmailCaseWizard(rt, args, loaded.approval);
     const key = `approve:${expected}`;
     if (usageCount(rt, key) >= 1) return { status: 'refused', reason: 'send_limit_reached', limit: 1 };
     // Same busy wait as submit: a reply still streaming must not be read as the
@@ -1633,7 +1998,17 @@ export const handlers = {
     const upload = uploadControl(state.controls.filter(c => c.frame_id === frameId));
     if (!upload.ok) return { status: 'blocked', reason: `upload_${upload.reason}` };
     if (state.attachments.file_input_count !== 1) return { status: 'blocked', reason: 'file_input_count', count: state.attachments.file_input_count };
-    if (state.attachments.input_files.length) return { status: 'blocked', reason: 'file_input_not_empty' };
+    const priorNames = approvedAttachmentNames(await readApprovalLog(rt.runDir));
+    const prior = attachmentCheck(state.attachments, priorNames, priorNames);
+    if (state.attachments.uploading) return { status: 'blocked', reason: 'upload_in_progress' };
+    // The chat keeps the last picker selection after its upload completes.
+    // Replacing that local selection is safe only while every prior upload is
+    // still a confirmed chip from this run, with no unlogged file present.
+    if (!prior.ok || state.attachments.input_files.some(n => !state.attachments.chips.includes(n))) {
+      return { status: 'blocked', reason: state.attachments.input_files.length ? 'file_input_not_empty' : prior.reason };
+    }
+    if (priorNames.includes(name)) return { status: 'blocked', reason: 'attachment_already_present', name };
+    const expectedNames = [...priorNames, name];
     const input = await rt.browser.prepareFileInput(frameId);
     const identity = await reverify(rt);
     const claim = await claimBeforeClick(rt, loaded.approval);
@@ -1646,7 +2021,9 @@ export const handlers = {
     try {
       try { await rt.browser.setFile(input, copy); }
       catch (error) { if (!error.code) error.code = 'set_file_failed'; throw error; }
-      const wait = await waitUntil(rt, () => rt.browser.scan(), s => s.attachments.chips.includes(name) && !s.attachments.uploading, 60000);
+      const wait = await waitUntil(rt, () => rt.browser.scan(), s =>
+        !s.attachments.uploading && expectedNames.every(n => s.attachments.chips.includes(n)) &&
+        attachmentCheck(s.attachments, expectedNames, expectedNames).ok, 60000);
       const status = wait.satisfied ? 'attached' : 'uncertain';
       await logApproval(rt, { phase: 'result', command: 'attach', sha256: args.sha256, name, status });
       return { status, attached: true, ...(wait.satisfied ? {} : { reason: 'chip_not_confirmed' }), name, sha256: args.sha256, upload_copy: copy, chips: wait.value.attachments.chips };
@@ -1726,7 +2103,7 @@ async function writeStep(rt, cmd, result) {
   }
   const step = { schema_version: 1, id: cmd.id, command: cmd.command, args: cmd.args, result,
     ...(post ? { url: post.url, conversation_url: post.conversation_url, frames: post.frames, selection: post.selection, composer: post.composer, controls: post.controls,
-      status_texts: post.status_texts, tour: post.tour, denial: post.denial, handoff: post.handoff, attachments: post.attachments } : { scan_error: scanError }) };
+      status_texts: post.status_texts, generation_error: post.generation_error, tour: post.tour, denial: post.denial, handoff: post.handoff, attachments: post.attachments } : { scan_error: scanError }) };
   await atomicWrite(join(rt.runDir, 'steps', `${stepNumber(cmd.id)}-${cmd.command}.json`), JSON.stringify(step, null, 2));
 }
 
@@ -1828,7 +2205,13 @@ export function unmatchedAttempts(entries) {
 export async function loadUsageCounts(runDir) {
   const counts = new Map();
   for (const entry of await readApprovalLog(runDir)) {
-    if (entry.phase === 'attempt') counts.set(`${entry.command}:${entry.sha256}`, (counts.get(`${entry.command}:${entry.sha256}`) || 0) + 1);
+    if (entry.phase === 'attempt') {
+      counts.set(`${entry.command}:${entry.sha256}`, (counts.get(`${entry.command}:${entry.sha256}`) || 0) + 1);
+      if (entry.command === 'approve' && ['Next', 'Submit'].includes(entry.action_label)) {
+        const key = `email_wizard:${entry.action_label}`;
+        counts.set(key, (counts.get(key) || 0) + 1);
+      }
+    }
   }
   return counts;
 }
@@ -2147,11 +2530,38 @@ export async function acquireWhenRegionFree(acquire, { waitMs, pollMs = REGION_P
   }
 }
 
-export async function serve({ run, maxMinutes = 90, idleMinutes = 20, regionWaitMinutes = 3 }, { loadDeps = loadBrowserDeps, regionPollMs = REGION_POLL_MS } = {}) {
+/** Resume only a chat already opened and confirmed by this run. This never
+ * opens a replacement window or repeats the Chat now greeting. */
+export async function readCaseChatResume(runDir, proof) {
+  if (!proof || !/^\d{3,}$/.test(proof.resultId || '') || typeof proof.openerId !== 'string' || !proof.openerId) throw codeError('chat_resume_invalid', 'Exact saved result and original opener required');
+  const result = JSON.parse(await readFile(join(runDir, 'results', `${proof.resultId}.json`), 'utf8'));
+  const entries = await readApprovalLog(runDir);
+  if (result.command !== 'submit' || result.submit_label !== 'Chat now' || result.status !== 'sent' || result.clicked !== true || !/^\d+$/.test(result.case_id || '') || result.chat?.slot !== CHAT_SLOT || !result.chat?.target_id ||
+      !entries.some(e => e.phase === 'result' && e.command === 'chat_now' && e.status === 'sent' && e.sha256 === result.sha256)) throw codeError('chat_resume_unconfirmed', 'Chat must have a confirmed saved result and approval journal');
+  return { caseId: result.case_id, targetId: result.chat.target_id, openerId: proof.openerId };
+}
+
+export async function restoreCaseChat(rt, { B, page, policy, saved }) {
+  if (!rt.config?.registry_id || page.targetId !== saved.openerId) throw codeError('chat_resume_opener_mismatch', 'Original registered case opener is required');
+  const response = await page.session.send('Target.getTargetInfo', { targetId: saved.targetId });
+  const target = response.targetInfo;
+  if (target?.targetId !== saved.targetId) throw codeError('chat_resume_target_mismatch', 'Original chat target is missing');
+  const verdict = isCaseChatTarget(target, { origin: rt.origin, caseId: saved.caseId, openerId: saved.openerId });
+  if (!verdict.ok) throw codeError(verdict.reason, 'Saved chat identity no longer matches');
+  const handle = await B.tabs.acquireTaskPage({ taskId: page.taskId, workflow: 'amazon-communications', slot: CHAT_SLOT,
+    exclusiveContext: false, initialUrl: target.url, allowOperatorActivity: true, expectedTargetId: saved.targetId });
+  const chat = { ...handle, browser: makeBrowser({ send: (m, p, o) => handle.session.send(m, p, o), listPageTargets: () => B.cdp.listPages() }, rt.origin),
+    release: outcome => B.tabs.releaseTaskPage(handle, { outcome }) };
+  Object.assign(rt, { caseId: saved.caseId, chat, browser: chat.browser, baseline: null });
+  return { case_id: saved.caseId, target_id: saved.targetId };
+}
+
+export async function serve({ run, maxMinutes = 90, idleMinutes = 20, regionWaitMinutes = 3, resumeCaseChat = null }, { loadDeps = loadBrowserDeps, regionPollMs = REGION_POLL_MS } = {}) {
   // Grimoire never drives this route (PR #76 review F3), on either session.
   assertAttended(process.env);
   const runDir = resolve(run);
   const config = await readRunConfig(runDir);
+  const savedChat = resumeCaseChat ? await readCaseChatResume(runDir, resumeCaseChat) : null;
   // Same session check as cases.mjs run(), before any browser module loads.
   const binding = assertSession(process.env);
   await ensureRunDirs(runDir);
@@ -2203,7 +2613,8 @@ export async function serve({ run, maxMinutes = 90, idleMinutes = 20, regionWait
   let exitReason = 'unknown';
   try {
     const spec = { taskId, workflow: 'amazon-communications', initialUrl: `${origin}/home`, exclusiveContext: true,
-      sellerCentral: { marketplace: account.marketplace, origin }, closeOnFailure: false };
+      sellerCentral: { marketplace: account.marketplace, origin }, closeOnFailure: false,
+      ...(savedChat ? { allowOperatorActivity: true, expectedTargetId: savedChat.openerId } : {}) };
     // On 9223 the port lock already excludes other browser work and a busy
     // region fails at once, as before. On 9222 another attended session may hold
     // this region between its steps: wait for it, bounded and visibly.
@@ -2261,6 +2672,7 @@ export async function serve({ run, maxMinutes = 90, idleMinutes = 20, regionWait
       },
     };
     const identity = await rt.deps.verifyIdentity();
+    if (savedChat) await restoreCaseChat(rt, { B, page, policy, saved: savedChat });
     const serving = { status: 'serving', run_id: config.run_id, pid: process.pid, session: binding.session, port: binding.port, task_id: taskId, target_id: page.targetId, started_at: iso(started), identity: identitySummary(identity), recovered_interrupted: recovered };
     await atomicWrite(statusPath, JSON.stringify(serving, null, 2));
     console.log(JSON.stringify(serving));

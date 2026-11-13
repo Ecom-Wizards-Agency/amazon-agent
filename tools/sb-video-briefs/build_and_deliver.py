@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
-"""Build and deliver one SB video briefing plus its Creative Reference.
+"""Validate and deliver one complete SB video briefing.
 
-First delivery renders both Markdown sources as branded DOCX files and imports
-them as native Google Docs. When canonical document ids already exist, the
-command updates those Docs in place through the Google Docs API so their URLs,
-comments and version history are not detached. Every run verifies Drive
-metadata, content readback and a non-empty PDF export before it is complete.
+Create a branded native Google Doc or update its canonical id in place. Legacy
+reference arguments and config are accepted but never read, rendered or written.
+Metadata, content readback and PDF export are checked; visual QA remains a
+separate completion gate.
 """
 from __future__ import annotations
 
@@ -27,14 +26,17 @@ LEGACY_KEYS = (
     ("economics", "break_even_acos"),
     ("economics", "break_even_source"),
     (None, "testing"),
+    ("delivery", "reference_title"),
+    ("delivery", "reference_document_id"),
 )
-FORBIDDEN_BRIEF = (
-    "claims and compliance (advisory)",
-    "how angle tests are measured",
-    "break-even acos",
-    "break even acos",
-)
-FORBIDDEN_REFERENCE = FORBIDDEN_BRIEF + ("stage 1", "stage 2")
+VALIDATOR = ROOT / "skills" / "amazon-sponsored-brands-video-briefs" / "scripts" / "validate_brief.py"
+VALIDATOR_SPEC = importlib.util.spec_from_file_location("sb_brief_validator", VALIDATOR)
+if not VALIDATOR_SPEC or not VALIDATOR_SPEC.loader:
+    raise RuntimeError("could not load portable brief validator")
+VALIDATOR_MODULE = importlib.util.module_from_spec(VALIDATOR_SPEC)
+VALIDATOR_SPEC.loader.exec_module(VALIDATOR_MODULE)
+briefing_options = VALIDATOR_MODULE.briefing_options
+validate_markdown = VALIDATOR_MODULE.validate_markdown
 
 
 def load_json(path: Path) -> dict:
@@ -65,35 +67,14 @@ def validate_config(cfg: dict) -> None:
         ("client", "name"),
         ("client", "product_line"),
         ("client", "marketplace"),
-        ("seller_central", "account_name"),
-        ("seller_central", "expected_partner_account_id"),
-        ("seller_central", "marketplace_label"),
         ("delivery", "drive_folder_id"),
         ("delivery", "brief_title"),
-        ("delivery", "reference_title"),
     ):
         require(cfg, *path)
-
-
-def validate_markdown(path: Path, kind: str) -> None:
-    if not path.is_file():
-        raise ValueError(f"missing {kind} Markdown: {path}")
-    text = path.read_text(encoding="utf-8")
-    lower = text.lower()
-    forbidden = FORBIDDEN_BRIEF if kind == "brief" else FORBIDDEN_REFERENCE
-    hits = [item for item in forbidden if item in lower]
-    if hits:
-        raise ValueError(f"{kind} contains forbidden editor-facing sections or terms: {', '.join(hits)}")
-    if kind == "brief":
-        for required in ("## Global rules", "### Specs (verbatim, non-negotiable)", "### Absolute do-not list", "### Part 2: shared second half"):
-            if required not in text:
-                raise ValueError(f"brief missing required section: {required}")
-        angles = re.findall(r"^#### Angle [123]:", text, flags=re.MULTILINE)
-        if len(angles) != 3:
-            raise ValueError(f"brief must contain exactly three angle headings, found {len(angles)}")
-    else:
-        if "## 5. Footage inventory and asset requests" not in text:
-            raise ValueError("reference must contain section 5: Footage inventory and asset requests")
+    mode, _ = briefing_options(cfg)
+    if mode == "concept_testing":
+        for key in ("account_name", "expected_partner_account_id", "marketplace_label"):
+            require(cfg, "seller_central", key)
 
 
 def import_renderer():
@@ -119,13 +100,12 @@ def renderer_config(cfg: dict, title: str) -> dict:
     }
 
 
-def render_pair(cfg: dict, brief_md: Path, reference_md: Path, outdir: Path) -> dict[str, Path]:
+def render_brief(cfg: dict, brief_md: Path, outdir: Path) -> Path:
     outdir.mkdir(parents=True, exist_ok=True)
     (outdir / "metrics.json").write_text('{"currency":"USD"}\n', encoding="utf-8")
     renderer = import_renderer()
     brief = renderer.render(renderer_config(cfg, cfg["delivery"]["brief_title"]), outdir, brief_md, cover=False)["docx"]
-    reference = renderer.render(renderer_config(cfg, cfg["delivery"]["reference_title"]), outdir, reference_md, cover=False)["docx"]
-    return {"brief": Path(brief), "reference": Path(reference)}
+    return Path(brief)
 
 
 def deliver_one(docx: Path, folder_id: str, title: str) -> dict:
@@ -241,6 +221,36 @@ def find_download_url(value) -> str | None:
     return None
 
 
+def text_values(value) -> list[str]:
+    if isinstance(value, str):
+        return [value]
+    if isinstance(value, dict):
+        return [text for child in value.values() for text in text_values(child)]
+    if isinstance(value, list):
+        return [text for child in value for text in text_values(child)]
+    return []
+
+
+def source_fragments(source_md: Path) -> list[str]:
+    """Check every heading, prose line and table cell, including final cards."""
+    fragments = []
+    for line in markdown_body(source_md).splitlines():
+        if not line.strip():
+            continue
+        cells = VALIDATOR_MODULE.table_cells(line) if line.strip().startswith("|") else [line]
+        for cell in cells:
+            if re.fullmatch(r":?-+:?", cell):
+                continue
+            fragment = re.sub(r"\[([^\]]+)\]\([^)]*\)", r"\1", cell)
+            fragment = re.sub(r"^(?:#{1,6}|>|[-*+]|\d+[.)])\s+", "", fragment)
+            fragment = fragment.replace("**", "").replace("`", "").strip()
+            fragment = re.sub(r"(?<!\w)([*_])(?=\S)(.+?)(?<=\S)\1(?!\w)", r"\2", fragment)
+            fragment = fragment.replace(r"\|", "|")
+            if fragment:
+                fragments.append(re.sub(r"\s+", " ", fragment))
+    return list(dict.fromkeys(fragments))
+
+
 def verify_document(document_id: str, title: str, folder_id: str, source_md: Path, pdf_path: Path) -> dict:
     meta = unwrap(composio("GOOGLEDRIVE_GET_FILE_METADATA", {
         "fileId": document_id,
@@ -259,12 +269,10 @@ def verify_document(document_id: str, title: str, folder_id: str, source_md: Pat
         "include_tables": True,
         "include_tabs_content": True,
     })
-    expected = next(
-        line.strip("# ") for line in source_md.read_text(encoding="utf-8").splitlines()
-        if line.strip() and not line.startswith("#")
-    )
-    if expected not in json.dumps(plain, ensure_ascii=False):
-        raise RuntimeError(f"content readback failed for {title}")
+    actual = re.sub(r"\s+", " ", " ".join(text_values(plain)))
+    missing = [fragment for fragment in source_fragments(source_md) if fragment not in actual]
+    if missing:
+        raise RuntimeError(f"content readback failed for {title}: missing {missing[0]!r}")
 
     exported = composio("GOOGLEDRIVE_DOWNLOAD_FILE", {
         "fileId": document_id,
@@ -293,7 +301,7 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", required=True, type=Path)
     parser.add_argument("--brief-md", required=True, type=Path)
-    parser.add_argument("--reference-md", required=True, type=Path)
+    parser.add_argument("--reference-md", type=Path, help="Legacy argument, ignored; historical reference Docs remain untouched")
     parser.add_argument("--outdir", type=Path)
     parser.add_argument("--validate-only", action="store_true")
     args = parser.parse_args()
@@ -301,62 +309,50 @@ def main() -> int:
     cfg = load_json(args.config)
     for warning in legacy_warnings(cfg):
         print(f"[sb-video] MIGRATION WARNING: {warning}", file=sys.stderr)
+    if args.reference_md is not None:
+        print("[sb-video] MIGRATION WARNING: --reference-md ignored; only the briefing is delivered", file=sys.stderr)
     validate_config(cfg)
-    validate_markdown(args.brief_md, "brief")
-    validate_markdown(args.reference_md, "reference")
+    validation = validate_markdown(args.brief_md, cfg=cfg)
 
     if args.validate_only:
-        print("[sb-video] config and editor-document validation passed")
+        print(json.dumps({"status": "mechanical_checks_passed", **validation}))
         return 0
 
-    existing = {
-        "brief": (cfg.get("delivery") or {}).get("brief_document_id"),
-        "reference": (cfg.get("delivery") or {}).get("reference_document_id"),
-    }
-    if any(existing.values()) and not all(existing.values()):
-        raise SystemExit("[sb-video] both canonical document ids must be present together")
-
+    existing = cfg["delivery"].get("brief_document_id")
     outdir = args.outdir or Path((cfg.get("delivery") or {}).get("source_markdown_dir", "output")) / "_delivery"
-    rendered = render_pair(cfg, args.brief_md, args.reference_md, outdir)
+    rendered = render_brief(cfg, args.brief_md, outdir)
     folder_id = cfg["delivery"]["drive_folder_id"]
     documents = []
     try:
-        if all(existing.values()):
-            update_existing_document(existing["brief"], args.brief_md)
-            update_existing_document(existing["reference"], args.reference_md)
+        if existing:
+            update_existing_document(existing, args.brief_md)
             mode = "updated_in_place"
-            ids = existing
+            document_id = existing
         else:
-            brief = deliver_one(rendered["brief"], folder_id, cfg["delivery"]["brief_title"])
-            reference = deliver_one(rendered["reference"], folder_id, cfg["delivery"]["reference_title"])
-            ids = {
-                "brief": document_id_from_url(brief["url"]),
-                "reference": document_id_from_url(reference["url"]),
-            }
+            brief = deliver_one(rendered, folder_id, cfg["delivery"]["brief_title"])
+            document_id = document_id_from_url(brief["url"])
             mode = "created"
         documents.append(verify_document(
-            ids["brief"], cfg["delivery"]["brief_title"], folder_id, args.brief_md,
+            document_id, cfg["delivery"]["brief_title"], folder_id, args.brief_md,
             outdir / "qa" / "brief.pdf",
-        ))
-        documents.append(verify_document(
-            ids["reference"], cfg["delivery"]["reference_title"], folder_id, args.reference_md,
-            outdir / "qa" / "reference.pdf",
         ))
     except Exception:
         print(f"[sb-video] delivery failed. Intermediaries retained in {outdir}", file=sys.stderr)
         raise
 
     manifest = {
-        "status": "delivered_verified",
+        "status": "delivered_pending_visual_qa",
         "mode": mode,
+        "briefing": validation,
         "folder_id": folder_id,
         "documents": documents,
         "completed_qa": ["title", "destination folder", "native MIME type", "content readback", "PDF export"],
+        "remaining_qa": ["inspect every native/PDF page against the brand and editor brief"],
     }
     manifest_path = outdir / "delivery-manifest.json"
     manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(manifest, indent=2))
-    print(f"[sb-video] delivery and QA complete: {manifest_path}", file=sys.stderr)
+    print(f"[sb-video] delivery readback complete; visual QA remains: {manifest_path}", file=sys.stderr)
     return 0
 
 

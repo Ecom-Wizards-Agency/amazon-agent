@@ -107,6 +107,27 @@ test("ordinary workflow reuse still refuses a target reclassified as an anchor",
   await assert.rejects(registry.reserveTaskTab({ ...spec, now: 5000 }), /TASK_TAB_ANCHOR_REFUSED/);
 });
 
+test("completed regional primaries reopen while completed ordinary tasks remain closed", async () => {
+  for (const regional of [true, false]) {
+    const spec = regional
+      ? { ...sellerCentralRegionTask({ marketplace: "us" }), port: 9222, policy }
+      : { taskId: "completed-ordinary", workflow: "test", port: 9222, policy };
+    const reserved = await registry.reserveTaskTab({ ...spec, now: 1000 });
+    await registry.bindReservedTaskTab({ ...spec, targetId: regional ? "completed-region" : "completed-ordinary",
+      reservationToken: reserved.reservationToken, controlToken: reserved.controlToken, now: 2000 });
+    await registry.releaseTaskTabControl({ ...spec, controlToken: reserved.controlToken, outcome: "error", now: 3000 });
+    await registry.completeTaskTabs({ ...spec, outcome: "error", now: 4000 });
+    if (regional) {
+      const reopened = await registry.reserveTaskTab({ ...spec, now: 5000, livePageIds: [] });
+      assert.equal(reopened.kind, "create");
+      assert.equal(reopened.taskTab.completedAt, null);
+      await registry.abandonTaskTabReservation({ ...spec, controlToken: reopened.controlToken, now: 6000 });
+    } else {
+      await assert.rejects(registry.reserveTaskTab({ ...spec, now: 5000 }), /TASK_TAB_COMPLETED/);
+    }
+  }
+});
+
 test("a stale region controller detaches on heartbeat cleanup or acquisition of a missing target", async () => {
   for (const cleanup of [true, false]) {
     const port = cleanup ? 9223 : 9222;

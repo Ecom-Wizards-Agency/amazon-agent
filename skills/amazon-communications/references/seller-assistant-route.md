@@ -17,6 +17,7 @@ The `case.create` adapter supports only the retired case form, so a new case on 
 | Upload control after the first message | Enabled state unknown | Not observed |
 | Conversation URL after the first Submit | `/assistant/amzn1.cyrano.conversation.cid.v2.<id>?client=sellerSupport-meldFullPage` | Live |
 | Progress text | `Working on it`, then `Here's what I found` | Live |
+| Response generation error | `Something didn't work as expected`, `Generation interrupted`, and `Try again`; the submitted message remains in the conversation | Live, 2026-10-08 |
 | First-use tour | `Step 1/4 Welcome to support on Seller Assistant` | Live |
 | Access denial | `You don't currently have permission to create support cases on this account.` (2026-09-25), or `It looks like you don't currently have permission to create a support case on this account.` (2026-09-30), each with a pointer to User Permissions | Live |
 | Full page `/assistant?client=sellerSupport-meldFullPage` | `New chat`, `Recent`, suggested topics, `Show more`; the composer sits in a same-origin frame, not the main document | Live |
@@ -85,6 +86,7 @@ Writing the files from the one chat approval: the lead session, never a subagent
 - The draft shows every text the driver will type: the opening line, the short issue statement and the full message. One approval covers all of them, with the same attachments, through Seller Assistant chat and its email-case branch.
 - The driver sends each approved text once per run (`send_limit_reached`; P2 twice). If Amazon switches branch mid-run, `stop`, start a new run and re-issue the approval files from the same chat approval.
 - Amazon's own summary screen needs an `approve` file. The agent writes it without asking when the summary matches the approved subject and message and the terms concern only the handoff. Otherwise it asks.
+- When the approved message is already delivered, `Try again` may recover Amazon's generation error in the same conversation without another approval. It regenerates the assistant's answer; it does not authorize resending text or approving a changed case summary.
 - A new approval is needed when the text changes, an attachment is dropped or replaced (including after an upload refusal), Amazon asks something the approved text does not answer, or Amazon falls back to the retired contact form. That form is driven by `cases.mjs` `execute`, which stays Grimoire-only on 9223.
 - Accepted attachment types are not yet recorded in this file, so the draft cannot check them. A live run records them here. Until then, an upload refusal needs a new approval for a replacement file.
 
@@ -110,7 +112,7 @@ Every step is then one client call, which queues a command and waits for its res
 | `open [--via-lobby \| --conversation <path>]` | Record the case lobby controls, then open a new Seller Assistant chat, or reopen an existing `/assistant/amzn1.cyrano.conversation.cid.v2.<id>?client=sellerSupport-meldFullPage` conversation after a controller restart |
 | `open --case <digits>` | Open the case page `/cu/case-dashboard/view-case?caseID=<digits>` and report whether `Reply` is present |
 | `state` | Read URL, frames, composer label, value and counter, controls, status texts, tour text, denial text, and the handoff terms with their hash |
-| `navigate --label <label>` | Clicks that send nothing, from a fixed list: `Get help with a new issue`, `Show more`, `Show less`, tour-dismiss labels while a tour step is visible, `Request changes` while one or more email Issue summaries show `Approve`, and `Reply` on the case page opened with `open --case`. The `Request changes` click goes to the last summary's `Request changes`, only after the page re-reads the exact terms text that `state` reported, and only when every `Approve` has its own `Request changes` |
+| `navigate --label <label>` | Clicks from a fixed list: `Get help with a new issue`, `Show more`, `Show less`, tour-dismiss labels while a tour step is visible, `Request changes` while one or more email Issue summaries show `Approve`, `Reply` on the case page opened with `open --case`, and `Try again` under [Generation error recovery](#generation-error-recovery). These clicks do not submit new message text. The `Request changes` click goes to the last summary's `Request changes`, only after the page re-reads the exact terms text that `state` reported, and only when every `Approve` has its own `Request changes` |
 | `type --text-file <f> --sha256 <h>` | Put an approved draft into the empty composer and verify it; never submits |
 | `submit --expect-sha256 <h> --approval-file <f> [--expect-attachment <name>]... [--label Submit\|Send\|"Chat now"]` | Click the composer's own `Submit` (or the named label) only when the composer text, the expected hash and the approval hash agree, and the files present are exactly the named files this run attached |
 | `approve --expect-terms-sha256 <h> --approval-file <f>` | Click the handoff `Approve` only when the terms hash matches |
@@ -123,6 +125,24 @@ Every step is then one client call, which queues a command and waits for its res
 The controller re-checks seller and marketplace before and after every command, and again right before every `submit`, `approve` and `attach`. A mismatch, login screen, challenge or new tab stops the run; the one exception is the case chat window that `Chat now` opens, which the driver adopts. After a click or upload has gone out, any failure is reported as `uncertain`, never as an error, and is never retried. The same holds for a command that was running when `serve` or the client stopped: treat `uncertain` as possibly sent, check the transcript, and ask the operator before sending anything again. A label outside the `navigate` list is refused and nothing is clicked. Do not click in the controller's browser window while it runs. Start with `open`, `state` and `screenshot` to confirm identity and the frame before anything is typed.
 
 On a run whose `run.json` names a `registry_id`, the driver calls `case_service.py claim-attended` itself, with the request written to `<dir>/claim-attended.json`, right before every `submit`, `Chat now`, `approve` and `attach`. A refusal returns `refused` with reason `claim_refused` and the service's `claim_reason`, and nothing is clicked. `baseline_changed` means a message went out after the draft: redraft from the current case and get a new approval. `daily_sent` or `reconciliation_required` means Grimoire sent or prepared something on the case: stop and report it. `case_mismatch` means the opened case is not the registered one, and `signature_name_mismatch` that `run.json` carries another name than the `sign` result. Never work around a refusal. From the first claim until the run is recorded or released, Grimoire does not prepare a send on the case and its daily pass hands the case to a human.
+
+## Generation error recovery
+
+When `Generation interrupted` or `Something didn't work as expected` appears after a send, first save `transcript`, `state` and `screenshot`. Verify that the complete approved message is in a sent bubble, rather than only in the composer. An `uncertain` send with `only_prefix_visible` can still be fully delivered after Markdown rendering. Never repeat `submit` to fix an assistant generation error.
+
+If the message is delivered, stay in that exact conversation on operator 9222. A stopped controller can reopen the saved conversation with `open --conversation <path>`. Confirm the seller and marketplace, an empty composer, no active generation, no access denial, no Issue summary or case creation confirmation, and exactly one enabled `Try again` in the composer frame. The composer may be disabled by the error.
+
+Run the existing controller's client command once:
+
+```bash
+node tools/amazon-operations/seller-assistant.mjs send --run <dir> navigate --label "Try again"
+```
+
+The driver verifies the error, conversation and composer frame, then rechecks the state and identity immediately before clicking. It records the action under the same run. Keep using the driver; do not attach a second browser controller or bypass the task claim.
+
+Poll `state` and plain `transcript` until Amazon's answer finishes. Re-read the regenerated answer and continue only with the remaining approved plan items. Recheck any email Issue summary against the approved subject, signed message and attachments before `approve`. If the operator asked only for the retry, stop the controller, leave the conversation open and reply `ready`.
+
+If the retry is uncertain, the error repeats, or the composer stays disabled after generation stops, save the readback and report the condition. Do not loop retries, resend the message, start another conversation or create a replacement case. A missing, disabled or ambiguous `Try again`, an unverified delivery, or a case ID already visible also stops this recovery.
 
 ## Replying in an existing case
 

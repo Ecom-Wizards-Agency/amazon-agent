@@ -14,9 +14,9 @@ python3 tools/search_amazon_libraries.py "<question>" --library kb --limit 5
 
 Unit format, verification states and privacy rules: `docs/knowledge-library.md`.
 
-Units: **324** (324 active, 0 retired)
+Units: **339** (339 active, 0 retired)
 
-## compliance (27)
+## compliance (28)
 
 - [KC-0001 FBA hazmat review blocks a battery-powered kit with a cosmetic liquid: battery exemption sheet plus SDS, and an SDS declaration form when the SDS brand does not match](compliance/KC-0001_fba-hazmat-review-blocks-a-battery-powered-kit-with-a-cosmet.md) · diagnosis · draft · unverified
 - [KC-0002 Cosmetic applicator listing removed as an uncleared medical device because of skin-infusion marketing language](compliance/KC-0002_cosmetic-applicator-listing-removed-as-an-uncleared-medical.md) · diagnosis · draft · unverified
@@ -45,8 +45,9 @@ Units: **324** (324 active, 0 retired)
 - [KC-0104 Listing claims an ingredient the product does not contain: remove it from text and images and re-check claims against the label](compliance/KC-0104_listing-claims-an-ingredient-the-product-does-not-contain-re.md) · diagnosis · reviewed · unverified
 - [KC-0313 Cosmetic patch listing flagged for packaging wording: Amazon asks for 510(k) or a formal exemption letter with proof](compliance/KC-0313_cosmetic-patch-listing-flagged-for-packaging-wording-amazon.md) · diagnosis · reviewed · unverified
 - [KC-0314 Can the package insert used for own-shop orders go into Amazon orders when it has QR codes to the brand site and a review-for-discount offer?](compliance/KC-0314_can-the-package-insert-used-for-own-shop-orders-go-into-amaz.md) · rule · reviewed · verified
+- [KC-0341 Inactive oral care bundles flagged for hydrogen peroxide above 12 percent](compliance/KC-0341_inactive-oral-care-bundles-flagged-for-hydrogen-peroxide-abo.md) · diagnosis · draft · unverified
 
-## logistics (99)
+## logistics (105)
 
 - [KC-0003 Inbound Performance defects (labeling required, unscannable barcode, wrong quantity) can be disputed and removed; an ASIN mismatch is reimbursed only in part](logistics/KC-0003_inbound-performance-defects-labeling-required-unscannable-ba.md) · diagnosis · draft · unverified
 - [KC-0004 FBA capacity limit used up for the month: submit a Capacity Manager request (reservation-fee bid) or ship to AWD](logistics/KC-0004_fba-capacity-limit-used-up-for-the-month-submit-a-capacity-m.md) · procedure · draft · unverified
@@ -147,8 +148,14 @@ Units: **324** (324 active, 0 retired)
 - [KC-0316 Can Amazon store and ship inventory for a brand that does not sell on Amazon (off-Amazon store orders)?](logistics/KC-0316_can-amazon-store-and-ship-inventory-for-a-brand-that-does-no.md) · rule · reviewed · unverified
 - [KC-0317 Planning a first inbound from China to the US: how to split air and sea, and where to book ocean freight with Amazon](logistics/KC-0317_planning-a-first-inbound-from-china-to-the-us-how-to-split-a.md) · decision-aid · reviewed · verified
 - [KC-0318 Need to drop a near-expiry SKU from an FBA shipment confirmed more than a day ago: rebuild it, or keep the shipment and labels and leave the item out](logistics/KC-0318_need-to-drop-a-near-expiry-sku-from-an-fba-shipment-confirme.md) · decision-aid · reviewed · unverified
+- [KC-0323 Inbound Performance summary says resolved while defect rows still require action](logistics/KC-0323_inbound-performance-summary-says-resolved-while-defect-rows.md) · diagnosis · draft · verified
+- [KC-0326 Stranded inventory settings link redirects to AmazonSell business: inspect the classic settings and saved address](logistics/KC-0326_stranded-inventory-settings-link-redirects-to-amazonsell-bus.md) · diagnosis · draft · verified
+- [KC-0328 FBA box label expiry is one day earlier than the date entered in Send to Amazon](logistics/KC-0328_fba-box-label-expiry-is-one-day-earlier-than-the-date-entere.md) · diagnosis · draft · verified
+- [KC-0331 AWD inventory is available but replenishment fails with Quantity per box over limit](logistics/KC-0331_awd-inventory-is-available-but-replenishment-fails-with-quan.md) · diagnosis · draft · unverified
+- [KC-0335 Expiration-dated inventory is said to require Amazon barcodes despite Brand Registry eligibility](logistics/KC-0335_expiration-dated-inventory-is-said-to-require-amazon-barcode.md) · decision-aid · draft · unverified
+- [KC-0340 Support requests acknowledgement before investigating missed delivery window defects](logistics/KC-0340_support-requests-acknowledgement-before-investigating-missed.md) · decision-aid · draft · unverified
 
-## catalog (64)
+## catalog (71)
 
 - [KC-0006 Variation children vanish from a family: check FBM offer deactivation for Valid Tracking Rate before fixing images or parentage](catalog/KC-0006_variation-children-vanish-from-a-family-check-fbm-offer-deac.md) · diagnosis · draft · unverified
 - [KC-0035 Same image set needed on every size child of a variation: how to avoid uploading images one listing at a time](catalog/KC-0035_same-image-set-needed-on-every-size-child-of-a-variation-how.md) · procedure · reviewed · unverified
@@ -212,10 +219,17 @@ Units: **324** (324 active, 0 retired)
 - [KC-0238 Unknown non-buyable "-Parent" SKU in inventory: it is the variation parent and should not be deleted](catalog/KC-0238_unknown-non-buyable-parent-sku-in-inventory-it-is-the-variat.md) · rule · reviewed · unverified
 - [KC-0319 New listing blocked pending a GS1 certificate: the UPCs' company prefix does not match the prefix certificate](catalog/KC-0319_new-listing-blocked-pending-a-gs1-certificate-the-upcs-compa.md) · diagnosis · reviewed · verified
 - [KC-0322 Brand name change on an existing ASIN rejected as rebranding by Selling Partner Support](catalog/KC-0322_brand-name-change-on-an-existing-asin-rejected-as-rebranding.md) · rule · reviewed · unverified
+- [KC-0324 Upload preview requires Color on a parent although the blank template marks it inapplicable](catalog/KC-0324_upload-preview-requires-color-on-a-parent-although-the-blank.md) · diagnosis · draft · unverified
+- [KC-0325 Pack size names keep reverting to count-based labels after successful updates](catalog/KC-0325_pack-size-names-keep-reverting-to-count-based-labels-after-s.md) · diagnosis · draft · verified
+- [KC-0327 Variation type is locked after the parent listing is created](catalog/KC-0327_variation-type-is-locked-after-the-parent-listing-is-created.md) · diagnosis · draft · verified
 - [KC-0329 FlatFilePro connector read versus the FlatFilePro item-detail read: are the listing values the same, and what does the connector leave out?](catalog/KC-0329_flatfilepro-connector-read-versus-the-flatfilepro-item-detai.md) · reference · draft · unverified
 - [KC-0332 FlatFilePro direct listing update: what does a write replace, and how do live reads differ from the saved copy?](catalog/KC-0332_flatfilepro-direct-listing-update-what-does-a-write-replace.md) · reference · draft · unverified
+- [KC-0336 Listing title or Item Highlights look rewritten by Amazon AI: check whether the text is in your own seller contribution first](catalog/KC-0336_listing-title-or-item-highlights-look-rewritten-by-amazon-ai.md) · diagnosis · draft · unverified
+- [KC-0337 Offer remains live after seller SKU deletion when listed quantity was not zeroed](catalog/KC-0337_offer-remains-live-after-seller-sku-deletion-when-listed-qua.md) · diagnosis · draft · verified
+- [KC-0338 Does Premium A+ video start automatically with sound?](catalog/KC-0338_does-premium-a-video-start-automatically-with-sound.md) · decision-aid · draft · unverified
+- [KC-0342 Listing editor rejects Expiration On Package with error 90244](catalog/KC-0342_listing-editor-rejects-expiration-on-package-with-error-9024.md) · diagnosis · draft · verified
 
-## support-cases (8)
+## support-cases (9)
 
 - [KC-0007 Cancel an Amazon-initiated disposal of stranded FBA inventory through Seller Support and harden automated removal settings](support-cases/KC-0007_cancel-an-amazon-initiated-disposal-of-stranded-fba-inventor.md) · procedure · draft · unverified
 - [KC-0008 Dispute invalid FBA inbound 'Labeling required' defects: one case per shipment, escalate disagreements to SAS, triage by defect type](support-cases/KC-0008_dispute-invalid-fba-inbound-labeling-required-defects-one-ca.md) · diagnosis · draft · unverified
@@ -225,6 +239,7 @@ Units: **324** (324 active, 0 retired)
 - [KC-0107 Seller Central keeps showing an invalid charge method whatever card is added](support-cases/KC-0107_seller-central-keeps-showing-an-invalid-charge-method-whatev.md) · diagnosis · reviewed · unverified
 - [KC-0108 Refund requested by buyer email address: Seller Central hides buyer emails, and Pending orders cannot be cancelled or refunded by the seller](support-cases/KC-0108_refund-requested-by-buyer-email-address-seller-central-hides.md) · diagnosis · reviewed · unverified
 - [KC-0109 Agency user cannot open or edit Seller Support cases until granted the Manage Your Cases permission](support-cases/KC-0109_agency-user-cannot-open-or-edit-seller-support-cases-until-g.md) · procedure · reviewed · unverified
+- [KC-0339 Seller Assistant email case shows Next instead of Approve](support-cases/KC-0339_seller-assistant-email-case-shows-next-instead-of-approve.md) · procedure · draft · unverified
 
 ## ads (41)
 

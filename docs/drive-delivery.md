@@ -21,7 +21,7 @@ What agents deliver to Drive:
 | Audit MASTER workbook (as a Google Sheet) + narrative Google Doc | `<Client> - Shared/<Audits>/` |
 | Amazon offboarding handover Google Doc + five-tab evidence Google Sheet | Exact existing handover/offboarding folder inside `<Client> - Shared/`; never create one |
 | Human-facing monthly reports | `<Client> - Shared/<Reports>/` |
-| SB video briefing + Creative Reference Google Docs | `<Client> - Shared/<Video Briefings>/` (one file per batch and per product line, edited in place) |
+| SB video briefing Google Doc | `<Client> - Shared/<Video Briefings>/` (one complete briefing per batch, canonical file edited in place; research stays internal and historical reference Docs remain untouched) |
 | FlatFilePro upload CSVs | NOT in Drive. `output/{client}/catalog/` |
 | FlatFilePro connector exports, receipts and saved reads | NOT in Drive. `downloads/{client}/catalog/`, registered `preserve`. |
 | FlatFilePro source grids built from a connector export | NOT in Drive. `output/{client}/catalog/` |

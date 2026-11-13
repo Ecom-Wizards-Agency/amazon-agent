@@ -1,6 +1,6 @@
 # Evolve to Amazon: the SB video adaptation
 
-Source: the Evolve playbook (Meta direct-response creative system). This file is the translation layer. It keeps what survives the move from Meta to Amazon and replaces what does not. Read this before writing any Sponsored Brands video script or editor brief.
+Source: the Evolve playbook (Meta direct-response creative system). This file is the translation layer. It keeps what survives the move from Meta to Amazon and replaces what does not. Read this before writing any Sponsored Brands video script or editor brief. Its discovery and three-angle structure apply to concept-testing mode. An explicitly agreed production assignment follows its requested objective and cut count under the owning skill; do not add alternate hooks or a new shortlist.
 
 ## 1. The core reframe: push vs pull
 
@@ -48,7 +48,7 @@ The query replaces the avatar as the unit of targeting. Classify every target cl
 | Attribute long-tail | "collagen powder no additives" | Solution-aware with a stated criterion | Mirror the criterion in frame 1 text, verbatim. Then prove it. |
 | Problem long-tail | "supplement for joint pain"* | Problem-to-solution boundary | Lead with the outcome for that problem, within claims policy. |
 | Competitor brand | "vital proteins collagen" | Product-aware, conquesting | Never name the competitor. Position against the category default: "typical collagen does X, this does Y." |
-| Own brand | "acme kollagen" | Most-aware | SKIP. Operator rule (2026-07-23): no videos for branded keywords. Branded clusters never enter the shortlist. |
+| Own brand | "acme kollagen" | Most-aware | Exclude from unsolicited discovery. An explicit branded-recognition assignment may confirm brand/pack identity and the agreed product reasons, without inventing superiority or authenticity claims. |
 
 *Problem queries in health niches are where claims risk concentrates. Flag them in the brief.
 
@@ -67,7 +67,7 @@ Inputs, in priority order:
 
 Scorecard per candidate cluster (gate, then rank):
 
-- Gates: search volume above the niche's long-tail floor; offer actually fits the query intent; listing supports the claim; no unresolvable compliance block; never a branded (own-brand) cluster: no videos for branded keywords (operator rule).
+- Gates: search volume above the niche's long-tail floor; offer actually fits the query intent; listing supports the claim; no unresolvable compliance block; exclude own-brand clusters from unsolicited discovery. Record an explicit branded objective separately when the operator requests one.
 - Rank by: volume, organic rank, gap between impression share and click share, spend, CTR, CVR, raw ACOS, price congruence, and listing support.
 
 Output: 3 to 5 clusters max per batch. One excellent brief a day beats five rushed ones, same rule as Evolve.
@@ -83,7 +83,7 @@ Target 15 to 30 seconds. Amazon allows up to 45; almost nothing on a SERP earns 
 | Proof block | 10 to 20s | Make the claim safe to believe | Compressed OCPB: claim already made, now proof (demo, texture, numbers with substantiation, unique numerals) and benefit shown in life. Secondary benefit at most. |
 | Brand lockup | 20 to 30s | Memory and soft CTA | Pack shot, brand mark, variant range if cross-sell matters. The video loops: end on a frame that reads as a clean restart, or cut so the loop is seamless. |
 
-Angles: write 3 Frame-1-plus-Differentiator openings (Angle 1, 2, 3) over one shared Proof block and lockup. That is the Marksman batch. They must differ in buying criterion, not wording: for example Angle 1 mirrors the attribute, Angle 2 shows the texture or outcome, Angle 3 attacks the category default. Give each a short memorable name.
+In concept-testing mode, write 3 Frame-1-plus-Differentiator openings (Angle 1, 2, 3) over one shared Proof block and lockup. That is the Marksman batch. They must differ in buying criterion, not wording: for example Angle 1 mirrors the attribute, Angle 2 shows the texture or outcome, Angle 3 attacks the category default. Give each a short memorable name. Production mode instead supplies the agreed complete cuts and sequence.
 
 Vocabulary note: a **cut** is one angle plus the shared second half, so angles and cuts are 1:1. Use Evolve's `ANGLE(S)` wording throughout, never "Hook A/B/C", so Amazon and Meta stay one system. Cadence is roughly 3 angles per month.
 

@@ -37,6 +37,7 @@ recorded with `case_service.py record-receipt`. Grimoire never drives it.
 - Honor Amazon's stated response date; otherwise chase after three business days. After two unanswered chasers, return the case to its owner. Do not claim an issue is resolved merely because Amazon marked the case answered or closed.
 - Use the existing case when the issue matches. A missing Reply button alone is not proof that a replacement case is needed: distinguish login failure, denied access, confirmed closure, and an unknown UI condition.
 - Save the exact signed text and attachment hashes before submission. Verify the saved correspondence afterward. An interrupted or ambiguous send requires readback and reconciliation; never resend because a local receipt or Slack notification is missing.
+- If Seller Assistant reports a generation error after a delivered message, recover with the driver's guarded `Try again` action. Follow [Generation error recovery](references/seller-assistant-route.md#generation-error-recovery); this regenerates Amazon's answer without resending the message.
 - Amazon's shared login and the human case owner are separate identities. Record both where observable; a signature does not change Amazon's login attribution.
 
 ## Seller Support Case Handling

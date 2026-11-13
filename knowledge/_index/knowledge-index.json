@@ -1,14 +1,14 @@
 {
  "library": "Amazon Knowledge",
  "generated_by": "tools/knowledge/build_knowledge_index.py",
- "unit_count": 324,
- "active_count": 324,
+ "unit_count": 339,
+ "active_count": 339,
  "retired_count": 0,
  "topics": {
-  "compliance": 27,
-  "logistics": 99,
-  "catalog": 64,
-  "support-cases": 8,
+  "compliance": 28,
+  "logistics": 105,
+  "catalog": 71,
+  "support-cases": 9,
   "ads": 41,
   "account-health": 25,
   "seo": 9,
@@ -14073,6 +14073,261 @@
    "file": "knowledge/catalog/KC-0322_brand-name-change-on-an-existing-asin-rejected-as-rebranding.md"
   },
   {
+   "id": "KC-0323",
+   "title": "Inbound Performance summary says resolved while defect rows still require action",
+   "kind": "diagnosis",
+   "topic": "logistics",
+   "status": "draft",
+   "skills": [
+    "amazon-logistics"
+   ],
+   "marketplaces": [
+    "US"
+   ],
+   "surface": "Seller Central > FBA > Shipments > Inbound Performance; shipment summary > Problems",
+   "symptom_keywords": [
+    "inbound summary says all resolved",
+    "outstanding inbound defects",
+    "summary disagrees with defect rows"
+   ],
+   "error_text": [
+    "Action required",
+    "Acknowledge defect"
+   ],
+   "asked_as": [
+    "Does an Inbound Performance summary saying all defects are resolved mean nothing needs doing?"
+   ],
+   "synonyms": [
+    "inbound coaching",
+    "shipment problems"
+   ],
+   "resolution_status": "diagnosis-only",
+   "fix_source": "agency",
+   "evidence_location": "screenshot",
+   "confidence": "low",
+   "verification": "verified",
+   "verified_on": "2026-10-15",
+   "amazon_sources": [],
+   "related_sops": [],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2026-10",
+   "review_by": "2027-10",
+   "file": "knowledge/logistics/KC-0323_inbound-performance-summary-says-resolved-while-defect-rows.md"
+  },
+  {
+   "id": "KC-0324",
+   "title": "Upload preview requires Color on a parent although the blank template marks it inapplicable",
+   "kind": "diagnosis",
+   "topic": "catalog",
+   "status": "draft",
+   "skills": [
+    "amazon-catalog",
+    "amazon-troubleshooting"
+   ],
+   "marketplaces": [
+    "US"
+   ],
+   "surface": "Seller Central > Add Products via Upload > Preview file and fix errors",
+   "symptom_keywords": [
+    "parent color required",
+    "preview template conflict",
+    "gray parent attributes"
+   ],
+   "error_text": [
+    "This information is required to submit your product."
+   ],
+   "asked_as": [
+    "Should I fill Color on a parent when the template marks it inapplicable?"
+   ],
+   "synonyms": [
+    "Color Map",
+    "non-buyable parent",
+    "parentage exemption"
+   ],
+   "resolution_status": "partial",
+   "fix_source": "agency",
+   "evidence_location": "run-note",
+   "confidence": "high",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [],
+   "related_sops": [
+    "skills/amazon-catalog/references/parentage-flatfile-playbook.md"
+   ],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2026-10",
+   "review_by": "2027-10",
+   "file": "knowledge/catalog/KC-0324_upload-preview-requires-color-on-a-parent-although-the-blank.md"
+  },
+  {
+   "id": "KC-0325",
+   "title": "Pack size names keep reverting to count-based labels after successful updates",
+   "kind": "diagnosis",
+   "topic": "catalog",
+   "status": "draft",
+   "skills": [
+    "amazon-catalog",
+    "amazon-flatfilepro"
+   ],
+   "marketplaces": [
+    "US"
+   ],
+   "surface": "Seller Central > Manage All Inventory > Edit listing > Product Details",
+   "symptom_keywords": [
+    "size normalization",
+    "pack names ignored",
+    "count-based labels",
+    "unit count number of items"
+   ],
+   "error_text": [],
+   "asked_as": [
+    "Why do submitted pack-size names keep displaying as count-based labels?"
+   ],
+   "synonyms": [],
+   "resolution_status": "diagnosis-only",
+   "fix_source": "first-party-doc",
+   "evidence_location": "run-note",
+   "confidence": "medium",
+   "verification": "verified",
+   "verified_on": "2026-11-08",
+   "amazon_sources": [],
+   "related_sops": [],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2026-11",
+   "review_by": "2027-10",
+   "file": "knowledge/catalog/KC-0325_pack-size-names-keep-reverting-to-count-based-labels-after-s.md"
+  },
+  {
+   "id": "KC-0326",
+   "title": "Stranded inventory settings link redirects to AmazonSell business: inspect the classic settings and saved address",
+   "kind": "diagnosis",
+   "topic": "logistics",
+   "status": "draft",
+   "skills": [
+    "amazon-logistics",
+    "amazon-client-onboarding"
+   ],
+   "marketplaces": [
+    "US",
+    "DE",
+    "UK",
+    "AU"
+   ],
+   "surface": "Seller Central > Fix stranded inventory > Edit automatic action settings > automatic removal settings",
+   "symptom_keywords": [
+    "stranded inventory settings redirects",
+    "AmazonSell business instead of settings",
+    "classic stranded inventory return address",
+    "automatic removal settings"
+   ],
+   "error_text": [],
+   "asked_as": [
+    "How do we check stranded inventory return settings when the AmazonSell settings link redirects to the business page?"
+   ],
+   "synonyms": [
+    "stranded inventory",
+    "automatic action settings",
+    "automatic removal settings"
+   ],
+   "resolution_status": "resolved",
+   "fix_source": "agency",
+   "evidence_location": "run-note",
+   "confidence": "medium",
+   "verification": "verified",
+   "verified_on": "2026-10-21",
+   "amazon_sources": [],
+   "related_sops": [
+    "skills/amazon-client-onboarding/references/day-zero-assessment.md"
+   ],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2026-10",
+   "review_by": "2027-10",
+   "file": "knowledge/logistics/KC-0326_stranded-inventory-settings-link-redirects-to-amazonsell-bus.md"
+  },
+  {
+   "id": "KC-0327",
+   "title": "Variation type is locked after the parent listing is created",
+   "kind": "diagnosis",
+   "topic": "catalog",
+   "status": "draft",
+   "skills": [
+    "amazon-catalog"
+   ],
+   "marketplaces": [
+    "US"
+   ],
+   "surface": "Seller Central > Manage products > Edit parent listing > Variations",
+   "symptom_keywords": [
+    "variation theme disabled",
+    "change Size to Package Size Name",
+    "locked variation type"
+   ],
+   "error_text": [
+    "The variation type cannot be edited after the parent SKU is created."
+   ],
+   "asked_as": [
+    "Can an existing variation family change from Size to Package Size Name?"
+   ],
+   "synonyms": [
+    "Pack Size",
+    "variation theme migration"
+   ],
+   "resolution_status": "diagnosis-only",
+   "fix_source": "unknown",
+   "evidence_location": "run-note",
+   "confidence": "high",
+   "verification": "verified",
+   "verified_on": "2026-11-08",
+   "amazon_sources": [],
+   "related_sops": [],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2026-11",
+   "review_by": "2027-10",
+   "file": "knowledge/catalog/KC-0327_variation-type-is-locked-after-the-parent-listing-is-created.md"
+  },
+  {
+   "id": "KC-0328",
+   "title": "FBA box label expiry is one day earlier than the date entered in Send to Amazon",
+   "kind": "diagnosis",
+   "topic": "logistics",
+   "status": "draft",
+   "skills": [
+    "amazon-logistics"
+   ],
+   "marketplaces": [
+    "US"
+   ],
+   "surface": "Seller Central > Send to Amazon > Confirmed inventory and Print box labels",
+   "symptom_keywords": [
+    "expiration date one day earlier",
+    "box label expiry mismatch",
+    "UTC timezone conversion"
+   ],
+   "error_text": [],
+   "asked_as": [
+    "Why does the FBA box label show the previous day when the confirmed shipment expiry is correct?"
+   ],
+   "synonyms": [],
+   "resolution_status": "resolved",
+   "fix_source": "first-party-doc",
+   "evidence_location": "run-note",
+   "confidence": "medium",
+   "verification": "verified",
+   "verified_on": "2026-10-23",
+   "amazon_sources": [],
+   "related_sops": [],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2026-10",
+   "review_by": "2027-10",
+   "file": "knowledge/logistics/KC-0328_fba-box-label-expiry-is-one-day-earlier-than-the-date-entere.md"
+  },
+  {
    "id": "KC-0329",
    "title": "FlatFilePro connector read versus the FlatFilePro item-detail read: are the listing values the same, and what does the connector leave out?",
    "kind": "reference",
@@ -14119,6 +14374,52 @@
    "observed": "2026-10",
    "review_by": "2027-10",
    "file": "knowledge/catalog/KC-0329_flatfilepro-connector-read-versus-the-flatfilepro-item-detai.md"
+  },
+  {
+   "id": "KC-0331",
+   "title": "AWD inventory is available but replenishment fails with Quantity per box over limit",
+   "kind": "diagnosis",
+   "topic": "logistics",
+   "status": "draft",
+   "skills": [
+    "amazon-logistics",
+    "amazon-troubleshooting"
+   ],
+   "marketplaces": [
+    "US"
+   ],
+   "surface": "Seller Central > AWD inventory and Shipments, orders and replenishments",
+   "symptom_keywords": [
+    "AWD stock already received",
+    "AWD replenishment failed",
+    "units per box limit changed",
+    "carton splitting"
+   ],
+   "error_text": [
+    "Quantity per box over limit",
+    "The quantity you entered is above the accepted limit for units per case."
+   ],
+   "asked_as": [
+    "Why can inventory already stored in AWD not move to FBA, and did the units per box rule change?"
+   ],
+   "synonyms": [
+    "case pack",
+    "carton",
+    "box configuration"
+   ],
+   "resolution_status": "diagnosis-only",
+   "fix_source": "first-party-doc",
+   "evidence_location": "run-note",
+   "confidence": "medium",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [],
+   "related_sops": [],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2026-10",
+   "review_by": "2027-10",
+   "file": "knowledge/logistics/KC-0331_awd-inventory-is-available-but-replenishment-fails-with-quan.md"
   },
   {
    "id": "KC-0332",
@@ -14170,6 +14471,354 @@
    "observed": "2026-10",
    "review_by": "2027-10",
    "file": "knowledge/catalog/KC-0332_flatfilepro-direct-listing-update-what-does-a-write-replace.md"
+  },
+  {
+   "id": "KC-0335",
+   "title": "Expiration-dated inventory is said to require Amazon barcodes despite Brand Registry eligibility",
+   "kind": "decision-aid",
+   "topic": "logistics",
+   "status": "draft",
+   "skills": [
+    "amazon-logistics",
+    "amazon-troubleshooting"
+   ],
+   "marketplaces": [
+    "US"
+   ],
+   "surface": "Seller Central > Send to Amazon > Step 1 > SKU row barcode type and expiration date",
+   "symptom_keywords": [
+    "expiration dated manufacturer barcode",
+    "expiry requires FNSKU",
+    "Brand Registry barcode eligibility",
+    "FNSKU equals ASIN"
+   ],
+   "error_text": [],
+   "asked_as": [
+    "Does having an expiration date mean our inventory cannot use a manufacturer barcode?"
+   ],
+   "synonyms": [
+    "expiry dated",
+    "stickerless inventory",
+    "Amazon barcode",
+    "manufacturer barcode"
+   ],
+   "resolution_status": "diagnosis-only",
+   "fix_source": "first-party-doc",
+   "evidence_location": "run-note",
+   "confidence": "low",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [],
+   "related_sops": [],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2026-11",
+   "review_by": "2027-11",
+   "file": "knowledge/logistics/KC-0335_expiration-dated-inventory-is-said-to-require-amazon-barcode.md"
+  },
+  {
+   "id": "KC-0336",
+   "title": "Listing title or Item Highlights look rewritten by Amazon AI: check whether the text is in your own seller contribution first",
+   "kind": "diagnosis",
+   "topic": "catalog",
+   "status": "draft",
+   "skills": [
+    "amazon-catalog",
+    "amazon-flatfilepro",
+    "amazon-seo"
+   ],
+   "marketplaces": [
+    "US"
+   ],
+   "surface": "FlatFilePro connector live reads (getListingsItem, getCatalogItem); Seller Central > Manage All Inventory",
+   "symptom_keywords": [
+    "amazon ai changed our title",
+    "title shows features the product does not have",
+    "displayed title differs from what we submitted",
+    "brand name moved to the front of the title",
+    "item highlights wrong",
+    "who changed the listing title"
+   ],
+   "error_text": [
+    "Value for 'Item Highlight' is longer than the allowed maximum (125 characters)."
+   ],
+   "asked_as": [
+    "The client says Amazon AI is messing up our titles: the listing claims accessories the product does not include. Did Amazon do this or did we?"
+   ],
+   "synonyms": [
+    "Item Highlights / title_differentiation",
+    "item name / title",
+    "seller contribution / listing data",
+    "catalog data / detail page data",
+    "Titel / Artikelname"
+   ],
+   "resolution_status": "diagnosis-only",
+   "fix_source": "agency",
+   "evidence_location": "run-note",
+   "confidence": "medium",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [
+    "Amazon Seller Help/articles/150-product-title-requirements-and-guidelines-GYTR6SYGFA5E3EQC.md",
+    "Amazon Seller Help/articles/149-enhance-listings-G88AQCL62ED7WDGA.md"
+   ],
+   "related_sops": [],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2026-11",
+   "review_by": "2027-11",
+   "file": "knowledge/catalog/KC-0336_listing-title-or-item-highlights-look-rewritten-by-amazon-ai.md"
+  },
+  {
+   "id": "KC-0337",
+   "title": "Offer remains live after seller SKU deletion when listed quantity was not zeroed",
+   "kind": "diagnosis",
+   "topic": "catalog",
+   "status": "draft",
+   "skills": [
+    "amazon-catalog",
+    "amazon-flatfilepro"
+   ],
+   "marketplaces": [
+    "US"
+   ],
+   "surface": "Seller Central > Help > Stop selling a product > Delete product and listing",
+   "symptom_keywords": [
+    "deleted SKU still buyable",
+    "offer remains live after deletion",
+    "All-Offers Display",
+    "zero quantity before delete"
+   ],
+   "error_text": [],
+   "asked_as": [
+    "Why can an offer remain live after its seller SKU is deleted?"
+   ],
+   "synonyms": [],
+   "resolution_status": "diagnosis-only",
+   "fix_source": "first-party-doc",
+   "evidence_location": "run-note",
+   "confidence": "high",
+   "verification": "verified",
+   "verified_on": "2026-11-08",
+   "amazon_sources": [],
+   "related_sops": [],
+   "supersedes": [],
+   "contradicts": [
+    "knowledge/catalog/KC-0227_before-deleting-old-or-duplicate-skus-download-a-reverse-fee.md"
+   ],
+   "observed": "2026-11",
+   "review_by": "2027-11",
+   "file": "knowledge/catalog/KC-0337_offer-remains-live-after-seller-sku-deletion-when-listed-qua.md"
+  },
+  {
+   "id": "KC-0338",
+   "title": "Does Premium A+ video start automatically with sound?",
+   "kind": "decision-aid",
+   "topic": "catalog",
+   "status": "draft",
+   "skills": [
+    "amazon-catalog"
+   ],
+   "marketplaces": [
+    "DE"
+   ],
+   "surface": "Amazon detail page > Product information > Premium A+ hero video",
+   "symptom_keywords": [
+    "Premium A+ video sound",
+    "A+ audible autoplay",
+    "A+ video muted",
+    "audio after Play"
+   ],
+   "error_text": [],
+   "asked_as": [
+    "Does Premium A+ video start automatically with sound?"
+   ],
+   "synonyms": [],
+   "resolution_status": "partial",
+   "fix_source": "agency",
+   "evidence_location": "run-note",
+   "confidence": "low",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [
+    "Amazon Seller Help/articles/156-a-content-guide-GLG4RQK2Y2RJADU4.md"
+   ],
+   "related_sops": [],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2026-11",
+   "review_by": "2027-11",
+   "file": "knowledge/catalog/KC-0338_does-premium-a-video-start-automatically-with-sound.md"
+  },
+  {
+   "id": "KC-0339",
+   "title": "Seller Assistant email case shows Next instead of Approve",
+   "kind": "procedure",
+   "topic": "support-cases",
+   "status": "draft",
+   "skills": [
+    "amazon-communications"
+   ],
+   "marketplaces": [
+    "US"
+   ],
+   "surface": "Seller Central > Seller Assistant > email case wizard",
+   "symptom_keywords": [
+    "Seller Assistant Next instead of Approve",
+    "Step 1 of 2 Issue summary",
+    "Step 2 Contact channel",
+    "email case wizard",
+    "final Submit versus chat Submit"
+   ],
+   "error_text": [],
+   "asked_as": [
+    "Seller Assistant shows Next instead of Approve on an email case."
+   ],
+   "synonyms": [],
+   "resolution_status": "partial",
+   "fix_source": "agency",
+   "evidence_location": "run-note",
+   "confidence": "low",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [],
+   "related_sops": [
+    "skills/amazon-communications/references/seller-assistant-route.md"
+   ],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2026-11",
+   "review_by": "2027-11",
+   "file": "knowledge/support-cases/KC-0339_seller-assistant-email-case-shows-next-instead-of-approve.md"
+  },
+  {
+   "id": "KC-0340",
+   "title": "Support requests acknowledgement before investigating missed delivery window defects",
+   "kind": "decision-aid",
+   "topic": "logistics",
+   "status": "draft",
+   "skills": [
+    "amazon-logistics",
+    "amazon-communications"
+   ],
+   "marketplaces": [
+    "US"
+   ],
+   "surface": "Seller Central > Shipment summary > Problems",
+   "symptom_keywords": [
+    "acknowledge before investigation",
+    "missed delivery window dispute",
+    "only Acknowledge available"
+   ],
+   "error_text": [
+    "Missed delivery window",
+    "Acknowledge"
+   ],
+   "asked_as": [
+    "Is there an alternative to acknowledging missed delivery window defects before Support investigates?"
+   ],
+   "synonyms": [
+    "MDW",
+    "inbound performance appeal",
+    "delivery window acknowledgement"
+   ],
+   "resolution_status": "diagnosis-only",
+   "fix_source": "agency",
+   "evidence_location": "case",
+   "confidence": "low",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [],
+   "related_sops": [],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2026-11",
+   "review_by": "2027-11",
+   "file": "knowledge/logistics/KC-0340_support-requests-acknowledgement-before-investigating-missed.md"
+  },
+  {
+   "id": "KC-0341",
+   "title": "Inactive oral care bundles flagged for hydrogen peroxide above 12 percent",
+   "kind": "diagnosis",
+   "topic": "compliance",
+   "status": "draft",
+   "skills": [
+    "amazon-troubleshooting",
+    "amazon-regulated-product-appeals"
+   ],
+   "marketplaces": [
+    "US"
+   ],
+   "surface": "Seller Central > Account Health",
+   "symptom_keywords": [
+    "peroxide concentration",
+    "inactive bundle compliance",
+    "SDS concentration evidence"
+   ],
+   "error_text": [
+    "Hydrogen peroxide concentration exceeds 12%"
+   ],
+   "asked_as": [
+    "Should we dispute a peroxide restriction on an inactive oral care bundle?"
+   ],
+   "synonyms": [],
+   "resolution_status": "diagnosis-only",
+   "fix_source": "first-party-doc",
+   "evidence_location": "email",
+   "confidence": "medium",
+   "verification": "unverified",
+   "verified_on": "",
+   "amazon_sources": [],
+   "related_sops": [],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2026-11",
+   "review_by": "2027-11",
+   "file": "knowledge/compliance/KC-0341_inactive-oral-care-bundles-flagged-for-hydrogen-peroxide-abo.md"
+  },
+  {
+   "id": "KC-0342",
+   "title": "Listing editor rejects Expiration On Package with error 90244",
+   "kind": "diagnosis",
+   "topic": "catalog",
+   "status": "draft",
+   "skills": [
+    "amazon-catalog",
+    "amazon-troubleshooting"
+   ],
+   "marketplaces": [
+    "US"
+   ],
+   "surface": "Seller Central > Manage All Inventory > Edit listing > Product Details",
+   "symptom_keywords": [
+    "expiration type invalid",
+    "legacy expiration value rejected",
+    "Product Expiration Type error"
+   ],
+   "error_text": [
+    "90244",
+    "We can't accept the Expiration On Package you entered for Product Expiration Type."
+   ],
+   "asked_as": [
+    "Why does the listing editor reject Expiration On Package, and which current value can clear the validation error?"
+   ],
+   "synonyms": [
+    "product_expiration_type",
+    "Expiration Date Required"
+   ],
+   "resolution_status": "partial",
+   "fix_source": "agency",
+   "evidence_location": "screenshot",
+   "confidence": "low",
+   "verification": "verified",
+   "verified_on": "2026-11-11",
+   "amazon_sources": [],
+   "related_sops": [],
+   "supersedes": [],
+   "contradicts": [],
+   "observed": "2026-11",
+   "review_by": "2027-11",
+   "file": "knowledge/catalog/KC-0342_listing-editor-rejects-expiration-on-package-with-error-9024.md"
   }
  ]
 }
