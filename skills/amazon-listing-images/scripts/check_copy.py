@@ -5,8 +5,9 @@ Usage:
   python3 -I -B check_copy.py <copy.json> --skeleton <copy-skeleton.json>
       --profile <profile.json> --facts <facts.json> [--json]
 
-Exit 0 when there are no errors, 1 when there are errors, 2 on a usage, read or
-configuration error. Warnings never change the exit code. Fixed keys must match
+Exit 0 requires zero errors and no profile review holds; 1 means there are errors,
+2 on a usage, read or configuration error, 3 when profile review is required.
+Warnings alone never change the exit code. Fixed keys must match
 the skeleton exactly; only free keys are checked for claims.
 
 Four inputs, each with one job:
@@ -148,12 +149,24 @@ def check_layer(layer, name):
 
 def merge_profile(path):
     profile = {"banned": [], "warnings": [], "disclaimer": None, "headline_words": None,
-               "eyebrow_caps": False, "no_text_frames": [], "names": [], "files": []}
+               "eyebrow_caps": False, "no_text_frames": [], "names": [], "files": [],
+               "review_reasons": []}
     for layer, file in profile_chain(path):
         name = layer.get("name", "?")
         profile["names"].append(name)
         profile["files"].append((name, str(file), hashlib.sha256(file.read_bytes()).hexdigest()))
         check_layer(layer, layer.get("name") or str(file))
+        # Lifecycle metadata opts a layer into review. Cosmetics require it even
+        # when both fields are removed; legacy standard/supplement layers do not.
+        if name == "us-cosmetic" or any(key in layer for key in ("status", "verification")):
+            for key, reviewed in (("status", "approved"), ("verification", "verified")):
+                value = layer.get(key)
+                if value is not None and not isinstance(value, str):
+                    raise ConfigError(f"profile {name}: {key} must be a string")
+                value = value.strip().casefold() if value is not None else ""
+                if value != reviewed:
+                    reason = value or ("missing" if key not in layer else "empty")
+                    profile["review_reasons"].append(f"profile {name}: {key} is {reason}")
         for key in ("banned", "warnings"):
             for p in patterns(layer.get(key), f"profile {layer.get('name')}.{key}"):
                 if p not in profile[key]:
@@ -380,9 +393,13 @@ def main(argv):
         print(f"read error: copy or facts file is malformed ({e!r})", file=sys.stderr)
         return 2
     command = shlex.join(["python3", "-I", "-B", str(pathlib.Path(__file__).resolve())] + list(argv))
+    review_reasons = profile["review_reasons"]
+    status = "failed" if errors else "review_required" if review_reasons else "passed"
     result = {"file": args.copy, "command": command, "cwd": str(pathlib.Path.cwd()),
               "profiles": [{"name": n, "path": f, "sha256": h} for n, f, h in profile["files"]],
-              "errors": errors, "warnings": warnings, "ok": not errors}
+              "errors": errors, "warnings": warnings, "status": status,
+              "review_required": bool(review_reasons), "review_reasons": review_reasons,
+              "ok": status == "passed"}
     if args.json:
         print(json.dumps(result, indent=2, ensure_ascii=False))
     else:
@@ -394,8 +411,12 @@ def main(argv):
             print("ERROR  ", e)
         for w in warnings:
             print("WARN   ", w)
-        print(f"{len(errors)} errors, {len(warnings)} warnings")
-    return 0 if not errors else 1
+        for reason in review_reasons:
+            print("REVIEW ", reason)
+        if review_reasons:
+            print("REVIEW REQUIRED: record meaning-level refuter clearance and named human sign-off in claims.md before clearing the pack.")
+        print(f"{len(errors)} errors, {len(warnings)} warnings; {status}")
+    return 1 if errors else 3 if review_reasons else 0
 
 
 if __name__ == "__main__":

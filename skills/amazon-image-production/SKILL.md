@@ -29,14 +29,15 @@ A photo-only request routes there immediately and does not start Figma work.
 
 Read `references/figma-production.md` and load the applicable Figma tool skills.
 Inspect the target file and destination before writing. Protect existing work.
-Build one representative frame with native editable text, separately replaceable
+Build the first-image examples under `amazon-listing-images`'s
+`references/creative-pack.md`, "Shots and creative approval", with native editable text, separately replaceable
 photos, and editable shapes or annotations. An imported finished JPEG is not a
 fully editable listing layout; photographic pixels remain raster content.
 
 Inspect both rendered screenshots and layer structure, fix observed problems,
-then extend the accepted direction through the requested gallery. When a material
-style choice remains unresolved, use human feedback on the representative frame.
-Do not repeat approval for accepted direction or routine reversible edits.
+then follow that procedure's direction checkpoint before extending the gallery.
+Use the job's owning master for approvers and timing, or that procedure's fallback
+when there is no master. Record the decision in the production receipt.
 
 - Preserve exact copy, variant, quantities, dimensions and claims from the brief.
 - Check hierarchy and contrast at mobile size, and crop/artifacts at full size.

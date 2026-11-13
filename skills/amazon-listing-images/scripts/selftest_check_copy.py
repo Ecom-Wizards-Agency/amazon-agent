@@ -21,6 +21,7 @@ GATE = HERE / "check_copy.py"
 PROFILES = HERE.parent / "references" / "claims-profiles"
 PROFILE = PROFILES / "us-dietary-supplement.json"
 STANDARD = PROFILES / "amazon-standard.json"
+COSMETIC = PROFILES / "us-cosmetic.json"
 DISCLAIMER = ("*These statements have not been evaluated by the Food and Drug Administration. "
               "This product is not intended to diagnose, treat, cure, or prevent any disease.")
 SF_LINE = "Supports muscle function*"
@@ -295,7 +296,144 @@ def main():
         if not ok:
             failures.append("usage error")
 
-    total = len(MUTATIONS) + len(WARNINGS) + len(CLEAN) + len(CONFIG) + 3
+        cosmetic_skeleton = {"frames": [{"id": "MAIN", "texts": []}, {"id": "PT01", "texts": [free("sub", "subheadline", 180)]}]}
+        (tmp / "skeleton.json").write_text(json.dumps(cosmetic_skeleton), encoding="utf-8")
+        cosmetic_cases = [
+            ("cosmetic product fact", "Serum in a glass bottle.", 3),
+            ("sourced ingredient fact", "Glycerin is a humectant.", 3),
+            ("pump direction", "Depress the pump", 3),
+            ("coat direction", "Paint a thin coat", 3),
+            ("UV direction", "Cure under a UV lamp", 3),
+            ("lipid ingredient fact", "Cholesterol is a lipid", 3),
+            ("soy ingredient fact", "Soy oil is an emollient", 3),
+            ("cosmetic cleansing", "Use to cleanse the scalp", 3),
+            ("plain cosmetic cleanse", "cleanse", 3),
+            ("scalp-care benefit", "Moisturises the scalp", 3),
+            ("appearance benefit", "Fuller hair appearance", 3),
+            ("practical benefit", "Spreads evenly over the scalp", 3),
+            ("ingredient mechanism fact", "Glycerin improves water absorption", 3),
+            ("ingredient name with body word", "Blood orange oil adds fragrance", 3),
+            ("drug claim", "Promotes hair regrowth.", 1),
+            ("ingredient implies product efficacy", "Glycerin grows hair.", 1),
+            ("device mechanism", "Creates micro-channels for absorption.", 1),
+            ("safety needs source review", "Painless and hypoallergenic.", 3),
+            ("disease claim", "Treats eczema.", 1),
+            ("eczema intended use", "For eczema", 1),
+            ("acne intended use", "For acne", 1),
+            ("collagen production", "Stimulates collagen production", 1),
+            ("cell regeneration", "Regenerates cells", 1),
+            ("fragrance-free needs evidence", "Fragrance-free", 1),
+            ("paraben-free needs evidence", "Paraben-free", 1),
+            ("alcohol-free needs evidence", "Alcohol-free", 1),
+            ("health effect", "Supports blood circulation.", 1),
+            ("detox", "A detox routine.", 1),
+            ("result promise", "Visible results in days.", 1),
+            ("testing needs approval", "Lab tested serum.", 1),
+            ("free-from needs approval", "Gluten free serum.", 1),
+            ("inherited Amazon ban", "The best serum.", 1),
+        ]
+        for label, line, expected_code in cosmetic_cases:
+            doc = copy.deepcopy(cosmetic_skeleton)
+            doc["frames"][1]["texts"][0]["text"] = line
+            code, result = run(tmp, "cosmetic", doc, profile=COSMETIC)
+            ok = code == expected_code and bool(result["errors"]) == (expected_code == 1)
+            print(("PASS" if ok else "FAIL"), label, result["errors"])
+            if not ok:
+                failures.append(label)
+        source_warning_cases = ["Fuller hair appearance", "Painless and hypoallergenic."]
+        for line in source_warning_cases:
+            doc = copy.deepcopy(cosmetic_skeleton)
+            doc["frames"][1]["texts"][0]["text"] = line
+            code, result = run(tmp, "source-warning", doc, profile=COSMETIC)
+            ok = code == 3 and not result["errors"] and bool(result["warnings"])
+            print(("PASS" if ok else "FAIL"), "source review warning", line)
+            if not ok:
+                failures.append(f"source review warning {line}")
+        # Reuse facts.allow for evidence-backed approval of the exact pattern.
+        approved_free_from = ["Fragrance-free", "Paraben-free", "Alcohol-free"]
+        approved_facts = tmp / "approved-free-from.json"
+        approved_facts.write_text(json.dumps({**FACTS, "allow": [r"\b(?:fragrance|paraben|alcohol)[- ]free\b"]}), encoding="utf-8")
+        for line in approved_free_from:
+            doc = copy.deepcopy(cosmetic_skeleton)
+            doc["frames"][1]["texts"][0]["text"] = line
+            code, result = run(tmp, "approved-cosmetic", doc, profile=COSMETIC, facts=approved_facts)
+            ok = code == 3 and not result["errors"] and result["review_required"]
+            print(("PASS" if ok else "FAIL"), "approved free-from", line)
+            if not ok:
+                failures.append(f"approved free-from {line}")
+        # Cosmetic lifecycle fields cannot be blank, removed or unknown.
+        lifecycle_cases = [
+            ("empty", {"status": "", "verification": ""}),
+            ("removed", {}),
+            ("pending", {"status": "pending", "verification": "pending"}),
+        ]
+        cosmetic_profile = json.loads(COSMETIC.read_text(encoding="utf-8"))
+        lifecycle_profile = tmp / "cosmetic-lifecycle.json"
+        lifecycle_doc = copy.deepcopy(cosmetic_skeleton)
+        lifecycle_doc["frames"][1]["texts"][0]["text"] = "Serum in a glass bottle."
+        for label, fields in lifecycle_cases:
+            profile = {k: v for k, v in cosmetic_profile.items() if k not in ("status", "verification")}
+            profile.update(fields)
+            lifecycle_profile.write_text(json.dumps(profile), encoding="utf-8")
+            code, result = run(tmp, "lifecycle", lifecycle_doc, profile=lifecycle_profile)
+            ok = (code == 3 and result["status"] == "review_required" and not result["ok"]
+                  and result["review_required"] and len(result["review_reasons"]) == 2
+                  and not result["errors"] and not result["warnings"])
+            print(("PASS" if ok else "FAIL"), f"cosmetic lifecycle {label}: exit {code}")
+            if not ok:
+                failures.append(f"cosmetic lifecycle {label}")
+        # Approval releases a hold only after both lifecycle fields are reviewed.
+        profile = {**cosmetic_profile, "status": "approved"}
+        profile.pop("verification")
+        lifecycle_profile.write_text(json.dumps(profile), encoding="utf-8")
+        before_code, before = run(tmp, "before-review", lifecycle_doc, profile=lifecycle_profile)
+        profile["verification"] = "verified"
+        lifecycle_profile.write_text(json.dumps(profile), encoding="utf-8")
+        code, result = run(tmp, "after-review", lifecycle_doc, profile=lifecycle_profile)
+        ok = (before_code == 3 and before["status"] == "review_required" and not before["ok"]
+              and before["review_required"] and before["review_reasons"] and not before["errors"]
+              and code == 0 and result["status"] == "passed" and result["ok"]
+              and not result["review_required"] and not result["review_reasons"]
+              and not result["errors"] and not result["warnings"])
+        print(("PASS" if ok else "FAIL"), f"reviewed lifecycle clears hold: exits {before_code} -> {code}")
+        if not ok:
+            failures.append("reviewed lifecycle clears hold")
+        # A hold in any inherited profile survives even an approved child.
+        review_cases = [
+            ({"status": "draft"}, "status is draft"),
+            ({"verification": "unverified"}, "verification is unverified"),
+            ({"status": "draft", "verification": "unverified"}, "verification is unverified"),
+        ]
+        for fields, reason in review_cases:
+            parent = tmp / "review-parent.json"
+            parent.write_text(json.dumps({"name": "review-parent", **fields}), encoding="utf-8")
+            child = tmp / "review-child.json"
+            child.write_text(json.dumps({"name": "review-child", "extends": str(parent),
+                                         "status": "approved", "verification": "verified"}), encoding="utf-8")
+            doc = copy.deepcopy(cosmetic_skeleton)
+            doc["frames"][1]["texts"][0]["text"] = "Serum in a glass bottle."
+            code, result = run(tmp, "review", doc, profile=child)
+            ok = (code == 3 and result["status"] == "review_required" and not result["ok"]
+                  and result["review_required"] and not result["errors"]
+                  and any(reason in r for r in result["review_reasons"]))
+            print(("PASS" if ok else "FAIL"), "profile review hold", fields)
+            if not ok:
+                failures.append(f"profile review hold {fields}")
+        proc = subprocess.run([sys.executable, "-I", "-B", str(GATE), str(tmp / "review.json"),
+                               "--skeleton", str(tmp / "skeleton.json"), "--profile", str(COSMETIC),
+                               "--facts", str(tmp / "facts.json")], capture_output=True, text=True)
+        ok = (proc.returncode == 3 and "status is draft" in proc.stdout and "verification is unverified" in proc.stdout
+              and "meaning-level refuter clearance and named human sign-off in claims.md" in proc.stdout)
+        print(("PASS" if ok else "FAIL"), "text output explains profile review hold")
+        if not ok:
+            failures.append("text output explains profile review hold")
+        profile = json.loads(COSMETIC.read_text(encoding="utf-8"))
+        ok = profile["status"] == "draft" and profile["verification"] == "unverified" and profile["disclaimer"] is None
+        print(("PASS" if ok else "FAIL"), "cosmetic profile awaits human review without supplement disclaimer")
+        if not ok:
+            failures.append("cosmetic review status")
+
+    total = len(MUTATIONS) + len(WARNINGS) + len(CLEAN) + len(CONFIG) + 3 + len(cosmetic_cases) + 1 + len(review_cases) + 1 + len(approved_free_from) + len(source_warning_cases) + len(lifecycle_cases) + 1
     print(f"{total - len(failures)}/{total} passed")
     if failures:
         print("FAILED:", ", ".join(failures))

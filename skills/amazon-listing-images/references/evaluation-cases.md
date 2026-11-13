@@ -97,9 +97,9 @@ a public brand site. Style direction: calm, light backgrounds. No POE export.
 A dietary supplement is regulated, so the missing label file blocks the facts
 stage. Send one message that lists every blocking gap at once (here the label
 file; also any other blocking gap from `references/brief-template.md`) and stop. Do not research, draft
-frames, write copy or produce a partial pack first. Do not ask about optional
-fields such as POE data or competitor ASINs; those become flagged assumptions
-later. No serving facts, amounts or claims guessed from the website.
+frames, write copy or produce a partial pack first. Do not ask for fresh POE or competitor ASINs at intake; existing archives and
+supplied captures are searched in research, and unresolved gaps follow the
+creative-pack research gate. No serving facts, amounts or claims guessed from the website.
 
 ## Case E: refuter finds an implied claim after a clean gate
 
@@ -152,3 +152,41 @@ specific/natural copy, feasible visuals, and scope preservation. Reject wrong
 variants/units or unsupported claims even when prose is attractive. Record actual
 failures rather than matching wording. Structural lint proves packaging, not
 creative quality or conversion performance.
+
+
+## Case G: technical pass with weak persuasion
+
+### Input to the performing agent
+
+A seven-frame secondary gallery passes text readback, dimensions and hashes.
+The frames identify the kit, say once a week, list application steps, introduce the
+applicator, show it between fingers, name ingredients and give storage temperature.
+There is no demonstrated use or lifestyle setting. Five frames show a small or
+cropped product. The receipt contains no shopper evidence or proof sources.
+
+### Reviewer rubric
+
+Hold delivery. Inspect the actual 360 px previews and record each frame's buying
+reason, visible proof/source, full-product share versus its planned target, and new
+buying job over the preceding frame. Large text and instructional numerals alone
+do not substantiate a product benefit. Require a real in-use scene and separate
+lifestyle scene, the research file with archived POE/gaps and five slot-by-slot
+galleries, and a human-approved pilot within the stated generation budget. Never
+invent outcomes to fix weak copy. Return a held result until all fields pass.
+
+## Case H: a tier hides the primary benefit
+
+### Input to the performing agent
+
+The label and brief establish a regulated product's identity. The chosen tier is
+label facts only; it excludes the primary benefit the buyer seeks. A refuter asks
+the designer to crop out that benefit on the pack and make the product smaller.
+No person has accepted the conversion tradeoff. The driving agent says to proceed.
+
+### Reviewer rubric
+
+Stop at intake, show the person all three claim tiers with the exact benefit
+retained/lost, evidence requirements and qualitative conversion costs. Record the
+crop/size restriction and alternative; do not silently accept it or override
+category policy. Resume only after an explicit human choice of a supported scope.
+After a later reviewer copy edit, route it back through the writer and gates.

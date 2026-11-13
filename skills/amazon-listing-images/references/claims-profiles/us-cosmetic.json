@@ -1,0 +1,48 @@
+{
+  "_doc": [
+    "US cosmetic profile for scripts/check_copy.py, built on amazon-standard. Draft, unverified; awaiting human category compliance review and label verification before publication.",
+    "Cosmetic intake permits sourced scalp-care, appearance and practical benefits, verified directions and product facts, and sourced ingredient facts. An ingredient fact must not imply a finished-product result. Every such line needs its source in claims.md and meaning-level facts-and-images review; regex checks cannot establish substantiation or image implications.",
+    "Disease and body-structure/function claims are outside this cosmetic-only tier. Drug or device intended use needs separate category review, not a facts.allow exemption. These patterns are a first filter, not a complete legal word list.",
+    "Agency restrictions: detox/timing promises and device-mechanism copy are held out of this tier. Quality, origin, testing and free-from copy needs an evidence-backed exact-line brief approval and the existing facts.allow exemption. Those agency holds are not claims that FDA bans every matching word. Use, amounts and units must match the label.",
+    "Source-required warnings: appearance, safety and ingredient/mechanism wording is not blanket-banned. Record each matched line, source, intended cosmetic meaning and refuter resolution in claims.md before clearance. Hypoallergenic has no FDA definition or specific federal standard; our source/review requirement is an agency rule, not an FDA prohibition.",
+    "FDA intended-use distinction: https://www.fda.gov/cosmetics/cosmetics-laws-regulations/it-cosmetic-drug-or-both-or-it-soap ; hypoallergenic: https://www.fda.gov/cosmetics/cosmetics-labeling-claims/hypoallergenic-cosmetics . Checked 2026-11-12; profile remains unverified.",
+    "Inherited amazon-standard rules still apply. No supplement structure/function disclaimer is imposed on cosmetic facts."
+  ],
+  "name": "us-cosmetic",
+  "status": "draft",
+  "verification": "unverified",
+  "extends": "amazon-standard",
+  "banned": {
+    "outside cosmetic-only tier: drug and disease intended use": [
+      "regrow|regrowth|hair growth|hair loss|\\bgrows? hair\\b",
+      "\\b(?:block|inhibit|reduc)\\w*\\s+DHT\\b|FDA.?approved",
+      "\\btreat|\\bcure\\b(?!\\s+under\\s+(?:(?:a|an|the)\\s+)?(?:UV|LED)\\b)|\\bprevent|diagnos|disease|diabet|stroke|\\bcancer|alzheimer|dementia|arthritis|obesity|insomnia|\\banxiety|\\bdepress(?:ion|ive|ed)\\b|infection|\\bvirus|\\bviral\\b",
+      "\\b(?:support|improv|boost|increas)\\w*\\s+(?:blood\\s+circulat\\w*|circulat\\w*|immun\\w*|heart\\s+function)|\\b(?:lower|reduc|control)\\w*\\s+(?:cholesterol|glucose|blood\\s+pressure)|\\b(?:reliev|reduc)\\w*\\s+(?:pain|inflamm\\w*)|anti[- ]?inflamm",
+      "\\b(?:eczema|acne)\\b",
+      "\\b(?:stimulat\\w*|boost\\w*|increas\\w*)\\s+collagen(?:\\s+production)?\\b",
+      "\\bregenerat\\w*\\s+cells?\\b"
+    ],
+    "agency restriction: device mechanisms require separate category review": [
+      "micro.?channel"
+    ],
+    "agency restriction: detox and timing promises": [
+      "detox",
+      "you'?ll feel|notice a difference|in days"
+    ],
+    "agency restriction: quality, origin, testing and free-from need evidence and exact approval": [
+      "non-?gmo|\\bgmo\\b|\\bpur(e|ity)\\b|\\borganic\\b|\\btested\\b|\\btesting\\b|\\blab\\b|certif|\\bgmp\\b|\\bfda\\b|made in|\\busa\\b|patent|verified|clinical|pharma|transparency|no proprietary blend",
+      "free[- ]from|veggie|vegetarian|vegan|gluten|dairy|\\ballergen[- ]free\\b|\\bno allergens?\\b",
+      "\\b(?:fragrance|paraben|alcohol)[- ]free\\b"
+    ]
+  },
+  "disclaimer": null,
+  "warnings": {
+    "agency source requirement: cosmetic appearance and safety": [
+      "painless|sterile|\\bsafe\\b|no side effects|non.?irritat|hypoallergenic|fuller hair|thicker hair",
+      "\\bresults?\\b|\\bworks\\b"
+    ],
+    "agency source requirement: ingredient facts, practical use and cosmetic meaning": [
+      "follicle|absorption|penetrat|\\bflush|\\bhealth"
+    ]
+  }
+}
